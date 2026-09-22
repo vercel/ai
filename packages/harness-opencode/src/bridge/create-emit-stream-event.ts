@@ -3,6 +3,7 @@ import {
   emitLegacyPartDelta,
   emitLegacyTextPartUpdate,
   emitMissingFinalDelta,
+  emitOpenCodeStreamStart,
   openCodeMessageInfoFromValue,
   type TranslationState,
 } from './opencode-events';
@@ -60,6 +61,33 @@ export function createEmitStreamEvent({
   stripWorkDir: (file: string) => string;
   formatError: (error: unknown) => string;
 }): (event: OpenCodeEvent) => void {
+  const compactionMessages = new Set<string>();
+  let compactionTrigger: 'auto' | 'manual' = 'auto';
+  let compaction:
+    | { id: string; trigger: 'auto' | 'manual'; text: Map<string, string> }
+    | undefined;
+  const finishCompaction = (failed = false) => {
+    if (!compaction) return;
+    if (failed) {
+      emit({
+        type: 'raw',
+        rawValue: {
+          type: 'opencode.compaction',
+          messageId: compaction.id,
+          status: 'failed',
+        },
+      });
+    } else {
+      emit({
+        type: 'compaction',
+        trigger: compaction.trigger,
+        summary: [...compaction.text.values()].join(''),
+        harnessMetadata: { opencode: { messageId: compaction.id } },
+      });
+    }
+    compaction = undefined;
+  };
+
   return event => {
     const type = event.type;
     const props = event.properties ?? {};
@@ -70,8 +98,60 @@ export function createEmitStreamEvent({
         const id = stringValue(info.id);
         const role = stringValue(info.role);
         if (id && role) state.messageRoles.set(id, role);
+        if (id && info.summary === true) {
+          if (!compactionMessages.has(id)) {
+            compactionMessages.add(id);
+            compaction = { id, trigger: compactionTrigger, text: new Map() };
+            emitOpenCodeStreamStart({ info, state, emit });
+            emit({
+              type: 'raw',
+              rawValue: {
+                type: 'opencode.compaction',
+                messageId: id,
+                status: 'started',
+              },
+            });
+          }
+          if (info.error && compaction?.id === id) finishCompaction(true);
+        }
       }
       return;
+    }
+
+    if (type === 'session.compacted') {
+      finishCompaction();
+      return;
+    }
+    if (type === 'message.part.updated' || type === 'message.part.delta') {
+      const part = asOpenCodeObject(props.part);
+      if (type === 'message.part.updated' && part?.type === 'compaction') {
+        compactionTrigger = part.auto === false ? 'manual' : 'auto';
+        return;
+      }
+      const messageId = stringValue(
+        type === 'message.part.updated' ? part?.messageID : props.messageID,
+      );
+      if (messageId && compactionMessages.has(messageId)) {
+        if (type === 'message.part.updated') {
+          if (messageId === compaction?.id && part?.type === 'text') {
+            const id = stringValue(part.id);
+            if (id && typeof part.text === 'string') {
+              compaction.text.set(id, part.text);
+            }
+          }
+          emitLegacyStepFinishPart({ part: props.part, state, emit });
+        } else if (messageId === compaction?.id && props.field === 'text') {
+          const id = stringValue(props.partID);
+          if (
+            id &&
+            compaction.text.has(id) &&
+            typeof props.delta === 'string'
+          ) {
+            compaction.text.set(id, compaction.text.get(id)! + props.delta);
+          }
+        }
+        return;
+      }
     }
 
     if (type === 'message.part.delta') {
@@ -202,7 +282,9 @@ export function createEmitStreamEvent({
     if (type === 'session.next.tool.called') {
       const callID = String(props.callID ?? event.id);
       const rawToolName = String(props.tool ?? 'unknown');
-      if (rawToolName === 'StructuredOutput') return;
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName = toWireToolName(rawToolName);
       state.toolNames.set(callID, { rawToolName, toolName });
       const hostToolName = getHostToolName(toolName, props.tool);
@@ -238,7 +320,9 @@ export function createEmitStreamEvent({
       const rawToolName =
         cachedTool?.rawToolName ??
         String((props as { tool?: unknown }).tool ?? '');
-      if (rawToolName === 'StructuredOutput') return;
+      if (rawToolName === 'StructuredOutput' || rawToolName === 'question') {
+        return;
+      }
       const toolName =
         cachedTool?.toolName ?? toWireToolName(rawToolName || 'unknown');
       if (getHostToolName(toolName, rawToolName)) return;
@@ -306,6 +390,7 @@ export function createEmitStreamEvent({
       return;
     }
     if (type === 'session.error' || type === 'session.next.step.failed') {
+      finishCompaction(true);
       const error = props.error ?? event;
       emitError({
         error,
@@ -397,7 +482,7 @@ function emitLegacyToolPart({
   }
   const callID = toolPart.callID;
   const rawToolName = toolPart.tool;
-  if (rawToolName === 'StructuredOutput') return;
+  if (rawToolName === 'StructuredOutput' || rawToolName === 'question') return;
   const toolName = toWireToolName(rawToolName);
   if (toolName === 'agent') {
     const metadata = {

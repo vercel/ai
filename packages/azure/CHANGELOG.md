@@ -1,5 +1,187 @@
 # @ai-sdk/azure
 
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [7bed0ef]
+- Updated dependencies [411b3f2]
+- Updated dependencies [e13c32f]
+  - @ai-sdk/deepseek@3.0.50
+  - @ai-sdk/openai@4.0.72
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [e76a0a3]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [a36eaaf]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/openai@4.0.71
+  - @ai-sdk/deepseek@3.0.49
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [fd75cee]
+- Updated dependencies [1f5bb62]
+- Updated dependencies [0455398]
+  - @ai-sdk/openai@4.0.70
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/deepseek@3.0.48
+
+## 4.0.73
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/openai@4.0.69
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/deepseek@3.0.47
+
+## 4.0.72
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/deepseek@3.0.46
+  - @ai-sdk/openai@4.0.68
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/openai@4.0.67
+  - @ai-sdk/deepseek@3.0.45
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [3867a4e]
+  - @ai-sdk/deepseek@3.0.44
+
+## 4.0.69
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [0de8886]
+- Updated dependencies [d5e3024]
+- Updated dependencies [0096850]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/openai@4.0.66
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/deepseek@3.0.43
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/openai@4.0.65
+  - @ai-sdk/deepseek@3.0.42
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.67
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai@4.0.64
+  - @ai-sdk/deepseek@3.0.41
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.66
+
+### Patch Changes
+
+- 85db433: Include explicit message item types in Azure AI Foundry Responses requests.
+- Updated dependencies [85db433]
+- Updated dependencies [5fb2a64]
+- Updated dependencies [e105b2b]
+- Updated dependencies [45f2b6a]
+  - @ai-sdk/openai@4.0.63
+
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [8487955]
+  - @ai-sdk/openai@4.0.62
+
+## 4.0.64
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [4a09793]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+- Updated dependencies [685ed8c]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/openai@4.0.61
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/deepseek@3.0.40
+
+## 4.0.63
+
+### Patch Changes
+
+- Updated dependencies [17e489e]
+  - @ai-sdk/openai@4.0.60
+
+## 4.0.62
+
+### Patch Changes
+
+- Updated dependencies [4af00d1]
+- Updated dependencies [abb9ebf]
+  - @ai-sdk/openai@4.0.59
+
+## 4.0.61
+
+### Patch Changes
+
+- Updated dependencies [b54e551]
+- Updated dependencies [17d3436]
+  - @ai-sdk/openai@4.0.58
+
+## 4.0.60
+
+### Patch Changes
+
+- Updated dependencies [048ce06]
+- Updated dependencies [7243530]
+  - @ai-sdk/openai@4.0.57
+
 ## 4.0.59
 
 ### Patch Changes

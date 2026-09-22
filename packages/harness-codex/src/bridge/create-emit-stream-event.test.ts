@@ -245,4 +245,168 @@ describe('createEmitStreamEvent', () => {
       ]
     `);
   });
+
+  it('preserves web search action metadata', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    const action = {
+      type: 'search',
+      query: 'top news stories',
+    };
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        nativeName: 'web_search',
+        input: JSON.stringify({ query: 'top news stories' }),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        result: action,
+      },
+    ]);
+  });
+
+  it('defers web search tool calls until the query becomes available', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    const action = {
+      type: 'search',
+      query: 'NPB September 15 2026 game results scores',
+    };
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+      },
+    });
+    emitStreamEvent({
+      type: 'item.updated',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        action,
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        nativeName: 'web_search',
+        input: JSON.stringify({ query: action.query }),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        result: action,
+      },
+    ]);
+  });
+
+  it('emits a deferred web search tool call when the query arrives on completion', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'web_search',
+        id: 'search-1',
+        query: 'latest AI SDK release',
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        nativeName: 'web_search',
+        input: JSON.stringify({ query: 'latest AI SDK release' }),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'search-1',
+        toolName: 'webSearch',
+        result: null,
+      },
+    ]);
+  });
 });

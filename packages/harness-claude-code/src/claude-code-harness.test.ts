@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+const reconnects: Array<unknown> = [];
 let connectOnOpen = false;
 
 const wsMock = vi.hoisted(() => {
@@ -91,16 +92,25 @@ const wsMock = vi.hoisted(() => {
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    private readonly connect: () => Promise<unknown>;
+    private readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       this.connect = connect;
+      reconnects.push(reconnect);
     }
 
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect();
+        await this.connect({ abortSignal: new AbortController().signal });
       }
     }
     on(): () => void {
@@ -290,6 +300,7 @@ describe('createClaudeCode adapter', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    reconnects.length = 0;
     connectOnOpen = false;
     wsMock.reset();
   });
@@ -333,7 +344,7 @@ describe('createClaudeCode adapter', () => {
       'EnterPlanMode',
       'EnterWorktree',
       'ExitWorktree',
-      'AskUserQuestion',
+      'askUserQuestions',
       'Skill',
       'ToolSearch',
       'Artifact',
@@ -370,7 +381,9 @@ describe('createClaudeCode adapter', () => {
   });
 
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
-    const harness = createClaudeCode();
+    const harness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'test-api-key' },
+    });
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
@@ -430,8 +443,8 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('prefers the per-turn model over the deprecated adapter model', async () => {
-    const harness = createClaudeCode({ model: 'legacy-model' });
+  it('sends the per-turn model to the CLI', async () => {
+    const harness = createClaudeCode();
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
@@ -485,6 +498,56 @@ describe('createClaudeCode adapter', () => {
     });
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     await session.doDestroy();
+  });
+
+  it('sets custom headers for Gateway and direct auth', async () => {
+    const gateway = createClaudeCode({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    });
+    const gatewaySession = await gateway.doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-gateway',
+    });
+    await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
+    await gatewaySession.doDestroy();
+
+    const direct = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-key' },
+    });
+    const directSession = await direct.doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-direct',
+    });
+    await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    expect(sentMessages.at(-1)).toMatchObject({
+      env: { ANTHROPIC_CUSTOM_HEADERS: 'x-tenant: acme' },
+    });
+    await directSession.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
@@ -555,7 +618,66 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('brokers an explicit Claude OAuth token at the host boundary', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createClaudeCode({
+      auth: { CLAUDE_CODE_OAUTH_TOKEN: 'host-oauth-token' },
+      credentialForwarding: ({ environmentVariableName }) =>
+        `ephemeral-${environmentVariableName}`,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: {
+                exact: 'Bearer ephemeral-CLAUDE_CODE_OAUTH_TOKEN',
+              },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer host-oauth-token' },
+        },
+      },
+    ]);
+    expect(sentMessages.at(-1)).toMatchObject({
+      type: 'start',
+      env: {
+        CLAUDE_CODE_OAUTH_TOKEN: 'ephemeral-CLAUDE_CODE_OAUTH_TOKEN',
+      },
+    });
+    expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('host-oauth-token');
+
+    await session.doDestroy();
+  });
+
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -598,8 +720,30 @@ describe('createClaudeCode adapter', () => {
       env: { ANTHROPIC_API_KEY: 'caller-managed-credential' },
     });
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createClaudeCode({
+      auth: { ANTHROPIC_API_KEY: 'anthropic-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        spawnEnvs: [],
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
   });
 
   it('customizes credentials forwarded through the Claude process environment', async () => {
@@ -663,7 +807,12 @@ describe('createClaudeCode adapter', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createClaudeCode({ mintBridgeToken });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createClaudeCode({ mintBridgeToken, reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
@@ -693,6 +842,7 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(reconnects).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 
@@ -1353,8 +1503,8 @@ describe('createClaudeCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createClaudeCode({ model: 'first-model' });
-      const second = createClaudeCode({ model: 'second-model' });
+      const first = createClaudeCode({ maxTurns: 1 });
+      const second = createClaudeCode({ maxTurns: 2 });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

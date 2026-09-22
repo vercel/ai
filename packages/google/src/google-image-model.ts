@@ -53,7 +53,7 @@ export class GoogleImageModel implements ImageModelV4 {
     if (this.settings.maxImagesPerCall != null) {
       return this.settings.maxImagesPerCall;
     }
-    return 10;
+    return 1;
   }
 
   get provider(): string {
@@ -77,7 +77,6 @@ export class GoogleImageModel implements ImageModelV4 {
 
     const {
       prompt,
-      n,
       size,
       aspectRatio,
       seed,
@@ -93,13 +92,6 @@ export class GoogleImageModel implements ImageModelV4 {
     if (mask != null) {
       throw new Error(
         'Gemini image models do not support mask-based image editing.',
-      );
-    }
-
-    // Gemini does not support generating multiple images per call via n parameter
-    if (n != null && n > 1) {
-      throw new Error(
-        'Gemini image models do not support generating a set number of images per call. Use n=1 or omit the n parameter.',
       );
     }
 
@@ -243,6 +235,9 @@ export class GoogleImageModel implements ImageModelV4 {
 
     return {
       images,
+      ...(result.finishReason.unified === 'content-filter'
+        ? { isRetryable: false }
+        : {}),
       warnings,
       providerMetadata: {
         google: {

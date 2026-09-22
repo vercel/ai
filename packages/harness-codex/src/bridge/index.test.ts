@@ -28,6 +28,7 @@ const state = vi.hoisted(() => ({
   startRestartThread: false,
   startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
+  startHeaders: undefined as Record<string, string> | undefined,
   resumeThreadCalls: [] as string[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
@@ -86,6 +87,7 @@ vi.mock('@ai-sdk/harness/bridge', () => ({
         model: state.startModel,
         codexConfig: state.startCodexConfig,
         mcpServers: state.startMcpServers,
+        headers: state.startHeaders,
         tools: [
           {
             name: 'get_weather',
@@ -121,6 +123,7 @@ describe('Codex bridge config', () => {
     state.startRestartThread = false;
     state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
+    state.startHeaders = undefined;
     state.resumeThreadCalls = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
@@ -299,6 +302,29 @@ describe('Codex bridge config', () => {
         "model": "openai/gpt-5.5",
         "reasoningSummary": "detailed",
         "supportsReasoningSummaries": true,
+      }
+    `);
+  });
+
+  test('passes headers to a direct model provider', async () => {
+    state.startHeaders = { 'x-tenant': 'acme' };
+    process.env.CODEX_API_KEY = 'openai-key';
+
+    await import('./index');
+
+    expect(state.codexOptions[0]?.config?.model_providers)
+      .toMatchInlineSnapshot(`
+      {
+        "agent_bridge_openai": {
+          "base_url": "https://api.openai.com/v1",
+          "env_key": "CODEX_API_KEY",
+          "http_headers": {
+            "x-tenant": "acme",
+          },
+          "name": "Agent Bridge OpenAI",
+          "supports_websockets": false,
+          "wire_api": "responses",
+        },
       }
     `);
   });

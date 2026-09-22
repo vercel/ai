@@ -19,7 +19,10 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { createRestrictedTelemetryDispatcher } from 'ai/internal';
+import {
+  createRestrictedTelemetryDispatcher,
+  createToolSearchState,
+} from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
@@ -30,6 +33,10 @@ import {
   type StreamFinish,
   type ToolInputLifecycleEvent,
 } from './do-stream-step.js';
+import {
+  addToolResultsToConversation,
+  type ProviderExecutedToolResultPosition,
+} from './add-tool-results-to-conversation.js';
 import { resolveToolContext } from './resolve-tool-context.js';
 import { serializeToolSet } from './serializable-schema.js';
 import type {
@@ -82,6 +89,8 @@ function mergePrepareStepGenerationSettings(
 export interface StreamTextIteratorYieldValue {
   /** The tool calls requested by the model (parsed with typed inputs) */
   toolCalls: ParsedToolCall[];
+  /** The tools available for execution in the current step. */
+  tools?: ToolSet;
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
@@ -92,6 +101,8 @@ export interface StreamTextIteratorYieldValue {
   toolsContext?: Record<string, Context | undefined>;
   /** Provider-executed tool results (keyed by tool call ID) */
   providerExecutedToolResults?: Map<string, ProviderExecutedToolResult>;
+  /** Original positions of provider-executed results in assistant content. */
+  providerExecutedToolResultPositions?: ProviderExecutedToolResultPosition[];
   /** The sandbox selected for the current step. */
   experimental_sandbox?: SandboxSession;
 }
@@ -175,10 +186,15 @@ export async function* streamTextIterator({
   let _isFirstIteration = true;
   let stepNumber = 0;
   let lastStep: StepResult<any, any> | undefined;
-  let lastStepWasToolCalls = false;
+  let lastStepWasYielded = false;
+  const pendingDeferredToolCallIds = new Set<string>();
   let wasAborted = false;
   let terminalError: unknown;
   let hasTerminalError = false;
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: undefined,
+  });
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -299,14 +315,15 @@ export async function* streamTextIterator({
     });
 
     try {
-      // Filter tools if activeTools is specified
+      const stepActiveTools = filterActiveTools({
+        tools,
+        activeTools: currentActiveTools,
+      });
       const effectiveTools =
-        currentActiveTools !== undefined
-          ? (filterActiveTools({
-              tools,
-              activeTools: currentActiveTools,
-            }) ?? tools)
-          : tools;
+        prepareToolSearch(stepActiveTools, {
+          toolsContext: currentToolsContext as never,
+          experimental_sandbox: stepSandbox,
+        }) ?? {};
 
       // Serialize tools before crossing the step boundary — zod schemas
       // contain functions that can't be serialized by the workflow runtime.
@@ -385,11 +402,17 @@ export async function* streamTextIterator({
       // Reconstruct the full StepResult outside the step boundary so the
       // durable event log doesn't carry StepResult's redundant copies (or the
       // per-chunk snapshot the step used to return).
-      const step = buildStepResult(raw, toolCalls, finish, {
-        stepNumber,
-        runtimeContext: currentRuntimeContext,
-        toolsContext: currentToolsContext,
-      });
+      const step = buildStepResult(
+        raw,
+        toolCalls,
+        finish,
+        providerExecutedToolResults,
+        {
+          stepNumber,
+          runtimeContext: currentRuntimeContext,
+          toolsContext: currentToolsContext,
+        },
+      );
 
       await telemetryDispatcher.onLanguageModelCallEnd?.({
         callId: step.callId,
@@ -408,19 +431,41 @@ export async function* streamTextIterator({
       stepNumber++;
       steps.push(step);
       lastStep = step;
-      lastStepWasToolCalls = false;
+      lastStepWasYielded = false;
 
       const finishReason = finish?.finishReason;
+      const isToolExecutionAllowed =
+        finishReason === 'tool-calls' || finishReason === 'stop';
+
+      for (const toolCall of toolCalls) {
+        if (
+          toolCall.providerExecuted &&
+          serializedTools[toolCall.toolName]?.supportsDeferredResults &&
+          !providerExecutedToolResults.has(toolCall.toolCallId)
+        ) {
+          pendingDeferredToolCallIds.add(toolCall.toolCallId);
+        }
+      }
+      for (const toolCallId of providerExecutedToolResults.keys()) {
+        pendingDeferredToolCallIds.delete(toolCallId);
+      }
+
+      const shouldProcessTools =
+        isToolExecutionAllowed &&
+        (toolCalls.length > 0 || providerExecutedToolResults.size > 0);
 
       if (hasTerminalError) {
         // The error crossed the durable step boundary as data. End the loop
         // without throwing so WorkflowAgent can preserve the existing
         // resolved-result contract and expose the original value.
         done = true;
-      } else if (finishReason === 'tool-calls') {
-        lastStepWasToolCalls = true;
+      } else if (shouldProcessTools) {
+        lastStepWasYielded = true;
 
-        const assistantContent = getAssistantMessageContent(step);
+        const {
+          content: assistantContent,
+          providerExecutedToolResultPositions,
+        } = getAssistantMessageContent(step);
         const includedToolCallIds = new Set(
           assistantContent.flatMap(part =>
             part.type === 'tool-call' ? [part.toolCallId] : [],
@@ -449,36 +494,60 @@ export async function* streamTextIterator({
         // Also include provider-executed tool results so they can be used instead of local execution
         const toolResults = yield {
           toolCalls,
+          tools: effectiveTools,
           messages: conversationPrompt,
           step,
           runtimeContext: currentRuntimeContext,
           toolsContext: currentToolsContext,
           experimental_sandbox: stepSandbox,
           providerExecutedToolResults,
+          providerExecutedToolResultPositions,
         };
 
-        conversationPrompt.push({
-          role: 'tool',
-          content: toolResults,
+        const responseMessages = addToolResultsToConversation({
+          messages: conversationPrompt,
+          toolResults,
+          providerExecutedToolCallIds: new Set([
+            ...toolCalls.flatMap(toolCall =>
+              toolCall.providerExecuted ? [toolCall.toolCallId] : [],
+            ),
+            ...providerExecutedToolResults.keys(),
+          ]),
+          providerExecutedToolResultPositions,
         });
+        step.response.messages.push(
+          ...(responseMessages as unknown as typeof step.response.messages),
+        );
 
-        if (stopConditions) {
-          const stopConditionList = Array.isArray(stopConditions)
-            ? stopConditions
-            : [stopConditions];
-          if (stopConditionList.some(test => test({ steps }))) {
-            done = true;
-          }
-        }
-      } else if (finishReason === 'stop') {
+        const stopConditionList =
+          stopConditions == null
+            ? []
+            : Array.isArray(stopConditions)
+              ? stopConditions
+              : [stopConditions];
+        const stopConditionMet = stopConditionList.some(test =>
+          test({ steps }),
+        );
+        const hasClientToolCalls = toolCalls.some(
+          toolCall => !toolCall.providerExecuted,
+        );
+
+        done =
+          stopConditionMet ||
+          (!hasClientToolCalls && pendingDeferredToolCallIds.size === 0);
+      } else if (finishReason === 'stop' || finishReason === 'tool-calls') {
         // Add assistant response content to the conversation
-        const assistantContent = getAssistantMessageContent(step);
+        const { content: assistantContent } = getAssistantMessageContent(step);
 
         if (assistantContent.length > 0) {
-          conversationPrompt.push({
+          const assistantMessage = {
             role: 'assistant',
             content: assistantContent,
-          });
+          } as const;
+          conversationPrompt.push(assistantMessage);
+          step.response.messages.push(
+            assistantMessage as unknown as (typeof step.response.messages)[number],
+          );
         }
 
         done = true;
@@ -519,8 +588,8 @@ export async function* streamTextIterator({
     }
   }
 
-  // Yield the final step if it wasn't already yielded (tool-calls steps are yielded inside the loop)
-  if (lastStep && !lastStepWasToolCalls) {
+  // Yield the final step if it wasn't already yielded inside the loop.
+  if (lastStep && !lastStepWasYielded) {
     yield {
       toolCalls: [],
       messages: conversationPrompt,
@@ -653,6 +722,7 @@ function buildStepResult(
   raw: DoStreamStepRawResult,
   toolCalls: ParsedToolCall[],
   finish: StreamFinish | undefined,
+  providerExecutedToolResults: Map<string, ProviderExecutedToolResult>,
   opts: {
     stepNumber: number;
     runtimeContext: Context;
@@ -740,8 +810,52 @@ function buildStepResult(
         }
         break;
       }
+      case 'provider-tool-result': {
+        const result = providerExecutedToolResults.get(part.toolCallId);
+        if (result == null) {
+          break;
+        }
+
+        const toolCall = toolCalls.find(
+          toolCall => toolCall.toolCallId === result.toolCallId,
+        );
+        const common = {
+          toolCallId: result.toolCallId,
+          toolName: result.toolName,
+          input: toolCall?.input,
+          providerExecuted: true as const,
+          ...(result.dynamic === true || toolCall?.dynamic === true
+            ? { dynamic: true as const }
+            : {}),
+          ...(result.providerMetadata != null
+            ? { providerMetadata: result.providerMetadata }
+            : {}),
+          ...(toolCall?.toolMetadata != null
+            ? { toolMetadata: toolCall.toolMetadata }
+            : {}),
+        };
+
+        content.push(
+          result.isError
+            ? {
+                type: 'tool-error',
+                ...common,
+                error: result.result,
+              }
+            : {
+                type: 'tool-result',
+                ...common,
+                output: result.result,
+              },
+        );
+        break;
+      }
     }
   }
+
+  const toolResults = content.filter(
+    part => part.type === 'tool-result',
+  ) as StepResult<ToolSet, any>['toolResults'];
 
   return {
     callId: 'workflow-agent',
@@ -766,9 +880,9 @@ function buildStepResult(
     toolCalls: validToolCalls,
     staticToolCalls: validToolCalls.filter(tc => tc.dynamic !== true),
     dynamicToolCalls: validToolCalls.filter(tc => tc.dynamic),
-    toolResults: [],
-    staticToolResults: [],
-    dynamicToolResults: [],
+    toolResults,
+    staticToolResults: toolResults.filter(result => result.dynamic !== true),
+    dynamicToolResults: toolResults.filter(result => result.dynamic === true),
     finishReason: finish?.finishReason ?? 'other',
     rawFinishReason: finish?.rawFinishReason,
     usage:
@@ -812,19 +926,27 @@ function buildStepResult(
   } as StepResult<ToolSet, any>;
 }
 
-function getAssistantMessageContent(
-  step: StepResult<any, any>,
-): Extract<LanguageModelV4Prompt[number], { role: 'assistant' }>['content'] {
+function getAssistantMessageContent(step: StepResult<any, any>): {
+  content: Extract<
+    LanguageModelV4Prompt[number],
+    { role: 'assistant' }
+  >['content'];
+  providerExecutedToolResultPositions: ProviderExecutedToolResultPosition[];
+} {
   const content: Extract<
     LanguageModelV4Prompt[number],
     { role: 'assistant' }
   >['content'] = [];
+  const providerExecutedToolResultPositions: ProviderExecutedToolResultPosition[] =
+    [];
+  let contentIndex = 0;
 
   for (const part of step.content) {
     switch (part.type) {
       case 'text':
         if (part.text.length > 0) {
           content.push({ type: 'text', text: part.text });
+          contentIndex++;
         }
         break;
       case 'file':
@@ -839,14 +961,26 @@ function getAssistantMessageContent(
               }
             : {}),
         });
+        contentIndex++;
         break;
       case 'tool-call':
         content.push(toAssistantToolCallContent(part));
+        contentIndex++;
+        break;
+      case 'tool-result':
+      case 'tool-error':
+        if (part.providerExecuted) {
+          providerExecutedToolResultPositions.push({
+            toolCallId: part.toolCallId,
+            contentIndex,
+          });
+          contentIndex++;
+        }
         break;
     }
   }
 
-  return content;
+  return { content, providerExecutedToolResultPositions };
 }
 
 function toAssistantToolCallContent(toolCall: {

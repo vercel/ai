@@ -121,6 +121,7 @@ describe('bedrock-mantle-provider', () => {
       'test-model',
       expect.objectContaining({
         provider: 'bedrock-mantle.responses',
+        supportsWebSearchSourcesInclude: false,
       }),
     );
   });

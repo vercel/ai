@@ -698,6 +698,7 @@ describe('OpenTelemetry', () => {
           "runtimeAttributes": {
             "gen_ai.client.operation.duration": 1,
             "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+            "gen_ai.provider.name": "openai",
             "gen_ai.response.finish_reasons": [
               "stop",
             ],
@@ -708,6 +709,23 @@ describe('OpenTelemetry', () => {
           },
         }
       `);
+    });
+
+    it('updates provider attribution when the response provider differs', () => {
+      integration.onStart!(makeOnStartEvent());
+      integration.onStepStart!(makeStepStartEvent());
+      integration.onLanguageModelCallStart!(makeLanguageModelCallStartEvent());
+      integration.onLanguageModelCallEnd!(
+        makeLanguageModelCallEndEvent({
+          provider: 'anthropic.messages',
+          modelId: 'fallback-model',
+        }),
+      );
+
+      expect(tracer.spans[2].attributes).toMatchObject({
+        'gen_ai.provider.name': 'anthropic',
+        'gen_ai.response.model': 'fallback-model',
+      });
     });
 
     it('omits malformed finish reason arrays on the chat span', () => {
@@ -1706,6 +1724,7 @@ describe('OpenTelemetry', () => {
               "ai.usage.outputTokenDetails.textTokens": 15,
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -1809,6 +1828,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2435,6 +2455,76 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('stream errors', () => {
+    it('records and exports streamText spans when the provider stream errors', async () => {
+      const sdkTrace = createSdkTracer();
+      const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(new Error('socket closed'));
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: sdkIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      const rootSpan = getExportedSpan(
+        sdkTrace.exporter,
+        'invoke_agent mock-model-id',
+      );
+      const stepSpan = getExportedSpan(sdkTrace.exporter, 'step 1');
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat mock-model-id');
+
+      for (const span of [rootSpan, stepSpan, chatSpan]) {
+        expect(span.status.code).toBe(SpanStatusCode.ERROR);
+        expect(span.events).toContainEqual(
+          expect.objectContaining({ name: 'exception' }),
+        );
+      }
+
+      expect(stepSpan.parentSpanContext?.spanId).toBe(
+        rootSpan.spanContext().spanId,
+      );
+      expect(chatSpan.parentSpanContext?.spanId).toBe(
+        stepSpan.spanContext().spanId,
+      );
+    });
+  });
+
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for multi-step tool loop', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2572,6 +2662,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],
@@ -2662,6 +2753,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"tool_call"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "tool-calls",
               ],
@@ -2707,6 +2799,7 @@ describe('OpenTelemetry', () => {
             "runtimeAttributes": {
               "gen_ai.client.operation.duration": 1,
               "gen_ai.output.messages": "[{"role":"assistant","parts":[{"type":"text","content":"Hello world"}],"finish_reason":"stop"}]",
+              "gen_ai.provider.name": "openai",
               "gen_ai.response.finish_reasons": [
                 "stop",
               ],

@@ -5,9 +5,25 @@ import {
   validateUIMessages,
   validateUIMessagesForAgent,
 } from './validate-ui-messages';
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  expectTypeOf,
+  vi,
+} from 'vitest';
 
 describe('validateUIMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('parameter validation', () => {
     it('should throw InvalidArgumentError when messages parameter is null', async () => {
       await expect(
@@ -713,6 +729,62 @@ describe('validateUIMessages', () => {
   });
 
   describe('dynamic tool parts', () => {
+    it('should preserve titles on static and dynamic tool parts in every state', async () => {
+      const stateDetails = {
+        'input-streaming': { input: { value: 'test' } },
+        'input-available': { input: { value: 'test' } },
+        'approval-requested': {
+          input: { value: 'test' },
+          approval: { id: 'approval-requested' },
+        },
+        'approval-responded': {
+          input: { value: 'test' },
+          approval: { id: 'approval-responded', approved: true },
+        },
+        'output-available': {
+          input: { value: 'test' },
+          output: { result: 'success' },
+        },
+        'output-error': {
+          input: { value: 'test' },
+          errorText: 'Tool execution failed',
+        },
+        'output-denied': {
+          input: { value: 'test' },
+          approval: { id: 'output-denied', approved: false },
+        },
+      };
+      const parts = Object.entries(stateDetails).flatMap(([state, details]) => [
+        {
+          type: 'tool-foo',
+          toolCallId: `static-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'foo',
+          toolCallId: `dynamic-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+      ]);
+
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts,
+          },
+        ],
+      });
+
+      expect(messages[0].parts).toEqual(parts);
+    });
+
     it('should validate an assistant message with a dynamic tool part in input-streaming state', async () => {
       const messages = await validateUIMessages({
         messages: [
@@ -888,6 +960,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should validate a dynamic tool part in output-error state when input key is absent', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const messages = [
         {
           id: '1',
@@ -909,6 +984,17 @@ describe('validateUIMessages', () => {
 
       expectTypeOf(result).toEqualTypeOf<Array<UIMessage>>();
       expect(result).toEqual(messages);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
     });
   });
 
@@ -1559,6 +1645,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should preserve rawInput when state is output-error', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const inputMessages = [
         {
           id: '1',
@@ -1585,6 +1674,17 @@ describe('validateUIMessages', () => {
       });
 
       expect(result).toEqual(inputMessages);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
     });
 
     it('should throw error when no tool schema is found', async () => {

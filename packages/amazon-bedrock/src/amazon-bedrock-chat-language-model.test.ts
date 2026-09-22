@@ -414,6 +414,83 @@ describe('application inference profile reasoning', () => {
   });
 });
 
+describe('application inference profile structured output', () => {
+  it.each(['outputFormat', 'auto'] as const)(
+    'uses native structured output in %s mode when the Anthropic family is declared',
+    async structuredOutputMode => {
+      const applicationProfileArn =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+      let requestBody: any;
+      const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+        applicationProfileArn,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          modelFamily: 'anthropic',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: '{"name":"Test"}' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await applicationProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+        providerOptions: {
+          amazonBedrock: {
+            structuredOutputMode,
+          },
+        },
+      });
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      });
+    },
+  );
+});
+
 let mockOptions: {
   success: boolean;
   errorValue?: any;
@@ -3950,6 +4027,131 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should extract text from citation content', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{ text: 'Citation ' }, { text: 'response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Citation ' },
+        { type: 'text', text: 'response' },
+      ]);
+    });
+
+    it.each([undefined, null])(
+      'should ignore citation content when generated content is %s',
+      async generatedContent => {
+        server.urls[generateUrl].response = {
+          type: 'json-value',
+          body: {
+            output: {
+              message: {
+                role: 'assistant',
+                content: [
+                  {
+                    citationsContent: {
+                      content: generatedContent,
+                      citations: [],
+                    },
+                  },
+                ],
+              },
+            },
+            stopReason: 'end_turn',
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([]);
+      },
+    );
+
+    it('should ignore citation generated content without text', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{}, { text: null }, { text: 'Response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'Response' }]);
+    });
+
+    it('should prefer regular text when citation content is also present', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  text: 'Canonical response',
+                  citationsContent: {
+                    content: [{ text: 'Duplicate response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Canonical response' },
+      ]);
     });
 
     it('should extract usage', async () => {

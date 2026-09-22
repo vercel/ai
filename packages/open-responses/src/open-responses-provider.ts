@@ -47,6 +47,15 @@ export interface OpenResponsesProviderSettings {
   fetch?: FetchFunction;
 
   /**
+   * Whether to serialize assistant history using the strict OpenAI Responses
+   * input schemas. Assistant messages without an item ID are sent as easy input
+   * messages, while messages with an item ID are sent as complete output items.
+   *
+   * @default false
+   */
+  strictResponseInput?: boolean;
+
+  /**
    * Codecs for Open Responses extension tools, items, and streaming events.
    *
    * @experimental This API may change in a future release.
@@ -84,6 +93,7 @@ export function createOpenResponses(
       fetch: options.fetch,
       generateId: () => generateId(),
       extensionRegistry,
+      strictResponseInput: options.strictResponseInput,
     });
   };
 

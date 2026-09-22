@@ -6,6 +6,7 @@
  *
  * Run with: pnpm test:integration
  */
+import { waitForSleep } from '@workflow/vitest';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { start } from 'workflow/api';
 
@@ -212,13 +213,16 @@ describe('WorkflowAgent integration', { timeout: 120_000 }, () => {
   // ==========================================================================
 
   describe('timeout', () => {
-    it('completes within timeout', async () => {
+    it('completes within timeout without leaving a pending sleep', async () => {
       const run = await start(agentTimeoutE2e, []);
       const rv = await run.returnValue;
       expect(rv).toMatchObject({
         stepCount: 1,
         lastStepText: 'fast response',
       });
+      await expect(
+        waitForSleep(run, { timeout: 250, pollInterval: 25 }),
+      ).rejects.toThrow('no pending sleep found');
     });
   });
 

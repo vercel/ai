@@ -1,6 +1,6 @@
 import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -38,6 +38,14 @@ async function recordAssistantMessageFromChunks<
 }
 
 describe('convertToModelMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('system message', () => {
     it('should convert a simple system message', async () => {
       const result = await convertToModelMessages([
@@ -717,7 +725,67 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
         const result = await convertToModelMessages([
           {
             role: 'assistant',
@@ -774,6 +842,44 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+        expect(warningLogger).toHaveBeenCalledWith({
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'rawInput in output-error UI message parts',
+              message:
+                'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+            },
+          ],
+        });
+      });
+
+      it('should preserve the deprecated rawInput fallback when input is null', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: null,
+                rawInput: 'legacy input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: 'legacy input',
+            },
+          ],
+        });
       });
 
       it('should handle assistant message with tool output error that has no raw input', async () => {

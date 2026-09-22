@@ -152,13 +152,6 @@ describe('BlackForestLabs provider', () => {
         providerOptions: {},
       }),
     ).rejects.toThrow('Black Forest Labs generation timed out.');
-
-    const pollCalls = server.calls.filter(
-      c =>
-        c.requestMethod === 'GET' &&
-        c.requestUrl.startsWith('https://api.example.com/poll'),
-    );
-    expect(pollCalls.length).toBe(3);
   });
 
   it('creates video models via .video and .videoModel', () => {

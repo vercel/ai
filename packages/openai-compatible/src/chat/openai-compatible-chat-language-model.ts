@@ -353,6 +353,13 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     content.push(...convertOpenAICompatibleContent(choice.message.content));
@@ -523,7 +530,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     let finishReason: LanguageModelV4FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
-    let isFirstChunk = true;
+    let metadataExtracted = false;
     let isActiveReasoning = false;
     let isActiveText = false;
     const convertUsage = (
@@ -585,13 +592,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
             // remove this workaround when the issue is fixed
             const value = chunk.value as z.infer<typeof chunkBaseSchema>;
 
-            if (isFirstChunk) {
-              isFirstChunk = false;
-
-              controller.enqueue({
-                type: 'response-metadata',
-                ...getResponseMetadata(value),
-              });
+            // Extract and emit response metadata once. Usually it comes in the
+            // first chunk, but some providers prepend a placeholder chunk with
+            // empty metadata.
+            if (!metadataExtracted) {
+              const metadata = getResponseMetadata(value);
+              if (Object.values(metadata).some(Boolean)) {
+                metadataExtracted = true;
+                controller.enqueue({
+                  type: 'response-metadata',
+                  ...metadata,
+                });
+              }
             }
 
             if (value.usage != null) {
@@ -671,7 +683,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
               }
             }
 
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
                 controller.enqueue({

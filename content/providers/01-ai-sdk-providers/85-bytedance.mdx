@@ -383,6 +383,30 @@ const { video } = await generateVideo({
 });
 ```
 
+### Caller-Managed Callbacks
+
+Use `experimental_startVideo({ model, prompt, webhookUrl })` to register an
+application-owned callback receiver. The SDK forwards `webhookUrl` as
+`callback_url`, taking precedence over `providerOptions.bytedance.callback_url`.
+When `webhookUrl` is omitted, a raw `callback_url` is passed through unchanged.
+
+The [BytePlus callback protocol](https://docs.byteplus.com/en/docs/ModelArk/1520757)
+sends progress notifications (`'queued'` or `'running'`) as well as terminal
+notifications (`'succeeded'`, `'failed'`, or `'expired'`). Your receiver must
+filter progress notifications and correlate callbacks with the task. Use
+`experimental_getVideoStatus(model, { operation })` with the operation returned
+by `experimental_startVideo` to check status and retrieve the result after a
+terminal notification. Expired tasks return an error status with the provider's
+diagnostic details.
+
+These models deliberately do not expose `handleWebhookOption` because their
+callback protocol requires a progress-aware receiver. Core
+[`generateVideo({ webhook })`](/docs/reference/ai-sdk-core/generate-video)
+falls back to polling without calling the webhook factory. Plain
+`generateVideo()` also polls. Workflow's existing native webhook capability
+check rejects these direct provider models for webhook-based generation;
+use the explicit start/status flow for caller-managed callbacks.
+
 ### Video Model Options
 
 The following options are available via `providerOptions.bytedance`. You can

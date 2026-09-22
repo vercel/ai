@@ -1,5 +1,111 @@
 # @ai-sdk/anthropic
 
+## 4.0.59
+
+### Patch Changes
+
+- f7b7b2a: feat(provider/anthropic): add `safeguards` provider option and `safeguardResults` provider metadata (dangerous tool use classifier)
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.56
+
+### Patch Changes
+
+- d4d96bf: Add `anthropic.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Messages structured output, with exact labels, validated score bounds, and prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.55
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.53
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- e4292e7: feat(anthropic): expand preserved thinking support to cover `prefix_mismatch_behavior: 'error'`
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.52
+
+### Patch Changes
+
+- 5a7e647: feat(anthropic): add batch cancellation and listing
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.50
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.49
+
+### Patch Changes
+
+- 65397d7: fix(anthropic): recognize dated Google Vertex Claude 4 model IDs when selecting model capabilities
+
 ## 4.0.48
 
 ### Patch Changes
