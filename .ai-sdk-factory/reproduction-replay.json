@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21265,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-vertex-gcs-uri-space.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-vertex-gcs-uri-space.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #21265 reproduced: outgoing Vertex fileUri changed from \"gs://my-bucket/folder/My File.pdf\" to \"gs://my-bucket/folder/My%20File.pdf\"."
+  }
+}
