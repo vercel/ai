@@ -32,6 +32,10 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEmbedEnd).toBeDefined();
     expect(telemetry.onRerankStart).toBeDefined();
     expect(telemetry.onRerankEnd).toBeDefined();
+    expect(telemetry.experimental_onEvaluateStart).toBeDefined();
+    expect(telemetry.experimental_onEvaluationModelCallStart).toBeDefined();
+    expect(telemetry.experimental_onEvaluationModelCallEnd).toBeDefined();
+    expect(telemetry.experimental_onEvaluateEnd).toBeDefined();
     expect(telemetry.onEnd).toBeDefined();
     expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
@@ -182,6 +186,10 @@ describe('createTelemetryDispatcher', () => {
       onEmbedEnd: vi.fn(),
       onRerankStart: vi.fn(),
       onRerankEnd: vi.fn(),
+      experimental_onEvaluateStart: vi.fn(),
+      experimental_onEvaluationModelCallStart: vi.fn(),
+      experimental_onEvaluationModelCallEnd: vi.fn(),
+      experimental_onEvaluateEnd: vi.fn(),
       onEnd: vi.fn(),
       onAbort: vi.fn(),
       onError: vi.fn(),
@@ -204,6 +212,10 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.onEmbedEnd!(dummyEvent);
     await telemetry.onRerankStart!(dummyEvent);
     await telemetry.onRerankEnd!(dummyEvent);
+    await telemetry.experimental_onEvaluateStart!(dummyEvent);
+    await telemetry.experimental_onEvaluationModelCallStart!(dummyEvent);
+    await telemetry.experimental_onEvaluationModelCallEnd!(dummyEvent);
+    await telemetry.experimental_onEvaluateEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
     await telemetry.onAbort!(dummyEvent);
     await telemetry.onError!(dummyEvent);
@@ -221,6 +233,14 @@ describe('createTelemetryDispatcher', () => {
     expect(integration.onEmbedEnd).toHaveBeenCalledOnce();
     expect(integration.onRerankStart).toHaveBeenCalledOnce();
     expect(integration.onRerankEnd).toHaveBeenCalledOnce();
+    expect(integration.experimental_onEvaluateStart).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onEvaluationModelCallStart,
+    ).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onEvaluationModelCallEnd,
+    ).toHaveBeenCalledOnce();
+    expect(integration.experimental_onEvaluateEnd).toHaveBeenCalledOnce();
     expect(integration.onEnd).toHaveBeenCalledOnce();
     expect(integration.onAbort).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
@@ -251,6 +271,10 @@ describe('createTelemetryDispatcher', () => {
         onEmbedEnd: vi.fn(),
         onRerankStart: vi.fn(),
         onRerankEnd: vi.fn(),
+        experimental_onEvaluateStart: vi.fn(),
+        experimental_onEvaluationModelCallStart: vi.fn(),
+        experimental_onEvaluationModelCallEnd: vi.fn(),
+        experimental_onEvaluateEnd: vi.fn(),
         onEnd: vi.fn(),
         onAbort: vi.fn(),
         onError: vi.fn(),
@@ -273,6 +297,10 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.onEmbedEnd).toBeUndefined();
       expect(telemetry.onRerankStart).toBeUndefined();
       expect(telemetry.onRerankEnd).toBeUndefined();
+      expect(telemetry.experimental_onEvaluateStart).toBeUndefined();
+      expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
+      expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
+      expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
       expect(telemetry.onAbort).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();

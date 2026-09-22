@@ -1,5 +1,14 @@
 # @ai-sdk/otel
 
+## 1.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
 ## 1.0.110
 
 ### Patch Changes
