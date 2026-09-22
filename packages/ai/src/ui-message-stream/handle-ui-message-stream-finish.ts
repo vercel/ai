@@ -159,12 +159,12 @@ export function handleUIMessageStreamFinish<UI_MESSAGE extends UIMessage>({
       ? { status: 'failed', error: processingError }
       : declaredOutcome.status === 'unknown' && isAborted
         ? { status: 'aborted' }
-        : declaredOutcome.status === 'unknown' && isCancelled
-          ? { status: 'cancelled' }
-          : declaredOutcome;
+        : declaredOutcome;
+    const isConsumerCancellation = isCancelled && outcome.status === 'unknown';
 
     await resolvedOnEnd({
       isAborted: isAborted || outcome.status === 'aborted',
+      ...(isConsumerCancellation ? { isCancelled: true as const } : {}),
       isContinuation,
       outcome,
       responseMessage: state.message as UI_MESSAGE,

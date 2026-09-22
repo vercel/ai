@@ -1,5 +1,6 @@
 import { describe, expectTypeOf, it } from 'vitest';
 import type { createUIMessageStream } from './create-ui-message-stream';
+import type { UIMessageStreamOnEndCallback } from './ui-message-stream-on-end-callback';
 import type {
   UIMessageStreamWriter,
   UIMessageStreamWriterWithOutcome,
@@ -24,8 +25,14 @@ describe('UIMessageStreamWriter', () => {
 
     expectTypeOf<ExecuteWriter>().toMatchTypeOf<UIMessageStreamWriterWithOutcome>();
     expectTypeOf<ExecuteWriter['setOutcome']>().toBeFunction();
-    expectTypeOf<{
-      status: 'cancelled';
-    }>().toMatchTypeOf<UIMessageStreamOutcome>();
+    expectTypeOf<UIMessageStreamOutcome['status']>().toEqualTypeOf<
+      'completed' | 'failed' | 'aborted' | 'unknown'
+    >();
+  });
+
+  it('adds consumer cancellation without expanding the outcome union', () => {
+    type EndEvent = Parameters<UIMessageStreamOnEndCallback<any>>[0];
+
+    expectTypeOf<EndEvent['isCancelled']>().toEqualTypeOf<true | undefined>();
   });
 });

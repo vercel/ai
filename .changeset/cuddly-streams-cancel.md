@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-feat(ai): report cancelled UI message stream outcomes
+feat(ai): report consumer cancellation in UI message stream end callbacks

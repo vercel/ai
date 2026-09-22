@@ -5,13 +5,12 @@
  * Fatal stream-processing failures override outcomes declared by the stream
  * owner.
  *
- * `cancelled` is reported when the consumer cancelled the stream before the
- * stream owner declared an outcome, for example because the client
- * disconnected.
+ * Consumer cancellation before an outcome is declared keeps the `unknown`
+ * status and is reported separately through the end callback's `isCancelled`
+ * property.
  */
 export type UIMessageStreamOutcome =
   | { status: 'completed' }
   | { status: 'failed'; error?: unknown }
   | { status: 'aborted' }
-  | { status: 'cancelled' }
   | { status: 'unknown' };

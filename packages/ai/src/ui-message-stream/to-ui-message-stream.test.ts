@@ -424,7 +424,8 @@ describe('toUIMessageStream', () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
     expect(onEnd.mock.calls[0][0]).toMatchObject({
       isAborted: false,
-      outcome: { status: 'cancelled' },
+      isCancelled: true,
+      outcome: { status: 'unknown' },
     });
   });
 

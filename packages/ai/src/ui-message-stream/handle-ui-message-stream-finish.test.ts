@@ -508,7 +508,7 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.isAborted).toBe(true);
     });
 
-    it('should report cancelled when the reader is cancelled before an outcome is declared', async () => {
+    it('should report consumer cancellation when the reader is cancelled before an outcome is declared', async () => {
       await expectUndefinedUnhandledRejections(async () => {
         const onFinishCallback = vi.fn();
 
@@ -537,7 +537,8 @@ describe('handleUIMessageStreamFinish', () => {
 
         const callArgs = onFinishCallback.mock.calls[0][0];
         expect(callArgs.isAborted).toBe(false);
-        expect(callArgs.outcome).toEqual({ status: 'cancelled' });
+        expect(callArgs.isCancelled).toBe(true);
+        expect(callArgs.outcome).toEqual({ status: 'unknown' });
         expect(callArgs.responseMessage.id).toBe('msg-1');
       });
     });
@@ -546,7 +547,6 @@ describe('handleUIMessageStreamFinish', () => {
       { status: 'completed' } as const,
       { status: 'failed', error: new Error('stream failed') } as const,
       { status: 'aborted' } as const,
-      { status: 'cancelled' } as const,
     ])(
       'should preserve a declared $status outcome when the reader is cancelled',
       async declaredOutcome => {
@@ -572,6 +572,7 @@ describe('handleUIMessageStreamFinish', () => {
 
         expect(onEndCallback).toHaveBeenCalledTimes(1);
         expect(onEndCallback.mock.calls[0][0].outcome).toBe(declaredOutcome);
+        expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
       },
     );
 
@@ -602,6 +603,7 @@ describe('handleUIMessageStreamFinish', () => {
         isAborted: true,
         outcome: { status: 'aborted' },
       });
+      expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
     });
   });
 
