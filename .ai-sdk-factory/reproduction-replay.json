@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21265,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-vertex-gcs-uri-space.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-vertex-gcs-uri-space.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21265: expected outgoing Vertex fileUri to remain \"gs://my-bucket/folder/My File.pdf\", but received \"gs://my-bucket/folder/My%20File.pdf\""
+  }
+}
