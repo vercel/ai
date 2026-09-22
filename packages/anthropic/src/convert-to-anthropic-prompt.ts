@@ -719,13 +719,12 @@ export async function convertToAnthropicPrompt({
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
-<<<<<<< HEAD
-                  if (typeof textMetadata.signature === 'string') {
-                    betas.add('compact-2026-09-04');
-=======
                   if (part.text === '') {
                     break;
->>>>>>> origin/main
+                  }
+
+                  if (typeof textMetadata.signature === 'string') {
+                    betas.add('compact-2026-09-04');
                   }
 
                   anthropicContent.push({
