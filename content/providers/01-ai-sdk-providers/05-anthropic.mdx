@@ -767,14 +767,32 @@ that metadata to `providerOptions`, so passing
 `summary.finalStep.response.messages` back to the AI SDK preserves the signed
 block and automatically adds the beta header on the continuation request.
 
-The signed compaction block must be the first message and must be replayed
-without changing its text or signature. Remove the messages it summarizes
-before continuing. Do not combine the `compaction` provider option with
-`contextManagement`.
+Check `rawFinishReason` before reading the response block. Anthropic can return
+a successful HTTP response without a summary when summarization ends for
+another reason, such as `max_tokens`, `model_context_window_exceeded`,
+`tool_use`, `refusal`, or `end_turn`. In that case, keep the existing history
+and retry later; the unsuccessful summarization is still included in
+`providerMetadata.anthropic.iterations`.
+
+Send exactly one signed compaction block on continuation requests. It must be
+the first content block in `messages` and must be replayed without changing its
+text or signature. Remove the messages it summarizes before continuing. Keep
+the same system prompt and tool definitions on the compaction request that you
+use for the conversation, especially when preserving later thinking blocks.
+
+Before requesting compaction, resolve any unfinished tool call from the last
+assistant turn. Do not combine `compaction` with `contextManagement`,
+`stopSequences`, structured output, a required or named `toolChoice`, or a
+`taskBudget.remaining` value. Also omit `taskBudget.remaining` from later
+requests that carry the signed block.
 
 On-demand compaction usage is reported in
 `providerMetadata.anthropic.iterations`. Sum the iteration usage when
 calculating the tokens consumed by the summarization request.
+
+On-demand compaction can also be initiated in a Message Batch. Configure the
+`compaction` provider option on the individual batch request; the provider
+automatically adds `compact-2026-09-04` to the batch beta header.
 
 For more details, see
 [Anthropic's on-demand compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction-on-demand).

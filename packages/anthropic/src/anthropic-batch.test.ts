@@ -506,15 +506,55 @@ describe('Anthropic batch', () => {
     });
   });
 
+  it('starts an on-demand compaction batch request with the inferred beta header', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'compact-conversation',
+          ...request('Summarize this conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                compaction: {
+                  type: 'summarize',
+                  instructions: 'Preserve decisions and open questions.',
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        },
+      ],
+    });
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          custom_id: 'compact-conversation',
+          params: {
+            compaction: {
+              type: 'summarize',
+              instructions: 'Preserve decisions and open questions.',
+            },
+          },
+        },
+      ],
+    });
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta']
+        .split(',')
+        .map(beta => beta.trim()),
+    ).toContain('compact-2026-09-04');
+  });
+
   it.each([
-    {
-      feature: 'providerOptions.anthropic.compaction',
-      options: {
-        compaction: { type: 'summarize' },
-      } satisfies AnthropicLanguageModelOptions,
-      message:
-        'Anthropic Message Batches do not support on-demand compaction (request "request-1").',
-    },
     {
       feature: 'providerOptions.anthropic.speed',
       options: { speed: 'fast' } satisfies AnthropicLanguageModelOptions,
