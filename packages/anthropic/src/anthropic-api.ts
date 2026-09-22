@@ -173,6 +173,11 @@ export interface AnthropicToolCallContent {
    * (e.g., code execution calling a user-defined tool programmatically).
    */
   caller?: AnthropicToolCallCaller;
+  /**
+   * Present when this tool call is a member call of a toolset
+   * (e.g. `computer` for the computer toolset). `name` is then the member name.
+   */
+  toolset_name?: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -228,6 +233,10 @@ export interface AnthropicToolReferenceContent {
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
+  /**
+   * Required for results of toolset member calls (e.g. `computer`).
+   */
+  toolset_name?: string;
   content:
     | string
     | Array<
@@ -482,6 +491,15 @@ export type AnthropicTool =
       display_height_px: number;
       display_number: number;
       enable_zoom?: boolean;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      /**
+       * Computer toolset. Declared without a `name`; the API returns member
+       * tool calls (e.g. `left_click`) with `toolset_name: 'computer'`.
+       */
+      type: 'computer_toolset_20260801';
+      configs?: Record<string, { enabled?: boolean; defer_loading?: boolean }>;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -786,7 +804,7 @@ export const anthropicResponseSchema = lazySchema(() =>
           }),
           z.object({
             type: z.literal('compaction'),
-            content: z.string(),
+            content: z.string().nullish(),
           }),
           z.object({
             type: z.literal('tool_use'),
@@ -795,6 +813,8 @@ export const anthropicResponseSchema = lazySchema(() =>
             input: z.unknown(),
             // Programmatic tool calling: caller info when triggered from code execution
             caller: anthropicToolCallCallerSchema.optional(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -1120,6 +1140,7 @@ export const anthropicChunkSchema = lazySchema(() =>
                   name: z.string(),
                   input: z.unknown(),
                   caller: anthropicToolCallCallerSchema.optional(),
+                  toolset_name: z.string().nullish(),
                 }),
               ]),
             )
@@ -1156,6 +1177,8 @@ export const anthropicChunkSchema = lazySchema(() =>
             input: z.record(z.string(), z.unknown()).optional(),
             // Programmatic tool calling: caller info when triggered from code execution
             caller: anthropicToolCallCallerSchema.optional(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),

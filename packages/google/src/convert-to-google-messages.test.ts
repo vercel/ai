@@ -454,6 +454,42 @@ describe('Gemma model system instructions', () => {
 });
 
 describe('user messages', () => {
+  it('should preserve original Google Cloud Storage file URIs', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: {
+              type: 'url',
+              url: new URL('gs://my-bucket/folder/My File.pdf'),
+              originalUrl: 'gs://my-bucket/folder/My File.pdf',
+            },
+            mediaType: 'application/pdf',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual({
+      systemInstruction: undefined,
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              fileData: {
+                mimeType: 'application/pdf',
+                fileUri: 'gs://my-bucket/folder/My File.pdf',
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('should add image parts', async () => {
     const result = convertToGoogleMessages([
       {

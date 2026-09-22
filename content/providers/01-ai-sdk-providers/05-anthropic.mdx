@@ -197,16 +197,26 @@ const result = streamText({
 });
 ```
 
-For `claude-fable-5-1`, the default `"auto"` mode uses native structured
-outputs through `output_config.format`. Fable 5.1 rejects forced tool use, so
-do not use `"jsonTool"` or a required or named tool choice to implement
-structured output with this model.
+For `claude-opus-5-5` and `claude-fable-5-1`, the default `"auto"` mode uses
+native structured outputs through `output_config.format`. These models reject
+forced tool use, so the `"jsonTool"` mode cannot be used with them. If you
+request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
+emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
+`auto` with a warning; instruct the model to use the tool in your prompt and
+verify that a tool call was made.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
 
 On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
+
+On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
+`effort` is the main control for latency and cost. The API default effort for
+`claude-opus-5-5` is `medium`. Start there and test other levels rather than
+carrying over the setting you used on `claude-opus-5`. Set `maxOutputTokens`
+with room for thinking as well as the reply; thinking counts toward the limit
+even when its content is not returned.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -479,6 +489,41 @@ const { text } = await generateText({
 });
 ```
 
+##### Adaptive-Only Models
+
+`claude-opus-5-5`, `claude-fable-5`, and `claude-fable-5-1` always run adaptive
+thinking. The API rejects `thinking: { type: 'disabled' }` and budget-based
+`thinking: { type: 'enabled' }` for these models. To keep existing code working,
+the provider:
+
+- removes `thinking: { type: 'disabled' }` and emits a warning,
+- converts `thinking: { type: 'enabled', budgetTokens }` to `{ type: 'adaptive' }` and emits a warning,
+- maps the top-level `reasoning: 'none'` option to `effort: 'low'` and emits a warning.
+
+Use `effort` to control how much these models think. On `claude-opus-5-5`, set
+`effort: 'low'` when time to first token matters, and move to `medium` if
+quality drops:
+
+```ts highlight="6-9"
+const { text } = await generateText({
+  model: anthropic('claude-opus-5-5'),
+  prompt: 'Summarize this ticket in one sentence.',
+  providerOptions: {
+    anthropic: {
+      // thinking stays adaptive; effort controls how much the model thinks
+      effort: 'low',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+<Note>
+  Responses from adaptive-only models can begin with a thinking block. Read the
+  response by content type (`text`, `reasoning`, `tool-call`) rather than
+  assuming the first part is text. Under the default `display: 'omitted'`
+  setting, thinking blocks are returned with empty text.
+</Note>
+
 ##### Thinking Display (Opus 4.7+)
 
 Starting with `claude-opus-4-7`, thinking content is omitted from the response by default — thinking blocks are present in the stream but their text is empty. To receive reasoning output, set `display: 'summarized'`:
@@ -506,8 +551,10 @@ console.log(text);
 
 ##### Thinking Updates
 
-Use `display: 'updates'` with `claude-fable-5-1` to stream thinking summaries
-between tool calls. The provider adds the required
+Use `display: 'updates'` with `claude-opus-5-5` or `claude-fable-5-1` to stream
+thinking summaries between tool calls. These models return progress notes
+between tool calls as thinking blocks rather than text, so without this setting
+a long tool-calling turn can look silent. The provider adds the required
 `thinking-display-updates-2026-08-18` beta header automatically:
 
 ```ts highlight="12-16"
@@ -1077,10 +1124,73 @@ const computerTool = anthropic.tools.computer_20251124({
 ```
 
 <Note>
-  Use `computer_20251124` for Claude Opus 4.5 which supports the zoom action.
-  Use `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4,
-  Opus 4, and Sonnet 3.7.
+  Use `computerToolset_20260801` for Claude Opus 5.5 (required), Opus 5, Sonnet
+  5, Fable 5, Fable 5.1, and Opus 4.8. Use `computer_20251124` for Claude Opus
+  4.5 through Opus 4.7, which support the zoom action. Use `computer_20250124`
+  for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus 4, and Sonnet 3.7.
 </Note>
+
+#### Computer Toolset
+
+Newer models use the computer toolset instead of a versioned computer tool.
+`claude-opus-5-5` accepts computer use only through the toolset and rejects the
+older `computer_*` tool types with a 400. The toolset does not require a beta
+header and has no display size parameters: coordinates are always in the pixel
+space of the screenshots you return. Zoom is enabled by default, and Claude can
+return several actions in one turn, each as its own tool call.
+
+The API returns each action as a separate `tool_use` block with
+`toolset_name: 'computer'`. The AI SDK maps every action to the toolset tool and
+passes the action name as `action`, so `execute` receives the same input shape
+as the older computer tools:
+
+```ts
+const computerTool = anthropic.tools.computerToolset_20260801({
+  // optional: turn individual actions on or off
+  configs: {
+    zoom: { enabled: false },
+  },
+
+  execute: async ({ action, coordinate, text, region }) => {
+    switch (action) {
+      case 'screenshot': {
+        return {
+          type: 'image',
+          data: fs.readFileSync('./data/screenshot.png').toString('base64'),
+        };
+      }
+      default: {
+        console.log('Action:', action, coordinate, text, region);
+        return `executed ${action}`;
+      }
+    }
+  },
+
+  toModelOutput({ output }) {
+    return typeof output === 'string'
+      ? [{ type: 'text', text: output }]
+      : [{ type: 'file-data', data: output.data, mediaType: 'image/png' }];
+  },
+});
+```
+
+Parameters:
+
+- `action` ('screenshot' | 'zoom' | 'left_click' | 'right_click' | 'middle_click' | 'double_click' | 'triple_click' | 'left_click_drag' | 'mouse_move' | 'left_mouse_down' | 'left_mouse_up' | 'cursor_position' | 'scroll' | 'type' | 'key' | 'hold_key' | 'wait'): The member tool that Claude invoked.
+- `coordinate` (number[], optional): The (x, y) pixel coordinates for click, move, and scroll actions.
+- `start_coordinate` (number[], optional): Where a `left_click_drag` starts.
+- `region` (number[], optional): `[x1, y1, x2, y2]` for the `zoom` action.
+- `text` (string, optional): Text to type, the key combination for `key` and `hold_key`, or modifier keys to hold during click and scroll actions.
+- `repeat` (number, optional): How many times to press the key for `key`.
+- `duration` (number, optional): Seconds for `hold_key` and `wait`.
+- `scroll_direction` ('up' | 'down' | 'left' | 'right', optional) and `scroll_amount` (number, optional): For the `scroll` action.
+- `configs` (object, optional): Per-action settings keyed by action name. Each entry accepts `enabled` (default `true`) and `deferLoading` (default `false`, for tool search).
+
+Tool calls and results of the toolset are serialized with `toolset_name` when
+you pass the message history back. Keep the toolset tool in `tools` on
+follow-up requests, or the provider falls back to the `toolsetName` provider
+metadata on the tool calls of previous responses. Do not declare the toolset
+together with an older `computer_*` tool.
 
 Parameters:
 
@@ -1380,11 +1490,11 @@ This sends `tool_reference` blocks to Anthropic, which loads the corresponding d
 
 ### Mid-Conversation System Controls
 
-With `claude-fable-5-1`, a mid-conversation system message can be cleared
-before the next user message with `clearAt: 'next_user_message'`, or set the
-effort for the next turn. The provider adds the required
+With `claude-opus-5-5` and `claude-fable-5-1`, a mid-conversation system message
+can be cleared before the next user message with `clearAt: 'next_user_message'`,
+or set the effort for the next turn without invalidating the prompt cache. The provider adds the required
 `mid-conversation-system-clear-at-2026-08-21` and
-`mid-conversation-effort-2026-08-01` beta headers automatically.
+`mid-conversation-output-config-2026-07-01` beta headers automatically.
 
 ```ts highlight="17-25"
 import { anthropic } from '@ai-sdk/anthropic';
@@ -1923,6 +2033,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 
 | Model               | Image Input | Object Generation | Tool Usage | Computer Use | Web Search | Tool Search | Compaction |
 | ------------------- | ----------- | ----------------- | ---------- | ------------ | ---------- | ----------- | ---------- |
+| `claude-opus-5-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-opus-5`     | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-sonnet-5`   | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |
 | `claude-fable-5-1`  | <Check />   | <Check />         | <Check />  | <Check />    | <Check />  | <Check />   | <Check />  |

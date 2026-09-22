@@ -55,7 +55,7 @@ Use a provider's `evaluationModel` factory:
 | Anthropic   | `anthropic.evaluationModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.evaluationModel('gemini-3.5-flash-lite')`        |
 
-TypeSafe AI supplies native Choice, Score, and Boolean evaluations. OpenAI,
+TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) supplies native Choice, Score, and Boolean evaluations. OpenAI,
 Anthropic, and Google adapt structured language-model output for all three types.
 Boolean answers contain prompted estimates of P(true), validated to be finite
 and in `[0, 1]`. These estimates are not guaranteed to be calibrated. Choice and
@@ -272,3 +272,13 @@ Runnable examples are in
 [`examples/ai-functions/src/evaluate`](https://github.com/vercel/ai/tree/main/examples/ai-functions/src/evaluate),
 including basic examples for TypeSafe, OpenAI, Anthropic, and Google, model
 registries, custom aliases, default-provider strings, and probability-based routing.
+
+## Related resources
+
+Explore use cases, implementation guides, and a deployable template for using
+Jev from TypeSafe AI with the AI SDK:
+
+- [Jev use cases](https://vercel.com/i/jev-use-cases): Explore ideas for applying evaluation in your application.
+- [Classify, route, and score with Jev and AI SDK](https://vercel.com/kb/guide/typesafe-jev-and-ai-sdk): Learn how to ask typed questions, route answers using probabilities, and test routing logic with a mock evaluation model.
+- [Jev and AI SDK form router guide](https://vercel.com/kb/guide/jev-ai-sdk-form-router): Explore form routing with Jev and the AI SDK.
+- [Jev and AI SDK form router template](https://vercel.com/templates/next.js/jev-and-ai-sdk): Deploy a Next.js application that routes form submissions with Jev and uses a language model fallback for uncertain or failed evaluations.

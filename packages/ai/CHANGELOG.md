@@ -1,5 +1,19 @@
 # ai
 
+## 7.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- a65bfd9: fix(ai): securely download URL-backed language model file outputs so generated files expose actual base64 and byte content and UI streams contain valid data URLs. Propagate cancellation to batch file downloads.
+
+## 7.0.110
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/gateway@4.0.89
+
 ## 7.0.109
 
 ### Patch Changes

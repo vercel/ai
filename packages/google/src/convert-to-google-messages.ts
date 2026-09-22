@@ -300,7 +300,11 @@ export function convertToGoogleMessages(
                   parts.push({
                     fileData: {
                       mimeType: resolveFullMediaType({ part }),
-                      fileUri: part.data.url.toString(),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
                     },
                   });
                   break;

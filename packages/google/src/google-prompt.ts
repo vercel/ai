@@ -85,6 +85,7 @@ export interface GoogleProviderMetadata {
   urlContextMetadata: GoogleUrlContextMetadata | null;
   safetyRatings: GoogleSafetyRating[] | null;
   usageMetadata: GoogleUsageMetadata | null;
+  finishReason?: string | null;
   finishMessage: string | null;
   serviceTier: string | null;
 }

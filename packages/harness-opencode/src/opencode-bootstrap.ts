@@ -1,8 +1,19 @@
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
 
+/*
+ * Keep every asset URL literal so bundlers can emit each file separately.
+ * Dynamic new URL() paths can collapse multiple assets into one resolution.
+ */
 const readBridgeAsset = createReadBridgeAsset({
-  resolveAssetUrl: name => new URL(`./bridge/${name}`, import.meta.url),
+  'package.json': new URL('./bridge/package.json', import.meta.url),
+  'pnpm-lock.yaml': new URL('./bridge/pnpm-lock.yaml', import.meta.url),
+  'pnpm-workspace.yaml': new URL(
+    './bridge/pnpm-workspace.yaml',
+    import.meta.url,
+  ),
+  'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
+  'host-tool-mcp.mjs': new URL('./bridge/host-tool-mcp.mjs', import.meta.url),
 });
 
 export const OPENCODE_BOOTSTRAP_DIR = '.harness-bootstrap/opencode';
