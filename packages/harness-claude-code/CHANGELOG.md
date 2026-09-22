@@ -1,5 +1,12 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.124
+
+### Patch Changes
+
+- 7d81368: fix(harness-claude-code): avoid unnecessary warning about `canUseTool()` in combination with `bypassPermissions` flag
+  - @ai-sdk/harness@1.0.120
+
 ## 1.0.123
 
 ### Patch Changes
