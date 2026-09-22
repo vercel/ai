@@ -7,8 +7,8 @@ It starts with a high-level view and then describes the main decisions involved 
 
 - **Harness agent**: user-facing agent runtime wrapper (`HarnessAgent`)
 - **Harness specification**: `HarnessV1`
-- **Sandbox provider**: `HarnessV1SandboxProvider`
-- **Sandbox session**: `HarnessV1NetworkSandboxSession`, narrowed to `Experimental_SandboxSession` via `restricted()`
+- **Sandbox provider**: optional `HarnessV1SandboxProvider` for framework-managed sandbox sessions
+- **Sandbox session**: either `HarnessV1NetworkSandboxSession` (recommended) or the narrower `Experimental_SandboxSession`
 - **Harness implementations**: provider-specific coding-agent adapters that implement `HarnessV1`
 
 ```mermaid
@@ -23,20 +23,26 @@ classDiagram
     class HarnessV1NetworkSandboxSession {
       <<interface>>
     }
+    class Experimental_SandboxSession {
+      <<interface>>
+    }
     class HarnessImplementationA
     class HarnessImplementationB
 
     HarnessAgent ..> HarnessV1 : uses
-    HarnessAgent ..> HarnessV1SandboxProvider : acquires sandbox
-    HarnessV1SandboxProvider ..> HarnessV1NetworkSandboxSession : returns
-    HarnessAgent ..> HarnessV1NetworkSandboxSession : owns lifecycle
-    HarnessV1 ..> HarnessV1NetworkSandboxSession : operates on
+    HarnessAgent ..> HarnessV1SandboxProvider : optionally uses
+    HarnessV1SandboxProvider ..> HarnessV1NetworkSandboxSession : creates or resumes
+    HarnessV1NetworkSandboxSession --|> Experimental_SandboxSession : extends
+    HarnessAgent ..> Experimental_SandboxSession : passes to adapter
+    HarnessV1 ..> Experimental_SandboxSession : operates on
+    HarnessV1 ..> HarnessV1NetworkSandboxSession : may use network capabilities
     HarnessImplementationA ..|> HarnessV1 : implements
     HarnessImplementationB ..|> HarnessV1 : implements
 ```
 
-The key boundary is that `HarnessAgent` owns the sandbox lifecycle, while the adapter owns the underlying coding-agent runtime.
-`HarnessAgent` creates or resumes the sandbox through the configured `HarnessV1SandboxProvider`, creates the per-session work directory, and then calls `HarnessV1.doStart()` with both the `sandboxSession` and `sessionWorkDir`.
+`HarnessAgent` either creates or resumes a sandbox session through the configured `HarnessV1SandboxProvider`, or uses the sandbox session passed to `createSession()`.
+It then creates the per-session work directory and calls `HarnessV1.doStart()` with both the `sandboxSession` and `sessionWorkDir`.
+Sandbox provisioning and lifecycle behavior are described in [Sandbox Ownership and Lifecycle](#sandbox-ownership-and-lifecycle).
 
 The adapter must operate on that provided sandbox.
 
@@ -58,25 +64,54 @@ It should expose native runtime output, tool calls, approvals, completion, and u
 
 A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes to `doStart()`; they do not implement the sandbox provider or sandbox session interfaces.
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Agent as HarnessAgent
-    participant Sandbox as HarnessV1SandboxProvider
-    participant Adapter as HarnessV1 adapter
-    participant Runtime as Coding agent runtime
+## Sandbox Ownership and Lifecycle
 
-    User->>Agent: createSession()
-    Agent->>Sandbox: createSession({ sessionId, identity })
-    Sandbox-->>Agent: sandboxSession
-    Agent->>Agent: create sessionWorkDir
-    Agent->>Adapter: doStart({ sandboxSession, sessionWorkDir })
-    Adapter->>Runtime: start or attach runtime
-    Adapter-->>Agent: HarnessV1Session
-    User->>Agent: generate() / stream()
-    Agent->>Adapter: doPromptTurn({ prompt, tools, emit })
-    Adapter-->>Agent: HarnessV1StreamPart events
-    Agent-->>User: typed result or stream
+`HarnessAgent` supports three ways to provide a sandbox session:
+
+| Provisioning mode                 | Configuration                                                                                                      | Sandbox lifecycle owner | Resume behavior                                                                                                                                                  |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework-managed network sandbox | Configure `HarnessAgent` with `sandbox: HarnessV1SandboxProvider` and omit `sandboxSession` from `createSession()` | `HarnessAgent`          | Creates a fresh sandbox through `HarnessV1SandboxProvider.createSession()` or resumes one through `resumeSession()`                                              |
+| Caller-provided network sandbox   | Pass a `HarnessV1NetworkSandboxSession` to `createSession({ sandboxSession })`                                     | Caller                  | The caller supplies the appropriate live or resumed sandbox session together with any harness lifecycle state                                                    |
+| Caller-provided regular sandbox   | Pass an `Experimental_SandboxSession` to `createSession({ sandboxSession })`                                       | Caller                  | The caller supplies the appropriate sandbox session together with any harness lifecycle state; network capabilities are unavailable through the session contract |
+
+Passing `sandboxSession` directly always leaves its lifecycle with the caller, regardless of which sandbox session interface it implements.
+`HarnessAgent` does not stop or destroy a caller-provided sandbox.
+
+### With a Framework-Managed Sandbox
+
+- `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
+- `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; calls `sandboxSession.stop()`.
+- `session.destroy()`: Calls adapter `doDestroy()`; calls `sandboxSession.destroy()`.
+
+### With a Caller-Provided Sandbox
+
+- `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
+- `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
+- `session.destroy()`: Calls adapter `doDestroy()`; leaves the sandbox unchanged.
+
+The adapter never owns the sandbox lifecycle.
+It receives the selected sandbox session through `HarnessV1.doStart()` and must not stop or destroy it.
+
+```mermaid
+flowchart TD
+    ManagedCall["createSession() without sandboxSession"]
+    Provider["HarnessV1SandboxProvider"]
+    ManagedSession["Framework-managed HarnessV1NetworkSandboxSession"]
+    ProvidedCall["createSession({ sandboxSession }) with a caller-provided network or regular session"]
+    Setup["HarnessAgent creates sessionWorkDir"]
+    Adapter["HarnessV1.doStart({ sandboxSession, sessionWorkDir })"]
+    Runtime["Coding agent runtime"]
+
+    ManagedCall --> Provider
+    Provider -->|"createSession() or resumeSession()"| ManagedSession
+    ManagedSession --> Setup
+    ProvidedCall --> Setup
+    Setup --> Adapter
+    Adapter --> Runtime
+
+    style Provider stroke:#66f,stroke-width:3px
+    style ProvidedCall stroke:#6f6,stroke-width:3px
+    style Setup stroke:#f9f,stroke-width:3px
 ```
 
 ## Adapter Runtime Placement
@@ -102,12 +137,19 @@ Some runtimes need to execute inside the sandbox because their SDK or CLI assume
 A bridge-backed harness implementation follows this approach:
 
 - the adapter declares or applies bootstrap files for an in-sandbox bridge,
-- the sandbox exposes a port,
-- the host connects to the bridge over the sandbox-proxied port,
+- the bridge binds to a TCP port inside the sandbox,
+- the host connects to the bridge through an endpoint that routes to that port,
 - the bridge drives the native SDK or CLI inside the sandbox,
 - the adapter maps bridge messages to `HarnessV1StreamPart` events.
 
 Bridge-backed adapters are valid when required by the underlying runtime. If so, the bridge must be installed in the sandbox and all interactions to the harness must happen through the bridge communication protocol.
+
+Prefer passing a `HarnessV1NetworkSandboxSession` to a bridge-backed adapter.
+The adapter can obtain the sandbox's declared ports and resolve the selected port through `getPortEndpoint()`.
+
+A bridge-backed adapter can alternatively use a regular `Experimental_SandboxSession` when both `port` and `portEndpoint` are passed to the harness adapter's constructor.
+In that configuration, the caller is responsible for ensuring that `portEndpoint` routes to the bridge's in-sandbox `port`.
+This setup is less preferable because the connection details live outside the sandbox session contract, but it supports environments that cannot provide a full `HarnessV1NetworkSandboxSession`.
 
 ## Harness and Sandbox Interaction
 
@@ -131,7 +173,7 @@ flowchart LR
     Runtime["In-sandbox runtime"]
     Sandbox["Sandbox filesystem/processes"]
 
-    Host -->|"sandbox port"| Bridge
+    Host -->|"getPortEndpoint() or configured portEndpoint"| Bridge
     Bridge --> Runtime
     Runtime --> Sandbox
 ```
