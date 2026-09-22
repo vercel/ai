@@ -62,7 +62,6 @@
     "no-empty-pattern": "off",
     "no-eq-null": "off",
     "no-eval": "off",
-    "no-extra-boolean-cast": "off",
     "no-fallthrough": "off",
     "no-inline-comments": "off",
     "no-inner-declarations": "off",
