@@ -333,6 +333,7 @@ describe('fetchWithValidatedRedirects', () => {
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
       headers: { authorization: 'Bearer secret' },
+      credentialedOrigin: 'https://example.com',
       fetch: fetchMock,
     });
 
@@ -391,11 +392,35 @@ describe('fetchWithValidatedRedirects', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it('strips blocked request headers before sending', async () => {
+  it.each([
+    ['no credentialed origin', undefined],
+    ['a different credentialed origin', 'https://provider.example.com'],
+  ])('withholds caller headers from a first hop with %s', async (_, origin) => {
     const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
+      headers: {
+        authorization: 'Bearer secret',
+        'x-key': 'provider-api-key',
+        'user-agent': 'ai-sdk/test',
+      },
+      credentialedOrigin: origin,
+      fetch: fetchMock,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(sent.get('authorization')).toBeNull();
+    expect(sent.get('x-key')).toBeNull();
+    expect(sent.get('user-agent')).toBe('ai-sdk/test');
+  });
+
+  it('sends sanitized caller headers to a matching credentialed origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      credentialedOrigin: 'https://example.com',
       headers: {
         authorization: 'Bearer secret',
         'metadata-flavor': 'Google',
@@ -422,6 +447,7 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
+      credentialedOrigin: 'https://example.com',
       headers: {
         authorization: 'Bearer secret',
         'x-key': 'provider-api-key',
@@ -443,6 +469,7 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
+      credentialedOrigin: 'https://example.com',
       headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
       fetch: sameOrigin,
     });
@@ -461,6 +488,7 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
+      credentialedOrigin: 'https://example.com',
       headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
       fetch: fetchMock,
     });
