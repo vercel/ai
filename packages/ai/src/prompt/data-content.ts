@@ -28,7 +28,10 @@ export function convertToLanguageModelV3DataContent(
 ): {
   data: LanguageModelV3DataContent;
   mediaType: string | undefined;
+  originalUrl?: string;
 } {
+  let originalUrl: string | undefined;
+
   // Buffer & Uint8Array:
   if (content instanceof Uint8Array) {
     return { data: content, mediaType: undefined };
@@ -43,7 +46,9 @@ export function convertToLanguageModelV3DataContent(
   // is not a URL and likely some other sort of data.
   if (typeof content === 'string') {
     try {
-      content = new URL(content);
+      const url = new URL(content);
+      originalUrl = url.toString() !== content ? content : undefined;
+      content = url;
     } catch (error) {
       // ignored
     }
@@ -65,7 +70,11 @@ export function convertToLanguageModelV3DataContent(
     return { data: base64Content, mediaType: dataUrlMediaType };
   }
 
-  return { data: content, mediaType: undefined };
+  return {
+    data: content,
+    mediaType: undefined,
+    ...(originalUrl != null ? { originalUrl } : {}),
+  };
 }
 
 /**
