@@ -32,6 +32,78 @@ export type JustBashSandboxSettings =
   | (JustBashSandboxCreateParams & { sandbox?: never });
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
+const REALPATH_PATH = '/usr/bin/realpath';
+const REALPATH_SCRIPT = `#!/usr/bin/env bash
+pending=\${1:?}
+resolved=
+link_count=0
+link_marker=__AI_SDK_REALPATH_LINK_END__
+case "$pending" in
+  /*) ;;
+  *) pending=$PWD/$pending ;;
+esac
+while [ -n "$pending" ]; do
+  pending=\${pending#/}
+  [ -n "$pending" ] || break
+  component=\${pending%%/*}
+  if [ "$pending" = "$component" ]; then
+    pending=
+  else
+    pending=\${pending#*/}
+  fi
+  case "$component" in
+    ""|.) continue ;;
+    ..)
+      resolved=\${resolved%/*}
+      continue
+      ;;
+  esac
+  candidate=$resolved/$component
+  if [ -L "$candidate" ]; then
+    link_count=$((link_count + 1))
+    [ "$link_count" -le 64 ] || exit 1
+    link_target_framed=$(readlink "$candidate"; readlink_status=$?; printf '%s' "$link_marker"; exit "$readlink_status")
+    readlink_status=$?
+    [ "$readlink_status" -eq 0 ] || exit 1
+    target=\${link_target_framed%$link_marker}
+    target=\${target%$'\n'}
+    case "$target" in
+      /*) pending=$target\${pending:+/$pending} ;;
+      *) pending=\${candidate%/*}/$target\${pending:+/$pending} ;;
+    esac
+    resolved=
+  else
+    resolved=$candidate
+  fi
+done
+printf '%s\n' "\${resolved:-/}"
+`;
+
+async function ensureRealpath(sandbox: Sandbox): Promise<void> {
+  const fs = sandbox.bashEnvInstance.fs;
+  try {
+    await fs.lstat(REALPATH_PATH);
+    return;
+  } catch (error) {
+    if (!isFileNotFoundError(error)) {
+      throw error;
+    }
+  }
+
+  await sandbox.writeFiles({ [REALPATH_PATH]: REALPATH_SCRIPT });
+  await fs.chmod(REALPATH_PATH, 0o755);
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === 'ENOENT') return true;
+  const message = (error as { message?: unknown }).message;
+  return (
+    typeof message === 'string' &&
+    /no such file|not found|ENOENT/i.test(message)
+  );
+}
 
 export function createJustBashSandbox(
   settings: JustBashSandboxSettings = {} as JustBashSandboxSettings,
@@ -65,19 +137,16 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
   }): Promise<HarnessV1NetworkSandboxSession> => {
     options?.abortSignal?.throwIfAborted();
 
-    if ('sandbox' in this.settings && this.settings.sandbox) {
-      return new JustBashNetworkSandboxSession({
-        sandbox: this.settings.sandbox,
-        ownsLifecycle: false,
-      });
-    }
-
-    const createParams = this.settings as JustBashSandboxCreateParams;
-
-    const sandbox = await Sandbox.create(createParams);
+    const ownsLifecycle = !(
+      'sandbox' in this.settings && this.settings.sandbox
+    );
+    const sandbox = ownsLifecycle
+      ? await Sandbox.create(this.settings as JustBashSandboxCreateParams)
+      : this.settings.sandbox;
+    await ensureRealpath(sandbox);
     const sandboxSession = new JustBashNetworkSandboxSession({
       sandbox,
-      ownsLifecycle: true,
+      ownsLifecycle,
     });
 
     if (options?.onFirstCreate != null) {
