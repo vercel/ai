@@ -5624,6 +5624,63 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
+  it('should generate structured output for claude-opus-5-5 without forced tool use', async () => {
+    let requestBody: any;
+    const opus55Model = new BedrockChatLanguageModel(
+      'us.anthropic.claude-opus-5-5',
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+
+          const usesForcedJsonTool =
+            requestBody.toolConfig?.tools?.some(
+              (tool: any) => tool.toolSpec?.name === 'json',
+            ) && requestBody.toolConfig?.toolChoice?.any != null;
+          const fixture = fs.readFileSync(
+            usesForcedJsonTool
+              ? 'src/__fixtures__/amazon-bedrock-opus-5-5-forced-tool-error.json'
+              : 'src/__fixtures__/amazon-bedrock-opus-5-5-json-text.json',
+            'utf8',
+          );
+
+          return new Response(fixture, {
+            status: usesForcedJsonTool ? 400 : 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        },
+      },
+    );
+
+    const result = await opus55Model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Return the answer OK.' }],
+        },
+      ],
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            answer: { type: 'string', const: 'OK' },
+          },
+          required: ['answer'],
+        },
+      },
+    });
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config,
+    ).toBeUndefined();
+    expect(result.content).toEqual([{ type: 'text', text: '{"answer":"OK"}' }]);
+  });
+
   it.each([
     {
       modelId: newerAnthropicModelId,
