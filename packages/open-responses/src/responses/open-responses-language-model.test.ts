@@ -70,6 +70,522 @@ describe('OpenResponsesLanguageModel', () => {
       });
     });
 
+<<<<<<< HEAD
+=======
+    describe('manual history replay', () => {
+      it('should preserve output item order and ids', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [],
+            content: [{ type: 'reasoning_text', text: 'reasoning' }],
+          },
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            status: 'completed',
+            call_id: 'call_1',
+            name: 'search',
+            arguments: '{}',
+          },
+          {
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer after the call',
+                annotations: [],
+              },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_1',
+            type: 'reasoning',
+            summary: [],
+            content: [{ type: 'reasoning_text', text: 'reasoning' }],
+          },
+          {
+            id: 'fc_1',
+            type: 'function_call',
+            call_id: 'call_1',
+            name: 'search',
+            arguments: '{}',
+          },
+          {
+            id: 'msg_1',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'answer after the call',
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve summary and encrypted-only reasoning items', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_2',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [{ type: 'summary_text', text: 'safe summary' }],
+            encrypted_content: 'opaque-provider-state',
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'reasoning',
+            text: 'safe summary',
+            providerMetadata: {
+              lmstudio: {
+                itemId: 'rs_2',
+                reasoningContent: null,
+                reasoningSummary: [
+                  { type: 'summary_text', text: 'safe summary' },
+                ],
+                reasoningEncryptedContent: 'opaque-provider-state',
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_2',
+            type: 'reasoning',
+            summary: [{ type: 'summary_text', text: 'safe summary' }],
+            encrypted_content: 'opaque-provider-state',
+          },
+        ]);
+      });
+
+      it('should preserve output text annotations', async () => {
+        const annotation = {
+          type: 'url_citation',
+          start_index: 0,
+          end_index: 7,
+          url: 'https://example.com/source',
+          title: 'Example source',
+        };
+        prepareOutputResponse([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            status: 'completed',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'text',
+            text: 'Sourced answer',
+            providerMetadata: {
+              lmstudio: {
+                itemId: 'msg_annotated',
+                annotations: [annotation],
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'msg_annotated',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Sourced answer',
+                annotations: [annotation],
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should preserve reasoning content part boundaries', async () => {
+        prepareOutputResponse([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            status: 'completed',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
+
+        const model = createModel();
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toHaveLength(2);
+        expect(first.content.map(part => part.type)).toEqual([
+          'reasoning',
+          'reasoning',
+        ]);
+        expect(
+          first.content.map(part =>
+            part.type === 'reasoning' ? part.text : undefined,
+          ),
+        ).toEqual(['First thought. ', 'Second thought.']);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: first.content as AssistantContent,
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          {
+            id: 'rs_multiple',
+            type: 'reasoning',
+            summary: [],
+            content: [
+              { type: 'reasoning_text', text: 'First thought. ' },
+              { type: 'reasoning_text', text: 'Second thought.' },
+            ],
+          },
+        ]);
+      });
+
+      it('should decode and losslessly replay a registered hosted-tool receipt', async () => {
+        const receipt = {
+          id: 'search_1',
+          type: 'acme:document_search_receipt',
+          status: 'completed',
+          call_id: 'call_1',
+          name: 'documentSearch',
+          provider_executed: false,
+          query: { text: 'climate' },
+          result: {
+            documents: [{ id: 'doc_1', score: 0.9 }],
+          },
+          opaque_receipt: {
+            trace_id: 'trace_1',
+            implementation_version: 3,
+          },
+        };
+        prepareOutputResponse([receipt]);
+
+        const model = createModel('gemma-7b-it', [
+          createDocumentSearchExtension({ providerExecuted: true }),
+        ]);
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'custom',
+            kind: 'open-responses.extension-replay',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  item: receipt,
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'documentSearch',
+            input: '{"text":"climate"}',
+            providerExecuted: false,
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  itemId: 'search_1',
+                },
+              },
+            },
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call_1',
+            toolName: 'documentSearch',
+            result: {
+              documents: [{ id: 'doc_1', score: 0.9 }],
+            },
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  itemId: 'search_1',
+                },
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'open-responses.extension-replay',
+                  providerOptions: first.content[0].providerMetadata,
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_1',
+                  toolName: 'documentSearch',
+                  input: { text: 'climate' },
+                  providerExecuted: false,
+                  providerOptions: first.content[1].providerMetadata,
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_1',
+                  toolName: 'documentSearch',
+                  output: {
+                    type: 'json',
+                    value: {
+                      documents: [{ id: 'doc_1', score: 0.9 }],
+                    },
+                  },
+                  providerOptions: first.content[2].providerMetadata,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          receipt,
+        ]);
+      });
+
+      it('should replay a source-only extension item through response history', async () => {
+        const sourceItem = {
+          id: 'source_1',
+          type: 'acme:document_search_receipt',
+          status: 'completed',
+          url: 'https://example.com/documentation',
+          title: 'Extension documentation',
+          opaque_receipt: {
+            trace_id: 'trace_source_1',
+          },
+        };
+        prepareOutputResponse([sourceItem]);
+
+        const extension = createDocumentSearchExtension({
+          providerExecuted: true,
+        });
+        extension.decodeItem = ({ item }) => [
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: item.id,
+            url: item.url as string,
+            title: item.title as string,
+          },
+        ];
+
+        const model = createModel('gemma-7b-it', [extension]);
+        const first = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(first.content).toEqual([
+          {
+            type: 'custom',
+            kind: 'open-responses.extension-replay',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  item: sourceItem,
+                },
+              },
+            },
+          },
+          {
+            type: 'source',
+            sourceType: 'url',
+            id: 'source_1',
+            url: 'https://example.com/documentation',
+            title: 'Extension documentation',
+            providerMetadata: {
+              lmstudio: {
+                openResponsesExtension: {
+                  id: 'acme.document_search',
+                  itemId: 'source_1',
+                },
+              },
+            },
+          },
+        ]);
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'open-responses.extension-replay',
+                  providerOptions: first.content[0].providerMetadata,
+                },
+              ],
+            },
+          ],
+        });
+
+        expect((await server.calls[1].requestBodyJson).input).toEqual([
+          sourceItem,
+        ]);
+      });
+
+      it('should encode client-executed extension calls and results without original wire metadata', async () => {
+        prepareJsonFixtureResponse('lmstudio-basic.1');
+
+        await createModel('gemma-7b-it', [
+          createDocumentSearchExtension({ providerExecuted: false }),
+        ]).doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_client',
+                  toolName: 'documentSearch',
+                  input: { text: 'weather' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_client',
+                  toolName: 'documentSearch',
+                  output: {
+                    type: 'json',
+                    value: { documents: ['forecast'] },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: 'provider',
+              id: 'acme.document_search',
+              name: 'documentSearch',
+              args: {},
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).input).toEqual([
+          {
+            type: 'acme:document_search_call',
+            id: 'call_item_call_client',
+            status: 'completed',
+            call_id: 'call_client',
+            name: 'documentSearch',
+            query: { text: 'weather' },
+          },
+          {
+            type: 'acme:document_search_result',
+            id: 'result_item_call_client',
+            status: 'completed',
+            call_id: 'call_client',
+            name: 'documentSearch',
+            result: {
+              type: 'json',
+              value: { documents: ['forecast'] },
+            },
+          },
+        ]);
+      });
+    });
+
+    it('should send schema-less JSON as a JSON object format', async () => {
+      prepareJsonFixtureResponse('lmstudio-basic.1');
+
+      await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        text: {
+          format: {
+            type: 'json_object',
+          },
+        },
+      });
+    });
+
+>>>>>>> c187e2c8fd (fix: prevent schema-less JSON output in Open Responses from producing invalid requests (#21206))
     describe('request parameters', () => {
       let result: LanguageModelV3GenerateResult;
 
