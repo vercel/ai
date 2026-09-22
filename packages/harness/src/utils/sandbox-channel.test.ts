@@ -115,6 +115,34 @@ describe('SandboxChannel', () => {
     expect(captured).toHaveLength(1);
   });
 
+  it('replays buffered messages in arrival order across event types', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    connector.current().deliver({ type: 'finish-step' });
+    connector.current().deliver({ type: 'finish' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    expect(captured).toEqual([]);
+
+    channel.on('finish-step', evt => captured.push(evt.type));
+    expect(captured).toEqual(['finish-step', 'text-delta', 'finish-step']);
+
+    channel.on('finish', evt => captured.push(evt.type));
+    expect(captured).toEqual([
+      'finish-step',
+      'text-delta',
+      'finish-step',
+      'finish',
+    ]);
+  });
+
   it('suspend freezes the cursor at the last delivered event and closes with reason "suspended"', async () => {
     const connector = makeConnector();
     const channel = makeChannel(connector);
