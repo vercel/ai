@@ -15,6 +15,7 @@ import {
   type ModelMessage,
   type ProviderOptions,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
 import { resolveLanguageModel } from '../model/resolve-model';
@@ -220,6 +221,7 @@ export async function streamLanguageModelCall<
   callId,
   toolsContext,
   experimental_sandbox: sandbox,
+  zodSchemaOptions,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -253,6 +255,10 @@ export async function streamLanguageModelCall<
    * Sandbox session passed through for resolving tool descriptions that depend on it.
    */
   experimental_sandbox?: SandboxSession;
+  /**
+   * Options for converting Zod schemas to JSON Schema.
+   */
+  zodSchemaOptions?: ZodSchemaOptions;
   _internal?: {
     generateId?: IdGenerator;
     generateCallId?: IdGenerator;
@@ -315,6 +321,7 @@ export async function streamLanguageModelCall<
     toolOrder,
     toolsContext,
     experimental_sandbox: sandbox,
+    zodSchemaOptions,
   });
 
   const stepToolChoice = prepareToolChoice({
@@ -382,6 +389,7 @@ export async function streamLanguageModelCall<
       now,
       callStartTimestampMs,
       onLanguageModelCallEnd,
+      zodSchemaOptions,
     }),
   );
 
@@ -410,6 +418,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now,
   callStartTimestampMs,
   onLanguageModelCallEnd,
+  zodSchemaOptions,
 }: {
   tools: TOOLS | undefined;
   instructions: Instructions | undefined;
@@ -425,6 +434,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
   now: () => number;
   callStartTimestampMs: number;
   onLanguageModelCallEnd?: Arrayable<OnLanguageModelCallEndCallback<TOOLS>>;
+  zodSchemaOptions?: ZodSchemaOptions;
 }) {
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -699,6 +709,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               instructions,
               messages,
               abortSignal,
+              zodSchemaOptions,
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);

@@ -14,6 +14,7 @@ import {
   type InferToolSetContext,
   type ProviderOptions,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
@@ -265,6 +266,7 @@ export async function generateText<
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include,
   include = experimental_include,
+  zodSchemaOptions,
   _internal: {
     generateId = originalGenerateId,
     generateCallId = originalGenerateCallId,
@@ -353,6 +355,12 @@ export async function generateText<
      * caching by keeping tool definitions in a stable order.
      */
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Options for converting Zod schemas (tool inputs) to JSON Schema.
+     * Merged over process-wide defaults from `setZodSchemaOptions`.
+     */
+    zodSchemaOptions?: ZodSchemaOptions;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -726,6 +734,7 @@ export async function generateText<
         toolsContext,
         runtimeContext,
         toolApprovalSecret: experimental_toolApprovalSecret,
+        zodSchemaOptions,
       });
 
       const deniedToolApprovals = [
@@ -947,6 +956,7 @@ export async function generateText<
                   ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
                 >,
                 experimental_sandbox: stepSandbox,
+                zodSchemaOptions,
               });
 
               const stepToolChoice = prepareToolChoice({
@@ -1085,6 +1095,7 @@ export async function generateText<
                       instructions: stepInstructions,
                       messages: stepMessages,
                       abortSignal: mergedAbortSignal,
+                      zodSchemaOptions,
                     }),
                   ),
               );

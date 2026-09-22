@@ -8,6 +8,7 @@ import {
   type InferToolSetContext,
   type Tool,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import type { ToolOrder } from '../generate-text/tool-order';
 import { isNonEmptyObject } from '../util/is-non-empty-object';
@@ -17,11 +18,16 @@ export async function prepareTools<TOOLS extends ToolSet>({
   toolOrder,
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_sandbox: sandbox,
+  zodSchemaOptions,
 }: {
   tools: TOOLS | undefined;
   toolOrder?: ToolOrder<TOOLS>;
   toolsContext?: InferToolSetContext<TOOLS>;
   experimental_sandbox?: SandboxSession;
+  /**
+   * Options for converting Zod tool input schemas to JSON Schema.
+   */
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Promise<
   Array<LanguageModelV4FunctionTool | LanguageModelV4ProviderTool> | undefined
 > {
@@ -52,7 +58,8 @@ export async function prepareTools<TOOLS extends ToolSet>({
         languageModelTools.push({
           type: 'function' as const,
           name,
-          inputSchema: await asSchema(tool.inputSchema).jsonSchema,
+          inputSchema: await asSchema(tool.inputSchema, zodSchemaOptions)
+            .jsonSchema,
           ...(description != null ? { description } : {}),
           ...(inputExamples != null ? { inputExamples } : {}),
           ...(providerOptions != null ? { providerOptions } : {}),

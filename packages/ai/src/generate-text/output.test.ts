@@ -111,6 +111,35 @@ describe('Output.object', () => {
       `);
     });
 
+    it('should apply zodSchemaOptions when converting Zod schemas', async () => {
+      const compactUuid = object({
+        schema: z.object({ id: z.uuid() }),
+        zodSchemaOptions: {
+          override({ jsonSchema }) {
+            if (jsonSchema.format === 'uuid') {
+              delete jsonSchema.pattern;
+            }
+          },
+        },
+      });
+
+      const result = await compactUuid.responseFormat;
+      if (result?.type !== 'json') {
+        fail('expected json response format');
+      }
+
+      const idSchema = (
+        result.schema as
+          | {
+              properties?: { id?: { format?: string; pattern?: string } };
+            }
+          | undefined
+      )?.properties?.id;
+
+      expect(idSchema?.format).toBe('uuid');
+      expect(idSchema?.pattern).toBeUndefined();
+    });
+
     it('should include name and description when provided', async () => {
       const objectWithNameAndDesc = object({
         schema: z.object({ content: z.string() }),

@@ -185,6 +185,7 @@ export async function startBatch<
           tools: request.tools,
           toolOrder: request.toolOrder,
           toolsContext: request.toolsContext,
+          zodSchemaOptions: request.zodSchemaOptions,
         });
         validateCompatibleTools({
           requestId: request.id,

@@ -5,6 +5,7 @@ import {
   type FlexibleSchema,
   type InferSchema,
   type ProviderOptions,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
@@ -207,6 +208,12 @@ export async function generateObject<
       providerOptions?: ProviderOptions;
 
       /**
+       * Options for converting Zod schemas to JSON Schema.
+       * Merged over process-wide defaults from `setZodSchemaOptions`.
+       */
+      zodSchemaOptions?: ZodSchemaOptions;
+
+      /**
        * Callback that is called when the generateObject operation begins,
        * before the LLM call is made.
        */
@@ -280,6 +287,7 @@ export async function generateObject<
     telemetry = experimental_telemetry,
     experimental_download: download,
     providerOptions,
+    zodSchemaOptions,
     onStart,
     experimental_onStart,
     onStepStart,
@@ -320,6 +328,7 @@ export async function generateObject<
     output,
     schema: inputSchema,
     enumValues,
+    zodSchemaOptions,
   });
 
   const callSettings = prepareLanguageModelCallOptions(settings);

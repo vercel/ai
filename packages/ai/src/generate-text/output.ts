@@ -10,6 +10,7 @@ import {
   safeParseJSON,
   safeValidateTypes,
   type FlexibleSchema,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
@@ -95,6 +96,7 @@ export const object = <OBJECT>({
   schema: inputSchema,
   name,
   description,
+  zodSchemaOptions,
 }: {
   schema: FlexibleSchema<OBJECT>;
   /**
@@ -107,8 +109,13 @@ export const object = <OBJECT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
+  /**
+   * Options for converting Zod schemas to JSON Schema.
+   * Merged over process-wide defaults from `setZodSchemaOptions`.
+   */
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Output<OBJECT, DeepPartial<OBJECT>, never> => {
-  const schema = asSchema(inputSchema);
+  const schema = asSchema(inputSchema, zodSchemaOptions);
 
   return {
     name: 'object',
@@ -203,6 +210,7 @@ export const array = <ELEMENT>({
   maxItems,
   name,
   description,
+  zodSchemaOptions,
 }: {
   element: FlexibleSchema<ELEMENT>;
   /**
@@ -223,6 +231,11 @@ export const array = <ELEMENT>({
    * Used by some providers for additional LLM guidance, e.g. via tool or schema description.
    */
   description?: string;
+  /**
+   * Options for converting Zod schemas to JSON Schema.
+   * Merged over process-wide defaults from `setZodSchemaOptions`.
+   */
+  zodSchemaOptions?: ZodSchemaOptions;
 }): Output<Array<ELEMENT>, Array<ELEMENT>, ELEMENT> => {
   validateArrayBound({ name: 'minItems', value: minItems });
   validateArrayBound({ name: 'maxItems', value: maxItems });
@@ -235,7 +248,7 @@ export const array = <ELEMENT>({
     });
   }
 
-  const elementSchema = asSchema(inputElementSchema);
+  const elementSchema = asSchema(inputElementSchema, zodSchemaOptions);
 
   return {
     name: 'array',

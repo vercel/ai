@@ -11,6 +11,7 @@ import type {
   InferToolSetContext,
   ProviderOptions,
   ToolSet,
+  ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import type { ContentPart } from '../generate-text/content-part';
 import type { ToolOrder } from '../generate-text/tool-order';
@@ -76,6 +77,10 @@ export type TextBatchRequest<
     toolOrder?: ToolOrder<TOOLS>;
     toolsContext?: InferToolSetContext<TOOLS>;
     providerOptions?: ProviderOptions;
+    /**
+     * Options for converting Zod tool input schemas to JSON Schema.
+     */
+    zodSchemaOptions?: ZodSchemaOptions;
   };
 
 /**

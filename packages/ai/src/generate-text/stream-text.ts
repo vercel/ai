@@ -20,6 +20,7 @@ import {
   type ToolApprovalResponse,
   type ToolContent,
   type ToolSet,
+  type ZodSchemaOptions,
 } from '@ai-sdk/provider-utils';
 import type { ServerResponse } from 'node:http';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
@@ -461,6 +462,7 @@ export function streamText<
   toolsContext = {} as InferToolSetContext<TOOLS>,
   experimental_include,
   include = experimental_include,
+  zodSchemaOptions,
   _internal: {
     now = originalNow,
     generateId = originalGenerateId,
@@ -533,6 +535,12 @@ export function streamText<
      * caching by keeping tool definitions in a stable order.
      */
     toolOrder?: ToolOrder<NoInfer<TOOLS>>;
+
+    /**
+     * Options for converting Zod schemas (tool inputs) to JSON Schema.
+     * Merged over process-wide defaults from `setZodSchemaOptions`.
+     */
+    zodSchemaOptions?: ZodSchemaOptions;
 
     /**
      * Optional specification for parsing structured outputs from the LLM response.
@@ -909,6 +917,7 @@ export function streamText<
     generateId,
     generateCallId,
     download,
+    zodSchemaOptions,
 
     // assign default values to include:
     include: {
@@ -1296,6 +1305,7 @@ class DefaultStreamTextResult<
     toolsContext,
     download,
     include,
+    zodSchemaOptions,
   }: {
     model: LanguageModelV4;
     telemetry: TelemetryOptions<RUNTIME_CONTEXT, TOOLS> | undefined;
@@ -1342,6 +1352,7 @@ class DefaultStreamTextResult<
     timeout: TimeoutConfiguration<TOOLS> | undefined;
     download: DownloadFunction | undefined;
     include: Required<StreamTextInclude>;
+    zodSchemaOptions: ZodSchemaOptions | undefined;
 
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
@@ -2046,6 +2057,7 @@ class DefaultStreamTextResult<
           toolsContext,
           runtimeContext,
           toolApprovalSecret: experimental_toolApprovalSecret,
+          zodSchemaOptions,
         });
 
         const localDeniedToolApprovals = [
@@ -2376,6 +2388,7 @@ class DefaultStreamTextResult<
               ActiveToolSubset<TOOLS, ActiveTools<NoInfer<TOOLS>>>
             >,
             experimental_sandbox: stepSandbox,
+            zodSchemaOptions,
           });
 
           const stepToolChoice = prepareToolChoice({
@@ -2432,6 +2445,7 @@ class DefaultStreamTextResult<
                     telemetryDispatcher.executeLanguageModelCall,
                   toolsContext,
                   experimental_sandbox: stepSandbox,
+                  zodSchemaOptions,
                   onLanguageModelCallStart: filterNullable(
                     onLanguageModelCallStart,
                     telemetryDispatcher.onLanguageModelCallStart as
