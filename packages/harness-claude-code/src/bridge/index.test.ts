@@ -375,6 +375,7 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
     });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
   });
@@ -390,6 +391,7 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
       disallowedTools: ['Bash'],
       settings: {
         permissions: { ask: ['Bash(*)'] },
@@ -475,6 +477,9 @@ describe('Claude Code bridge configuration', () => {
       }>;
     };
     const questionHook = hooks.PreToolUse[0];
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionPromptToolName: 'stdio',
+    });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
     const result = await questionHook.hooks[0](
       {
