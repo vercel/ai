@@ -204,7 +204,30 @@ Harness adapters should support flexible authentication options instead of assum
 Prefer auth that can work with explicit adapter settings, host environment variables, AI Gateway, and OIDC tokens such as `VERCEL_OIDC_TOKEN`.
 OIDC-backed auth is especially useful because it avoids long-lived static secrets.
 
-Resolve credentials on the host when possible, pass only what the runtime needs, and never persist secrets in `sessionWorkDir` or lifecycle state.
+Some adapters can resolve credentials from the runtime's native subscription on the host.
+These adapters use native subscription credentials only when no applicable API key is available, whether for AI Gateway or direct provider authentication. The `ai-gateway` mode and an explicit authentication environment do not read native subscriptions.
+
+### Credential Handling
+
+Model and provider credentials must not enter the sandbox.
+
+- Host-driven adapters keep them on the host. This is the simple scenario and, as mentioned before, generally preferred.
+- Bridge-backed adapters should use credential brokering so the sandbox process receives only non-secret placeholders.
+
+The exception is per-session bridge authentication tokens, which bridge-backed adapters need inside the sandbox.
+
+Credential brokering requires a `HarnessV1NetworkSandboxSession` implementation with `addRequestTransformations()` and is strongly recommended. The adapter installs outbound HTTPS request transformations that match the placeholder and destination, then inject the real credential after the request leaves the sandbox security boundary.
+
+When `addRequestTransformations()` is unavailable, adapters fall back to forwarding credentials into the sandbox process. This is the only supported exception in which real model or provider credentials may enter the sandbox. A warning is emitted when forwarding credentials is the only choice.
+
+The optional `credentialForwarding` adapter setting provides advanced control over each value before it enters the sandbox. It receives a non-secret placeholder when credential brokering is available and the real credential otherwise; its return value is what the sandbox process receives. It does not restrict which credentials the adapter can discover or access on the host.
+
+You can use the `credentialForwarding` setting if you handle credential brokering on your own, for example when passing a regular `Experimental_SandboxSession` (which lacks `addRequestTransformations()`) to `agent.createSession()`:
+
+- `credentialForwarding` allows you to inject custom placeholder credentials into the sandbox instead of the real credentials from environment variables.
+- Alternatively, provide placeholder credentials in the environment variables themselves.
+
+Never persist secrets in `sessionWorkDir`. Lifecycle state can contain bridge tokens or forwarded credentials, so callers must treat it as sensitive data and store and transmit it securely.
 
 ## Lifecycle and Resume
 
