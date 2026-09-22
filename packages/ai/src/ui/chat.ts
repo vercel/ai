@@ -260,6 +260,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
   private pendingMessagePreparations = new Set<AbortController>();
+  private pendingApprovalMessageId: string | undefined;
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
@@ -362,22 +363,32 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     options?: ChatRequestOptions,
   ): Promise<void> => {
     if (message == null) {
-      let messageId = this.lastMessage?.id;
+      let messageId = this.pendingApprovalMessageId;
 
-      // An approval response can belong to an earlier assistant message when
-      // the conversation has continued in the meantime. Continue that message
-      // so result chunks can resolve its tool invocation.
-      for (let i = this.state.messages.length - 1; i >= 0; i--) {
-        const candidate = this.state.messages[i];
-        if (
-          candidate.role === 'assistant' &&
-          candidate.parts.some(
-            part => isToolUIPart(part) && part.state === 'approval-responded',
-          )
-        ) {
-          messageId = candidate.id;
-          break;
+      if (messageId == null) {
+        messageId = this.lastMessage?.id;
+
+        // When hydrating a chat with an already-responded approval, continue
+        // the most recent matching assistant message so result chunks can
+        // resolve its tool invocation.
+        for (let i = this.state.messages.length - 1; i >= 0; i--) {
+          const candidate = this.state.messages[i];
+          if (
+            candidate.role === 'assistant' &&
+            candidate.parts.some(
+              part => isToolUIPart(part) && part.state === 'approval-responded',
+            )
+          ) {
+            messageId = candidate.id;
+            break;
+          }
         }
+      }
+
+      const consumesPendingApproval =
+        messageId != null && messageId === this.pendingApprovalMessageId;
+      if (consumesPendingApproval) {
+        this.pendingApprovalMessageId = undefined;
       }
 
       await this.makeRequest({
@@ -385,6 +396,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         messageId,
         ...options,
       });
+
+      if (
+        consumesPendingApproval &&
+        this.status === 'error' &&
+        this.pendingApprovalMessageId == null
+      ) {
+        this.pendingApprovalMessageId = messageId;
+      }
       return;
     }
 
@@ -561,6 +580,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           ...message,
           parts: message.parts.map(updatePart),
         });
+        this.pendingApprovalMessageId = message.id;
       }
 
       // update the active response if it exists
@@ -578,12 +598,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.shouldSendAutomatically().then(shouldSend => {
           if (shouldSend) {
             // no await to avoid deadlocking
+            const messageId =
+              messageIndex === -1
+                ? this.lastMessage?.id
+                : messages[messageIndex].id;
+
+            if (this.pendingApprovalMessageId === messageId) {
+              this.pendingApprovalMessageId = undefined;
+            }
+
             this.makeRequest({
               trigger: 'submit-message',
-              messageId:
-                messageIndex === -1
-                  ? this.lastMessage?.id
-                  : messages[messageIndex].id,
+              messageId,
               ...options,
             });
           }

@@ -3395,6 +3395,100 @@ describe('Chat', () => {
       });
     });
 
+    it('should resume the approval that was just answered when a later approval has already been answered', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+          formatChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { temperature: 72, weather: 'sunny' },
+          }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What time is it?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-clock' as const,
+              toolCallId: 'call-2',
+              state: 'approval-responded' as const,
+              input: { timezone: 'UTC' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+              },
+            },
+          ],
+        },
+        {
+          id: 'id-4',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'Thanks.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages[1]).toMatchObject({
+        id: 'resumed-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+    });
+
     it('should preserve signed approval metadata when recording the response', async () => {
       const chat = new TestChat({
         id: '123',
