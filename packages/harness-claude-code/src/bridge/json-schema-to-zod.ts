@@ -6,6 +6,7 @@ export type JsonSchemaObject = {
   type?: string | string[];
   description?: string;
   properties?: Record<string, JsonSchemaObject>;
+  additionalProperties?: boolean | JsonSchemaObject;
   required?: string[];
   items?: JsonSchemaObject | JsonSchemaObject[];
   enum?: unknown[];
@@ -17,9 +18,21 @@ export type JsonSchemaObject = {
 
 type ZodShape = Record<string, z.ZodTypeAny>;
 
-export function jsonSchemaToZodShape(input: unknown): ZodShape {
+export function jsonSchemaToZodObject(input: unknown) {
   const schema = isJsonSchemaObject(input) ? input : {};
-  return toZodShape(schema);
+  return toZodObject(schema);
+}
+
+function toZodObject(schema: JsonSchemaObject) {
+  const object = z.object(toZodShape(schema));
+  if (schema.additionalProperties === false) return object.strict();
+
+  // JSON Schema allows additional properties by default; Zod strips them.
+  return object.catchall(
+    isJsonSchemaObject(schema.additionalProperties)
+      ? toZodType(schema.additionalProperties)
+      : z.unknown(),
+  );
 }
 
 function toZodShape(schema: JsonSchemaObject | undefined): ZodShape {
@@ -71,7 +84,7 @@ function zodForType(schema: JsonSchemaObject): z.ZodTypeAny {
         Array.isArray(schema.items) ? z.any() : toZodType(schema.items),
       );
     case 'object':
-      return z.object(toZodShape(schema));
+      return toZodObject(schema);
     case 'null':
       return z.null();
     default:

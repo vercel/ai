@@ -385,6 +385,57 @@ const servedByFallback = iterations?.some(
 console.log('Served by fallback:', servedByFallback);
 ```
 
+### Dangerous Tool Use Safeguard
+
+The `safeguards` option asks the API to run additional server-side checks as part of the request. The `dangerous_tool_use` safeguard classifies every `tool_use` block in the response for dangerous actions, such as destructive shell commands or data exfiltration, and returns a verdict per tool call. This is the check that Claude Code's auto mode relies on. The `dangerous-tool-use-2026-09-03` beta header is added for you.
+
+```ts highlight="9-16"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-5'),
+  prompt: 'Use the bash tool to run: echo hello',
+  tools: { bash: tool({ inputSchema: z.object({ command: z.string() }) }) },
+  providerOptions: {
+    anthropic: {
+      safeguards: [
+        {
+          type: 'dangerous_tool_use',
+          classifierContext: { v: 1, permission_mode: 'auto' },
+        },
+      ],
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+console.log(result.providerMetadata?.anthropic?.safeguardResults);
+```
+
+The verdicts are available on `providerMetadata.anthropic.safeguardResults`, one entry per requested safeguard, in the API's wire shape:
+
+```json
+[
+  {
+    "type": "dangerous_tool_use",
+    "status": {
+      "type": "available",
+      "tool_uses": {
+        "toolu_01Ti4QpUfhLV6QqCTFVY8C7w": {
+          "type": "evaluated",
+          "outcome": "not_flagged"
+        }
+      }
+    }
+  }
+]
+```
+
+`status.type` is `available` when the classifier ran; `unsupported` means the API key is not enabled for the beta. Inside `status.tool_uses`, each tool call id maps to `evaluated` (with an `outcome` of `not_flagged` or `flagged`, the latter with an `explanation` such as `[Data Exfiltration]`), `skipped`, or `unavailable` (a transient classifier failure). When streaming, the verdicts arrive on the final `message_delta` event and are exposed on the `finish` part's provider metadata.
+
+Anthropic's platform reference does not document the beta yet; the feature is described from the client side in the Claude Code [auto mode classifier](https://code.claude.com/docs/en/auto-mode-classifier-billing) and [gateway compatibility](https://code.claude.com/docs/en/llm-gateway-protocol#feature-pass-through) guides.
+
 ### Reasoning
 
 Anthropic models support extended thinking, where Claude shows its reasoning process before providing a final answer.

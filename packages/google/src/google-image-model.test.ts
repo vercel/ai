@@ -27,6 +27,7 @@ function prepareJsonResponse({
     candidatesTokenCount: 100,
     totalTokenCount: 110,
   },
+  finishReason = 'STOP',
   headers,
   groundingMetadata,
 }: {
@@ -36,6 +37,7 @@ function prepareJsonResponse({
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  finishReason?: string;
   headers?: Record<string, string>;
   groundingMetadata?: Record<string, unknown>;
 } = {}) {
@@ -54,7 +56,7 @@ function prepareJsonResponse({
             })),
             role: 'model',
           },
-          finishReason: 'STOP',
+          finishReason,
           ...(groundingMetadata != null ? { groundingMetadata } : {}),
         },
       ],
@@ -134,6 +136,7 @@ describe('GoogleImageModel', () => {
         {
           "google": {
             "finishMessage": null,
+            "finishReason": "STOP",
             "groundingMetadata": null,
             "images": [
               {},
@@ -191,6 +194,29 @@ describe('GoogleImageModel', () => {
           serviceTier: 'standard',
         },
         serviceTier: 'standard',
+      });
+    });
+
+    it('should expose the candidate finish reason in provider metadata', async () => {
+      prepareJsonResponse({
+        images: [],
+        finishReason: 'IMAGE_SAFETY',
+      });
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.google).toMatchObject({
+        finishReason: 'IMAGE_SAFETY',
+        images: [],
       });
     });
 
@@ -396,6 +422,7 @@ describe('GoogleImageModel', () => {
       expect(result.providerMetadata?.google).toMatchInlineSnapshot(`
         {
           "finishMessage": null,
+          "finishReason": "STOP",
           "groundingMetadata": {
             "groundingChunks": [
               {
