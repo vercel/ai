@@ -174,7 +174,7 @@ function createPermissionOptions(input: {
     inactiveNativeTools,
   });
 
-  return {
+  const baseOptions = {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
@@ -183,6 +183,12 @@ function createPermissionOptions(input: {
           : 'default',
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
+  };
+
+  if (permissionMode === 'allow-all') return baseOptions;
+
+  return {
+    ...baseOptions,
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
