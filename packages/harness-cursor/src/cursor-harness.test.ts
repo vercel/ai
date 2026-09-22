@@ -70,7 +70,7 @@ describe('createCursor', () => {
           "reportBugfixResults",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-cursor",
+          "name": "ai-sdk-harness-cursor",
           "version": "0.0.0-test",
         },
         "credentialEnv": [

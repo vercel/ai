@@ -43,7 +43,7 @@ export function createSigV4FetchFunction(
     );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 
@@ -130,7 +130,7 @@ export function createApiKeyFetchFunction(
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 

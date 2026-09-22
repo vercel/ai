@@ -203,7 +203,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -226,7 +226,7 @@ describe('responses (default language model)', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -418,7 +418,7 @@ describe('chat', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -870,7 +870,7 @@ describe('completion', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1032,7 +1032,7 @@ describe('embedding', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
   });
@@ -1137,7 +1137,7 @@ describe('image', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 
@@ -1361,7 +1361,7 @@ describe('responses', () => {
         }
       `);
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
+        `ai-sdk-azure/0.0.0-test`,
       );
     });
 

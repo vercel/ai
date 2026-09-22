@@ -266,7 +266,7 @@ export function createGoogle(
         }),
         ...options.headers,
       },
-      `ai-sdk/google/${VERSION}`,
+      `ai-sdk-google/${VERSION}`,
     );
 
   const getSupportedUrls = (

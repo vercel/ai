@@ -11,7 +11,7 @@ vi.mock('@ai-sdk/provider-utils', async () => {
   const actual = await vi.importActual('@ai-sdk/provider-utils');
   return {
     ...actual,
-    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
+    getRuntimeEnvironmentUserAgent: vi.fn(() => 'testenv'),
   };
 });
 
@@ -45,7 +45,7 @@ describe('injectFetchHeaders', () => {
         headers: expect.objectContaining({
           'x-custom-header': 'custom-value',
           authorization: 'Bearer token',
-          'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-amazon-bedrock/0.0.0-test testenv',
         }),
       }),
     );
@@ -74,7 +74,7 @@ describe('injectFetchHeaders', () => {
         headers: expect.objectContaining({
           'content-type': 'application/json',
           'x-custom-header': 'custom-value',
-          'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-amazon-bedrock/0.0.0-test testenv',
         }),
       }),
     );
@@ -98,7 +98,7 @@ describe('injectFetchHeaders', () => {
       expect.objectContaining({
         headers: expect.objectContaining({
           'x-custom-header': 'custom-value',
-          'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-amazon-bedrock/0.0.0-test testenv',
         }),
       }),
     );
@@ -127,7 +127,7 @@ describe('injectFetchHeaders', () => {
         headers: expect.objectContaining({
           'content-type': 'application/json',
           'x-custom-header': 'custom-value',
-          'user-agent': 'ai-sdk/amazon-bedrock/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-amazon-bedrock/0.0.0-test testenv',
         }),
       }),
     );

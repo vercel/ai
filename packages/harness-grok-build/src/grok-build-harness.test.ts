@@ -86,7 +86,7 @@ describe('createGrokBuild', () => {
           "reference_to_video",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-grok-build",
+          "name": "ai-sdk-harness-grok-build",
           "version": "0.0.0-test",
         },
         "credentialEnv": [

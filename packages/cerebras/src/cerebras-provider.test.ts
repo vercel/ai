@@ -86,7 +86,7 @@ describe('CerebrasProvider', () => {
       });
 
       expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
-        'ai-sdk/cerebras/0.0.0-test',
+        'ai-sdk-cerebras/0.0.0-test',
       );
     });
 

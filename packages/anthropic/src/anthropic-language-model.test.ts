@@ -2016,7 +2016,7 @@ describe('AnthropicLanguageModel', () => {
         'test-header': 'test-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/anthropic/0.0.0-test`,
+        `ai-sdk-anthropic/0.0.0-test`,
       );
     });
 

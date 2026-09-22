@@ -98,7 +98,7 @@ export class EvaluationTypeSafeAiModel implements EvaluationModelV4 {
             {
               Authorization: `Bearer ${loadApiKey({ apiKey: undefined, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
             },
-            `ai-sdk/typesafe-ai/${VERSION}`,
+            `ai-sdk-typesafe-ai/${VERSION}`,
           )
         : await resolve(this.config.headers);
     const {

@@ -22,7 +22,7 @@ import {
   resolveFxSubscriptionEnvironment,
 } from './fx-subscription';
 
-const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const FX_CLIENT_APP = `ai-sdk-harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
 export type FxAuthenticationMode = ACPAuthenticationMode;

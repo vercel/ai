@@ -82,7 +82,7 @@ export function createDeepSeek(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepseek/${VERSION}`,
+      `ai-sdk-deepseek/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: DeepSeekChatModelId) => {

@@ -72,7 +72,7 @@ export function createZai(options: ZaiProviderSettings = {}): ZaiProvider {
         })}`,
         ...options.headers,
       },
-      `ai-sdk/zai/${VERSION}`,
+      `ai-sdk-zai/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: ZaiChatModelId) =>

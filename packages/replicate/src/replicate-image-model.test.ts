@@ -141,7 +141,7 @@ describe('doGenerate', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/replicate/0.0.0-test`,
+      `ai-sdk-replicate/0.0.0-test`,
     );
   });
 

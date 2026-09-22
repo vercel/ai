@@ -141,7 +141,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
   });
@@ -187,7 +187,7 @@ describe('xAIProvider', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -230,7 +230,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 
@@ -270,7 +270,7 @@ describe('xAIProvider', () => {
       expect(constructorCall[1].headers()).toMatchObject({
         authorization: 'Bearer mock-api-key',
         'custom-header': 'test-value',
-        'user-agent': 'ai-sdk/xai/0.0.0-test',
+        'user-agent': 'ai-sdk-xai/0.0.0-test',
       });
     });
 

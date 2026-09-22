@@ -620,7 +620,7 @@ describe('doGenerate', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/groq/0.0.0-test`,
+      `ai-sdk-groq/0.0.0-test`,
     );
   });
 

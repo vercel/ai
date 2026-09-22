@@ -86,7 +86,7 @@ type OpenCodeRespawnStrategy = 'replay' | 'rerun';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
+const OPENCODE_CLIENT_APP = `ai-sdk-harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
   readonly auth?: OpenCodeAuthenticationMode;

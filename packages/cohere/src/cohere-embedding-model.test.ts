@@ -179,7 +179,7 @@ describe('doEmbed', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/cohere/0.0.0-test`,
+      `ai-sdk-cohere/0.0.0-test`,
     );
   });
 });

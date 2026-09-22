@@ -340,7 +340,7 @@ describe('GoogleVertexEmbeddingModel', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google-vertex/0.0.0-test`,
+      `ai-sdk-google-vertex/0.0.0-test`,
     );
   });
 

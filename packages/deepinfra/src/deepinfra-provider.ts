@@ -100,7 +100,7 @@ export function createDeepInfra(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepinfra/${VERSION}`,
+      `ai-sdk-deepinfra/${VERSION}`,
     );
 
   interface CommonModelConfig {

@@ -140,7 +140,7 @@ export async function generateAuthToken(credentials?: GoogleCredentials) {
       method: 'POST',
       headers: withUserAgentSuffix(
         { 'Content-Type': 'application/x-www-form-urlencoded' },
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
       body: new URLSearchParams({

@@ -48,7 +48,7 @@ export function createVoyage(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/voyage/${VERSION}`,
+      `ai-sdk-voyage/${VERSION}`,
     );
 
   const createEmbeddingModel = (modelId: VoyageEmbeddingModelId) =>

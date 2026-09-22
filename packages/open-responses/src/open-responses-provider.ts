@@ -81,7 +81,7 @@ export function createOpenResponses(
           : {}),
         ...options.headers,
       },
-      `ai-sdk/open-responses/${VERSION}`,
+      `ai-sdk-open-responses/${VERSION}`,
     );
 
   const createResponsesModel = (modelId: string) => {

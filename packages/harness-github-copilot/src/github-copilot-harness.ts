@@ -26,7 +26,7 @@ declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_LOCK_YAML__: string;
 declare const __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__: string;
 
 const GITHUB_COPILOT_CLIENT_APP = {
-  name: 'ai-sdk/harness-github-copilot',
+  name: 'ai-sdk-harness-github-copilot',
   version: VERSION,
 } as const;
 const GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON =
