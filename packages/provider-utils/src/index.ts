@@ -93,14 +93,17 @@ export * from './retry-with-exponential-backoff';
 export * from './response-handler';
 export {
   asSchema,
+  getZodSchemaOptions,
   jsonSchema,
   lazySchema,
+  setZodSchemaOptions,
   zodSchema,
   type FlexibleSchema,
   type InferSchema,
   type LazySchema,
   type Schema,
   type ValidationResult,
+  type ZodSchemaOptions,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
 export { SerializationError } from './serialization-error';

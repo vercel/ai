@@ -1,7 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import * as z4 from 'zod/v4';
 import { safeParseJSON } from './parse-json';
-import { asSchema, zodSchema, type StandardSchema } from './schema';
+import {
+  asSchema,
+  setZodSchemaOptions,
+  zodSchema,
+  type StandardSchema,
+} from './schema';
 
 describe('asSchema', () => {
   it('should create an object schema when no schema is provided', async () => {
@@ -35,6 +40,25 @@ describe('asSchema', () => {
       success: true,
       value: { model: 'test-model' },
     });
+  });
+
+  it('should pass Zod schema options through to conversion', async () => {
+    const schema = asSchema(z4.object({ id: z4.uuid() }), {
+      override({ jsonSchema }) {
+        if (jsonSchema.format === 'uuid') {
+          delete jsonSchema.pattern;
+        }
+      },
+    });
+
+    const jsonSchema = await schema.jsonSchema;
+    const idSchema = jsonSchema.properties?.id as {
+      format?: string;
+      pattern?: string;
+    };
+
+    expect(idSchema.format).toBe('uuid');
+    expect(idSchema.pattern).toBeUndefined();
   });
 });
 
@@ -168,6 +192,104 @@ describe('zodSchema', () => {
         );
 
         expect(schema.jsonSchema).toMatchSnapshot();
+      });
+
+      it('should apply override when converting to JSON Schema', () => {
+        const schema = zodSchema(z4.object({ id: z4.uuid() }), {
+          override({ jsonSchema }) {
+            if (jsonSchema.format === 'uuid') {
+              delete jsonSchema.pattern;
+            }
+          },
+        });
+
+        const idSchema = schema.jsonSchema.properties?.id as {
+          format?: string;
+          pattern?: string;
+        };
+
+        expect(idSchema.format).toBe('uuid');
+        expect(idSchema.pattern).toBeUndefined();
+      });
+
+      describe('global Zod schema options', () => {
+        afterEach(() => {
+          setZodSchemaOptions(undefined);
+        });
+
+        it('should apply global override when converting to JSON Schema', () => {
+          setZodSchemaOptions({
+            override({ jsonSchema }) {
+              if (jsonSchema.format === 'uuid') {
+                delete jsonSchema.pattern;
+              }
+            },
+          });
+
+          const schema = zodSchema(z4.object({ id: z4.uuid() }));
+          const idSchema = schema.jsonSchema.properties?.id as {
+            format?: string;
+            pattern?: string;
+          };
+
+          expect(idSchema.format).toBe('uuid');
+          expect(idSchema.pattern).toBeUndefined();
+        });
+
+        it('should apply global options set after wrapping and before conversion', () => {
+          const schema = zodSchema(z4.object({ id: z4.uuid() }));
+
+          setZodSchemaOptions({
+            override({ jsonSchema }) {
+              if (jsonSchema.format === 'uuid') {
+                delete jsonSchema.pattern;
+              }
+            },
+          });
+
+          const idSchema = schema.jsonSchema.properties?.id as {
+            format?: string;
+            pattern?: string;
+          };
+
+          expect(idSchema.pattern).toBeUndefined();
+        });
+
+        it('should compose global and per-call overrides in that order', () => {
+          setZodSchemaOptions({
+            override({ jsonSchema }) {
+              jsonSchema.title = 'from-global';
+            },
+          });
+
+          const schema = zodSchema(z4.object({ id: z4.string() }), {
+            override({ jsonSchema }) {
+              if (jsonSchema.title === 'from-global') {
+                jsonSchema.title = 'from-call';
+              }
+            },
+          });
+
+          expect(schema.jsonSchema.title).toBe('from-call');
+        });
+
+        it('should let per-call useReferences override the global default', () => {
+          const Inner = z4.object({
+            text: z4.string(),
+          });
+
+          setZodSchemaOptions({ useReferences: true });
+
+          const schema = zodSchema(
+            z4.object({
+              group1: z4.array(Inner),
+              group2: z4.array(Inner),
+            }),
+            { useReferences: false },
+          );
+
+          expect(JSON.stringify(schema.jsonSchema)).not.toContain('$ref');
+        });
       });
 
       it('should support nullable', () => {
