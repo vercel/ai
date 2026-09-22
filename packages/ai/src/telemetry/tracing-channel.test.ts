@@ -674,6 +674,71 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it.each([
+    { name: 'an omitted allowlist', telemetry: undefined },
+    { name: 'an empty allowlist', telemetry: {} },
+    {
+      name: 'an explicitly excluded field',
+      telemetry: { includeRuntimeContext: { secret: false } },
+    },
+  ])('excludes evaluate runtime context with $name', async ({ telemetry }) => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await evaluate({
+        model: new EvaluationMockModelV4({
+          doEvaluate: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry,
+        runtimeContext: { secret: 'hidden' },
+      });
+    });
+
+    const evaluateMessage = messages.find(
+      message => message.type === 'experimental_evaluate',
+    );
+
+    expect(
+      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({});
+  });
+
+  it('includes only allowlisted evaluate runtime context in tracing', async () => {
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await evaluate({
+        model: new EvaluationMockModelV4({
+          doEvaluate: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: { includeRuntimeContext: { requestId: true } },
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      });
+    });
+
+    const evaluateMessage = messages.find(
+      message => message.type === 'experimental_evaluate',
+    );
+
+    expect(
+      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+    ).toEqual({ requestId: 'request-1' });
+  });
+
   it('publishes the embed result on asyncEnd', async () => {
     const messages = await collectTracingChannelAsyncEndMessages(async () => {
       await embed({
