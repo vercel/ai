@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "issueId": 20766,
-  "expectationRevision": 1,
-  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/harness-pi-reattach-settings.ts",
+  "issueId": 20951,
+  "expectationRevision": 2,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20951-generated-file-url.ts",
   "artifactPaths": [
-    "examples/ai-functions/src/reproduction/harness-pi-reattach-settings.ts"
+    "examples/ai-functions/src/reproduction/issue-20951-generated-file-url.ts"
   ],
   "expectedFailure": {
     "exitCode": 1,
-    "signal": "ISSUE 20766 REPRODUCED: same-process reattach ignored request 2 credentials"
+    "signal": "ISSUE_20951: generated file URL outputs are not usable"
   }
 }
