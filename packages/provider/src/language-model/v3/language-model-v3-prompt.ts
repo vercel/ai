@@ -107,6 +107,14 @@ export interface LanguageModelV3FilePart {
   data: LanguageModelV3DataContent;
 
   /**
+   * The original URL string before it was parsed into a URL.
+   *
+   * This is available when parsing changes the string and a provider needs to
+   * preserve an opaque non-HTTP URI exactly.
+   */
+  originalUrl?: string;
+
+  /**
    * IANA media type of the file.
    *
    * Can support wildcards, e.g. `image/*` (in which case the provider needs to take appropriate action).
