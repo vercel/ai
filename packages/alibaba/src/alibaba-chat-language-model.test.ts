@@ -136,13 +136,7 @@ describe('doGenerate', () => {
           type: 'compatibility',
           feature: 'responseFormat JSON schema',
           details:
-            'Alibaba does not support JSON Schema output for model deepseek-v4.1-flash. JSON Object mode is used instead, and the schema will only be validated locally.',
-        },
-        {
-          type: 'compatibility',
-          feature: 'responseFormat JSON object',
-          details:
-            'Alibaba JSON Object mode requires the prompt to mention JSON. A JSON instruction was injected into the system message.',
+            'Alibaba does not support JSON Schema output for model deepseek-v4.1-flash. JSON Object mode is used instead. The schema was injected into the system message and will only be validated locally.',
         },
       ]);
     });
@@ -160,16 +154,8 @@ describe('doGenerate', () => {
         ],
         response_format: { type: 'json_object' },
       });
-      expect(warnings).toStrictEqual([
-        {
-          type: 'compatibility',
-          feature: 'responseFormat JSON object',
-          details:
-            'Alibaba JSON Object mode requires the prompt to mention JSON. A JSON instruction was injected into the system message.',
-        },
-      ]);
+      expect(warnings).toStrictEqual([]);
     });
-
   });
 
   describe('tool call', () => {

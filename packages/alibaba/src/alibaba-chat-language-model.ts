@@ -138,16 +138,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
         feature: 'responseFormat JSON schema',
         details:
           `Alibaba does not support JSON Schema output for model ${this.modelId}. ` +
-          'JSON Object mode is used instead, and the schema will only be validated locally.',
-      });
-    }
-
-    if (useJsonObject) {
-      warnings.push({
-        type: 'compatibility',
-        feature: 'responseFormat JSON object',
-        details:
-          'Alibaba JSON Object mode requires the prompt to mention JSON. A JSON instruction was injected into the system message.',
+          'JSON Object mode is used instead. The schema was injected into the system message and will only be validated locally.',
       });
     }
 
