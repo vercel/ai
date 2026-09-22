@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21124,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-object-overlapping-stop.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/use-object-overlapping-stop.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21124: an older completion must not disable stop() or clear() for the active request"
+  }
+}
