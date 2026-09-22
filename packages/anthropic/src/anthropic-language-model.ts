@@ -196,6 +196,48 @@ function getAnthropicCallerMetadata(
     : { providerMetadata: { anthropic: { caller: callerInfo } } };
 }
 
+/**
+ * Maps the custom tool names of toolset tools (e.g. the computer toolset) to
+ * the toolset name that the Anthropic API uses in `toolset_name`.
+ */
+function getAnthropicToolsetNames(
+  tools: LanguageModelV4CallOptions['tools'],
+): Record<string, string> {
+  const toolsetNames: Record<string, string> = {};
+
+  for (const tool of tools ?? []) {
+    if (
+      tool.type === 'provider' &&
+      tool.id === 'anthropic.computer_toolset_20260801'
+    ) {
+      toolsetNames[tool.name] = 'computer';
+    }
+  }
+
+  return toolsetNames;
+}
+
+/**
+ * Toolset member calls (e.g. `left_click` from the computer toolset) are
+ * exposed as a single tool call on the toolset tool. The member name is
+ * injected as the `action` property, matching the input shape of the older
+ * computer tool versions.
+ */
+function toToolsetMemberInput({
+  memberName,
+  input,
+}: {
+  memberName: string;
+  input: unknown;
+}): JSONObject {
+  return {
+    action: memberName,
+    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? (input as JSONObject)
+      : {}),
+  };
+}
+
 function getProviderOptionsName(provider: string): string {
   const dotIndex = provider.indexOf('.');
   return dotIndex === -1 ? provider : provider.substring(0, dotIndex);
@@ -363,6 +405,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rejectsSamplingParameters,
       supportsXhighEffort,
       rejectsThinkingDisabledAboveHighEffort,
+      rejectsThinkingDisabled,
+      rejectsForcedToolUse,
       isKnownModel,
     } = getModelCapabilities(modelId);
 
@@ -415,9 +459,29 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ?? 'auto';
-    const useStructuredOutput =
+    let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
+
+    // The JSON response tool relies on forced tool use, which some models
+    // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
+    // outputs when the model supports them.
+    if (
+      !useStructuredOutput &&
+      rejectsForcedToolUse &&
+      supportsStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.structuredOutputMode',
+        details:
+          `structuredOutputMode 'jsonTool' is not supported by ${modelId} because it rejects forced tool use. ` +
+          `Using 'outputFormat' instead.`,
+      });
+      useStructuredOutput = true;
+    }
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -466,6 +530,8 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         'anthropic.code_execution_20260120': 'code_execution',
         'anthropic.computer_20241022': 'computer',
         'anthropic.computer_20250124': 'computer',
+        'anthropic.computer_20251124': 'computer',
+        'anthropic.computer_toolset_20260801': 'computer',
         'anthropic.text_editor_20241022': 'str_replace_editor',
         'anthropic.text_editor_20250124': 'str_replace_editor',
         'anthropic.text_editor_20250429': 'str_replace_based_edit_tool',
@@ -485,12 +551,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       },
     });
 
+    const toolsetNames = getAnthropicToolsetNames(tools);
+
     const { prompt: messagesPrompt, betas } = await convertToAnthropicPrompt({
       prompt,
       sendReasoning: anthropicOptions?.sendReasoning ?? true,
       warnings,
       cacheControlValidator,
       toolNameMapping,
+      toolsetNames,
     });
 
     /*
@@ -500,8 +569,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     if (isCustomReasoning(reasoning) && anthropicOptions?.effort == null) {
       const reasoningConfig = resolveAnthropicReasoningConfig({
         reasoning,
+        modelId,
         supportsAdaptiveThinking,
         supportsXhighEffort,
+        rejectsThinkingDisabled,
         maxOutputTokensForModel,
         warnings,
       });
@@ -515,6 +586,33 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         ) {
           anthropicOptions.effort = reasoningConfig.effort;
         }
+      }
+    }
+
+    // Some models always run adaptive thinking and reject `disabled` and
+    // budget-based `enabled` thinking with a 400. Drop the unsupported
+    // setting and keep the request adaptive so it still succeeds.
+    if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
+      const thinking = anthropicOptions.thinking;
+
+      if (thinking.type === 'disabled') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${modelId}; it always uses adaptive thinking. ` +
+            `The thinking setting has been removed. Lower 'effort' to reduce thinking.`,
+        });
+        anthropicOptions.thinking = undefined;
+      } else if (thinking.type === 'enabled') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.thinking',
+          details:
+            `budget-based thinking is not supported by ${modelId}; it always uses adaptive thinking. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
+        });
+        anthropicOptions.thinking = { type: 'adaptive' };
       }
     }
 
@@ -926,6 +1024,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput: false,
             supportsStrictTools,
             defaultEagerInputStreaming,
+            rejectsForcedToolUse,
           }
         : {
             tools: tools ?? [],
@@ -935,6 +1034,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             supportsStructuredOutput,
             supportsStrictTools,
             defaultEagerInputStreaming,
+            rejectsForcedToolUse,
           },
     );
 
@@ -1209,6 +1309,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             content.push({
               type: 'text',
               text: JSON.stringify(part.input),
+            });
+          } else if (part.toolset_name != null) {
+            // toolset member calls (e.g. the computer toolset) are mapped to
+            // the toolset tool with the member name as the `action`:
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: toolNameMapping.toCustomToolName(part.toolset_name),
+              input: JSON.stringify(
+                toToolsetMemberInput({
+                  memberName: part.name,
+                  input: part.input,
+                }),
+              ),
+              providerMetadata: {
+                anthropic: {
+                  toolsetName: part.toolset_name,
+                  ...getAnthropicCallerMetadata(part.caller).providerMetadata
+                    ?.anthropic,
+                },
+              },
             });
           } else {
             content.push({
@@ -1722,6 +1843,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           firstDelta: boolean;
           providerToolName?: string;
           providerToolInputType?: string;
+          /**
+           * Set for toolset member calls (e.g. the computer toolset). The raw
+           * member input is accumulated and emitted as a single delta with the
+           * member name injected as `action` when the block completes.
+           */
+          toolset?: { name: string; memberName: string };
           caller?: {
             type:
               | 'code_execution_20250825'
@@ -1905,6 +2032,34 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     controller.enqueue({
                       type: 'text-start',
                       id: String(value.index),
+                    });
+                  } else if (part.toolset_name != null) {
+                    const callerInfo = getAnthropicCallerInfo(part.caller);
+                    const customToolName = toolNameMapping.toCustomToolName(
+                      part.toolset_name,
+                    );
+                    const hasNonEmptyInput =
+                      part.input && Object.keys(part.input).length > 0;
+
+                    // toolset member input is accumulated and emitted when the
+                    // block completes (see content_block_stop):
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: part.id,
+                      toolName: customToolName,
+                      input: hasNonEmptyInput ? JSON.stringify(part.input) : '',
+                      firstDelta: true,
+                      toolset: {
+                        name: part.toolset_name,
+                        memberName: part.name,
+                      },
+                      ...(callerInfo && { caller: callerInfo }),
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: part.id,
+                      toolName: customToolName,
                     });
                   } else {
                     const callerInfo = getAnthropicCallerInfo(part.caller);
@@ -2396,6 +2551,37 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                       usesJsonResponseTool && contentBlock.toolName === 'json';
 
                     if (!isJsonResponseTool) {
+                      // toolset member calls: emit the accumulated input with
+                      // the member name injected as `action` in one delta.
+                      if (contentBlock.toolset != null) {
+                        let memberInput: unknown = {};
+                        try {
+                          memberInput =
+                            contentBlock.input === ''
+                              ? {}
+                              : secureJsonParse(contentBlock.input);
+                        } catch {
+                          // ignore parse errors, fall back to the raw input
+                          memberInput = undefined;
+                        }
+
+                        contentBlock.input =
+                          memberInput === undefined
+                            ? contentBlock.input
+                            : JSON.stringify(
+                                toToolsetMemberInput({
+                                  memberName: contentBlock.toolset.memberName,
+                                  input: memberInput,
+                                }),
+                              );
+
+                        controller.enqueue({
+                          type: 'tool-input-delta',
+                          id: contentBlock.toolCallId,
+                          delta: contentBlock.input,
+                        });
+                      }
+
                       controller.enqueue({
                         type: 'tool-input-end',
                         id: contentBlock.toolCallId,
@@ -2438,10 +2624,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                         contentBlock.providerToolName === 'code_execution'
                           ? { dynamic: true }
                           : {}),
-                        ...(contentBlock.caller && {
+                        ...((contentBlock.caller || contentBlock.toolset) && {
                           providerMetadata: {
                             anthropic: {
-                              caller: contentBlock.caller,
+                              ...(contentBlock.toolset && {
+                                toolsetName: contentBlock.toolset.name,
+                              }),
+                              ...(contentBlock.caller && {
+                                caller: contentBlock.caller,
+                              }),
                             },
                           },
                         }),
@@ -2540,6 +2731,13 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     });
                   } else {
                     if (contentBlock?.type !== 'tool-call') {
+                      return;
+                    }
+
+                    // toolset member input is emitted as a single delta once
+                    // the block is complete (the member name is injected):
+                    if (contentBlock.toolset != null) {
+                      contentBlock.input += delta;
                       return;
                     }
 
@@ -2916,9 +3114,18 @@ export function getModelCapabilities(modelId: string): {
   rejectsSamplingParameters: boolean;
   supportsXhighEffort: boolean;
   rejectsThinkingDisabledAboveHighEffort: boolean;
+  /**
+   * Thinking is always adaptive: `thinking.type` `disabled` and `enabled`
+   * are rejected with a 400.
+   */
+  rejectsThinkingDisabled: boolean;
+  /**
+   * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
+   */
+  rejectsForcedToolUse: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-5')) {
+  if (modelId.includes('claude-opus-5-5')) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
@@ -2926,12 +3133,49 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-fable-5-1')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-fable-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5') ||
     modelId.includes('claude-sonnet-5')
   ) {
     return {
@@ -2941,6 +3185,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (
@@ -2954,6 +3200,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (
@@ -2968,6 +3216,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2978,6 +3228,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
@@ -2988,6 +3240,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
@@ -2998,6 +3252,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -3008,6 +3264,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: true,
     };
   } else if (
@@ -3020,6 +3278,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -3033,6 +3293,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: true,
       supportsXhighEffort: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     };
   } else {
@@ -3045,6 +3307,8 @@ export function getModelCapabilities(modelId: string): {
       rejectsSamplingParameters: false,
       supportsXhighEffort: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
       isKnownModel: false,
     };
   }
@@ -3084,14 +3348,18 @@ export function hasDynamicFilteringWebToolWithoutCodeExecution(
 
 function resolveAnthropicReasoningConfig({
   reasoning,
+  modelId,
   supportsAdaptiveThinking,
   supportsXhighEffort,
+  rejectsThinkingDisabled,
   maxOutputTokensForModel,
   warnings,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
+  modelId: string;
   supportsAdaptiveThinking: boolean;
   supportsXhighEffort: boolean;
+  rejectsThinkingDisabled: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
@@ -3100,6 +3368,20 @@ function resolveAnthropicReasoningConfig({
   }
 
   if (reasoning === 'none') {
+    // Models that always run adaptive thinking cannot disable it. Use low
+    // effort to keep thinking short instead of sending a request that the
+    // API would reject.
+    if (rejectsThinkingDisabled) {
+      warnings.push({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          `reasoning 'none' is not supported by ${modelId}; it always uses adaptive thinking. ` +
+          `Using effort 'low' to minimize thinking instead.`,
+      });
+      return { effort: 'low' };
+    }
+
     return { thinking: { type: 'disabled' } };
   }
 

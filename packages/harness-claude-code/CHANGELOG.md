@@ -1,5 +1,20 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.125
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.124
+
+### Patch Changes
+
+- 7d81368: fix(harness-claude-code): avoid unnecessary warning about `canUseTool()` in combination with `bypassPermissions` flag
+  - @ai-sdk/harness@1.0.120
+
 ## 1.0.123
 
 ### Patch Changes

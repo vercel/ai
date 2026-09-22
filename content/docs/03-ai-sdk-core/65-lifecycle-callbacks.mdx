@@ -1,12 +1,12 @@
 ---
 title: Lifecycle Callbacks
-description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, and rerank calls
+description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_evaluate calls
 ---
 
 # Lifecycle Callbacks
 
 Event callbacks let you run your own code at important points in an AI SDK call.
-You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, and `rerank` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
+You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_evaluate` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
 
 They are especially useful when you want application-specific logic close to the call site:
 
@@ -445,6 +445,25 @@ const result = await generateText({
       type: '(event: RerankEndEvent) => void | Promise<void>',
       description:
         'Called when the reranking operation completes, after the reranking model returns.',
+    },
+  ]}
+/>
+
+### `experimental_evaluate`
+
+<PropertiesTable
+  content={[
+    {
+      name: 'onStart',
+      type: '(event: Experimental_EvaluateStartEvent) => void | Promise<void>',
+      description:
+        'Called when the evaluation operation begins, before the evaluation model is called.',
+    },
+    {
+      name: 'onEnd',
+      type: '(event: Experimental_EvaluateEndEvent) => void | Promise<void>',
+      description:
+        'Called when the evaluation operation completes successfully.',
     },
   ]}
 />
@@ -1148,6 +1167,109 @@ For `embed`, `value` is a single string. For `embedMany`, `value` is an array of
       name: 'response',
       type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
       description: 'Response data including headers and body.',
+    },
+  ]}
+/>
+
+### Evaluation Events
+
+Evaluation callbacks are experimental. Their exported types are
+`Experimental_EvaluateStartEvent` and `Experimental_EvaluateEndEvent`.
+
+#### onStart
+
+<PropertiesTable
+  content={[
+    {
+      name: 'callId',
+      type: 'string',
+      description: 'Unique identifier for this evaluation call.',
+    },
+    {
+      name: 'operationId',
+      type: "'ai.evaluate'",
+      description: 'Evaluation operation identifier.',
+    },
+    {
+      name: 'runtimeContext',
+      type: 'RUNTIME_CONTEXT',
+      description: 'Full user-defined runtime context.',
+    },
+    {
+      name: 'provider',
+      type: 'string',
+      description: 'Provider identifier for the evaluation model.',
+    },
+    {
+      name: 'modelId',
+      type: 'string',
+      description: 'Evaluation model identifier.',
+    },
+    {
+      name: 'state',
+      type: 'string | object | array',
+      description: 'Shared state being evaluated.',
+    },
+    {
+      name: 'questions',
+      type: 'Readonly<Record<string, Experimental_EvaluationQuestion>>',
+      description: 'Questions being evaluated against the shared state.',
+    },
+    {
+      name: 'maxRetries',
+      type: 'number',
+      description: 'Maximum number of retries for the model call.',
+    },
+    {
+      name: 'headers',
+      type: 'Record<string, string> | undefined',
+      description: 'Additional HTTP headers sent with the request.',
+    },
+    {
+      name: 'providerOptions',
+      type: 'ProviderOptions',
+      description: 'Provider-specific options.',
+    },
+  ]}
+/>
+
+#### onEnd
+
+Includes every `onStart` field plus:
+
+<PropertiesTable
+  content={[
+    {
+      name: 'answers',
+      type: 'Record<string, Experimental_EvaluationAnswer>',
+      description: 'Exactly one typed answer per question ID.',
+    },
+    {
+      name: 'usage',
+      type: '{ inputTokens: number | undefined; outputTokens: number | undefined; totalTokens: number | undefined }',
+      description: 'Token usage for the evaluation operation.',
+    },
+    {
+      name: 'warnings',
+      type: 'Array<Warning>',
+      description: 'Warnings from the evaluation model.',
+    },
+    {
+      name: 'rounding',
+      type: '{ probabilityDecimals?: number; scoreDecimals?: number } | undefined',
+      description:
+        'Provider-declared decimal precision for probabilities and scores.',
+    },
+    {
+      name: 'providerMetadata',
+      type: 'ProviderMetadata | undefined',
+      description: 'Optional provider-specific metadata.',
+    },
+    {
+      name: 'response',
+      type: '{ id?: string; timestamp: Date; modelId: string; headers?: Record<string, string>; body?: unknown }',
+      description:
+        'Response metadata including the resolved model and timestamp.',
     },
   ]}
 />
