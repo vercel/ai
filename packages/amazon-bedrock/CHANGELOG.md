@@ -1,5 +1,45 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.90
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 5.0.89
+
+### Patch Changes
+
+- Updated dependencies [411b3f2]
+- Updated dependencies [e13c32f]
+  - @ai-sdk/openai@4.0.72
+
+## 5.0.88
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [e76a0a3]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/openai@4.0.71
+  - @ai-sdk/anthropic@4.0.58
+
+## 5.0.87
+
+### Patch Changes
+
+- d746e16: fix(amazon-bedrock): avoid strict mode for open tool schemas
+- c559a12: fix(amazon-bedrock): preserve API error messages when the error type is omitted
+- Updated dependencies [fd75cee]
+- Updated dependencies [1f5bb62]
+- Updated dependencies [0455398]
+  - @ai-sdk/openai@4.0.70
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+
 ## 5.0.86
 
 ### Patch Changes

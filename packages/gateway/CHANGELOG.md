@@ -1,5 +1,32 @@
 # @ai-sdk/gateway
 
+## 4.0.88
+
+### Patch Changes
+
+- 20dd00a: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+- c42576a: feat(gateway): support cancelling batches with `experimental_cancelBatch`
+- d85dcf5: chore(provider/gateway): update gateway model settings files
+- fd9b3f3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.86
+
+### Patch Changes
+
+- 4fdf51e: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.85
 
 ### Patch Changes

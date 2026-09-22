@@ -344,6 +344,127 @@ describe('SandboxChannel', () => {
     expect(closes[0]).toBe(1006);
   });
 
+  it('bounds a hanging reconnect connection by maxElapsedMs', async () => {
+    const first = makeFakeSocket();
+    const connectSignals: AbortSignal[] = [];
+    let calls = 0;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: ({ abortSignal }) => {
+        connectSignals.push(abortSignal);
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return new Promise<WebSocket>(() => {});
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+    const closes: number[] = [];
+    channel.onClose(code => closes.push(code));
+
+    first.drop();
+    await vi.waitFor(() => expect(closes).toEqual([1006]), {
+      timeout: 200,
+    });
+    expect(connectSignals[1]?.aborted).toBe(true);
+  });
+
+  it('does not let a backoff delay extend the reconnect deadline', async () => {
+    const first = makeFakeSocket();
+    let calls = 0;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: () => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return Promise.reject(new Error('connect refused'));
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 100, maxDelayMs: 100 },
+    });
+    await channel.open();
+    const closes: number[] = [];
+    channel.onClose(code => closes.push(code));
+
+    first.drop();
+    await vi.waitFor(() => expect(closes).toEqual([1006]), {
+      timeout: 200,
+    });
+    expect(calls).toBeGreaterThanOrEqual(2);
+  });
+
+  it('closes a socket that resolves after the reconnect attempt is aborted', async () => {
+    const first = makeFakeSocket();
+    const late = makeFakeSocket();
+    const terminate = vi.fn();
+    (late.socket as unknown as { terminate: () => void }).terminate = terminate;
+    let calls = 0;
+    let resolveLate: ((socket: WebSocket) => void) | undefined;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: () => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return new Promise<WebSocket>(resolve => {
+          resolveLate = resolve;
+        });
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+
+    first.drop();
+    await vi.waitFor(() => expect(resolveLate).toBeTypeOf('function'));
+    await vi.waitFor(() => expect(channel.isClosed()).toBe(true), {
+      timeout: 200,
+    });
+    resolveLate!(late.socket);
+    await flush();
+    expect(terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts an active connection when the channel is torn down', async () => {
+    const first = makeFakeSocket();
+    let calls = 0;
+    let reconnectSignal: AbortSignal | undefined;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: ({ abortSignal }) => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        reconnectSignal = abortSignal;
+        return new Promise<WebSocket>(() => {});
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 1_000, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+
+    first.drop();
+    await vi.waitFor(() => expect(reconnectSignal).toBeDefined());
+    channel.close();
+    await flush();
+
+    expect(reconnectSignal?.aborted).toBe(true);
+    expect(channel.isClosed()).toBe(true);
+  });
+
+  it('passes a distinct abort signal to each connection attempt', async () => {
+    const connector = makeConnector();
+    const signals: AbortSignal[] = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: async ({ abortSignal }) => {
+        signals.push(abortSignal);
+        return connector.connect();
+      },
+      outboundSchema,
+      reconnect: { initialDelayMs: 1, maxDelayMs: 1, maxElapsedMs: 200 },
+    });
+    await channel.open();
+    connector.current().drop();
+    await vi.waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals.every(signal => !signal.aborted)).toBe(true);
+  });
+
   it('seeds lastSeenEventId and advances it as events arrive', async () => {
     const connector = makeConnector();
     const channel = new SandboxChannel<Outbound, Inbound>({

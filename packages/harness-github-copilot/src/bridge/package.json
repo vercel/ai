@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@github/copilot": "1.0.82"
+    "@github/copilot": "1.0.86"
   }
 }
