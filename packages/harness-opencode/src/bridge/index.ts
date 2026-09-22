@@ -311,7 +311,7 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  const mcp = { ...(start.mcpServers ?? {}) };
+  const mcp = { ...start.mcpServers };
   if (relayPort && start.tools && start.tools.length > 0) {
     mcp['harness-tools'] = {
       type: 'local',
