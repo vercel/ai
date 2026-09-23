@@ -9,7 +9,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const subscribedEventTypes: string[] = [];
+const channelListeners = new Map<
+  string,
+  Set<(event: Record<string, unknown>) => void>
+>();
 let connectOnOpen = false;
+
+function dispatchChannelEvent(event: Record<string, unknown>): void {
+  for (const listener of channelListeners.get(String(event.type)) ?? []) {
+    listener(event);
+  }
+}
 
 const wsMock = vi.hoisted(() => {
   type Handler = (...args: unknown[]) => void;
@@ -113,8 +124,22 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         await this.connect({ abortSignal: new AbortController().signal });
       }
     }
-    on(): () => void {
+    beginListenerAttachment(): () => void {
       return () => {};
+    }
+    on(
+      type: string,
+      listener: (event: Record<string, unknown>) => void,
+    ): () => void {
+      subscribedEventTypes.push(type);
+      const listeners =
+        channelListeners.get(type) ??
+        new Set<(event: Record<string, unknown>) => void>();
+      listeners.add(listener);
+      channelListeners.set(type, listeners);
+      return () => {
+        listeners.delete(listener);
+      };
     }
     onReconnect(): () => void {
       return () => {};
@@ -301,6 +326,8 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    subscribedEventTypes.length = 0;
+    channelListeners.clear();
     connectOnOpen = false;
     wsMock.reset();
   });
@@ -1375,6 +1402,43 @@ describe('createClaudeCode adapter', () => {
         type: 'user-message',
         text: '/compact keep the error trace',
       });
+      await session.doDestroy();
+    });
+
+    it('forwards compaction events without blocking turn completion', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const events: Array<Record<string, unknown>> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Continue',
+        emit: event => events.push(event),
+      });
+
+      expect(subscribedEventTypes).toContain('compaction');
+      dispatchChannelEvent({
+        type: 'compaction',
+        trigger: 'auto',
+        summary: 'Compacted context',
+      });
+      dispatchChannelEvent({ type: 'finish' });
+
+      await expect(control.done).resolves.toBeUndefined();
+      expect(events).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'auto',
+          summary: 'Compacted context',
+        },
+        { type: 'finish' },
+      ]);
       await session.doDestroy();
     });
 

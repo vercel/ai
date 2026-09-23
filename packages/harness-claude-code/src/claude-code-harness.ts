@@ -1016,10 +1016,19 @@ export function createClaudeCode(
             onBridgeError,
             reconnect: settings.reconnect,
           });
-          await attachChannel.open(isContinue ? { resume: true } : undefined);
+          const finishListenerAttachment = isContinue
+            ? attachChannel.beginListenerAttachment()
+            : undefined;
+          try {
+            await attachChannel.open(isContinue ? { resume: true } : undefined);
+          } catch (error) {
+            finishListenerAttachment?.();
+            throw error;
+          }
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
@@ -1168,13 +1177,23 @@ export function createClaudeCode(
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
-      await channel.open(
-        respawnStrategy === 'replay' ? { resume: true } : undefined,
-      );
+      const finishListenerAttachment =
+        respawnStrategy === 'replay'
+          ? channel.beginListenerAttachment()
+          : undefined;
+      try {
+        await channel.open(
+          respawnStrategy === 'replay' ? { resume: true } : undefined,
+        );
+      } catch (error) {
+        finishListenerAttachment?.();
+        throw error;
+      }
 
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
+        finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
         env: sandboxClaudeEnvironment,
@@ -1490,6 +1509,7 @@ function formatUnknownError(error: unknown): string {
 function createSession({
   sessionId,
   channel,
+  finishListenerAttachment,
   proc,
   maxTurns,
   env,
@@ -1513,6 +1533,7 @@ function createSession({
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
@@ -1621,6 +1642,7 @@ function createSession({
       'tool-approval-request',
       'tool-result',
       'finish-step',
+      'compaction',
       'raw',
     ] as const;
     for (const type of eventTypes) {
@@ -1650,6 +1672,8 @@ function createSession({
         settleError(msg.error);
       }),
     );
+    finishListenerAttachment?.();
+    finishListenerAttachment = undefined;
 
     /*
      * A `'suspended'` close is a graceful slice-boundary freeze the host
