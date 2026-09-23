@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ACP_SKILLS_DIRECTORY,
+  resolveACPPrivateSessionDirectory,
   resolveACPSkillsDirectory,
   validateACPSkills,
 } from './acp-v1-skills';
@@ -16,6 +17,25 @@ const skill = {
     },
   ],
 } as const;
+
+describe('resolveACPPrivateSessionDirectory', () => {
+  it('keeps session state under .agent-runs/<sessionId>', () => {
+    const stateDirectory = '/home/agent/.ai-sdk-harness';
+
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory,
+        sessionId: 'session-1',
+      }),
+    ).toBe(`${stateDirectory}/.agent-runs/session-1`);
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory,
+        sessionId: 'session-2',
+      }),
+    ).toBe(`${stateDirectory}/.agent-runs/session-2`);
+  });
+});
 
 describe('validateACPSkills', () => {
   it('validates valid skills and files without throwing', () => {

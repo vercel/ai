@@ -386,7 +386,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
         stateDirectory,
-        harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });
       const implementationHomeDir =
