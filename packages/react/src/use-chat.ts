@@ -104,7 +104,6 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       transport: options.transport,
     };
   }
-  const managedTransport = 'chat' in options ? undefined : options.transport;
 
   // resolve the latest transport and fallback to a lazily created default transport
   let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
@@ -136,10 +135,6 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     }),
     [chatKey],
   );
-
-  useEffect(() => {
-    return () => managedTransport?.close?.();
-  }, [managedTransport]);
 
   useEffect(() => {
     if (isExternallyManaged) {

@@ -127,9 +127,15 @@ export default function Chat() {
 The transport multiplexes requests by `requestId`, validates incoming
 `UIMessageChunk` values, forwards aborts to the server, and reuses the open
 socket for later turns. HTTP and HTTPS URLs are automatically converted to WS
-and WSS URLs. React and Vue chat hooks close replaced transports and close the
-current transport on unmount or scope disposal. Call `chat.dispose()` when you
-manage a framework `Chat` instance directly.
+and WSS URLs.
+
+The code that creates a transport owns its lifecycle. React and Vue chat hooks
+do not close caller-supplied transports when options change or components are
+disposed, because the same transport can be shared by multiple chats. Call
+`transport.close()` after its last consumer is gone. If a directly managed
+`Chat` instance exclusively owns the transport, call `chat.dispose()`; for a
+shared transport, stop individual chats and close the transport only after all
+consumers are finished.
 
 Your WebSocket server must implement the
 [`WebSocketChatTransport` protocol](/docs/reference/ai-sdk-ui/websocket-chat-transport#wire-protocol).

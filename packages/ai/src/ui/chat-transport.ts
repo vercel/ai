@@ -16,8 +16,9 @@ export interface ChatTransport<UI_MESSAGE extends UIMessage> {
   /**
    * Releases persistent resources owned by the transport.
    *
-   * Framework integrations call this optional method when an owned chat is
-   * disposed or its transport is replaced.
+   * The caller that creates a transport owns its lifecycle and should call
+   * this method when no consumers remain. `AbstractChat.dispose()` calls it
+   * for directly managed chat instances.
    */
   close?: () => void;
 

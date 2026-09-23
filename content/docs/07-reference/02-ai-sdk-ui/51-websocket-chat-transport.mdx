@@ -125,13 +125,21 @@ numbers.
 Closes the current socket and errors active streams. A later send or resume
 request opens a new connection.
 
-React `useChat` and Vue `useChat` close replaced transports and close the
-current transport during hook cleanup. If you manage a `Chat` instance
-directly, call `dispose()`:
+The code that creates a transport owns its lifecycle. React and Vue `useChat`
+do not close caller-supplied transports during replacement or cleanup, because
+one transport can be shared by multiple chats. Call `close()` after its final
+consumer is gone.
+
+If a directly managed `Chat` instance exclusively owns the transport, call
+`dispose()`:
 
 ```ts
 await chat.dispose();
 ```
+
+For a shared transport, stop or discard individual chats without disposing
+their shared transport, then call `transport.close()` after all consumers are
+finished.
 
 ## Wire Protocol
 

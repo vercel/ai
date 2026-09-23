@@ -41,37 +41,25 @@ describe('use-chat', () => {
   describe('transport lifecycle', () => {
     afterEach(cleanup);
 
-    function createTransport(close: () => void): ChatTransport<UIMessage> {
-      return {
+    it('does not close a caller-owned transport shared by multiple hooks', () => {
+      const close = vi.fn();
+      const transport = {
         close,
         sendMessages: async () => new ReadableStream<UIMessageChunk>(),
         reconnectToStream: async () => null,
-      };
-    }
+      } satisfies ChatTransport<UIMessage>;
 
-    it('closes transports when they are replaced and on unmount', () => {
-      const closeFirst = vi.fn();
-      const closeSecond = vi.fn();
-      const firstTransport = createTransport(closeFirst);
-      const secondTransport = createTransport(closeSecond);
-
-      function TestComponent({
-        transport,
-      }: {
-        transport: ChatTransport<UIMessage>;
-      }) {
+      function TestComponent() {
         useChat({ transport });
         return null;
       }
 
-      const view = render(<TestComponent transport={firstTransport} />);
-      view.rerender(<TestComponent transport={secondTransport} />);
+      const firstView = render(<TestComponent />);
+      const secondView = render(<TestComponent />);
 
-      expect(closeFirst).toHaveBeenCalledOnce();
-      expect(closeSecond).not.toHaveBeenCalled();
-
-      view.unmount();
-      expect(closeSecond).toHaveBeenCalledOnce();
+      firstView.unmount();
+      secondView.unmount();
+      expect(close).not.toHaveBeenCalled();
     });
   });
 

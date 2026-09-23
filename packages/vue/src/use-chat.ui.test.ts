@@ -128,25 +128,18 @@ const MessageWithPartChild = defineComponent({
 
 describe('useChat', () => {
   describe('transport lifecycle', () => {
-    it('closes transports when options change and the scope is disposed', async () => {
-      const closeFirst = vi.fn();
-      const closeSecond = vi.fn();
-      const options = ref({
-        transport: createIdleTransport(closeFirst),
-      });
-      const scope = effectScope();
+    it('does not close a caller-owned transport shared by multiple scopes', () => {
+      const close = vi.fn();
+      const transport = createIdleTransport(close);
+      const firstScope = effectScope();
+      const secondScope = effectScope();
 
-      scope.run(() => useChat(() => options.value));
-      options.value = {
-        transport: createIdleTransport(closeSecond),
-      };
-      await nextTick();
+      firstScope.run(() => useChat({ transport }));
+      secondScope.run(() => useChat({ transport }));
 
-      expect(closeFirst).toHaveBeenCalledOnce();
-      expect(closeSecond).not.toHaveBeenCalled();
-
-      scope.stop();
-      expect(closeSecond).toHaveBeenCalledOnce();
+      firstScope.stop();
+      secondScope.stop();
+      expect(close).not.toHaveBeenCalled();
     });
   });
 

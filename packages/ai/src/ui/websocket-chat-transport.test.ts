@@ -285,6 +285,89 @@ describe('WebSocketChatTransport', () => {
     });
   });
 
+  it('keeps shared requests usable when another request aborts during chunk validation', async () => {
+    const firstAbortController = new AbortController();
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+    let continueValidation!: () => void;
+    const validationGate = new Promise<void>(resolve => {
+      continueValidation = resolve;
+    });
+    const validationStarted = vi.fn();
+    vi.spyOn(
+      transport as unknown as {
+        validateResponseChunk(value: unknown): Promise<UIMessageChunk>;
+      },
+      'validateResponseChunk',
+    ).mockImplementation(async value => {
+      validationStarted();
+      await validationGate;
+      return value as UIMessageChunk;
+    });
+
+    const firstPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: firstAbortController.signal,
+    });
+    const secondPromise = transport.sendMessages({
+      chatId: 'chat-2',
+      messageId: 'message-2',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+
+    const socket = await openPendingConnection();
+    const [firstStream, secondStream] = await Promise.all([
+      firstPromise,
+      secondPromise,
+    ]);
+    const firstReader = firstStream.getReader();
+    const secondReader = secondStream.getReader();
+    const frames = [readFrame(socket, 0), readFrame(socket, 1)];
+    const firstFrame = frames.find(
+      frame => frame.type === 'send' && frame.id === 'chat-1',
+    )!;
+    const secondFrame = frames.find(
+      frame => frame.type === 'send' && frame.id === 'chat-2',
+    )!;
+
+    socket.receive({
+      type: 'chunk',
+      requestId: firstFrame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'first' },
+    });
+    await vi.waitFor(() => {
+      expect(validationStarted).toHaveBeenCalledOnce();
+    });
+
+    firstAbortController.abort();
+    await expect(firstReader.read()).resolves.toEqual({
+      done: true,
+      value: undefined,
+    });
+
+    continueValidation();
+    socket.receive({
+      type: 'chunk',
+      requestId: secondFrame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'second' },
+    });
+
+    await expect(secondReader.read()).resolves.toEqual({
+      done: false,
+      value: { type: 'text-start', id: 'second' },
+    });
+    expect(socket.closeCalls).toEqual([]);
+  });
+
   it('sends an abort frame and closes the local stream', async () => {
     const abortController = new AbortController();
     const transport = new WebSocketChatTransport<UIMessage>({
@@ -520,6 +603,37 @@ describe('WebSocketChatTransport', () => {
     await expect(reader.read()).rejects.toThrow('Request failed.');
   });
 
+  it('rejects nullable error text as an invalid response frame', async () => {
+    const transport = new WebSocketChatTransport<UIMessage>({
+      url: 'wss://example.com/chat',
+      webSocket,
+    });
+
+    const streamPromise = transport.sendMessages({
+      chatId: 'chat-1',
+      messageId: 'message-1',
+      trigger: 'submit-message',
+      messages: [],
+      abortSignal: undefined,
+    });
+    const socket = await openPendingConnection();
+    const reader = (await streamPromise).getReader();
+    const frame = readFrame(socket);
+
+    socket.receive({
+      type: 'error',
+      requestId: frame.requestId,
+      errorText: null,
+    });
+
+    await expect(reader.read()).rejects.toThrow(
+      'Invalid WebSocket chat error response.',
+    );
+    expect(socket.closeCalls).toEqual([
+      { code: 1011, reason: 'WebSocket chat transport error' },
+    ]);
+  });
+
   it('closes the connection for an unknown active response type', async () => {
     const transport = new WebSocketChatTransport<UIMessage>({
       url: 'wss://example.com/chat',
@@ -750,6 +864,39 @@ describe('safeValidateWebSocketChatTransportRequest', () => {
           body: {},
         },
       }),
+    ).resolves.toMatchObject({ success: false });
+  });
+
+  it.each([
+    {
+      name: 'null resume sequence',
+      value: {
+        type: 'resume',
+        requestId: 'request-1',
+        id: 'chat-1',
+        lastSequence: null,
+        headers: {},
+        body: {},
+        metadata: undefined,
+      },
+    },
+    {
+      name: 'null send message id',
+      value: {
+        type: 'send',
+        requestId: 'request-1',
+        id: 'chat-1',
+        trigger: 'submit-message',
+        messageId: null,
+        messages: [],
+        headers: {},
+        body: {},
+        metadata: undefined,
+      },
+    },
+  ])('rejects $name', async ({ value }) => {
+    await expect(
+      safeValidateWebSocketChatTransportRequest({ value }),
     ).resolves.toMatchObject({ success: false });
   });
 });

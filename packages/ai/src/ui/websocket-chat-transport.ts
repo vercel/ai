@@ -262,7 +262,7 @@ export async function safeValidateWebSocketChatTransportRequest<
     }
 
     if (value.type === 'resume') {
-      if (value.lastSequence != null && !isSequence(value.lastSequence)) {
+      if (value.lastSequence !== undefined && !isSequence(value.lastSequence)) {
         throw new Error('Invalid WebSocket chat resume sequence.');
       }
 
@@ -277,7 +277,7 @@ export async function safeValidateWebSocketChatTransportRequest<
       !['submit-message', 'regenerate-message'].includes(
         value.trigger as string,
       ) ||
-      (value.messageId != null && typeof value.messageId !== 'string')
+      (value.messageId !== undefined && typeof value.messageId !== 'string')
     ) {
       throw new Error('Invalid WebSocket chat send request.');
     }
@@ -855,6 +855,17 @@ export class WebSocketChatTransport<
     request.resolveResponse?.(request.stream);
   }
 
+  private async validateResponseChunk(value: unknown): Promise<UIMessageChunk> {
+    const chunk = await safeValidateTypes<UIMessageChunk>({
+      value,
+      schema: uiMessageChunkSchema,
+    });
+    if (!chunk.success) {
+      throw new Error('Invalid UI message chunk in WebSocket response.');
+    }
+    return chunk.value;
+  }
+
   private async handleResponseFrame(
     connection: ConnectionState,
     text: string,
@@ -896,15 +907,22 @@ export class WebSocketChatTransport<
           throw new Error('Out-of-order WebSocket chat chunk sequence.');
         }
 
-        const chunk = await safeValidateTypes<UIMessageChunk>({
-          value: parsed.value.chunk,
-          schema: uiMessageChunkSchema,
-        });
-        if (!chunk.success) {
-          throw new Error('Invalid UI message chunk in WebSocket response.');
+        const chunk = await this.validateResponseChunk(parsed.value.chunk);
+
+        // Validation is asynchronous, so the request may have been aborted or
+        // canceled while it was in progress. Ignore the stale frame instead of
+        // touching a closed controller and terminating the shared connection.
+        if (this.activeRequests.get(requestId) !== request) {
+          return;
         }
+
         this.resolveResumeStream(request);
-        request.controller.enqueue(chunk.value);
+        try {
+          request.controller.enqueue(chunk);
+        } catch {
+          // The stream may already be closed or canceled.
+          return;
+        }
         request.lastSequence = parsed.value.sequence;
         this.lastSequenceByChatId.set(request.chatId, parsed.value.sequence);
         return;
@@ -931,7 +949,7 @@ export class WebSocketChatTransport<
 
       case 'error': {
         if (
-          parsed.value.errorText != null &&
+          parsed.value.errorText !== undefined &&
           typeof parsed.value.errorText !== 'string'
         ) {
           throw new Error('Invalid WebSocket chat error response.');
