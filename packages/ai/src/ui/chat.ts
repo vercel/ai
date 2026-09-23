@@ -259,11 +259,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private onData?: ChatInit<UI_MESSAGE>['onData'];
   private sendAutomaticallyWhen?: ChatInit<UI_MESSAGE>['sendAutomaticallyWhen'];
 
-<<<<<<< HEAD
-=======
-  private pendingMessagePreparations = new Set<AbortController>();
   private pendingApprovalMessageId: string | undefined;
->>>>>>> b74c0cb08c (fix: support approving, resuming, and retrying tool approvals from earlier messages (#21203))
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
