@@ -8,6 +8,7 @@ import {
 import { asSchema } from '@ai-sdk/provider-utils';
 import {
   anthropicTools,
+  getModelCapabilities,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import {
@@ -84,13 +85,42 @@ export async function prepareTools({
     modelFamily,
     reasoningBudgetTokens,
   });
-  const ProviderTools = supportedTools.filter(t => t.type === 'provider');
-  const functionTools = supportedTools.filter(t => t.type === 'function');
+  let providerTools = supportedTools.filter(t => t.type === 'provider');
+  let functionTools = supportedTools.filter(t => t.type === 'function');
+
+  if (
+    isAnthropicModel &&
+    getModelCapabilities(modelId).rejectsForcedToolUse &&
+    (toolChoice?.type === 'required' || toolChoice?.type === 'tool')
+  ) {
+    if (toolChoice.type === 'tool') {
+      const { toolName } = toolChoice;
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'toolChoice',
+        details:
+          `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+          `Only the '${toolName}' tool is sent with 'auto' tool choice. ` +
+          `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
+      });
+      providerTools = providerTools.filter(tool => tool.name === toolName);
+      functionTools = functionTools.filter(tool => tool.name === toolName);
+    } else {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'toolChoice',
+        details:
+          `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+          `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
+      });
+    }
+    toolChoice = { type: 'auto' };
+  }
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const amazonBedrockTools: AmazonBedrockTool[] = [];
 
-  const usingAnthropicTools = isAnthropicModel && ProviderTools.length > 0;
+  const usingAnthropicTools = isAnthropicModel && providerTools.length > 0;
 
   // Handle Anthropic provider-defined tools for Anthropic models on Bedrock
   if (usingAnthropicTools) {
@@ -99,7 +129,7 @@ export async function prepareTools({
       toolWarnings: anthropicToolWarnings,
       betas: anthropicBetas,
     } = await prepareAnthropicTools({
-      tools: ProviderTools,
+      tools: providerTools,
       toolChoice,
       disableParallelToolUse,
       supportsStructuredOutput: false,
@@ -118,7 +148,7 @@ export async function prepareTools({
     }
 
     // Create a standard Bedrock tool representation for validation purposes
-    for (const tool of ProviderTools) {
+    for (const tool of providerTools) {
       const toolFactory = Object.values(anthropicTools).find(factory => {
         const instance = (factory as (args: any) => any)({});
         return instance.id === tool.id;
@@ -141,7 +171,7 @@ export async function prepareTools({
     }
   } else {
     // Report unsupported provider-defined tools for non-anthropic models
-    for (const tool of ProviderTools) {
+    for (const tool of providerTools) {
       toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
     }
   }
