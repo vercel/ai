@@ -522,9 +522,9 @@ await browserbase.closeSession();`,
     slug: 'you-search',
     name: 'You.com',
     description:
-      "Real-time web search, deep research with cited sources, and webpage content extraction powered by You.com. Search current information with advanced filtering (dates, sites, file types), research topics with configurable effort (lite to exhaustive), and extract full page content in markdown or HTML. Built on You.com's enterprise search API with zero server setup.",
+      'Real-time web access for AI applications through the hosted You.com MCP server. The async createYouClient() helper connects to api.you.com/mcp and resolves tools that work with any AI SDK model provider: web search with advanced filtering (dates, sites, file types), webpage extraction in markdown or HTML, AI-agent and MCP discovery, and balance checks. Deep research with cited sources and financial analysis are available via opt-in tool scoping.',
     packageName: '@youdotcom-oss/ai-sdk-plugin',
-    tags: ['search', 'web', 'extraction', 'research'],
+    tags: ['search', 'web', 'extraction', 'research', 'mcp'],
     apiKeyEnvName: 'YDC_API_KEY',
     installCommand: {
       pnpm: 'pnpm add @youdotcom-oss/ai-sdk-plugin',
@@ -533,22 +533,27 @@ await browserbase.closeSession();`,
       bun: 'bun add @youdotcom-oss/ai-sdk-plugin',
     },
     codeExample: `import { generateText, isStepCount } from 'ai';
-import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
+import { createYouClient } from '@youdotcom-oss/ai-sdk-plugin';
 
-const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4-5-20250929',
-  prompt: 'Research the latest developments in quantum computing',
-  tools: {
-    search: youSearch(),
-    research: youResearch(),
-    extract: youContents(),
-  },
-  stopWhen: isStepCount(5),
+const client = await createYouClient({
+  apiKey: process.env.YDC_API_KEY,
 });
 
-console.log(text);`,
-    docsUrl:
-      'https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme',
+try {
+  const tools = await client.tools();
+
+  const { text } = await generateText({
+    model: 'anthropic/claude-sonnet-4-5-20250929',
+    prompt: 'Research the latest developments in quantum computing',
+    tools,
+    stopWhen: isStepCount(5),
+  });
+
+  console.log(text);
+} finally {
+  await client.close();
+}`,
+    docsUrl: 'https://github.com/youdotcom-oss/ai-sdk-plugin#readme',
     apiKeyUrl: 'https://you.com/platform/api-keys',
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
