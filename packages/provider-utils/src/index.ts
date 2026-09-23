@@ -11,6 +11,14 @@ export { convertImageModelFileToDataUri } from './convert-image-model-file-to-da
 export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
+<<<<<<< HEAD
+=======
+export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+>>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143))
 export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
