@@ -324,12 +324,13 @@ function extractMcpToolCallResult(item: CodexItem): unknown {
 function mapUsage(usage: Record<string, number>): Record<string, unknown> {
   const input = usage.input_tokens ?? 0;
   const cacheRead = usage.cached_input_tokens ?? 0;
+  const cacheWrite = usage.cache_write_input_tokens ?? 0;
   return {
     inputTokens: {
       total: input,
-      noCache: Math.max(0, input - cacheRead),
+      noCache: Math.max(0, input - cacheRead - cacheWrite),
       cacheRead,
-      cacheWrite: 0,
+      cacheWrite,
     },
     outputTokens: {
       total: usage.output_tokens ?? 0,

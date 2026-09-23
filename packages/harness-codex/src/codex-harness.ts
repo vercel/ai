@@ -66,7 +66,6 @@ import {
   type InboundMessage,
   type OutboundMessage,
 } from './codex-bridge-protocol';
-import { CLI_SHIM_FILENAME } from './bridge/cli-relay';
 import { VERSION } from './version';
 
 type CodexChannel = SandboxChannel<OutboundMessage, InboundMessage>;
@@ -146,10 +145,10 @@ export type CodexHarnessSettings = {
 };
 
 /*
- * Every native tool the Codex CLI can invoke as a model-callable tool,
+ * Every native tool Codex app-server can invoke as a model-callable tool,
  * declared as a `ToolSet` keyed by what the bridge emits as `toolName` on
- * the wire (`commonName ?? nativeName`). Schemas reflect the `ThreadItem`
- * union in `@openai/codex-sdk`'s `dist/index.d.ts`.
+ * the wire (`commonName ?? nativeName`). Schemas reflect the corresponding
+ * app-server item payloads.
  *
  * Codex's other native operations (`apply_patch`, todo planning) surface
  * only as side-effect events (`file_change`, `todo_list`) and are not
@@ -184,7 +183,7 @@ const codexBridgeCoordsSchema = z.object({
 
 /**
  * Schema for the adapter-specific lifecycle `data` payload Codex produces.
- * `threadId` is what `codex.resumeThread(...)` requires for the replay/rerun
+ * `threadId` is what app-server's `thread/resume` method requires for the replay/rerun
  * rungs; the sandbox lookup is handled separately via
  * `provider.resumeSession({ sessionId })`. `bridge` carries live coordinates
  * for cross-process `attach` (present on `doDetach()` and `doSuspendTurn()`
@@ -336,8 +335,6 @@ export function createCodex(
       });
       const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
-      const cliShimDir = `${sessionDataDir}/codex`;
-      const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
       // Normalize each forwarded bridge diagnostics frame into the general
@@ -390,7 +387,6 @@ export function createCodex(
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
-            cliShimPath,
             // The live bridge was spawned by another process; no process handle.
             proc: undefined,
             model,
@@ -424,7 +420,7 @@ export function createCodex(
        * log is replayed *from*. `resumeFrom` is a between-turn resume; even when
        * it carries bridge coordinates, replaying the previous turn would
        * re-deliver stale events into the next turn. Those resumes always `rerun`
-       * via `codex.resumeThread(threadId)` when attach is unavailable.
+       * via app-server's `thread/resume` method when attach is unavailable.
        */
       let respawnStrategy: CodexRespawnStrategy | undefined = isResume
         ? 'rerun'
@@ -490,7 +486,7 @@ export function createCodex(
       });
 
       const proc = await toolSafeSandboxSession.spawn({
-        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --cli-shim-dir ${shellQuote(cliShimDir)}`,
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -556,7 +552,6 @@ export function createCodex(
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
-        cliShimPath,
         proc,
         model,
         reasoningEffort: settings.reasoningEffort,
@@ -707,7 +702,6 @@ function openWebSocket({
 function createSession({
   sessionId,
   channel,
-  cliShimPath,
   proc,
   model,
   reasoningEffort,
@@ -731,7 +725,6 @@ function createSession({
 }: {
   sessionId: string;
   channel: CodexChannel;
-  cliShimPath: string;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   model: string | undefined;
@@ -758,21 +751,13 @@ function createSession({
   let stopPromise: Promise<void> | undefined;
   /*
    * Send the persisted threadId on the first prompt only when the bridge was
-   * respawned (rerun/replay) so it takes the `codex.resumeThread(...)` branch.
+   * respawned (rerun/replay) so it takes the app-server `thread/resume` branch.
    * An `attach`ed bridge already holds its threadState in memory and continues
    * on its own, so it needs no seed.
    */
   let pendingResumeThreadId = seedResumeThreadOnFirstPrompt
     ? resumeThreadId
     : undefined;
-  /*
-   * Host-tool relay guidance is prepended to the first user message of a fresh
-   * session only. A resumed session (attach/replay/rerun) already carried it in
-   * its original first message (preserved in the persisted thread), so it
-   * starts "applied".
-   */
-  let initialPromptGuidanceApplied = isResume;
-
   /*
    * Latest codex thread id, cached from the bridge's `bridge-thread`
    * announcements. Seeded from lifecycle state so `doDetach()` and `doStop()`
@@ -783,7 +768,6 @@ function createSession({
   channel.on('bridge-thread', msg => {
     latestThreadId = msg.threadId;
   });
-
   const synchronizeTurnConfiguration = async ({
     skills,
     instructions,
@@ -821,13 +805,6 @@ function createSession({
           latestTurnConfigurationFingerprint !== nextFingerprint));
     latestTurnConfigurationFingerprint = nextFingerprint;
     if (restartThread) {
-      /*
-       * `codex exec resume` retains the native thread's original developer
-       * instructions and skill catalog. A fresh native thread is therefore
-       * required for replacement semantics. Host-tool guidance is framed
-       * again because that guidance also belongs to the new native thread.
-       */
-      initialPromptGuidanceApplied = false;
       pendingResumeThreadId = undefined;
     }
     return { restartThread };
@@ -1017,24 +994,9 @@ function createSession({
         abortSignal: promptOpts.abortSignal,
       });
 
-      let promptText = extractUserText(promptOpts.prompt);
-      if (!initialPromptGuidanceApplied) {
-        promptText = frameInitialPromptGuidance({
-          toolUsageBlock:
-            tools.length > 0
-              ? composeToolUsageInstructions({
-                  tools,
-                  cliShimPath,
-                })
-              : undefined,
-          userText: promptText,
-        });
-      }
-      initialPromptGuidanceApplied = true;
-
       const startMessage = {
         type: 'start' as const,
-        prompt: promptText,
+        prompt: extractUserText(promptOpts.prompt),
         tools,
         ...(promptOpts.responseFormat == null
           ? {}
@@ -1139,10 +1101,9 @@ function createSession({
     doCompact: async () => {
       /*
        * Codex compacts its context automatically inside the core turn loop
-       * (~90% of the model context window), but the `codex exec` transport this
-       * adapter drives exposes no manual compaction trigger and emits no
-       * compaction event. Manual `compact()` is therefore unsupported; Codex's
-       * own auto-compaction continues to run regardless.
+       * (~90% of the model context window). This adapter does not yet expose a
+       * manual compaction trigger or compaction event, so manual `compact()` is
+       * unsupported while Codex's own auto-compaction continues to run.
        */
       throw new HarnessCapabilityUnsupportedError({
         message:
@@ -1229,7 +1190,7 @@ function createSession({
        * payload — the workdir is still captured by the sandbox snapshot
        * during the subsequent `sandboxSession.stop()`, so the next turn can
        * resume the filesystem state. The trade-off: we lose
-       * `threadId`, so the codex CLI starts a fresh thread on the
+       * `threadId`, so Codex app-server starts a fresh thread on the
        * preserved workdir rather than resuming the prior conversation
        * inside Codex's runtime. Ability to continue beats throwing.
        */
@@ -1365,62 +1326,10 @@ function fingerprintCodexTurnConfiguration({
 }
 
 /*
- * Frame host-tool relay guidance and the user's text so Codex treats the
- * prepended block as operating guidance rather than user prose. Applied only
- * to the first user message of a fresh session.
- */
-function frameInitialPromptGuidance({
-  toolUsageBlock,
-  userText,
-}: {
-  toolUsageBlock: string | undefined;
-  userText: string;
-}): string {
-  const blocks: string[] = [];
-  if (toolUsageBlock) blocks.push(toolUsageBlock);
-  if (blocks.length === 0) return userText;
-  return `${blocks.join('\n\n')}\n\n<user-message>\n${userText}\n</user-message>`;
-}
-
-function composeToolUsageInstructions({
-  tools,
-  cliShimPath,
-}: {
-  tools: ReadonlyArray<{
-    name: string;
-    description?: string;
-    inputSchema?: unknown;
-  }>;
-  cliShimPath: string;
-}): string {
-  const lines: string[] = [
-    '<host-tool-instructions>',
-    'You have access to the following host-provided tools. To use one, run the following command via your built-in `bash` tool:',
-    '',
-    `  node ${cliShimPath} <toolName> '<jsonInput>'`,
-    '',
-    'The script prints the JSON result to stdout. Do not invent another way to call these tools — only this CLI invocation will work. Pass the JSON input as a single-quoted argument.',
-    'For every user request that depends on a host-provided tool, run a separate CLI invocation for each needed tool call in the current turn before answering. Do not reuse previous tool results, and do not say you used a host tool unless the command has completed in the current turn.',
-    '',
-  ];
-  for (const toolSpec of tools) {
-    lines.push(
-      `- **${toolSpec.name}**${toolSpec.description ? ': ' + toolSpec.description : ''}`,
-    );
-    lines.push(
-      `  - Input schema: \`${JSON.stringify(toolSpec.inputSchema ?? {})}\``,
-    );
-  }
-  lines.push('</host-tool-instructions>');
-  return lines.join('\n');
-}
-
-/*
- * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards
- * to the Codex SDK. File and image parts on the message are not yet
- * supported by the underlying runtime — throw rather than silently drop
- * them so callers learn about the gap instead of seeing mysteriously
- * truncated prompts.
+ * Reduce a `HarnessV1Prompt` to the plain user text the bridge forwards to
+ * Codex. The adapter does not yet map file and image parts into app-server
+ * turn input, so throw rather than silently dropping them and producing a
+ * truncated prompt.
  */
 function extractUserText(prompt: HarnessV1Prompt): string {
   if (typeof prompt === 'string') return prompt;

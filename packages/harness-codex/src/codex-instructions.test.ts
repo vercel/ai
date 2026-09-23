@@ -9,9 +9,8 @@ import type * as HarnessUtils from '@ai-sdk/harness/utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
- * The codex adapter sends session instructions separately from user text while
- * retaining first-prompt framing for host-tool relay guidance. We stub
- * `SandboxChannel` so `send()` records messages instead of opening a real
+ * The Codex adapter sends session instructions separately from user text. We
+ * stub `SandboxChannel` so `send()` records messages instead of opening a real
  * WebSocket, then drive the session without standing up the in-sandbox bridge.
  */
 const sentMessages: Array<Record<string, unknown>> = [];
@@ -186,7 +185,7 @@ describe('codex adapter — instructions transport', () => {
     expect(lastStart.instructions).toBe('Use turbo build --concurrency=4.');
   });
 
-  it('prepends host tool usage guidance on the first user message only', async () => {
+  it('passes dynamic tools without changing user messages', async () => {
     const session = await startSession();
     const tools: ReadonlyArray<HarnessV1ToolSpec> = [
       {
@@ -207,20 +206,7 @@ describe('codex adapter — instructions transport', () => {
       emit: () => {},
     });
     const firstStart = await waitForStart({ count: 1 });
-    expect(firstStart.prompt).not.toContain('## Host tools');
-    expect(firstStart.prompt).toContain('<host-tool-instructions>');
-    expect(firstStart.prompt).toContain('</host-tool-instructions>');
-    expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
-    expect(firstStart.prompt).toContain(
-      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
-    );
-    expect(firstStart.prompt).toContain(
-      'run a separate CLI invocation for each needed tool call in the current turn before answering',
-    );
-    expect(firstStart.prompt).toContain('Do not reuse previous tool results');
-    expect(firstStart.prompt).toContain(
-      '<user-message>\nuse the weather tool\n</user-message>',
-    );
+    expect(firstStart.prompt).toBe('use the weather tool');
     expect(firstStart.tools).toEqual(tools);
 
     await session.doPromptTurn({
@@ -254,6 +240,7 @@ describe('codex adapter — instructions transport', () => {
     const start = await waitForStart({ count: 1 });
     expect(start.prompt).toBe('resumed turn');
     expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+    expect(start.resumeThreadId).toBe('thread-abc');
   });
 
   it('starts a fresh native thread when resumed turn configuration changes', async () => {

@@ -52,6 +52,21 @@ describe('createCodexStepTracker', () => {
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
 
+  it('tracks app-server dynamic tool item lifecycles', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'dynamic_tool_call' } },
+      itemId: 'dynamic_1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'dynamic_tool_call' } },
+      itemId: 'dynamic_1',
+    });
+
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
   it('does not close a step while a tool item is still pending', () => {
     const { events, tracker } = createTracker();
 
