@@ -75,9 +75,12 @@ await getFromApi({
 ```
 
 Direct `fetchWithValidatedRedirects` callers follow the same rule. Without a
-matching `credentialedOrigin`, the first hop receives only standard
-non-sensitive download headers such as `Accept`, `Range`, conditional headers,
-and `User-Agent`; credential-bearing and custom headers are withheld.
+matching `credentialedOrigin` or, when that option is omitted, a matching
+`trustedOrigin`, the first hop receives only standard non-sensitive download
+headers such as `Accept`, `Range`, conditional headers, and `User-Agent`;
+credential-bearing and custom headers are withheld. Set `credentialedOrigin`
+separately when the origin allowed to receive credentials should be narrower
+than the origin exempted from URL validation.
 
 ## DNS validation and deployment hardening
 

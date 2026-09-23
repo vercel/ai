@@ -4,9 +4,10 @@
  * transport headers (RFC 7230 §6.1).
  *
  * `Authorization` and other credential-bearing caller headers (e.g. `x-key`)
- * are intentionally not listed — they're needed on the first hop of some
- * provider polling calls. Instead, all caller headers except the user-agent are
- * dropped on a cross-origin redirect (see `fetch-with-validated-redirects`).
+ * are intentionally not listed because trusted provider requests may need
+ * them. `fetchWithValidatedRedirects` separately gates those headers on the
+ * first hop and drops all caller headers except the user-agent on a
+ * cross-origin redirect.
  */
 const BLOCKED_REQUEST_HEADERS: readonly string[] = [
   // Hop-by-hop / transport (RFC 7230 §6.1)

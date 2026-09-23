@@ -379,6 +379,47 @@ describe('fetchWithValidatedRedirects', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('sends sanitized caller headers to a matching trusted origin when no separate credentialed origin is provided', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'http://localhost:5000/predictions/123',
+      trustedOrigin: 'http://localhost:5000',
+      headers: {
+        authorization: 'Bearer secret',
+        'metadata-flavor': 'Google',
+        'x-request-id': 'request-id',
+      },
+      fetch: fetchMock,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(sent.get('authorization')).toBe('Bearer secret');
+    expect(sent.get('metadata-flavor')).toBeNull();
+    expect(sent.get('x-request-id')).toBe('request-id');
+  });
+
+  it('uses credentialedOrigin to narrow a matching trusted origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'http://localhost:5000/predictions/123',
+      trustedOrigin: 'http://localhost:5000',
+      credentialedOrigin: 'https://api.example.com',
+      headers: {
+        accept: 'application/json',
+        authorization: 'Bearer secret',
+        'x-request-id': 'request-id',
+      },
+      fetch: fetchMock,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(sent.get('accept')).toBe('application/json');
+    expect(sent.get('authorization')).toBeNull();
+    expect(sent.get('x-request-id')).toBeNull();
+  });
+
   it('uses the injected fetch instead of the global one', async () => {
     globalThis.fetch = vi.fn();
     const injected = vi.fn().mockResolvedValueOnce(okResponse());

@@ -117,10 +117,11 @@ export async function fetchWithValidatedEndpoint({
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers. Credential-bearing and custom
  * caller headers are sent on the first hop only when it is same-origin with
- * `credentialedOrigin`; otherwise only standard non-sensitive download
- * headers such as `Accept`, `Range`, conditional headers, and `User-Agent`
- * are retained. All caller headers except `User-Agent` are also dropped on a
- * cross-origin redirect.
+ * `credentialedOrigin`, or with `trustedOrigin` when no separate
+ * `credentialedOrigin` is provided; otherwise only standard non-sensitive
+ * download headers such as `Accept`, `Range`, conditional headers, and
+ * `User-Agent` are retained. All caller headers except `User-Agent` are also
+ * dropped on a cross-origin redirect.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -170,7 +171,9 @@ export async function fetchWithValidatedRedirects({
   /**
    * An origin that may receive arbitrary caller headers, including credentials
    * and custom headers, on the first hop. When omitted, or when `url` is not
-   * same-origin with it, only standard non-sensitive download headers are sent.
+   * same-origin with it, only standard non-sensitive download headers are sent,
+   * unless `url` is same-origin with `trustedOrigin`. Set this separately when
+   * the origin allowed to receive credentials is narrower than `trustedOrigin`.
    */
   credentialedOrigin?: string;
   /**
@@ -179,6 +182,12 @@ export async function fetchWithValidatedRedirects({
    */
   trustedOrigin?: string;
 }): Promise<Response> {
+  // trustedOrigin is already an explicit developer-configured trust decision.
+  // Preserve compatibility for direct callers that used it before the
+  // credential gate was introduced, while allowing credentialedOrigin to
+  // narrow the header-receiving origin when both options are provided.
+  const firstHopCredentialedOrigin = credentialedOrigin ?? trustedOrigin;
+
   // Left undefined when no headers are provided (bare request); otherwise
   // sanitized once and restricted to known-safe download headers unless the
   // first hop is explicitly allowed to receive arbitrary caller headers.
@@ -186,7 +195,8 @@ export async function fetchWithValidatedRedirects({
   if (headers !== undefined) {
     const sanitizedHeaders = sanitizeRequestHeaders(headers);
     currentHeaders =
-      credentialedOrigin !== undefined && isSameOrigin(url, credentialedOrigin)
+      firstHopCredentialedOrigin !== undefined &&
+      isSameOrigin(url, firstHopCredentialedOrigin)
         ? sanitizedHeaders
         : retainSafeFirstHopHeaders(sanitizedHeaders);
   }
