@@ -55,7 +55,7 @@ export async function runCodexAppServerTurn({
   });
   const client = new CodexAppServerClient({
     executable: process.execPath,
-    args: [CODEX_CLI_PATH, 'app-server', '--stdio'],
+    args: createCodexAppServerArgs(),
     cwd: workdir,
     env: process.env,
     onNotification: eventHandler.handle,
@@ -124,9 +124,11 @@ export async function runCodexAppServerTurn({
         clientVersion: '1',
       }),
     });
+    const threadMethod =
+      activeThreadId == null ? 'thread/start' : 'thread/resume';
     const threadResponse = await raceWithProcess({
       operation: client.request({
-        method: activeThreadId == null ? 'thread/start' : 'thread/resume',
+        method: threadMethod,
         params:
           activeThreadId == null
             ? {
@@ -150,10 +152,14 @@ export async function runCodexAppServerTurn({
               },
       }),
     });
+    assertCodexThreadPermissions({
+      response: threadResponse,
+      method: threadMethod,
+    });
     activeThreadId = readNestedString({
       value: threadResponse,
       path: ['thread', 'id'],
-      method: activeThreadId == null ? 'thread/start' : 'thread/resume',
+      method: threadMethod,
     });
     eventHandler.announceThread(activeThreadId);
     emit({ type: 'stream-start' });
@@ -161,18 +167,11 @@ export async function runCodexAppServerTurn({
     const turnResponse = await raceWithProcess({
       operation: client.request({
         method: 'turn/start',
-        params: {
+        params: createTurnParams({
           threadId: activeThreadId,
-          input: [{ type: 'text', text: start.prompt, text_elements: [] }],
-          ...(codexModel == null ? {} : { model: codexModel }),
-          ...(start.reasoningEffort == null
-            ? {}
-            : { effort: start.reasoningEffort }),
-          ...(start.responseFormat?.type === 'json' &&
-          start.responseFormat.schema != null
-            ? { outputSchema: start.responseFormat.schema }
-            : {}),
-        },
+          start,
+          codexModel,
+        }),
       }),
     });
     activeTurnId = readNestedString({
@@ -192,7 +191,19 @@ export async function runCodexAppServerTurn({
   }
 }
 
-function createThreadParams({
+export function createCodexAppServerArgs(): string[] {
+  return [
+    CODEX_CLI_PATH,
+    '--config',
+    'sandbox_mode="danger-full-access"',
+    '--config',
+    'approval_policy="never"',
+    'app-server',
+    '--stdio',
+  ];
+}
+
+export function createThreadParams({
   start,
   workdir,
   codexModel,
@@ -213,6 +224,51 @@ function createThreadParams({
       web_search: start.webSearch ? 'live' : 'disabled',
     },
   };
+}
+
+export function createTurnParams({
+  threadId,
+  start,
+  codexModel,
+}: {
+  threadId: string;
+  start: StartMessage;
+  codexModel: string | undefined;
+}): Record<string, unknown> {
+  return {
+    threadId,
+    input: [{ type: 'text', text: start.prompt, text_elements: [] }],
+    approvalPolicy: 'never',
+    sandboxPolicy: {
+      type: 'externalSandbox',
+      networkAccess: 'enabled',
+    },
+    ...(codexModel == null ? {} : { model: codexModel }),
+    ...(start.reasoningEffort == null ? {} : { effort: start.reasoningEffort }),
+    ...(start.responseFormat?.type === 'json' &&
+    start.responseFormat.schema != null
+      ? { outputSchema: start.responseFormat.schema }
+      : {}),
+  };
+}
+
+export function assertCodexThreadPermissions({
+  response,
+  method,
+}: {
+  response: unknown;
+  method: string;
+}): void {
+  const value = asRecord(response);
+  const sandbox = asRecord(value?.sandbox);
+  if (
+    value?.approvalPolicy !== 'never' ||
+    sandbox?.type !== 'dangerFullAccess'
+  ) {
+    throw new Error(
+      `Codex app-server ${method} did not disable approvals and its platform sandbox.`,
+    );
+  }
 }
 
 export function createDynamicTools(

@@ -1,8 +1,109 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertCodexThreadPermissions,
+  createCodexAppServerArgs,
   createDynamicTools,
+  createThreadParams,
+  createTurnParams,
   handleAppServerRequest,
 } from './codex-app-server-driver';
+import type { StartMessage } from '../codex-bridge-protocol';
+
+describe('Codex app-server sandbox configuration', () => {
+  const start = {
+    prompt: 'Inspect the parent directory.',
+    reasoningEffort: 'high',
+    responseFormat: {
+      type: 'json',
+      schema: { type: 'object' },
+    },
+    webSearch: true,
+  } as StartMessage;
+
+  it('disables the Codex sandbox before app-server startup', () => {
+    expect(createCodexAppServerArgs().slice(1)).toEqual([
+      '--config',
+      'sandbox_mode="danger-full-access"',
+      '--config',
+      'approval_policy="never"',
+      'app-server',
+      '--stdio',
+    ]);
+  });
+
+  it('disables the Codex sandbox when starting or resuming a thread', () => {
+    expect(
+      createThreadParams({
+        start,
+        workdir: '/workspace',
+        codexModel: 'gpt-5.3-codex',
+        codexConfig: { model_reasoning_summary: 'detailed' },
+      }),
+    ).toEqual({
+      model: 'gpt-5.3-codex',
+      cwd: '/workspace',
+      approvalPolicy: 'never',
+      sandbox: 'danger-full-access',
+      config: {
+        model_reasoning_summary: 'detailed',
+        web_search: 'live',
+      },
+    });
+  });
+
+  it('declares the HarnessAgent sandbox as the only sandbox for every turn', () => {
+    expect(
+      createTurnParams({
+        threadId: 'thread-1',
+        start,
+        codexModel: 'gpt-5.3-codex',
+      }),
+    ).toEqual({
+      threadId: 'thread-1',
+      input: [
+        {
+          type: 'text',
+          text: 'Inspect the parent directory.',
+          text_elements: [],
+        },
+      ],
+      approvalPolicy: 'never',
+      sandboxPolicy: {
+        type: 'externalSandbox',
+        networkAccess: 'enabled',
+      },
+      model: 'gpt-5.3-codex',
+      effort: 'high',
+      outputSchema: { type: 'object' },
+    });
+  });
+
+  it('fails before a turn if Codex did not disable its sandbox', () => {
+    expect(() =>
+      assertCodexThreadPermissions({
+        response: {
+          approvalPolicy: 'never',
+          sandbox: { type: 'workspaceWrite' },
+        },
+        method: 'thread/start',
+      }),
+    ).toThrow(
+      'Codex app-server thread/start did not disable approvals and its platform sandbox.',
+    );
+  });
+
+  it('accepts the disabled thread policy returned by Codex', () => {
+    expect(() =>
+      assertCodexThreadPermissions({
+        response: {
+          approvalPolicy: 'never',
+          sandbox: { type: 'dangerFullAccess' },
+        },
+        method: 'thread/start',
+      }),
+    ).not.toThrow();
+  });
+});
 
 describe('Codex app-server dynamic tools', () => {
   it('preserves supported names and deterministically aliases invalid or reserved names', () => {
