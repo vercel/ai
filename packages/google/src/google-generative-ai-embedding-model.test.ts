@@ -1,9 +1,5 @@
-<<<<<<< HEAD:packages/google/src/google-generative-ai-embedding-model.test.ts
 import type { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
-=======
-import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
 import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
->>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143)):packages/google/src/google-embedding-model.test.ts
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';
@@ -19,15 +15,10 @@ const dummyEmbeddings = [
 ];
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
-<<<<<<< HEAD:packages/google/src/google-generative-ai-embedding-model.test.ts
 const provider = createGoogleGenerativeAI({ apiKey: 'test-api-key' });
-const model = provider.embeddingModel('gemini-embedding-001');
-=======
-const provider = createGoogle({ apiKey: 'test-api-key' });
 const model = provider.embeddingModel(
   'gemini-embedding-001',
-) as GoogleEmbeddingModel;
->>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143)):packages/google/src/google-embedding-model.test.ts
+) as GoogleGenerativeAIEmbeddingModel;
 const multimodalModel = provider.embeddingModel('gemini-embedding-2-preview');
 
 const URL =

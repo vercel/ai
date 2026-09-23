@@ -152,7 +152,6 @@ export async function embedMany({
       const hasInputByteLimit =
         maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
 
-<<<<<<< HEAD
       // the model has not specified limits on
       // how many embeddings or input bytes can be processed in a single call
       if (!hasEmbeddingLimit && !hasInputByteLimit) {
@@ -165,161 +164,6 @@ export async function embedMany({
                 telemetry,
                 attributes: {
                   ...assembleOperationName({
-=======
-      try {
-        const [
-          maxEmbeddingsPerCall,
-          maxInputBytesPerCall,
-          supportsParallelCalls,
-        ] = await Promise.all([
-          model.maxEmbeddingsPerCall,
-          getEmbeddingModelMaxInputBytesPerCall(model),
-          model.supportsParallelCalls,
-        ]);
-
-        const hasEmbeddingLimit =
-          maxEmbeddingsPerCall != null && maxEmbeddingsPerCall !== Infinity;
-        const hasInputByteLimit =
-          maxInputBytesPerCall != null && maxInputBytesPerCall !== Infinity;
-
-        if (!hasEmbeddingLimit && !hasInputByteLimit) {
-          const { embeddings, usage, warnings, response, providerMetadata } =
-            await retry(async () => {
-              const embedCallId = generateCallId();
-
-              await notify({
-                event: {
-                  callId,
-                  embedCallId,
-                  operationId: 'ai.embedMany.doEmbed',
-                  provider: model.provider,
-                  modelId: model.modelId,
-                  values,
-                },
-                callbacks: [telemetryDispatcher.onEmbedStart],
-              });
-
-              const modelResponse = await model.doEmbed({
-                values,
-                abortSignal,
-                headers: headersWithUserAgent,
-                providerOptions,
-              });
-
-              const embeddings = modelResponse.embeddings;
-              const usage = modelResponse.usage ?? { tokens: NaN };
-
-              await notify({
-                event: {
-                  callId,
-                  embedCallId,
-                  operationId: 'ai.embedMany.doEmbed',
-                  provider: model.provider,
-                  modelId: model.modelId,
-                  values,
-                  embeddings,
-                  usage,
-                },
-                callbacks: [telemetryDispatcher.onEmbedEnd],
-              });
-
-              return {
-                embeddings,
-                usage,
-                warnings: modelResponse.warnings ?? [],
-                providerMetadata: modelResponse.providerMetadata,
-                response: modelResponse.response,
-              };
-            });
-
-          validateEmbeddingCount({ embeddings, values });
-
-          logWarnings({
-            warnings,
-            provider: model.provider,
-            model: model.modelId,
-          });
-
-          await notify({
-            event: {
-              callId,
-              operationId: 'ai.embedMany',
-              runtimeContext,
-              provider: model.provider,
-              modelId: model.modelId,
-              value: values,
-              embedding: embeddings,
-              usage,
-              warnings,
-              providerMetadata,
-              response: [response],
-            },
-            callbacks: [resolvedOnEnd, telemetryDispatcher.onEnd],
-          });
-
-          return new DefaultEmbedManyResult({
-            values,
-            embeddings,
-            usage,
-            warnings,
-            providerMetadata,
-            responses: [response],
-          });
-        }
-
-        const valueChunks = splitByEmbeddingLimits({
-          values,
-          maxEmbeddingsPerCall: hasEmbeddingLimit
-            ? maxEmbeddingsPerCall
-            : Infinity,
-          maxInputBytesPerCall: hasInputByteLimit
-            ? maxInputBytesPerCall
-            : Infinity,
-        });
-        const providerOptionsTransformer =
-          getEmbeddingModelProviderOptionsTransformer(model);
-
-        const embeddings: Array<Embedding> = [];
-        const warnings: Array<Warning> = [];
-        const responses: Array<
-          | {
-              headers?: Record<string, string>;
-              body?: unknown;
-            }
-          | undefined
-        > = [];
-        let tokens = 0;
-        let providerMetadata: ProviderMetadata | undefined;
-
-        const parallelChunks = splitArray(
-          valueChunks,
-          supportsParallelCalls ? maxParallelCalls : 1,
-        );
-
-        let nextChunkStartIndex = 0;
-        for (const parallelChunk of parallelChunks) {
-          const results = await Promise.all(
-            parallelChunk.map(async chunk => {
-              // Capture the range before awaiting transformations or retrying.
-              const startIndex = nextChunkStartIndex;
-              nextChunkStartIndex += chunk.length;
-              const chunkProviderOptions = providerOptionsTransformer
-                ? await providerOptionsTransformer({
-                    providerOptions,
-                    values,
-                    startIndex,
-                    endIndex: startIndex + chunk.length,
-                  })
-                : providerOptions;
-
-              const result = await retry(async () => {
-                const embedCallId = generateCallId();
-
-                await notify({
-                  event: {
-                    callId,
-                    embedCallId,
->>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143))
                     operationId: 'ai.embedMany.doEmbed',
                     telemetry,
                   }),
@@ -336,7 +180,7 @@ export async function embedMany({
                   values,
                   abortSignal,
                   headers: headersWithUserAgent,
-                  providerOptions: chunkProviderOptions,
+                  providerOptions,
                 });
 
                 const embeddings = modelResponse.embeddings;
@@ -407,6 +251,8 @@ export async function embedMany({
           ? maxInputBytesPerCall
           : Infinity,
       });
+      const providerOptionsTransformer =
+        getEmbeddingModelProviderOptionsTransformer(model);
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
@@ -426,9 +272,22 @@ export async function embedMany({
         supportsParallelCalls ? maxParallelCalls : 1,
       );
 
+      let nextChunkStartIndex = 0;
       for (const parallelChunk of parallelChunks) {
         const results = await Promise.all(
-          parallelChunk.map(chunk => {
+          parallelChunk.map(async chunk => {
+            // Capture the range before awaiting transformations or retrying.
+            const startIndex = nextChunkStartIndex;
+            nextChunkStartIndex += chunk.length;
+            const chunkProviderOptions = providerOptionsTransformer
+              ? await providerOptionsTransformer({
+                  providerOptions,
+                  values,
+                  startIndex,
+                  endIndex: startIndex + chunk.length,
+                })
+              : providerOptions;
+
             return retry(() => {
               // nested spans to align with the embedMany telemetry data:
               return recordSpan({
@@ -453,7 +312,7 @@ export async function embedMany({
                     values: chunk,
                     abortSignal,
                     headers: headersWithUserAgent,
-                    providerOptions,
+                    providerOptions: chunkProviderOptions,
                   });
 
                   const embeddings = modelResponse.embeddings;

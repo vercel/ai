@@ -148,12 +148,12 @@ describe('wrapEmbeddingModel', () => {
     it('should pass through by default', () => {
       const providerOptionsTransformer = vi.fn();
       const wrappedModel = wrapEmbeddingModel({
-        model: Object.assign(new MockEmbeddingModelV4(), {
+        model: Object.assign(new MockEmbeddingModelV3(), {
           [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]:
             providerOptionsTransformer,
         }),
         middleware: {
-          specificationVersion: 'v4',
+          specificationVersion: 'v3',
         },
       });
 

@@ -1,12 +1,5 @@
-<<<<<<< HEAD
 import type { EmbeddingModelV3 } from '@ai-sdk/provider';
-=======
-import {
-  InvalidResponseDataError,
-  type EmbeddingModelV4,
-} from '@ai-sdk/provider';
 import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
->>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143))
 import assert from 'node:assert';
 import {
   afterEach,
@@ -525,7 +518,7 @@ describe('options.providerOptions', () => {
         },
       );
       const model = Object.assign(
-        new MockEmbeddingModelV4({
+        new MockEmbeddingModelV3({
           maxEmbeddingsPerCall: 2,
           maxInputBytesPerCall,
           supportsParallelCalls: true,

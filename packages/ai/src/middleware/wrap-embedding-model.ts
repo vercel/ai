@@ -2,16 +2,10 @@ import type {
   EmbeddingModelV3,
   EmbeddingModelV3CallOptions,
 } from '@ai-sdk/provider';
-<<<<<<< HEAD
-import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
-=======
 import {
-  asArray,
   EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
   EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
 } from '@ai-sdk/provider-utils';
-import { asEmbeddingModelV4 } from '../model/as-embedding-model-v4';
->>>>>>> fe07867716 (fix: Google embedMany loses per-value content alignment when batching more than 100 inputs (#21143))
 import {
   getEmbeddingModelMaxInputBytesPerCall,
   type EmbeddingModelWithMaxInputBytesPerCall,

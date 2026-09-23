@@ -1,4 +1,4 @@
-import { createGoogle } from '@ai-sdk/google';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import { wrapEmbeddingModel } from '../middleware/wrap-embedding-model';
@@ -28,10 +28,10 @@ function setup() {
       'requests' in body ? { embeddings } : { embedding: embeddings[0] },
     );
   });
-  const google = createGoogle({ apiKey: 'test-api-key', fetch });
+  const google = createGoogleGenerativeAI({ apiKey: 'test-api-key', fetch });
 
   return {
-    model: google.embedding('gemini-embedding-2'),
+    model: google.embedding('gemini-embedding-2-preview'),
     fetch,
     requests,
   };
@@ -48,7 +48,7 @@ describe('embedMany with Google multimodal content', () => {
       const result = await embedMany({
         model: wrapEmbeddingModel({
           model,
-          middleware: { specificationVersion: 'v4' },
+          middleware: { specificationVersion: 'v3' },
         }),
         values: Array<string>(201).fill(''),
         providerOptions: { google: { content } },
@@ -76,7 +76,7 @@ describe('embedMany with Google multimodal content', () => {
         model: wrapEmbeddingModel({
           model,
           middleware: {
-            specificationVersion: 'v4',
+            specificationVersion: 'v3',
             transformParams: async ({ params }) => ({
               ...params,
               providerOptions: {

@@ -1,4 +1,4 @@
-import type { SharedV4ProviderOptions } from '@ai-sdk/provider';
+import type { SharedV3ProviderOptions } from '@ai-sdk/provider';
 
 /**
  * Symbol for exposing the UTF-8 input byte budget of an embedding model.
@@ -22,11 +22,11 @@ export const EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER = Symbol.for(
 );
 
 export type EmbeddingModelProviderOptionsTransformer = (options: {
-  providerOptions: SharedV4ProviderOptions | undefined;
+  providerOptions: SharedV3ProviderOptions | undefined;
   values: Array<string>;
   startIndex: number;
   endIndex: number;
 }) =>
-  | SharedV4ProviderOptions
+  | SharedV3ProviderOptions
   | undefined
-  | PromiseLike<SharedV4ProviderOptions | undefined>;
+  | PromiseLike<SharedV3ProviderOptions | undefined>;
