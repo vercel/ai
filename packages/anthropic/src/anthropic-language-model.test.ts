@@ -63,6 +63,38 @@ describe('AnthropicLanguageModel', () => {
   }
 
   describe('doGenerate', () => {
+    it('should reject root union tool input schemas before sending a request', async () => {
+      await expect(
+        provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'lookup',
+              description: 'Look up an item',
+              inputSchema: {
+                oneOf: [
+                  {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                  },
+                  {
+                    type: 'object',
+                    properties: { query: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message:
+          "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
+      });
+      expect(server.calls).toHaveLength(0);
+    });
+
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
         prepareJsonFixtureResponse('anthropic-text');

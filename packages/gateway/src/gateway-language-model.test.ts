@@ -26,9 +26,8 @@ const createTestModel = (
   config: Partial<
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
-  modelId = 'test-model',
 ) => {
-  return new GatewayLanguageModel(modelId, {
+  return new GatewayLanguageModel('test-model', {
     provider: 'test-provider',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -168,71 +167,6 @@ describe('GatewayLanguageModel', () => {
       });
 
       expect(warnings).toEqual([]);
-    });
-
-    it('should reject root union tool input schemas for Anthropic models before sending a request', async () => {
-      const fetch = vi.fn();
-      const model = createTestModel({ fetch }, 'anthropic/claude-sonnet-4-6');
-
-      await expect(
-        model.doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'lookup',
-              description: 'Look up an item',
-              inputSchema: {
-                oneOf: [
-                  {
-                    type: 'object',
-                    properties: { id: { type: 'string' } },
-                  },
-                  {
-                    type: 'object',
-                    properties: { query: { type: 'string' } },
-                  },
-                ],
-              },
-            },
-          ],
-        }),
-      ).rejects.toMatchObject({
-        name: 'AI_UnsupportedFunctionalityError',
-        message:
-          "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
-      });
-      expect(fetch).not.toHaveBeenCalled();
-    });
-
-    it('should not apply Anthropic tool schema restrictions to other models', async () => {
-      prepareJsonResponse({ content: { type: 'text', text: 'Hello' } });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        tools: [
-          {
-            type: 'function',
-            name: 'lookup',
-            description: 'Look up an item',
-            inputSchema: {
-              oneOf: [
-                {
-                  type: 'object',
-                  properties: { id: { type: 'string' } },
-                },
-                {
-                  type: 'object',
-                  properties: { query: { type: 'string' } },
-                },
-              ],
-            },
-          },
-        ],
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.tools[0].inputSchema).toHaveProperty('oneOf');
     });
 
     it('should remove abortSignal from the request body', async () => {
