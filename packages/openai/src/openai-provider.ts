@@ -20,7 +20,15 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  Experimental_EvaluationLanguageModel as EvaluationLanguageModel,
+  Experimental_EvaluationEmbeddingModel as EvaluationEmbeddingModel,
+} from '@ai-sdk/provider-utils/experimental-evaluation';
+import {
+  evaluationEmbeddingModelIds,
+  type OpenAIEvaluationModelId,
+  type OpenAIEvaluationModelSettings,
+} from './openai-evaluation-settings';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -50,8 +58,11 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
-  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
+  /** Creates an experimental evaluation model using the Responses API or Choice-only embeddings. */
+  evaluationModel(
+    modelId: OpenAIEvaluationModelId,
+    settings?: OpenAIEvaluationModelSettings,
+  ): EvaluationModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -352,11 +363,30 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
-  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
-    new EvaluationLanguageModel({
+  provider.evaluationModel = (
+    modelId: OpenAIEvaluationModelId,
+    settings: OpenAIEvaluationModelSettings = {},
+  ) => {
+    const modelType =
+      settings.modelType ??
+      (Object.prototype.hasOwnProperty.call(
+        evaluationEmbeddingModelIds,
+        modelId,
+      )
+        ? 'embedding'
+        : 'language');
+    if (modelType === 'embedding') {
+      return new EvaluationEmbeddingModel({
+        model: createEmbeddingModel(modelId),
+        provider: `${providerName}.evaluation`,
+        inputPrefix: '',
+      });
+    }
+    return new EvaluationLanguageModel({
       model: createResponsesModel(modelId),
       provider: `${providerName}.evaluation`,
     });
+  };
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

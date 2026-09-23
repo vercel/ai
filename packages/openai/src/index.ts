@@ -59,3 +59,8 @@ export type {
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
 export { VERSION } from './version';
+
+export type {
+  OpenAIEvaluationModelId as Experimental_OpenAIEvaluationModelId,
+  OpenAIEvaluationModelSettings as Experimental_OpenAIEvaluationModelSettings,
+} from './openai-evaluation-settings';
