@@ -21,7 +21,6 @@ import { z } from 'zod/v4';
 import { googleFailedResponseHandler } from './google-error';
 import {
   googleEmbeddingModelOptions,
-  type GoogleEmbeddingModelOptions,
   type GoogleEmbeddingModelId,
 } from './google-embedding-model-options';
 type GoogleEmbeddingConfig = {
@@ -37,28 +36,26 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
   readonly maxEmbeddingsPerCall = 100;
   readonly supportsParallelCalls = true;
   readonly [EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]: EmbeddingModelProviderOptionsTransformer =
-    async ({ providerOptions, values, startIndex, endIndex }) => {
-      const googleOptions = await parseProviderOptions({
-        provider: 'google',
-        providerOptions,
-        schema: googleEmbeddingModelOptions,
-      });
-      const multimodalContent = googleOptions?.content;
+    ({ providerOptions, values, startIndex, endIndex }) => {
+      const multimodalContent = providerOptions?.google?.content;
+
+      // Leave schema validation to doEmbed, after middleware transforms options.
+      if (!Array.isArray(multimodalContent)) {
+        return providerOptions;
+      }
 
       validateMultimodalContentLength({
         multimodalContent,
         values,
       });
 
-      return multimodalContent == null
-        ? providerOptions
-        : {
-            ...providerOptions,
-            google: {
-              ...providerOptions?.google,
-              content: multimodalContent.slice(startIndex, endIndex),
-            },
-          };
+      return {
+        ...providerOptions,
+        google: {
+          ...providerOptions?.google,
+          content: multimodalContent.slice(startIndex, endIndex),
+        },
+      };
     };
 
   private readonly config: GoogleEmbeddingConfig;
@@ -224,7 +221,7 @@ function validateMultimodalContentLength({
   multimodalContent,
   values,
 }: {
-  multimodalContent: GoogleEmbeddingModelOptions['content'];
+  multimodalContent: Array<unknown> | undefined;
   values: Array<string>;
 }) {
   if (multimodalContent != null && multimodalContent.length !== values.length) {

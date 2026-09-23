@@ -4,4 +4,4 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-fix(ai): preserve per-value provider options across embedding batches
+Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.

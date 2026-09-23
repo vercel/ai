@@ -322,12 +322,6 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
             ? maxInputBytesPerCall
             : Infinity,
         });
-        const chunkStartIndices = new Map<Array<string>, number>();
-        let nextChunkStartIndex = 0;
-        for (const chunk of valueChunks) {
-          chunkStartIndices.set(chunk, nextChunkStartIndex);
-          nextChunkStartIndex += chunk.length;
-        }
         const providerOptionsTransformer =
           getEmbeddingModelProviderOptionsTransformer(model);
 
@@ -348,10 +342,13 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
           supportsParallelCalls ? maxParallelCalls : 1,
         );
 
+        let nextChunkStartIndex = 0;
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
             parallelChunk.map(async chunk => {
-              const startIndex = chunkStartIndices.get(chunk)!;
+              // Capture the range before awaiting transformations or retrying.
+              const startIndex = nextChunkStartIndex;
+              nextChunkStartIndex += chunk.length;
               const chunkProviderOptions = providerOptionsTransformer
                 ? await providerOptionsTransformer({
                     providerOptions,

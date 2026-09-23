@@ -453,14 +453,14 @@ describe('GoogleEmbeddingModel', () => {
       },
     };
 
-    await expect(
-      model[EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]({
+    expect(
+      await model[EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]({
         providerOptions,
         values: ['value 0', 'value 1', 'value 2'],
         startIndex: 1,
         endIndex: 3,
       }),
-    ).resolves.toStrictEqual({
+    ).toStrictEqual({
       google: {
         outputDimensionality: 128,
         content: [null, [{ text: 'context 2' }]],
