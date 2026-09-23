@@ -243,7 +243,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   function prepareChunksFixtureResponse(filename: string) {

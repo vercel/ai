@@ -100,7 +100,7 @@ export class PerplexityLanguageModel implements LanguageModelV3 {
             : undefined,
 
         // provider extensions
-        ...(providerOptions?.perplexity ?? {}),
+        ...providerOptions?.perplexity,
 
         // messages:
         messages: convertToPerplexityMessages(prompt),

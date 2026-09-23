@@ -679,7 +679,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": "{\"operation\":\"add\",\"numbers\":[1,2]",
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
