@@ -12,18 +12,6 @@ export interface HarnessV1SandboxProvider {
   readonly providerId: string;
 
   /**
-   * Pool of ports the consumer reserved on a caller-provided sandbox for
-   * concurrent harness sessions. The session manager leases one port per
-   * session and releases on stop or destroy.
-   *
-   * Only meaningful when the provider wraps a caller-provided sandbox
-   * (the caller pre-declared the ports). In create-new modes the provider
-   * mints a fresh sandbox per session, so no leasing is needed; providers
-   * leave this undefined.
-   */
-  readonly bridgePorts?: ReadonlyArray<number>;
-
-  /**
    * Providers should throw `HarnessSandboxAuthenticationError` when sandbox
    * acquisition fails because credentials are missing, invalid, or not
    * authorized. This lets framework integrations distinguish configuration

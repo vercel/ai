@@ -1,25 +1,82 @@
-import type {
-  LanguageModelV4CallOptions,
-  LanguageModelV4Prompt,
-  SharedV4Warning,
+import {
+  InvalidPromptError,
+  UnsupportedFunctionalityError,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4FilePart,
+  type LanguageModelV4Prompt,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
-import type { DeepSeekChatPrompt } from './deepseek-chat-api-types';
+import {
+  convertToBase64,
+  getTopLevelMediaType,
+  parseProviderOptions,
+  resolveFullMediaType,
+  resolveProviderReference,
+} from '@ai-sdk/provider-utils';
+import type {
+  DeepSeekChatPrompt,
+  DeepSeekContentPart,
+  DeepSeekToolMessage,
+} from './deepseek-chat-api-types';
+import { deepseekFilePartProviderOptions } from './deepseek-file-part-options';
+import { deepseekAssistantMessageProviderOptions } from './deepseek-chat-language-model-options';
+import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 
-export function convertToDeepSeekChatMessages({
+const supportedImageMediaTypes = new Set([
+  'image/gif',
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+]);
+
+function resolveDeepSeekImageMediaType(part: LanguageModelV4FilePart): string {
+  const resolvedMediaType = resolveFullMediaType({ part });
+
+  if (!supportedImageMediaTypes.has(resolvedMediaType)) {
+    throw new UnsupportedFunctionalityError({
+      functionality: `DeepSeek image media type ${resolvedMediaType}`,
+      message: 'DeepSeek supports JPEG, PNG, GIF, and WebP image inputs.',
+    });
+  }
+
+  return resolvedMediaType;
+}
+
+function validateDeepSeekImageUrl({
+  url,
+  prompt,
+}: {
+  url: string;
+  prompt: LanguageModelV4Prompt;
+}): void {
+  if (url.length > 8192) {
+    throw new InvalidPromptError({
+      prompt,
+      message: 'DeepSeek image URLs must not exceed 8192 characters.',
+    });
+  }
+}
+
+export async function convertToDeepSeekChatMessages({
   prompt,
   responseFormat,
   modelId,
+  providerOptionsName = 'deepseek',
+  supportsAssistantPrefixCompletion = false,
   supportsStructuredOutputs = false,
 }: {
   prompt: LanguageModelV4Prompt;
   responseFormat: LanguageModelV4CallOptions['responseFormat'];
   modelId: string;
+  providerOptionsName?: string;
+  supportsAssistantPrefixCompletion?: boolean;
   supportsStructuredOutputs?: boolean;
-}): {
+}): Promise<{
   messages: DeepSeekChatPrompt;
   warnings: Array<SharedV4Warning>;
-} {
-  const isDeepSeekV4 = modelId.includes('deepseek-v4');
+}> {
+  const isDeepSeekV4 = isDeepSeekV4Model(modelId);
   const messages: DeepSeekChatPrompt = [];
   const warnings: Array<SharedV4Warning> = [];
 
@@ -55,20 +112,156 @@ export function convertToDeepSeekChatMessages({
   }
 
   let index = -1;
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     index++;
+
+    // The assistant schema extends the common message schema, so one parse
+    // validates names for every role and the assistant-only prefix option.
+    const deepseekMessageOptions = await parseProviderOptions({
+      provider: providerOptionsName,
+      providerOptions,
+      schema: deepseekAssistantMessageProviderOptions,
+    });
+
+    if (deepseekMessageOptions?.prefix === true && role !== 'assistant') {
+      throw new InvalidPromptError({
+        prompt,
+        message:
+          'DeepSeek assistant prefix completion requires `prefix: true` on an assistant message.',
+      });
+    }
 
     switch (role) {
       case 'system': {
-        messages.push({ role: 'system', content });
+        messages.push({
+          role: 'system',
+          content,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+        });
         break;
       }
 
       case 'user': {
-        let userContent = '';
+        const hasImagePart = content.some(
+          part =>
+            part.type === 'file' &&
+            (part.data.type === 'reference' ||
+              part.data.type === 'url' ||
+              part.data.type === 'data') &&
+            getTopLevelMediaType(part.mediaType) === 'image',
+        );
+
+        if (!hasImagePart) {
+          let userContent = '';
+          for (const part of content) {
+            if (part.type === 'text') {
+              userContent += part.text;
+            } else {
+              warnings.push({
+                type: 'unsupported',
+                feature: `user message part type: ${part.type}`,
+              });
+            }
+          }
+
+          messages.push({
+            role: 'user',
+            content: userContent,
+            ...(deepseekMessageOptions?.name != null && {
+              name: deepseekMessageOptions.name,
+            }),
+          });
+          break;
+        }
+
+        const userContent: Array<DeepSeekContentPart> = [];
         for (const part of content) {
           if (part.type === 'text') {
-            userContent += part.text;
+            userContent.push({ type: 'text', text: part.text });
+          } else if (
+            part.type === 'file' &&
+            getTopLevelMediaType(part.mediaType) === 'image'
+          ) {
+            const filePartOptions = await parseProviderOptions({
+              provider: providerOptionsName,
+              providerOptions: part.providerOptions,
+              schema: deepseekFilePartProviderOptions,
+            });
+
+            if (part.data.type === 'reference') {
+              userContent.push({
+                type: 'file',
+                file_id: resolveProviderReference({
+                  reference: part.data.reference,
+                  provider: 'deepseek',
+                }),
+              });
+            } else if (part.data.type === 'url' || part.data.type === 'data') {
+              const resolvedMediaType = resolveDeepSeekImageMediaType(part);
+
+              if (part.data.type === 'url') {
+                const url = part.data.url.toString();
+
+                validateDeepSeekImageUrl({ url, prompt });
+
+                if (filePartOptions?.fileData === true) {
+                  throw new InvalidPromptError({
+                    prompt,
+                    message:
+                      'DeepSeek `fileData` image parts require inline data, not a URL.',
+                  });
+                }
+
+                userContent.push({
+                  type: 'image_url',
+                  image_url: {
+                    url,
+                    ...(filePartOptions?.imageDetail != null && {
+                      detail: filePartOptions.imageDetail,
+                    }),
+                  },
+                });
+              } else {
+                const dataUrl = `data:${
+                  resolvedMediaType === 'image/jpg'
+                    ? 'image/jpeg'
+                    : resolvedMediaType
+                };base64,${convertToBase64(part.data.data)}`;
+
+                if (filePartOptions?.fileData === true) {
+                  if (filePartOptions.imageDetail != null) {
+                    throw new InvalidPromptError({
+                      prompt,
+                      message:
+                        'DeepSeek `imageDetail` cannot be combined with `fileData`.',
+                    });
+                  }
+
+                  userContent.push({
+                    type: 'file',
+                    file_data: dataUrl,
+                    ...(part.filename != null && { filename: part.filename }),
+                  });
+                } else {
+                  userContent.push({
+                    type: 'image_url',
+                    image_url: {
+                      url: dataUrl,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                }
+              }
+            } else {
+              warnings.push({
+                type: 'unsupported',
+                feature: `user message part type: ${part.type}`,
+              });
+            }
           } else {
             warnings.push({
               type: 'unsupported',
@@ -80,11 +273,32 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'user',
           content: userContent,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
         });
 
         break;
       }
       case 'assistant': {
+        if (deepseekMessageOptions?.prefix === true) {
+          if (index !== prompt.length - 1) {
+            throw new InvalidPromptError({
+              prompt,
+              message:
+                'DeepSeek assistant prefix completion requires the prefixed assistant message to be the final message.',
+            });
+          }
+
+          if (!supportsAssistantPrefixCompletion) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'DeepSeek assistant prefix completion',
+              message:
+                'DeepSeek assistant prefix completion requires a beta base URL ending in `/beta`.',
+            });
+          }
+        }
+
         let text = '';
         let reasoning: string | undefined;
 
@@ -132,6 +346,12 @@ export function convertToDeepSeekChatMessages({
         messages.push({
           role: 'assistant',
           content: text,
+          ...(deepseekMessageOptions?.name != null && {
+            name: deepseekMessageOptions.name,
+          }),
+          ...(deepseekMessageOptions?.prefix === true && {
+            prefix: true,
+          }),
           reasoning_content: reasoning ?? (isDeepSeekV4 ? '' : undefined),
           tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         });
@@ -140,13 +360,20 @@ export function convertToDeepSeekChatMessages({
       }
 
       case 'tool': {
+        if (deepseekMessageOptions?.name != null) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'message name on tool messages',
+          });
+        }
+
         for (const toolResponse of content) {
           if (toolResponse.type === 'tool-approval-response') {
             continue;
           }
           const output = toolResponse.output;
 
-          let contentValue: string;
+          let contentValue: DeepSeekToolMessage['content'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -155,11 +382,84 @@ export function convertToDeepSeekChatMessages({
             case 'execution-denied':
               contentValue = output.reason ?? 'Tool call execution denied.';
               break;
-            case 'content':
             case 'json':
             case 'error-json':
               contentValue = JSON.stringify(output.value);
               break;
+            case 'content': {
+              const hasImagePart = output.value.some(
+                part =>
+                  part.type === 'file' &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image',
+              );
+
+              if (!hasImagePart) {
+                contentValue = JSON.stringify(output.value);
+                break;
+              }
+
+              contentValue = [];
+              for (const part of output.value) {
+                if (part.type === 'text') {
+                  contentValue.push({ type: 'text', text: part.text });
+                } else if (
+                  part.type === 'file' &&
+                  (part.data.type === 'reference' ||
+                    part.data.type === 'url' ||
+                    part.data.type === 'data') &&
+                  getTopLevelMediaType(part.mediaType) === 'image'
+                ) {
+                  if (part.data.type === 'reference') {
+                    contentValue.push({
+                      type: 'file',
+                      file_id: resolveProviderReference({
+                        reference: part.data.reference,
+                        provider: 'deepseek',
+                      }),
+                    });
+                    continue;
+                  }
+
+                  const filePartOptions = await parseProviderOptions({
+                    provider: providerOptionsName,
+                    providerOptions: part.providerOptions,
+                    schema: deepseekFilePartProviderOptions,
+                  });
+                  const resolvedMediaType = resolveDeepSeekImageMediaType(part);
+                  let url: string;
+
+                  if (part.data.type === 'url') {
+                    url = part.data.url.toString();
+                    validateDeepSeekImageUrl({ url, prompt });
+                  } else {
+                    url = `data:${
+                      resolvedMediaType === 'image/jpg'
+                        ? 'image/jpeg'
+                        : resolvedMediaType
+                    };base64,${convertToBase64(part.data.data)}`;
+                  }
+
+                  contentValue.push({
+                    type: 'image_url',
+                    image_url: {
+                      url,
+                      ...(filePartOptions?.imageDetail != null && {
+                        detail: filePartOptions.imageDetail,
+                      }),
+                    },
+                  });
+                } else {
+                  warnings.push({
+                    type: 'unsupported',
+                    feature: `tool result content part type: ${part.type}`,
+                  });
+                }
+              }
+              break;
+            }
           }
 
           messages.push({

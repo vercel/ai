@@ -1,5 +1,4 @@
 import type {
-  LanguageModelV4Content,
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
@@ -16,8 +15,7 @@ import {
   type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { NoOutputGeneratedError } from '../error';
-import { ToolCallNotFoundForApprovalError } from '../error/tool-call-not-found-for-approval-error';
+import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveLanguageModel } from '../model/resolve-model';
 import type { ModelMessage } from '../prompt';
@@ -64,7 +62,8 @@ import { VERSION } from '../version';
 import type { ActiveTools } from './active-tools';
 import { calculateTokensPerSecond } from './calculate-tokens-per-second';
 import { collectToolApprovals } from './collect-tool-approvals';
-import type { ContentPart } from './content-part';
+import { convertLanguageModelContent } from './convert-language-model-content';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -78,7 +77,7 @@ import type {
   GenerateTextOnStepStartCallback,
 } from './generate-text-events';
 import type { GenerateTextResult } from './generate-text-result';
-import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type {
   OnLanguageModelCallEndCallback,
   OnLanguageModelCallStartCallback,
@@ -108,21 +107,21 @@ import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
 import type { ToolApprovalResponseOutput } from './tool-approval-response-output';
 import {
+  appendToolCallerMessages,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
 } from './tool-caller-configuration';
 import type { TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
-import type { TypedToolError } from './tool-error';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { validateToolContext } from './validate-tool-context';
 import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
-import type { TypedToolResult } from './tool-result';
 import type { ToolsContextParameter } from './tools-context-parameter';
 import { maybeSignApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
@@ -578,6 +577,10 @@ export async function generateText<
     tools,
     toolCallers: experimental_toolCallers,
   });
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: resolvedToolCallers,
+  });
   const stopConditions = asArray(stopWhen);
   const resolvedOnStart = onStart ?? experimental_onStart;
   const resolvedOnStepStart = onStepStart ?? experimental_onStepStart;
@@ -712,6 +715,7 @@ export async function generateText<
       const {
         approvedToolApprovals: localApprovedToolApprovals,
         deniedToolApprovals: revalidationDeniedToolApprovals,
+        invalidToolApprovals,
       } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
         approvedToolApprovals: approvedToolApprovals.filter(
           toolApproval => !toolApproval.toolCall.providerExecuted,
@@ -734,7 +738,8 @@ export async function generateText<
 
       if (
         deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0
+        localApprovedToolApprovals.length > 0 ||
+        invalidToolApprovals.length > 0
       ) {
         const toolResults = await executeTools({
           toolCalls: localApprovedToolApprovals.map(
@@ -786,6 +791,24 @@ export async function generateText<
             toolCallId: output.toolCallId,
             toolName: output.toolName,
             output: modelOutput,
+          });
+        }
+
+        // Report invalid approved tool calls to the model without executing
+        // them. Repairing the input after approval would change the operation
+        // that the user authorized.
+        for (const toolApproval of invalidToolApprovals) {
+          toolContent.push({
+            type: 'tool-result' as const,
+            toolCallId: toolApproval.toolCall.toolCallId,
+            toolName: toolApproval.toolCall.toolName,
+            output: await createToolModelOutput({
+              toolCallId: toolApproval.toolCall.toolCallId,
+              input: toolApproval.toolCall.input,
+              tool: getOwn(tools, toolApproval.toolCall.toolName),
+              output: toolApproval.error,
+              errorMode: 'text',
+            }),
           });
         }
 
@@ -890,16 +913,6 @@ export async function generateText<
                 prepareStepResult?.system ??
                 instructionsForNextStep;
 
-              const promptMessages = await convertToLanguageModelPrompt({
-                prompt: {
-                  instructions: stepInstructions,
-                  messages: prepareStepResult?.messages ?? stepInputMessages,
-                },
-                supportedUrls: await stepModel.supportedUrls,
-                download,
-                provider: stepModel.provider.split('.')[0],
-              });
-
               runtimeContext =
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
@@ -911,8 +924,12 @@ export async function generateText<
               const {
                 executionTools: stepExecutionTools,
                 modelTools: stepModelTools,
+                toolCallerMessages,
               } = prepareToolsForToolCallers({
-                tools: stepActiveTools,
+                tools: prepareToolSearch(stepActiveTools, {
+                  toolsContext,
+                  experimental_sandbox: stepSandbox,
+                }),
                 toolCallers: resolvedToolCallers,
               });
               const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
@@ -936,8 +953,21 @@ export async function generateText<
                 toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
               });
 
-              const stepMessages =
-                prepareStepResult?.messages ?? stepInputMessages;
+              const stepMessages = appendToolCallerMessages({
+                messages: prepareStepResult?.messages ?? stepInputMessages,
+                toolCallerMessages,
+              });
+
+              const promptMessages = await convertToLanguageModelPrompt({
+                prompt: {
+                  instructions: stepInstructions,
+                  messages: stepMessages,
+                },
+                supportedUrls: await stepModel.supportedUrls,
+                download,
+                abortSignal: mergedAbortSignal,
+                provider: stepModel.provider.split('.')[0],
+              });
 
               const stepProviderOptions = mergeObjects(
                 providerOptions,
@@ -1049,14 +1079,16 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools: stepExecutionTools as TOOLS,
+                      tools: stepModelTools as TOOLS,
                       repairToolCall,
                       refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
                     }),
                   ),
               );
+
               const toolApprovalRequests: Record<
                 string,
                 ToolApprovalRequestOutput<TOOLS>
@@ -1067,13 +1099,16 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const modelCallContent = asContent({
+              const generatedFileDataCache = new WeakMap();
+              const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: [],
                 toolApprovalRequests: [],
                 toolApprovalResponses: [],
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               await notify({
@@ -1116,6 +1151,29 @@ export async function generateText<
                 ],
               });
 
+              const enforcedToolChoice =
+                stepToolChoice.type === 'required' ||
+                stepToolChoice.type === 'tool'
+                  ? stepToolChoice
+                  : undefined;
+
+              if (
+                enforcedToolChoice != null &&
+                !stepToolCalls.some(
+                  toolCall =>
+                    enforcedToolChoice.type === 'required' ||
+                    toolCall.toolName === enforcedToolChoice.toolName,
+                )
+              ) {
+                throw new ToolChoiceViolationError({
+                  toolChoice: enforcedToolChoice,
+                  finishReason: currentModelResponse.finishReason.unified,
+                  provider: stepModel.provider,
+                  modelId: stepModel.modelId,
+                  content: currentModelResponse.content,
+                });
+              }
+
               // notify the tools that the tool calls are available:
               for (const toolCall of stepToolCalls) {
                 if (toolCall.invalid) {
@@ -1130,23 +1188,34 @@ export async function generateText<
                   continue;
                 }
 
-                if (tool.onInputStart != null) {
-                  await tool.onInputStart({
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
+                if (
+                  tool.onInputStart != null ||
+                  tool.onInputAvailable != null
+                ) {
+                  const context = await validateToolContext({
+                    toolName: toolCall.toolName,
+                    context: getOwn(toolsContext, toolCall.toolName),
+                    contextSchema: tool.contextSchema,
                   });
-                }
 
-                if (tool?.onInputAvailable != null) {
-                  await tool.onInputAvailable({
-                    input: toolCall.input,
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
-                  });
+                  if (tool.onInputStart != null) {
+                    await tool.onInputStart({
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
+
+                  if (tool.onInputAvailable != null) {
+                    await tool.onInputAvailable({
+                      input: toolCall.input,
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
                 }
 
                 const toolApprovalStatus = await resolveToolApproval({
@@ -1180,6 +1249,9 @@ export async function generateText<
                       type: 'tool-approval-request',
                       approvalId,
                       toolCall,
+                      ...(toolApprovalStatus.reason != null
+                        ? { reason: toolApprovalStatus.reason }
+                        : {}),
                       ...(signature != null ? { signature } : {}),
                     };
                     blockedToolCallIds.add(toolCall.toolCallId);
@@ -1259,7 +1331,12 @@ export async function generateText<
               );
               const toolExecutionMs: Record<string, number> = {};
 
-              if (stepExecutionTools != null) {
+              if (
+                stepExecutionTools != null &&
+                isToolExecutionAllowedFinishReason(
+                  currentModelResponse.finishReason.unified,
+                )
+              ) {
                 const toolExecutionResults = await executeTools({
                   toolCalls: clientToolCalls.filter(
                     toolCall =>
@@ -1352,13 +1429,15 @@ export async function generateText<
               }
 
               // content:
-              const stepContent = asContent({
+              const stepContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: clientToolOutputs,
                 toolApprovalRequests: Object.values(toolApprovalRequests),
                 toolApprovalResponses,
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               const stepResponseMessages = await toResponseMessages({
@@ -1432,13 +1511,11 @@ export async function generateText<
           }
         }
       } while (
-        // Continue if:
-        // 1. There are client tool calls that have all been executed or denied, OR
-        // 2. There are pending deferred results from provider-executed tools
-        ((clientToolCalls.length > 0 &&
-          clientToolOutputs.length + deniedToolApprovalResponses.length ===
-            clientToolCalls.length) ||
-          pendingDeferredToolCalls.size > 0) &&
+        // Continue only after all client tool calls have been executed or denied,
+        // and if there are client results or pending deferred provider results.
+        clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length &&
+        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
         // continue until a stop condition is met:
         !(await isStopConditionMet({ stopConditions, steps }))
       );
@@ -1514,9 +1591,13 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
-      // parse output only if the last step was finished with "stop":
+      // parse output for stop responses and non-empty responses that are not
+      // tool calls:
       let resolvedOutput;
-      if (lastStep.finishReason === 'stop') {
+      if (
+        lastStep.finishReason === 'stop' ||
+        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+      ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
           { text: lastStep.text },
@@ -1723,192 +1804,4 @@ class DefaultGenerateTextResult<
 
     return this._output;
   }
-}
-
-function asContent<TOOLS extends ToolSet>({
-  content,
-  toolCalls,
-  toolOutputs,
-  toolApprovalRequests,
-  toolApprovalResponses,
-  tools,
-}: {
-  content: Array<LanguageModelV4Content>;
-  toolCalls: Array<TypedToolCall<TOOLS>>;
-  toolOutputs: Array<ToolOutput<TOOLS>>;
-  toolApprovalRequests: Array<ToolApprovalRequestOutput<TOOLS>>;
-  toolApprovalResponses: Array<ToolApprovalResponseOutput<TOOLS>>;
-  tools: TOOLS | undefined;
-}): Array<ContentPart<TOOLS>> {
-  const contentParts: Array<ContentPart<TOOLS>> = [];
-  const toolOutputsWithApprovalResponses: Array<ToolOutput<TOOLS>> = [];
-  const toolOutputsWithoutApprovalResponses: Array<ToolOutput<TOOLS>> = [];
-  const toolCallIdsWithApprovalResponses = new Set(
-    toolApprovalResponses.map(
-      toolApprovalResponse => toolApprovalResponse.toolCall.toolCallId,
-    ),
-  );
-
-  for (const part of content) {
-    switch (part.type) {
-      case 'text':
-      case 'reasoning':
-      case 'custom':
-      case 'source':
-        contentParts.push(part);
-        break;
-
-      case 'file':
-      case 'reasoning-file': {
-        contentParts.push({
-          type: part.type as 'file' | 'reasoning-file',
-          file: new DefaultGeneratedFile({
-            data:
-              part.data.type === 'data'
-                ? part.data.data
-                : part.data.url.toString(),
-            mediaType: part.mediaType,
-          }),
-          ...(part.providerMetadata != null
-            ? { providerMetadata: part.providerMetadata }
-            : {}),
-        });
-        break;
-      }
-
-      case 'tool-call': {
-        contentParts.push(
-          toolCalls.find(toolCall => toolCall.toolCallId === part.toolCallId)!,
-        );
-        break;
-      }
-
-      case 'tool-result': {
-        const toolCall = toolCalls.find(
-          toolCall => toolCall.toolCallId === part.toolCallId,
-        );
-
-        // Handle deferred results for provider-executed tools (e.g., programmatic tool calling).
-        // When a server tool (like code_execution) triggers a client tool, the server tool's
-        // result may be deferred to a later turn. In this case, there's no matching tool-call
-        // in the current response.
-        if (toolCall == null) {
-          const tool = getOwn(tools, part.toolName);
-          const supportsDeferredResults =
-            tool?.type === 'provider' && tool.supportsDeferredResults;
-
-          if (!supportsDeferredResults) {
-            throw new Error(`Tool call ${part.toolCallId} not found.`);
-          }
-
-          // Create tool result without tool call input (deferred result)
-          if (part.isError) {
-            contentParts.push({
-              type: 'tool-error' as const,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName as keyof TOOLS & string,
-              input: undefined,
-              error: part.result,
-              providerExecuted: true,
-              dynamic: part.dynamic,
-              ...(part.providerMetadata != null
-                ? { providerMetadata: part.providerMetadata }
-                : {}),
-              ...(tool?.metadata != null
-                ? { toolMetadata: tool.metadata }
-                : {}),
-            } as TypedToolError<TOOLS>);
-          } else {
-            contentParts.push({
-              type: 'tool-result' as const,
-              toolCallId: part.toolCallId,
-              toolName: part.toolName as keyof TOOLS & string,
-              input: undefined,
-              output: part.result,
-              providerExecuted: true,
-              dynamic: part.dynamic,
-              ...(part.providerMetadata != null
-                ? { providerMetadata: part.providerMetadata }
-                : {}),
-              ...(tool?.metadata != null
-                ? { toolMetadata: tool.metadata }
-                : {}),
-            } as TypedToolResult<TOOLS>);
-          }
-          break;
-        }
-
-        if (part.isError) {
-          contentParts.push({
-            type: 'tool-error' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            error: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-            ...(toolCall.toolMetadata != null
-              ? { toolMetadata: toolCall.toolMetadata }
-              : {}),
-          } as TypedToolError<TOOLS>);
-        } else {
-          contentParts.push({
-            type: 'tool-result' as const,
-            toolCallId: part.toolCallId,
-            toolName: part.toolName as keyof TOOLS & string,
-            input: toolCall.input,
-            output: part.result,
-            providerExecuted: true,
-            dynamic: toolCall.dynamic,
-            ...(part.providerMetadata != null
-              ? { providerMetadata: part.providerMetadata }
-              : {}),
-            ...(toolCall.toolMetadata != null
-              ? { toolMetadata: toolCall.toolMetadata }
-              : {}),
-          } as TypedToolResult<TOOLS>);
-        }
-        break;
-      }
-
-      case 'tool-approval-request': {
-        const toolCall = toolCalls.find(
-          toolCall => toolCall.toolCallId === part.toolCallId,
-        );
-
-        if (toolCall == null) {
-          throw new ToolCallNotFoundForApprovalError({
-            toolCallId: part.toolCallId,
-            approvalId: part.approvalId,
-          });
-        }
-
-        contentParts.push({
-          type: 'tool-approval-request' as const,
-          approvalId: part.approvalId,
-          toolCall,
-        });
-        break;
-      }
-    }
-  }
-
-  for (const toolOutput of toolOutputs) {
-    if (toolCallIdsWithApprovalResponses.has(toolOutput.toolCallId)) {
-      toolOutputsWithApprovalResponses.push(toolOutput);
-    } else {
-      toolOutputsWithoutApprovalResponses.push(toolOutput);
-    }
-  }
-
-  return [
-    ...contentParts,
-    ...toolOutputsWithoutApprovalResponses,
-    ...toolApprovalRequests,
-    ...toolApprovalResponses,
-    ...toolOutputsWithApprovalResponses,
-  ];
 }

@@ -1,5 +1,6 @@
 import type {
   HarnessV1BuiltinToolFiltering,
+  HarnessV1QuestionsToolOutput,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import {
@@ -7,6 +8,7 @@ import {
   type AgentTool,
   type AgentToolResult,
 } from '@cline/agents';
+import { createDefaultTools } from '@cline/core';
 import type { ClineRemoteOps } from './cline-remote-ops';
 import { getErrorText } from './cline-utils';
 
@@ -17,6 +19,7 @@ import { getErrorText } from './cline-utils';
  * identical.
  */
 export const CLINE_NATIVE_BUILTIN_NAMES = [
+  'ask_question',
   'read',
   'write',
   'edit',
@@ -24,6 +27,7 @@ export const CLINE_NATIVE_BUILTIN_NAMES = [
   'grep',
   'glob',
   'ls',
+  'skills',
 ] as const;
 
 export type ClineNativeBuiltinName =
@@ -32,6 +36,7 @@ export type ClineNativeBuiltinName =
 export const CLINE_NATIVE_TOOL_KINDS: Readonly<
   Record<ClineNativeBuiltinName, 'readonly' | 'edit' | 'bash'>
 > = {
+  ask_question: 'readonly',
   read: 'readonly',
   write: 'edit',
   edit: 'edit',
@@ -39,6 +44,7 @@ export const CLINE_NATIVE_TOOL_KINDS: Readonly<
   grep: 'readonly',
   glob: 'readonly',
   ls: 'readonly',
+  skills: 'readonly',
 };
 
 export function isClineBuiltinToolName(
@@ -56,18 +62,40 @@ export function resolveActiveClineBuiltinNames(
   toolFiltering: HarnessV1BuiltinToolFiltering | undefined,
 ): ReadonlyArray<ClineNativeBuiltinName> {
   if (toolFiltering == null) return CLINE_NATIVE_BUILTIN_NAMES;
+  const filteredNames = toolFiltering.toolNames.map(name =>
+    name === 'askUserQuestions' ? 'ask_question' : name,
+  );
   if (toolFiltering.mode === 'allow') {
     return CLINE_NATIVE_BUILTIN_NAMES.filter(name =>
-      toolFiltering.toolNames.includes(name),
+      filteredNames.includes(name),
     );
   }
   return CLINE_NATIVE_BUILTIN_NAMES.filter(
-    name => !toolFiltering.toolNames.includes(name),
+    name => !filteredNames.includes(name),
   );
 }
 
 export interface PendingToolResult {
   resolve: (value: unknown) => void;
+}
+
+export interface PendingClineQuestion {
+  readonly input: {
+    readonly question: string;
+    readonly options: readonly string[];
+  };
+  resolve: (value: string) => void;
+}
+
+export interface PendingClineQuestionResult {
+  readonly output: HarnessV1QuestionsToolOutput;
+}
+
+export function clineQuestionKey(input: {
+  readonly question: string;
+  readonly options: readonly string[];
+}): string {
+  return JSON.stringify([input.question, input.options]);
 }
 
 const clineToolResultMarker = Symbol('cline-tool-result');
@@ -127,19 +155,57 @@ async function guarded<T>(run: () => Promise<T>): Promise<ClineToolResult> {
 }
 
 /**
- * Build the sandbox-backed built-in `AgentTool`s handed to the Cline runtime.
- * These schemas mirror the zod declarations in `CLINE_BUILTIN_TOOLS`
- * (cline-harness.ts) — keep the two in sync.
+ * Build the sandbox-backed coding tools handed to the Cline runtime. These
+ * schemas mirror their declarations in `CLINE_BUILTIN_TOOLS`
+ * (cline-harness.ts). The in-host skills tool is built separately.
  */
 export function buildBuiltinAgentTools({
   ops,
   activeNames,
+  pendingQuestions = new Map(),
+  pendingQuestionResults = new Map(),
 }: {
   ops: ClineRemoteOps;
   activeNames: ReadonlyArray<ClineNativeBuiltinName>;
+  pendingQuestions?: Map<string, PendingClineQuestion>;
+  pendingQuestionResults?: Map<string, PendingClineQuestionResult>;
 }): AgentTool<any, any>[] {
   // biome/eslint: `any` matches the runtime's own `tools?: readonly AgentTool<any, any>[]`.
   const tools: Partial<Record<ClineNativeBuiltinName, AgentTool<any, any>>> = {
+    ask_question: createDefaultTools({
+      executors: {
+        askQuestion: async (question, options, context) => {
+          if (context.toolCallId == null) {
+            throw new Error(
+              'Cline ask_question did not provide a tool call id.',
+            );
+          }
+          const questionKey = clineQuestionKey({ question, options });
+          const pendingResult = pendingQuestionResults.get(questionKey);
+          if (pendingResult != null) {
+            pendingQuestionResults.delete(questionKey);
+            return toClineQuestionResult({
+              nativeInput: { question, options },
+              output: pendingResult.output,
+            });
+          }
+          return new Promise<string>(resolve => {
+            pendingQuestions.set(context.toolCallId!, {
+              input: { question, options },
+              resolve,
+            });
+          });
+        },
+      },
+      enableReadFiles: false,
+      enableSearch: false,
+      enableBash: false,
+      enableWebFetch: false,
+      enableApplyPatch: false,
+      enableEditor: false,
+      enableSkills: false,
+      enableAskQuestion: true,
+    }).find(tool => tool.name === 'ask_question'),
     read: createTool({
       name: 'read',
       description: 'Read file contents.',
@@ -321,6 +387,29 @@ export function buildBuiltinAgentTools({
   return activeNames
     .map(name => tools[name])
     .filter((tool): tool is AgentTool<any, any> => tool != null);
+}
+
+export function toClineQuestionResult(input: {
+  nativeInput: PendingClineQuestion['input'];
+  output: HarnessV1QuestionsToolOutput;
+}): string {
+  if (
+    input.output.action === 'declined' ||
+    input.output.action === 'cancelled'
+  ) {
+    return `The user ${input.output.action} the question.`;
+  }
+  const answer = input.output.answers['question-1'];
+  if (answer == null) return 'The user did not answer the question.';
+  if (answer.freeform != null) return answer.freeform;
+  const result = answer.optionIds
+    .map(id => {
+      const index = Number(id.replace(/^option-/, '')) - 1;
+      return input.nativeInput.options[index];
+    })
+    .filter((value): value is string => value != null)
+    .join(', ');
+  return result;
 }
 
 /**

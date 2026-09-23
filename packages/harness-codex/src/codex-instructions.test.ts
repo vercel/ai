@@ -3,7 +3,6 @@ import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1ResumeSessionState,
   HarnessV1Session,
-  HarnessV1Skill,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
@@ -110,7 +109,6 @@ function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
 async function startSession(options?: {
   resumeFrom?: HarnessV1ResumeSessionState;
   continueFrom?: HarnessV1ContinueTurnState;
-  skills?: ReadonlyArray<HarnessV1Skill>;
 }): Promise<HarnessV1Session> {
   const harness = createCodex();
   return harness.doStart({
@@ -119,7 +117,6 @@ async function startSession(options?: {
     sessionWorkDir: '/wd/codex-s1',
     ...(options?.resumeFrom ? { resumeFrom: options.resumeFrom } : {}),
     ...(options?.continueFrom ? { continueFrom: options.continueFrom } : {}),
-    ...(options?.skills ? { skills: options.skills } : {}),
   });
 }
 
@@ -153,6 +150,8 @@ describe('codex adapter — instructions transport', () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       emit: () => {},
     });
@@ -165,6 +164,8 @@ describe('codex adapter — instructions transport', () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
@@ -174,6 +175,8 @@ describe('codex adapter — instructions transport', () => {
     expect(firstStart.instructions).toBe('Use turbo build --concurrency=4.');
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'second turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
@@ -198,6 +201,7 @@ describe('codex adapter — instructions transport', () => {
     ];
 
     await session.doPromptTurn({
+      skills: [],
       prompt: 'use the weather tool',
       tools,
       emit: () => {},
@@ -220,6 +224,7 @@ describe('codex adapter — instructions transport', () => {
     expect(firstStart.tools).toEqual(tools);
 
     await session.doPromptTurn({
+      skills: [],
       prompt: 'use it again',
       tools,
       emit: () => {},
@@ -240,6 +245,8 @@ describe('codex adapter — instructions transport', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'resumed turn',
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
@@ -247,6 +254,32 @@ describe('codex adapter — instructions transport', () => {
     const start = await waitForStart({ count: 1 });
     expect(start.prompt).toBe('resumed turn');
     expect(start.instructions).toBe('Use turbo build --concurrency=4.');
+  });
+
+  it('starts a fresh native thread when resumed turn configuration changes', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+          turnConfigurationFingerprint: 'previous-configuration',
+        },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'resumed turn',
+      instructions: 'Use the current turn instructions.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
   });
 
   it('forwards instructions when rerunning a suspended turn', async () => {
@@ -260,6 +293,8 @@ describe('codex adapter — instructions transport', () => {
     });
 
     await session.doContinueTurn({
+      skills: [],
+      tools: [],
       instructions: 'Use turbo build --concurrency=4.',
       emit: () => {},
     });
@@ -300,6 +335,8 @@ describe('codex adapter — attach replay mode', () => {
     expect(openCalls.at(-1)).toBeUndefined();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'next user turn',
       emit: () => {},
     });
@@ -368,7 +405,9 @@ describe('codex adapter — skills', () => {
   });
 
   it('writes skills to sandbox HOME without sending skill metadata', async () => {
-    const session = await startSession({
+    const session = await startSession();
+
+    await session.doPromptTurn({
       skills: [
         {
           name: 'demo',
@@ -377,20 +416,16 @@ describe('codex adapter — skills', () => {
           files: [{ path: 'reference.md', content: '# Reference' }],
         },
       ],
-    });
-
-    await session.doPromptTurn({
+      tools: [],
       prompt: 'use demo',
       emit: () => {},
     });
 
-    expect(runCommands).toContain("mkdir -p '/home/vercel-sandbox/.codex'");
+    expect(runCommands).not.toContain("mkdir -p '/home/vercel-sandbox/.codex'");
     expect(runCommands).toContain(
       "mkdir -p '/home/vercel-sandbox/.agents/skills'",
     );
-    const skillWrites = writes.filter(
-      write => !write.path.endsWith('/bridge-meta.json'),
-    );
+    const skillWrites = writes.filter(write => write.path.includes('/demo/'));
     const bridgeMetaWrite = writes.find(write =>
       write.path.endsWith('/bridge-meta.json'),
     );
@@ -398,19 +433,22 @@ describe('codex adapter — skills', () => {
       path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'codex', state: 'starting' }),
     });
-    expect(skillWrites).toEqual([
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
-        content:
-          '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
-      },
-      {
-        path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
-        content: '# Reference',
-      },
-    ]);
-    expect(spawnEnvs.at(-1)?.HOME).toBe('/home/vercel-sandbox');
-    expect(spawnEnvs.at(-1)?.CODEX_HOME).toBe('/home/vercel-sandbox/.codex');
+    expect(skillWrites).toEqual(
+      expect.arrayContaining([
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/SKILL.md',
+          content:
+            '---\nname: demo\ndescription: Demo skill.\n---\n\nUse reference.md.',
+        },
+        {
+          path: '/home/vercel-sandbox/.agents/skills/demo/reference.md',
+          content: '# Reference',
+        },
+      ]),
+    );
+    expect(skillWrites).toHaveLength(2);
+    expect(spawnEnvs.at(-1)).not.toHaveProperty('HOME');
+    expect(spawnEnvs.at(-1)).not.toHaveProperty('CODEX_HOME');
     const start = await waitForStart({ count: 1 });
     expect(start.skills).toBeUndefined();
     expect(JSON.stringify(start)).not.toContain('Demo skill.');
@@ -418,9 +456,38 @@ describe('codex adapter — skills', () => {
     expect(JSON.stringify(start)).not.toContain('# Reference');
   });
 
+  it('starts a fresh native thread when skills change on a resumed session', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [
+        {
+          name: 'demo',
+          description: 'Demo skill.',
+          content: 'Use the current skill.',
+        },
+      ],
+      tools: [],
+      prompt: 'use demo',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 1 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
+  });
+
   it('rejects unsafe skill file paths before writing files', async () => {
+    const session = await startSession();
     await expect(
-      startSession({
+      session.doPromptTurn({
         skills: [
           {
             name: 'demo',
@@ -429,8 +496,14 @@ describe('codex adapter — skills', () => {
             files: [{ path: '../reference.md', content: '# Reference' }],
           },
         ],
+        tools: [],
+        prompt: 'Use demo.',
+        emit: () => {},
       }),
     ).rejects.toThrow('Invalid Codex skill file path');
-    expect(writes).toEqual([]);
+    expect(writes.some(write => write.path.includes('../reference.md'))).toBe(
+      false,
+    );
+    await session.doDestroy();
   });
 });

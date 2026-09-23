@@ -3,9 +3,19 @@ import {
   type LanguageModelV4CallOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import type { GoogleModelId } from './google-language-model-options';
 import { getGoogleModelCapabilities } from './google-model-capabilities';
+
+type FunctionTool = Extract<
+  NonNullable<LanguageModelV4CallOptions['tools']>[number],
+  { type: 'function' }
+>;
+
+type GoogleFunctionDeclaration = {
+  name: string;
+  description: string;
+  parametersJsonSchema: unknown;
+};
 
 export function prepareTools({
   tools,
@@ -21,11 +31,7 @@ export function prepareTools({
   tools:
     | Array<
         | {
-            functionDeclarations: Array<{
-              name: string;
-              description: string;
-              parameters: unknown;
-            }>;
+            functionDeclarations: GoogleFunctionDeclaration[];
           }
         | Record<string, any>
       >
@@ -172,18 +178,10 @@ export function prepareTools({
     });
 
     if (hasFunctionTools && usesGemini3Features && googleTools.length > 0) {
-      const functionDeclarations: Array<{
-        name: string;
-        description: string;
-        parameters: unknown;
-      }> = [];
+      const functionDeclarations: GoogleFunctionDeclaration[] = [];
       for (const tool of tools) {
         if (tool.type === 'function') {
-          functionDeclarations.push({
-            name: tool.name,
-            description: tool.description ?? '',
-            parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-          });
+          functionDeclarations.push(prepareFunctionDeclaration(tool));
         }
       }
 
@@ -238,11 +236,7 @@ export function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function':
-        functionDeclarations.push({
-          name: tool.name,
-          description: tool.description ?? '',
-          parameters: convertJSONSchemaToOpenAPISchema(tool.inputSchema),
-        });
+        functionDeclarations.push(prepareFunctionDeclaration(tool));
         if (tool.strict === true) {
           hasStrictTools = true;
         }
@@ -313,4 +307,14 @@ export function prepareTools({
       });
     }
   }
+}
+
+function prepareFunctionDeclaration(
+  tool: FunctionTool,
+): GoogleFunctionDeclaration {
+  return {
+    name: tool.name,
+    description: tool.description ?? '',
+    parametersJsonSchema: tool.inputSchema,
+  };
 }

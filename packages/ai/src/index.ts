@@ -2,7 +2,13 @@
 import './global';
 
 // re-exports:
-export { createGateway, gateway, type GatewayModelId } from '@ai-sdk/gateway';
+export {
+  createGateway,
+  gateway,
+  type GatewayAsyncJobMetadata,
+  type GatewayModelId,
+  type GatewayProviderMetadata,
+} from '@ai-sdk/gateway';
 export {
   asSchema,
   createIdGenerator,
@@ -35,6 +41,7 @@ export * from './agent';
 export * from './batch';
 export * from './embed';
 export * from './error';
+export * from './evaluate';
 export * from './generate-image';
 export * from './generate-object';
 export * from './generate-speech';
@@ -48,6 +55,7 @@ export * from './registry';
 export * from './rerank';
 export * from './telemetry';
 export * from './text-stream';
+export { toolSearch } from './tool-search/tool-search';
 export * from './transcribe';
 export * from './translate';
 export * from './types';

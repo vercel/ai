@@ -15,11 +15,13 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: cline,
-    sandbox: createVercelSandbox({ sandbox }),
   });
 
+  const sandboxProvider = createVercelSandbox({ sandbox });
+  const sandboxSession = await sandboxProvider.createSession();
+
   let exitCode = 0;
-  const session = await agent.createSession();
+  const session = await agent.createSession({ sandboxSession });
   try {
     const result = await agent.stream({
       session,

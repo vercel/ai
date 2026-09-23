@@ -381,6 +381,73 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
       expect(body.response_format).toBeUndefined();
     });
 
+    it('serializes video response format controls and returns inline video data', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          id: 'v1_video',
+          status: 'completed',
+          model: 'gemini-omni-flash-preview',
+          steps: [
+            {
+              type: 'model_output',
+              content: [
+                {
+                  type: 'video',
+                  mime_type: 'video/mp4',
+                  data: 'AAAAIGZ0eXBpc29t',
+                },
+              ],
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          google: {
+            responseModalities: ['video'],
+            responseFormat: [
+              {
+                type: 'video',
+                aspectRatio: '16:9',
+                resolution: '360p',
+                duration: '4s',
+                delivery: 'uri',
+                gcsUri: 'gs://video-output/clip.mp4',
+              },
+            ],
+          },
+        },
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as Record<
+        string,
+        unknown
+      >;
+      expect(body.response_modalities).toEqual(['video']);
+      expect(body.response_format).toEqual([
+        {
+          type: 'video',
+          aspect_ratio: '16:9',
+          resolution: '360p',
+          duration: '4s',
+          delivery: 'uri',
+          gcs_uri: 'gs://video-output/clip.mp4',
+        },
+      ]);
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'file',
+            mediaType: 'video/mp4',
+            data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+          }),
+        ]),
+      );
+    });
+
     it('returns the JSON-shaped text content from the parsed response', async () => {
       const result = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -2262,6 +2329,91 @@ describe('GoogleInteractionsLanguageModel.doStream', () => {
       chunks,
     };
   }
+
+  it('serializes video response format controls and streams inline video data', async () => {
+    server.urls[TEST_URL].response = {
+      type: 'stream-chunks',
+      chunks: [
+        {
+          event_type: 'interaction.created',
+          interaction: {
+            id: 'v1_video',
+            status: 'in_progress',
+            model: 'gemini-omni-flash-preview',
+          },
+        },
+        {
+          event_type: 'step.start',
+          index: 0,
+          step: { type: 'model_output' },
+        },
+        {
+          event_type: 'step.delta',
+          index: 0,
+          delta: {
+            type: 'video',
+            mime_type: 'video/mp4',
+            data: 'AAAAIGZ0eXBpc29t',
+          },
+        },
+        {
+          event_type: 'step.stop',
+          index: 0,
+        },
+        {
+          event_type: 'interaction.completed',
+          interaction: {
+            id: 'v1_video',
+            status: 'completed',
+          },
+        },
+      ].map(event => `data: ${JSON.stringify(event)}\n\n`),
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        google: {
+          responseModalities: ['video'],
+          responseFormat: [
+            {
+              type: 'video',
+              aspectRatio: '9:16',
+              resolution: '4k',
+              duration: '8s',
+              delivery: 'inline',
+            },
+          ],
+        },
+      },
+      includeRawChunks: false,
+    });
+
+    const body = (await server.calls[0].requestBodyJson) as Record<
+      string,
+      unknown
+    >;
+    expect(body.response_format).toEqual([
+      {
+        type: 'video',
+        aspect_ratio: '9:16',
+        resolution: '4k',
+        duration: '8s',
+        delivery: 'inline',
+      },
+    ]);
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(parts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'file',
+          mediaType: 'video/mp4',
+          data: { type: 'data', data: 'AAAAIGZ0eXBpc29t' },
+        }),
+      ]),
+    );
+  });
 
   describe('basic text', () => {
     beforeEach(() => {

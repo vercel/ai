@@ -4,5 +4,5 @@ export type GatewaySpeechModelId =
   | 'fish-audio/s2.1-pro'
   | 'openai/tts-1'
   | 'openai/tts-1-hd'
-  | 'xai/grok-tts'
+  | 'spacexai/grok-tts'
   | (string & {});

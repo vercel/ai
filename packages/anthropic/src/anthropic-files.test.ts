@@ -1,3 +1,4 @@
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it, vi } from 'vitest';
 import { AnthropicFiles } from './anthropic-files';
@@ -55,6 +56,49 @@ describe('AnthropicFiles', () => {
       expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
         'files-api-2025-04-14',
       );
+    });
+
+    it('rejects stream data at runtime and cancels the stream', async () => {
+      const cancelSpy = vi.fn();
+      const stream = new ReadableStream<Uint8Array>({ cancel: cancelSpy });
+
+      const files = createFiles();
+      await expect(
+        files.uploadFile({
+          data: { type: 'stream', stream },
+          mediaType: 'application/octet-stream',
+          providerOptions: {},
+        }),
+      ).rejects.toThrow(UnsupportedFunctionalityError);
+
+      await vi.waitFor(() => expect(cancelSpy).toHaveBeenCalled());
+      expect(server.calls.length).toBe(0);
+    });
+
+    it('threads per-call headers and abortSignal', async () => {
+      server.urls['https://api.anthropic.com/v1/files'].response =
+        successfulResponse;
+
+      const files = createFiles();
+      await files.uploadFile({
+        data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+        mediaType: 'application/octet-stream',
+        headers: { 'x-request-id': 'req-1' },
+        providerOptions: {},
+      });
+
+      expect(server.calls[0].requestHeaders['x-request-id']).toBe('req-1');
+
+      const controller = new AbortController();
+      controller.abort();
+      await expect(
+        files.uploadFile({
+          data: { type: 'data', data: new Uint8Array([1, 2, 3]) },
+          mediaType: 'application/octet-stream',
+          abortSignal: controller.signal,
+          providerOptions: {},
+        }),
+      ).rejects.toThrow();
     });
 
     it('sends x-api-key header', async () => {

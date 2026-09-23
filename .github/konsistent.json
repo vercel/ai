@@ -102,7 +102,8 @@
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
-            "${providerId}-video-model.ts"
+            "${providerId}-video-model.ts",
+            "${providerId}-evaluation-model.ts"
           ]
         },
         {
@@ -117,17 +118,23 @@
         "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
         {
+          "use": "aisdk/provider-evaluation-model-file-must-export-model-class",
+          "excludeFiles": ["packages/gateway/src/gateway-evaluation-model.ts"]
+        },
+        {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-evaluation-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
-            "packages/gateway/src/gateway-transcription-model.ts"
+            "packages/gateway/src/gateway-transcription-model.ts",
+            "packages/typesafe-ai/src/typesafe-ai-evaluation-model.ts"
           ]
         },
         {
@@ -231,8 +238,8 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "auth": {},
-                    "mcpServers": {}
+                    "auth": "${harnessId.toPascalCase()}AuthenticationMode",
+                    "mcpServers": "Record<string, unknown>"
                   }
                 }
               }
@@ -260,14 +267,33 @@
               "${harnessId}-bridge-protocol.ts",
               "${harnessId}-bootstrap.ts"
             ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "mintBridgeToken": {},
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -284,11 +310,13 @@
           "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
           "description": "Every harness file for a bridge harness must declare its bridge contracts.",
           "for": { "files": ["${harnessId}-harness.ts"] },
-          "if": { "hasFile": "*/bridge/index.ts" },
+          "if": { "hasFile": "v1/bridge/index.ts" },
           "must": {
-            "haveFiles": [
-              "${harnessId}-bridge-protocol.ts",
-              "${harnessId}-bootstrap.ts"
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
             ],
             "exportTypes": [
               {
@@ -296,8 +324,11 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "mintBridgeToken": {},
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -308,6 +339,56 @@
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "haveFiles": [
+              "${harnessId}-${version}-bridge-protocol.ts",
+              "${harnessId}-${version}-bootstrap.ts"
+            ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-file-with-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
           }
         },
         {
@@ -330,7 +411,12 @@
           "name": "harness-file-must-have-corresponding-auth-file",
           "description": "Every harness file must be accompanied by its corresponding auth file.",
           "for": { "files": ["${harnessId}-harness.ts"] },
-          "excludeFiles": ["grok-build-harness.ts"],
+          "excludeFiles": [
+            "cursor-harness.ts",
+            "fx-harness.ts",
+            "github-copilot-harness.ts",
+            "grok-build-harness.ts"
+          ],
           "must": {
             "haveFiles": ["${harnessId}-auth.ts"]
           }
@@ -346,7 +432,7 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}AuthOptions"],
+            "exportTypes": ["${harnessId.toPascalCase()}AuthenticationMode"],
             "exportFunctions": [
               {
                 "name": "resolve${harnessId.toPascalCase()}Env",
@@ -354,7 +440,7 @@
               }
             ],
             "useDeclarationOrder": [
-              "${harnessId.toPascalCase()}AuthOptions",
+              "${harnessId.toPascalCase()}AuthenticationMode",
               "resolve${harnessId.toPascalCase()}Env"
             ]
           }
@@ -369,6 +455,10 @@
               {
                 "name": "HarnessV1RequestTransformation",
                 "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1RequestTransformationSources",
+                "from": "@ai-sdk/harness"
               }
             ],
             "exportConstants": [
@@ -378,8 +468,7 @@
               {
                 "name": "create${harnessId.toPascalCase()}RequestTransformations",
                 "receiveParamsOfTypes": [
-                  "Record<string, string>",
-                  "${harnessId.toPascalCase()}ResolvedAuthenticationMode"
+                  "HarnessV1RequestTransformationSources<${harnessId.toPascalCase()}ResolvedAuthenticationMode>"
                 ],
                 "returnValueOfType": "HarnessV1RequestTransformation[]"
               }
@@ -420,12 +509,19 @@
           "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-bootstrap.ts"] },
           "must": {
+            "importValues": [
+              {
+                "name": "createReadBridgeAsset",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "importTypes": [
               {
                 "name": "HarnessV1Bootstrap",
                 "from": "@ai-sdk/harness"
               }
             ],
+            "declareConstants": ["readBridgeAsset"],
             "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
             "exportFunctions": [
               {
@@ -622,20 +718,21 @@
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
+    "github-copilot": "GitHubCopilot",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
-    "lmnt": "LMNT",
     "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
-    "togetherai": "TogetherAI"
+    "togetherai": "TogetherAI",
+    "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {
     "acp": "acp",
-    "lmnt": "lmnt",
+    "github-copilot": "githubCopilot",
     "minimax": "minimax"
   }
 }

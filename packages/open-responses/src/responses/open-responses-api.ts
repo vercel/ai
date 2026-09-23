@@ -1,6 +1,11 @@
 import type { JSONSchema7 } from '@ai-sdk/provider';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import type {
+  OpenResponsesExtensionEvent,
+  OpenResponsesExtensionItem,
+  OpenResponsesExtensionRecord,
+} from '../open-responses-extension';
 
 export const openResponsesErrorSchema = lazySchema(() =>
   zodSchema(
@@ -95,6 +100,7 @@ export type OutputTextContentParam = {
   type: 'output_text';
   text: string;
   annotations?: UrlCitationParam[];
+  logprobs?: LogProb[];
 };
 
 /**
@@ -263,7 +269,8 @@ export type AllowedToolsParam = {
 export type ToolChoiceParam =
   | ToolChoiceValueEnum
   | SpecificFunctionParam
-  | AllowedToolsParam;
+  | AllowedToolsParam
+  | OpenResponsesExtensionRecord;
 
 // ============================================================================
 // Configuration Types
@@ -282,6 +289,13 @@ export type TextResponseFormat = {
 };
 
 /**
+ * JSON object response format.
+ */
+export type JsonObjectResponseFormatParam = {
+  type: 'json_object';
+};
+
+/**
  * JSON schema response format.
  */
 export type JsonSchemaResponseFormatParam = {
@@ -296,7 +310,10 @@ export type JsonSchemaResponseFormatParam = {
  * Configuration options for text output.
  */
 export type TextParam = {
-  format?: TextResponseFormat | JsonSchemaResponseFormatParam;
+  format?:
+    | TextResponseFormat
+    | JsonObjectResponseFormatParam
+    | JsonSchemaResponseFormatParam;
   verbosity?: VerbosityEnum;
 };
 
@@ -483,7 +500,8 @@ export type OutputItem =
   | FunctionCall
   | FunctionCallOutput
   | Message
-  | ReasoningBody;
+  | ReasoningBody
+  | OpenResponsesExtensionItem;
 
 /**
  * Details about why the response was incomplete.
@@ -626,6 +644,7 @@ export type OpenResponsesRequestBody = {
         | AssistantMessageItemParam
         | FunctionCallItemParam
         | FunctionCallOutputItemParam
+        | OpenResponsesExtensionRecord
       >;
 
   /**
@@ -643,7 +662,7 @@ export type OpenResponsesRequestBody = {
   /**
    * A list of tools that the model may call while generating the response.
    */
-  tools?: FunctionToolParam[];
+  tools?: Array<FunctionToolParam | OpenResponsesExtensionRecord>;
 
   /**
    * Controls which tool the model should use, if any.
@@ -1235,4 +1254,6 @@ export type OpenResponsesChunk =
   | ResponseReasoningSummaryPartAddedEvent
   | ResponseReasoningSummaryPartDoneEvent
   // Error Event
-  | ResponseErrorEvent;
+  | ResponseErrorEvent
+  // Registered extension event
+  | OpenResponsesExtensionEvent;

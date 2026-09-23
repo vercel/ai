@@ -18,19 +18,27 @@ export type GatewayProviderOptions = {
   /**
    * Restrict routing to provider-models that satisfy every given entry.
    *
-   * Entries are capability tags (`'implicit-caching'`, `'vision'`) or
-   * weight-format conditions: `'quantization:fp8'` requires the serving
-   * provider to report that weight format, `'!quantization:fp8'` excludes it
-   * (providers with no recorded format still pass an exclusion). Format
-   * values are an open space; unknown capability names are rejected by the
-   * Gateway with a 400.
+   * Entries are capability tags (`'implicit-caching'`, `'reasoning'`,
+   * `'tool-use'`, `'vision'`) or weight-format conditions: `'quantization:fp8'`
+   * requires the serving provider to report that weight format,
+   * `'!quantization:fp8'` excludes it (providers with no recorded format still
+   * pass an exclusion). Format values are an open space; unknown capability
+   * names are rejected by the Gateway with a 400.
    */
   has?: Array<
     | 'implicit-caching'
+    | 'reasoning'
+    | 'tool-use'
     | 'vision'
     | `quantization:${string}`
     | `!quantization:${string}`
   >;
+
+  /**
+   * Idempotency key for `experimental_startBatch`: retries with the same
+   * key replay the original batch instead of creating a duplicate.
+   */
+  idempotencyKey?: string;
 
   /** Array of model slugs specifying fallback models to use in order. */
   models?: string[];

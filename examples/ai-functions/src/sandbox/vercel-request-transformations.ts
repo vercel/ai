@@ -54,6 +54,6 @@ run(async () => {
 
     console.log(result.stdout);
   } finally {
-    await session.destroy?.();
+    await session.destroy();
   }
 });

@@ -1,11 +1,14 @@
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   type HarnessV1,
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
+import { isHarnessAuthenticationEnvironment } from '@ai-sdk/harness/utils';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { resolveClineEnv, type ClineAuthOptions } from './cline-auth';
+import type { ClineAuthenticationMode } from './cline-auth';
+import { resolveClineAuthentication } from './cline-subscription';
 import { clineResumeStateSchema } from './cline-resume-state';
 import { createClineSession, type ClineReasoningEffort } from './cline-session';
 import { VERSION } from './version';
@@ -22,7 +25,7 @@ const CLINE_CLIENT_APP = `ai-sdk/harness-cline/${VERSION}`;
  */
 export type ClineHarnessSettings = {
   /** Where Cline sources direct or AI Gateway credentials from. */
-  readonly auth?: ClineAuthOptions;
+  readonly auth?: ClineAuthenticationMode;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -34,13 +37,9 @@ export type ClineHarnessSettings = {
    */
   readonly providerId?: string;
   /**
-   * Model id for the configured provider. When omitted, Cline selects the
-   * provider's default model.
-   */
-  readonly modelId?: string;
-  /**
    * Provider API key. When omitted, the Cline gateway falls back to the
    * provider's environment variable (e.g. `ANTHROPIC_API_KEY`).
+   * A record-shaped authentication override disables that fallback.
    */
   readonly apiKey?: string;
   /** Custom provider endpoint. */
@@ -66,6 +65,11 @@ export type ClineHarnessSettings = {
  * `cline-tools.ts` — keep the two in sync.
  */
 const CLINE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'ask_question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
@@ -138,6 +142,18 @@ const CLINE_BUILTIN_TOOLS = {
     nativeName: 'ls',
     toolUseKind: 'readonly',
   } as HarnessV1BuiltinTool,
+  skills: {
+    ...tool({
+      description: 'Execute a configured skill by name.',
+      inputSchema: z.object({
+        skill: z.string(),
+        args: z.string().optional(),
+      }),
+      outputSchema: z.string(),
+    }),
+    nativeName: 'skills',
+    toolUseKind: 'readonly',
+  } as HarnessV1BuiltinTool,
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 export function createCline(
@@ -151,7 +167,11 @@ export function createCline(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: clineResumeStateSchema,
     doStart: async startOpts => {
-      const authEnv = resolveClineEnv({ auth: settings.auth });
+      const authentication = await resolveClineAuthentication({
+        auth: settings.auth,
+        providerId: settings.providerId,
+        apiKey: settings.apiKey,
+      });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { historyFileName?: string }
@@ -161,15 +181,18 @@ export function createCline(
         sessionId: startOpts.sessionId,
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
-        skills: startOpts.skills ?? [],
         settings: {
-          authEnv,
+          authEnv: authentication.environment,
+          isAuthenticationEnvironmentOverride:
+            isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(settings.modelId ? { modelId: settings.modelId } : {}),
-          ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
+          ...((settings.apiKey ?? authentication.subscriptionApiKey)
+            ? { apiKey: settings.apiKey ?? authentication.subscriptionApiKey }
+            : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
+          ...(startOpts.headers ? { agentHeaders: startOpts.headers } : {}),
           ...(settings.reasoningEffort !== undefined
             ? { reasoningEffort: settings.reasoningEffort }
             : {}),

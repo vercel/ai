@@ -37,8 +37,34 @@ const cerebrasErrorStructure: ProviderErrorStructure<CerebrasErrorData> = {
 function transformCerebrasRequestBody(
   args: Record<string, any>,
 ): Record<string, any> {
+  const {
+    max_tokens: maxTokens,
+    parallelToolCalls,
+    topLogprobs,
+    logitBias,
+    serviceTier,
+    reasoningFormat,
+    promptCacheKey,
+    ...restArgs
+  } = args;
+
   return {
-    ...args,
+    ...restArgs,
+    ...(maxTokens !== undefined && {
+      max_completion_tokens: maxTokens,
+    }),
+    ...(parallelToolCalls !== undefined && {
+      parallel_tool_calls: parallelToolCalls,
+    }),
+    ...(topLogprobs !== undefined && { top_logprobs: topLogprobs }),
+    ...(logitBias !== undefined && { logit_bias: logitBias }),
+    ...(serviceTier !== undefined && { service_tier: serviceTier }),
+    ...(reasoningFormat !== undefined && {
+      reasoning_format: reasoningFormat,
+    }),
+    ...(promptCacheKey !== undefined && {
+      prompt_cache_key: promptCacheKey,
+    }),
     messages: Array.isArray(args.messages)
       ? args.messages.map(message => {
           if (

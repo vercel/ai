@@ -1,10 +1,21 @@
-import { createMDX } from 'fumadocs-mdx/next';
+import { createGeistdocs } from '@vercel/geistdocs/next';
 import type { NextConfig } from 'next';
 import { exampleRedirects } from './lib/example-redirects';
 
-const withMDX = createMDX();
+// createGeistdocs composes Fumadocs MDX and discovers App Router pages and
+// route handlers so createProxy can recover unknown agent/Markdown requests.
+// Restart `next dev` after adding, deleting, or renaming routes.
+const withGeistdocs = createGeistdocs();
 
 const config: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
+  experimental: {
+    // Cap static-generation workers: the Vercel build machine exposes 30
+    // cores, and ~29 concurrent prerender workers OOM the container during
+    // "Generating static pages". Local 12-core builds peak fine at 11.
+    cpus: 8,
+  },
   images: {
     remotePatterns: [
       {
@@ -14,6 +25,18 @@ const config: NextConfig = {
     ],
   },
   redirects: () => [
+    // AI SDK 4 is archived separately so it remains available without adding
+    // its content families to this app's already memory-intensive build.
+    {
+      source: '/v4',
+      destination: 'https://v4.ai-sdk.dev/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v4/:path*',
+      destination: 'https://v4.ai-sdk.dev/:path*',
+      permanent: true,
+    },
     {
       source: '/v7',
       destination: '/',
@@ -224,4 +247,4 @@ const config: NextConfig = {
   ],
 };
 
-export default withMDX(config);
+export default withGeistdocs(config);

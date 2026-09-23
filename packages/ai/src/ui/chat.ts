@@ -4,6 +4,7 @@ import {
   type IdGenerator,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { FinishReason } from '../types/language-model';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
@@ -191,7 +192,7 @@ export interface ChatInit<UI_MESSAGE extends UIMessage> {
    */
   id?: string;
 
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
 
   messages?: UI_MESSAGE[];
@@ -246,7 +247,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   protected state: ChatState<UI_MESSAGE>;
 
   private messageMetadataSchema:
-    | FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>
+    | FlexibleSchema<UI_MESSAGE['metadata']>
     | undefined;
   private dataPartSchemas:
     | UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>
@@ -406,13 +407,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       );
 
       if (messageIndex === -1) {
-        throw new Error(`message with id ${message.messageId} not found`);
+        throw new InvalidArgumentError({
+          parameter: 'message.messageId',
+          value: message.messageId,
+          message: `message with id ${message.messageId} not found`,
+        });
       }
 
       if (this.state.messages[messageIndex].role !== 'user') {
-        throw new Error(
-          `message with id ${message.messageId} is not a user message`,
-        );
+        throw new InvalidArgumentError({
+          parameter: 'message.messageId',
+          value: message.messageId,
+          message: `message with id ${message.messageId} is not a user message`,
+        });
       }
 
       // remove all messages after the message with the given id
@@ -420,8 +427,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       // update the message with the new content
       this.state.replaceMessage(messageIndex, {
-        ...uiMessage,
         id: message.messageId,
+        ...uiMessage,
         role: uiMessage.role ?? 'user',
         metadata: message.metadata,
       } as UI_MESSAGE);
@@ -457,7 +464,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         : this.state.messages.findIndex(message => message.id === messageId);
 
     if (messageIndex === -1) {
-      throw new Error(`message ${messageId} not found`);
+      throw new InvalidArgumentError({
+        parameter: 'messageId',
+        value: messageId,
+        message: `message ${messageId} not found`,
+      });
     }
 
     // set the messages to the message before the assistant message

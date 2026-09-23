@@ -23,7 +23,7 @@ const output = Output.object({
 
 run(async () => {
   const agent = new HarnessAgent({
-    harness: createClaudeCode({ model: 'claude-sonnet-4-5' }),
+    harness: createClaudeCode(),
     sandbox: createVercelSandbox({
       runtime: 'node24',
       ports: [4000],

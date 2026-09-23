@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   resolveACPInitialGuidanceApplied,
-  shouldMaterializeACPSkills,
   validateACPLifecycleCompatibility,
 } from './acp-v1-lifecycle';
 
@@ -31,67 +30,6 @@ describe('ACP prompt guidance lifecycle', () => {
         lifecycleState: { initialGuidanceApplied: false },
       }),
     ).toBe(false);
-  });
-});
-
-describe('ACP skill materialization lifecycle', () => {
-  it('materializes skills for a fresh session', () => {
-    expect(
-      shouldMaterializeACPSkills({
-        isResume: false,
-        lifecycleState: undefined,
-        skillsFingerprint: 'current',
-      }),
-    ).toBe(true);
-  });
-
-  it('does not rematerialize matching skills on resume', () => {
-    expect(
-      shouldMaterializeACPSkills({
-        isResume: true,
-        lifecycleState: {
-          skillsMaterialized: true,
-          skillsFingerprint: 'current',
-        },
-        skillsFingerprint: 'current',
-      }),
-    ).toBe(false);
-  });
-
-  it('materializes skills when a legacy resume state has no materialization flag', () => {
-    expect(
-      shouldMaterializeACPSkills({
-        isResume: true,
-        lifecycleState: {},
-        skillsFingerprint: 'current',
-      }),
-    ).toBe(true);
-  });
-
-  it('rejects a changed skill set instead of reusing stale files', () => {
-    expect(() =>
-      shouldMaterializeACPSkills({
-        isResume: true,
-        lifecycleState: {
-          skillsMaterialized: true,
-          skillsFingerprint: 'previous',
-        },
-        skillsFingerprint: 'current',
-      }),
-    ).toThrow('different set of skills');
-  });
-
-  it('rejects changed skills even when prior materialization was incomplete', () => {
-    expect(() =>
-      shouldMaterializeACPSkills({
-        isResume: true,
-        lifecycleState: {
-          skillsMaterialized: false,
-          skillsFingerprint: 'previous',
-        },
-        skillsFingerprint: 'current',
-      }),
-    ).toThrow('different set of skills');
   });
 });
 

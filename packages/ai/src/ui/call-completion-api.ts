@@ -4,11 +4,15 @@ import {
   getRuntimeEnvironmentUserAgent,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
 import {
   uiMessageChunkSchema,
   type UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
+import { createUIApiCallError } from './create-ui-api-call-error';
 import { processTextStream } from './process-text-stream';
 import { VERSION } from '../version';
 
@@ -26,6 +30,7 @@ export async function callCompletionApi({
   setLoading,
   setError,
   setAbortController,
+  getAbortController,
   onFinish,
   onError,
   fetch = getOriginalFetch(),
@@ -40,15 +45,19 @@ export async function callCompletionApi({
   setLoading: (loading: boolean) => void;
   setError: (error: Error | undefined) => void;
   setAbortController: (abortController: AbortController | null) => void;
+  getAbortController?: () => AbortController | null | undefined;
   onFinish: ((prompt: string, completion: string) => void) | undefined;
   onError: ((error: Error) => void) | undefined;
   fetch: ReturnType<typeof getOriginalFetch> | undefined;
 }) {
+  const abortController = new AbortController();
+  const isCurrentRequest = () =>
+    getAbortController == null || getAbortController() === abortController;
+
   try {
     setLoading(true);
     setError(undefined);
 
-    const abortController = new AbortController();
     setAbortController(abortController);
 
     // Empty the completion immediately.
@@ -75,13 +84,17 @@ export async function callCompletionApi({
     });
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     let result = '';
@@ -92,7 +105,9 @@ export async function callCompletionApi({
           stream: response.body,
           onTextPart: chunk => {
             result += chunk;
-            setCompletion(result);
+            if (isCurrentRequest()) {
+              setCompletion(result);
+            }
           },
         });
         break;
@@ -112,9 +127,15 @@ export async function callCompletionApi({
                 const streamPart = part.value;
                 if (streamPart.type === 'text-delta') {
                   result += streamPart.delta;
-                  setCompletion(result);
+                  if (isCurrentRequest()) {
+                    setCompletion(result);
+                  }
                 } else if (streamPart.type === 'error') {
-                  throw new Error(streamPart.errorText);
+                  throw new UIMessageStreamError({
+                    chunkType: 'error',
+                    chunkId: '',
+                    message: streamPart.errorText,
+                  });
                 }
               },
             }),
@@ -127,7 +148,11 @@ export async function callCompletionApi({
       }
       default: {
         const exhaustiveCheck: never = streamProtocol;
-        throw new Error(`Unknown stream protocol: ${exhaustiveCheck}`);
+        throw new InvalidArgumentError({
+          parameter: 'streamProtocol',
+          value: exhaustiveCheck,
+          message: `Unknown stream protocol: ${exhaustiveCheck}`,
+        });
       }
     }
 
@@ -135,12 +160,10 @@ export async function callCompletionApi({
       onFinish(prompt, result);
     }
 
-    setAbortController(null);
     return result;
   } catch (err) {
     // Ignore abort errors as they are expected.
     if ((err as any).name === 'AbortError') {
-      setAbortController(null);
       return null;
     }
 
@@ -150,8 +173,14 @@ export async function callCompletionApi({
       }
     }
 
-    setError(err as Error);
+    if (isCurrentRequest()) {
+      setError(err as Error);
+    }
   } finally {
-    setLoading(false);
+    // A newer request may have started while this one was settling.
+    if (isCurrentRequest()) {
+      setAbortController(null);
+      setLoading(false);
+    }
   }
 }

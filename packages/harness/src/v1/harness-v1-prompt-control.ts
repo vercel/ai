@@ -1,3 +1,5 @@
+import type { ToolResultPart } from '@ai-sdk/provider-utils';
+
 /**
  * Bidirectional control surface returned by `doPromptTurn`.
  *
@@ -16,6 +18,7 @@ export type HarnessV1PromptControl = {
     toolCallId: string;
     output: unknown;
     isError?: boolean;
+    toolResult?: ToolResultPart;
   }): PromiseLike<void>;
 
   /**

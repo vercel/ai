@@ -5,10 +5,7 @@ import {
   resolveACPProviderAuthentication,
   resolveACPProviderAuthenticationCompatibility,
 } from './acp-auth';
-import type {
-  ACPProviderAuthentication,
-  ACPProviderAuthenticationMode,
-} from './v1';
+import type { ACPAuthenticationMode, ACPProviderAuthentication } from './v1';
 
 const clientApp = {
   name: 'ai-sdk/harness-acp',
@@ -24,7 +21,7 @@ function resolve({
   mode,
   env,
 }: {
-  mode?: ACPProviderAuthenticationMode;
+  mode?: ACPAuthenticationMode;
   env: Record<string, string | undefined>;
 }) {
   return resolveACPProviderAuthentication({
@@ -42,6 +39,17 @@ function resolve({
 }
 
 describe('resolveACPProviderAuthentication', () => {
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    expect(() =>
+      resolve({
+        mode: { gateway: { apiKey: 'legacy-key' } } as never,
+        env: { AI_GATEWAY_API_KEY: 'ambient-gateway-key' },
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('transports the client app without provider authentication configuration', () => {
     expect(
       resolveACPProviderAuthentication({
@@ -131,6 +139,26 @@ describe('resolveACPProviderAuthentication', () => {
       AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
       AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
     });
+  });
+
+  it('uses a supplied authentication environment without reading the host environment', () => {
+    const env = { AI_GATEWAY_API_KEY: 'ambient-gateway-key' };
+
+    expect(
+      resolve({
+        mode: {
+          AI_GATEWAY_API_KEY: 'explicit-gateway-key',
+          AI_GATEWAY_BASE_URL: 'https://explicit.example',
+        },
+        env,
+      }).env,
+    ).toEqual({
+      AI_SDK_ACP_GATEWAY_API_KEY: 'explicit-gateway-key',
+      AI_SDK_ACP_GATEWAY_BASE_URL: 'https://explicit.example',
+      AI_SDK_ACP_CLIENT_APP_NAME: clientApp.name,
+      AI_SDK_ACP_CLIENT_APP_VERSION: clientApp.version,
+    });
+    expect(env).toEqual({ AI_GATEWAY_API_KEY: 'ambient-gateway-key' });
   });
 
   it('fails explicit Gateway selection without credentials', () => {
@@ -228,6 +256,34 @@ describe('resolveACPProviderAuthenticationCompatibility', () => {
       baseUrl: 'https://ambient.example',
     });
     expect(JSON.stringify(configured)).not.toContain('ambient-secret');
+  });
+
+  it('excludes supplied credentials from compatibility identity', () => {
+    const first = resolveACPProviderAuthenticationCompatibility({
+      auth: {
+        AI_GATEWAY_API_KEY: 'first-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
+      },
+      providerAuthentication: { gateway: { env: gatewayEnv } },
+      env: {},
+    });
+    const rotated = resolveACPProviderAuthenticationCompatibility({
+      auth: {
+        AI_GATEWAY_API_KEY: 'rotated-secret',
+        AI_GATEWAY_BASE_URL: 'https://gateway.example',
+      },
+      providerAuthentication: { gateway: { env: gatewayEnv } },
+      env: {},
+    });
+
+    expect(first).toEqual(rotated);
+    expect(first).toMatchObject({
+      type: 'ai-gateway',
+      mode: 'auto',
+      credentialSource: 'AI_GATEWAY_API_KEY',
+      baseUrl: 'https://gateway.example',
+    });
+    expect(JSON.stringify(first)).not.toContain('first-secret');
   });
 
   it('pins selection, source, and base URL while allowing secret rotation', () => {

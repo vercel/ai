@@ -279,6 +279,61 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should preserve the complete raw usage object without changing normalized usage', async () => {
+    prepareJsonFixtureResponse('mistral-usage-details');
+
+    const { usage } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(usage).toStrictEqual({
+      inputTokens: {
+        total: 20,
+        noCache: 20,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 2,
+        text: 2,
+        reasoning: undefined,
+      },
+      raw: {
+        prompt_tokens: 20,
+        completion_tokens: 2,
+        total_tokens: 22,
+        prompt_audio_seconds: 1,
+        request_count: 1,
+        service_tier: 'standard',
+        num_cached_tokens: 0,
+        prompt_tokens_details: {
+          cached_tokens: 0,
+          audio_tokens: 1,
+          messages: [
+            {
+              role: 'user',
+              total_tokens: 20,
+              settings_tokens: null,
+              truncated: false,
+              usage_count: 1,
+            },
+          ],
+          additional_prompt_detail: { value: true },
+        },
+        prompt_token_details: {
+          cached_tokens: 0,
+          audio_tokens: 1,
+          additional_prompt_token_detail: ['value'],
+        },
+        completion_tokens_details: {
+          reasoning_tokens: 7,
+          additional_completion_detail: 'value',
+        },
+        additional_usage_field: { nested: true },
+      },
+    });
+  });
+
   it('should send additional response information', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
@@ -493,6 +548,23 @@ describe('doGenerate', () => {
         },
       ],
       parallel_tool_calls: false,
+    });
+  });
+
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
     });
   });
 
@@ -786,6 +858,29 @@ describe('doGenerate', () => {
         }),
       );
     });
+
+    it.each([
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should not warn about reasoning for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
   });
 
   describe('reasoning_effort', () => {
@@ -861,6 +956,26 @@ describe('doGenerate', () => {
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('reasoning_effort');
     });
+
+    it.each([
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should send reasoning_effort for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+    });
   });
 });
 
@@ -900,11 +1015,9 @@ describe('doStream', () => {
   });
 
   describe('tool call', () => {
-    beforeEach(() => {
-      prepareChunksFixtureResponse('mistral-tool-call');
-    });
-
     it('should stream tool call', async () => {
+      prepareChunksFixtureResponse('mistral-tool-call');
+
       const result = await model.doStream({
         prompt: TEST_PROMPT,
       });
@@ -912,6 +1025,43 @@ describe('doStream', () => {
       expect(
         await convertReadableStreamToArray(result.stream),
       ).toMatchSnapshot();
+    });
+
+    it('should accumulate incremental tool call arguments', async () => {
+      prepareChunksFixtureResponse('mistral-incremental-tool-call');
+
+      const result = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(
+        parts.filter(
+          part => part.type === 'error' || part.type.startsWith('tool-'),
+        ),
+      ).toStrictEqual([
+        {
+          type: 'tool-input-start',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+          delta: '{"query": "current Berlin weather"}',
+        },
+        {
+          type: 'tool-input-end',
+          id: 'chatcmpl-tool-9f149c74c42f265b',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+          toolName: 'webSearchTool',
+          input: '{"query": "current Berlin weather"}',
+        },
+      ]);
     });
   });
 
@@ -942,6 +1092,24 @@ describe('doStream', () => {
       stream: true,
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+    });
+  });
+
+  it('should pass promptCacheKey as prompt_cache_key', async () => {
+    prepareChunksFixtureResponse('mistral-text');
+
+    await model.doStream({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        mistral: {
+          promptCacheKey: 'classification-workflow-123',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      prompt_cache_key: 'classification-workflow-123',
+      stream: true,
     });
   });
 
@@ -990,6 +1158,70 @@ describe('doStream', () => {
         "test-header": "test-value",
       }
     `);
+  });
+
+  it('should preserve the final complete raw usage object without changing normalized usage', async () => {
+    prepareChunksFixtureResponse('mistral-usage-details');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const finishPart = parts.find(part => part.type === 'finish');
+
+    expect(finishPart).toStrictEqual({
+      type: 'finish',
+      finishReason: {
+        unified: 'stop',
+        raw: 'stop',
+      },
+      usage: {
+        inputTokens: {
+          total: 20,
+          noCache: 20,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 2,
+          text: 2,
+          reasoning: undefined,
+        },
+        raw: {
+          prompt_tokens: 20,
+          completion_tokens: 2,
+          total_tokens: 22,
+          prompt_audio_seconds: 1,
+          request_count: 1,
+          service_tier: 'standard',
+          num_cached_tokens: 0,
+          prompt_tokens_details: {
+            cached_tokens: 0,
+            audio_tokens: 1,
+            messages: [
+              {
+                role: 'user',
+                total_tokens: 20,
+                settings_tokens: null,
+                truncated: false,
+                usage_count: 1,
+              },
+            ],
+            additional_prompt_detail: { value: true },
+          },
+          prompt_token_details: {
+            cached_tokens: 0,
+            audio_tokens: 1,
+            additional_prompt_token_detail: ['value'],
+          },
+          completion_tokens_details: {
+            reasoning_tokens: 7,
+            additional_completion_detail: 'value',
+          },
+          additional_usage_field: { nested: true },
+        },
+      },
+    });
   });
 
   it('should send request body', async () => {

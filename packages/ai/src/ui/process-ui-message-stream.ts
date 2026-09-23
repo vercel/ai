@@ -31,6 +31,8 @@ import {
   type UIMessage,
   type UIMessagePart,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
@@ -90,7 +92,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 }: {
   // input stream is not fully typed yet:
   stream: ReadableStream<UIMessageChunk>;
-  messageMetadataSchema?: FlexibleSchema<InferUIMessageMetadata<UI_MESSAGE>>;
+  messageMetadataSchema?: FlexibleSchema<UI_MESSAGE['metadata']>;
   dataPartSchemas?: UIDataTypesToSchemas<InferUIMessageData<UI_MESSAGE>>;
   onToolCall?: (options: {
     toolCall: InferUIMessageToolCall<UI_MESSAGE>;
@@ -737,6 +739,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata: chunk.providerMetadata,
                   toolMetadata: chunk.toolMetadata,
                 });
+
+                warnIfUIMessageHasDeprecatedRawInput([state.message]);
               }
 
               write();
@@ -748,6 +752,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
+                ...(chunk.approvalDescriptor != null
+                  ? { descriptor: chunk.approvalDescriptor }
+                  : {}),
+                ...(chunk.reason != null
+                  ? { requestReason: chunk.reason }
+                  : {}),
                 ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
@@ -768,13 +778,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               toolInvocation.state = 'approval-responded';
               toolInvocation.approval = {
+                ...approval,
                 id: chunk.approvalId,
                 approved: chunk.approved,
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
-                ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
-                ...(approval.signature != null
-                  ? { signature: approval.signature }
-                  : {}),
               };
               if (chunk.providerExecuted != null) {
                 toolInvocation.providerExecuted = chunk.providerExecuted;
@@ -881,9 +888,25 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             }
 
             case 'finish-step': {
-              // reset the current text and reasoning parts
+              // Active parts are closed by their explicit end chunks. A merged
+              // stream's step can finish while another stream's part is active.
+              break;
+            }
+
+            case 'reset-step': {
+              const currentStepParts = getCurrentStepParts();
+
               state.activeTextParts = createIdMap();
               state.activeReasoningParts = createIdMap();
+              state.partialToolCalls = createIdMap();
+
+              if (currentStepParts.length > 0) {
+                state.message.parts.splice(
+                  state.message.parts.length - currentStepParts.length,
+                  currentStepParts.length,
+                );
+                write();
+              }
               break;
             }
 

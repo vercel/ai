@@ -17,6 +17,11 @@ To prevent that, the SDK validates every response-supplied URL before fetching
 it. This happens automatically inside the provider packages — you don't need to
 configure anything.
 
+For authenticated task-status polling, providers can construct the first URL
+from the configured API endpoint. The SDK trusts that configured origin for the
+initial request, but manually follows and validates every redirect away from it.
+MiniMax, Kling AI, and ByteDance video polling use this protected path.
+
 ## What the SDK protects against
 
 When the SDK fetches a URL taken from a provider response, it:
@@ -45,7 +50,8 @@ A blocked URL surfaces as a `DownloadError`.
 URLs that are same-origin with the provider endpoint **you configured** (e.g. a
 custom `baseURL` pointing at a self-hosted or `localhost` deployment) are
 exempt from these checks — they target exactly the host you told the SDK to
-talk to. Any redirect off that origin is still validated.
+talk to. This also applies to task-status polling. Any redirect off that origin
+is still validated before the redirected request is sent.
 
 ## DNS validation across runtimes
 
@@ -54,7 +60,13 @@ On Node.js, the default validated download fetch uses `node:dns` and an
 The connector uses those exact results, closing both hostname-to-private-IP and
 DNS-rebinding bypasses.
 
-If you inject or globally replace `fetch`, it is responsible for equivalent DNS
+Wrapping or replacing global `fetch` does not disable this protection: the
+default Node.js download transport is independent of global `fetch`.
+
+Bun, Deno, Cloudflare Workers, and framework edge runtimes use their platform
+fetch, even when they expose a Node-compatible `process` object.
+
+If you explicitly inject a custom `fetch`, it is responsible for equivalent DNS
 validation and connection pinning. Other runtimes do not expose Node's
 DNS/socket hooks, so server deployments on those runtimes should restrict
 network egress to private, loopback, link-local, and cloud-metadata ranges.
@@ -72,7 +84,7 @@ code.
 
 ### 2. Harden an injected `fetch`
 
-The Node.js default is already pinned. If you inject or globally replace
+The Node.js default is already pinned. If you explicitly inject a custom
 `fetch`, back it with an `undici`
 `Agent` whose `connect.lookup` validates the resolved IP and lets the socket
 connect only to a safe address — closing both the hostname-to-private and the

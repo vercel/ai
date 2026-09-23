@@ -273,7 +273,7 @@ export const generateQuery = async (input: string) => {
   try {
     const result = await generateText({
       model: 'openai/gpt-4o',
-      system: `You are a SQL (postgres) ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
+      instructions: `You are a SQL (postgres) ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Generate the query necessary to retrieve the data the user wants: ${input}`,
       output: Output.object({
         schema: z.object({
@@ -390,7 +390,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   try {
     const result = await generateText({
       model: 'openai/gpt-4o',
-      system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
+      instructions: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
       User Query:
@@ -437,7 +437,7 @@ export const explainQuery = async (input: string, sqlQuery: string) => {
   try {
     const result = await generateText({
       model: 'openai/gpt-4o',
-      system: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
+      instructions: `You are a SQL (postgres) expert. ...`, // SYSTEM PROMPT AS ABOVE - OMITTED FOR BREVITY
       prompt: `Explain the SQL query you generated to retrieve the data the user wanted. Assume the user is not an expert in SQL. Break down the query into steps. Be concise.
 
       User Query:
@@ -590,7 +590,7 @@ export const generateChartConfig = async (
   try {
     const { output: config } = await generateText({
       model: 'openai/gpt-4o',
-      system: 'You are a data visualization expert.',
+      instructions: 'You are a data visualization expert.',
       prompt: `Given the following data from a SQL query result, generate the chart config that best visualises the data and answers the users query.
       For multiple groups use multi-lines.
 

@@ -449,6 +449,87 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
+  it('matches an unnamed built-in by the longest compatible title prefix', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'read',
+          title: 'Read',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'readLints',
+          title: 'Read Lints',
+          toolUseKind: 'readonly',
+        },
+        {
+          toolName: 'edit',
+          title: 'Read Lints',
+          toolUseKind: 'edit',
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-lints',
+      title: 'Read Lints `src/index.ts`',
+      kind: 'read',
+      status: 'completed',
+      rawInput: { paths: ['src/index.ts'] },
+    });
+
+    expect(toolEvents({ events })).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{\"paths\":[\"src/index.ts\"]}",
+          "providerExecuted": true,
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-call",
+        },
+        {
+          "result": {},
+          "toolCallId": "call-cursor-lints",
+          "toolName": "readLints",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
+  it('keeps equally specific title matches dynamic', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        { toolName: 'first', title: 'Operation' },
+        { toolName: 'second', title: 'Operation' },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-cursor-ambiguous',
+      title: 'Operation detail',
+      kind: 'other',
+      status: 'completed',
+      rawInput: {},
+    });
+
+    expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
+      {
+        "input": "{}",
+        "providerExecuted": true,
+        "toolCallId": "call-cursor-ambiguous",
+        "toolName": "acp_tool_call-cursor-ambiguous",
+        "type": "tool-call",
+      }
+    `);
+  });
+
   it('uses literal schema properties to distinguish anonymous ACP tools', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({
@@ -554,6 +635,90 @@ describe('createACPStreamTranslator', () => {
         "type": "tool-call",
       }
     `);
+  });
+
+  it('prefers the schema that declares the most of an ambiguous rawInput', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'bash',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              command: { type: 'string' },
+              shellId: { type: 'string' },
+              mode: { type: 'string', enum: ['sync', 'async'] },
+            },
+            required: ['command'],
+          },
+        },
+        {
+          toolName: 'stop_bash',
+          inputSchema: {
+            type: 'object',
+            properties: { shellId: { type: 'string' } },
+            required: ['shellId'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-async-bash',
+      title: 'Print READY after delay',
+      status: 'completed',
+      rawInput: {
+        command: 'sleep 2; echo READY',
+        shellId: 'ready-check',
+        mode: 'async',
+      },
+    });
+
+    expect(toolEvents({ events })[0]).toMatchObject({
+      type: 'tool-call',
+      toolName: 'bash',
+    });
+  });
+
+  it('keeps equally specific schema matches dynamic', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'first',
+          inputSchema: {
+            type: 'object',
+            properties: { id: { type: 'string' }, extra: { type: 'string' } },
+            required: ['id'],
+          },
+        },
+        {
+          toolName: 'second',
+          inputSchema: {
+            type: 'object',
+            properties: { id: { type: 'string' }, other: { type: 'string' } },
+            required: ['id'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-tied',
+      title: 'Operation',
+      status: 'completed',
+      rawInput: { id: 'task-1' },
+    });
+
+    expect(toolEvents({ events })[0]).toMatchObject({
+      type: 'tool-call',
+      toolName: 'acp_tool_call-tied',
+    });
   });
 
   it('does not override an unknown programmatic metadata name by schema', () => {
