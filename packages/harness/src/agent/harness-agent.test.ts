@@ -17,12 +17,30 @@ import {
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { isStepCount, NoSuchToolError, Output } from 'ai';
+import type * as BootstrapRecipeModule from './internal/bootstrap-recipe';
 import { describe, expect, expectTypeOf, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { HarnessAgent } from './harness-agent';
 import { HarnessAgentSession } from './harness-agent-session';
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import { hashHarnessBootstrap } from './internal/bootstrap-recipe';
+
+// Lets a single test make `hashHarnessBootstrap` throw, to exercise the
+// resumed-session cleanup path, without affecting every other test's use of
+// the real hash.
+let failHashHarnessBootstrap: Error | undefined;
+vi.mock('./internal/bootstrap-recipe', async importOriginal => {
+  const actual = await importOriginal<typeof BootstrapRecipeModule>();
+  return {
+    ...actual,
+    hashHarnessBootstrap: async (
+      recipe: Parameters<typeof actual.hashHarnessBootstrap>[0],
+    ) => {
+      if (failHashHarnessBootstrap) throw failHashHarnessBootstrap;
+      return actual.hashHarnessBootstrap(recipe);
+    },
+  };
+});
 
 /**
  * Build a mock harness whose session emits a canned event script. Each
@@ -2875,6 +2893,48 @@ describe('HarnessAgent', () => {
     );
 
     await session.destroy();
+  });
+
+  test('stops a resumed sandbox session it owns when hashing the bootstrap recipe fails', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [],
+      commands: [],
+    };
+    const harnessWithBootstrap: HarnessV1 = {
+      ...harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const stop = vi.fn(async () => {});
+    const sandboxSession = makeSandboxSession({ stop });
+    const agent = new HarnessAgent({
+      harness: harnessWithBootstrap,
+      sandbox: makeSandboxProvider(sandboxSession),
+    });
+
+    failHashHarnessBootstrap = new Error('hashing blew up');
+    try {
+      await expect(
+        agent.createSession({
+          sessionId: 's1',
+          resumeFrom: {
+            type: 'resume-session',
+            harnessId: 'mock',
+            specificationVersion: 'harness-v1',
+            data: {},
+          },
+        }),
+      ).rejects.toThrow('hashing blew up');
+    } finally {
+      failHashHarnessBootstrap = undefined;
+    }
+
+    // The framework acquired this session via resumeSession() and so owns
+    // its lifecycle; a failure anywhere on this path — including hashing the
+    // recipe before applying it — must not leak it.
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 
   test('sandboxConfig.onSession runs for resumed sessions', async () => {

@@ -449,8 +449,8 @@ export class HarnessAgent<
         // stale bridge against a newer host, silently missing whatever the
         // newer protocol added.
         if (recipe != null) {
-          const recipeIdentity = await hashHarnessBootstrap(recipe);
           try {
+            const recipeIdentity = await hashHarnessBootstrap(recipe);
             await applyBootstrapRecipe({
               session: resumedSandboxSession.restricted(),
               recipe,
