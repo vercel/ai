@@ -1,4 +1,5 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import { prepareTools as prepareAnthropicTools } from '@ai-sdk/anthropic/internal';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
 
@@ -386,6 +387,136 @@ describe('prepareTools', () => {
       expect((result.toolConfig.tools![0] as any).toolSpec.name).toBe(
         'getWeather',
       );
+    });
+
+    describe('models that reject forced tool use', () => {
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object' as const },
+      };
+      const timeTool = {
+        type: 'function' as const,
+        name: 'getTime',
+        description: 'Get time',
+        inputSchema: { type: 'object' as const },
+      };
+
+      it.each([
+        'anthropic.claude-opus-5-5',
+        'us.anthropic.claude-opus-5-5',
+        'global.anthropic.claude-opus-5-5',
+      ])(
+        'should fall back to auto for tool choice "required" on %s',
+        async modelId => {
+          const result = await prepareTools({
+            tools: [weatherTool],
+            toolChoice: { type: 'required' },
+            modelId,
+          });
+
+          expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+          expect(result.toolWarnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details:
+                "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+                "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+            },
+          ]);
+        },
+      );
+
+      it('should fall back to auto and send only the named function tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.toolWarnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+              "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+              'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+          },
+        ]);
+      });
+
+      it('should drop provider tools that are not the named tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [
+            weatherTool,
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.additionalTools).toBeUndefined();
+      });
+
+      it('should pass auto tool choice to Anthropic provider tool preparation', async () => {
+        await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'bash' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+        });
+
+        expect(prepareAnthropicTools).toHaveBeenCalledWith(
+          expect.objectContaining({ toolChoice: { type: 'auto' } }),
+        );
+      });
+
+      it('should preserve disabled parallel tool use in the auto fallback', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          disableParallelToolUse: true,
+        });
+
+        expect(result.additionalTools).toEqual({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should keep forced tool choice for models that support it', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5',
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ any: {} });
+        expect(result.toolWarnings).toEqual([]);
+      });
     });
   });
 
