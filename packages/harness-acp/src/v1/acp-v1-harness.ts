@@ -12,7 +12,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
-  harnessV1StateDirectory,
+  harnessV1StateDirectoryFromHome,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -26,7 +26,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -257,11 +256,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOptions.abortSignal,
-        });
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
       const lifecycleState = continueFrom ?? startOptions.resumeFrom;
@@ -377,27 +371,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ),
         );
       }
-      // Harness SDK state lives in the provider's state directory, which is
-      // the working directory unless the provider separates the two to keep
-      // the workspace clean.
-      const resolvedBridgeDir = posix.resolve(
-        harnessV1StateDirectory({
-          stateDirectory:
-            'stateDirectory' in sandboxSession
-              ? sandboxSession.stateDirectory
-              : undefined,
-          defaultWorkingDirectory,
-        }),
-        bootstrap.bootstrapDir,
-      );
-      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
-      const workDir = startOptions.sessionWorkDir;
+      // Harness SDK state always lives under the sandbox's own HOME, never
+      // the working directory, so it stays out of a user-owned workspace.
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
+      const stateDirectory = harnessV1StateDirectoryFromHome(sandboxHomeDir);
+      const resolvedBridgeDir = posix.resolve(
+        stateDirectory,
+        bootstrap.bootstrapDir,
+      );
+      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
+      const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
-        sandboxHomeDir,
+        stateDirectory,
         harnessId: settings.harnessId,
         sessionId: startOptions.sessionId,
       });

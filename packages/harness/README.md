@@ -139,11 +139,12 @@ text parts. If the runtime cannot honor the format, throw
 `HarnessCapabilityUnsupportedError` before starting the turn.
 
 Bootstrap recipe paths may be absolute or relative. Relative `bootstrapDir` and
-file paths are resolved against `sandboxSession.defaultWorkingDirectory`.
-The framework creates `bootstrapDir` before writing files, and bootstrap
-commands always run from that directory. Prefer a relative directory such as
-`.harness-bootstrap/my-harness` so bootstrap assets are kept with the sandbox's
-snapshot-persistent working tree.
+file paths are resolved against `harnessV1StateDirectory()` — a fixed
+directory (`~/.ai-sdk-harness`) under the sandbox's own HOME, never
+`sandboxSession.defaultWorkingDirectory`, so bootstrap assets never land in a
+user-owned workspace. The framework creates `bootstrapDir` before writing
+files, and bootstrap commands always run from that directory. Prefer a
+relative directory such as `.harness-bootstrap/my-harness`.
 
 ```ts
 import type { HarnessV1, HarnessV1Session } from '@ai-sdk/harness';
