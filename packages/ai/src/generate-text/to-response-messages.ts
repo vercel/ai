@@ -5,8 +5,16 @@ import type {
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
+<<<<<<< HEAD
 import type { ContentPart } from './content-part';
 import type { ToolSet } from './tool-set';
+=======
+import { getOwn } from '../util/get-own';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
+import type { ContentPart } from './content-part';
+import type { ToolSet } from '@ai-sdk/provider-utils';
+import { getToolCallInputSchemaInput } from './tool-call';
+>>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -113,11 +121,16 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         break;
       }
       case 'tool-approval-request':
+        const inputSchemaInput = getToolCallInputSchemaInput(part.toolCall);
         content.push({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
           toolCallId: part.toolCall.toolCallId,
           ...(part.signature != null ? { signature: part.signature } : {}),
+          ...(inputSchemaInput != null &&
+          !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+            ? { inputSchemaInput: inputSchemaInput.value }
+            : {}),
         });
         break;
     }

@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
+import { parseToolCall } from './parse-tool-call';
 import { toResponseMessages } from './to-response-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -830,6 +831,56 @@ describe('toResponseMessages', () => {
   });
 
   describe('tool approval request', () => {
+    it('should preserve schema input when the approved input was transformed', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const toolCall = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: '{"count":"3"}',
+        },
+        tools,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+      const result = await toResponseMessages({
+        content: [
+          toolCall,
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall,
+          },
+        ],
+        tools,
+      });
+
+      expect(result).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: { count: 3 },
+            },
+            {
+              type: 'tool-approval-request',
+              inputSchemaInput: { count: '3' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should include tool approval request in the assistant message', async () => {
       const result = await toResponseMessages({
         content: [

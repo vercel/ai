@@ -99,3 +99,36 @@ const validatedMessages = await validateUIMessages({
   tools,
 });
 ```
+<<<<<<< HEAD
+=======
+
+When validating approval messages produced with
+`experimental_refineToolInput`, pass the same refinement functions so
+`validateUIMessages` can reconstruct and verify the approved input:
+
+```typescript
+const experimental_refineToolInput = {
+  weather: (input: { location: string }) => ({
+    location: input.location.trim(),
+  }),
+};
+
+const validatedMessages = await validateUIMessages({
+  messages,
+  tools,
+  experimental_refineToolInput,
+});
+```
+
+## Deprecated `rawInput` field
+
+For backward compatibility, validation still accepts `rawInput` on tool parts
+in the `output-error` state. When a defined `rawInput` value is found,
+`validateUIMessages` emits an AI SDK deprecation warning through
+`AI_SDK_LOG_WARNINGS`.
+
+Migrate persisted messages to store tool arguments in `input` and remove
+`rawInput`. For backward compatibility, conversion uses `rawInput` as a
+fallback when `input` is `null` or `undefined`. `rawInput` will be removed in
+the next major version.
+>>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))

@@ -204,6 +204,21 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+<<<<<<< HEAD
+=======
+                      isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.requestReason != null
+                        ? { reason: part.approval.requestReason }
+                        : {}),
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
+>>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),
