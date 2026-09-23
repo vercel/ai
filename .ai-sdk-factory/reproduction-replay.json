@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21360,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21360-openai-null-error-code.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21360-openai-null-error-code.ts",
+    "packages/openai/src/responses/__fixtures__/openai-error-null-code.1.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21360_REPRODUCED: doStream resolved and emitted AI_TypeValidationError instead of rejecting with retryable APICallError"
+  }
+}
