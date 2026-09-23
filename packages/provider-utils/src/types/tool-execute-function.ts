@@ -3,6 +3,31 @@ import type { ModelMessage } from './model-message';
 import type { SandboxSession } from './sandbox';
 
 /**
+ * The approval decision that authorized a tool execution.
+ *
+ * Only approved decisions are passed to tool execution. Denied tool calls are
+ * not executed and are represented as `execution-denied` tool results instead.
+ */
+export type ToolExecutionApproval = {
+  /**
+   * The ID of the approval request.
+   */
+  approvalId: string;
+
+  /**
+   * Whether the tool execution was approved.
+   *
+   * This is always `true` because denied tool calls are not executed.
+   */
+  approved: true;
+
+  /**
+   * Optional context attached to the approval decision.
+   */
+  reason?: string;
+};
+
+/**
  * Additional options that are sent into each tool execution.
  */
 export interface ToolExecutionOptions<
@@ -41,6 +66,12 @@ export interface ToolExecutionOptions<
    * The sandbox environment that the tool is operating in.
    */
   experimental_sandbox?: SandboxSession;
+
+  /**
+   * The approval decision that authorized this execution, when the tool call
+   * went through an approval flow.
+   */
+  approval?: ToolExecutionApproval;
 }
 
 /**

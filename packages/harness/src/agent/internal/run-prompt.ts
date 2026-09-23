@@ -23,6 +23,7 @@ import {
   type Context,
   type Experimental_SandboxSession as SandboxSession,
   type ToolApprovalResponse,
+  type ToolExecutionApproval,
   type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -711,6 +712,13 @@ export function runPrompt<
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
+        approval: {
+          approvalId: approval.approvalId,
+          approved: true,
+          ...(continuation.reason != null
+            ? { reason: continuation.reason }
+            : {}),
+        },
         submitToolResult,
         onPreliminaryResult: preliminaryOutput => {
           const stripped = stripWorkDir(
@@ -1438,6 +1446,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
+  approval?: ToolExecutionApproval;
   submitToolResult: HarnessV1PromptControl['submitToolResult'];
   /**
    * Called for each value a generator `execute` `yield`s before its last. The
@@ -1496,6 +1505,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
             abortSignal: input.abortSignal,
             context: context as never,
             experimental_sandbox: input.sandboxSession,
+            ...(input.approval != null ? { approval: input.approval } : {}),
           },
         });
         for await (const part of stream) {

@@ -2117,6 +2117,13 @@ class DefaultStreamTextResult<
                 abortSignal,
                 timeout,
                 experimental_sandbox: sandbox,
+                approval: {
+                  approvalId: toolApproval.approvalResponse.approvalId,
+                  approved: true,
+                  ...(toolApproval.approvalResponse.reason != null
+                    ? { reason: toolApproval.approvalResponse.reason }
+                    : {}),
+                },
                 toolsContext,
                 onToolExecutionStart: filterNullable(
                   onToolExecutionStart,
