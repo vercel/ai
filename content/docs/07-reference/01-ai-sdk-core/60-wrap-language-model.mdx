@@ -13,7 +13,7 @@ See [Language Model Middleware](/docs/ai-sdk-core/middleware) for more informati
 import { wrapLanguageModel, gateway } from 'ai';
 
 const wrappedLanguageModel = wrapLanguageModel({
-  model: gateway('openai/gpt-4.1'),
+  model: gateway('openai/gpt-6-astra'),
   middleware: yourLanguageModelMiddleware,
 });
 ```

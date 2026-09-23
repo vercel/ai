@@ -78,6 +78,7 @@ export interface AnthropicAssistantMessage {
 export interface AnthropicCompactionContent {
   type: 'compaction';
   content: string;
+  signature?: string;
   cache_control?: AnthropicCacheControl;
 }
 
@@ -805,6 +806,7 @@ export const anthropicResponseSchema = lazySchema(() =>
           z.object({
             type: z.literal('compaction'),
             content: z.string().nullish(),
+            signature: z.string().nullish(),
           }),
           z.object({
             type: z.literal('tool_use'),
@@ -1187,6 +1189,7 @@ export const anthropicChunkSchema = lazySchema(() =>
           z.object({
             type: z.literal('compaction'),
             content: z.string().nullish(),
+            signature: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),

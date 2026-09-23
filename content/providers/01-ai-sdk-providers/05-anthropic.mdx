@@ -64,18 +64,18 @@ You can use the following optional settings to customize the Anthropic provider 
 ## Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-3-haiku-20240307`.
+The first argument is the model id, e.g. `claude-haiku-4-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = anthropic('claude-3-haiku-20240307');
+const model = anthropic('claude-haiku-4-5');
 ```
 
 You can also use the following aliases for model creation:
 
-- `anthropic.languageModel('claude-3-haiku-20240307')` - Creates a language model
-- `anthropic.chat('claude-3-haiku-20240307')` - Alias for `languageModel`
-- `anthropic.messages('claude-3-haiku-20240307')` - Alias for `languageModel`
+- `anthropic.languageModel('claude-haiku-4-5')` - Creates a language model
+- `anthropic.chat('claude-haiku-4-5')` - Alias for `languageModel`
+- `anthropic.messages('claude-haiku-4-5')` - Alias for `languageModel`
 
 You can use Anthropic language models to generate text with the `generateText` function:
 
@@ -84,7 +84,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-3-haiku-20240307'),
+  model: anthropic('claude-haiku-4-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -179,7 +179,7 @@ import { streamText, tool } from 'ai';
 import { z } from 'zod';
 
 const result = streamText({
-  model: anthropic('claude-sonnet-4-20250514'),
+  model: anthropic('claude-sonnet-5'),
   tools: {
     writeFile: tool({
       description: 'Write content to a file',
@@ -223,7 +223,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text, usage } = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'How many people will live in the world in 2040?',
   providerOptions: {
     anthropic: {
@@ -268,7 +268,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-8'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Research the pros and cons of Rust vs Go for building CLI tools.',
   providerOptions: {
     anthropic: {
@@ -306,7 +306,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-opus-4-6'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Summarize the key points of this document.',
   providerOptions: {
     anthropic: {
@@ -351,7 +351,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-fable-5'),
+  model: anthropic('claude-fable-5-1'),
   prompt: 'Explain the history of cryptography.',
   providerOptions: {
     anthropic: {
@@ -368,11 +368,11 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: anthropic('claude-fable-5'),
+  model: anthropic('claude-fable-5-1'),
   prompt: 'Explain the history of cryptography.',
   providerOptions: {
     anthropic: {
-      fallbacks: [{ model: 'claude-fable-5' }],
+      fallbacks: [{ model: 'claude-fable-5-1' }],
     } satisfies AnthropicLanguageModelOptions,
   },
 });
@@ -405,7 +405,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   prompt: 'Use the bash tool to run: echo hello',
   tools: { bash: tool({ inputSchema: z.object({ command: z.string() }) }) },
   providerOptions: {
@@ -715,7 +715,89 @@ const result = await generateText({
 });
 ```
 
-#### Compaction
+#### On-Demand Compaction
+
+Use the `compaction` provider option to ask Anthropic to summarize the supplied
+conversation immediately. The provider automatically adds the
+`compact-2026-09-04` beta header.
+
+```ts highlight="10-15,21-22"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText, ModelMessage } from 'ai';
+
+const history: ModelMessage[] = [
+  { role: 'user', content: 'Help me design a recipe application.' },
+  { role: 'assistant', content: 'Start with Recipe and Ingredient.' },
+  { role: 'user', content: 'Recipe also needs a title and servings.' },
+];
+
+const summary = await generateText({
+  model: anthropic('claude-opus-5'),
+  messages: history,
+  maxOutputTokens: 4096,
+  providerOptions: {
+    anthropic: {
+      compaction: {
+        type: 'summarize',
+        instructions: 'Preserve all agreed entities and fields.',
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+if (summary.rawFinishReason === 'compaction') {
+  const [compactionMessage] = summary.finalStep.response.messages;
+
+  const continuation = await generateText({
+    model: anthropic('claude-opus-5'),
+    messages: [
+      compactionMessage,
+      { role: 'user', content: 'Which fields should be required?' },
+    ],
+  });
+
+  console.log(continuation.text);
+}
+```
+
+Anthropic returns the summary as a text part whose
+`providerMetadata.anthropic.type` is `compaction`. Its opaque signature is
+available as `providerMetadata.anthropic.signature`. Response messages copy
+that metadata to `providerOptions`, so passing
+`summary.finalStep.response.messages` back to the AI SDK preserves the signed
+block and automatically adds the beta header on the continuation request.
+
+Check `rawFinishReason` before reading the response block. Anthropic can return
+a successful HTTP response without a summary when summarization ends for
+another reason, such as `max_tokens`, `model_context_window_exceeded`,
+`tool_use`, `refusal`, or `end_turn`. In that case, keep the existing history
+and retry later; the unsuccessful summarization is still included in
+`providerMetadata.anthropic.iterations`.
+
+Send exactly one signed compaction block on continuation requests. It must be
+the first content block in `messages` and must be replayed without changing its
+text or signature. Remove the messages it summarizes before continuing. Keep
+the same system prompt and tool definitions on the compaction request that you
+use for the conversation, especially when preserving later thinking blocks.
+
+Before requesting compaction, resolve any unfinished tool call from the last
+assistant turn. Do not combine `compaction` with `contextManagement`,
+`stopSequences`, structured output, a required or named `toolChoice`, or a
+`taskBudget.remaining` value. Also omit `taskBudget.remaining` from later
+requests that carry the signed block.
+
+On-demand compaction usage is reported in
+`providerMetadata.anthropic.iterations`. Sum the iteration usage when
+calculating the tokens consumed by the summarization request.
+
+On-demand compaction can also be initiated in a Message Batch. Configure the
+`compaction` provider option on the individual batch request; the provider
+automatically adds `compact-2026-09-04` to the batch beta header.
+
+For more details, see
+[Anthropic's on-demand compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction-on-demand).
+
+#### Threshold Compaction
 
 The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
 
@@ -724,7 +806,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: anthropic('claude-opus-4-6'),
+  model: anthropic('claude-opus-5-5'),
   messages: conversationHistory,
   providerOptions: {
     anthropic: {
@@ -848,7 +930,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   messages: [
     {
       role: 'user',
@@ -882,7 +964,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,7-9"
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   messages: [
     {
       role: 'system',
@@ -1219,7 +1301,7 @@ const webSearchTool = anthropic.tools.webSearch_20260318({
 });
 
 const result = await generateText({
-  model: anthropic('claude-opus-5'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: webSearchTool,
@@ -1278,7 +1360,7 @@ const webSearchTool = anthropic.tools.webSearch_20260318({
 });
 
 const result = await generateText({
-  model: anthropic('claude-opus-5'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Find local news about technology',
   tools: {
     web_search: webSearchTool,
@@ -1304,7 +1386,7 @@ import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-opus-5'),
+  model: anthropic('claude-opus-5-5'),
   prompt:
     'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
   tools: {
@@ -1396,7 +1478,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     toolSearch: anthropic.tools.toolSearchBm25_20251119(),
@@ -1426,7 +1508,7 @@ For more precise tool matching, you can use the regex variant:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   prompt: 'Get the weather data',
   tools: {
     toolSearch: anthropic.tools.toolSearchRegex_20251119(),
@@ -1447,7 +1529,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     // Custom search tool
@@ -1607,7 +1689,7 @@ import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   prompt: `Call the echo tool with "hello world". what does it respond with back?`,
   providerOptions: {
     anthropic: {
@@ -1679,7 +1761,7 @@ Web search errors throw exceptions that you can catch:
 ```ts
 try {
   const result = await generateText({
-    model: anthropic('claude-opus-4-20250514'),
+    model: anthropic('claude-opus-5-5'),
     prompt: 'Search for something',
     tools: {
       web_search: webSearchTool,
@@ -1698,7 +1780,7 @@ Web search errors are delivered as error parts in the stream:
 
 ```ts
 const result = await streamText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Search for something',
   tools: {
     web_search: webSearchTool,
@@ -1793,7 +1875,7 @@ Code execution errors are delivered as tool result parts in the response:
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Execute some Python script',
   tools: {
     code_execution: codeExecutionTool,
@@ -1818,7 +1900,7 @@ Code execution errors are delivered as error parts in the stream:
 
 ```ts
 const result = await streamText({
-  model: anthropic('claude-opus-4-20250514'),
+  model: anthropic('claude-opus-5-5'),
   prompt: 'Execute some Python script',
   tools: {
     code_execution: codeExecutionTool,
@@ -1978,7 +2060,7 @@ Option 1: URL-based PDF document
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   messages: [
     {
       role: 'user',
@@ -2004,7 +2086,7 @@ Option 2: Base64-encoded PDF document
 
 ```ts
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   messages: [
     {
       role: 'user',

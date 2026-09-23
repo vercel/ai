@@ -17,7 +17,7 @@ sdk.start();
 
 const createCityResearchAgent = (city: string) =>
   new ToolLoopAgent({
-    model: anthropic('claude-sonnet-4-5-20250929'),
+    model: anthropic('claude-sonnet-5'),
     instructions: `You are a weather expert researching ${city}. You MUST use the getLocalForecast tool to get the forecast, then summarize it.`,
     tools: {
       getLocalForecast: {
@@ -31,7 +31,7 @@ const createCityResearchAgent = (city: string) =>
         }),
         execute: async ({ city, season }: { city: string; season: string }) => {
           const forecastResult = await generateText({
-            model: anthropic('claude-sonnet-4-5-20250929'),
+            model: anthropic('claude-sonnet-5'),
             prompt: `Generate a realistic weather forecast for ${city} during ${season}. Include temperature in Celsius, humidity, wind speed, and a fun climate fact. Keep it to 2-3 sentences.`,
             telemetry: {
               functionId: `forecast-lookup-${city.toLowerCase()}`,
@@ -47,7 +47,7 @@ const createCityResearchAgent = (city: string) =>
   });
 
 const weatherAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5-20250929'),
+  model: anthropic('claude-sonnet-5'),
   instructions:
     'You compare weather across cities. Use the researchCity tool for each city.',
   tools: {

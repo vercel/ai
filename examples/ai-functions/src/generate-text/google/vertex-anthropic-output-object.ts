@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-sonnet-4-5-20250929'),
+    model: vertexAnthropic('claude-sonnet-5'),
     output: Output.object({
       schema: z.object({
         recipe: z.object({

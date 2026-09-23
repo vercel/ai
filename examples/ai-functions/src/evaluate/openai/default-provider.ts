@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 // Configure once at application startup; this also affects other AI SDK functions.
 globalThis.AI_SDK_DEFAULT_PROVIDER = customProvider({
-  evaluationModels: { compact: openai.evaluationModel('gpt-5.6-luna') },
+  evaluationModels: { compact: openai.evaluationModel('gpt-6-luna') },
   fallbackProvider: openai,
 });
 

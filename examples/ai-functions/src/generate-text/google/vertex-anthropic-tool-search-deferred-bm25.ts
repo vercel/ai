@@ -7,7 +7,7 @@ run(async () => {
   let stepNumber = 0;
 
   const result = await generateText({
-    model: vertexAnthropic('claude-sonnet-4-5'),
+    model: vertexAnthropic('claude-sonnet-5'),
     prompt: `You have access to a note-taking system. Please:
             1. First read the note tree to see the current structure
             2. Then add "bye" as a new bullet after "hi"

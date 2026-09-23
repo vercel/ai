@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt: `Search for recent AI regulation news from trusted sources.`,
     tools: {
       exa_search: gateway.tools.exaSearch({

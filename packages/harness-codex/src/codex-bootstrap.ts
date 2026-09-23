@@ -12,15 +12,15 @@ const readBridgeAsset = createReadBridgeAsset({
 });
 
 /*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
+ * Bootstrap is derived state stored under `$HOME/.ai-sdk-harness`, outside
+ * the agent's working directory. Snapshot-capable providers preserve the
+ * installed CLI, bridge, and recipe marker there.
  *
  * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
  * default working directory — the provider's persistent mount — so any files
  * the agent edits survive both detach -> attach and stop -> snapshot -> resume
- * cycles. Harness infra derived from `sandboxSession.defaultWorkingDirectory`
- * lives under `.agent-runs`, outside the agent workdir.
+ * cycles. Session-specific harness state lives under
+ * `$HOME/.ai-sdk-harness/.agent-runs`, outside the agent workdir.
  */
 export const CODEX_BOOTSTRAP_DIR = '.harness-bootstrap/codex';
 

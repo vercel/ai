@@ -1,5 +1,15 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.123
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/harness@1.0.123
+
 ## 1.0.122
 
 ### Patch Changes

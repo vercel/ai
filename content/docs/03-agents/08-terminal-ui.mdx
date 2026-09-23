@@ -30,7 +30,7 @@ import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5'),
+  model: openai('gpt-6-astra'),
   instructions:
     'You are a helpful terminal assistant. Answer in markdown and use tools when they help.',
   tools: {
@@ -140,7 +140,7 @@ tool call before the agent continues.
 
 ```ts
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5'),
+  model: openai('gpt-6-astra'),
   tools: { weather },
   toolApproval: {
     weather: ({ location }) =>

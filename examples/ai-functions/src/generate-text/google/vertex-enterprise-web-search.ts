@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: googleVertex('gemini-2.5-flash'),
+    model: googleVertex('gemini-3.8-flash'),
     tools: {
       enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
     },

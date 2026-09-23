@@ -4,7 +4,7 @@ import { generateText } from 'ai';
 export const runtime = 'edge';
 
 export async function GET() {
-  const model = googleVertex('gemini-2.5-flash');
+  const model = googleVertex('gemini-3.8-flash');
   const { text } = await generateText({
     model,
     prompt: 'tell me a story',

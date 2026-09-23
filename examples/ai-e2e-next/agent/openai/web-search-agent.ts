@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/openai';
 import { ToolLoopAgent, type InferAgentUIMessage } from 'ai';
 export const openaiWebSearchAgent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   tools: {
     webSearch: openai.tools.webSearch({
       searchContextSize: 'low',

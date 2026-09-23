@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     tools: {
       weather: weatherTool,
       google_search: google.tools.googleSearch({}),

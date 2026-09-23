@@ -13,7 +13,7 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   voice: 'alloy',
 });
@@ -38,7 +38,7 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   providerOptions: {
     openai: {
@@ -59,7 +59,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -75,7 +75,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -90,7 +90,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
 });
 
@@ -117,7 +117,7 @@ import { openai } from '@ai-sdk/openai';
 
 try {
   await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello, world!',
   });
 } catch (error) {

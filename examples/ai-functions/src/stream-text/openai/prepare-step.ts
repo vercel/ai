@@ -19,7 +19,7 @@ const retrieveInformation = tool({
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     tools: { retrieveInformation },
     prepareStep({ stepNumber }) {
