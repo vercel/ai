@@ -26,6 +26,11 @@ export const xaiLanguageModelResponsesOptions = z.object({
   reasoningEffort: z
     .enum(['none', 'low', 'medium', 'high', 'xhigh'])
     .optional(),
+  /**
+   * @deprecated xAI ignores the requested summary level and always returns a
+   * detailed reasoning summary.
+   */
+  reasoningSummary: z.enum(['auto', 'concise', 'detailed']).optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /** Min-p sampling threshold between 0 and 1. */
