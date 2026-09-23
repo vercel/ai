@@ -230,14 +230,24 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       }
     }
 
-    if (temperature != null && temperature > 1) {
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
+    const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
+
+    if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
-    } else if (temperature != null && temperature < 0) {
+    } else if (
+      shouldNormalizeTemperature &&
+      temperature != null &&
+      temperature < 0
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
@@ -263,10 +273,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelFamily: this.config.modelFamily,
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
@@ -525,6 +531,25 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         feature: 'topK',
         details: 'topK is not supported when thinking is enabled',
       });
+    }
+
+    // OpenAI models reject stopSequences on the Converse API. Models other
+    // than gpt-oss also reject temperature and topP.
+    if (isOpenAIModel) {
+      const unsupportedFeatures = isOpenAIGptOssModel
+        ? (['stopSequences'] as const)
+        : (['temperature', 'topP', 'stopSequences'] as const);
+
+      for (const feature of unsupportedFeatures) {
+        if (inferenceConfig[feature] != null) {
+          delete inferenceConfig[feature];
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details: `${feature} is not supported by this OpenAI model on the Converse API`,
+          });
+        }
+      }
     }
 
     // Filter tool content from prompt when no tools are available
