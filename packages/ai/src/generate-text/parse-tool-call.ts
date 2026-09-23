@@ -12,7 +12,12 @@ import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
 import type { Instructions } from '../prompt';
 import { getOwn } from '../util/get-own';
-import type { DynamicToolCall, TypedToolCall } from './tool-call';
+import {
+  getToolCallInputSchemaInput,
+  setToolCallInputSchemaInput,
+  type DynamicToolCall,
+  type TypedToolCall,
+} from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolInputRefinement } from './tool-input-refinement';
 
@@ -167,7 +172,7 @@ async function waitForPromiseWithAbortSignal<T>({
   });
 }
 
-async function refineParsedToolCallInput<TOOLS extends ToolSet>({
+export async function refineParsedToolCallInput<TOOLS extends ToolSet>({
   toolCall,
   refineToolInput,
 }: {
@@ -180,10 +185,15 @@ async function refineParsedToolCallInput<TOOLS extends ToolSet>({
     return toolCall;
   }
 
-  return {
+  const refinedToolCall = {
     ...toolCall,
     input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
   } as TypedToolCall<TOOLS>;
+
+  const inputSchemaInput = getToolCallInputSchemaInput(toolCall);
+  return inputSchemaInput == null
+    ? refinedToolCall
+    : setToolCallInputSchemaInput(refinedToolCall, inputSchemaInput.value);
 }
 
 async function parseProviderExecutedDynamicToolCall(
@@ -253,26 +263,29 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  return tool.type === 'dynamic'
-    ? {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        dynamic: true,
-        title: tool.title,
-      }
-    : {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        title: tool.title,
-      };
+  return setToolCallInputSchemaInput(
+    tool.type === 'dynamic'
+      ? {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: parseResult.value,
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+          ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
+          dynamic: true,
+          title: tool.title,
+        }
+      : {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName,
+          input: parseResult.value,
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+          ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
+          title: tool.title,
+        },
+    parseResult.rawValue,
+  );
 }
