@@ -6,6 +6,7 @@ export type XaiResponsesModelId =
   | 'grok-4.3'
   | 'grok-4.5'
   | 'grok-4.6'
+  | 'grok-4.7'
   | 'grok-latest'
   | (string & {});
 

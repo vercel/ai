@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+const reconnects: Array<unknown> = [];
 let connectOnOpen = false;
 
 const wsMock = vi.hoisted(() => {
@@ -91,16 +92,25 @@ const wsMock = vi.hoisted(() => {
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    private readonly connect: () => Promise<unknown>;
+    private readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       this.connect = connect;
+      reconnects.push(reconnect);
     }
 
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect();
+        await this.connect({ abortSignal: new AbortController().signal });
       }
     }
     on(): () => void {
@@ -290,6 +300,7 @@ describe('createClaudeCode adapter', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    reconnects.length = 0;
     connectOnOpen = false;
     wsMock.reset();
   });
@@ -796,7 +807,12 @@ describe('createClaudeCode adapter', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createClaudeCode({ mintBridgeToken });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createClaudeCode({ mintBridgeToken, reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       spawnEnvs,
@@ -826,6 +842,7 @@ describe('createClaudeCode adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(reconnects).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 

@@ -50,6 +50,7 @@ import {
   validateApprovedToolApprovals,
   verifyToolApprovalSignature,
 } from 'ai/internal';
+import { getWorkflowMetadata } from 'workflow';
 import { addToolResultsToConversation } from './add-tool-results-to-conversation.js';
 import { createLanguageModelToolResultOutput } from './create-language-model-tool-result-output.js';
 import type {
@@ -1697,9 +1698,12 @@ export class WorkflowAgent<
     } as Prompt);
     const download = effectiveDownloadFromPrepare;
     const sandbox = options.experimental_sandbox ?? this.experimentalSandbox;
+    // Model steps enforce the absolute deadline below. Avoid creating a native
+    // timeout signal in the workflow VM, where timer APIs are unavailable.
+    const abortSignalTimeout = isInWorkflow() ? undefined : options.timeout;
     const effectiveAbortSignal = mergeAbortSignals(
       options.abortSignal ?? effectiveGenerationSettings.abortSignal,
-      options.timeout,
+      abortSignalTimeout,
     );
     const timeoutAt =
       options.timeout == null ? undefined : Date.now() + options.timeout;
@@ -2346,6 +2350,7 @@ export class WorkflowAgent<
 
         const {
           toolCalls,
+          tools: stepTools = effectiveTools as ToolSet,
           messages: iterMessages,
           step,
           runtimeContext: yieldedRuntimeContext,
@@ -2411,7 +2416,7 @@ export class WorkflowAgent<
           // Check which tools need approval (can be async)
           const approvalNeeded = await Promise.all(
             nonProviderToolCalls.map(async tc => {
-              const tool = (effectiveTools as ToolSet)[tc.toolName];
+              const tool = stepTools[tc.toolName];
               if (!tool) return false;
               if (tool.needsApproval == null) return false;
               if (typeof tool.needsApproval === 'boolean')
@@ -2435,14 +2440,14 @@ export class WorkflowAgent<
           // - paused: no execute function (client-side) OR needs approval
           // Note: missing tools (!tool) are left to executeTool which will throw.
           const executableToolCalls = nonProviderToolCalls.filter((tc, i) => {
-            const tool = (effectiveTools as ToolSet)[tc.toolName];
+            const tool = stepTools[tc.toolName];
             return (
               (!tool || typeof tool.execute === 'function') &&
               !approvalNeeded[i]
             );
           });
           const pausedToolCalls = nonProviderToolCalls.filter((tc, i) => {
-            const tool = (effectiveTools as ToolSet)[tc.toolName];
+            const tool = stepTools[tc.toolName];
             return (
               (tool && typeof tool.execute !== 'function') || approvalNeeded[i]
             );
@@ -2459,7 +2464,7 @@ export class WorkflowAgent<
                 (toolCall): Promise<WorkflowToolExecutionResult> =>
                   executeToolWithCallbacks(
                     toolCall,
-                    effectiveTools as ToolSet,
+                    stepTools,
                     iterMessages,
                     toolsContext,
                     currentStepNumber,
@@ -2475,7 +2480,7 @@ export class WorkflowAgent<
                 result: await resolveProviderToolResult(
                   toolCall,
                   capturedProviderToolResults,
-                  effectiveTools as ToolSet,
+                  stepTools,
                   download,
                 ),
               })),
@@ -2653,7 +2658,7 @@ export class WorkflowAgent<
               (toolCall): Promise<WorkflowToolExecutionResult> =>
                 executeToolWithCallbacks(
                   toolCall,
-                  effectiveTools as ToolSet,
+                  stepTools,
                   iterMessages,
                   toolsContext,
                   currentStepNumber,
@@ -2669,7 +2674,7 @@ export class WorkflowAgent<
               result: await resolveProviderToolResult(
                 toolCall,
                 capturedProviderToolResults,
-                effectiveTools as ToolSet,
+                stepTools,
                 download,
               ),
             })),
@@ -3187,6 +3192,15 @@ async function writeApprovalToolResults(
     await writer.write({ type: 'start-step' });
   } finally {
     writer.releaseLock();
+  }
+}
+
+function isInWorkflow(): boolean {
+  try {
+    getWorkflowMetadata();
+    return true;
+  } catch {
+    return false;
   }
 }
 

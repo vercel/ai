@@ -799,6 +799,10 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'compaction':
+        if (!part.content) {
+          break;
+        }
+
         content.push({
           type: 'text',
           text: part.content,
@@ -1097,6 +1101,9 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     ...(stopDetails != null ? { stopDetails } : {}),
     ...(response.input_transformations != null
       ? { inputTransformations: response.input_transformations }
+      : {}),
+    ...(response.safeguard_results != null
+      ? { safeguardResults: response.safeguard_results }
       : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(

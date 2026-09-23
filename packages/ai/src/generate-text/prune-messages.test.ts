@@ -110,6 +110,39 @@ const messagesFixture2: ModelMessage[] = [
   },
 ];
 
+const pendingApprovalMessagesFixture: ModelMessage[] = [
+  {
+    role: 'user',
+    content: 'Echo hello.',
+  },
+  {
+    role: 'assistant',
+    content: [
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'echo',
+        input: { value: 'hello' },
+      },
+      {
+        type: 'tool-approval-request',
+        toolCallId: 'call-1',
+        approvalId: 'approval-1',
+      },
+    ],
+  },
+  {
+    role: 'tool',
+    content: [
+      {
+        type: 'tool-approval-response',
+        approvalId: 'approval-1',
+        approved: true,
+      },
+    ],
+  },
+];
+
 const multiTurnToolCallMessagesFixture: ModelMessage[] = [
   {
     role: 'user',
@@ -297,6 +330,82 @@ describe('pruneMessages', () => {
           ]
         `);
       });
+
+      it('should prune reasoning files while preserving regular files and text', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Intermediate reasoning.',
+              },
+              {
+                type: 'reasoning-file',
+                mediaType: 'image/png',
+                data: 'reasoning-image',
+              },
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'output-image',
+              },
+              {
+                type: 'text',
+                text: 'Final answer.',
+              },
+            ],
+          },
+        ];
+        const originalMessages = structuredClone(messages);
+
+        expect(
+          pruneMessages({
+            messages,
+            reasoning: 'all',
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'image/png',
+                data: 'output-image',
+              },
+              {
+                type: 'text',
+                text: 'Final answer.',
+              },
+            ],
+          },
+        ]);
+        expect(messages).toEqual(originalMessages);
+      });
+
+      it('should remove messages containing only reasoning text and files', () => {
+        expect(
+          pruneMessages({
+            messages: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'reasoning',
+                    text: 'Intermediate reasoning.',
+                  },
+                  {
+                    type: 'reasoning-file',
+                    mediaType: 'image/png',
+                    data: 'reasoning-image',
+                  },
+                ],
+              },
+            ],
+            reasoning: 'all',
+          }),
+        ).toEqual([]);
+      });
     });
 
     describe('before-trailing-message', () => {
@@ -382,6 +491,65 @@ describe('pruneMessages', () => {
             },
           ]
         `);
+      });
+
+      it('should prune reasoning files before the last message', () => {
+        const messages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Earlier reasoning.',
+              },
+              {
+                type: 'reasoning-file',
+                mediaType: 'image/png',
+                data: 'earlier-reasoning-image',
+              },
+              {
+                type: 'text',
+                text: 'Earlier answer.',
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'Latest reasoning.',
+              },
+              {
+                type: 'reasoning-file',
+                mediaType: 'image/png',
+                data: 'latest-reasoning-image',
+              },
+              {
+                type: 'text',
+                text: 'Latest answer.',
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages,
+            reasoning: 'before-last-message',
+          }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'text',
+                text: 'Earlier answer.',
+              },
+            ],
+          },
+          messages[1],
+        ]);
       });
     });
   });
@@ -544,6 +712,27 @@ describe('pruneMessages', () => {
             },
           ]
         `);
+      });
+
+      it('should retain the originating tool call for a pending approval response', () => {
+        expect(
+          pruneMessages({
+            messages: pendingApprovalMessagesFixture,
+            toolCalls: 'before-last-message',
+          }),
+        ).toEqual(pendingApprovalMessagesFixture);
+
+        expect(
+          pruneMessages({
+            messages: pendingApprovalMessagesFixture,
+            toolCalls: [
+              {
+                type: 'before-last-message',
+                tools: ['echo'],
+              },
+            ],
+          }),
+        ).toEqual(pendingApprovalMessagesFixture);
       });
     });
 

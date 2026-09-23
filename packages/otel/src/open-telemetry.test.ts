@@ -21,6 +21,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_evaluate,
   generateObject,
   generateText,
   streamObject,
@@ -28,7 +29,11 @@ import {
   type GenerateTextEndEvent,
   type Telemetry,
 } from 'ai';
-import { MockEmbeddingModelV4, MockLanguageModelV4 } from 'ai/test';
+import {
+  Experimental_EvaluationMockModelV4,
+  MockEmbeddingModelV4,
+  MockLanguageModelV4,
+} from 'ai/test';
 import { OpenTelemetry, type EnrichSpan } from './open-telemetry';
 
 type MockSpan = Span & {
@@ -2455,6 +2460,76 @@ describe('OpenTelemetry', () => {
     });
   });
 
+  describe('stream errors', () => {
+    it('records and exports streamText spans when the provider stream errors', async () => {
+      const sdkTrace = createSdkTracer();
+      const sdkIntegration = new OpenTelemetry({ tracer: sdkTrace.tracer });
+      let pullCalls = 0;
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              pull(controller) {
+                switch (pullCalls++) {
+                  case 0:
+                    controller.enqueue({
+                      type: 'stream-start',
+                      warnings: [],
+                    });
+                    break;
+                  case 1:
+                    controller.enqueue({
+                      type: 'text-start',
+                      id: '1',
+                    });
+                    break;
+                  case 2:
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: '1',
+                      delta: 'Hello',
+                    });
+                    break;
+                  case 3:
+                    controller.error(new Error('socket closed'));
+                    break;
+                }
+              },
+            }),
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: sdkIntegration,
+        },
+      });
+
+      await result.consumeStream();
+
+      const rootSpan = getExportedSpan(
+        sdkTrace.exporter,
+        'invoke_agent mock-model-id',
+      );
+      const stepSpan = getExportedSpan(sdkTrace.exporter, 'step 1');
+      const chatSpan = getExportedSpan(sdkTrace.exporter, 'chat mock-model-id');
+
+      for (const span of [rootSpan, stepSpan, chatSpan]) {
+        expect(span.status.code).toBe(SpanStatusCode.ERROR);
+        expect(span.events).toContainEqual(
+          expect.objectContaining({ name: 'exception' }),
+        );
+      }
+
+      expect(stepSpan.parentSpanContext?.spanId).toBe(
+        rootSpan.spanContext().spanId,
+      );
+      expect(chatSpan.parentSpanContext?.spanId).toBe(
+        stepSpan.spanContext().spanId,
+      );
+    });
+  });
+
   describe('full lifecycle', () => {
     it('creates correct span hierarchy for multi-step tool loop', () => {
       integration.onStart!(makeOnStartEvent());
@@ -2759,5 +2834,100 @@ describe('OpenTelemetry', () => {
         }
       }
     });
+  });
+});
+
+describe('OpenTelemetry integration with evaluate', () => {
+  it('creates operation and model-call spans', async () => {
+    const tracer = createMockTracer();
+    const questions = {
+      refund: { type: 'boolean', instructions: 'Refund?' },
+    } as const;
+
+    await experimental_evaluate({
+      model: new Experimental_EvaluationMockModelV4({
+        doEvaluate: async () => ({
+          answers: { refund: { type: 'boolean', probability: 0.9 } },
+          usage: { inputTokens: 12, outputTokens: 2 },
+          warnings: [],
+        }),
+      }),
+      state: { message: 'Please refund me' },
+      questions,
+      telemetry: {
+        integrations: new OpenTelemetry({
+          tracer,
+          experimental_evaluation: true,
+        }),
+      },
+    });
+
+    expect(tracer.spans).toHaveLength(2);
+    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+      .toMatchInlineSnapshot(`
+        [
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
+              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "gen_ai.operation.name": "evaluate",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "evaluate mock-model-id",
+            "runtimeAttributes": {
+              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+            },
+          },
+          {
+            "ended": true,
+            "initAttributes": {
+              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
+              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "gen_ai.operation.name": "evaluate",
+              "gen_ai.provider.name": "mock-provider",
+              "gen_ai.request.model": "mock-model-id",
+            },
+            "name": "evaluate mock-model-id",
+            "runtimeAttributes": {
+              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+              "gen_ai.usage.input_tokens": 12,
+              "gen_ai.usage.output_tokens": 2,
+            },
+          },
+        ]
+      `);
+  });
+
+  it('ends both spans with error status when evaluation fails', async () => {
+    const tracer = createMockTracer();
+    const error = new Error('evaluation failed');
+
+    await expect(
+      experimental_evaluate({
+        model: new Experimental_EvaluationMockModelV4({
+          doEvaluate: async () => {
+            throw error;
+          },
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        maxRetries: 0,
+        telemetry: { integrations: new OpenTelemetry({ tracer }) },
+      }),
+    ).rejects.toBe(error);
+
+    expect(tracer.spans).toHaveLength(2);
+    for (const span of tracer.spans) {
+      expect(span.ended).toBe(true);
+      expect(span.status).toEqual({
+        code: SpanStatusCode.ERROR,
+        message: 'evaluation failed',
+      });
+      expect(span.exceptions).toHaveLength(1);
+    }
   });
 });

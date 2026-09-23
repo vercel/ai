@@ -1,5 +1,156 @@
 # @ai-sdk/workflow
 
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 2.0.41
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 2.0.38
+
+### Patch Changes
+
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+- Updated dependencies [0455398]
+  - ai@7.0.106
+  - @ai-sdk/provider-utils@5.0.44
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - ai@7.0.104
+  - @ai-sdk/provider@4.0.17
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - ai@7.0.103
+  - @ai-sdk/provider@4.0.16
+
+## 2.0.33
+
+### Patch Changes
+
+- 0916fe8: fix(workflow): add a browser-safe client entry point for WorkflowChatTransport
+- 8f9808e: fix(workflow): make agent timeouts compatible with workflow functions
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
 ## 2.0.30
 
 ### Patch Changes

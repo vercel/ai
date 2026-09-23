@@ -52,6 +52,64 @@ describe('prepareResponsesTools', () => {
     });
   });
 
+  it('should remove regex lookaround patterns from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+                pattern: '^(?!\\.).+@.+$',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema pattern with regex lookaround',
+          details:
+            'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+        },
+      ],
+    });
+  });
+
   describe('async tools', () => {
     it('should pass through async mode for function tools', async () => {
       const result = await prepareResponsesTools({

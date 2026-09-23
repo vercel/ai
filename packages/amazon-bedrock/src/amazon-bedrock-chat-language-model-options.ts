@@ -9,6 +9,9 @@ export type AmazonBedrockChatModelId =
   | 'anthropic.claude-instant-v1'
   | 'anthropic.claude-sonnet-5'
   | 'anthropic.claude-fable-5'
+  | 'anthropic.claude-fable-5-1'
+  | 'anthropic.claude-opus-5'
+  | 'anthropic.claude-opus-5-5'
   | 'anthropic.claude-opus-4-8'
   | 'anthropic.claude-opus-4-7'
   | 'anthropic.claude-opus-4-6-v1'
@@ -60,6 +63,9 @@ export type AmazonBedrockChatModelId =
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
   | 'us.anthropic.claude-sonnet-5'
   | 'us.anthropic.claude-fable-5'
+  | 'us.anthropic.claude-fable-5-1'
+  | 'us.anthropic.claude-opus-5'
+  | 'us.anthropic.claude-opus-5-5'
   | 'us.anthropic.claude-opus-4-8'
   | 'us.anthropic.claude-opus-4-7'
   | 'us.anthropic.claude-opus-4-6-v1'
@@ -70,6 +76,7 @@ export type AmazonBedrockChatModelId =
   | 'us.anthropic.claude-opus-4-20250514-v1:0'
   | 'us.anthropic.claude-opus-4-1-20250805-v1:0'
   | 'us.anthropic.claude-haiku-4-5-20251001-v1:0'
+  | 'global.anthropic.claude-fable-5-1'
   | 'us.meta.llama3-2-11b-instruct-v1:0'
   | 'us.meta.llama3-2-3b-instruct-v1:0'
   | 'us.meta.llama3-2-90b-instruct-v1:0'
@@ -82,6 +89,16 @@ export type AmazonBedrockChatModelId =
   | 'us.meta.llama4-scout-17b-instruct-v1:0'
   | 'us.meta.llama4-maverick-17b-instruct-v1:0'
   | (string & {});
+
+export type AmazonBedrockChatModelSettings = {
+  /**
+   * The chat model family.
+   *
+   * Specify this when the model ID does not identify the underlying model,
+   * such as an application inference profile ARN.
+   */
+  modelFamily?: 'anthropic';
+};
 
 /**
  * Bedrock file part provider options for document-specific features.

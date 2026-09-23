@@ -1,5 +1,85 @@
 # @ai-sdk/openai
 
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
+## 4.0.71
+
+### Patch Changes
+
+- e76a0a3: fix(openai): cancel image edit URL downloads when the request is aborted
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.70
+
+### Patch Changes
+
+- fd75cee: fix(openai): preserve provider file references in Responses tool results
+- 1f5bb62: fix(openai): send assistant text as Responses easy input messages
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.69
+
+### Patch Changes
+
+- d4d96bf: Add experimental Choice, Score, and Boolean evaluations through `openai.evaluationModel()` and a shared structured language-model evaluation adapter in `@ai-sdk/provider-utils/experimental-evaluation`. Preserve exact labels and metadata, validate score bounds, and return prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.68
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.67
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- 39535af: Add experimental OpenAI Live provider support through the unified `openai.experimental_realtime` factory for server WebSocket sessions with client delegation. Applications own their agents and tools, receive continuous audio/transcript events and delegation metadata, and return context through validated channels. Support immutable startup options, microphone mute controls, graceful session close, and cumulative voice usage. Responses delegation and Live session updates reject before sending.
+
+  Route known Live model IDs to Live, allow an OpenAI-specific `api` override for early-access models, and preserve legacy Realtime defaults for unknown IDs. Token minting follows the same selection rules and rejects Live before requesting unsupported credentials. Extend the realtime v4 specification with optional server WebSocket configuration, per-connection raw-event parsers, and model-wide startup/finalization capabilities. This provider layer supplies connection settings and protocol mapping for server adapters; browser lifecycle and UI integration belong to the core runtime and framework hooks.
+
+  Preserve Realtime client event IDs for session updates and audio appends, and correlate server errors with the originating client event.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 4.0.66
 
 ### Patch Changes

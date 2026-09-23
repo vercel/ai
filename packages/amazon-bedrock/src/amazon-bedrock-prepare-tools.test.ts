@@ -174,6 +174,33 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it.each([
+      'anthropic.web_search_20260318' as const,
+      'anthropic.web_fetch_20260318' as const,
+    ])('should warn and filter out unsupported %s tool', async toolId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: toolId,
+            name: toolId.includes('search') ? 'web_search' : 'web_fetch',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      const toolType = toolId.slice('anthropic.'.length);
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: `${toolType} tool`,
+          details: `The ${toolType} tool is not supported on Amazon Bedrock.`,
+        },
+      ]);
+    });
+
     it('should return empty toolConfig when all tools are filtered out', async () => {
       const result = await prepareTools({
         tools: [
@@ -192,6 +219,31 @@ describe('prepareTools', () => {
   });
 
   describe('tool choice', () => {
+    it('should use Anthropic tool choice fields for a declared Anthropic application inference profile', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'Test',
+            inputSchema: {},
+          },
+        ],
+        modelId:
+          'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile',
+        modelFamily: 'anthropic',
+        disableParallelToolUse: true,
+      });
+
+      expect(result.additionalTools).toEqual({
+        tool_choice: {
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        },
+      });
+      expect(result.toolConfig.toolChoice).toBeUndefined();
+    });
+
     it('should handle tool choice "auto"', async () => {
       const result = await prepareTools({
         tools: [
@@ -345,7 +397,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'testFunction',
             description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
         ],
@@ -359,7 +415,11 @@ describe('prepareTools', () => {
             description: 'A test function',
             strict: true,
             inputSchema: {
-              json: { type: 'object', properties: {} },
+              json: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
             },
           },
         },
@@ -376,7 +436,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'testFunction',
             description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
         ],
@@ -384,6 +448,152 @@ describe('prepareTools', () => {
       });
 
       expect((result.toolConfig.tools![0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should omit strict mode when the top-level object schema is open', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'testFunction' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should omit strict mode when a nested object schema is open', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should omit strict mode when a referenced object schema in $defs is open', async () => {
+      const inputSchema = {
+        $ref: '#/$defs/location',
+        $defs: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should pass through strict mode when all nested object schemas are closed', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        strict: true,
+        inputSchema: { json: inputSchema },
+      });
       expect(result.toolWarnings).toEqual([]);
     });
 
@@ -439,7 +649,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'strictTool',
             description: 'A strict tool',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
           {
@@ -471,6 +685,9 @@ describe('prepareTools', () => {
       'us.anthropic.claude-opus-5',
       'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
+      'anthropic.claude-fable-5-1',
+      'us.anthropic.claude-fable-5-1',
+      'global.anthropic.claude-fable-5-1',
     ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({
         tools: [

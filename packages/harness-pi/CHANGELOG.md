@@ -1,5 +1,109 @@
 # @ai-sdk/harness-pi
 
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.123
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.121
+
+### Patch Changes
+
+- 9e9f18f: fix(harness-pi): support stateless session restoration and injected credentials
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- f39733b: fix(sandbox-just-bash): seed `realpath` binary via `readlink` so that it is available to consumers that require it, such as the Pi harness
+- a0f7700: fix(harness-pi): make grep compatible with just-bash sandboxes while preserving matches alongside bounded traversal diagnostics
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.118
+
+### Patch Changes
+
+- e93dce0: fix(harness-pi): use compatible flags when listing sandbox directories
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.113
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
 ## 1.0.111
 
 ### Patch Changes

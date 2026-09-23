@@ -1,9 +1,14 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
   createBinaryResponseHandler,
   createJsonResponseHandler,
+  delay,
   getFromApi,
   parseProviderOptions,
   postJsonToApi,
@@ -18,6 +23,9 @@ import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
 import { replicateImageModelOptionsSchema } from './replicate-image-model-options';
 import type { ReplicateImageModelId } from './replicate-image-settings';
+
+const DEFAULT_POLL_INTERVAL_MILLIS = 500;
+const DEFAULT_MAX_POLL_ATTEMPTS = 240;
 
 interface ReplicateImageModelConfig {
   provider: string;
@@ -142,7 +150,12 @@ export class ReplicateImageModel implements ImageModelV4 {
     }
 
     // Extract maxWaitTimeInSeconds from provider options and prepare the rest for the request body
-    const { maxWaitTimeInSeconds, ...inputOptions } = replicateOptions ?? {};
+    const {
+      maxWaitTimeInSeconds,
+      pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS,
+      maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS,
+      ...inputOptions
+    } = replicateOptions ?? {};
 
     // Build the prefer header based on maxWaitTimeInSeconds:
     // - undefined/null: use default sync wait (prefer: wait)
@@ -152,21 +165,18 @@ export class ReplicateImageModel implements ImageModelV4 {
         ? { prefer: `wait=${maxWaitTimeInSeconds}` }
         : { prefer: 'wait' };
 
-    const {
-      value: { output },
-      responseHeaders,
-    } = await postJsonToApi({
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
+    const { value: initialPrediction, responseHeaders } = await postJsonToApi({
       url:
         // different endpoints for versioned vs unversioned models:
         version != null
           ? `${this.config.baseURL}/predictions`
           : `${this.config.baseURL}/models/${modelId}/predictions`,
 
-      headers: combineHeaders(
-        this.config.headers ? await resolve(this.config.headers) : undefined,
-        headers,
-        preferHeader,
-      ),
+      headers: combineHeaders(resolvedHeaders, headers, preferHeader),
 
       body: {
         input: {
@@ -191,8 +201,25 @@ export class ReplicateImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    const prediction = await this.pollPrediction({
+      prediction: initialPrediction,
+      headers: combineHeaders(resolvedHeaders, headers),
+      pollIntervalMillis: pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
+      maxPollAttempts: maxPollAttempts ?? DEFAULT_MAX_POLL_ATTEMPTS,
+      abortSignal,
+    });
+
+    if (prediction.output == null) {
+      throw new InvalidResponseDataError({
+        data: prediction,
+        message: 'Replicate image generation completed without output.',
+      });
+    }
+
     // download the images:
-    const outputArray = Array.isArray(output) ? output : [output];
+    const outputArray = Array.isArray(prediction.output)
+      ? prediction.output
+      : [prediction.output];
     const images = await Promise.all(
       outputArray.map(async url => {
         const { value: image } = await getFromApi({
@@ -219,8 +246,82 @@ export class ReplicateImageModel implements ImageModelV4 {
       },
     };
   }
+
+  private async pollPrediction({
+    prediction,
+    headers,
+    pollIntervalMillis,
+    maxPollAttempts,
+    abortSignal,
+  }: {
+    prediction: ReplicateImagePrediction;
+    headers: Record<string, string | undefined>;
+    pollIntervalMillis: number;
+    maxPollAttempts: number;
+    abortSignal: AbortSignal | undefined;
+  }): Promise<ReplicateImagePrediction> {
+    let currentPrediction = prediction;
+
+    for (let i = 0; i < maxPollAttempts; i++) {
+      const completedPrediction =
+        this.getCompletedPrediction(currentPrediction);
+      if (completedPrediction != null) {
+        return completedPrediction;
+      }
+
+      const { value } = await getFromApi({
+        url: currentPrediction.urls.get,
+        validateUrl: true,
+        credentialedOrigin: this.config.baseURL,
+        trustedOrigin: this.config.baseURL,
+        headers,
+        successfulResponseHandler: createJsonResponseHandler(
+          replicateImageResponseSchema,
+        ),
+        failedResponseHandler: replicateFailedResponseHandler,
+        abortSignal,
+        fetch: this.config.fetch,
+      });
+      currentPrediction = value;
+
+      if (i < maxPollAttempts - 1) {
+        await delay(pollIntervalMillis, { abortSignal });
+      }
+    }
+
+    const completedPrediction = this.getCompletedPrediction(currentPrediction);
+    if (completedPrediction != null) {
+      return completedPrediction;
+    }
+
+    throw new Error(
+      `Replicate image generation did not complete after ${maxPollAttempts} polling attempts.`,
+    );
+  }
+
+  private getCompletedPrediction(
+    prediction: ReplicateImagePrediction,
+  ): ReplicateImagePrediction | undefined {
+    if (prediction.status === 'failed' || prediction.status === 'canceled') {
+      throw new InvalidResponseDataError({
+        data: prediction,
+        message: `Replicate image generation ${prediction.status}: ${prediction.error ?? 'Unknown error'}`,
+      });
+    }
+
+    if (prediction.output != null || prediction.status === 'succeeded') {
+      return prediction;
+    }
+  }
 }
 
 const replicateImageResponseSchema = z.object({
-  output: z.union([z.array(z.string()), z.string()]),
+  status: z.enum(['starting', 'processing', 'succeeded', 'failed', 'canceled']),
+  output: z.union([z.array(z.string()), z.string()]).nullish(),
+  error: z.string().nullish(),
+  urls: z.object({
+    get: z.string(),
+  }),
 });
+
+type ReplicateImagePrediction = z.infer<typeof replicateImageResponseSchema>;

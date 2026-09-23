@@ -1,5 +1,83 @@
 # @ai-sdk/anthropic
 
+## 4.0.61
+
+### Patch Changes
+
+- 3733d6e: fix(anthropic): omit empty compaction blocks from replay
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.60
+
+### Patch Changes
+
+- 49295bb: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting, maps `reasoning: 'none'` to `effort: 'low'`, and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 4.0.59
+
+### Patch Changes
+
+- f7b7b2a: feat(provider/anthropic): add `safeguards` provider option and `safeguardResults` provider metadata (dangerous tool use classifier)
+
+## 4.0.58
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.57
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.56
+
+### Patch Changes
+
+- d4d96bf: Add `anthropic.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Messages structured output, with exact labels, validated score bounds, and prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.55
+
+### Patch Changes
+
+- 132bdae: feat(anthropic): add 20260318 web search and web fetch tools with response inclusion controls
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 4.0.53
 
 ### Patch Changes

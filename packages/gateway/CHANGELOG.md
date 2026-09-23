@@ -1,5 +1,102 @@
 # @ai-sdk/gateway
 
+## 4.0.90
+
+### Patch Changes
+
+- ed5a1d7: chore(provider/gateway): update gateway model settings files
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.89
+
+### Patch Changes
+
+- 49295bb: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting, maps `reasoning: 'none'` to `effort: 'low'`, and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 4.0.88
+
+### Patch Changes
+
+- 20dd00a: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+- c42576a: feat(gateway): support cancelling batches with `experimental_cancelBatch`
+- d85dcf5: chore(provider/gateway): update gateway model settings files
+- fd9b3f3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.86
+
+### Patch Changes
+
+- 4fdf51e: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.85
+
+### Patch Changes
+
+- 6982e9d: Include evaluation models in getAvailableModels() instead of filtering them out as unknown model types.
+- 6982e9d: feat(gateway): add experimental evaluation model support
+
+## 4.0.84
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.83
+
+### Patch Changes
+
+- 0c9ab5a: chore(provider/gateway): update gateway model settings files
+- 2cce7da: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.81
+
+### Patch Changes
+
+- 23a0fff: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.80
 
 ### Patch Changes
