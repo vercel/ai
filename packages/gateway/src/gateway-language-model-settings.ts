@@ -47,6 +47,7 @@ export type GatewayModelId =
   | 'anthropic/claude-opus-5'
   | 'anthropic/claude-opus-5-fast'
   | 'anthropic/claude-opus-5.5'
+  | 'anthropic/claude-opus-5.5-fast'
   | 'anthropic/claude-sonnet-4'
   | 'anthropic/claude-sonnet-4.5'
   | 'anthropic/claude-sonnet-4.6'
