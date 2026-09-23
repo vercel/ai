@@ -651,7 +651,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
+        response.service_tier != null ||
+        response.prompt_cache_key != null ||
+        response.safety_identifier != null) && {
         providerMetadata: {
           xai: {
             ...(response.usage?.cost_in_usd_ticks != null && {
@@ -659,6 +661,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }),
             ...(response.service_tier != null && {
               serviceTier: response.service_tier,
+            }),
+            ...(response.prompt_cache_key != null && {
+              promptCacheKey: response.prompt_cache_key,
+            }),
+            ...(response.safety_identifier != null && {
+              safetyIdentifier: response.safety_identifier,
             }),
           },
         },
@@ -711,6 +719,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let promptCacheKey: string | undefined = undefined;
+    let safetyIdentifier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -906,6 +916,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               serviceTier = response.service_tier ?? undefined;
+              promptCacheKey = response.prompt_cache_key ?? undefined;
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -1378,11 +1390,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...((costInUsdTicks != null || serviceTier != null) && {
+              ...((costInUsdTicks != null ||
+                serviceTier != null ||
+                promptCacheKey != null ||
+                safetyIdentifier != null) && {
                 providerMetadata: {
                   xai: {
                     ...(costInUsdTicks != null && { costInUsdTicks }),
                     ...(serviceTier != null && { serviceTier }),
+                    ...(promptCacheKey != null && { promptCacheKey }),
+                    ...(safetyIdentifier != null && { safetyIdentifier }),
                   },
                 },
               }),

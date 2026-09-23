@@ -320,6 +320,8 @@ export const xaiResponsesResponseSchema = z.object({
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
   service_tier: z.string().nullish(),
+  prompt_cache_key: z.string().nullish(),
+  safety_identifier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -605,6 +607,8 @@ export const xaiResponsesChunkSchema = z.union([
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
       service_tier: z.string().nullish(),
+      prompt_cache_key: z.string().nullish(),
+      safety_identifier: z.string().nullish(),
     }),
   }),
   z.object({
