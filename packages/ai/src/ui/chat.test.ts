@@ -3108,6 +3108,334 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    it.each([true, false])(
+      'should update an earlier approval response when approved is %s',
+      async approved => {
+        const laterMessages = [
+          {
+            id: 'id-2',
+            role: 'user' as const,
+            parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+          },
+          {
+            id: 'id-3',
+            role: 'assistant' as const,
+            parts: [{ type: 'text' as const, text: '4.' }],
+          },
+        ];
+        const chat = new TestChat({
+          id: '123',
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ type: 'text', text: 'What is the weather?' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+            ...laterMessages,
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved,
+        });
+
+        expect(chat.messages[1].parts[0]).toMatchObject({
+          state: 'approval-responded',
+          approval: { id: 'approval-1', approved },
+        });
+        expect(chat.messages.slice(2)).toEqual(laterMessages);
+      },
+    );
+
+    it('should process results for an approved invocation in an earlier message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+          formatChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { temperature: 72, weather: 'sunny' },
+          }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [{ type: 'text' as const, text: '4.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages[1]).toMatchObject({
+        id: 'resumed-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+    });
+
+    it('should retry an earlier approval after a partial response changes its message ID', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start', messageId: 'partial-reply' }),
+            formatChunk({ type: 'error', errorText: 'retryable error' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start', messageId: 'retried-reply' }),
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'call-1',
+              output: { temperature: 72, weather: 'sunny' },
+            }),
+            formatChunk({ type: 'finish', finishReason: 'stop' }),
+          ],
+        },
+      ];
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [{ type: 'text' as const, text: '4.' }],
+        },
+      ];
+      const errorPromise = createResolvablePromise<void>();
+      let automaticallySend = true;
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: () => {
+          const result = automaticallySend;
+          automaticallySend = false;
+          return result;
+        },
+        onError: () => errorPromise.resolve(),
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await errorPromise.promise;
+
+      expect(chat.status).toBe('error');
+      expect(chat.messages[1].id).toBe('partial-reply');
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(4);
+      expect(chat.messages[1]).toMatchObject({
+        id: 'retried-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        messageId: 'partial-reply',
+      });
+    });
+
+    it('should resume the approval that was just answered when a later approval has already been answered', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+          formatChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { temperature: 72, weather: 'sunny' },
+          }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What time is it?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-clock' as const,
+              toolCallId: 'call-2',
+              state: 'approval-responded' as const,
+              input: { timezone: 'UTC' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+              },
+            },
+          ],
+        },
+        {
+          id: 'id-4',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'Thanks.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages[1]).toMatchObject({
+        id: 'resumed-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+    });
+
     it('should preserve signed approval metadata when recording the response', async () => {
       const chat = new TestChat({
         id: '123',
