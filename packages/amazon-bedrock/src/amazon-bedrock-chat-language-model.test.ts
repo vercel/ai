@@ -5938,6 +5938,42 @@ describe('doGenerate', () => {
     },
   );
 
+  it('does not warn about clamping an unsupported OpenAI temperature', async () => {
+    server.urls[usOpenaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const usOpenaiModel = new AmazonBedrockChatLanguageModel(usOpenaiModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+
+    const result = await usOpenaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 2,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toBeUndefined();
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          'temperature is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
+  });
+
   it('keeps supported sampling settings for OpenAI gpt-oss models', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',

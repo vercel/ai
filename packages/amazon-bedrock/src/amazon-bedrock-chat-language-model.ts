@@ -195,14 +195,24 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (temperature != null && temperature > 1) {
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
+    const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
+
+    if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
-    } else if (temperature != null && temperature < 0) {
+    } else if (
+      shouldNormalizeTemperature &&
+      temperature != null &&
+      temperature < 0
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
@@ -228,10 +238,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelFamily: this.config.modelFamily,
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
