@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 2.0.129
+
+### Patch Changes
+
+- 1c05ff4: fix(openai): expose Chat Completions audio transcripts as generated text
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.128
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/react
 
+## 2.0.268
+
+### Patch Changes
+
+- 656cfb5: fix(react): preserve active useObject cancellation state during overlapping requests
+- Updated dependencies [bf29419]
+- Updated dependencies [0519802]
+  - ai@5.0.265
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.267
 
 ### Patch Changes

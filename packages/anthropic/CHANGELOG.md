@@ -1,5 +1,13 @@
 # @ai-sdk/anthropic
 
+## 2.0.105
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.104
 
 ### Patch Changes

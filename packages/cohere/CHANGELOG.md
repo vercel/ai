@@ -1,5 +1,13 @@
 # @ai-sdk/cohere
 
+## 2.0.43
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.42
 
 ### Patch Changes

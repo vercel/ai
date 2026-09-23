@@ -1,5 +1,16 @@
 # @ai-sdk/azure
 
+## 2.0.136
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [1c05ff4]
+- Updated dependencies [bf29419]
+  - @ai-sdk/openai@2.0.129
+  - @ai-sdk/deepseek@1.0.59
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.135
 
 ### Patch Changes

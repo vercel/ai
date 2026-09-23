@@ -1,5 +1,17 @@
 # ai
 
+## 5.0.265
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- 0519802: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [0430ee6]
+- Updated dependencies [bf29419]
+- Updated dependencies [14ecfdc]
+  - @ai-sdk/gateway@2.0.157
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 5.0.264
 
 ### Patch Changes

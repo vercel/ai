@@ -1,5 +1,12 @@
 # @ai-sdk/black-forest-labs
 
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 0.0.27
 
 ### Patch Changes
