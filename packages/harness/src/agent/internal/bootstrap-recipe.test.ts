@@ -188,12 +188,11 @@ describe('applyBootstrapRecipe', () => {
     expect(run).toHaveBeenCalledTimes(baseRecipe.commands.length + 1);
     expect(run).toHaveBeenNthCalledWith(1, {
       command: 'mkdir -p "$BOOTSTRAP_DIR"',
-      workingDirectory: stateDirectory,
       env: { BOOTSTRAP_DIR: '/tmp/harness/demo' },
       abortSignal: undefined,
     });
     expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
-      stateDirectory,
+      undefined,
       '/tmp/harness/demo',
       '/tmp/harness/demo',
     ]);
@@ -240,7 +239,7 @@ describe('applyBootstrapRecipe', () => {
       '/work/.harness-bootstrap/demo/.bootstrap-idtest1234567890.ok',
     ]);
     expect(run.mock.calls.map(([args]) => args.workingDirectory)).toEqual([
-      '/work',
+      undefined,
       '/work/.harness-bootstrap/demo',
       '/work/.harness-bootstrap/demo',
     ]);

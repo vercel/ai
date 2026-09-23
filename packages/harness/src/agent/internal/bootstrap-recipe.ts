@@ -127,7 +127,6 @@ export async function applyBootstrapRecipe({
   });
   const mkdirResult = await session.run({
     command: 'mkdir -p "$BOOTSTRAP_DIR"',
-    workingDirectory: stateDirectory,
     env: { BOOTSTRAP_DIR: bootstrapDir },
     abortSignal,
   });
