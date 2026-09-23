@@ -7,7 +7,6 @@ import {
   type LanguageModelV4GenerateResult,
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
-  type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -382,7 +381,6 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV4ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -525,7 +523,6 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGroqUsage(usage),
-              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),

@@ -29,7 +29,7 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, runtimeContext, ...rest }) => ({
     ...rest,
     runtimeContext: {
-      ...(runtimeContext ?? {}),
+      ...runtimeContext,
       requestId: options.requestId,
       completedSteps: runtimeContext?.completedSteps ?? 0,
     },

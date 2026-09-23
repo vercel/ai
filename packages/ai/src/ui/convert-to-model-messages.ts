@@ -245,6 +245,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       ...(part.approval.requestReason != null
                         ? { reason: part.approval.requestReason }
                         : {}),
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),

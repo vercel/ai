@@ -28,7 +28,6 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
         ) {
           return process.env.GOOGLE_VERTEX_API_KEY;
         }
-        return undefined;
       }),
     generateId: vi.fn().mockReturnValue('mock-id'),
     withoutTrailingSlash: vi.fn().mockImplementation(url => url),

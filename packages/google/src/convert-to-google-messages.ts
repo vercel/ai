@@ -19,6 +19,10 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -479,6 +483,19 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    return {
+                      executableCode: codeExecutionInputSchema.parse(
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -534,6 +551,17 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-result': {
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.output.type === 'json'
+                  ) {
+                    return {
+                      codeExecutionResult: codeExecutionOutputSchema.parse(
+                        part.output.value,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)

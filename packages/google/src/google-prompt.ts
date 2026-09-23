@@ -59,6 +59,18 @@ export type GoogleContentPart =
         id: string;
       };
       thoughtSignature?: string;
+    }
+  | {
+      executableCode: {
+        language: string;
+        code: string;
+      };
+    }
+  | {
+      codeExecutionResult: {
+        outcome: string;
+        output: string;
+      };
     };
 
 export type GoogleFunctionResponsePart =

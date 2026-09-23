@@ -675,7 +675,7 @@ describe('convertToOpenResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "{\"location\":\"Berlin\"}",
+            "arguments": "{"location":"Berlin"}",
             "call_id": "call_124",
             "name": "get_weather",
             "type": "function_call",
@@ -1257,7 +1257,7 @@ describe('convertToOpenResponsesInput', () => {
             "type": "message",
           },
           {
-            "arguments": "{\"location\":\"Tokyo\"}",
+            "arguments": "{"location":"Tokyo"}",
             "call_id": "call_weather",
             "name": "get_weather",
             "type": "function_call",

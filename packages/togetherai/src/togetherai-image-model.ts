@@ -96,7 +96,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
 
     const isNonDiffusionModel = nonDiffusionImageModels.has(this.modelId);
 
-    const modelOptions = { ...(togetheraiOptions ?? {}) };
+    const modelOptions = { ...togetheraiOptions };
     if (isNonDiffusionModel) {
       delete modelOptions.steps;
       delete modelOptions.guidance;

@@ -79,8 +79,8 @@ export function validateACPV1Implementation(
   validateForwardEnvironment({ forwardEnv: implementation.forwardEnv });
   validateForwardEnvironment({ forwardEnv: implementation.credentialEnv });
   validateEnvironment({ env: implementation.env });
-  const forwardedKeys = new Set(implementation.forwardEnv ?? []);
-  const credentialKeys = new Set(implementation.credentialEnv ?? []);
+  const forwardedKeys = new Set(implementation.forwardEnv);
+  const credentialKeys = new Set(implementation.credentialEnv);
   for (const key of credentialKeys) {
     if (forwardedKeys.has(key)) {
       throw new Error(
@@ -209,11 +209,9 @@ export function createImplementationIdentity({
             type: source.type,
             command: source.command,
           };
-  const forwardedEnvironment = [
-    ...new Set(implementation.forwardEnv ?? []),
-  ].sort();
+  const forwardedEnvironment = [...new Set(implementation.forwardEnv)].sort();
   const credentialEnvironment = [
-    ...new Set(implementation.credentialEnv ?? []),
+    ...new Set(implementation.credentialEnv),
   ].sort();
   const literalEnvironment = Object.fromEntries(
     Object.entries(implementation.env ?? {})

@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.18
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+
 ## 4.0.17
 
 ### Patch Changes

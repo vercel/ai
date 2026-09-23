@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic
 
+## 4.0.61
+
+### Patch Changes
+
+- 3733d6e: fix(anthropic): omit empty compaction blocks from replay
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.60
 
 ### Patch Changes
