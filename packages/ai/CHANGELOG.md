@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.289
+
+### Patch Changes
+
+- 86f0089: fix(ai): prevent preliminary tool outputs from completing chats
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+- f211ce5: fix(ai): prevent duplicate content types in chat transport requests
+- 2f1488e: Fix streamed tool input callbacks firing out of order on newer Node.js versions by awaiting start and delta callbacks before invoking `onInputAvailable`.
+- Updated dependencies [da2e17b]
+- Updated dependencies [0b9d00b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/gateway@3.0.199
+  - @ai-sdk/provider-utils@4.0.53
+
 ## 6.0.288
 
 ### Patch Changes
