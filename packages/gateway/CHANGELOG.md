@@ -1,5 +1,14 @@
 # @ai-sdk/gateway
 
+## 2.0.156
+
+### Patch Changes
+
+- 391ad4a: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
 ## 2.0.155
 
 ### Patch Changes

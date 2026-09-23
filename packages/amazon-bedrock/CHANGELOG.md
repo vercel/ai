@@ -1,5 +1,16 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.134
+
+### Patch Changes
+
+- dc710c5: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [594787e]
+- Updated dependencies [dc710c5]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/anthropic@2.0.104
+  - @ai-sdk/provider-utils@3.0.38
+
 ## 3.0.133
 
 ### Patch Changes
