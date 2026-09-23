@@ -715,7 +715,89 @@ const result = await generateText({
 });
 ```
 
-#### Compaction
+#### On-Demand Compaction
+
+Use the `compaction` provider option to ask Anthropic to summarize the supplied
+conversation immediately. The provider automatically adds the
+`compact-2026-09-04` beta header.
+
+```ts highlight="10-15,21-22"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText, ModelMessage } from 'ai';
+
+const history: ModelMessage[] = [
+  { role: 'user', content: 'Help me design a recipe application.' },
+  { role: 'assistant', content: 'Start with Recipe and Ingredient.' },
+  { role: 'user', content: 'Recipe also needs a title and servings.' },
+];
+
+const summary = await generateText({
+  model: anthropic('claude-opus-5'),
+  messages: history,
+  maxOutputTokens: 4096,
+  providerOptions: {
+    anthropic: {
+      compaction: {
+        type: 'summarize',
+        instructions: 'Preserve all agreed entities and fields.',
+      },
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+
+if (summary.rawFinishReason === 'compaction') {
+  const [compactionMessage] = summary.finalStep.response.messages;
+
+  const continuation = await generateText({
+    model: anthropic('claude-opus-5'),
+    messages: [
+      compactionMessage,
+      { role: 'user', content: 'Which fields should be required?' },
+    ],
+  });
+
+  console.log(continuation.text);
+}
+```
+
+Anthropic returns the summary as a text part whose
+`providerMetadata.anthropic.type` is `compaction`. Its opaque signature is
+available as `providerMetadata.anthropic.signature`. Response messages copy
+that metadata to `providerOptions`, so passing
+`summary.finalStep.response.messages` back to the AI SDK preserves the signed
+block and automatically adds the beta header on the continuation request.
+
+Check `rawFinishReason` before reading the response block. Anthropic can return
+a successful HTTP response without a summary when summarization ends for
+another reason, such as `max_tokens`, `model_context_window_exceeded`,
+`tool_use`, `refusal`, or `end_turn`. In that case, keep the existing history
+and retry later; the unsuccessful summarization is still included in
+`providerMetadata.anthropic.iterations`.
+
+Send exactly one signed compaction block on continuation requests. It must be
+the first content block in `messages` and must be replayed without changing its
+text or signature. Remove the messages it summarizes before continuing. Keep
+the same system prompt and tool definitions on the compaction request that you
+use for the conversation, especially when preserving later thinking blocks.
+
+Before requesting compaction, resolve any unfinished tool call from the last
+assistant turn. Do not combine `compaction` with `contextManagement`,
+`stopSequences`, structured output, a required or named `toolChoice`, or a
+`taskBudget.remaining` value. Also omit `taskBudget.remaining` from later
+requests that carry the signed block.
+
+On-demand compaction usage is reported in
+`providerMetadata.anthropic.iterations`. Sum the iteration usage when
+calculating the tokens consumed by the summarization request.
+
+On-demand compaction can also be initiated in a Message Batch. Configure the
+`compaction` provider option on the individual batch request; the provider
+automatically adds `compact-2026-09-04` to the batch beta header.
+
+For more details, see
+[Anthropic's on-demand compaction documentation](https://platform.claude.com/docs/en/build-with-claude/compaction-on-demand).
+
+#### Threshold Compaction
 
 The `compact_20260112` edit type automatically summarizes earlier conversation context when token limits are reached. This is useful for long-running conversations where you want to preserve the essence of earlier exchanges while staying within token limits.
 
