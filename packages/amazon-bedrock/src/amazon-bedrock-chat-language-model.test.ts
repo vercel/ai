@@ -6198,6 +6198,159 @@ describe('doGenerate', () => {
 
   it.each([
     {
+      name: 'required',
+      toolChoice: { type: 'required' as const },
+      expectedToolNames: ['weather', 'time'],
+      disableParallelToolUse: false,
+    },
+    {
+      name: 'named tool',
+      toolChoice: { type: 'tool' as const, toolName: 'weather' },
+      expectedToolNames: ['weather'],
+      disableParallelToolUse: false,
+    },
+    {
+      name: 'required with parallel tool use disabled',
+      toolChoice: { type: 'required' as const },
+      expectedToolNames: ['weather', 'time'],
+      disableParallelToolUse: true,
+    },
+  ])(
+    'should fall back to auto for claude-opus-5-5 $name tool choice',
+    async ({ toolChoice, expectedToolNames, disableParallelToolUse }) => {
+      const liveForcedToolChoiceError = fs.readFileSync(
+        'src/__fixtures__/amazon-bedrock-opus-5-5-forced-tool-choice-error.json',
+        'utf8',
+      );
+      let requestBody: any;
+      const model = new AmazonBedrockChatLanguageModel(opus55AnthropicModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(init?.body as string);
+          const sentToolChoice = requestBody.toolConfig?.toolChoice;
+          const sentAnthropicToolChoice =
+            requestBody.additionalModelRequestFields?.tool_choice;
+
+          if (
+            sentToolChoice?.any != null ||
+            sentToolChoice?.tool != null ||
+            sentAnthropicToolChoice?.type === 'any' ||
+            sentAnthropicToolChoice?.type === 'tool'
+          ) {
+            return new Response(liveForcedToolChoiceError, {
+              status: 400,
+              headers: { 'content-type': 'application/json' },
+            });
+          }
+
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [
+                    {
+                      toolUse: {
+                        toolUseId: 'weather-call',
+                        name: 'weather',
+                        input: { city: 'Paris' },
+                      },
+                    },
+                  ],
+                },
+              },
+              usage: {
+                inputTokens: 10,
+                outputTokens: 20,
+                totalTokens: 30,
+              },
+              stopReason: 'tool_use',
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      });
+
+      const result = await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'text',
+                text: 'Call the weather tool for Paris.',
+              },
+            ],
+          },
+        ],
+        tools: [
+          {
+            type: 'function',
+            name: 'weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+          {
+            type: 'function',
+            name: 'time',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+          },
+        ],
+        toolChoice,
+        providerOptions: disableParallelToolUse
+          ? {
+              anthropic: {
+                disableParallelToolUse: true,
+              },
+            }
+          : undefined,
+      });
+
+      expect(result.content).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'weather-call',
+        toolName: 'weather',
+        input: '{"city":"Paris"}',
+      });
+      expect(result.warnings).toEqual([
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'toolChoice',
+        }),
+      ]);
+      if (disableParallelToolUse) {
+        expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+        expect(requestBody.additionalModelRequestFields.tool_choice).toEqual({
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        });
+      } else {
+        expect(requestBody.toolConfig.toolChoice).toEqual({ auto: {} });
+      }
+      expect(
+        requestBody.toolConfig.tools.map(
+          (tool: { toolSpec: { name: string } }) => tool.toolSpec.name,
+        ),
+      ).toEqual(expectedToolNames);
+    },
+  );
+
+  it.each([
+    {
       modelId: newerAnthropicModelId,
       model: newerAnthropicModel,
       generateUrl: newerAnthropicGenerateUrl,
