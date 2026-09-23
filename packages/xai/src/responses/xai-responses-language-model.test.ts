@@ -326,6 +326,131 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
+<<<<<<< HEAD
+=======
+      it('should extract reasoning with encrypted content but empty summary text', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_789',
+              status: 'completed',
+              summary: [],
+              encrypted_content: 'encrypted_zdr_content_xyz',
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'Here is my response.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 20,
+            output_tokens_details: {
+              reasoning_tokens: 15,
+            },
+          },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_789",
+                  "reasoningEncryptedContent": "encrypted_zdr_content_xyz",
+                },
+              },
+              "text": "",
+              "type": "reasoning",
+            },
+            {
+              "text": "Here is my response.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+
+      it('should extract reasoning from content when summary is empty', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-3-mini',
+          output: [
+            {
+              type: 'reasoning',
+              id: 'rs_456',
+              status: 'completed',
+              summary: [],
+              content: [
+                {
+                  type: 'reasoning_text',
+                  text: 'Let me think step by step.',
+                },
+              ],
+            },
+            {
+              type: 'message',
+              id: 'msg_123',
+              status: 'completed',
+              role: 'assistant',
+              content: [
+                {
+                  type: 'output_text',
+                  text: 'The answer is 444.',
+                  annotations: [],
+                },
+              ],
+            },
+          ],
+          usage: {
+            input_tokens: 10,
+            output_tokens: 15,
+          },
+        });
+
+        const result = await createModel('grok-3-mini').doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toMatchInlineSnapshot(`
+          [
+            {
+              "providerMetadata": {
+                "xai": {
+                  "itemId": "rs_456",
+                },
+              },
+              "text": "Let me think step by step.",
+              "type": "reasoning",
+            },
+            {
+              "text": "The answer is 444.",
+              "type": "text",
+            },
+          ]
+        `);
+      });
+>>>>>>> 19eece65b8 ([v6.0] fix(provider/xai): extract reasoning text from content in responses doGenerate (#16798))
     });
 
     describe('settings and options', () => {
