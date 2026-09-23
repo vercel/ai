@@ -46,11 +46,7 @@ const cx = (...classes: (string | false | null | undefined)[]): string =>
 
 const identityHref: ResolveHref = href => href;
 
-const STORAGE_KEY = 'ai-sdk-code-preview';
-
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
-
-const TAB_TYPES: TabType[] = ['gateway', 'provider', 'custom'];
 
 const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
   text: 'anthropic/claude-sonnet-4.5',
@@ -78,54 +74,11 @@ const MODEL_KIND_FACTORY_SUFFIX: Record<ModelKind, string> = {
 
 const MODEL_KINDS = Object.keys(MODEL_KIND_PLACEHOLDERS) as ModelKind[];
 
-type PersistedStorageState = {
-  modelId?: string;
-  modelIds?: Partial<Record<ModelKind, string>>;
-  tab?: TabType;
-};
-
-type StorageState = {
-  modelIds: Record<ModelKind, string>;
-  tab: TabType;
-};
-
 const EXCLUDED_MODEL_IDS = [
   'openai/gpt-oss-safeguard-20b',
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
 ];
-
-const safeLocalStorage = {
-  getItem: (): PersistedStorageState | null => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    try {
-      const item = localStorage.getItem(STORAGE_KEY);
-      return item ? (JSON.parse(item) as PersistedStorageState) : null;
-    } catch {
-      return null;
-    }
-  },
-  setItem: (state: StorageState): void => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      // Dispatch storage event so other instances on the page stay in sync
-      // (the native event only fires in other tabs).
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: STORAGE_KEY,
-          newValue: JSON.stringify(state),
-        }),
-      );
-    } catch {
-      // Storage unavailable (private mode, quota); selection stays in memory.
-    }
-  },
-};
 
 const getDefaultModelIds = (
   defaultTextModelId: string,
@@ -133,24 +86,6 @@ const getDefaultModelIds = (
   ...DEFAULT_MODEL_IDS,
   text: defaultTextModelId,
 });
-
-const getStorageState = (
-  state: PersistedStorageState | null,
-  defaultTextModelId: string,
-): StorageState | null => {
-  if (!(state?.tab && TAB_TYPES.includes(state.tab))) {
-    return null;
-  }
-
-  return {
-    tab: state.tab,
-    modelIds: {
-      ...getDefaultModelIds(defaultTextModelId),
-      ...state.modelIds,
-      ...(state.modelId ? { text: state.modelId } : {}),
-    },
-  };
-};
 
 type ModelOption = {
   id: string;
@@ -656,52 +591,6 @@ export const InteractiveCodePreview = ({
   >(() => getDefaultModelIds(defaultModelId));
   const [showProviderOnly, setShowProviderOnly] = useState<string | null>(null);
 
-  // Load saved state from localStorage after mount to avoid hydration mismatch
-  useEffect(() => {
-    const saved = getStorageState(safeLocalStorage.getItem(), defaultModelId);
-    if (saved) {
-      setActiveTab(saved.tab);
-      setSelectedModelIds(saved.modelIds);
-    }
-  }, [defaultModelId]);
-
-  // Listen for changes from other instances via storage event
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== STORAGE_KEY || !event.newValue) {
-        return;
-      }
-      try {
-        const saved = getStorageState(
-          JSON.parse(event.newValue) as PersistedStorageState,
-          defaultModelId,
-        );
-        if (!saved) {
-          return;
-        }
-
-        setActiveTab(saved.tab);
-        setSelectedModelIds(saved.modelIds);
-        setShowProviderOnly(null);
-      } catch {
-        // Ignore invalid JSON
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [defaultModelId]);
-
-  // Save and broadcast when selection changes
-  const updateSelection = (
-    modelIds: Record<ModelKind, string>,
-    tab: TabType,
-  ) => {
-    safeLocalStorage.setItem({ modelIds, tab });
-  };
-
   // Fetch the gateway model list client-side; fall back to the default
   // options when the request fails or is blocked.
   const [gatewayData, setGatewayData] = useState<GatewayResponse | null>(null);
@@ -854,7 +743,6 @@ export const InteractiveCodePreview = ({
       };
       setSelectedModelIds(nextModelIds);
       setShowProviderOnly(providerName);
-      updateSelection(nextModelIds, activeTab);
       onModelChange?.();
     }
   };
@@ -862,7 +750,6 @@ export const InteractiveCodePreview = ({
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setShowProviderOnly(null);
-    updateSelection(selectedModelIds, tab);
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -893,7 +780,6 @@ export const InteractiveCodePreview = ({
     };
     setSelectedModelIds(nextModelIds);
     setShowProviderOnly(null);
-    updateSelection(nextModelIds, activeTab);
     onModelChange?.();
   };
 
