@@ -7,10 +7,13 @@ import { createIdMap } from '../util/create-id-map';
 import { getPotentialStartIndex } from '../util/get-potential-start-index';
 
 /**
- * Extracts an XML-tagged reasoning section from the generated text and exposes it
+ * Extracts a reasoning section from the generated text and exposes it
  * as a `reasoning` property on the result.
  *
- * @param tagName - The name of the XML tag to extract reasoning from.
+ * @param tagName - Either a plain string (constructs symmetric XML-style tags
+ *   `<tagName>` / `</tagName>`), or an object with `opening` and `closing`
+ *   strings for models that use non-XML delimiters
+ *   (e.g. Gemma 4: `{ opening: '<|channel>thought\n', closing: '<channel|>' }`).
  * @param separator - The separator to use between reasoning and text sections.
  * @param startWithReasoning - Whether to start with reasoning tokens.
  */
@@ -19,12 +22,19 @@ export function extractReasoningMiddleware({
   separator = '\n',
   startWithReasoning = false,
 }: {
-  tagName: string;
+  tagName: string | { opening: string; closing: string };
   separator?: string;
   startWithReasoning?: boolean;
 }): LanguageModelMiddleware {
-  const openingTag = `<${tagName}>`;
-  const closingTag = `<\/${tagName}>`;
+  const openingTag =
+    typeof tagName === 'string' ? `<${tagName}>` : tagName.opening;
+  const closingTag =
+    typeof tagName === 'string' ? `<\/${tagName}>` : tagName.closing;
+
+  // Escape special regex characters so literal strings like `<|channel>thought\n`
+  // are matched verbatim rather than interpreted as regex operators.
+  const escapedOpeningTag = openingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedClosingTag = closingTag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
   return {
     specificationVersion: 'v4',
@@ -40,7 +50,10 @@ export function extractReasoningMiddleware({
 
         const text = startWithReasoning ? openingTag + part.text : part.text;
 
-        const regexp = new RegExp(`${openingTag}(.*?)${closingTag}`, 'gs');
+        const regexp = new RegExp(
+          `${escapedOpeningTag}(.*?)${escapedClosingTag}`,
+          'gs',
+        );
         const matches = Array.from(text.matchAll(regexp));
 
         if (!matches.length) {
