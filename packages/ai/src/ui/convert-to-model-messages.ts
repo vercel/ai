@@ -204,6 +204,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-approval-request' as const,
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),

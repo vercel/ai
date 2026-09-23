@@ -487,6 +487,13 @@ the `approval-responded` state after `addToolApprovalResponse` is called. This
 lets clients render or persist server-computed approval metadata without using
 it to determine whether the tool was approved.
 
+When a tool input schema transforms its input, approval requests also preserve
+the original value as `part.approval.inputSchemaInput`. Keep this field when
+persisting UI messages or model response messages so the SDK can reconstruct
+and verify the approved input before execution. The original value can include
+fields removed by the transform, so approval metadata should not be treated as
+redacted input.
+
 ### Auto-Submit After Approval
 
 <Note>

@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { InferUITool, UIMessage } from './ui-messages';
 import {
@@ -1103,6 +1104,80 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    describe.each([
+      'approval-requested',
+      'approval-responded',
+      'output-available',
+      'output-denied',
+      'output-error',
+    ] as const)('transformed approval input in %s state', state => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({ count: z.string().transform(Number) }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      function createMessages(input: unknown) {
+        return [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-count',
+                toolCallId: '1',
+                state,
+                input,
+                ...(state === 'output-available' ? { output: 'ok' } : {}),
+                ...(state === 'output-error' ? { errorText: 'failed' } : {}),
+                approval: {
+                  id: 'approval-1',
+                  inputSchemaInput: { count: '3' },
+                  ...(state === 'approval-requested'
+                    ? {}
+                    : { approved: state !== 'output-denied' }),
+                },
+              },
+            ],
+          },
+        ];
+      }
+
+      it('should preserve input matching the reconstructed schema output', async () => {
+        const messages = createMessages({ count: 3 });
+
+        expect(
+          await validateUIMessages({ messages, tools: tools as any }),
+        ).toEqual(messages);
+      });
+
+      it.each([{ count: 4 }, { count: 'not-a-number' }])(
+        'should not expose mismatched input %j as a validated static tool part',
+        async input => {
+          const messages = createMessages(input);
+
+          if (state === 'output-error') {
+            const result = await validateUIMessages({
+              messages,
+              tools: tools as any,
+            });
+            expect(result[0].parts[0]).toMatchObject({
+              type: 'dynamic-tool',
+              toolName: 'count',
+              input,
+            });
+          } else {
+            await expect(
+              validateUIMessages({ messages, tools: tools as any }),
+            ).rejects.toThrow(/does not match the output reconstructed/);
+          }
+
+          expect(messages[0].parts[0].input).toEqual(input);
+        },
+      );
+    });
+
     it('should validate tool input when state is approval-requested', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1159,6 +1234,49 @@ describe('validateUIMessages', () => {
         }),
       ).rejects.toThrowError(
         'Type validation failed for messages[0].parts[0].input',
+      );
+    });
+
+    it('should reject transformed approval input that does not match its schema input', async () => {
+      const transformedTool = tool({
+        inputSchema: z.object({
+          count: z.string().transform(Number),
+        }),
+        execute: async () => 'ok',
+      });
+      type TransformedMessage = UIMessage<
+        never,
+        never,
+        { count: InferUITool<typeof transformedTool> }
+      >;
+
+      await expect(
+        validateUIMessages<TransformedMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-count',
+                  toolCallId: 'call-1',
+                  state: 'approval-responded',
+                  input: { count: 4 },
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    inputSchemaInput: { count: '3' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            count: transformedTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Tool input does not match the output reconstructed from inputSchemaInput.',
       );
     });
 

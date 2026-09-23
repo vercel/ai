@@ -79,6 +79,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
@@ -123,7 +124,7 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import type { TypedToolCall } from './tool-call';
+import { getToolCallInputSchemaInput, type TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
@@ -2984,10 +2985,17 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-approval-request': {
+              const inputSchemaInput = getToolCallInputSchemaInput(
+                part.toolCall,
+              );
               controller.enqueue({
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(inputSchemaInput != null &&
+                !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+                  ? { inputSchemaInput: inputSchemaInput.value }
+                  : {}),
                 ...(part.signature != null
                   ? { signature: part.signature }
                   : {}),

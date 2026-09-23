@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalSignatureError } from '../error/invalid-tool-approval-signature-error';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { isApprovalNeeded } from './is-approval-needed';
 import { verifyToolApprovalSignature } from './tool-approval-signature';
@@ -86,18 +87,35 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
       typeof tool.execute === 'function' &&
       tool.inputSchema != null
     ) {
+      const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
+        approvalRequest,
+        'inputSchemaInput',
+      );
       const validation = await safeValidateTypes({
-        value: toolCall.input,
+        value: hasInputSchemaInput
+          ? approvalRequest.inputSchemaInput
+          : toolCall.input,
         schema: asSchema(tool.inputSchema),
       });
 
+      let validationError: unknown;
       if (!validation.success) {
+        validationError = validation.error;
+      } else if (!isDeepEqualData(validation.value, toolCall.input)) {
+        // Revalidation must never change the operation that was approved,
+        // including when older or projected history omits the schema input.
+        validationError = new Error(
+          'Approved tool input does not match the validated schema output.',
+        );
+      }
+
+      if (validationError != null) {
         invalid.push({
           ...approval,
           error: new InvalidToolInputError({
             toolName: toolCall.toolName,
             toolInput: JSON.stringify(toolCall.input),
-            cause: validation.error,
+            cause: validationError,
           }),
         });
         continue;

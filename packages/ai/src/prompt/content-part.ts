@@ -201,6 +201,8 @@ export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
   });
 
 /**
