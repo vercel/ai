@@ -414,6 +414,7 @@ describe('prepareTools', () => {
             tools: [weatherTool],
             toolChoice: { type: 'required' },
             modelId,
+            rejectsForcedToolUse: true,
           });
 
           expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
@@ -434,6 +435,7 @@ describe('prepareTools', () => {
           tools: [weatherTool, timeTool],
           toolChoice: { type: 'tool', toolName: 'getWeather' },
           modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
         });
 
         expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
@@ -465,6 +467,7 @@ describe('prepareTools', () => {
           ],
           toolChoice: { type: 'tool', toolName: 'getWeather' },
           modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
         });
 
         expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
@@ -474,7 +477,7 @@ describe('prepareTools', () => {
         expect(result.additionalTools).toBeUndefined();
       });
 
-      it('should pass auto tool choice to Anthropic provider tool preparation', async () => {
+      it('should pass the forced-tool capability to Anthropic provider tool preparation', async () => {
         await prepareTools({
           tools: [
             {
@@ -486,10 +489,14 @@ describe('prepareTools', () => {
           ],
           toolChoice: { type: 'tool', toolName: 'bash' },
           modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
         });
 
         expect(prepareAnthropicTools).toHaveBeenCalledWith(
-          expect.objectContaining({ toolChoice: { type: 'auto' } }),
+          expect.objectContaining({
+            toolChoice: { type: 'tool', toolName: 'bash' },
+            rejectsForcedToolUse: true,
+          }),
         );
       });
 
@@ -499,6 +506,7 @@ describe('prepareTools', () => {
           toolChoice: { type: 'required' },
           modelId: 'us.anthropic.claude-opus-5-5',
           disableParallelToolUse: true,
+          rejectsForcedToolUse: true,
         });
 
         expect(result.additionalTools).toEqual({

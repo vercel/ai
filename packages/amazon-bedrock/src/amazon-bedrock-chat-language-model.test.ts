@@ -4957,6 +4957,159 @@ describe('doGenerate', () => {
     });
   });
 
+  describe('models that reject forced tool use', () => {
+    type RequestCapture = {
+      body: {
+        toolConfig: {
+          toolChoice?: unknown;
+          tools: Array<{ toolSpec: { name: string } }>;
+        };
+        additionalModelRequestFields?: { tool_choice?: unknown };
+      };
+    };
+
+    const weatherTool = {
+      type: 'function' as const,
+      name: 'getWeather',
+      description: 'Get weather',
+      inputSchema: { type: 'object' as const },
+    };
+    const timeTool = {
+      type: 'function' as const,
+      name: 'getTime',
+      description: 'Get time',
+      inputSchema: { type: 'object' as const },
+    };
+
+    function createModelThatCapturesRequest(
+      modelId: string,
+      capture: RequestCapture,
+    ) {
+      return new AmazonBedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          capture.body = JSON.parse(String(init?.body));
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [{ text: 'Done' }],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      });
+    }
+
+    it.each([
+      'anthropic.claude-opus-5-5',
+      'us.anthropic.claude-opus-5-5',
+      'global.anthropic.claude-opus-5-5',
+    ])(
+      'should build an auto tool choice for required choice on %s',
+      async modelId => {
+        const capture = {} as RequestCapture;
+        const testModel = createModelThatCapturesRequest(modelId, capture);
+
+        const result = await testModel.doGenerate({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+              "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          },
+        ]);
+      },
+    );
+
+    it('should build an auto choice containing only the named tool', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool, timeTool],
+        toolChoice: { type: 'tool', toolName: 'getWeather' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+      expect(
+        capture.body.toolConfig.tools.map(tool => tool.toolSpec.name),
+      ).toEqual(['getWeather']);
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+            "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+            'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+        },
+      ]);
+    });
+
+    it('should build an Anthropic auto choice when parallel tool use is disabled', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: { disableParallelToolUse: true },
+        },
+      });
+
+      expect(capture.body.additionalModelRequestFields?.tool_choice).toEqual({
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      });
+      expect(capture.body.toolConfig.toolChoice).toBeUndefined();
+    });
+
+    it('should keep building forced tool choices for models that support them', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus5AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
   it('should send all tools when toolChoice is auto', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
