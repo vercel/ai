@@ -9,7 +9,7 @@
     "build:site": "pnpm sync-content && fumadocs-mdx && next build",
     "start:site": "next start",
     "type-check:site": "pnpm sync-content && fumadocs-mdx && tsc --noEmit",
-    "test:site": "node --test scripts/*.test.mjs",
+    "test:site": "node --test scripts/*.test.mjs && vitest run components/docs/*.test.ts",
     "validate:site": "pnpm test:site && pnpm build:site"
   },
   "dependencies": {

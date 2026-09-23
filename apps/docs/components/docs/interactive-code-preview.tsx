@@ -27,6 +27,17 @@ import {
   useState,
 } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
+import {
+  getStorageState,
+  getTopModelForProvider,
+  MODEL_KINDS,
+  resolveModel,
+  selectModel,
+  type ModelKind,
+  type PersistedStorageState,
+  type StorageState,
+  type TabType,
+} from './code-preview-preferences';
 
 /**
  * Faithful port of production ai-sdk.dev's InteractiveCodePreview
@@ -38,9 +49,6 @@ import type { ResolveHref } from '@/components/docs/resolve-href';
  * - swr -> plain `fetch` in an effect (no new dependencies)
  */
 
-type TabType = 'gateway' | 'provider' | 'custom';
-type ModelKind = 'text' | 'image' | 'video';
-
 const cx = (...classes: (string | false | null | undefined)[]): string =>
   classes.filter(Boolean).join(' ');
 
@@ -49,8 +57,6 @@ const identityHref: ResolveHref = href => href;
 const STORAGE_KEY = 'ai-sdk-code-preview';
 
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
-
-const TAB_TYPES: TabType[] = ['gateway', 'provider', 'custom'];
 
 const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
   text: 'anthropic/claude-sonnet-4.5',
@@ -74,19 +80,6 @@ const MODEL_KIND_FACTORY_SUFFIX: Record<ModelKind, string> = {
   text: '',
   image: '.image',
   video: '.video',
-};
-
-const MODEL_KINDS = Object.keys(MODEL_KIND_PLACEHOLDERS) as ModelKind[];
-
-type PersistedStorageState = {
-  modelId?: string;
-  modelIds?: Partial<Record<ModelKind, string>>;
-  tab?: TabType;
-};
-
-type StorageState = {
-  modelIds: Record<ModelKind, string>;
-  tab: TabType;
 };
 
 const EXCLUDED_MODEL_IDS = [
@@ -125,31 +118,6 @@ const safeLocalStorage = {
       // Storage unavailable (private mode, quota); selection stays in memory.
     }
   },
-};
-
-const getDefaultModelIds = (
-  defaultTextModelId: string,
-): Record<ModelKind, string> => ({
-  ...DEFAULT_MODEL_IDS,
-  text: defaultTextModelId,
-});
-
-const getStorageState = (
-  state: PersistedStorageState | null,
-  defaultTextModelId: string,
-): StorageState | null => {
-  if (!(state?.tab && TAB_TYPES.includes(state.tab))) {
-    return null;
-  }
-
-  return {
-    tab: state.tab,
-    modelIds: {
-      ...getDefaultModelIds(defaultTextModelId),
-      ...state.modelIds,
-      ...(state.modelId ? { text: state.modelId } : {}),
-    },
-  };
 };
 
 type ModelOption = {
@@ -650,20 +618,36 @@ export const InteractiveCodePreview = ({
     return 'text';
   }, [placeholderKinds]);
 
-  const [activeTab, setActiveTab] = useState<TabType>('gateway');
-  const [selectedModelIds, setSelectedModelIds] = useState<
-    Record<ModelKind, string>
-  >(() => getDefaultModelIds(defaultModelId));
+  const [selection, setSelection] = useState<StorageState>({
+    providers: {},
+    models: {},
+    tab: 'gateway',
+  });
+  const activeTab = selection.tab;
   const [showProviderOnly, setShowProviderOnly] = useState<string | null>(null);
 
   // Load saved state from localStorage after mount to avoid hydration mismatch
   useEffect(() => {
-    const saved = getStorageState(safeLocalStorage.getItem(), defaultModelId);
-    if (saved) {
-      setActiveTab(saved.tab);
-      setSelectedModelIds(saved.modelIds);
+    setSelection(getStorageState(safeLocalStorage.getItem()));
+  }, []);
+
+  // Expire explicit model choices even if the page stays open for a day.
+  // Reading preferences or changing tabs never extends their lifetime.
+  useEffect(() => {
+    const expirations = Object.values(selection.models).map(
+      model => model.expiresAt,
+    );
+    if (expirations.length === 0) {
+      return;
     }
-  }, [defaultModelId]);
+    const timeout = window.setTimeout(
+      () => {
+        setSelection(current => getStorageState(current));
+      },
+      Math.max(0, Math.min(...expirations) - Date.now()),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [selection.models]);
 
   // Listen for changes from other instances via storage event
   useEffect(() => {
@@ -674,14 +658,8 @@ export const InteractiveCodePreview = ({
       try {
         const saved = getStorageState(
           JSON.parse(event.newValue) as PersistedStorageState,
-          defaultModelId,
         );
-        if (!saved) {
-          return;
-        }
-
-        setActiveTab(saved.tab);
-        setSelectedModelIds(saved.modelIds);
+        setSelection(saved);
         setShowProviderOnly(null);
       } catch {
         // Ignore invalid JSON
@@ -692,14 +670,12 @@ export const InteractiveCodePreview = ({
     return () => {
       window.removeEventListener('storage', handleStorage);
     };
-  }, [defaultModelId]);
+  }, []);
 
   // Save and broadcast when selection changes
-  const updateSelection = (
-    modelIds: Record<ModelKind, string>,
-    tab: TabType,
-  ) => {
-    safeLocalStorage.setItem({ modelIds, tab });
+  const updateSelection = (nextSelection: StorageState) => {
+    setSelection(nextSelection);
+    safeLocalStorage.setItem(nextSelection);
   };
 
   // Fetch the gateway model list client-side; fall back to the default
@@ -797,16 +773,24 @@ export const InteractiveCodePreview = ({
     () =>
       MODEL_KINDS.reduce(
         (acc, kind) => {
-          const defaultModel = getDefaultModelOption(kind);
           const currentModels =
             activeTab === 'provider'
               ? providerTabModelsByKind[kind]
               : gatewayTabModelsByKind[kind];
-          const selectedModelId = selectedModelIds[kind] ?? defaultModel.id;
+          const defaultModel =
+            currentModels.find(
+              model =>
+                model.id ===
+                (kind === 'text' ? defaultModelId : DEFAULT_MODEL_IDS[kind]),
+            ) ?? getDefaultModelOption(kind);
 
-          acc[kind] =
-            currentModels.find(model => model.id === selectedModelId) ??
-            defaultModel;
+          acc[kind] = resolveModel({
+            state: selection,
+            kind,
+            models: currentModels,
+            defaultModel,
+            preferredModelIds: providerPreferredModels[kind],
+          });
 
           return acc;
         },
@@ -816,53 +800,30 @@ export const InteractiveCodePreview = ({
       activeTab,
       gatewayTabModelsByKind,
       providerTabModelsByKind,
-      selectedModelIds,
+      selection,
+      defaultModelId,
     ],
   );
 
   const selectedModel = selectedModelsByKind[activeModelKind];
 
-  const getTopModelForProvider = (
-    providerName: string,
-  ): ModelOption | undefined => {
-    const providerModels = displayedModels.filter(
-      model => model.provider === providerName,
-    );
-    const preferredId =
-      providerPreferredModels[activeModelKind]?.[providerName];
-    if (preferredId) {
-      const preferred = providerModels.find(model => model.id === preferredId);
-      if (preferred) {
-        return preferred;
-      }
-    }
-    if (activeModelKind === 'text' && providerName === 'openai') {
-      const gptModels = providerModels.filter(model =>
-        model.name.startsWith('GPT'),
-      );
-      return gptModels[0] || providerModels[0];
-    }
-    return providerModels[0];
-  };
-
   const handleProviderClick = (providerName: string) => {
-    const topModel = getTopModelForProvider(providerName);
+    const topModel = getTopModelForProvider(
+      displayedModels,
+      activeModelKind,
+      providerName,
+      providerPreferredModels[activeModelKind]?.[providerName],
+    );
     if (topModel) {
-      const nextModelIds: Record<ModelKind, string> = {
-        ...selectedModelIds,
-        [activeModelKind]: topModel.id,
-      };
-      setSelectedModelIds(nextModelIds);
+      updateSelection(selectModel(selection, activeModelKind, topModel));
       setShowProviderOnly(providerName);
-      updateSelection(nextModelIds, activeTab);
       onModelChange?.();
     }
   };
 
   const handleTabChange = (tab: TabType) => {
-    setActiveTab(tab);
     setShowProviderOnly(null);
-    updateSelection(selectedModelIds, tab);
+    updateSelection({ ...getStorageState(selection), tab });
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -887,13 +848,8 @@ export const InteractiveCodePreview = ({
   };
 
   const handleModelSelect = (option: ModelOption) => {
-    const nextModelIds: Record<ModelKind, string> = {
-      ...selectedModelIds,
-      [activeModelKind]: option.id,
-    };
-    setSelectedModelIds(nextModelIds);
+    updateSelection(selectModel(selection, activeModelKind, option));
     setShowProviderOnly(null);
-    updateSelection(nextModelIds, activeTab);
     onModelChange?.();
   };
 
