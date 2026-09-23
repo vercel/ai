@@ -1375,6 +1375,93 @@ describe('validateUIMessages', () => {
       );
     });
 
+    it('should reject transformed approval input that does not match its schema input', async () => {
+      const transformedTool = {
+        inputSchema: z.object({
+          count: z.string().transform(Number),
+        }),
+      };
+      type TransformedMessage = UIMessage<
+        never,
+        never,
+        { count: InferUITool<typeof transformedTool> }
+      >;
+
+      await expect(
+        validateUIMessages<TransformedMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-count',
+                  toolCallId: 'call-1',
+                  state: 'approval-responded',
+                  input: { count: 4 },
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    inputSchemaInput: { count: '3' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            count: transformedTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Tool input does not match the output reconstructed from inputSchemaInput.',
+      );
+    });
+
+    it('should compare transformed approval input after applying input refinement', async () => {
+      const refinedTool = {
+        inputSchema: z.object({
+          value: z.string(),
+        }),
+      };
+      type RefinedMessage = UIMessage<
+        never,
+        never,
+        { refined: InferUITool<typeof refinedTool> }
+      >;
+
+      const messages = await validateUIMessages<RefinedMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-refined',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { value: 'trimmed' },
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  inputSchemaInput: { value: ' trimmed ' },
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          refined: refinedTool,
+        },
+        experimental_refineToolInput: {
+          refined: input => ({ value: input.value.trim() }),
+        },
+      });
+
+      expect(messages[0].parts[0]).toMatchObject({
+        input: { value: 'trimmed' },
+      });
+    });
+
     it('should validate tool input when state is output-denied', async () => {
       await expect(
         validateUIMessages<TestMessage>({

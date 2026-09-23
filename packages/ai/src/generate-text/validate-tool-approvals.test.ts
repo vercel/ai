@@ -151,7 +151,7 @@ describe('validateApprovedToolApprovals', () => {
     expect(result.invalidToolApprovals).toHaveLength(0);
   });
 
-  it('should execute validated schema output when the original schema input is missing', async () => {
+  it('should reject approvals when missing schema input would change the approved input', async () => {
     const tools = {
       tool1: tool({
         inputSchema: z4
@@ -177,14 +177,18 @@ describe('validateApprovedToolApprovals', () => {
       runtimeContext: {},
     });
 
-    expect(result.approvedToolApprovals).toHaveLength(1);
-    expect(result.approvedToolApprovals[0].toolCall.input).toEqual({
-      safe: 999,
-    });
-    expect(result.approvedToolApprovals[0].toolCall.input).not.toEqual({
-      raw: '999',
-    });
-    expect(result.invalidToolApprovals).toHaveLength(0);
+    expect(result.approvedToolApprovals).toHaveLength(0);
+    expect(result.invalidToolApprovals).toMatchObject([
+      {
+        toolCall: approval.toolCall,
+        error: {
+          name: 'AI_InvalidToolInputError',
+          message: expect.stringMatching(
+            /does not match the validated schema output/,
+          ),
+        },
+      },
+    ]);
   });
 
   it('should keep approvals whose schema input reshapes to the approved input', async () => {
@@ -473,6 +477,73 @@ describe('validateApprovedToolApprovals', () => {
       });
 
       expect(result.approvedToolApprovals).toHaveLength(1);
+    });
+
+    it('should not transform a signed input after verification when schema input metadata is missing', async () => {
+      const tools = {
+        tool1: tool({
+          inputSchema: z4.object({
+            value: z4.number().transform(value => value + 1),
+          }),
+          execute: async () => 'ok',
+        }),
+      };
+
+      const approvalId = 'approval-signed';
+      const toolCallId = 'call-1';
+      const toolName = 'tool1';
+      const input = { value: 1 };
+      const signature = await signToolApproval({
+        secret,
+        approvalId,
+        toolCallId,
+        toolName,
+        input,
+      });
+
+      const approval: CollectedToolApprovals<any> = {
+        approvalRequest: {
+          type: 'tool-approval-request',
+          approvalId,
+          toolCallId,
+          signature,
+        },
+        approvalResponse: {
+          type: 'tool-approval-response',
+          approvalId,
+          approved: true,
+        },
+        toolCall: {
+          type: 'tool-call',
+          toolCallId,
+          toolName,
+          input,
+        },
+      };
+
+      const result = await validateApprovedToolApprovals({
+        approvedToolApprovals: [approval],
+        tools,
+        toolApproval: undefined,
+        messages: [],
+        toolsContext: {} as any,
+        runtimeContext: {},
+        toolApprovalSecret: secret,
+      });
+
+      expect(result.approvedToolApprovals).toHaveLength(0);
+      expect(result.invalidToolApprovals).toMatchObject([
+        {
+          toolCall: {
+            input: { value: 1 },
+          },
+          error: {
+            message: expect.stringMatching(
+              /does not match the validated schema output/,
+            ),
+          },
+        },
+      ]);
     });
 
     it('should throw when the signature is missing and secret is configured', async () => {

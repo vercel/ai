@@ -5,11 +5,13 @@ import {
   validateTypes,
   zodSchema,
   type FlexibleSchema,
+  type MaybePromiseLike,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { z, type ZodType } from '../util/zod';
 import type {
@@ -472,6 +474,11 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
           >;
         };
   };
+  experimental_refineToolInput?: {
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: (
+      input: InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+    ) => MaybePromiseLike<InferUIMessageTools<UI_MESSAGE>[NAME]['input']>;
+  };
 };
 
 async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
@@ -480,6 +487,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
     metadataSchema,
     dataSchemas,
     tools,
+    experimental_refineToolInput,
   }: ValidateUIMessagesOptions<UI_MESSAGE>,
   {
     convertMissingTerminalToolsToDynamic,
@@ -609,20 +617,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
                 : inputSchemaInput.value;
             let convertToDynamic = false;
 
-            // Tool input validation
-            if (toolPart.state === 'output-error') {
-              // Failed calls can retain invalid input. Keep them loadable, but
-              // expose incompatible input as unknown instead of the current
-              // static tool input type.
-              if (inputSchemaInput != null || toolPart.input !== undefined) {
-                const result = await safeValidateTypes({
-                  value: inputToValidate,
-                  schema: tool.inputSchema,
-                  context: inputValidationContext,
-                });
-                convertToDynamic = !result.success;
-              }
-            } else if (toolPart.state === 'output-available') {
+            const validateToolInput = async (): Promise<Error | undefined> => {
               const result = await safeValidateTypes({
                 value: inputToValidate,
                 schema: tool.inputSchema,
@@ -630,13 +625,57 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               });
 
               if (!result.success) {
+                return result.error;
+              }
+
+              if (inputSchemaInput == null) {
+                return undefined;
+              }
+
+              let reconstructedInput = result.value;
+              const refine = getOwn(experimental_refineToolInput, toolName);
+
+              if (refine != null) {
+                try {
+                  reconstructedInput = await refine(reconstructedInput);
+                } catch (error) {
+                  return new TypeValidationError({
+                    value: inputToValidate,
+                    cause: error,
+                    context: inputValidationContext,
+                  });
+                }
+              }
+
+              return isDeepEqualData(reconstructedInput, toolPart.input)
+                ? undefined
+                : new TypeValidationError({
+                    value: toolPart.input,
+                    cause:
+                      'Tool input does not match the output reconstructed from inputSchemaInput.',
+                    context: inputValidationContext,
+                  });
+            };
+
+            // Tool input validation
+            if (toolPart.state === 'output-error') {
+              // Failed calls can retain invalid input. Keep them loadable, but
+              // expose incompatible input as unknown instead of the current
+              // static tool input type.
+              if (inputSchemaInput != null || toolPart.input !== undefined) {
+                convertToDynamic = (await validateToolInput()) != null;
+              }
+            } else if (toolPart.state === 'output-available') {
+              const inputError = await validateToolInput();
+
+              if (inputError != null) {
                 // Empty terminal input can represent aborted or incomplete
                 // history whose input was never streamed. Preserve it without
                 // claiming that it matches the current static input type.
                 if (isEmptyObject(inputToValidate)) {
                   convertToDynamic = true;
                 } else {
-                  throw result.error;
+                  throw inputError;
                 }
               }
             } else if (
@@ -645,11 +684,10 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               toolPart.state === 'approval-responded' ||
               toolPart.state === 'output-denied'
             ) {
-              await validateTypes({
-                value: inputToValidate,
-                schema: tool.inputSchema,
-                context: inputValidationContext,
-              });
+              const inputError = await validateToolInput();
+              if (inputError != null) {
+                throw inputError;
+              }
             }
 
             // Tool output validation
