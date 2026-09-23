@@ -4359,6 +4359,77 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'global.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-5',
+  ])(
+    'should omit unsupported sampling parameters for %s',
+    async samplingModelId => {
+      let requestBody: any;
+      const samplingModel = new AmazonBedrockChatLanguageModel(
+        samplingModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: 'OK' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      const result = await samplingModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        topK: 10,
+      });
+
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${samplingModelId} and will be ignored`,
+        },
+      ]);
+    },
+  );
+
   it('should support guardrails', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 

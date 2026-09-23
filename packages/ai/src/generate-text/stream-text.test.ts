@@ -9539,7 +9539,6 @@ describe('streamText', () => {
           if (stepNumber === 1) {
             return { model: alternateModel };
           }
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -10063,8 +10062,6 @@ describe('streamText', () => {
               },
             };
           }
-
-          return undefined;
         },
         onStepStart: async event => {
           stepStartEvents.push(event);
@@ -27160,7 +27157,6 @@ describe('streamText', () => {
                 };
               }
             }
-            return undefined;
           },
         });
       });

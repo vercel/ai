@@ -934,7 +934,6 @@ export async function runBridge<TStart extends { type: 'start' }>(
         const data = (await onStop?.()) ?? {};
         sendControl(ws, { type: 'bridge-stop', data });
         drainThenExit(ws, 1000, 'stop');
-        return;
       }
     }
   };

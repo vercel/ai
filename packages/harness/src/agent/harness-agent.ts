@@ -877,7 +877,6 @@ export class HarnessAgent<
         };
       }
     }
-    return undefined;
   }
 
   /*

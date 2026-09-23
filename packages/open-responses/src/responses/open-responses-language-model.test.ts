@@ -181,7 +181,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     function prepareOutputResponse(output: Array<Record<string, unknown>>) {
