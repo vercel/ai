@@ -1,7 +1,8 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { harnessV1StateDirectory, type HarnessV1Bootstrap } from '../../v1';
+import { harnessStateDirectoryPath, type HarnessV1Bootstrap } from '../../v1';
 import { resolveSandboxDefaultWorkingDirectory } from '../../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../../utils/sandbox-home-dir';
 import type { HarnessAgentSandboxConfig } from '../harness-agent-settings';
 import { applyBootstrapRecipe, hashHarnessBootstrap } from './bootstrap-recipe';
 
@@ -157,9 +158,11 @@ export async function runSandboxBootstrap({
       // `onBootstrap` hook. Resolved directly from `session` — this runs
       // from a provider's `onFirstCreate`, before a
       // `HarnessV1NetworkSandboxSession` even exists.
-      stateDirectory: await harnessV1StateDirectory({
-        sandbox: session,
-        abortSignal,
+      stateDirectory: harnessStateDirectoryPath({
+        sandboxHomeDir: await resolveSandboxHomeDir({
+          sandbox: session,
+          abortSignal,
+        }),
       }),
       abortSignal,
     });

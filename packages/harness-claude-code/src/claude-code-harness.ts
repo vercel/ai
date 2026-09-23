@@ -21,7 +21,7 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
-  harnessV1StateDirectoryFromHome,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -934,7 +934,7 @@ export function createClaudeCode(
         sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
-      const stateDir = harnessV1StateDirectoryFromHome(sandboxHomeDir);
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
       const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
       // The conversation the host wants back, when it is known. Absent on
       // state written before this field existed; those resumes fall back to

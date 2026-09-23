@@ -1,9 +1,6 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import {
-  harnessV1StateDirectoryFromHome,
-  type HarnessV1Bootstrap,
-} from '../../v1';
+import { harnessStateDirectoryPath, type HarnessV1Bootstrap } from '../../v1';
 
 /**
  * Version of the bootstrap recipe shape itself. Bump to force every existing
@@ -32,7 +29,7 @@ export async function hashHarnessBootstrap(
     chunks.push(encoder.encode('\0'));
   };
 
-  pushString(harnessV1StateDirectoryFromHome('$HOME'));
+  pushString(harnessStateDirectoryPath({ sandboxHomeDir: '$HOME' }));
   pushString(recipe.harnessId);
   pushString(recipe.bootstrapDir);
 

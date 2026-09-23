@@ -1,8 +1,9 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { harnessV1StateDirectory } from '../v1';
+import { harnessStateDirectoryPath } from '../v1';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import type { HarnessAgentAdapter } from './harness-agent-types';
 import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -83,9 +84,11 @@ export async function prepareSandboxForHarness(options: {
     recipeIdentities[harness.harnessId] = recipeIdentity;
     // Harness infrastructure always lives under the sandbox's own HOME,
     // never the working directory.
-    stateDirectory ??= await harnessV1StateDirectory({
-      sandbox: options.session,
-      abortSignal: options.abortSignal,
+    stateDirectory ??= harnessStateDirectoryPath({
+      sandboxHomeDir: await resolveSandboxHomeDir({
+        sandbox: options.session,
+        abortSignal: options.abortSignal,
+      }),
     });
     await applyBootstrapRecipe({
       session: options.session,

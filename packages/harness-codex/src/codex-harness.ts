@@ -19,7 +19,7 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
-  harnessV1StateDirectoryFromHome,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -326,7 +326,7 @@ export function createCodex(
         sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
-      const stateDir = harnessV1StateDirectoryFromHome(sandboxHomeDir);
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
       const bootstrapDir = path.posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;

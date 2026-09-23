@@ -1,6 +1,6 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
 import {
-  harnessV1StateDirectory,
+  harnessStateDirectoryPath,
   type HarnessV1,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1JSONSchema,
@@ -69,6 +69,7 @@ import {
 } from './internal/permission-mode';
 import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
 import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
 
@@ -405,9 +406,11 @@ export class HarnessAgent<
             identity: recipeIdentity,
             // Harness infrastructure always lives under the sandbox's own
             // HOME, never the session's working directory.
-            stateDirectory: await harnessV1StateDirectory({
-              sandbox: toolSafeSandboxSession,
-              abortSignal,
+            stateDirectory: harnessStateDirectoryPath({
+              sandboxHomeDir: await resolveSandboxHomeDir({
+                sandbox: toolSafeSandboxSession,
+                abortSignal,
+              }),
             }),
             abortSignal,
           });
@@ -463,9 +466,11 @@ export class HarnessAgent<
               identity: recipeIdentity,
               // Harness infrastructure always lives under the sandbox's own
               // HOME, never the working directory.
-              stateDirectory: await harnessV1StateDirectory({
-                sandbox: resumedSandboxSession,
-                abortSignal,
+              stateDirectory: harnessStateDirectoryPath({
+                sandboxHomeDir: await resolveSandboxHomeDir({
+                  sandbox: resumedSandboxSession,
+                  abortSignal,
+                }),
               }),
               abortSignal,
             });
@@ -515,9 +520,11 @@ export class HarnessAgent<
               identity: sandboxBootstrapPlan.recipeIdentity,
               // Harness infrastructure always lives under the sandbox's own
               // HOME, never the working directory.
-              stateDirectory: await harnessV1StateDirectory({
-                sandbox: createdSandboxSession,
-                abortSignal,
+              stateDirectory: harnessStateDirectoryPath({
+                sandboxHomeDir: await resolveSandboxHomeDir({
+                  sandbox: createdSandboxSession,
+                  abortSignal,
+                }),
               }),
               abortSignal,
             });

@@ -12,7 +12,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
-  harnessV1StateDirectoryFromHome,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -377,7 +377,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
-      const stateDirectory = harnessV1StateDirectoryFromHome(sandboxHomeDir);
+      const stateDirectory = harnessStateDirectoryPath({ sandboxHomeDir });
       const resolvedBridgeDir = posix.resolve(
         stateDirectory,
         bootstrap.bootstrapDir,

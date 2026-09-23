@@ -1,6 +1,5 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 
 /**
  * Connection details for a sandbox-exposed port. Headers are scoped to the
@@ -18,44 +17,20 @@ export type HarnessV1PortEndpoint = {
 const HARNESS_V1_STATE_DIRECTORY_NAME = '.ai-sdk-harness';
 
 /**
- * Derive {@link harnessV1StateDirectory}'s path from an already-resolved
- * sandbox HOME directory. Prefer this over calling
- * {@link harnessV1StateDirectory} when the caller already knows the
- * sandbox's HOME for its own reasons, so it is resolved only once per
- * session.
+ * Fixed, non-configurable path for harness-generated state (bootstrap files,
+ * markers, and `.agent-runs`) under the sandbox's own HOME, never under
+ * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}. Resolve HOME
+ * with `resolveSandboxHomeDir` when it is not already known. This works from
+ * provider creation hooks that only have a plain sandbox session. The
+ * framework also calls this with a symbolic `$HOME` when hashing bootstrap
+ * recipes, so changes to the state path invalidate existing templates.
  */
-export function harnessV1StateDirectoryFromHome(
-  sandboxHomeDir: string,
-): string {
-  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
-}
-
-/**
- * Resolve where the harness machinery keeps its generated state for this
- * sandbox: `~/.ai-sdk-harness` under the sandbox's own HOME — never
- * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}, so
- * infrastructure never lands in a user-owned workspace.
- *
- * Not configurable. Every sandbox gets the same fixed layout, so state is
- * always at one predictable path instead of depending on what each provider
- * chooses to declare. Resolved from `HOME` via `sandbox.run()`, so it works
- * from any point in the sandbox lifecycle where a plain, `run()`-capable
- * session is available — including a provider's own `onFirstCreate` hook,
- * before a {@link HarnessV1NetworkSandboxSession} even exists.
- *
- * Adapters and the framework must derive every state path (bootstrap
- * directories, `.agent-runs`, markers) through this or
- * {@link harnessV1StateDirectoryFromHome}.
- */
-export async function harnessV1StateDirectory({
-  sandbox,
-  abortSignal,
+export function harnessStateDirectoryPath({
+  sandboxHomeDir,
 }: {
-  readonly sandbox: SandboxSession;
-  readonly abortSignal?: AbortSignal;
-}): Promise<string> {
-  const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
-  return harnessV1StateDirectoryFromHome(homeDir);
+  sandboxHomeDir: string;
+}): string {
+  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
 }
 
 /**

@@ -1,8 +1,9 @@
 import {
-  harnessV1StateDirectory,
+  harnessStateDirectoryPath,
   type HarnessV1Bootstrap,
   type HarnessV1SandboxProvider,
 } from '../v1';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import type { HarnessAgentAdapter } from './harness-agent-types';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
@@ -69,9 +70,11 @@ export async function prepareHarnessSandboxTemplate(options: {
         identity: bootstrapPlan.recipeIdentity,
         // Harness infrastructure always lives under the sandbox's own HOME,
         // never the working directory.
-        stateDirectory: await harnessV1StateDirectory({
-          sandbox: restrictedSession,
-          abortSignal,
+        stateDirectory: harnessStateDirectoryPath({
+          sandboxHomeDir: await resolveSandboxHomeDir({
+            sandbox: restrictedSession,
+            abortSignal,
+          }),
         }),
         abortSignal,
       });

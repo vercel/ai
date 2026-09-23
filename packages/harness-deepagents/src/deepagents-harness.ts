@@ -17,7 +17,7 @@ import {
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1StreamPart,
-  harnessV1StateDirectoryFromHome,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -295,7 +295,7 @@ export function createDeepAgents(
         sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
-      const stateDir = harnessV1StateDirectoryFromHome(homeDir);
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir: homeDir });
       const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
