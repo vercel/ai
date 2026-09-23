@@ -1,22 +1,30 @@
 import {
   APICallError,
   InvalidArgumentError,
+  type LanguageModelV4,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+  type FetchFunction,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { streamText, StreamProviderError } from 'ai';
 import { createQuiverAI } from './quiverai-provider';
+import { QuiverAILanguageModel } from './quiverai-language-model';
 
 const URL = 'https://api.quiver.ai/v1/responses';
+const CUSTOM_URL = 'https://example.com/quiverai/responses';
 const prompt: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Create an icon.' }] },
 ];
 
 const server = createTestServer({
   [URL]: {},
+  [CUSTOM_URL]: {},
 });
 
 function createResponse({
@@ -52,6 +60,141 @@ function createResponse({
 }
 
 describe('QuiverAI language model', () => {
+  describe('workflow serialization', () => {
+    function roundTripModel(model: LanguageModelV4) {
+      const serialized = QuiverAILanguageModel[WORKFLOW_SERIALIZE](
+        model as QuiverAILanguageModel,
+      );
+      return QuiverAILanguageModel[WORKFLOW_DESERIALIZE](
+        JSON.parse(JSON.stringify(serialized)),
+      );
+    }
+
+    it('preserves model settings, authentication, and QuiverAI request policy', async () => {
+      server.urls[CUSTOM_URL].response = {
+        type: 'json-value',
+        body: createResponse({ output: [] }),
+      };
+
+      const model = roundTripModel(
+        createQuiverAI({
+          apiKey: 'test-api-key',
+          baseURL: 'https://example.com/quiverai/',
+          headers: { 'x-custom': 'custom-value' },
+          fetch: () => {
+            throw new Error('Custom fetch must not cross workflow boundaries.');
+          },
+        })('arrow-2-telos'),
+      );
+
+      expect(model).toBeInstanceOf(QuiverAILanguageModel);
+      expect(model.modelId).toBe('arrow-2-telos');
+      expect(model.provider).toBe('quiverai.responses');
+      await expect(
+        model.doGenerate({
+          prompt,
+          providerOptions: { quiverai: { reasoningEffort: 'max' } },
+        }),
+      ).rejects.toBeInstanceOf(InvalidArgumentError);
+
+      const result = await model.doGenerate({
+        prompt,
+        providerOptions: { quiverai: { reasoningEffort: 'high' } },
+        responseFormat: { type: 'json', schema: { type: 'object' } },
+      });
+
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'responseFormat',
+      });
+      expect(server.calls[0].requestUrl).toBe(CUSTOM_URL);
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-api-key',
+        'x-custom': 'custom-value',
+      });
+      expect(
+        server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+      ).toHaveLength(1);
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        model: 'arrow-2-telos',
+        reasoning: { effort: 'high' },
+      });
+      expect(requestBody.text).toBeUndefined();
+    });
+
+    it('restores QuiverAI HTTP error handling', async () => {
+      server.urls[URL].response = {
+        type: 'error',
+        status: 503,
+        body: JSON.stringify({
+          status: 503,
+          code: 'service_unavailable',
+          message: 'Model capacity is temporarily unavailable.',
+          request_id: 'req_1',
+        }),
+      };
+
+      const model = roundTripModel(
+        createQuiverAI({ apiKey: 'test-api-key' })('arrow-2'),
+      );
+
+      await expect(model.doGenerate({ prompt })).rejects.toMatchObject({
+        message: 'Model capacity is temporarily unavailable.',
+        statusCode: 503,
+        isRetryable: true,
+      });
+    });
+
+    it.each(['doGenerate', 'doStream'] as const)(
+      'restores QuiverAI response error metadata in %s',
+      async method => {
+        const response = {
+          ...createResponse({ output: [], status: 'failed' }),
+          error: {
+            code: 'service_unavailable',
+            message: 'Try again later.',
+            status_code: 503,
+          },
+        };
+        server.urls[URL].response =
+          method === 'doGenerate'
+            ? { type: 'json-value', body: response }
+            : {
+                type: 'stream-chunks',
+                chunks: [
+                  `data: ${JSON.stringify({ type: 'response.failed', sequence_number: 0, response })}\n\n`,
+                  'data: [DONE]\n\n',
+                ],
+              };
+
+        const model = roundTripModel(
+          createQuiverAI({ apiKey: 'test-api-key' })('arrow-2'),
+        );
+        const expectedError = {
+          message: 'Try again later.',
+          statusCode: 503,
+          isRetryable: true,
+        };
+        if (method === 'doGenerate') {
+          await expect(model.doGenerate({ prompt })).rejects.toMatchObject(
+            expectedError,
+          );
+        } else {
+          const result = streamText({
+            model,
+            prompt: 'Create an icon.',
+            maxRetries: 0,
+          });
+          const parts = await convertReadableStreamToArray(result.fullStream);
+          const error = parts.find(part => part.type === 'error')?.error;
+          expect(error).toBeInstanceOf(StreamProviderError);
+          expect(error).toMatchObject(expectedError);
+        }
+      },
+    );
+  });
+
   it('preserves flat QuiverAI HTTP error details', async () => {
     server.urls[URL].response = {
       type: 'error',

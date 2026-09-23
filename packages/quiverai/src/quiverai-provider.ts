@@ -4,7 +4,10 @@ import {
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
-import { createOpenResponses } from '@ai-sdk/open-responses';
+import {
+  createOpenResponses,
+  type OpenResponsesProviderSettings,
+} from '@ai-sdk/open-responses';
 import {
   loadApiKey,
   loadOptionalSetting,
@@ -104,7 +107,7 @@ export function createQuiverAI(
   const getImageHeaders = () =>
     withUserAgentSuffix(getHeaders(), `ai-sdk/quiverai/${VERSION}`);
 
-  const responsesProvider = createOpenResponses({
+  const responsesConfig: OpenResponsesProviderSettings = {
     name: 'quiverai',
     url: `${baseURL}/responses`,
     headers: getHeaders,
@@ -115,10 +118,14 @@ export function createQuiverAI(
     customToolId: 'quiverai.custom',
     structuredOutputs: false,
     userAgentSuffix: `ai-sdk/quiverai/${VERSION}`,
-  });
+  };
+  const responsesProvider = createOpenResponses(responsesConfig);
 
   const createLanguageModel = (modelId: QuiverAILanguageModelId) =>
-    new QuiverAILanguageModel(responsesProvider.languageModel(modelId));
+    new QuiverAILanguageModel(
+      responsesProvider.languageModel(modelId),
+      responsesConfig,
+    );
 
   const createImageModel = (modelId: QuiverAIImageModelId) =>
     new QuiverAIImageModel(modelId, {

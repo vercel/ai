@@ -6,12 +6,52 @@ import {
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
+import {
+  createOpenResponses,
+  type OpenResponsesProviderSettings,
+} from '@ai-sdk/open-responses';
+import {
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import {
+  getQuiverAIResponseErrorMetadata,
+  quiveraiFailedResponseHandler,
+} from './quiverai-error';
 
 /** Applies QuiverAI's request policy while reusing the Open Responses transport. */
 export class QuiverAILanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
-  constructor(private readonly model: LanguageModelV4) {}
+  static [WORKFLOW_SERIALIZE](model: QuiverAILanguageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: string;
+    config: OpenResponsesProviderSettings;
+  }) {
+    // Restore QuiverAI's handlers, which cannot cross workflow boundaries.
+    const config: OpenResponsesProviderSettings = {
+      ...options.config,
+      failedResponseHandler: quiveraiFailedResponseHandler,
+      getResponseErrorMetadata: getQuiverAIResponseErrorMetadata,
+    };
+
+    return new QuiverAILanguageModel(
+      createOpenResponses(config).languageModel(options.modelId),
+      config,
+    );
+  }
+
+  constructor(
+    private readonly model: LanguageModelV4,
+    private readonly config: OpenResponsesProviderSettings,
+  ) {}
 
   get modelId() {
     return this.model.modelId;
