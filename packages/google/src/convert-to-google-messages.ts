@@ -93,19 +93,22 @@ function appendToolResultParts(
                 data: parsedDataUrl.data,
               },
             });
+          } else if (
+            isFullMediaType(contentPart.mediaType) &&
+            isUrlSupported({
+              url,
+              mediaType: contentPart.mediaType,
+              supportedUrls,
+            })
+          ) {
+            functionResponseParts.push({
+              fileData: {
+                mimeType: contentPart.mediaType,
+                fileUri: url,
+              },
+            });
           } else {
-            const mediaType = resolveFullMediaType({ part: contentPart });
-
-            if (isUrlSupported({ url, mediaType, supportedUrls })) {
-              functionResponseParts.push({
-                fileData: {
-                  mimeType: mediaType,
-                  fileUri: url,
-                },
-              });
-            } else {
-              responseTextParts.push(JSON.stringify(contentPart));
-            }
+            responseTextParts.push(JSON.stringify(contentPart));
           }
         } else {
           responseTextParts.push(JSON.stringify(contentPart));
