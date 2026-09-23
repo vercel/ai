@@ -1219,6 +1219,14 @@ export type ResponseCustomToolCallInputDeltaEvent = {
   delta: string;
 };
 
+export type ResponseCustomToolCallInputDoneEvent = {
+  type: 'response.custom_tool_call_input.done';
+  sequence_number: number;
+  item_id: string;
+  output_index: number;
+  input: string;
+};
+
 // ----------------------------------------------------------------------------
 // Delta Events - Reasoning
 // ----------------------------------------------------------------------------
@@ -1318,6 +1326,7 @@ export type OpenResponsesChunk =
   | ResponseFunctionCallArgumentsDeltaEvent
   | ResponseFunctionCallArgumentsDoneEvent
   | ResponseCustomToolCallInputDeltaEvent
+  | ResponseCustomToolCallInputDoneEvent
   // Delta Events - Reasoning
   | ResponseReasoningSummaryTextDeltaEvent
   | ResponseReasoningSummaryTextDoneEvent

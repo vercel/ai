@@ -838,20 +838,31 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                   chunk.item_id,
                 delta: chunk.delta,
               });
+            } else if (chunk.type === 'response.custom_tool_call_input.done') {
+              const toolCall = customToolCallsByItemId.get(chunk.item_id);
+              if (toolCall == null) {
+                customToolCallsByItemId.set(chunk.item_id, {
+                  input: chunk.input,
+                });
+              } else {
+                toolCall.input = chunk.input;
+              }
             } else if (
               chunk.type === 'response.output_item.done' &&
               chunk.item.type === 'custom_tool_call'
             ) {
               const toolCall = customToolCallsByItemId.get(chunk.item.id);
               const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
+              const input =
+                chunk.item.input !== ''
+                  ? chunk.item.input
+                  : (toolCall?.input ?? '');
               controller.enqueue({ type: 'tool-input-end', id: toolCallId });
               controller.enqueue({
                 type: 'tool-call',
                 toolCallId,
                 toolName: toolCall?.toolName ?? chunk.item.name,
-                input: JSON.stringify(
-                  toolCall?.input ?? chunk.item.input ?? '',
-                ),
+                input: JSON.stringify(input),
                 providerMetadata: {
                   [providerOptionsName]: { itemId: chunk.item.id },
                 },
