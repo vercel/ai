@@ -1,6 +1,7 @@
 import { quiverai, type QuiverAILanguageModelOptions } from '@ai-sdk/quiverai';
 import { generateText, isStepCount, tool } from 'ai';
 import { z } from 'zod';
+import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
 
 run(async () => {
@@ -40,4 +41,15 @@ run(async () => {
     stagedFiles: [...stagedFiles.keys()],
     usage: result.totalUsage,
   });
+
+  await presentImages(
+    [...stagedFiles.values()].map(content => {
+      const uint8Array = Buffer.from(content);
+      return {
+        mediaType: 'image/svg+xml',
+        base64: uint8Array.toString('base64'),
+        uint8Array,
+      };
+    }),
+  );
 });
