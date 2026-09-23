@@ -160,6 +160,70 @@ describe('bedrock-mantle-provider', () => {
     );
   });
 
+  it('should use the /openai/v1 base URL for Gemma 4, Grok and OpenAI GPT models other than gpt-oss', () => {
+    const provider = createBedrockMantle({
+      region: 'us-west-2',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider.chat('openai.gpt-6-sol');
+    provider.responses('openai.gpt-6-luna');
+
+    const chatConfig = vi.mocked(OpenAIChatLanguageModel).mock.calls[0][1];
+    const responsesConfig = vi.mocked(OpenAIResponsesLanguageModel).mock
+      .calls[0][1];
+
+    expect(
+      chatConfig.url({
+        path: '/chat/completions',
+        modelId: 'openai.gpt-6-sol',
+      }),
+    ).toBe(
+      'https://bedrock-mantle.us-west-2.api.aws/openai/v1/chat/completions',
+    );
+    expect(
+      responsesConfig.url({
+        path: '/responses',
+        modelId: 'openai.gpt-6-luna',
+      }),
+    ).toBe('https://bedrock-mantle.us-west-2.api.aws/openai/v1/responses');
+    expect(
+      chatConfig.url({
+        path: '/chat/completions',
+        modelId: 'openai.gpt-5.6-sol',
+      }),
+    ).toBe(
+      'https://bedrock-mantle.us-west-2.api.aws/openai/v1/chat/completions',
+    );
+    for (const modelId of ['google.gemma-4-31b', 'xai.grok-4.3']) {
+      expect(chatConfig.url({ path: '/chat/completions', modelId })).toBe(
+        'https://bedrock-mantle.us-west-2.api.aws/openai/v1/chat/completions',
+      );
+    }
+  });
+
+  it('should keep the /v1 base URL for gpt-oss and other models', () => {
+    const provider = createBedrockMantle({
+      region: 'us-west-2',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('openai.gpt-oss-120b');
+
+    const config = vi.mocked(OpenAIChatLanguageModel).mock.calls[0][1];
+
+    for (const modelId of [
+      'openai.gpt-oss-120b',
+      'openai.gpt-oss-safeguard-20b',
+      'google.gemma-3-27b-it',
+      'qwen.qwen3-32b',
+    ]) {
+      expect(config.url({ path: '/chat/completions', modelId })).toBe(
+        'https://bedrock-mantle.us-west-2.api.aws/v1/chat/completions',
+      );
+    }
+  });
+
   it('should pass custom baseURL to the model when created', () => {
     const customBaseURL = 'https://custom-mantle.example.com/v1';
     const provider = createBedrockMantle({
@@ -182,6 +246,12 @@ describe('bedrock-mantle-provider', () => {
     expect(generatedUrl).toBe(
       'https://custom-mantle.example.com/v1/chat/completions',
     );
+    expect(
+      config.url({
+        path: '/chat/completions',
+        modelId: 'openai.gpt-6-sol',
+      }),
+    ).toBe('https://custom-mantle.example.com/v1/chat/completions');
   });
 
   it('should include custom headers with user-agent suffix', () => {

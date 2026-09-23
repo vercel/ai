@@ -1823,7 +1823,7 @@ on how to integrate reasoning into your chatbot.
 
 ## Bedrock Mantle Provider Usage
 
-The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
+The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`). Gemma 4, Grok and OpenAI GPT models other than gpt-oss (such as `openai.gpt-6-sol`) are served under `/openai/v1` instead, which the provider selects automatically.
 
 ### Provider Instance
 
@@ -1879,7 +1879,7 @@ You can use the following optional settings to customize the Bedrock Mantle prov
 - **baseURL** _string_
 
   Base URL for the Bedrock Mantle API calls.
-  Defaults to `https://bedrock-mantle.{region}.api.aws/v1`.
+  Defaults to `https://bedrock-mantle.{region}.api.aws/v1`, or `https://bedrock-mantle.{region}.api.aws/openai/v1` for Gemma 4, Grok and OpenAI GPT models other than gpt-oss.
 
 - **headers** _Record&lt;string, string | undefined&gt;_
 
