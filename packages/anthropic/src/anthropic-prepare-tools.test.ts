@@ -10,6 +10,37 @@ import { webSearch_20260318OutputSchema } from './tool/web-search_20260318';
 import { anthropicChunkSchema, anthropicResponseSchema } from './anthropic-api';
 
 describe('prepareTools', () => {
+  it('does not validate schemas when tools are omitted for toolChoice none', async () => {
+    const result = await prepareTools({
+      tools: [{ type: 'function', name: 'lookup', inputSchema: {} }],
+      toolChoice: { type: 'none' },
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result.tools).toBeUndefined();
+  });
+
+  it('does not validate tools omitted when forced tool use is unsupported', async () => {
+    const result = await prepareTools({
+      tools: [
+        { type: 'function', name: 'unused', inputSchema: {} },
+        { type: 'function', name: 'lookup', inputSchema: { type: 'object' } },
+      ],
+      toolChoice: { type: 'tool', toolName: 'lookup' },
+      rejectsForcedToolUse: true,
+      supportsStructuredOutput: true,
+      supportsStrictTools: true,
+    });
+
+    expect(result.tools).toEqual([
+      expect.objectContaining({
+        name: 'lookup',
+        input_schema: { type: 'object' },
+      }),
+    ]);
+  });
+
   it('should return undefined tools and tool_choice when tools are null', async () => {
     const result = await prepareTools({
       tools: undefined,
@@ -1446,7 +1477,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       toolChoice: { type: 'auto' },
@@ -1464,7 +1495,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       toolChoice: { type: 'required' },
@@ -1482,7 +1513,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       toolChoice: { type: 'none' },
@@ -1500,7 +1531,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
         },
       ],
       toolChoice: { type: 'tool', toolName: 'testFunction' },
@@ -1517,7 +1548,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'testFunction',
           description: 'Test',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: {
               cacheControl: { type: 'ephemeral' },
@@ -1537,7 +1568,10 @@ describe('prepareTools', () => {
             "type": "ephemeral",
           },
           "description": "Test",
-          "input_schema": {},
+          "input_schema": {
+            "properties": {},
+            "type": "object",
+          },
           "name": "testFunction",
         },
       ]
@@ -1552,7 +1586,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool1',
           description: 'Test 1',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1561,7 +1595,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool2',
           description: 'Test 2',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1570,7 +1604,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool3',
           description: 'Test 3',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1579,7 +1613,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool4',
           description: 'Test 4',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -1588,7 +1622,7 @@ describe('prepareTools', () => {
           type: 'function',
           name: 'tool5',
           description: 'Test 5 (should be rejected)',
-          inputSchema: {},
+          inputSchema: { type: 'object' as const, properties: {} },
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
@@ -2091,13 +2125,13 @@ describe('rejectsForcedToolUse', () => {
       type: 'function' as const,
       name: 'testFunction',
       description: 'Test',
-      inputSchema: {},
+      inputSchema: { type: 'object' as const, properties: {} },
     },
     {
       type: 'function' as const,
       name: 'otherFunction',
       description: 'Other',
-      inputSchema: {},
+      inputSchema: { type: 'object' as const, properties: {} },
     },
   ];
 

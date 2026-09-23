@@ -61,6 +61,33 @@ describe('AnthropicLanguageModel', () => {
     };
   }
 
+  it.each(['doGenerate', 'doStream'] as const)(
+    '%s rejects incompatible tool schemas before sending a request',
+    async method => {
+      await expect(
+        model[method]({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'function',
+              name: 'lookup',
+              inputSchema: {
+                oneOf: [
+                  { type: 'object', properties: { id: { type: 'string' } } },
+                  { type: 'object', properties: { query: { type: 'string' } } },
+                ],
+              },
+            },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message: expect.stringContaining("Tool 'lookup'"),
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
   describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
