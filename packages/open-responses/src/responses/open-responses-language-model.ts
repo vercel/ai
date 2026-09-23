@@ -310,17 +310,15 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
 
     const textFormat =
       responseFormat?.type === 'json' && this.config.structuredOutputs !== false
-        ? {
-            type: 'json_schema' as const,
-            ...(responseFormat.schema != null
-              ? {
-                  name: responseFormat.name ?? 'response',
-                  description: responseFormat.description,
-                  schema: responseFormat.schema,
-                  strict: true,
-                }
-              : {}),
-          }
+        ? responseFormat.schema != null
+          ? {
+              type: 'json_schema' as const,
+              name: responseFormat.name ?? 'response',
+              description: responseFormat.description,
+              schema: responseFormat.schema,
+              strict: true,
+            }
+          : { type: 'json_object' as const }
         : undefined;
 
     if (

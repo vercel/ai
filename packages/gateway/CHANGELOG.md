@@ -1,5 +1,15 @@
 # @ai-sdk/gateway
 
+## 4.0.90
+
+### Patch Changes
+
+- ed5a1d7: chore(provider/gateway): update gateway model settings files
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.89
 
 ### Patch Changes

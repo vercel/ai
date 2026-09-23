@@ -216,7 +216,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "shell",
           "providerExecuted": true,
           "toolCallId": "command-1",

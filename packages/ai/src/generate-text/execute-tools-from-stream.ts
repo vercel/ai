@@ -265,8 +265,6 @@ export function executeToolsFromStream<
                 }
               }),
             );
-
-            return;
           }
         }
       },

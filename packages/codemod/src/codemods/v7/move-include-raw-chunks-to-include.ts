@@ -10,7 +10,6 @@ function getPropertyName(property: any): string | undefined {
       ? property.key.value
       : undefined;
   }
-  return undefined;
 }
 
 export default createTransformer((fileInfo, api, options, context) => {

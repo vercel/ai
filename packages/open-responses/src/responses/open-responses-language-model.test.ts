@@ -181,7 +181,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     function prepareOutputResponse(output: Array<Record<string, unknown>>) {
@@ -765,6 +764,25 @@ describe('OpenResponsesLanguageModel', () => {
             },
           },
         ]);
+      });
+    });
+
+    it('should send schema-less JSON as a JSON object format', async () => {
+      prepareJsonFixtureResponse('lmstudio-basic.1');
+
+      await createModel().doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        text: {
+          format: {
+            type: 'json_object',
+          },
+        },
       });
     });
 
