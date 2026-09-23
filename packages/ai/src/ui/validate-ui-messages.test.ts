@@ -1316,6 +1316,74 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    describe.each([
+      'approval-requested',
+      'approval-responded',
+      'output-available',
+      'output-denied',
+      'output-error',
+    ] as const)('transformed approval input in %s state', state => {
+      const tools = {
+        count: {
+          inputSchema: z.object({ count: z.string().transform(Number) }),
+        },
+      };
+
+      function createMessages(input: unknown) {
+        return [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-count',
+                toolCallId: '1',
+                state,
+                input,
+                ...(state === 'output-available' ? { output: 'ok' } : {}),
+                ...(state === 'output-error' ? { errorText: 'failed' } : {}),
+                approval: {
+                  id: 'approval-1',
+                  inputSchemaInput: { count: '3' },
+                  ...(state === 'approval-requested'
+                    ? {}
+                    : { approved: state !== 'output-denied' }),
+                },
+              },
+            ],
+          },
+        ];
+      }
+
+      it('should preserve input matching the reconstructed schema output', async () => {
+        const messages = createMessages({ count: 3 });
+
+        expect(await validateUIMessages({ messages, tools })).toEqual(messages);
+      });
+
+      it.each([{ count: 4 }, { count: 'not-a-number' }])(
+        'should not expose mismatched input %j as a validated static tool part',
+        async input => {
+          const messages = createMessages(input);
+
+          if (state === 'output-error') {
+            const result = await validateUIMessages({ messages, tools });
+            expect(result[0].parts[0]).toMatchObject({
+              type: 'dynamic-tool',
+              toolName: 'count',
+              input,
+            });
+          } else {
+            await expect(
+              validateUIMessages({ messages, tools }),
+            ).rejects.toThrow(/does not match the output reconstructed/);
+          }
+
+          expect(messages[0].parts[0].input).toEqual(input);
+        },
+      );
+    });
+
     it('should validate tool input when state is approval-requested', async () => {
       await expect(
         validateUIMessages<TestMessage>({

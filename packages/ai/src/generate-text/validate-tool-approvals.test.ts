@@ -189,6 +189,7 @@ describe('validateApprovedToolApprovals', () => {
         },
       },
     ]);
+    expect(approval.toolCall.input).toEqual({ raw: '999' });
   });
 
   it('should keep approvals whose schema input reshapes to the approved input', async () => {
@@ -424,6 +425,63 @@ describe('validateApprovedToolApprovals', () => {
 
   describe('signature verification (experimental_toolApprovalSecret)', () => {
     const secret = 'test-secret-for-signature';
+
+    it.each([true, false])(
+      'should preserve signed transformed input or reject it when schema input is missing (schema input: %s)',
+      async hasInputSchemaInput => {
+        const tools = {
+          tool1: tool({
+            inputSchema: z4.object({
+              count: z4.number().transform(count => count + 1),
+            }),
+            execute: async () => 'ok',
+          }),
+        };
+        const approval = createApproval({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'tool1',
+          input: { count: 2 },
+        });
+        approval.approvalRequest.signature = await signToolApproval({
+          secret,
+          approvalId: approval.approvalRequest.approvalId,
+          ...approval.toolCall,
+        });
+        if (hasInputSchemaInput) {
+          approval.approvalRequest.inputSchemaInput = { count: 1 };
+        }
+        const approvalPolicy = vi.fn().mockResolvedValue('user-approval');
+
+        const result = await validateApprovedToolApprovals({
+          approvedToolApprovals: [approval],
+          tools,
+          toolApproval: { tool1: approvalPolicy },
+          messages: [],
+          toolsContext: {},
+          runtimeContext: {},
+          toolApprovalSecret: secret,
+        });
+
+        expect(approval.toolCall.input).toEqual({ count: 2 });
+        if (hasInputSchemaInput) {
+          expect(result.approvedToolApprovals).toEqual([approval]);
+          expect(result.approvedToolApprovals[0]).toBe(approval);
+          expect(result.invalidToolApprovals).toHaveLength(0);
+          expect(approvalPolicy).toHaveBeenCalledWith(
+            { count: 2 },
+            expect.anything(),
+          );
+        } else {
+          expect(result.approvedToolApprovals).toHaveLength(0);
+          expect(result.invalidToolApprovals).toHaveLength(1);
+          expect(result.invalidToolApprovals[0].error.message).toMatch(
+            /does not match the validated schema output/,
+          );
+          expect(approvalPolicy).not.toHaveBeenCalled();
+        }
+      },
+    );
 
     it('should pass when the signature is valid', async () => {
       const tools = {

@@ -58,8 +58,7 @@ export async function validateApprovedToolApprovals<
   > = [];
 
   for (const approval of approvedToolApprovals) {
-    const { approvalRequest } = approval;
-    const { toolCall } = approval;
+    const { approvalRequest, toolCall } = approval;
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
@@ -118,6 +117,8 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
+          // Revalidation must never change the operation that was approved,
+          // including when older or projected history omits the schema input.
           if (!isDeepEqualData(revalidatedToolCall.input, toolCall.input)) {
             validationError = new Error(
               'Approved tool input does not match the validated schema output.',
@@ -153,7 +154,6 @@ export async function validateApprovedToolApprovals<
     if (approvalStatus.type === 'denied') {
       denied.push({
         ...approval,
-        toolCall,
         approvalResponse: {
           ...approval.approvalResponse,
           approved: false,
@@ -161,10 +161,7 @@ export async function validateApprovedToolApprovals<
         },
       });
     } else {
-      approved.push({
-        ...approval,
-        toolCall,
-      });
+      approved.push(approval);
     }
   }
 
