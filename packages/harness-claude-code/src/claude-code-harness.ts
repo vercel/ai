@@ -21,7 +21,7 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
-  harnessV1StateDirectory,
+  harnessV1StateDirectoryFromHome,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -35,7 +35,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -843,11 +842,6 @@ export function createClaudeCode(
             'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -933,16 +927,14 @@ export function createClaudeCode(
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
-      // Harness SDK state (bootstrap, per-session runs) lives in the
-      // provider's state directory, which is the working directory unless the
-      // provider separates the two to keep the workspace clean.
-      const stateDir = harnessV1StateDirectory({
-        stateDirectory:
-          'stateDirectory' in sandboxSession
-            ? sandboxSession.stateDirectory
-            : undefined,
-        defaultWorkingDirectory,
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
       });
+      const stateDir = harnessV1StateDirectoryFromHome(sandboxHomeDir);
       const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
       // The conversation the host wants back, when it is known. Absent on
       // state written before this field existed; those resumes fall back to
@@ -950,10 +942,6 @@ export function createClaudeCode(
       const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
-      });
       const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;

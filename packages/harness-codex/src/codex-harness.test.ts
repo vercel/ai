@@ -329,7 +329,7 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
-    expect(runs).toContain('pwd');
+    expect(runs).toContain('printf "%s" "$HOME"');
     expect(webSocketMocks.calls.at(-1)).toEqual({
       url: expect.stringContaining('wss://sandbox.example/bridge'),
       headers: portEndpoint.headers,
@@ -384,10 +384,10 @@ describe('createCodex adapter', () => {
     });
 
     expect(runs).toContain(
-      "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1; env > /tmp/leak #/bridge'",
     );
     expect(spawns).toEqual([
-      "node '/vercel/sandbox/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1; env > /tmp/leak #/bridge' --cli-shim-dir '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1; env > /tmp/leak #/codex'",
     ]);
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',

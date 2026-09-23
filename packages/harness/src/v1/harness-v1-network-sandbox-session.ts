@@ -1,4 +1,6 @@
+import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 
 /**
  * Connection details for a sandbox-exposed port. Headers are scoped to the
@@ -10,21 +12,50 @@ export type HarnessV1PortEndpoint = {
 };
 
 /**
- * Where the harness machinery keeps its generated state for this session's
- * sandbox: the provider's {@link HarnessV1NetworkSandboxSession.stateDirectory}
- * when it declares one, otherwise the sandbox's default working directory.
+ * Fixed directory, relative to the sandbox's own HOME, that holds every
+ * piece of state the harness machinery generates.
+ */
+const HARNESS_V1_STATE_DIRECTORY_NAME = '.ai-sdk-harness';
+
+/**
+ * Derive {@link harnessV1StateDirectory}'s path from an already-resolved
+ * sandbox HOME directory. Prefer this over calling
+ * {@link harnessV1StateDirectory} when the caller already knows the
+ * sandbox's HOME for its own reasons, so it is resolved only once per
+ * session.
+ */
+export function harnessV1StateDirectoryFromHome(
+  sandboxHomeDir: string,
+): string {
+  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
+}
+
+/**
+ * Resolve where the harness machinery keeps its generated state for this
+ * sandbox: `~/.ai-sdk-harness` under the sandbox's own HOME — never
+ * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}, so
+ * infrastructure never lands in a user-owned workspace.
+ *
+ * Not configurable. Every sandbox gets the same fixed layout, so state is
+ * always at one predictable path instead of depending on what each provider
+ * chooses to declare. Resolved from `HOME` via `sandbox.run()`, so it works
+ * from any point in the sandbox lifecycle where a plain, `run()`-capable
+ * session is available — including a provider's own `onFirstCreate` hook,
+ * before a {@link HarnessV1NetworkSandboxSession} even exists.
  *
  * Adapters and the framework must derive every state path (bootstrap
- * directories, `.agent-runs`, markers) through this so a provider can keep
- * infrastructure out of the user's workspace.
+ * directories, `.agent-runs`, markers) through this or
+ * {@link harnessV1StateDirectoryFromHome}.
  */
-export function harnessV1StateDirectory(
-  session: Pick<
-    HarnessV1NetworkSandboxSession,
-    'stateDirectory' | 'defaultWorkingDirectory'
-  >,
-): string {
-  return session.stateDirectory ?? session.defaultWorkingDirectory;
+export async function harnessV1StateDirectory({
+  sandbox,
+  abortSignal,
+}: {
+  readonly sandbox: SandboxSession;
+  readonly abortSignal?: AbortSignal;
+}): Promise<string> {
+  const homeDir = await resolveSandboxHomeDir({ sandbox, abortSignal });
+  return harnessV1StateDirectoryFromHome(homeDir);
 }
 
 /**
@@ -62,23 +93,6 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    * not bake a provider-specific base into their own paths.
    */
   readonly defaultWorkingDirectory: string;
-
-  /**
-   * Directory where the harness machinery keeps its own generated state —
-   * bootstrap recipes and their dependencies (`.harness-bootstrap/…`), and
-   * per-session adapter state (`.agent-runs/…`). This is Harness SDK state,
-   * not the runtime's own store (Claude Code's `~/.claude`, Codex's
-   * `~/.codex`, …), which each runtime continues to manage itself.
-   *
-   * Optional. When omitted, state lives under {@link defaultWorkingDirectory},
-   * which is correct for hosted sandboxes: their snapshot machinery preserves
-   * the working-directory mount, so state written there survives
-   * stop → snapshot → resume cycles. Providers whose working directory is a
-   * directory the user owns set this elsewhere so the workspace stays free of
-   * infrastructure. Resolve it through {@link harnessV1StateDirectory} rather
-   * than reading the field directly.
-   */
-  readonly stateDirectory?: string;
 
   /** Ports the sandbox exposes; resolvable via `getPortEndpoint`. */
   readonly ports: ReadonlyArray<number>;

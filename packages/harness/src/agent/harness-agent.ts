@@ -403,14 +403,11 @@ export class HarnessAgent<
             session: toolSafeSandboxSession,
             recipe,
             identity: recipeIdentity,
-            // State, not workspace: providers that separate the two keep the
-            // recipe's dependencies out of the session's working directory.
-            defaultWorkingDirectory: harnessV1StateDirectory({
-              stateDirectory:
-                'stateDirectory' in sandboxSession
-                  ? sandboxSession.stateDirectory
-                  : undefined,
-              defaultWorkingDirectory,
+            // Harness infrastructure always lives under the sandbox's own
+            // HOME, never the session's working directory.
+            defaultWorkingDirectory: await harnessV1StateDirectory({
+              sandbox: toolSafeSandboxSession,
+              abortSignal,
             }),
             abortSignal,
           });
@@ -464,11 +461,12 @@ export class HarnessAgent<
               session: resumedSandboxSession.restricted(),
               recipe,
               identity: recipeIdentity,
-              // State, not workspace: providers that separate the two keep
-              // the recipe's dependencies out of the working directory.
-              defaultWorkingDirectory: harnessV1StateDirectory(
-                resumedSandboxSession,
-              ),
+              // Harness infrastructure always lives under the sandbox's own
+              // HOME, never the working directory.
+              defaultWorkingDirectory: await harnessV1StateDirectory({
+                sandbox: resumedSandboxSession,
+                abortSignal,
+              }),
               abortSignal,
             });
           } catch (err) {
@@ -515,11 +513,12 @@ export class HarnessAgent<
               session: createdSandboxSession.restricted(),
               recipe: sandboxBootstrapPlan.recipe,
               identity: sandboxBootstrapPlan.recipeIdentity,
-              // State, not workspace: providers that separate the two keep
-              // the recipe's dependencies out of the working directory.
-              defaultWorkingDirectory: harnessV1StateDirectory(
-                createdSandboxSession,
-              ),
+              // Harness infrastructure always lives under the sandbox's own
+              // HOME, never the working directory.
+              defaultWorkingDirectory: await harnessV1StateDirectory({
+                sandbox: createdSandboxSession,
+                abortSignal,
+              }),
               abortSignal,
             });
           } catch (err) {

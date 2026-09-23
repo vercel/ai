@@ -6,22 +6,16 @@ export const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
 
 export function resolveACPPrivateSessionDirectory({
-  sandboxHomeDir,
+  stateDirectory,
   harnessId,
   sessionId,
 }: {
-  sandboxHomeDir: string;
+  stateDirectory: string;
   harnessId: string;
   sessionId: string;
 }): string {
   const sessionKey = createHash('sha256').update(sessionId).digest('hex');
-  return path.posix.join(
-    sandboxHomeDir,
-    '.ai-sdk',
-    'harness-acp',
-    harnessId,
-    sessionKey,
-  );
+  return path.posix.join(stateDirectory, 'harness-acp', harnessId, sessionKey);
 }
 
 export function resolveACPSkillsDirectory({

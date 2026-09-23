@@ -46,6 +46,9 @@ function makeSession(): {
     if (args.command === 'pwd') {
       return { exitCode: 0, stdout: '/work\n', stderr: '' };
     }
+    if (args.command === 'printf "%s" "$HOME"') {
+      return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+    }
     return { exitCode: 0, stdout: '', stderr: '' };
   });
   const readTextFile = vi.fn(async () => null);
@@ -91,11 +94,12 @@ describe('prepareSandboxForHarness', () => {
       skippedHarnessIds: [],
     });
     expect(run.mock.calls.map(([args]) => args.command)).toEqual([
-      'pwd',
+      'printf "%s" "$HOME"',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo alpha',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo beta',
+      'pwd',
       'mkdir -p "$WORK_DIR"',
     ]);
     expect(onBootstrap).toHaveBeenCalledWith({
@@ -169,7 +173,7 @@ describe('prepareSandboxForHarness', () => {
       skippedHarnessIds: [],
     });
     expect(run.mock.calls.map(([args]) => args.command)).toEqual([
-      'pwd',
+      'printf "%s" "$HOME"',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo second',
     ]);

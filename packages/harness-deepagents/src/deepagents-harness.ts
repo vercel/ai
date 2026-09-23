@@ -17,7 +17,7 @@ import {
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1StreamPart,
-  harnessV1StateDirectory,
+  harnessV1StateDirectoryFromHome,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -29,7 +29,6 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -241,11 +240,6 @@ export function createDeepAgents(
             'The deepagents harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -294,16 +288,14 @@ export function createDeepAgents(
         }
         credentialsBrokered = true;
       }
-      // Harness SDK state (bootstrap, per-session runs) lives in the
-      // provider's state directory, which is the working directory unless the
-      // provider separates the two to keep the workspace clean.
-      const stateDir = harnessV1StateDirectory({
-        stateDirectory:
-          'stateDirectory' in sandboxSession
-            ? sandboxSession.stateDirectory
-            : undefined,
-        defaultWorkingDirectory,
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const homeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
       });
+      const stateDir = harnessV1StateDirectoryFromHome(homeDir);
       const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
@@ -312,10 +304,6 @@ export function createDeepAgents(
        * Harness-provided skills use an absolute home-directory path listed
        * last, so they take precedence when names collide.
        */
-      const homeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
-      });
       const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
       const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
       const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
