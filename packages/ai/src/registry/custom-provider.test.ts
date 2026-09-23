@@ -209,3 +209,117 @@ describe('rerankingModel', () => {
     );
   });
 });
+<<<<<<< HEAD
+=======
+
+describe('videoModel', () => {
+  const mockVideoModel = new MockVideoModelV4();
+
+  it('should return the video model if it exists', () => {
+    const provider = customProvider({
+      videoModels: { 'test-model': mockVideoModel },
+    });
+
+    expect(provider.videoModel('test-model')).toBe(mockVideoModel);
+  });
+
+  it('should convert v3 video models to v4 on demand', () => {
+    const provider = customProvider({
+      videoModels: { 'v3-model': new MockVideoModelV3() },
+    });
+
+    expect(provider.videoModel('v3-model').specificationVersion).toBe('v4');
+  });
+
+  it('should use fallback provider if model not found and fallback exists', () => {
+    mockFallbackProvider.videoModel = vi.fn().mockReturnValue(mockVideoModel);
+
+    const provider = customProvider({
+      fallbackProvider: mockFallbackProvider,
+    });
+
+    expect(provider.videoModel('test-model')).toBe(mockVideoModel);
+    expect(mockFallbackProvider.videoModel).toHaveBeenCalledWith('test-model');
+  });
+
+  it('should convert v3 fallback provider video models to v4', () => {
+    const fallbackProvider = Object.assign(new MockProviderV3(), {
+      videoModel(modelId: string) {
+        expect(this).toBe(fallbackProvider);
+        expect(modelId).toBe('test-model');
+        return new MockVideoModelV3();
+      },
+    });
+
+    const provider = customProvider({ fallbackProvider });
+
+    expect(provider.videoModel('test-model').specificationVersion).toBe('v4');
+  });
+
+  it('should throw NoSuchModelError if model not found and no fallback', () => {
+    const provider = customProvider({});
+
+    expect(() => provider.videoModel('test-model')).toThrow(NoSuchModelError);
+  });
+});
+
+describe('files', () => {
+  it('should return the files interface if it exists', () => {
+    const provider = customProvider({
+      files: mockFiles,
+    });
+
+    expect(provider.files()).toBe(mockFiles);
+  });
+
+  it('should use fallback provider files if files is not configured and fallback exists', () => {
+    const fallbackProvider = {
+      ...mockFallbackProvider,
+      files: vi.fn().mockReturnValue(mockFiles),
+    };
+
+    const provider = customProvider({
+      fallbackProvider,
+    });
+
+    expect(provider.files()).toBe(mockFiles);
+    expect(fallbackProvider.files).toHaveBeenCalled();
+  });
+
+  it('should not expose files if files is not configured and fallback does not support files', () => {
+    const provider = customProvider({});
+
+    expect(provider.files).toBeUndefined();
+  });
+});
+
+describe('skills', () => {
+  it('should return the skills interface if it exists', () => {
+    const provider = customProvider({
+      skills: mockSkills,
+    });
+
+    expect(provider.skills()).toBe(mockSkills);
+  });
+
+  it('should use fallback provider skills if skills is not configured and fallback exists', () => {
+    const fallbackProvider = {
+      ...mockFallbackProvider,
+      skills: vi.fn().mockReturnValue(mockSkills),
+    };
+
+    const provider = customProvider({
+      fallbackProvider,
+    });
+
+    expect(provider.skills()).toBe(mockSkills);
+    expect(fallbackProvider.skills).toHaveBeenCalled();
+  });
+
+  it('should not expose skills if skills is not configured and fallback does not support skills', () => {
+    const provider = customProvider({});
+
+    expect(provider.skills).toBeUndefined();
+  });
+});
+>>>>>>> 8f72832752 (fix: preserve v3 video models in custom-provider fallbacks (#21119))
