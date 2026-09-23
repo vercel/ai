@@ -1,0 +1,141 @@
+{
+  "recordedAt": "2026-09-23",
+  "region": "us-east-1",
+  "modelId": "google.gemma-4-31b",
+  "attempts": {
+    "defaultChat": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/v1/chat/completions",
+      "status": 400,
+      "response": {
+        "error": {
+          "code": "validation_error",
+          "message": "model `google.gemma-4-31b` isn't supported on this route",
+          "param": null,
+          "type": "invalid_request_error"
+        }
+      }
+    },
+    "defaultResponses": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/v1/responses",
+      "outcome": "The operation was aborted after the 60000 ms client timeout without receiving a response."
+    },
+    "explicitOpenAIChat": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/openai/v1/chat/completions",
+      "status": 200,
+      "response": {
+        "choices": [
+          {
+            "finish_reason": "stop",
+            "index": 0,
+            "message": {
+              "annotations": [],
+              "content": "pong",
+              "refusal": null,
+              "role": "assistant"
+            }
+          }
+        ],
+        "created": 1790170681,
+        "id": "chatcmpl-bdesg627gqmododakqlmvtdgbbfgcqqrdnwq2fnfznhfyhsnn7hq",
+        "model": "google.gemma-4-31b",
+        "object": "chat.completion",
+        "service_tier": "default",
+        "usage": {
+          "completion_tokens": 2,
+          "completion_tokens_details": {
+            "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
+            "reasoning_tokens": 0,
+            "rejected_prediction_tokens": 0
+          },
+          "prompt_tokens": 38,
+          "prompt_tokens_details": {
+            "audio_tokens": 0,
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "total_tokens": 40
+        },
+        "system_fingerprint": null
+      }
+    },
+    "explicitOpenAIResponses": {
+      "requestUrl": "https://bedrock-mantle.us-east-1.api.aws/openai/v1/responses",
+      "status": 200,
+      "response": {
+        "background": false,
+        "billing": {
+          "payer": "developer"
+        },
+        "completed_at": 1790170684,
+        "created_at": 1790170684,
+        "error": null,
+        "frequency_penalty": 0,
+        "id": "resp_yaq5iwvo4s5vnw4xnnxn4boiclh35kcwkujxog76suhaqlrgk24a",
+        "incomplete_details": null,
+        "instructions": null,
+        "max_output_tokens": null,
+        "max_tool_calls": null,
+        "metadata": {},
+        "model": "google.gemma-4-31b",
+        "object": "response",
+        "output": [
+          {
+            "content": [
+              {
+                "annotations": [],
+                "logprobs": [],
+                "text": "pong",
+                "type": "output_text"
+              }
+            ],
+            "id": "msg_852ffb17434d5d5aaae6a4b614935ec5",
+            "phase": "final_answer",
+            "role": "assistant",
+            "status": "completed",
+            "type": "message"
+          }
+        ],
+        "parallel_tool_calls": true,
+        "presence_penalty": 0,
+        "previous_response_id": null,
+        "prompt_cache_key": null,
+        "prompt_cache_retention": "in_memory",
+        "reasoning": {
+          "summary": null,
+          "effort": "medium"
+        },
+        "safety_identifier": null,
+        "service_tier": "default",
+        "status": "completed",
+        "store": true,
+        "temperature": 1,
+        "text": {
+          "format": {
+            "type": "text"
+          },
+          "verbosity": "medium"
+        },
+        "tool_choice": "auto",
+        "tools": [],
+        "top_logprobs": 0,
+        "top_p": 0.98,
+        "truncation": "disabled",
+        "usage": {
+          "input_tokens": 38,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 2,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 40
+        },
+        "user": null,
+        "moderation": null
+      }
+    }
+  }
+}
