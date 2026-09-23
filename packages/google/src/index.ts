@@ -35,13 +35,6 @@ export type {
 } from './google-speech-model-options';
 export type { GoogleFilesUploadOptions } from './google-files';
 export type {
-  GoogleVoices,
-  GoogleVoice,
-  GoogleVoicesRequestOptions,
-  GoogleCreateVoiceOptions,
-  GoogleListVoicesOptions,
-} from './google-voices';
-export type {
   GoogleLanguageModelInteractionsOptions,
   GoogleInteractionsModelId,
   GoogleInteractionsVideoOptions,

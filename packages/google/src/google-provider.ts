@@ -36,7 +36,6 @@ import type {
 } from './google-image-settings';
 import { GoogleImageModel } from './google-image-model';
 import { GoogleFiles } from './google-files';
-import { GoogleVoices } from './google-voices';
 import { GoogleVideoModel } from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
 import { GoogleSpeechModel } from './google-speech-model';
@@ -153,9 +152,6 @@ export interface GoogleProvider extends ProviderV4 {
   transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
 
   files(): FilesV4;
-
-  /** Creates a resource for designing and managing custom voices. */
-  voices(): GoogleVoices;
 
   /**
    * Creates a language model targeting the Gemini Interactions API
@@ -455,12 +451,6 @@ export function createGoogle(
   provider.videoModel = createVideoModel;
   provider.experimental_realtime = experimentalRealtimeFactory;
   provider.files = createFiles;
-  provider.voices = () =>
-    new GoogleVoices({
-      baseURL,
-      headers: getHeaders,
-      fetch: options.fetch,
-    });
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
   provider.transcription = createTranscriptionModel;

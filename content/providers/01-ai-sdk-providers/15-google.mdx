@@ -2363,60 +2363,13 @@ Older models continue to use labelled transcripts, such as
 `text: 'Joe: How are you? Jane: Doing great, thanks!'`, with
 `multiSpeakerVoiceConfig` and without `turns`.
 
-### Voice design and management
+### Custom voices
 
-Use `google.voices()` to create a voice persona once, then reuse the returned
-`voice_...` ID in speech requests with minimal or empty style instructions.
-This replaces long audio profiles or director's notes in the transcript.
-
-```ts
-import { google } from '@ai-sdk/google';
-import { generateSpeech } from 'ai';
-
-const voices = google.voices();
-const voice = await voices.create({
-  store: true,
-  voice: {
-    type: 'prompted',
-    displayName: 'Storyteller',
-    prompted: {
-      input: 'A warm, calm storyteller with a soft British accent.',
-    },
-  },
-});
-
-if (voice.id == null) {
-  throw new Error('Google did not return a stored voice ID.');
-}
-
-const result = await generateSpeech({
-  model: google.speech('gemini-3.8-flash-tts'),
-  voice: voice.id,
-  text: 'Once upon a time, a small fox discovered a hidden garden.',
-});
-```
-
-The resource supports:
-
-- `create({ store, voice })`: prompted voices require `store: true` and
-  `voice.prompted.input`. Replicated voices use `type: 'replicated'` and
-  `replicated: { consentAudio, sourceAudio }`, where each audio value contains
-  base64 `data` and `mimeType`. Replicated voices may omit `store` or set it to
-  `false` to receive a client-managed `key` instead of a stored `id`.
-- `get({ id })`: retrieve a stored voice by its `voice_...` ID.
-- `list({ pageSize, pageToken, ...filters })`: returns `voices` and
-  `nextPageToken`. Pass that token to retrieve the next page, preserving the same
-  filters. Filters include `search` (a string) and arrays for `type`,
-  `languageCode`, `regionCode`, `accent`, `gender`, `persona`, `context`, and
-  `pitch` (`low`, `medium`, or `high`).
-- `delete({ id })`: delete a stored voice.
-
-Creation also accepts `voice.model`, `voice.sampleAudio: { data, mimeType }`, and
-discovery metadata: `displayName`, `description`, `languageCode`, `regionCode`,
-`accent`, `gender`, `persona`, `context`, and `pitch`. Returned voices expose
-`sampleAudio` when Google supplies a preview, and `expireTime` when applicable.
-All operations accept `headers` and `abortSignal` and use the provider's
-configured API key, base URL, and fetch implementation.
+Create a voice persona with Google's [Voice design](https://ai.google.dev/gemini-api/docs/voice-design)
+tools, then pass the existing `voice_...` ID as `voice` in speech requests.
+Use minimal or empty style instructions instead of putting long audio profiles
+or director's notes in the transcript. Voice creation and management are not
+exposed by this provider.
 
 <Note>
   Gemini TTS models do not support the `speed` or `language` options; passing

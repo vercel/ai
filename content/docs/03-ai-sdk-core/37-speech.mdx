@@ -33,11 +33,6 @@ const audioBase64 = result.audio.base64; // audio data as base64 string
 
 You can set model-specific settings with the `providerOptions` parameter.
 
-For Gemini 3.8 dialogue, provide the transcript in
-`providerOptions.google.turns` and pass `text: ''`. Each turn supplies its own
-speaker and optional delivery style. See [Google speech models](/providers/ai-sdk-providers/google#multi-speaker-audio)
-for a complete example.
-
 ```ts highlight="7-11"
 import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
