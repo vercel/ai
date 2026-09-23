@@ -90,7 +90,7 @@ export function createProdia(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/prodia/${VERSION}`,
+      `ai-sdk-prodia/${VERSION}`,
     );
 
   const createImageModel = (modelId: ProdiaImageModelId) =>

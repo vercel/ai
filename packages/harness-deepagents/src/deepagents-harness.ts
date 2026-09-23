@@ -68,7 +68,7 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
+const DEEPAGENTS_CLIENT_APP = `ai-sdk-harness-deepagents/${VERSION}`;
 
 export type DeepAgentsThinkingConfig =
   | {

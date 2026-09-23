@@ -65,7 +65,7 @@ export function createRevai(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/revai/${VERSION}`,
+      `ai-sdk-revai/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: RevaiTranscriptionModelId) =>

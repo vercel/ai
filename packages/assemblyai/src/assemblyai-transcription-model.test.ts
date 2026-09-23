@@ -656,7 +656,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/assemblyai/0.0.0-test`,
+      `ai-sdk-assemblyai/0.0.0-test`,
     );
   });
 

@@ -84,7 +84,7 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
         })}`,
         ...options.headers,
       },
-      `ai-sdk/groq/${VERSION}`,
+      `ai-sdk-groq/${VERSION}`,
     );
 
   const createChatModel = (modelId: GroqChatModelId) =>

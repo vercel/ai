@@ -147,7 +147,7 @@ export function createCerebras(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/cerebras/${VERSION}`,
+      `ai-sdk-cerebras/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: CerebrasChatModelId) => {

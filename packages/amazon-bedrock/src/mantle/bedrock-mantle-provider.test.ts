@@ -201,7 +201,7 @@ describe('bedrock-mantle-provider', () => {
 
     const resolvedHeaders = config.headers!();
     expect(resolvedHeaders).toMatchObject(customHeaders);
-    expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
+    expect(resolvedHeaders['user-agent']).toContain('ai-sdk-amazon-bedrock/');
   });
 
   it('should use createApiKeyFetchFunction when apiKey is provided', () => {

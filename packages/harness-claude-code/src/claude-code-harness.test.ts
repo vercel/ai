@@ -493,7 +493,7 @@ describe('createClaudeCode adapter', () => {
     expect(sentMessages.at(-1)).toMatchObject({
       type: 'start',
       env: {
-        CLAUDE_AGENT_SDK_CLIENT_APP: 'ai-sdk/harness-claude-code/0.0.0-test',
+        CLAUDE_AGENT_SDK_CLIENT_APP: 'ai-sdk-harness-claude-code/0.0.0-test',
       },
     });
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);

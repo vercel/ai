@@ -103,7 +103,7 @@ describe('AmazonBedrockProvider', () => {
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
       expect(constructorCall[1].headers()).toMatchObject({});
       expect(constructorCall[1].headers()['user-agent']).toContain(
-        'ai-sdk/amazon-bedrock/0.0.0-test',
+        'ai-sdk-amazon-bedrock/0.0.0-test',
       );
       expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -124,7 +124,7 @@ describe('AmazonBedrockProvider', () => {
       const constructorCall = AmazonBedrockChatLanguageModelMock.mock.calls[0];
       expect(constructorCall[1].headers()).toMatchObject(customHeaders);
       expect(constructorCall[1].headers()['user-agent']).toContain(
-        'ai-sdk/amazon-bedrock/0.0.0-test',
+        'ai-sdk-amazon-bedrock/0.0.0-test',
       );
       expect(constructorCall[1].baseUrl()).toBe('https://custom.url');
     });
@@ -273,7 +273,7 @@ describe('AmazonBedrockProvider', () => {
       expect(constructorCall[0]).toBe('anthropic.claude-v2');
       expect(constructorCall[1].headers()).toMatchObject({});
       expect(constructorCall[1].headers()['user-agent']).toContain(
-        'ai-sdk/amazon-bedrock/0.0.0-test',
+        'ai-sdk-amazon-bedrock/0.0.0-test',
       );
       expect(constructorCall[1].baseUrl()).toBe(
         'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -310,7 +310,7 @@ describe('AmazonBedrockProvider', () => {
       const constructorCall = AmazonBedrockEmbeddingModelMock.mock.calls[0];
       expect(constructorCall[1].headers()).toMatchObject(customHeaders);
       expect(constructorCall[1].headers()['user-agent']).toContain(
-        'ai-sdk/amazon-bedrock/0.0.0-test',
+        'ai-sdk-amazon-bedrock/0.0.0-test',
       );
     });
 
@@ -344,7 +344,7 @@ describe('AmazonBedrockProvider', () => {
         expect(constructorCall[0]).toBe('anthropic.claude-v2');
         expect(constructorCall[1].headers()).toMatchObject({});
         expect(constructorCall[1].headers()['user-agent']).toContain(
-          'ai-sdk/amazon-bedrock/',
+          'ai-sdk-amazon-bedrock/',
         );
         expect(constructorCall[1].baseUrl()).toBe(
           'https://bedrock-runtime.us-east-1.amazonaws.com',
@@ -472,7 +472,7 @@ describe('AmazonBedrockProvider', () => {
           'custom-header': 'value',
         });
         expect(constructorCall[1].headers()['user-agent']).toContain(
-          'ai-sdk/amazon-bedrock/0.0.0-test',
+          'ai-sdk-amazon-bedrock/0.0.0-test',
         );
         expect(mockCreateApiKeyFetchFunction).toHaveBeenCalledWith(
           'test-api-key',
@@ -495,7 +495,7 @@ describe('AmazonBedrockProvider', () => {
           'custom-header': 'value',
         });
         expect(constructorCall[1].headers()['user-agent']).toContain(
-          'ai-sdk/amazon-bedrock/0.0.0-test',
+          'ai-sdk-amazon-bedrock/0.0.0-test',
         );
         expect(mockCreateApiKeyFetchFunction).toHaveBeenCalledWith(
           'test-api-key',

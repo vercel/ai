@@ -149,7 +149,7 @@ export function createOpenAICompatible<
   };
 
   const getHeaders = () =>
-    withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION}`);
+    withUserAgentSuffix(headers, `ai-sdk-openai-compatible/${VERSION}`);
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,

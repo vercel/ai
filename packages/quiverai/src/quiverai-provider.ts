@@ -79,7 +79,7 @@ export function createQuiverAI(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/quiverai/${VERSION}`,
+      `ai-sdk-quiverai/${VERSION}`,
     );
 
   const createImageModel = (modelId: QuiverAIImageModelId) =>

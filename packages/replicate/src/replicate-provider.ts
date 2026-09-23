@@ -88,7 +88,7 @@ export function createReplicate(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/replicate/${VERSION}`,
+      `ai-sdk-replicate/${VERSION}`,
     );
 
   const createImageModel = (modelId: ReplicateImageModelId) =>

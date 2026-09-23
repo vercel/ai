@@ -87,7 +87,7 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
+const CODEX_CLIENT_APP = `ai-sdk-harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthenticationMode;

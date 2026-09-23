@@ -94,7 +94,7 @@ export function createBlackForestLabs(
         }),
         ...options.headers,
       },
-      `ai-sdk/black-forest-labs/${VERSION}`,
+      `ai-sdk-black-forest-labs/${VERSION}`,
     );
 
   const createImageModel = (modelId: BlackForestLabsImageModelId) =>

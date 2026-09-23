@@ -228,7 +228,7 @@ export function createOpenAI(
         'OpenAI-Project': options.project,
         ...options.headers,
       },
-      `ai-sdk/openai/${VERSION}`,
+      `ai-sdk-openai/${VERSION}`,
     );
 
   const createChatModel = (modelId: OpenAIChatModelId) =>
