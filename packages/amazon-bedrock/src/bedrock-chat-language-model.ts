@@ -122,6 +122,12 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const warnings: SharedV3Warning[] = [];
 
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
+
     if (frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
@@ -141,6 +147,35 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         type: 'unsupported',
         feature: 'seed',
       });
+    }
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
     }
 
     if (temperature != null && temperature > 1) {
@@ -184,12 +219,15 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
+<<<<<<< HEAD:packages/amazon-bedrock/src/bedrock-chat-language-model.ts
     const {
       supportsStructuredOutput: modelSupportsStructuredOutput,
       rejectsForcedToolUse,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
+=======
+>>>>>>> 31fb00993c (fix: Amazon Bedrock forwards unsupported sampling parameters to newer Claude models (#21385)):packages/amazon-bedrock/src/amazon-bedrock-chat-language-model.ts
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
       anthropicOptions?.structuredOutputMode ??
