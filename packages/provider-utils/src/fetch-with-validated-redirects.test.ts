@@ -417,7 +417,7 @@ describe('fetchWithValidatedRedirects', () => {
     const sent = fetchMock.mock.calls[0][1].headers as Headers;
     expect(sent.get('accept')).toBe('application/json');
     expect(sent.get('authorization')).toBeNull();
-    expect(sent.get('x-request-id')).toBeNull();
+    expect(sent.get('x-request-id')).toBe('request-id');
   });
 
   it('uses the injected fetch instead of the global one', async () => {
@@ -437,7 +437,7 @@ describe('fetchWithValidatedRedirects', () => {
     ['no credentialed origin', undefined],
     ['a different credentialed origin', 'https://provider.example.com'],
   ])(
-    'withholds credential and custom headers but keeps safe download headers from a first hop with %s',
+    'withholds credential-like headers but keeps unrelated custom headers from a first hop with %s',
     async (_, origin) => {
       const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
 
@@ -447,6 +447,9 @@ describe('fetchWithValidatedRedirects', () => {
           accept: 'image/*',
           authorization: 'Bearer secret',
           range: 'bytes=0-1023',
+          'x-access-token': 'access-token',
+          'x-client-secret': 'client-secret',
+          'x-goog-api-key': 'google-api-key',
           'x-key': 'provider-api-key',
           'x-request-id': 'request-id',
           'user-agent': 'ai-sdk/test',
@@ -459,8 +462,11 @@ describe('fetchWithValidatedRedirects', () => {
       expect(sent.get('accept')).toBe('image/*');
       expect(sent.get('authorization')).toBeNull();
       expect(sent.get('range')).toBe('bytes=0-1023');
+      expect(sent.get('x-access-token')).toBeNull();
+      expect(sent.get('x-client-secret')).toBeNull();
+      expect(sent.get('x-goog-api-key')).toBeNull();
       expect(sent.get('x-key')).toBeNull();
-      expect(sent.get('x-request-id')).toBeNull();
+      expect(sent.get('x-request-id')).toBe('request-id');
       expect(sent.get('user-agent')).toBe('ai-sdk/test');
     },
   );

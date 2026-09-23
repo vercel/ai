@@ -465,9 +465,6 @@ async function fetchWithCorsRetry(
           redirect: 'manual',
         }),
       headers,
-      // The MCP protocol-version header is public and is intended for this
-      // discovery endpoint. Redirects to another origin still drop it.
-      credentialedOrigin: url.origin,
       trustedOrigin,
     });
   } catch (error) {
