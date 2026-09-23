@@ -29679,6 +29679,11 @@ describe('streamText', () => {
             abortSignal: undefined,
             toolCallId: 'call-1',
             messages: expect.any(Array),
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'trusted internal tool',
+            },
           }),
         );
         expect(await result.text).toBe('Hello, world!');
@@ -30347,6 +30352,7 @@ describe('streamText', () => {
                   approvalId: 'id-1',
                   type: 'tool-approval-response',
                   approved: true,
+                  reason: 'use corrected value',
                 },
               ],
             },
@@ -30363,6 +30369,11 @@ describe('streamText', () => {
             abortSignal: undefined,
             toolCallId: 'call-1',
             messages: expect.any(Array),
+            approval: {
+              approvalId: 'id-1',
+              approved: true,
+              reason: 'use corrected value',
+            },
           }),
         );
       });
