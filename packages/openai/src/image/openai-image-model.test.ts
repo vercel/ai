@@ -638,6 +638,101 @@ describe('doGenerate', () => {
 });
 
 describe('doGenerate - image editing', () => {
+  it.each(['image', 'mask'] as const)(
+    'should forward the abort signal when downloading a URL %s',
+    async downloadTarget => {
+      const controller = new AbortController();
+      let resolveDownloadStarted!: (
+        signal: AbortSignal | null | undefined,
+      ) => void;
+      const downloadStarted = new Promise<AbortSignal | null | undefined>(
+        resolve => {
+          resolveDownloadStarted = resolve;
+        },
+      );
+      let resolveDownload!: (response: Response) => void;
+      let rejectDownload!: (reason?: unknown) => void;
+      const downloadResponse = new Promise<Response>((resolve, reject) => {
+        resolveDownload = resolve;
+        rejectDownload = reject;
+      });
+
+      vi.stubGlobal('EdgeRuntime', 'test');
+      vi.stubGlobal(
+        'fetch',
+        (_input: RequestInfo | URL, init?: RequestInit) => {
+          const signal = init?.signal;
+          resolveDownloadStarted(signal);
+
+          if (signal?.aborted) {
+            rejectDownload(signal.reason);
+          } else {
+            signal?.addEventListener(
+              'abort',
+              () => rejectDownload(signal.reason),
+              { once: true },
+            );
+          }
+
+          return downloadResponse;
+        },
+      );
+
+      const editModel = createOpenAI({
+        apiKey: 'test-api-key',
+        fetch: async (_url, init) => {
+          init?.signal?.throwIfAborted();
+          return Response.json({ data: [{ b64_json: 'base64-image' }] });
+        },
+      }).image('gpt-image-1');
+
+      const operation = editModel
+        .doGenerate({
+          prompt,
+          files:
+            downloadTarget === 'image'
+              ? [{ type: 'url', url: 'https://example.com/image.png' }]
+              : [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                ],
+          mask:
+            downloadTarget === 'mask'
+              ? { type: 'url', url: 'https://example.com/mask.png' }
+              : undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+          abortSignal: controller.signal,
+        })
+        .then(
+          () => 'fulfilled' as const,
+          () => 'rejected' as const,
+        );
+
+      try {
+        const downloadSignal = await downloadStarted;
+        controller.abort();
+
+        expect(downloadSignal).toBe(controller.signal);
+        expect(await operation).toBe('rejected');
+      } finally {
+        resolveDownload(
+          new Response(new Uint8Array([137, 80, 78, 71]), {
+            headers: { 'content-type': 'image/png' },
+          }),
+        );
+        await operation;
+        vi.unstubAllGlobals();
+      }
+    },
+  );
+
   describe.each(['gpt-image-2.5-flare', 'gpt-image-2.5-sunburst'])(
     '%s quality',
     modelId => {

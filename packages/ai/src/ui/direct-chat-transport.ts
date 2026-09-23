@@ -124,6 +124,8 @@ export class DirectChatTransport<
     // Return the UI message stream
     return toUIMessageStream({
       ...this.uiMessageStreamOptions,
+      originalMessages:
+        this.uiMessageStreamOptions.originalMessages ?? validatedMessages,
       stream: result.stream,
       tools: this.agent.tools,
     });

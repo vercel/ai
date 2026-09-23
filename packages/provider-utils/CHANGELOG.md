@@ -1,5 +1,20 @@
 # @ai-sdk/provider-utils
 
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 5.0.45
+
+### Patch Changes
+
+- 2973485: fix(provider-utils): detect AVIF and HEIC images with variable ftyp box sizes
+- a4db5ea: fix(provider-utils): detect AAC audio with ADTS headers
+- 2937ea2: fix(provider-utils): follow validated redirects without waiting for response clone cancellation
+
 ## 5.0.44
 
 ### Patch Changes

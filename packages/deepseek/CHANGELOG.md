@@ -1,5 +1,29 @@
 # @ai-sdk/deepseek
 
+## 3.0.51
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 3.0.50
+
+### Patch Changes
+
+- 7bed0ef: fix(deepseek): send tool-result images as image content parts
+
+## 3.0.49
+
+### Patch Changes
+
+- a36eaaf: fix(deepseek): return a typed error for non-streaming responses without choices
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 3.0.48
 
 ### Patch Changes

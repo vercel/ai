@@ -71,8 +71,7 @@ describe('parseToolRelayCommand', () => {
   });
 
   test('rejects compound commands containing a non-relay command', () => {
-    const command =
-      `node ${cliShimPath} weather '{"city":"Paris"}' && ` + 'cat /etc/passwd';
+    const command = `node ${cliShimPath} weather '{"city":"Paris"}' && cat /etc/passwd`;
 
     expect(parseToolRelayCommands({ command, cliShimPath })).toBeUndefined();
     expect(isToolRelayCommand({ command, cliShimPath })).toBe(false);

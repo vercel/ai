@@ -155,19 +155,59 @@ export async function generateSpeech({
     model: resolvedModel.modelId,
   });
 
+  const detectedMediaType = detectMediaType({
+    data: result.audio,
+    topLevelType: 'audio',
+  });
+
   return new DefaultSpeechResult({
     audio: new DefaultGeneratedAudioFile({
       data: result.audio,
       mediaType:
-        detectMediaType({
-          data: result.audio,
-          topLevelType: 'audio',
-        }) ?? 'audio/mp3',
+        detectedMediaType ??
+        getResponseAudioMediaType(result.response.headers) ??
+        getOutputFormatMediaType(outputFormat) ??
+        'audio/mp3',
     }),
     warnings: result.warnings,
     responses: [result.response],
     providerMetadata: result.providerMetadata,
   });
+}
+
+function getResponseAudioMediaType(
+  headers: Record<string, string> | undefined,
+): string | undefined {
+  const mediaType = Object.entries(headers ?? {}).find(
+    ([name]) => name.toLowerCase() === 'content-type',
+  )?.[1];
+
+  if (mediaType == null) {
+    return undefined;
+  }
+
+  const normalizedMediaType = mediaType.split(';', 1)[0].trim().toLowerCase();
+
+  if (normalizedMediaType.length === 0) {
+    return undefined;
+  }
+
+  return normalizedMediaType.startsWith('audio/')
+    ? normalizedMediaType
+    : undefined;
+}
+
+function getOutputFormatMediaType(outputFormat: string | undefined) {
+  if (outputFormat == null) {
+    return undefined;
+  }
+
+  const normalizedOutputFormat = outputFormat.trim().toLowerCase();
+
+  return normalizedOutputFormat === 'pcm' ||
+    normalizedOutputFormat === 'audio/pcm'
+    ? 'audio/pcm'
+    : undefined;
 }
 
 class DefaultSpeechResult implements SpeechResult {

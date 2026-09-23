@@ -1,5 +1,23 @@
 # @ai-sdk/bytedance
 
+## 2.0.49
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 2.0.48
+
+### Patch Changes
+
+- dcc3318: fix(bytedance): add `reference_image` role to starting image
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 2.0.47
 
 ### Patch Changes

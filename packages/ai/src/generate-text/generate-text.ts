@@ -118,6 +118,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import { validateToolContext } from './validate-tool-context';
 import type { ToolInputRefinement } from './tool-input-refinement';
 import type { ToolOrder } from './tool-order';
 import type { ToolOutput } from './tool-output';
@@ -1079,11 +1080,12 @@ export async function generateText<
                   .map(toolCall =>
                     parseToolCall({
                       toolCall,
-                      tools: stepExecutionTools as TOOLS,
+                      tools: stepModelTools as TOOLS,
                       repairToolCall,
                       refineToolInput,
                       instructions: stepInstructions,
                       messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
                     }),
                   ),
               );
@@ -1098,13 +1100,16 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const modelCallContent = convertLanguageModelContent({
+              const generatedFileDataCache = new WeakMap();
+              const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: [],
                 toolApprovalRequests: [],
                 toolApprovalResponses: [],
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               await notify({
@@ -1184,23 +1189,34 @@ export async function generateText<
                   continue;
                 }
 
-                if (tool.onInputStart != null) {
-                  await tool.onInputStart({
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
+                if (
+                  tool.onInputStart != null ||
+                  tool.onInputAvailable != null
+                ) {
+                  const context = await validateToolContext({
+                    toolName: toolCall.toolName,
+                    context: getOwn(toolsContext, toolCall.toolName),
+                    contextSchema: tool.contextSchema,
                   });
-                }
 
-                if (tool?.onInputAvailable != null) {
-                  await tool.onInputAvailable({
-                    input: toolCall.input,
-                    toolCallId: toolCall.toolCallId,
-                    messages: stepMessages,
-                    abortSignal: mergedAbortSignal,
-                    context: runtimeContext,
-                  });
+                  if (tool.onInputStart != null) {
+                    await tool.onInputStart({
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
+
+                  if (tool.onInputAvailable != null) {
+                    await tool.onInputAvailable({
+                      input: toolCall.input,
+                      toolCallId: toolCall.toolCallId,
+                      messages: stepMessages,
+                      abortSignal: mergedAbortSignal,
+                      context,
+                    });
+                  }
                 }
 
                 const toolApprovalStatus = await resolveToolApproval({
@@ -1414,13 +1430,15 @@ export async function generateText<
               }
 
               // content:
-              const stepContent = convertLanguageModelContent({
+              const stepContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
                 toolOutputs: clientToolOutputs,
                 toolApprovalRequests: Object.values(toolApprovalRequests),
                 toolApprovalResponses,
                 tools,
+                abortSignal: mergedAbortSignal,
+                generatedFileDataCache,
               });
 
               const stepResponseMessages = await toResponseMessages({
