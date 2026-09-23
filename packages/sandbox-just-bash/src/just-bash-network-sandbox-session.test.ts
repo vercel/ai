@@ -9,7 +9,6 @@ describe('JustBashNetworkSandboxSession', () => {
   beforeEach(async () => {
     sandbox = new JustBashNetworkSandboxSession({
       sandbox: await Sandbox.create({ cwd: '/work' }),
-      ownsLifecycle: true,
     });
   });
 

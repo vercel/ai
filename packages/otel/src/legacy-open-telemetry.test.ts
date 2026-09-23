@@ -2543,9 +2543,9 @@ describe('LegacyOpenTelemetry integration with evaluate', () => {
       [
         {
           "attributes": {
-            "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
-            "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
-            "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.evaluate",
@@ -2557,9 +2557,9 @@ describe('LegacyOpenTelemetry integration with evaluate', () => {
         },
         {
           "attributes": {
-            "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
-            "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
-            "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
             "ai.operationId": "ai.evaluate.doEvaluate",

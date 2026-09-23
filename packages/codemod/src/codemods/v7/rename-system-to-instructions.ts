@@ -5,7 +5,6 @@ function getName(node: any): string | undefined {
   if (node?.type === 'Literal' || node?.type === 'StringLiteral') {
     return typeof node.value === 'string' ? node.value : undefined;
   }
-  return undefined;
 }
 
 function setName(node: any, name: string) {

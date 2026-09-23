@@ -23,7 +23,6 @@ run(async () => {
           activeTools: [],
         };
       }
-      return undefined;
     },
     toolChoice: 'auto',
     prompt: 'What is the weather in Toronto, Calgary, and Vancouver?',

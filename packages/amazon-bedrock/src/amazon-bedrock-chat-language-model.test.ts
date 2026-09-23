@@ -4359,6 +4359,77 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'global.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-5',
+  ])(
+    'should omit unsupported sampling parameters for %s',
+    async samplingModelId => {
+      let requestBody: any;
+      const samplingModel = new AmazonBedrockChatLanguageModel(
+        samplingModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: 'OK' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      const result = await samplingModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        topK: 10,
+      });
+
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${samplingModelId} and will be ignored`,
+        },
+      ]);
+    },
+  );
+
   it('should support guardrails', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
@@ -5875,6 +5946,137 @@ describe('doGenerate', () => {
     expect(
       requestBody.additionalModelRequestFields?.reasoning_effort,
     ).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'strips unsupported sampling settings for OpenAI model %s',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0,
+        topP: 0.5,
+        topK: 5,
+        stopSequences: [],
+        maxOutputTokens: 100,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig).toStrictEqual({
+        maxTokens: 100,
+        topK: 5,
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details:
+            'temperature is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details:
+            'topP is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'stopSequences is not supported by this OpenAI model on the Converse API',
+        },
+      ]);
+    },
+  );
+
+  it('does not warn about clamping an unsupported OpenAI temperature', async () => {
+    server.urls[usOpenaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const usOpenaiModel = new AmazonBedrockChatLanguageModel(usOpenaiModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+
+    const result = await usOpenaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 2,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toBeUndefined();
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          'temperature is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
+  });
+
+  it('keeps supported sampling settings for OpenAI gpt-oss models', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.2,
+      topP: 0.5,
+      stopSequences: ['END'],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toStrictEqual({
+      temperature: 0.2,
+      topP: 0.5,
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'stopSequences is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {

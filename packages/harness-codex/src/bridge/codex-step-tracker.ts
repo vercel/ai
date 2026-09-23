@@ -50,7 +50,6 @@ export function createCodexStepTracker(input: {
           if (itemId) pendingToolItemIds.delete(itemId);
           finishStep();
         }
-        return;
       }
     },
     finishTurn() {

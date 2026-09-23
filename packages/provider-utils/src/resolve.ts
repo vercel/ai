@@ -28,5 +28,5 @@ export async function resolve<T>(value: Resolvable<T>): Promise<T> {
   }
 
   // Otherwise just resolve whatever we got (value or promise)
-  return Promise.resolve(value as T);
+  return value as T;
 }
