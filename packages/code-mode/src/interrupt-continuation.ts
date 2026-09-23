@@ -107,7 +107,6 @@ export function getCodeModeInterrupt(
       }
     }
   }
-  return undefined;
 }
 
 export function unwrapCodeModeResult(
@@ -134,7 +133,6 @@ function readInterruptValue(
   ) {
     return readInterruptValue(value.value, continuationSecurity);
   }
-  return undefined;
 }
 
 function assertInterruptMatchesLedger(interrupt: CodeModeInterrupt): void {

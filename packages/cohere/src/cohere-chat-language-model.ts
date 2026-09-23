@@ -440,7 +440,6 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
               }
 
               default: {
-                return;
               }
             }
           },

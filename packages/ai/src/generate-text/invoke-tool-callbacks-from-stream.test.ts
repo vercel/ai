@@ -57,7 +57,7 @@ describe('invokeToolCallbacksFromStream', () => {
     });
     const resultChunks = await convertReadableStreamToArray(result);
     const recordedCallsForSnapshot = recordedCalls.map(call => ({
-      ...((call as { type: string; options: Record<string, unknown> }) ?? {}),
+      ...(call as { type: string; options: Record<string, unknown> }),
       options: {
         ...(call as { options: Record<string, unknown> }).options,
         abortSignal: '[AbortSignal]',

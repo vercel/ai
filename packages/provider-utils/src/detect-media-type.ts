@@ -299,8 +299,6 @@ function detectMediaTypeBySignatures<T extends MediaTypeSignatures>({
       return signature.mediaType;
     }
   }
-
-  return undefined;
 }
 
 const topLevelSignatureTables = {

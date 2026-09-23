@@ -30,7 +30,6 @@ function findLatestInteractionId(messages: UIMessage[]): string | undefined {
       }
     }
   }
-  return undefined;
 }
 
 function addAgenticVideoProcessing(messages: UIMessage[]): UIMessage[] {
