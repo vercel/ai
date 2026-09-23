@@ -352,15 +352,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListToolsResult> {
-    try {
-      return this.request({
-        request: { method: 'tools/list', params },
-        resultSchema: ListToolsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'tools/list', params },
+      resultSchema: ListToolsResultSchema,
+      options,
+    });
   }
 
   private async callTool({
@@ -372,17 +368,13 @@ class DefaultMCPClient implements MCPClient {
     args: Record<string, unknown>;
     options?: ToolCallOptions;
   }): Promise<CallToolResult> {
-    try {
-      return this.request({
-        request: { method: 'tools/call', params: { name, arguments: args } },
-        resultSchema: CallToolResultSchema,
-        options: {
-          signal: options?.abortSignal,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'tools/call', params: { name, arguments: args } },
+      resultSchema: CallToolResultSchema,
+      options: {
+        signal: options?.abortSignal,
+      },
+    });
   }
 
   private async listResourcesInternal({
@@ -392,15 +384,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListResourcesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/list', params },
-        resultSchema: ListResourcesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/list', params },
+      resultSchema: ListResourcesResultSchema,
+      options,
+    });
   }
 
   private async readResourceInternal({
@@ -410,15 +398,11 @@ class DefaultMCPClient implements MCPClient {
     uri: string;
     options?: RequestOptions;
   }): Promise<ReadResourceResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/read', params: { uri } },
-        resultSchema: ReadResourceResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/read', params: { uri } },
+      resultSchema: ReadResourceResultSchema,
+      options,
+    });
   }
 
   private async listResourceTemplatesInternal({
@@ -426,15 +410,11 @@ class DefaultMCPClient implements MCPClient {
   }: {
     options?: RequestOptions;
   } = {}): Promise<ListResourceTemplatesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/templates/list' },
-        resultSchema: ListResourceTemplatesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/templates/list' },
+      resultSchema: ListResourceTemplatesResultSchema,
+      options,
+    });
   }
 
   private async listPromptsInternal({
@@ -444,15 +424,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListPromptsResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/list', params },
-        resultSchema: ListPromptsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/list', params },
+      resultSchema: ListPromptsResultSchema,
+      options,
+    });
   }
 
   private async getPromptInternal({
@@ -464,15 +440,11 @@ class DefaultMCPClient implements MCPClient {
     args?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/get', params: { name, arguments: args } },
-        resultSchema: GetPromptResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/get', params: { name, arguments: args } },
+      resultSchema: GetPromptResultSchema,
+      options,
+    });
   }
 
   private async notification(notification: Notification): Promise<void> {
@@ -494,59 +466,55 @@ class DefaultMCPClient implements MCPClient {
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
     const tools: Record<string, Tool> = {};
 
-    try {
-      let listToolsResult = await this.listTools();
-      const toolDefinitions = [...listToolsResult.tools];
+    let listToolsResult = await this.listTools();
+    const toolDefinitions = [...listToolsResult.tools];
 
-      while (listToolsResult.nextCursor != null) {
-        listToolsResult = await this.listTools({
-          params: { cursor: listToolsResult.nextCursor },
-        });
-        toolDefinitions.push(...listToolsResult.tools);
-      }
-
-      for (const { name, description, inputSchema } of toolDefinitions) {
-        if (
-          schemas !== 'automatic' &&
-          !Object.prototype.hasOwnProperty.call(schemas, name)
-        ) {
-          continue;
-        }
-
-        const self = this;
-
-        const execute = async (
-          args: any,
-          options: ToolCallOptions,
-        ): Promise<CallToolResult> => {
-          options?.abortSignal?.throwIfAborted();
-          return self.callTool({ name, args, options });
-        };
-
-        const toolWithExecute =
-          schemas === 'automatic'
-            ? dynamicTool({
-                description,
-                inputSchema: jsonSchema({
-                  ...inputSchema,
-                  properties: inputSchema.properties ?? {},
-                  additionalProperties: false,
-                } as JSONSchema7),
-                execute,
-              })
-            : tool({
-                description,
-                inputSchema: schemas[name].inputSchema,
-                execute,
-              });
-
-        tools[name] = toolWithExecute;
-      }
-
-      return tools as McpToolSet<TOOL_SCHEMAS>;
-    } catch (error) {
-      throw error;
+    while (listToolsResult.nextCursor != null) {
+      listToolsResult = await this.listTools({
+        params: { cursor: listToolsResult.nextCursor },
+      });
+      toolDefinitions.push(...listToolsResult.tools);
     }
+
+    for (const { name, description, inputSchema } of toolDefinitions) {
+      if (
+        schemas !== 'automatic' &&
+        !Object.prototype.hasOwnProperty.call(schemas, name)
+      ) {
+        continue;
+      }
+
+      const self = this;
+
+      const execute = async (
+        args: any,
+        options: ToolCallOptions,
+      ): Promise<CallToolResult> => {
+        options?.abortSignal?.throwIfAborted();
+        return self.callTool({ name, args, options });
+      };
+
+      const toolWithExecute =
+        schemas === 'automatic'
+          ? dynamicTool({
+              description,
+              inputSchema: jsonSchema({
+                ...inputSchema,
+                properties: inputSchema.properties ?? {},
+                additionalProperties: false,
+              } as JSONSchema7),
+              execute,
+            })
+          : tool({
+              description,
+              inputSchema: schemas[name].inputSchema,
+              execute,
+            });
+
+      tools[name] = toolWithExecute;
+    }
+
+    return tools as McpToolSet<TOOL_SCHEMAS>;
   }
 
   listResources({

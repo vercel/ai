@@ -61,7 +61,6 @@ function prepareJsonFixtureResponse(
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
     ),
   };
-  return;
 }
 
 function prepareChunksFixtureResponse(

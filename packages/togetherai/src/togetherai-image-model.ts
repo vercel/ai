@@ -70,7 +70,7 @@ export class TogetherAIImageModel implements ImageModelV2 {
           height: parseInt(splitSize[1]),
         }),
         response_format: 'base64',
-        ...(providerOptions.togetherai ?? {}),
+        ...providerOptions.togetherai,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

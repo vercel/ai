@@ -320,7 +320,7 @@ Only applicable for HTTP-based providers.
                 result.providerMetadata,
               )) {
                 providerMetadata[providerName] = {
-                  ...(providerMetadata[providerName] ?? {}),
+                  ...providerMetadata[providerName],
                   ...metadata,
                 };
               }

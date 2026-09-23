@@ -63,8 +63,4 @@ export class DefaultGeneratedFile implements GeneratedFile {
 
 export class DefaultGeneratedFileWithType extends DefaultGeneratedFile {
   readonly type = 'file';
-
-  constructor(options: { data: string | Uint8Array; mediaType: string }) {
-    super(options);
-  }
 }

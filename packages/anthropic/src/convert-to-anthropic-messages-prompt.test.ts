@@ -1568,7 +1568,7 @@ describe('assistant messages', () => {
                   "cache_control": undefined,
                   "id": "srvtoolu_01XyZ1234567890",
                   "input": {
-                    "code": "print(\"Hello, world!\")",
+                    "code": "print("Hello, world!")",
                   },
                   "name": "code_execution",
                   "type": "server_tool_use",
@@ -1578,7 +1578,7 @@ describe('assistant messages', () => {
                   "content": {
                     "return_code": 0,
                     "stderr": "",
-                    "stdout": "Hello, world!\",
+                    "stdout": "Hello, world!",
                     "type": "code_execution_result",
                   },
                   "tool_use_id": "srvtoolu_01XyZ1234567890",
