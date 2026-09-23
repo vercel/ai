@@ -91,7 +91,7 @@ export async function prepareSandboxForHarness(options: {
       session: options.session,
       recipe,
       identity: recipeIdentity,
-      defaultWorkingDirectory: stateDirectory,
+      stateDirectory,
       abortSignal: options.abortSignal,
     });
   }

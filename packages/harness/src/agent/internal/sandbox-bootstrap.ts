@@ -157,7 +157,7 @@ export async function runSandboxBootstrap({
       // `onBootstrap` hook. Resolved directly from `session` — this runs
       // from a provider's `onFirstCreate`, before a
       // `HarnessV1NetworkSandboxSession` even exists.
-      defaultWorkingDirectory: await harnessV1StateDirectory({
+      stateDirectory: await harnessV1StateDirectory({
         sandbox: session,
         abortSignal,
       }),

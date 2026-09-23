@@ -405,7 +405,7 @@ export class HarnessAgent<
             identity: recipeIdentity,
             // Harness infrastructure always lives under the sandbox's own
             // HOME, never the session's working directory.
-            defaultWorkingDirectory: await harnessV1StateDirectory({
+            stateDirectory: await harnessV1StateDirectory({
               sandbox: toolSafeSandboxSession,
               abortSignal,
             }),
@@ -463,7 +463,7 @@ export class HarnessAgent<
               identity: recipeIdentity,
               // Harness infrastructure always lives under the sandbox's own
               // HOME, never the working directory.
-              defaultWorkingDirectory: await harnessV1StateDirectory({
+              stateDirectory: await harnessV1StateDirectory({
                 sandbox: resumedSandboxSession,
                 abortSignal,
               }),
@@ -515,7 +515,7 @@ export class HarnessAgent<
               identity: sandboxBootstrapPlan.recipeIdentity,
               // Harness infrastructure always lives under the sandbox's own
               // HOME, never the working directory.
-              defaultWorkingDirectory: await harnessV1StateDirectory({
+              stateDirectory: await harnessV1StateDirectory({
                 sandbox: createdSandboxSession,
                 abortSignal,
               }),

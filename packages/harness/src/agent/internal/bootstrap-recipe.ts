@@ -1,6 +1,9 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type { HarnessV1Bootstrap } from '../../v1';
+import {
+  harnessV1StateDirectoryFromHome,
+  type HarnessV1Bootstrap,
+} from '../../v1';
 
 /**
  * Version of the bootstrap recipe shape itself. Bump to force every existing
@@ -10,7 +13,9 @@ export const BOOTSTRAP_SCHEMA_VERSION = 1;
 
 /**
  * Deterministic 16-char hex identity derived from the recipe's content
- * (harnessId, bootstrapDir, file paths + contents, commands, schema version).
+ * (harness state directory, harnessId, bootstrapDir, file paths + contents,
+ * commands, schema version). The sandbox's concrete HOME is unavailable until
+ * creation, so the directory is hashed with a symbolic HOME prefix.
  * Two adapters with equivalent recipes produce the same identity; any
  * content change produces a different identity.
  *
@@ -27,6 +32,7 @@ export async function hashHarnessBootstrap(
     chunks.push(encoder.encode('\0'));
   };
 
+  pushString(harnessV1StateDirectoryFromHome('$HOME'));
   pushString(recipe.harnessId);
   pushString(recipe.bootstrapDir);
 
@@ -66,16 +72,16 @@ export async function hashHarnessBootstrap(
 export function bootstrapMarkerPath({
   recipe,
   identity,
-  defaultWorkingDirectory,
+  stateDirectory,
 }: {
   recipe: HarnessV1Bootstrap;
   identity: string;
-  defaultWorkingDirectory: string;
+  stateDirectory: string;
 }): string {
   return posix.join(
     resolveBootstrapPath({
       path: recipe.bootstrapDir,
-      defaultWorkingDirectory,
+      stateDirectory,
     }),
     `.bootstrap-${identity}.ok`,
   );
@@ -95,19 +101,19 @@ export async function applyBootstrapRecipe({
   session,
   recipe,
   identity,
-  defaultWorkingDirectory,
+  stateDirectory,
   abortSignal,
 }: {
   session: SandboxSession;
   recipe: HarnessV1Bootstrap;
   identity: string;
-  defaultWorkingDirectory: string;
+  stateDirectory: string;
   abortSignal?: AbortSignal;
 }): Promise<void> {
   const markerPath = bootstrapMarkerPath({
     recipe,
     identity,
-    defaultWorkingDirectory,
+    stateDirectory,
   });
 
   const existingMarker = await session.readTextFile({
@@ -120,11 +126,11 @@ export async function applyBootstrapRecipe({
 
   const bootstrapDir = resolveBootstrapPath({
     path: recipe.bootstrapDir,
-    defaultWorkingDirectory,
+    stateDirectory,
   });
   const mkdirResult = await session.run({
     command: 'mkdir -p "$BOOTSTRAP_DIR"',
-    workingDirectory: defaultWorkingDirectory,
+    workingDirectory: stateDirectory,
     env: { BOOTSTRAP_DIR: bootstrapDir },
     abortSignal,
   });
@@ -138,7 +144,7 @@ export async function applyBootstrapRecipe({
     await session.writeTextFile({
       path: resolveBootstrapPath({
         path: file.path,
-        defaultWorkingDirectory,
+        stateDirectory,
       }),
       content: file.content,
       abortSignal,
@@ -167,12 +173,10 @@ export async function applyBootstrapRecipe({
 
 function resolveBootstrapPath({
   path,
-  defaultWorkingDirectory,
+  stateDirectory,
 }: {
   path: string;
-  defaultWorkingDirectory: string;
+  stateDirectory: string;
 }): string {
-  return posix.isAbsolute(path)
-    ? path
-    : posix.resolve(defaultWorkingDirectory, path);
+  return posix.isAbsolute(path) ? path : posix.resolve(stateDirectory, path);
 }
