@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 3.0.116
+
+### Patch Changes
+
+- ad8de8d: fix(openai): accept `incomplete` function_call and custom_tool_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 0b9d00b: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
 ## 3.0.115
 
 ### Patch Changes
