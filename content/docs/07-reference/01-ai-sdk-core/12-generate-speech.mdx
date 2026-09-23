@@ -66,7 +66,8 @@ const { audio } = await generateSpeech({
     {
       name: 'text',
       type: 'string',
-      description: 'The text to generate the speech from.',
+      description:
+        'The text to generate the speech from. When using Google Gemini 3.8 structured turns, pass an empty string and provide the transcript in providerOptions.google.turns.',
     },
     {
       name: 'voice',
@@ -79,13 +80,14 @@ const { audio } = await generateSpeech({
       type: 'string',
       isOptional: true,
       description:
-        'The output format to use for the speech e.g. "mp3", "wav", etc.',
+        'The output format to use for the speech, such as "mp3" or "wav". Supported formats and defaults vary by provider and model. Google Gemini 3.8 also supports headerless "audio/l16", "audio/mulaw", and "audio/alaw" output.',
     },
     {
       name: 'instructions',
       type: 'string',
       isOptional: true,
-      description: 'Instructions for the speech generation.',
+      description:
+        'Instructions for the speech generation. Google Gemini 3.8 sends these as delivery style metadata without changing the transcript. Explicit per-turn styles override these instructions.',
     },
     {
       name: 'speed',

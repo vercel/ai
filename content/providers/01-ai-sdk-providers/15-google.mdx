@@ -2233,45 +2233,103 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
 You can create models that call the [Gemini text-to-speech API](https://ai.google.dev/gemini-api/docs/speech-generation)
 using the `.speech()` factory method.
 
-The first argument is the model id e.g. `gemini-2.5-flash-preview-tts`.
+The first argument is the model ID, such as `gemini-3.8-flash-tts` or
+`gemini-3.8-flash-lite-tts`. Speech generation uses the `generateContent` API.
 
 ```ts
-const model = google.speech('gemini-2.5-flash-preview-tts');
+const model = google.speech('gemini-3.8-flash-tts');
 ```
 
 The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
-e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive. It defaults to `Kore`.
+e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`, or a custom `voice_...` ID or
+`voicekey_...` replication key. Custom voices require Gemini 3.8 TTS. Voice names
+are case-sensitive. The default voice is `Kore`.
 
 ```ts highlight="6"
 import { generateSpeech } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
+  model: google.speech('gemini-3.8-flash-tts'),
   text: 'Hello, world!',
   voice: 'Kore', // Gemini voice name
 });
 ```
 
-By default the generated audio is returned as a playable WAV file (`result.audio.mediaType` is
-`audio/wav`). Set `outputFormat: 'pcm'` to receive the raw signed 16-bit little-endian mono PCM
-bytes instead; the sample rate is reported in `result.providerMetadata.google.sampleRate`.
+By default the generated audio is returned as a playable WAV file
+(`result.audio.mediaType` is `audio/wav`). Gemini 3.8 returns a complete WAV file;
+the provider passes those bytes through unchanged. Older models return raw PCM,
+which the provider wraps in a WAV container. Write `result.audio.uint8Array`
+directly to disk without adding another WAV header.
 
-Gemini honors natural-language style direction. The `instructions` argument is prepended to the
-spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Say cheerfully: Hello`.
+Gemini 3.8 supports the following `outputFormat` values:
+
+| Format | Values                 | Result                       |
+| ------ | ---------------------- | ---------------------------- |
+| WAV    | `wav`, `audio/wav`     | WAV with a RIFF header       |
+| PCM    | `pcm`, `audio/l16`     | Headerless signed 16-bit PCM |
+| Mu-law | `mulaw`, `audio/mulaw` | Headerless mu-law audio      |
+| A-law  | `alaw`, `audio/alaw`   | Headerless A-law audio       |
+
+These map to `generationConfig.responseFormat.audio.mimeType` in
+`generateContent`. Older models support `wav` and `pcm`. The source MIME type and
+sample rate are available in `result.providerMetadata.google`.
+
+Gemini 2.5 and 3.1 model IDs retain the legacy request format. Other model IDs,
+including custom aliases, use the structured speech format.
+
+### Speech directions in Gemini 3.8
+
+Gemini 3.8 treats text as a verbatim transcript. The provider sends `instructions`
+as `speechMetadata.style`, leaving the text unchanged. You can also supply
+`providerOptions.google.speechMetadata` with `style` and `speaker` fields.
+An explicit style overrides `instructions`, including an empty style string.
+
+```ts
+const result = await generateSpeech({
+  model: google.speech('gemini-3.8-flash-tts'),
+  text: 'Welcome back. <short pause> It is good to see you. <laugh>',
+  instructions: 'Warm, relaxed, and speaking slowly',
+});
+```
+
+Put sustained delivery directions such as whispering, speaking slowly, or being
+out of breath in metadata. Keep momentary vocal events and pauses such as
+`<laugh>`, `<sigh>`, `<cough>`, `<breath>`, and `<short pause>` in the transcript.
+Avoid sound-effect tags such as applause or thuds. The provider preserves inline
+tags as written.
+
+For Gemini 3.1 and earlier, the provider retains the existing behavior of
+prepending `instructions` to single-speaker text. It ignores instructions with a
+warning for older multi-speaker requests. Structured `turns` and `speechMetadata`
+require Gemini 3.8.
 
 ### Multi-speaker audio
 
-For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
-name must match a name used in the input text. When set, it overrides the top-level `voice`.
+For Gemini 3.8 dialogue, pass `multiSpeakerVoiceConfig` and `turns` through
+`providerOptions.google`. Every turn must include `speechMetadata.speaker`
+matching a configured speaker; missing or unknown speakers produce an error
+before the request is sent. Speaker labels belong in metadata, not the text.
 
-```ts highlight="7-22"
+The `turns` array replaces the top-level text, so pass `text: ''`. The combined
+turn text must be non-empty. Passing
+nonempty top-level text with turns produces a warning. Put metadata on each turn
+instead of combining turns with top-level `speechMetadata`. Each turn's style
+overrides `instructions`; turns without a style inherit `instructions`.
+
+`multiSpeakerVoiceConfig` overrides the top-level `voice`. Each `voiceConfig`
+accepts either `prebuiltVoiceConfig: { voiceName: 'Kore' }` or
+`voice: 'voice_...'`, but not both. Google currently supports up to two prebuilt
+voices in a multi-speaker request. For dialogue with designed or replicated
+voices, generate each speaker's turns separately and concatenate the audio.
+
+```ts
 import { generateSpeech } from 'ai';
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
-  text: 'Joe: How are you? Jane: Doing great, thanks!',
+  model: google.speech('gemini-3.8-flash-lite-tts'),
+  text: '',
   providerOptions: {
     google: {
       multiSpeakerVoiceConfig: {
@@ -2286,10 +2344,79 @@ const result = await generateSpeech({
           },
         ],
       },
+      turns: [
+        {
+          text: 'How are you?',
+          speechMetadata: { speaker: 'Joe', style: 'curious' },
+        },
+        {
+          text: '<laugh> Doing great, thanks!',
+          speechMetadata: { speaker: 'Jane', style: 'cheerful' },
+        },
+      ],
     } satisfies GoogleSpeechModelOptions,
   },
 });
 ```
+
+Older models continue to use labelled transcripts, such as
+`text: 'Joe: How are you? Jane: Doing great, thanks!'`, with
+`multiSpeakerVoiceConfig` and without `turns`.
+
+### Voice design and management
+
+Use `google.voices()` to create a voice persona once, then reuse the returned
+`voice_...` ID in speech requests with minimal or empty style instructions.
+This replaces long audio profiles or director's notes in the transcript.
+
+```ts
+import { google } from '@ai-sdk/google';
+import { generateSpeech } from 'ai';
+
+const voices = google.voices();
+const voice = await voices.create({
+  store: true,
+  voice: {
+    type: 'prompted',
+    displayName: 'Storyteller',
+    prompted: {
+      input: 'A warm, calm storyteller with a soft British accent.',
+    },
+  },
+});
+
+if (voice.id == null) {
+  throw new Error('Google did not return a stored voice ID.');
+}
+
+const result = await generateSpeech({
+  model: google.speech('gemini-3.8-flash-tts'),
+  voice: voice.id,
+  text: 'Once upon a time, a small fox discovered a hidden garden.',
+});
+```
+
+The resource supports:
+
+- `create({ store, voice })`: prompted voices require `store: true` and
+  `voice.prompted.input`. Replicated voices use `type: 'replicated'` and
+  `replicated: { consentAudio, sourceAudio }`, where each audio value contains
+  base64 `data` and `mimeType`. Replicated voices may omit `store` or set it to
+  `false` to receive a client-managed `key` instead of a stored `id`.
+- `get({ id })`: retrieve a stored voice by its `voice_...` ID.
+- `list({ pageSize, pageToken, ...filters })`: returns `voices` and
+  `nextPageToken`. Pass that token to retrieve the next page, preserving the same
+  filters. Filters include `search` (a string) and arrays for `type`,
+  `languageCode`, `regionCode`, `accent`, `gender`, `persona`, `context`, and
+  `pitch` (`low`, `medium`, or `high`).
+- `delete({ id })`: delete a stored voice.
+
+Creation also accepts `voice.model`, `voice.sampleAudio: { data, mimeType }`, and
+discovery metadata: `displayName`, `description`, `languageCode`, `regionCode`,
+`accent`, `gender`, `persona`, `context`, and `pitch`. Returned voices expose
+`sampleAudio` when Google supplies a preview, and `expireTime` when applicable.
+All operations accept `headers` and `abortSignal` and use the provider's
+configured API key, base URL, and fetch implementation.
 
 <Note>
   Gemini TTS models do not support the `speed` or `language` options; passing
@@ -2304,6 +2431,8 @@ const result = await generateSpeech({
 | `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |
 | `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |
 | `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              |
+| `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
+| `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
 ## Evaluation Models
 
