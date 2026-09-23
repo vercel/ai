@@ -58,7 +58,8 @@ export async function validateApprovedToolApprovals<
   > = [];
 
   for (const approval of approvedToolApprovals) {
-    const { toolCall, approvalRequest } = approval;
+    const { approvalRequest } = approval;
+    let { toolCall } = approval;
     // Look up the tool by own property only: `toolName` comes from
     // client-supplied history, so a name matching an inherited object property
     // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
@@ -107,7 +108,7 @@ export async function validateApprovedToolApprovals<
       let validationError: unknown;
       if (!validation.success) {
         validationError = validation.error;
-      } else if (hasInputSchemaInput) {
+      } else {
         try {
           const revalidatedToolCall = await refineParsedToolCallInput({
             toolCall: {
@@ -117,10 +118,18 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
-          if (!isDeepEqualData(revalidatedToolCall.input, toolCall.input)) {
+          if (
+            hasInputSchemaInput &&
+            !isDeepEqualData(revalidatedToolCall.input, toolCall.input)
+          ) {
             validationError = new Error(
               'Approved tool input does not match the validated schema output.',
             );
+          } else if (!hasInputSchemaInput) {
+            // Older or projected message histories can omit the original
+            // schema input. In that case, execute the schema output rather
+            // than the untrusted value supplied as schema input.
+            toolCall = revalidatedToolCall;
           }
         } catch (error) {
           validationError = error;
@@ -152,6 +161,7 @@ export async function validateApprovedToolApprovals<
     if (approvalStatus.type === 'denied') {
       denied.push({
         ...approval,
+        toolCall,
         approvalResponse: {
           ...approval.approvalResponse,
           approved: false,
@@ -159,7 +169,10 @@ export async function validateApprovedToolApprovals<
         },
       });
     } else {
-      approved.push(approval);
+      approved.push({
+        ...approval,
+        toolCall,
+      });
     }
   }
 

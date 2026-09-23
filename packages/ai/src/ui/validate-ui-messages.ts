@@ -48,6 +48,15 @@ function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   } as DynamicToolUIPart;
 }
 
+function getToolPartInputSchemaInput(
+  toolPart: ToolUIPart,
+): { value: unknown } | undefined {
+  return toolPart.approval != null &&
+    Object.prototype.hasOwnProperty.call(toolPart.approval, 'inputSchemaInput')
+    ? { value: toolPart.approval.inputSchemaInput }
+    : undefined;
+}
+
 const uiMessagesSchema = lazySchema(() =>
   zodSchema(
     z
@@ -162,6 +171,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
                 z.object({
@@ -184,6 +194,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
                 z.object({
@@ -209,6 +220,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      inputSchemaInput: z.unknown().optional(),
                     })
                     .optional(),
                 }),
@@ -235,6 +247,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      inputSchemaInput: z.unknown().optional(),
                     })
                     .optional(),
                 }),
@@ -258,6 +271,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
                 z.object({
@@ -305,6 +319,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.never().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
                 z.object({
@@ -326,6 +341,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
                 z.object({
@@ -350,6 +366,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      inputSchemaInput: z.unknown().optional(),
                     })
                     .optional(),
                 }),
@@ -375,6 +392,7 @@ const uiMessagesSchema = lazySchema(() =>
                       reason: z.string().optional(),
                       isAutomatic: z.boolean().optional(),
                       signature: z.string().optional(),
+                      inputSchemaInput: z.unknown().optional(),
                     })
                     .optional(),
                 }),
@@ -397,6 +415,7 @@ const uiMessagesSchema = lazySchema(() =>
                     reason: z.string().optional(),
                     isAutomatic: z.boolean().optional(),
                     signature: z.string().optional(),
+                    inputSchemaInput: z.unknown().optional(),
                   }),
                 }),
               ]),
@@ -583,6 +602,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               entityName: toolName,
               entityId: toolPart.toolCallId,
             };
+            const inputSchemaInput = getToolPartInputSchemaInput(toolPart);
+            const inputToValidate =
+              inputSchemaInput == null
+                ? toolPart.input
+                : inputSchemaInput.value;
             let convertToDynamic = false;
 
             // Tool input validation
@@ -590,9 +614,9 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               // Failed calls can retain invalid input. Keep them loadable, but
               // expose incompatible input as unknown instead of the current
               // static tool input type.
-              if (toolPart.input !== undefined) {
+              if (inputSchemaInput != null || toolPart.input !== undefined) {
                 const result = await safeValidateTypes({
-                  value: toolPart.input,
+                  value: inputToValidate,
                   schema: tool.inputSchema,
                   context: inputValidationContext,
                 });
@@ -600,7 +624,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               }
             } else if (toolPart.state === 'output-available') {
               const result = await safeValidateTypes({
-                value: toolPart.input,
+                value: inputToValidate,
                 schema: tool.inputSchema,
                 context: inputValidationContext,
               });
@@ -609,7 +633,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
                 // Empty terminal input can represent aborted or incomplete
                 // history whose input was never streamed. Preserve it without
                 // claiming that it matches the current static input type.
-                if (isEmptyObject(toolPart.input)) {
+                if (isEmptyObject(inputToValidate)) {
                   convertToDynamic = true;
                 } else {
                   throw result.error;
@@ -622,7 +646,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               toolPart.state === 'output-denied'
             ) {
               await validateTypes({
-                value: toolPart.input,
+                value: inputToValidate,
                 schema: tool.inputSchema,
                 context: inputValidationContext,
               });

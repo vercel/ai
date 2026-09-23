@@ -151,6 +151,42 @@ describe('validateApprovedToolApprovals', () => {
     expect(result.invalidToolApprovals).toHaveLength(0);
   });
 
+  it('should execute validated schema output when the original schema input is missing', async () => {
+    const tools = {
+      tool1: tool({
+        inputSchema: z4
+          .object({ raw: z4.string() })
+          .transform(({ raw }) => ({ safe: Number(raw) })),
+        execute: async () => 'ok',
+      }),
+    };
+
+    const approval = createApproval({
+      type: 'tool-call',
+      toolCallId: 'call-1',
+      toolName: 'tool1',
+      input: { raw: '999' },
+    });
+
+    const result = await validateApprovedToolApprovals({
+      approvedToolApprovals: [approval],
+      tools,
+      toolApproval: undefined,
+      messages: [],
+      toolsContext: {} as any,
+      runtimeContext: {},
+    });
+
+    expect(result.approvedToolApprovals).toHaveLength(1);
+    expect(result.approvedToolApprovals[0].toolCall.input).toEqual({
+      safe: 999,
+    });
+    expect(result.approvedToolApprovals[0].toolCall.input).not.toEqual({
+      raw: '999',
+    });
+    expect(result.invalidToolApprovals).toHaveLength(0);
+  });
+
   it('should keep approvals whose schema input reshapes to the approved input', async () => {
     const tools = {
       tool1: tool({
