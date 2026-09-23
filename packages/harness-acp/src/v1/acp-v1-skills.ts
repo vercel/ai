@@ -1,5 +1,8 @@
 import path from 'node:path';
-import type { HarnessV1Skill } from '@ai-sdk/harness';
+import {
+  harnessSessionDataDirectoryPath,
+  type HarnessV1Skill,
+} from '@ai-sdk/harness';
 
 export const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
@@ -11,7 +14,7 @@ export function resolveACPPrivateSessionDirectory({
   stateDirectory: string;
   sessionId: string;
 }): string {
-  return path.posix.join(stateDirectory, '.agent-runs', sessionId);
+  return harnessSessionDataDirectoryPath({ stateDirectory, sessionId });
 }
 
 export function resolveACPSkillsDirectory({

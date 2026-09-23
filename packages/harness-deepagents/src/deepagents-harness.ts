@@ -18,6 +18,7 @@ import {
   type HarnessV1Session,
   type HarnessV1StreamPart,
   harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -306,7 +307,10 @@ export function createDeepAgents(
        */
       const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
       const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
-      const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 

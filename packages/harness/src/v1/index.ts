@@ -64,6 +64,7 @@ export type {
   HarnessV1RequestTransformationSources,
 } from './harness-v1-network-sandbox-session';
 export { harnessStateDirectoryPath } from './harness-v1-network-sandbox-session';
+export { harnessSessionDataDirectoryPath } from './harness-session-data-directory-path';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export {

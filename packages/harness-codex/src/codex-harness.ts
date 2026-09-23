@@ -20,6 +20,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -330,7 +331,10 @@ export function createCodex(
       const bootstrapDir = path.posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const cliShimDir = `${sessionDataDir}/codex`;
       const cliShimPath = `${cliShimDir}/${CLI_SHIM_FILENAME}`;

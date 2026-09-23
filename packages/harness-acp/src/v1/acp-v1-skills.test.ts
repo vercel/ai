@@ -35,6 +35,17 @@ describe('resolveACPPrivateSessionDirectory', () => {
       }),
     ).toBe(`${stateDirectory}/.agent-runs/session-2`);
   });
+
+  it('keeps session IDs containing traversal inside .agent-runs', () => {
+    expect(
+      resolveACPPrivateSessionDirectory({
+        stateDirectory: '/home/agent/.ai-sdk-harness',
+        sessionId: '../../../../work/project',
+      }),
+    ).toBe(
+      '/home/agent/.ai-sdk-harness/.agent-runs/..%2F..%2F..%2F..%2Fwork%2Fproject',
+    );
+  });
 });
 
 describe('validateACPSkills', () => {

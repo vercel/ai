@@ -23,6 +23,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -411,7 +412,10 @@ export function createOpenCode(
 
       const workDir = startOpts.sessionWorkDir;
       const skillsDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-      const sessionDataDir = `${stateDir}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
       const report = startOpts.observability?.report;
