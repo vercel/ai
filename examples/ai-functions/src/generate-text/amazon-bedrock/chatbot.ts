@@ -22,7 +22,7 @@ run(async () => {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+        model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
         tools: { weatherTool },
         instructions: `You are a helpful, respectful and honest assistant. If the weather is requested use the `,
         messages,

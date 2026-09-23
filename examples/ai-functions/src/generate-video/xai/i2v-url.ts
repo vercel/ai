@@ -6,10 +6,10 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating xAI image-to-video with grok-imagine-video...',
+    'Generating xAI image-to-video with grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt: {
           image:
             'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',

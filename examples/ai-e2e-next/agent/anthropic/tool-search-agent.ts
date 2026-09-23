@@ -38,7 +38,7 @@ const sendEmailTool = tool({
 });
 
 export const anthropicToolSearchAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   tools: {
     toolSearch: anthropic.tools.toolSearchBm25_20251119(),
     weather: weatherTool,

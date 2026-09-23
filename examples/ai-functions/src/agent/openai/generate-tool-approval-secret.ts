@@ -12,7 +12,7 @@ run(async () => {
   const toolApprovalSecret = process.env.TOOL_APPROVAL_SECRET ?? 'secret';
 
   const agent = new ToolLoopAgent({
-    model: openai('gpt-5.4-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'Use the weather tool when a user asks for the weather. After a tool result, summarize it briefly.',
     tools: {

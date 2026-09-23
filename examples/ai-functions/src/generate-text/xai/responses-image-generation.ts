@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: xai.responses('grok-4.7'),
     prompt:
       'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
     tools: {

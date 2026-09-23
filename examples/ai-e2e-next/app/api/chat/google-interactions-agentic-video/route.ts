@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   );
 
   const result = streamText({
-    model: google.interactions('gemini-3.7-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages:
       previousInteractionId != null && latestUserMessage != null
         ? [latestUserMessage]
