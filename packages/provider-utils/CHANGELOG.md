@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 3.0.39
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+
 ## 3.0.38
 
 ### Patch Changes

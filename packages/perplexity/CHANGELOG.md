@@ -1,5 +1,13 @@
 # @ai-sdk/perplexity
 
+## 2.0.45
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.44
 
 ### Patch Changes
