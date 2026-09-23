@@ -3,6 +3,7 @@ import {
   type JSONSchema7,
   type JSONValue,
   type LanguageModelV4CallOptions,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   asSchema,
@@ -40,6 +41,7 @@ export interface Output<OUTPUT = any, PARTIAL = any, ELEMENT = any> {
       response: Omit<LanguageModelResponseMetadata, 'messages' | 'body'>;
       usage: LanguageModelUsage;
       finishReason: FinishReason;
+      providerMetadata?: SharedV4ProviderMetadata;
     },
   ): Promise<OUTPUT>;
 
@@ -126,6 +128,7 @@ export const object = <OBJECT>({
         response: LanguageModelResponseMetadata;
         usage: LanguageModelUsage;
         finishReason: FinishReason;
+        providerMetadata?: SharedV4ProviderMetadata;
       },
     ) {
       const parseResult = await safeParseJSON({ text });
@@ -138,6 +141,7 @@ export const object = <OBJECT>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -154,6 +158,7 @@ export const object = <OBJECT>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -281,6 +286,7 @@ export const array = <ELEMENT>({
         response: LanguageModelResponseMetadata;
         usage: LanguageModelUsage;
         finishReason: FinishReason;
+        providerMetadata?: SharedV4ProviderMetadata;
       },
     ) {
       const parseResult = await safeParseJSON({ text });
@@ -293,6 +299,7 @@ export const array = <ELEMENT>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -314,6 +321,7 @@ export const array = <ELEMENT>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -331,6 +339,7 @@ export const array = <ELEMENT>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -349,6 +358,7 @@ export const array = <ELEMENT>({
             response: context.response,
             usage: context.usage,
             finishReason: context.finishReason,
+            providerMetadata: context.providerMetadata,
           });
         }
 
@@ -543,6 +553,7 @@ export const choice = <CHOICE extends string>({
         response: LanguageModelResponseMetadata;
         usage: LanguageModelUsage;
         finishReason: FinishReason;
+        providerMetadata?: SharedV4ProviderMetadata;
       },
     ) {
       const parseResult = await safeParseJSON({ text });
@@ -555,6 +566,7 @@ export const choice = <CHOICE extends string>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -577,6 +589,7 @@ export const choice = <CHOICE extends string>({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 
@@ -670,6 +683,7 @@ export const json = ({
         response: LanguageModelResponseMetadata;
         usage: LanguageModelUsage;
         finishReason: FinishReason;
+        providerMetadata?: SharedV4ProviderMetadata;
       },
     ) {
       const parseResult = await safeParseJSON({ text });
@@ -682,6 +696,7 @@ export const json = ({
           response: context.response,
           usage: context.usage,
           finishReason: context.finishReason,
+          providerMetadata: context.providerMetadata,
         });
       }
 

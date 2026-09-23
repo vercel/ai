@@ -1,4 +1,4 @@
-import { AISDKError } from '@ai-sdk/provider';
+import { AISDKError, type SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { VideoModelResponseMetadata } from '../types/video-model-response-metadata';
 
 const name = 'AI_NoVideoGeneratedError';
@@ -9,19 +9,23 @@ export class NoVideoGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly responses: Array<VideoModelResponseMetadata>;
+  readonly providerMetadata: SharedV4ProviderMetadata | undefined;
 
   constructor({
     message = 'No video generated.',
     cause,
     responses,
+    providerMetadata,
   }: {
     message?: string;
     cause?: unknown;
     responses: Array<VideoModelResponseMetadata>;
+    providerMetadata?: SharedV4ProviderMetadata;
   }) {
     super({ name, message, cause });
 
     this.responses = responses;
+    this.providerMetadata = providerMetadata;
   }
 
   static isInstance(error: unknown): error is NoVideoGeneratedError {
@@ -52,6 +56,7 @@ export class NoVideoGeneratedError extends AISDKError {
 
       cause: this.cause,
       responses: this.responses,
+      providerMetadata: this.providerMetadata,
     };
   }
 }

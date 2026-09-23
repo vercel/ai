@@ -169,7 +169,9 @@ without a finish event — it errors with a
 The error preserves the following information to help you log the issue:
 
 - `response`: Metadata about the speech translation model response, including
-  timestamp, model, and headers.
+  timestamp, model, headers, and body when available.
+- `usage`: Usage reported by the model when the stream finishes.
+- `providerMetadata`: Provider-specific metadata reported by the model.
 - `cause`: The cause of the error. You can use this for more detailed error
   handling.
 
@@ -194,6 +196,8 @@ try {
     console.log('NoTranslationGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Response:', error.response);
+    console.log('Usage:', error.usage);
+    console.log('Provider metadata:', error.providerMetadata);
   }
 }
 ```

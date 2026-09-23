@@ -9,7 +9,9 @@ This error occurs when no transcript could be generated from the input.
 
 ## Properties
 
-- `responses`: Array of transcription model response metadata (required in constructor)
+- `responses`: Array of transcription model response metadata, including the raw body when available (required in constructor)
+- `providerMetadata`: Provider-specific metadata reported by the model (optional)
+- `cause`: The underlying cause (optional)
 
 ## Checking for this Error
 
@@ -19,6 +21,7 @@ You can check if an error is an instance of `AI_NoTranscriptGeneratedError` usin
 import { NoTranscriptGeneratedError } from 'ai';
 
 if (NoTranscriptGeneratedError.isInstance(error)) {
-  // Handle the error
+  console.log(error.responses);
+  console.log(error.providerMetadata);
 }
 ```

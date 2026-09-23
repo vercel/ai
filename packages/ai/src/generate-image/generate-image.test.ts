@@ -788,6 +788,14 @@ describe('generateImage', () => {
               createMockResponse({
                 images: [],
                 timestamp: testDate,
+                usage: {
+                  inputTokens: 2,
+                  outputTokens: 3,
+                  totalTokens: 5,
+                },
+                providerMetaData: {
+                  testProvider: { images: [] },
+                },
               }),
           }),
           prompt,
@@ -802,6 +810,27 @@ describe('generateImage', () => {
             modelId: expect.any(String),
           },
         ],
+        calls: [
+          {
+            images: [],
+            providerMetadata: {
+              testProvider: { images: [] },
+            },
+            usage: {
+              inputTokens: 2,
+              outputTokens: 3,
+              totalTokens: 5,
+            },
+          },
+        ],
+        usage: {
+          inputTokens: 2,
+          outputTokens: 3,
+          totalTokens: 5,
+        },
+        providerMetadata: {
+          testProvider: { images: [] },
+        },
       });
     });
 

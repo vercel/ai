@@ -1,4 +1,4 @@
-import { AISDKError } from '@ai-sdk/provider';
+import { AISDKError, type SharedV4ProviderMetadata } from '@ai-sdk/provider';
 import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 
 const name = 'AI_NoSpeechGeneratedError';
@@ -12,14 +12,27 @@ export class NoSpeechGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
 
   readonly responses: Array<SpeechModelResponseMetadata>;
+  readonly providerMetadata: SharedV4ProviderMetadata | undefined;
 
-  constructor(options: { responses: Array<SpeechModelResponseMetadata> }) {
+  constructor({
+    message = 'No speech audio generated.',
+    cause,
+    responses,
+    providerMetadata,
+  }: {
+    message?: string;
+    cause?: unknown;
+    responses: Array<SpeechModelResponseMetadata>;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }) {
     super({
       name,
-      message: 'No speech audio generated.',
+      message,
+      cause,
     });
 
-    this.responses = options.responses;
+    this.responses = responses;
+    this.providerMetadata = providerMetadata;
   }
 
   static isInstance(error: unknown): error is NoSpeechGeneratedError {

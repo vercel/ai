@@ -1,4 +1,8 @@
-import { JSONParseError, TypeValidationError } from '@ai-sdk/provider';
+import {
+  JSONParseError,
+  TypeValidationError,
+  type SharedV4ProviderMetadata,
+} from '@ai-sdk/provider';
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import type {
@@ -25,6 +29,7 @@ async function parseAndValidateObjectResult<RESULT>(
     response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
+    providerMetadata?: SharedV4ProviderMetadata;
   },
 ): Promise<RESULT> {
   const parseResult = await safeParseJSON({ text: result });
@@ -37,6 +42,7 @@ async function parseAndValidateObjectResult<RESULT>(
       response: context.response,
       usage: context.usage,
       finishReason: context.finishReason,
+      providerMetadata: context.providerMetadata,
     });
   }
 
@@ -57,6 +63,7 @@ async function parseAndValidateObjectResult<RESULT>(
       response: context.response,
       usage: context.usage,
       finishReason: context.finishReason,
+      providerMetadata: context.providerMetadata,
     });
   }
 
@@ -82,6 +89,7 @@ export async function parseAndValidateObjectResultWithRepair<RESULT>(
     response: Omit<LanguageModelResponseMetadata, 'messages'>;
     usage: LanguageModelUsage;
     finishReason: FinishReason;
+    providerMetadata?: SharedV4ProviderMetadata;
   },
 ): Promise<RESULT> {
   try {

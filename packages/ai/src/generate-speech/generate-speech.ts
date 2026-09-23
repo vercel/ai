@@ -146,7 +146,10 @@ export async function generateSpeech({
   );
 
   if (!result.audio || result.audio.length === 0) {
-    throw new NoSpeechGeneratedError({ responses: [result.response] });
+    throw new NoSpeechGeneratedError({
+      responses: [result.response],
+      providerMetadata: result.providerMetadata,
+    });
   }
 
   logWarnings({

@@ -132,7 +132,8 @@ console.log(await result.text);
     {
       name: 'responses',
       type: 'Promise<Array<TranscriptionModelResponseMetadata>>',
-      description: 'Response metadata (timestamp, model ID, headers).',
+      description:
+        'Response metadata (timestamp, model ID, headers, and raw body when available).',
     },
     {
       name: 'providerMetadata',

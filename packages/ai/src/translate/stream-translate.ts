@@ -194,6 +194,11 @@ export function streamTranslate({
             timestamp: value.timestamp ?? currentResponseMetadata().timestamp,
             modelId: value.modelId ?? currentResponseMetadata().modelId,
             headers: value.headers ?? response?.headers,
+            ...(value.body !== undefined || response?.body !== undefined
+              ? {
+                  body: value.body !== undefined ? value.body : response?.body,
+                }
+              : {}),
           };
           break;
         }
@@ -223,6 +228,8 @@ export function streamTranslate({
           if (!hasAudioOutput && !value.outputText) {
             throw new NoTranslationGeneratedError({
               response: currentResponseMetadata(),
+              usage: value.usage,
+              providerMetadata: value.providerMetadata,
             });
           }
 
@@ -282,6 +289,9 @@ export function streamTranslate({
       timestamp: result.response?.timestamp ?? startedAt,
       modelId: result.response?.modelId ?? resolvedModel.modelId,
       headers: result.response?.headers,
+      ...(result.response?.body !== undefined && {
+        body: result.response.body,
+      }),
     };
 
     await result.stream.pipeTo(transform.writable, {
