@@ -211,10 +211,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
 
-    if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
-    }
-
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
@@ -318,6 +314,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      top_k: topK,
+      min_p: options.minP,
       seed,
       ...(responseFormat?.type === 'json' && {
         text: {
@@ -353,8 +351,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.maxTurns != null && {
+        max_turns: options.maxTurns,
+      }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
+      ...(options.promptCacheKey != null && {
+        prompt_cache_key: options.promptCacheKey,
+      }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
       ...(options.serviceTier != null && {
         service_tier: options.serviceTier,
+      }),
+      ...(options.user != null && {
+        user: options.user,
       }),
     };
 
