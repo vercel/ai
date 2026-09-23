@@ -387,7 +387,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }

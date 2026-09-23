@@ -287,6 +287,92 @@ describe('doGenerate', () => {
     `);
   });
 
+<<<<<<< HEAD
+=======
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-3.5-turbo-0125',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
+>>>>>>> 6d1f88113f (fix: OpenAI chat audio completions lose message.audio transcripts (#21338))
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },
