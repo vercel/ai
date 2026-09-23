@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21289,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/openai-chat-audio-transcript.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/openai-chat-audio-transcript.ts",
+    "packages/openai/src/chat/__fixtures__/openai-audio-gpt-audio-1.5.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21289_AUDIO_TRANSCRIPT_LOST: expected \"Fix the login bug\", received \"\""
+  }
+}

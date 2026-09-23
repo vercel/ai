@@ -1,0 +1,44 @@
+{
+  "id": "chatcmpl-audio-live",
+  "object": "chat.completion",
+  "created": 0,
+  "model": "gpt-audio-1.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "refusal": null,
+        "audio": {
+          "id": "audio_live",
+          "data": "base64",
+          "expires_at": 0,
+          "transcript": "Fix the login bug"
+        },
+        "annotations": []
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 14,
+    "completion_tokens": 46,
+    "total_tokens": 60,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0,
+      "text_tokens": 14,
+      "image_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 36,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0,
+      "text_tokens": 10
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_audio_live"
+}
