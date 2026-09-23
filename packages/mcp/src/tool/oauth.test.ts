@@ -1770,61 +1770,6 @@ describe('auth function', () => {
     vi.clearAllMocks();
   });
 
-<<<<<<< HEAD
-=======
-  function setupAuthorizationCodeFlow() {
-    mockFetch.mockImplementation(url => {
-      const urlString = url.toString();
-
-      if (urlString.includes('/.well-known/oauth-protected-resource')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            resource: 'https://api.example.com/mcp-server',
-            authorization_servers: ['https://auth.example.com'],
-          }),
-        });
-      }
-
-      if (urlString.includes('/.well-known/oauth-authorization-server')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            issuer: 'https://auth.example.com',
-            authorization_endpoint: 'https://auth.example.com/authorize',
-            token_endpoint: 'https://auth.example.com/token',
-            response_types_supported: ['code'],
-            code_challenge_methods_supported: ['S256'],
-          }),
-        });
-      }
-
-      if (urlString.includes('/token')) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: async () => ({
-            access_token: 'access123',
-            token_type: 'Bearer',
-          }),
-        });
-      }
-
-      return Promise.resolve({ ok: false, status: 404 });
-    });
-
-    (mockProvider.clientInformation as Mock).mockResolvedValue({
-      client_id: 'test-client',
-      client_secret: 'test-secret',
-      authorization_server: 'https://auth.example.com/',
-      token_endpoint: 'https://auth.example.com/token',
-    });
-    (mockProvider.codeVerifier as Mock).mockResolvedValue('test-verifier');
-    (mockProvider.saveTokens as Mock).mockResolvedValue(undefined);
-  }
-
   function setupClientErrorFlow({
     errorCode,
     onRegistration,
@@ -2060,7 +2005,6 @@ describe('auth function', () => {
     expect(provider.redirectToAuthorization).toHaveBeenCalledOnce();
   });
 
->>>>>>> 7fc2bc1e24 (fix: Prevent MCP OAuth from deleting or replacing pre-registered clients after authentication errors. (#21029))
   it('falls back to /.well-known/oauth-authorization-server when no protected-resource-metadata', async () => {
     // Setup: First call to protected resource metadata fails (404)
     // Second call to auth server metadata succeeds
