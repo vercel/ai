@@ -79,6 +79,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
@@ -123,7 +124,7 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import type { TypedToolCall } from './tool-call';
+import { getToolCallInputSchemaInput, type TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
@@ -1451,7 +1452,6 @@ class DefaultStreamTextResult<
       metadata: telemetry?.metadata as Record<string, unknown> | undefined,
     };
 
-<<<<<<< HEAD
     recordSpan({
       name: 'ai.streamText',
       attributes: selectTelemetryAttributes({
@@ -1462,122 +1462,6 @@ class DefaultStreamTextResult<
           // specific settings that only make sense on the outer level:
           'ai.prompt': {
             input: () => JSON.stringify({ system, prompt, messages }),
-=======
-    (async () => {
-      const initialPrompt = await standardizePrompt({
-        instructions,
-        system,
-        prompt,
-        messages,
-        allowSystemInMessages,
-      } as Prompt);
-
-      const startEvent = {
-        callId,
-        operationId: 'ai.streamText',
-        provider: model.provider,
-        modelId: model.modelId,
-        instructions: initialPrompt.instructions,
-        messages: initialPrompt.messages,
-        tools,
-        toolChoice,
-        activeTools,
-        toolOrder,
-        maxOutputTokens: callSettings.maxOutputTokens,
-        temperature: callSettings.temperature,
-        topP: callSettings.topP,
-        topK: callSettings.topK,
-        presencePenalty: callSettings.presencePenalty,
-        frequencyPenalty: callSettings.frequencyPenalty,
-        stopSequences: callSettings.stopSequences,
-        seed: callSettings.seed,
-        reasoning: callSettings.reasoning,
-        maxRetries,
-        timeout,
-        headers,
-        providerOptions,
-        output,
-        runtimeContext,
-        toolsContext,
-      };
-
-      const streamTextTracingChannelContext =
-        telemetryDispatcher.startTracingChannelContext?.({
-          type: 'streamText',
-          event: startEvent,
-          completion: self._totalUsage.promise.then(() => undefined),
-        });
-      // Re-enter the streamText tracing context after stream setup returns.
-      const runInStreamTextTracingChannelContext = <T>(execute: () => T): T =>
-        streamTextTracingChannelContext?.run(execute) ?? execute();
-      const runInTracingChannelSpanInStreamText =
-        telemetryDispatcher.runInTracingChannelSpan == null
-          ? undefined
-          : <T>(
-              options: Parameters<
-                NonNullable<TelemetryDispatcher['runInTracingChannelSpan']>
-              >[0] & {
-                execute: () => PromiseLike<T>;
-              },
-            ) =>
-              runInStreamTextTracingChannelContext(() =>
-                telemetryDispatcher.runInTracingChannelSpan!(options),
-              );
-
-      await notify({
-        event: startEvent,
-        callbacks: [onStart, telemetryDispatcher.onStart],
-      });
-
-      const initialMessages = initialPrompt.messages;
-      let instructionsForNextStep = initialPrompt.instructions;
-
-      const { approvedToolApprovals, deniedToolApprovals } =
-        collectToolApprovals<TOOLS>({ messages: initialMessages });
-
-      // initial tool execution step stream
-      if (deniedToolApprovals.length > 0 || approvedToolApprovals.length > 0) {
-        const {
-          approvedToolApprovals: localApprovedToolApprovals,
-          deniedToolApprovals: revalidationDeniedToolApprovals,
-          invalidToolApprovals,
-        } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
-          approvedToolApprovals: approvedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          ),
-          tools,
-          toolApproval,
-          messages: initialMessages,
-          toolsContext,
-          runtimeContext,
-          toolApprovalSecret: experimental_toolApprovalSecret,
-          refineToolInput,
-        });
-
-        const localDeniedToolApprovals = [
-          ...deniedToolApprovals.filter(
-            toolApproval => !toolApproval.toolCall.providerExecuted,
-          ),
-          ...revalidationDeniedToolApprovals,
-        ];
-        const localDeniedToolApprovalsWithoutResults =
-          localDeniedToolApprovals.filter(
-            toolApproval => toolApproval.existingToolResult == null,
-          );
-
-        const deniedProviderExecutedToolApprovals = deniedToolApprovals.filter(
-          toolApproval => toolApproval.toolCall.providerExecuted,
-        );
-
-        let toolExecutionStepStreamController:
-          | ReadableStreamDefaultController<TextStreamPart<TOOLS>>
-          | undefined;
-        const toolExecutionStepStream = new ReadableStream<
-          TextStreamPart<TOOLS>
-        >({
-          start(controller) {
-            toolExecutionStepStreamController = controller;
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
           },
         },
       }),
@@ -3101,10 +2985,17 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-approval-request': {
+              const inputSchemaInput = getToolCallInputSchemaInput(
+                part.toolCall,
+              );
               controller.enqueue({
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(inputSchemaInput != null &&
+                !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+                  ? { inputSchemaInput: inputSchemaInput.value }
+                  : {}),
                 ...(part.signature != null
                   ? { signature: part.signature }
                   : {}),

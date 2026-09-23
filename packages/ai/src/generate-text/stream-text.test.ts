@@ -47,13 +47,10 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
-<<<<<<< HEAD
-=======
 import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
 import { convertToModelMessages } from '../ui/convert-to-model-messages';
 import type { UIMessage } from '../ui/ui-messages';
 import { validateUIMessages } from '../ui/validate-ui-messages';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 import type { StepResult } from './step-result';
 import { isLoopFinished, stepCountIs } from './stop-condition';
 import {
@@ -22548,159 +22545,6 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
-<<<<<<< HEAD
-=======
-    it('should settle automatically denied tool calls in the UI message stream', async () => {
-      const execute = vi.fn();
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'stream-start', warnings: [] },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'tool-calls', raw: undefined },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: tool({
-            inputSchema: z.object({ value: z.string() }),
-            execute,
-          }),
-        },
-        toolApproval: {
-          tool1: {
-            type: 'denied',
-            reason: 'blocked by policy',
-          },
-        },
-        prompt: 'test-input',
-        _internal: {
-          generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-telemetry-call-id',
-        },
-      });
-
-      const [chunkStream, messageStream] = result.toUIMessageStream().tee();
-      const [chunks, messages] = await Promise.all([
-        convertReadableStreamToArray(chunkStream),
-        convertReadableStreamToArray(
-          readUIMessageStream({ stream: messageStream }),
-        ),
-      ]);
-
-      expect(
-        chunks.filter(chunk =>
-          [
-            'tool-approval-request',
-            'tool-approval-response',
-            'tool-output-denied',
-          ].includes(chunk.type),
-        ),
-      ).toEqual([
-        {
-          type: 'tool-approval-request',
-          approvalId: 'id-1',
-          toolCallId: 'call-1',
-          isAutomatic: true,
-        },
-        {
-          type: 'tool-approval-response',
-          approvalId: 'id-1',
-          approved: false,
-          reason: 'blocked by policy',
-        },
-        {
-          type: 'tool-output-denied',
-          toolCallId: 'call-1',
-        },
-      ]);
-      expect(
-        messages.at(-1)?.parts.find(part => part.type === 'tool-tool1'),
-      ).toMatchObject({
-        type: 'tool-tool1',
-        toolCallId: 'call-1',
-        state: 'output-denied',
-        input: { value: 'value' },
-        approval: {
-          id: 'id-1',
-          approved: false,
-          reason: 'blocked by policy',
-          isAutomatic: true,
-        },
-      });
-      expect(execute).not.toHaveBeenCalled();
-    });
-
-    it('should surface the reason for streamed user approval requests', async () => {
-      const result = streamText({
-        model: createTestModel({
-          stream: convertArrayToReadableStream([
-            { type: 'stream-start', warnings: [] },
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'tool1',
-              input: `{ "value": "value" }`,
-            },
-            {
-              type: 'finish',
-              finishReason: { unified: 'tool-calls', raw: undefined },
-              usage: testUsage,
-            },
-          ]),
-        }),
-        tools: {
-          tool1: tool({
-            inputSchema: z.object({ value: z.string() }),
-          }),
-        },
-        toolApproval: {
-          tool1: {
-            type: 'user-approval',
-            reason: 'requires operator review',
-          },
-        },
-        prompt: 'test-input',
-        _internal: {
-          generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-telemetry-call-id',
-        },
-      });
-
-      expect(
-        (await result.content).find(
-          part => part.type === 'tool-approval-request',
-        ),
-      ).toMatchObject({
-        type: 'tool-approval-request',
-        approvalId: 'id-1',
-        reason: 'requires operator review',
-      });
-      expect(
-        await convertAsyncIterableToArray(result.toUIMessageStream()),
-      ).toContainEqual({
-        type: 'tool-approval-request',
-        approvalId: 'id-1',
-        toolCallId: 'call-1',
-        reason: 'requires operator review',
-      });
-      expect((await result.responseMessages)[0].content).toContainEqual(
-        expect.objectContaining({
-          type: 'tool-approval-request',
-          approvalId: 'id-1',
-          reason: 'requires operator review',
-        }),
-      );
-    });
-
     it('should execute transformed approved input after a persisted UI message round trip', async () => {
       const execute = vi.fn(async ({ count }: { count: number }) => count);
       const tools = {
@@ -22709,6 +22553,7 @@ describe('streamText', () => {
             count: z.string().transform(Number),
           }),
           execute,
+          needsApproval: true,
         }),
       };
       const firstResult = streamText({
@@ -22729,11 +22574,9 @@ describe('streamText', () => {
           ]),
         }),
         tools,
-        toolApproval: { count: 'user-approval' },
         prompt: 'Count three items.',
         _internal: {
           generateId: mockId({ prefix: 'id' }),
-          generateCallId: () => 'test-telemetry-call-id',
         },
       });
 
@@ -22762,10 +22605,10 @@ describe('streamText', () => {
 
       const validatedMessages = await validateUIMessages({
         messages: [persistedMessage],
-        tools,
+        tools: tools as any,
       });
       const modelMessages = await convertToModelMessages(validatedMessages, {
-        tools,
+        tools: tools as any,
       });
 
       const secondResult = streamText({
@@ -22783,7 +22626,6 @@ describe('streamText', () => {
           ]),
         }),
         tools,
-        toolApproval: { count: 'user-approval' },
         messages: [
           { role: 'user', content: 'Count three items.' },
           ...modelMessages,
@@ -22795,7 +22637,6 @@ describe('streamText', () => {
       expect(execute).toHaveBeenCalledWith({ count: 3 }, expect.anything());
     });
 
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
     it('should stream invalid approved input as a tool error and continue', async () => {
       const executeFunction = vi.fn().mockReturnValue('result1');
       const prompts: LanguageModelV3Prompt[] = [];

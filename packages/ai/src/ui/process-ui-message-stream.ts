@@ -721,19 +721,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 ...(chunk.approvalDescriptor != null
                   ? { descriptor: chunk.approvalDescriptor }
                   : {}),
-<<<<<<< HEAD
-=======
                 ...(Object.prototype.hasOwnProperty.call(
                   chunk,
                   'inputSchemaInput',
                 )
                   ? { inputSchemaInput: chunk.inputSchemaInput }
                   : {}),
-                ...(chunk.reason != null
-                  ? { requestReason: chunk.reason }
-                  : {}),
-                ...(chunk.isAutomatic === true ? { isAutomatic: true } : {}),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 ...(chunk.signature != null
                   ? { signature: chunk.signature }
                   : {}),

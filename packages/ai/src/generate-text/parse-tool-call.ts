@@ -9,18 +9,11 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-<<<<<<< HEAD
-import type { DynamicToolCall, TypedToolCall } from './tool-call';
-=======
-import type { Instructions } from '../prompt';
-import { getOwn } from '../util/get-own';
 import {
-  getToolCallInputSchemaInput,
   setToolCallInputSchemaInput,
   type DynamicToolCall,
   type TypedToolCall,
 } from './tool-call';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from './tool-set';
 
@@ -111,71 +104,6 @@ export async function parseToolCall<TOOLS extends ToolSet>({
   }
 }
 
-<<<<<<< HEAD
-=======
-async function waitForPromiseWithAbortSignal<T>({
-  promise,
-  abortSignal,
-}: {
-  promise: PromiseLike<T>;
-  abortSignal: AbortSignal | undefined;
-}): Promise<T> {
-  if (abortSignal == null) {
-    return await promise;
-  }
-
-  return await new Promise<T>((resolve, reject) => {
-    const cleanup = () => {
-      abortSignal.removeEventListener('abort', onAbort);
-    };
-    const onAbort = () => {
-      cleanup();
-      reject(abortSignal.reason);
-    };
-
-    Promise.resolve(promise)
-      .then(value => {
-        cleanup();
-        resolve(value);
-      })
-      .catch(error => {
-        cleanup();
-        reject(error);
-      });
-
-    abortSignal.addEventListener('abort', onAbort, { once: true });
-
-    if (abortSignal.aborted) {
-      onAbort();
-    }
-  });
-}
-
-export async function refineParsedToolCallInput<TOOLS extends ToolSet>({
-  toolCall,
-  refineToolInput,
-}: {
-  toolCall: TypedToolCall<TOOLS>;
-  refineToolInput: ToolInputRefinement<TOOLS> | undefined;
-}): Promise<TypedToolCall<TOOLS>> {
-  const refine = getOwn(refineToolInput, toolCall.toolName);
-
-  if (refine == null) {
-    return toolCall;
-  }
-
-  const refinedToolCall = {
-    ...toolCall,
-    input: await refine(toolCall.input as InferToolInput<TOOLS[keyof TOOLS]>),
-  } as TypedToolCall<TOOLS>;
-
-  const inputSchemaInput = getToolCallInputSchemaInput(toolCall);
-  return inputSchemaInput == null
-    ? refinedToolCall
-    : setToolCallInputSchemaInput(refinedToolCall, inputSchemaInput.value);
-}
-
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 async function parseProviderExecutedDynamicToolCall(
   toolCall: LanguageModelV3ToolCall,
 ): Promise<DynamicToolCall> {

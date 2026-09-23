@@ -569,7 +569,6 @@ export async function generateText<
           deniedToolApprovals: collectedDeniedToolApprovals,
         } = collectToolApprovals<TOOLS>({ messages: initialMessages });
 
-<<<<<<< HEAD
         // Re-validate approvals reconstructed from the client-supplied message
         // history before executing them: verify the HMAC signature (when a
         // secret is configured), re-validate the input against the tool's
@@ -581,50 +580,6 @@ export async function generateText<
         } = await validateApprovedToolApprovals<TOOLS>({
           approvedToolApprovals: approvedToolApprovals.filter(
             toolApproval => !toolApproval.toolCall.providerExecuted,
-=======
-    try {
-      const initialMessages = initialPrompt.messages;
-      const initialResponseMessages: Array<ResponseMessage> = [];
-
-      const {
-        approvedToolApprovals,
-        deniedToolApprovals: collectedDeniedToolApprovals,
-      } = collectToolApprovals<TOOLS>({ messages: initialMessages });
-
-      const {
-        approvedToolApprovals: localApprovedToolApprovals,
-        deniedToolApprovals: revalidationDeniedToolApprovals,
-        invalidToolApprovals,
-      } = await validateApprovedToolApprovals<TOOLS, RUNTIME_CONTEXT>({
-        approvedToolApprovals: approvedToolApprovals.filter(
-          toolApproval => !toolApproval.toolCall.providerExecuted,
-        ),
-        tools,
-        toolApproval,
-        messages: initialMessages,
-        toolsContext,
-        runtimeContext,
-        toolApprovalSecret: experimental_toolApprovalSecret,
-        refineToolInput,
-      });
-
-      const deniedToolApprovals = [
-        ...collectedDeniedToolApprovals,
-        ...revalidationDeniedToolApprovals,
-      ];
-      const deniedToolApprovalsWithoutResults = deniedToolApprovals.filter(
-        toolApproval => toolApproval.existingToolResult == null,
-      );
-
-      if (
-        deniedToolApprovalsWithoutResults.length > 0 ||
-        localApprovedToolApprovals.length > 0 ||
-        invalidToolApprovals.length > 0
-      ) {
-        const toolResults = await executeTools({
-          toolCalls: localApprovedToolApprovals.map(
-            toolApproval => toolApproval.toolCall,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
           ),
           tools,
           messages: initialMessages,

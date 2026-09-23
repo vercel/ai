@@ -849,7 +849,7 @@ describe('toResponseMessages', () => {
         tools,
         repairToolCall: undefined,
         messages: [],
-        instructions: undefined,
+        system: undefined,
       });
 
       const result = await toResponseMessages({

@@ -10,17 +10,12 @@ import {
   validateTypes,
   zodSchema,
   type FlexibleSchema,
-  type MaybePromiseLike,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
-<<<<<<< HEAD
-=======
-import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 import { providerMetadataSchema } from '../types/provider-metadata';
 import type {
   DataUIPart,
@@ -69,9 +64,7 @@ const uiMessagesSchema = lazySchema(() => {
     id: z.string(),
     approved: z.never().optional(),
     descriptor: z.unknown().optional(),
-    requestReason: z.string().optional(),
     reason: z.never().optional(),
-    isAutomatic: z.boolean().optional(),
     signature: z.string().optional(),
     inputSchemaInput: z.unknown().optional(),
   });
@@ -176,17 +169,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.never().optional(),
-                    descriptor: z.unknown().optional(),
-                    reason: z.never().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalRequestedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -199,17 +182,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.boolean(),
-                    descriptor: z.unknown().optional(),
-                    reason: z.string().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalRespondedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -224,19 +197,7 @@ const uiMessagesSchema = lazySchema(() => {
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
-<<<<<<< HEAD
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      reason: z.string().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
-=======
                   approval: approvalGrantedSchema.optional(),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -251,19 +212,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      reason: z.string().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
-=======
                   approval: approvalGrantedSchema.optional(),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -276,17 +225,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.literal(false),
-                    descriptor: z.unknown().optional(),
-                    reason: z.string().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalDeniedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -322,17 +261,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.never().optional(),
-                    descriptor: z.unknown().optional(),
-                    reason: z.never().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalRequestedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -344,17 +273,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.boolean(),
-                    descriptor: z.unknown().optional(),
-                    reason: z.string().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalRespondedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -368,19 +287,7 @@ const uiMessagesSchema = lazySchema(() => {
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
-<<<<<<< HEAD
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      reason: z.string().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
-=======
                   approval: approvalGrantedSchema.optional(),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -394,19 +301,7 @@ const uiMessagesSchema = lazySchema(() => {
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      reason: z.string().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
-=======
                   approval: approvalGrantedSchema.optional(),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -418,17 +313,7 @@ const uiMessagesSchema = lazySchema(() => {
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.literal(false),
-                    descriptor: z.unknown().optional(),
-                    reason: z.string().optional(),
-                    signature: z.string().optional(),
-                  }),
-=======
                   approval: approvalDeniedSchema,
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
                 }),
               ]),
             ),
@@ -475,11 +360,6 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
       InferUIMessageTools<UI_MESSAGE>[NAME]['output']
     >;
   };
-  experimental_refineToolInput?: {
-    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: (
-      input: InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
-    ) => MaybePromiseLike<InferUIMessageTools<UI_MESSAGE>[NAME]['input']>;
-  };
 };
 
 async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
@@ -488,7 +368,6 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
     metadataSchema,
     dataSchemas,
     tools,
-    experimental_refineToolInput,
   }: ValidateUIMessagesOptions<UI_MESSAGE>,
   {
     convertMissingTerminalToolsToDynamic,
@@ -633,23 +512,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               if (!result.success) {
                 inputError = result.error;
               } else if (inputSchemaInput != null) {
-                try {
-                  const refine = getOwn(experimental_refineToolInput, toolName);
-                  const reconstructedInput =
-                    refine == null ? result.value : await refine(result.value);
-
-                  if (!isDeepEqualData(reconstructedInput, toolPart.input)) {
-                    inputError = new TypeValidationError({
-                      value: toolPart.input,
-                      cause:
-                        'Tool input does not match the output reconstructed from inputSchemaInput.',
-                      context: inputValidationContext,
-                    });
-                  }
-                } catch (error) {
+                if (!isDeepEqualData(result.value, toolPart.input)) {
                   inputError = new TypeValidationError({
-                    value: inputToValidate,
-                    cause: error,
+                    value: toolPart.input,
+                    cause:
+                      'Tool input does not match the output reconstructed from inputSchemaInput.',
                     context: inputValidationContext,
                   });
                 }

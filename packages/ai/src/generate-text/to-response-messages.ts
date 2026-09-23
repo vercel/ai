@@ -5,16 +5,10 @@ import type {
   ToolModelMessage,
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
-<<<<<<< HEAD
-import type { ContentPart } from './content-part';
-import type { ToolSet } from './tool-set';
-=======
-import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { ContentPart } from './content-part';
-import type { ToolSet } from '@ai-sdk/provider-utils';
+import type { ToolSet } from './tool-set';
 import { getToolCallInputSchemaInput } from './tool-call';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.

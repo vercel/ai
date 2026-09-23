@@ -1,12 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
-<<<<<<< HEAD
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod/v4';
-=======
-import { describe, expect, it, vi } from 'vitest';
 import { z as z3 } from 'zod/v3';
 import { z as z4 } from 'zod/v4';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { signToolApproval } from './tool-approval-signature';
 import { validateApprovedToolApprovals } from './validate-tool-approvals';
@@ -122,9 +117,6 @@ describe('validateApprovedToolApprovals', () => {
     );
   });
 
-<<<<<<< HEAD
-  it('should move approvals to denied when the tool does not require approval', async () => {
-=======
   it('should keep approvals whose schema input transforms to the approved input', async () => {
     const tools = {
       tool1: tool({
@@ -132,6 +124,7 @@ describe('validateApprovedToolApprovals', () => {
           count: z4.string().transform(Number),
         }),
         execute: async () => 'ok',
+        needsApproval: true,
       }),
     };
 
@@ -146,10 +139,8 @@ describe('validateApprovedToolApprovals', () => {
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(1);
@@ -163,6 +154,7 @@ describe('validateApprovedToolApprovals', () => {
           .object({ raw: z4.string() })
           .transform(({ raw }) => ({ safe: Number(raw) })),
         execute: async () => 'ok',
+        needsApproval: true,
       }),
     };
 
@@ -176,10 +168,8 @@ describe('validateApprovedToolApprovals', () => {
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(0);
@@ -204,6 +194,7 @@ describe('validateApprovedToolApprovals', () => {
           count: Number(raw),
         })),
         execute: async () => 'ok',
+        needsApproval: true,
       }),
     };
 
@@ -218,44 +209,8 @@ describe('validateApprovedToolApprovals', () => {
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
-    });
-
-    expect(result.approvedToolApprovals).toHaveLength(1);
-    expect(result.invalidToolApprovals).toHaveLength(0);
-  });
-
-  it('should reapply input refinement before comparing the approved input', async () => {
-    const tools = {
-      tool1: tool({
-        inputSchema: z4.object({ value: z4.string() }),
-        execute: async () => 'ok',
-      }),
-    };
-
-    const approval = createApproval({
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'tool1',
-      input: { value: 'trimmed' },
-    });
-    approval.approvalRequest.inputSchemaInput = { value: ' trimmed ' };
-
-    const result = await validateApprovedToolApprovals({
-      approvedToolApprovals: [approval],
-      tools,
-      toolApproval: undefined,
-      messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
-      refineToolInput: {
-        tool1: input => ({
-          value: (input as { value: string }).value.trim(),
-        }),
-      },
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(1);
@@ -269,6 +224,7 @@ describe('validateApprovedToolApprovals', () => {
           count: z4.string().transform(Number),
         }),
         execute: async () => 'ok',
+        needsApproval: true,
       }),
     };
 
@@ -283,10 +239,8 @@ describe('validateApprovedToolApprovals', () => {
     const result = await validateApprovedToolApprovals({
       approvedToolApprovals: [approval],
       tools,
-      toolApproval: undefined,
       messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
+      experimental_context: undefined,
     });
 
     expect(result.approvedToolApprovals).toHaveLength(0);
@@ -303,8 +257,7 @@ describe('validateApprovedToolApprovals', () => {
     ]);
   });
 
-  it('should move approvals to denied when the approval policy denies them', async () => {
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
+  it('should move approvals to denied when the tool does not require approval', async () => {
     const tools = {
       tool1: tool({
         inputSchema: z4.object({ value: z4.string() }),
@@ -357,81 +310,10 @@ describe('validateApprovedToolApprovals', () => {
       experimental_context: undefined,
     });
 
-<<<<<<< HEAD
-=======
-    expect(result.deniedToolApprovals).toHaveLength(1);
-    expect(result.deniedToolApprovals[0].approvalResponse.reason).toBe(
-      'policy changed',
-    );
-    expect(result.deniedToolApprovals[0].approvalResponse.approved).toBe(false);
-  });
-
-  it('should re-run a function-based approval policy on the approved input', async () => {
-    const approvalPolicy = vi.fn().mockResolvedValue('denied');
-    const tools = {
-      tool1: tool({
-        inputSchema: z4.object({ value: z4.string() }),
-        execute: async () => 'ok',
-      }),
-    };
-
-    const approval = createApproval({
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'tool1',
-      input: { value: 'test' },
-    });
-
-    const result = await validateApprovedToolApprovals({
-      approvedToolApprovals: [approval],
-      tools,
-      // per-tool approval policy re-evaluated against the approved input
-      toolApproval: { tool1: approvalPolicy },
-      messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
-    });
-
-    expect(approvalPolicy).toHaveBeenCalledWith(
-      { value: 'test' },
-      expect.objectContaining({ toolCallId: 'call-1' }),
-    );
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
     expect(result.approvedToolApprovals).toHaveLength(0);
     expect(result.deniedToolApprovals).toHaveLength(1);
   });
 
-<<<<<<< HEAD
-=======
-  it('should pass through approvals for tools without an execute function (not validated)', async () => {
-    const tools = {
-      tool1: tool({
-        inputSchema: z4.object({ value: z4.string() }),
-        // no execute -> client-side tool, not run on the server
-      }),
-    };
-
-    const approval = createApproval({
-      type: 'tool-call',
-      toolCallId: 'call-1',
-      toolName: 'tool1',
-      input: { value: 42 },
-    });
-
-    const result = await validateApprovedToolApprovals({
-      approvedToolApprovals: [approval],
-      tools,
-      toolApproval: undefined,
-      messages: [],
-      toolsContext: {} as any,
-      runtimeContext: {},
-    });
-
-    expect(result.approvedToolApprovals).toHaveLength(1);
-    expect(result.deniedToolApprovals).toHaveLength(0);
-  });
-
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
   describe('signature verification (experimental_toolApprovalSecret)', () => {
     const secret = 'test-secret-for-signature';
 
@@ -444,6 +326,7 @@ describe('validateApprovedToolApprovals', () => {
               count: z4.number().transform(count => count + 1),
             }),
             execute: async () => 'ok',
+            needsApproval: true,
           }),
         };
         const approval = createApproval({
@@ -460,15 +343,11 @@ describe('validateApprovedToolApprovals', () => {
         if (hasInputSchemaInput) {
           approval.approvalRequest.inputSchemaInput = { count: 1 };
         }
-        const approvalPolicy = vi.fn().mockResolvedValue('user-approval');
-
         const result = await validateApprovedToolApprovals({
           approvedToolApprovals: [approval],
           tools,
-          toolApproval: { tool1: approvalPolicy },
           messages: [],
-          toolsContext: {},
-          runtimeContext: {},
+          experimental_context: undefined,
           toolApprovalSecret: secret,
         });
 
@@ -477,17 +356,12 @@ describe('validateApprovedToolApprovals', () => {
           expect(result.approvedToolApprovals).toEqual([approval]);
           expect(result.approvedToolApprovals[0]).toBe(approval);
           expect(result.invalidToolApprovals).toHaveLength(0);
-          expect(approvalPolicy).toHaveBeenCalledWith(
-            { count: 2 },
-            expect.anything(),
-          );
         } else {
           expect(result.approvedToolApprovals).toHaveLength(0);
           expect(result.invalidToolApprovals).toHaveLength(1);
           expect(result.invalidToolApprovals[0].error.message).toMatch(
             /does not match the validated schema output/,
           );
-          expect(approvalPolicy).not.toHaveBeenCalled();
         }
       },
     );
@@ -530,9 +404,6 @@ describe('validateApprovedToolApprovals', () => {
       expect(result.approvedToolApprovals).toHaveLength(1);
     });
 
-<<<<<<< HEAD
-    it('should throw when the signature is missing and a secret is configured', async () => {
-=======
     it('should not transform a signed input after verification when schema input metadata is missing', async () => {
       const tools = {
         tool1: tool({
@@ -540,6 +411,7 @@ describe('validateApprovedToolApprovals', () => {
             value: z4.number().transform(value => value + 1),
           }),
           execute: async () => 'ok',
+          needsApproval: true,
         }),
       };
 
@@ -578,10 +450,8 @@ describe('validateApprovedToolApprovals', () => {
       const result = await validateApprovedToolApprovals({
         approvedToolApprovals: [approval],
         tools,
-        toolApproval: undefined,
         messages: [],
-        toolsContext: {} as any,
-        runtimeContext: {},
+        experimental_context: undefined,
         toolApprovalSecret: secret,
       });
 
@@ -601,7 +471,6 @@ describe('validateApprovedToolApprovals', () => {
     });
 
     it('should throw when the signature is missing and secret is configured', async () => {
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
       const tools = {
         tool1: tool({
           inputSchema: z4.object({ value: z4.string() }),

@@ -201,16 +201,9 @@ export const toolApprovalRequestSchema: z.ZodType<ToolApprovalRequest> =
     type: z.literal('tool-approval-request'),
     approvalId: z.string(),
     toolCallId: z.string(),
-<<<<<<< HEAD
-  });
-=======
-    reason: z.string().optional(),
-    isAutomatic: z.boolean().optional(),
     signature: z.string().optional(),
     inputSchemaInput: z.unknown().optional(),
-  },
-);
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
+  });
 
 /**
  * @internal

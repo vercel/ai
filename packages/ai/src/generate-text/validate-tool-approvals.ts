@@ -5,21 +5,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalSignatureError } from '../error/invalid-tool-approval-signature-error';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
-<<<<<<< HEAD
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { isApprovalNeeded } from './is-approval-needed';
 import { verifyToolApprovalSignature } from './tool-approval-signature';
 import type { ToolSet } from './tool-set';
-=======
-import { getOwn } from '../util/get-own';
-import { isDeepEqualData } from '../util/is-deep-equal-data';
-import type { CollectedToolApprovals } from './collect-tool-approvals';
-import { refineParsedToolCallInput } from './parse-tool-call';
-import { resolveToolApproval } from './resolve-tool-approval';
-import { verifyToolApprovalSignature } from './tool-approval-signature';
-import type { ToolApprovalConfiguration } from './tool-approval-configuration';
-import type { ToolInputRefinement } from './tool-input-refinement';
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 
 /**
  * Re-validates approved tool approvals reconstructed from client-supplied
@@ -40,14 +30,12 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
   messages,
   experimental_context,
   toolApprovalSecret,
-  refineToolInput,
 }: {
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   tools: TOOLS | undefined;
   messages: ModelMessage[];
   experimental_context: unknown;
   toolApprovalSecret?: string | Uint8Array;
-  refineToolInput?: ToolInputRefinement<TOOLS>;
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
@@ -62,17 +50,8 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
   > = [];
 
   for (const approval of approvedToolApprovals) {
-<<<<<<< HEAD
     const { toolCall, approvalRequest } = approval;
     const tool = tools?.[toolCall.toolName];
-=======
-    const { approvalRequest, toolCall } = approval;
-    // Look up the tool by own property only: `toolName` comes from
-    // client-supplied history, so a name matching an inherited object property
-    // (e.g. `constructor`, `toString`) must resolve to "no such tool" rather
-    // than a prototype value that would silently skip input validation below.
-    const tool = getOwn(tools, toolCall.toolName);
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
 
     if (toolApprovalSecret != null) {
       if (approvalRequest.signature == null) {
@@ -101,7 +80,6 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
       }
     }
 
-<<<<<<< HEAD
     // Re-validate the (client-supplied) input against the tool's input schema
     // for tools that are executed on the server.
     if (
@@ -109,13 +87,10 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
       typeof tool.execute === 'function' &&
       tool.inputSchema != null
     ) {
-=======
-    if (isExecutableTool(tool) && tool.inputSchema != null) {
       const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
         approvalRequest,
         'inputSchemaInput',
       );
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
       const validation = await safeValidateTypes({
         value: hasInputSchemaInput
           ? approvalRequest.inputSchemaInput
@@ -126,26 +101,12 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
       let validationError: unknown;
       if (!validation.success) {
         validationError = validation.error;
-      } else {
-        try {
-          const revalidatedToolCall = await refineParsedToolCallInput({
-            toolCall: {
-              ...toolCall,
-              input: validation.value,
-            },
-            refineToolInput,
-          });
-
-          // Revalidation must never change the operation that was approved,
-          // including when older or projected history omits the schema input.
-          if (!isDeepEqualData(revalidatedToolCall.input, toolCall.input)) {
-            validationError = new Error(
-              'Approved tool input does not match the validated schema output.',
-            );
-          }
-        } catch (error) {
-          validationError = error;
-        }
+      } else if (!isDeepEqualData(validation.value, toolCall.input)) {
+        // Revalidation must never change the operation that was approved,
+        // including when older or projected history omits the schema input.
+        validationError = new Error(
+          'Approved tool input does not match the validated schema output.',
+        );
       }
 
       if (validationError != null) {

@@ -156,8 +156,6 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
 
-<<<<<<< HEAD
-=======
 ### OAuth Callback Issuer Validation
 
 When completing an OAuth authorization callback, pass the callback's `iss`
@@ -215,7 +213,6 @@ as pre-registered and is preserved after `invalid_client` and
 as `redirect_uris`, because pre-registered clients can contain the same
 metadata as dynamically registered clients.
 
->>>>>>> 7fc2bc1e24 (fix: Prevent MCP OAuth from deleting or replacing pre-registered clients after authentication errors. (#21029))
 ### Retrying Transient Tool Failures
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,

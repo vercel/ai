@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { InferUITool, UIMessage } from './ui-messages';
 import {
@@ -1111,9 +1112,10 @@ describe('validateUIMessages', () => {
       'output-error',
     ] as const)('transformed approval input in %s state', state => {
       const tools = {
-        count: {
+        count: tool({
           inputSchema: z.object({ count: z.string().transform(Number) }),
-        },
+          execute: async () => 'ok',
+        }),
       };
 
       function createMessages(input: unknown) {
@@ -1145,7 +1147,9 @@ describe('validateUIMessages', () => {
       it('should preserve input matching the reconstructed schema output', async () => {
         const messages = createMessages({ count: 3 });
 
-        expect(await validateUIMessages({ messages, tools })).toEqual(messages);
+        expect(
+          await validateUIMessages({ messages, tools: tools as any }),
+        ).toEqual(messages);
       });
 
       it.each([{ count: 4 }, { count: 'not-a-number' }])(
@@ -1154,7 +1158,10 @@ describe('validateUIMessages', () => {
           const messages = createMessages(input);
 
           if (state === 'output-error') {
-            const result = await validateUIMessages({ messages, tools });
+            const result = await validateUIMessages({
+              messages,
+              tools: tools as any,
+            });
             expect(result[0].parts[0]).toMatchObject({
               type: 'dynamic-tool',
               toolName: 'count',
@@ -1162,7 +1169,7 @@ describe('validateUIMessages', () => {
             });
           } else {
             await expect(
-              validateUIMessages({ messages, tools }),
+              validateUIMessages({ messages, tools: tools as any }),
             ).rejects.toThrow(/does not match the output reconstructed/);
           }
 
@@ -1231,11 +1238,12 @@ describe('validateUIMessages', () => {
     });
 
     it('should reject transformed approval input that does not match its schema input', async () => {
-      const transformedTool = {
+      const transformedTool = tool({
         inputSchema: z.object({
           count: z.string().transform(Number),
         }),
-      };
+        execute: async () => 'ok',
+      });
       type TransformedMessage = UIMessage<
         never,
         never,
@@ -1270,51 +1278,6 @@ describe('validateUIMessages', () => {
       ).rejects.toThrowError(
         'Tool input does not match the output reconstructed from inputSchemaInput.',
       );
-    });
-
-    it('should compare transformed approval input after applying input refinement', async () => {
-      const refinedTool = {
-        inputSchema: z.object({
-          value: z.string(),
-        }),
-      };
-      type RefinedMessage = UIMessage<
-        never,
-        never,
-        { refined: InferUITool<typeof refinedTool> }
-      >;
-
-      const messages = await validateUIMessages<RefinedMessage>({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-refined',
-                toolCallId: 'call-1',
-                state: 'approval-responded',
-                input: { value: 'trimmed' },
-                approval: {
-                  id: 'approval-1',
-                  approved: true,
-                  inputSchemaInput: { value: ' trimmed ' },
-                },
-              },
-            ],
-          },
-        ],
-        tools: {
-          refined: refinedTool,
-        },
-        experimental_refineToolInput: {
-          refined: input => ({ value: input.value.trim() }),
-        },
-      });
-
-      expect(messages[0].parts[0]).toMatchObject({
-        input: { value: 'trimmed' },
-      });
     });
 
     it('should validate tool input when state is output-denied', async () => {

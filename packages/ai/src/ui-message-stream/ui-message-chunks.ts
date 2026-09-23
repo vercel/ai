@@ -86,12 +86,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         approvalId: z.string(),
         toolCallId: z.string(),
         approvalDescriptor: z.unknown().optional(),
-<<<<<<< HEAD
-=======
         inputSchemaInput: z.unknown().optional(),
-        reason: z.string().optional(),
-        isAutomatic: z.boolean().optional(),
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
         signature: z.string().optional(),
       }),
       z.looseObject({
@@ -278,12 +273,7 @@ export type UIMessageChunk<
       approvalId: string;
       toolCallId: string;
       approvalDescriptor?: unknown;
-<<<<<<< HEAD
-=======
       inputSchemaInput?: unknown;
-      reason?: string;
-      isAutomatic?: boolean;
->>>>>>> a4b0940b75 (fix: manual tool approvals reject or mutate transformed inputs across model and UI continuations (#21130))
       signature?: string;
     }
   | {
