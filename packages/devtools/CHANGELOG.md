@@ -1,5 +1,11 @@
 # @ai-sdk/devtools
 
+## 1.0.24
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
 ## 1.0.23
 
 ### Patch Changes
