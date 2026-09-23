@@ -5,6 +5,7 @@ import {
   type Experimental_EvaluationModelV4CallOptions as EvaluationModelV4CallOptions,
   type LanguageModelV4,
   type LanguageModelV4GenerateResult,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
 import { expect, it, vi } from 'vitest';
@@ -373,3 +374,45 @@ it('restores the wrapped model and provider across workflow hooks', async () => 
   expect(restored.modelId).toBe('test-model');
   expect(doGenerate).toHaveBeenCalledTimes(1);
 });
+
+it.each<{
+  providerOptions: SharedV4ProviderOptions;
+  expectedReasoning: 'low' | undefined;
+}>([
+  { providerOptions: {}, expectedReasoning: 'low' },
+  {
+    providerOptions: { test: { thinking: { display: true } } },
+    expectedReasoning: 'low',
+  },
+  {
+    providerOptions: { test: { thinking: { budget: 0 } } },
+    expectedReasoning: undefined,
+  },
+  {
+    providerOptions: { test: { thinking: { budget: null } } },
+    expectedReasoning: 'low',
+  },
+  {
+    providerOptions: { test: { effort: 'high' } },
+    expectedReasoning: undefined,
+  },
+])(
+  'preserves evaluation defaults and native overrides through workflow hooks: $providerOptions',
+  async ({ providerOptions, expectedReasoning }) => {
+    const { languageModel, doGenerate } = setup();
+    const model = new EvaluationLanguageModel({
+      model: languageModel,
+      reasoningEffort: 'low',
+      reasoningProviderOptions: [
+        ['test', 'effort'],
+        ['test', 'thinking', 'budget'],
+      ],
+    });
+    const restored = EvaluationLanguageModel[WORKFLOW_DESERIALIZE](
+      EvaluationLanguageModel[WORKFLOW_SERIALIZE](model),
+    );
+    await restored.doEvaluate({ ...options, providerOptions });
+    expect(doGenerate.mock.calls[0][0].reasoning).toBe(expectedReasoning);
+    expect(doGenerate.mock.calls[0][0].providerOptions).toBe(providerOptions);
+  },
+);

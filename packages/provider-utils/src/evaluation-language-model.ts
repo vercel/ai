@@ -8,6 +8,7 @@ import {
   type Experimental_EvaluationModelV4Result as EvaluationModelV4Result,
   type JSONSchema7,
   type LanguageModelV4,
+  type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
 import { safeParseJSON } from './parse-json';
@@ -18,13 +19,21 @@ export class EvaluationLanguageModel implements EvaluationModelV4 {
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
   readonly provider: string;
   private readonly model: LanguageModelV4;
+  private readonly reasoningEffort: LanguageModelV4CallOptions['reasoning'];
+  private readonly reasoningProviderOptions: string[][];
 
   constructor({
     model,
     provider = `${model.provider}.evaluation`,
+    reasoningEffort = 'none',
+    reasoningProviderOptions = [],
   }: {
     model: LanguageModelV4;
     provider?: string;
+    /** Evaluation default selected by the provider's explicit model catalog. */
+    reasoningEffort?: LanguageModelV4CallOptions['reasoning'];
+    /** Paths to native reasoning controls that override the evaluation default. */
+    reasoningProviderOptions?: string[][];
   }) {
     if (model.specificationVersion !== 'v4') {
       throw new InvalidArgumentError({
@@ -34,6 +43,8 @@ export class EvaluationLanguageModel implements EvaluationModelV4 {
     }
     this.model = model;
     this.provider = provider;
+    this.reasoningEffort = reasoningEffort;
+    this.reasoningProviderOptions = reasoningProviderOptions;
   }
 
   get modelId() {
@@ -42,12 +53,19 @@ export class EvaluationLanguageModel implements EvaluationModelV4 {
 
   static [WORKFLOW_SERIALIZE](model: EvaluationLanguageModel) {
     // Workflow recursively serializes the wrapped provider model using its hooks.
-    return { model: model.model, provider: model.provider };
+    return {
+      model: model.model,
+      provider: model.provider,
+      reasoningEffort: model.reasoningEffort,
+      reasoningProviderOptions: model.reasoningProviderOptions,
+    };
   }
 
   static [WORKFLOW_DESERIALIZE](options: {
     model: LanguageModelV4;
     provider: string;
+    reasoningEffort?: LanguageModelV4CallOptions['reasoning'];
+    reasoningProviderOptions?: string[][];
   }) {
     return new EvaluationLanguageModel(options);
   }
@@ -130,8 +148,20 @@ export class EvaluationLanguageModel implements EvaluationModelV4 {
           : { id, ...question },
       ]),
     );
+    const hasReasoningOverride = this.reasoningProviderOptions.some(path => {
+      let value: unknown = providerOptions;
+      for (const key of path) {
+        value =
+          value != null &&
+          typeof value === 'object' &&
+          Object.prototype.hasOwnProperty.call(value, key)
+            ? (value as Record<string, unknown>)[key]
+            : undefined;
+      }
+      return value != null;
+    });
     const result = await this.model.doGenerate({
-      reasoning: 'none',
+      reasoning: hasReasoningOverride ? undefined : this.reasoningEffort,
       prompt: [
         {
           role: 'system',

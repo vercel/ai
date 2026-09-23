@@ -2308,8 +2308,30 @@ const result = await generateSpeech({
 ## Evaluation Models
 
 Create an experimental evaluation model with `google.evaluationModel(modelId)`.
-It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
-that supports structured output, such as `gemini-3.5-flash-lite`.
+It uses Gemini structured output for Choice, Score, and Boolean questions using
+the supported text models below.
+
+The factory accepts only the following evaluation model IDs. Each has an explicit
+reasoning default; unlisted IDs, including future releases and deployment aliases,
+throw `NoSuchModelError` at model creation.
+
+| Model ID                             | Evaluation reasoning effort |
+| ------------------------------------ | --------------------------- |
+| `gemini-3-pro-preview`               | `low`                       |
+| `gemini-3-flash-preview`             | `minimal`                   |
+| `gemini-3.1-pro-preview`             | `low`                       |
+| `gemini-3.1-pro-preview-customtools` | `low`                       |
+| `gemini-3.1-flash-lite-preview`      | `minimal`                   |
+| `gemini-3.5-flash`                   | `minimal`                   |
+| `gemini-3.5-flash-lite`              | `minimal`                   |
+| `gemini-3.6-flash`                   | `minimal`                   |
+| `gemini-3.7-flash`                   | `low`                       |
+| `gemini-3.8-flash`                   | `low`                       |
+
+These defaults disable thinking where supported or use the model's lowest
+supported effort. Evaluation may still produce reasoning tokens. Native reasoning
+controls in `providerOptions` override the evaluation default; unrelated options
+preserve it. See [evaluation reasoning defaults](/docs/ai-sdk-core/evaluation#provider-models).
 
 ```ts
 import { google } from '@ai-sdk/google';
