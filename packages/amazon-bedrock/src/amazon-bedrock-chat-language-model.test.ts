@@ -5877,6 +5877,101 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'strips temperature, topP and stopSequences with warnings for OpenAI model %s',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.2,
+        topP: 0.5,
+        topK: 5,
+        stopSequences: ['END'],
+        maxOutputTokens: 100,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig).toStrictEqual({
+        maxTokens: 100,
+        topK: 5,
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details:
+            'temperature is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details:
+            'topP is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'stopSequences is not supported by this OpenAI model on the Converse API',
+        },
+      ]);
+    },
+  );
+
+  it('keeps temperature and topP but strips stopSequences for OpenAI gpt-oss models', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.2,
+      topP: 0.5,
+      stopSequences: ['END'],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toStrictEqual({
+      temperature: 0.2,
+      topP: 0.5,
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'stopSequences is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
+  });
+
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 

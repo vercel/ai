@@ -497,6 +497,25 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
+    // OpenAI models reject stopSequences on the Converse API. The ones other
+    // than gpt-oss (such as GPT-5.6 and GPT-6) also reject temperature and topP,
+    // at any value.
+    if (isOpenAIModel) {
+      const unsupportedFeatures = isOpenAIGptOssModel
+        ? (['stopSequences'] as const)
+        : (['temperature', 'topP', 'stopSequences'] as const);
+      for (const feature of unsupportedFeatures) {
+        if (inferenceConfig[feature] != null) {
+          delete inferenceConfig[feature];
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details: `${feature} is not supported by this OpenAI model on the Converse API`,
+          });
+        }
+      }
+    }
+
     // Filter tool content from prompt when no tools are available
     const hasAnyTools = (toolConfig.tools?.length ?? 0) > 0 || additionalTools;
     let filteredPrompt = prompt;
