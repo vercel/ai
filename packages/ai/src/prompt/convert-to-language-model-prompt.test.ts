@@ -198,6 +198,41 @@ describe('convertToLanguageModelPrompt', () => {
     });
 
     describe('file parts', () => {
+      it('preserves original Google Cloud Storage file URIs', async () => {
+        const result = await convertToLanguageModelPrompt({
+          prompt: {
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: 'gs://my-bucket/folder/My File.pdf',
+                    mediaType: 'application/pdf',
+                  },
+                ],
+              },
+            ],
+          },
+          supportedUrls: { '*': [/^gs:\/\/.*$/] },
+          download: undefined,
+        });
+
+        expect(result).toEqual([
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                data: new URL('gs://my-bucket/folder/My File.pdf'),
+                originalUrl: 'gs://my-bucket/folder/My File.pdf',
+                mediaType: 'application/pdf',
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should pass through URLs when the model supports a particular URL', async () => {
         const result = await convertToLanguageModelPrompt({
           prompt: {

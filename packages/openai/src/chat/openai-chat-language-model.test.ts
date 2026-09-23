@@ -1470,6 +1470,23 @@ describe('doGenerate', () => {
   });
 
   describe('reasoning models', () => {
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonFixtureResponse('openai-text');
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
+
     it('should clear out temperature, top_p, frequency_penalty, presence_penalty and return warnings', async () => {
       prepareJsonFixtureResponse('openai-text');
 

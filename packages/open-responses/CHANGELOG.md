@@ -1,5 +1,14 @@
 # @ai-sdk/open-responses
 
+## 1.0.44
+
+### Patch Changes
+
+- 7a1d302: fix(open-responses): use JSON object mode for schema-less JSON output
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
 ## 1.0.43
 
 ### Patch Changes

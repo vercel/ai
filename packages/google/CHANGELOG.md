@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.126
+
+### Patch Changes
+
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
 ## 3.0.125
 
 ### Patch Changes

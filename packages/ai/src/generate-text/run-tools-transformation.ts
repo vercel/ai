@@ -261,6 +261,10 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
       });
   }
 
+  // Keep input callbacks in the same transform so input availability cannot
+  // overtake pending start or delta callbacks in a downstream stream.
+  const activeToolCallToolNames = new Map<string, string>();
+
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelV3StreamPart,
@@ -283,13 +287,43 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'reasoning-start':
         case 'reasoning-delta':
         case 'reasoning-end':
-        case 'tool-input-start':
-        case 'tool-input-delta':
-        case 'tool-input-end':
         case 'source':
         case 'response-metadata':
         case 'error':
         case 'raw': {
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-start': {
+          activeToolCallToolNames.set(chunk.id, chunk.toolName);
+          await tools?.[chunk.toolName]?.onInputStart?.({
+            toolCallId: chunk.id,
+            messages,
+            abortSignal,
+            experimental_context,
+          });
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-delta': {
+          const toolName = activeToolCallToolNames.get(chunk.id);
+          if (toolName != null) {
+            await tools?.[toolName]?.onInputDelta?.({
+              inputTextDelta: chunk.delta,
+              toolCallId: chunk.id,
+              messages,
+              abortSignal,
+              experimental_context,
+            });
+          }
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-end': {
+          activeToolCallToolNames.delete(chunk.id);
           controller.enqueue(chunk);
           break;
         }

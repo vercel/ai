@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 3.0.17
+
+### Patch Changes
+
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+
 ## 3.0.16
 
 ### Patch Changes

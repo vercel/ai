@@ -1965,8 +1965,6 @@ class DefaultStreamTextResult<
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;
 
-            const activeToolCallToolNames: Record<string, string> = {};
-
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
 
@@ -2168,18 +2166,7 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-start': {
-                        activeToolCallToolNames[chunk.id] = chunk.toolName;
-
                         const tool = stepToolSet?.[chunk.toolName];
-                        if (tool?.onInputStart != null) {
-                          await tool.onInputStart({
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue({
                           ...chunk,
                           dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
@@ -2189,25 +2176,11 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-end': {
-                        delete activeToolCallToolNames[chunk.id];
                         controller.enqueue(chunk);
                         break;
                       }
 
                       case 'tool-input-delta': {
-                        const toolName = activeToolCallToolNames[chunk.id];
-                        const tool = stepToolSet?.[toolName];
-
-                        if (tool?.onInputDelta != null) {
-                          await tool.onInputDelta({
-                            inputTextDelta: chunk.delta,
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue(chunk);
                         break;
                       }
