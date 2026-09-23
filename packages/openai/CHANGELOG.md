@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.72
 
 ### Patch Changes
