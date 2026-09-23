@@ -96,28 +96,7 @@ const gatewayProviderOptions = lazyValidator(() =>
         })
         .optional(),
       /**
-<<<<<<< HEAD
-       * Restrict routing to provider models that have all of the given
-       * capabilities:
-=======
-       * Unified service tier intent. Translated by the gateway into the
-       * per-provider option each provider expects, and overrides any tier
-       * also set in the per-provider options. Leave unset for provider
-       * default.
-       */
-      serviceTier: z.enum(['flex', 'priority']).optional(),
-      /**
-       * Enables automatic prompt caching across providers. When set to
-       * `'auto'`, the gateway applies the appropriate caching strategy for
-       * the routed provider: it adds a `cache_control` breakpoint to static
-       * content for providers that require explicit markers (such as
-       * Anthropic), while providers with implicit caching cache
-       * automatically. Leave unset to pass requests through unmodified.
-       */
-      caching: z.literal('auto').optional(),
-      /**
        * Restrict routing to provider models that satisfy every given entry:
->>>>>>> be4ca16ee7 (Backport: feat(provider/gateway): add quantization conditions to the has provider option (#21409))
        *
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
