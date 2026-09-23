@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "tools.0.custom.input_schema.type: Field required"
+  },
+  "request_id": "req_011CfKWrFbXEEXnGHy3m6XDe"
+}
