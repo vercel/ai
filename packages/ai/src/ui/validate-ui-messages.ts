@@ -400,7 +400,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 
     if (metadataSchema) {
       for (const message of validatedMessages) {
-        await validateTypes({
+        message.metadata = await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
         });
@@ -427,7 +427,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          await validateTypes({
+          dataPart.data = await validateTypes({
             value: dataPart.data,
             schema: dataSchema,
           });
