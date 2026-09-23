@@ -245,8 +245,10 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
       amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
 
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
@@ -297,13 +299,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
-      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
-      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools != null &&
-      tools.length > 0;
+      (rejectsForcedToolUse ||
+        (structuredOutputMode !== 'jsonTool' &&
+          !supportsStrictTools(this.modelId) &&
+          tools != null &&
+          tools.length > 0));
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
