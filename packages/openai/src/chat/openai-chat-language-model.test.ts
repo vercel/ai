@@ -287,6 +287,44 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should extract an audio transcript while preserving a coexisting tool call', async () => {
+    const response = JSON.parse(
+      fs.readFileSync(
+        'src/chat/__fixtures__/openai-audio-gpt-audio-1.5.json',
+        'utf8',
+      ),
+    );
+    response.choices[0].message.tool_calls = [
+      {
+        id: 'call_diagnose_login',
+        type: 'function',
+        function: {
+          name: 'diagnose_login',
+          arguments: '{"userId":"42"}',
+        },
+      },
+    ];
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: response,
+    };
+
+    const result = await provider.chat('gpt-audio-1.5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Fix the login bug' },
+      {
+        type: 'tool-call',
+        toolCallId: 'call_diagnose_login',
+        toolName: 'diagnose_login',
+        input: '{"userId":"42"}',
+      },
+    ]);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: { prompt_tokens: 20, total_tokens: 25, completion_tokens: 5 },

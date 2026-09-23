@@ -1,0 +1,40 @@
+{
+  "id": "chatcmpl-audio-fixture",
+  "object": "chat.completion",
+  "created": 1790134508,
+  "model": "gpt-audio-1.5",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "audio": {
+          "id": "audio_fixture",
+          "data": "UklGRg==",
+          "expires_at": 1790138108,
+          "transcript": "Fix the login bug"
+        }
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 17,
+    "completion_tokens": 40,
+    "total_tokens": 57,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0,
+      "text_tokens": 17,
+      "image_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 30,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0,
+      "text_tokens": 10
+    }
+  }
+}
