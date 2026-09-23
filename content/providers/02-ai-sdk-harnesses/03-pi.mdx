@@ -83,10 +83,15 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `credentials`: application-owned Pi credential storage. This replaces the
+  file-backed `auth.json` store and supports persistent database-backed
+  credentials.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `providers`: explicit Pi provider configurations for custom models.
+- `reattachInProcess`: whether a suspended turn can reuse its live Pi session
+  in the current process. Defaults to `true`.
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
 
@@ -116,6 +121,26 @@ environment, so only pass factories you trust. This setting enables only the
 factories you explicitly provide. Filesystem extension discovery remains
 disabled, including user, project, and settings-based extensions. Themes and
 prompt templates also remain disabled.
+
+## Session Reattachment
+
+By default, Pi keeps a suspended turn alive for an efficient continuation in
+the same process when the incoming request has compatible settings and runtime
+resources. Changed request-scoped settings or sandbox handles cause a cold
+restore from persisted lifecycle state.
+
+For stateless or multi-replica applications, disable in-process reattachment so
+every continuation restores the persisted lifecycle state with the current
+request's settings:
+
+```ts
+const harness = createPi({
+  reattachInProcess: false,
+});
+```
+
+An incoming completed `resume-session` state always takes precedence over an
+older live suspended turn in the process.
 
 ## Authentication
 
@@ -152,6 +177,25 @@ const harness = createPi({
 
 The supplied record replaces the host environment for authentication
 discovery. Pi parses provider API keys and base URLs from that record.
+
+For credentials managed outside environment variables or files, inject an
+application-owned credential store. Pi performs credential reads, refreshes,
+and updates through this interface:
+
+```ts
+import { createPi, type PiCredentialStore } from '@ai-sdk/harness-pi';
+
+declare const credentials: PiCredentialStore;
+
+const harness = createPi({
+  credentials,
+  reattachInProcess: false,
+});
+```
+
+`credentials` replaces Pi's `auth.json` storage. In request-scoped or
+multi-replica deployments, pair it with `reattachInProcess: false` so each
+continuation constructs a model runtime from the current request.
 
 With `custom`, standard providers use environment variables such as
 `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `ANTHROPIC_API_KEY`, and

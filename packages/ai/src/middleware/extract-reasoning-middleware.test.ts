@@ -1182,6 +1182,101 @@ describe('extractReasoningMiddleware', () => {
       `);
     });
 
+    it('should preserve overlapping text parts', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: 'a' },
+              { type: 'text-start', id: 'b' },
+              { type: 'text-delta', id: 'a', delta: 'Alpha.' },
+              { type: 'text-delta', id: 'b', delta: 'Beta.' },
+              { type: 'text-end', id: 'a' },
+              { type: 'text-end', id: 'b' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const errors: unknown[] = [];
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      for await (const event of result.fullStream) {
+        if (event.type === 'error') {
+          errors.push(event.error);
+        }
+      }
+
+      expect(await result.text).toBe('Alpha.Beta.');
+      expect(errors).toEqual([]);
+    });
+
+    it('should preserve reasoning from overlapping text parts', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'response-metadata',
+                id: 'id-0',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: 'a' },
+              { type: 'text-start', id: 'b' },
+              { type: 'text-delta', id: 'a', delta: '<think>A' },
+              { type: 'text-delta', id: 'b', delta: '<think>B' },
+              { type: 'text-delta', id: 'a', delta: '1</think>Alpha.' },
+              { type: 'text-delta', id: 'b', delta: '2</think>Beta.' },
+              { type: 'text-end', id: 'a' },
+              { type: 'text-end', id: 'b' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const errors: unknown[] = [];
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      for await (const event of result.fullStream) {
+        if (event.type === 'error') {
+          errors.push(event.error);
+        }
+      }
+
+      expect(await result.reasoningText).toBe('A1B2');
+      expect(await result.text).toBe('Alpha.Beta.');
+      expect(errors).toEqual([]);
+    });
+
     it('should handle empty <think></think> tags without crashing', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {

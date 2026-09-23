@@ -1,5 +1,60 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.35
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+- @ai-sdk/harness-acp@1.0.60
+
+## 1.0.34
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness-acp@1.0.59
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.33
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+- @ai-sdk/harness-acp@1.0.58
+
+## 1.0.32
+
+### Patch Changes
+
+- Updated dependencies [2adbb77]
+- Updated dependencies [125f493]
+  - @ai-sdk/harness-acp@1.0.57
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.31
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+- Updated dependencies [c0e5d1d]
+  - @ai-sdk/harness-acp@1.0.56
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.30
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+  - @ai-sdk/harness-acp@1.0.55
+
 ## 1.0.29
 
 ### Patch Changes

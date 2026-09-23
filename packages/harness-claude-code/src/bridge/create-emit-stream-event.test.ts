@@ -12,6 +12,28 @@ describe('createEmitStreamEvent', () => {
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
   };
 
+  it('ignores user messages with string content', () => {
+    const state = createClaudeStreamEventState();
+    state.stepOpen = true;
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'user',
+      message: { content: 'Compacted conversation context' },
+    });
+
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+    expect(state.stepOpen).toBe(true);
+  });
+
   it.each([
     {
       name: 'TaskCreate object output',
@@ -409,7 +431,7 @@ describe('createEmitStreamEvent', () => {
           "type": "stream-start",
         },
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "tool-1",
@@ -837,7 +859,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryId\":\"/vercel/next.js\"}",
+          "input": "{"libraryId":"/vercel/next.js"}",
           "nativeName": "mcp__context7__query-docs",
           "providerExecuted": true,
           "toolCallId": "external-tool",

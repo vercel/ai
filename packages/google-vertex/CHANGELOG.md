@@ -1,5 +1,46 @@
 # @ai-sdk/google-vertex
 
+## 5.0.91
+
+### Patch Changes
+
+- 4b75a77: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/google@4.0.78
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/openai-compatible@3.0.54
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.90
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+- Updated dependencies [8dbe0be]
+  - @ai-sdk/anthropic@4.0.60
+  - @ai-sdk/google@4.0.77
+
+## 5.0.89
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 5.0.88
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/anthropic@4.0.58
+  - @ai-sdk/google@4.0.76
+  - @ai-sdk/openai-compatible@3.0.53
+
 ## 5.0.87
 
 ### Patch Changes
