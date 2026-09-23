@@ -19,7 +19,7 @@ run(async () => {
       process.stdout.write('\x1b[34m' + part.text + '\x1b[0m');
 
       if (part.providerMetadata?.anthropic?.redactedData != null) {
-        process.stdout.write('\x1b[31m' + '<redacted>' + '\x1b[0m');
+        process.stdout.write('\x1b[31m<redacted>\x1b[0m');
       }
     } else if (part.type === 'text-delta') {
       process.stdout.write(part.text);

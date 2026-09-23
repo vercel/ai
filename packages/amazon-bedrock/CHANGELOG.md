@@ -1,5 +1,19 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.92
+
+### Patch Changes
+
+- 4b75a77: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [6d1f881]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+- Updated dependencies [618dc11]
+  - @ai-sdk/openai@4.0.73
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 5.0.91
 
 ### Patch Changes

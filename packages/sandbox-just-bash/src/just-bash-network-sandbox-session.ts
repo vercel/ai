@@ -32,11 +32,9 @@ export class JustBashNetworkSandboxSession
    */
   readonly id: string;
   readonly defaultWorkingDirectory: string;
-  private readonly ownsLifecycle: boolean;
 
-  constructor(input: { sandbox: Sandbox; ownsLifecycle: boolean }) {
+  constructor(input: { sandbox: Sandbox }) {
     super(input.sandbox);
-    this.ownsLifecycle = input.ownsLifecycle;
     this.id = randomUUID();
     this.defaultWorkingDirectory = input.sandbox.bashEnvInstance.getCwd();
   }
@@ -70,7 +68,6 @@ export class JustBashNetworkSandboxSession
   };
 
   stop = async (): Promise<void> => {
-    if (!this.ownsLifecycle) return;
     // just-bash has no explicit shutdown; the sandbox is garbage-collected
     // along with its in-memory filesystem once references drop.
   };

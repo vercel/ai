@@ -528,7 +528,7 @@ describe('translateClineEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryName\":\"next.js\"}",
+          "input": "{"libraryName":"next.js"}",
           "providerExecuted": true,
           "toolCallId": "mcp-call",
           "toolName": "context7__resolve-library-id",

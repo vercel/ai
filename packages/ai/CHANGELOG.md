@@ -1,5 +1,20 @@
 # ai
 
+## 7.0.112
+
+### Patch Changes
+
+- 9a98fd9: fix(ai): prune reasoning file parts when removing reasoning
+- a0553d6: feat(ai): report consumer cancellation in UI message stream end callbacks
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- fde0d66: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [ed5a1d7]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/gateway@4.0.90
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 7.0.111
 
 ### Patch Changes
