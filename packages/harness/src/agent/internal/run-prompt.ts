@@ -329,7 +329,6 @@ export function runPrompt<
       ]),
     );
     const settledHostToolCallIds = new Set<string>();
-    const rejectedHostToolCallIds = new Set<string>();
     const settledBuiltinApprovalToolCallIds = new Set<string>();
     let closingResumedStep = false;
     let pendingStopBoundary:
@@ -899,7 +898,6 @@ export function runPrompt<
         ) {
           if (
             settledHostToolCallIds.has(value.id) ||
-            rejectedHostToolCallIds.has(value.id) ||
             settledBuiltinApprovalToolCallIds.has(value.id)
           ) {
             continue;
@@ -935,14 +933,6 @@ export function runPrompt<
         if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
-        if (
-          (displayValue.type === 'tool-call' ||
-            displayValue.type === 'tool-approval-request') &&
-          rejectedHostToolCallIds.has(displayValue.toolCallId)
-        ) {
-          continue;
-        }
-
         if (displayValue.type === 'finish-step' && closingResumedStep) {
           closingResumedStep = false;
           await publishToolExecutions();
@@ -1013,36 +1003,10 @@ export function runPrompt<
           return;
         }
 
-        let translatedParts: ReadonlyArray<TextStreamPart<TOOLS>>;
-        if (
-          displayValue.type === 'tool-result' &&
-          rejectedHostToolCallIds.has(displayValue.toolCallId)
-        ) {
-          const rejectedCall = toolCallsByToolCallId.get(
-            displayValue.toolCallId,
-          );
-          if (rejectedCall == null) {
-            throw new Error(
-              `Harness '${input.harness.harnessId}' could not find rejected tool call '${displayValue.toolCallId}'.`,
-            );
-          }
-          translatedParts = [
-            {
-              type: 'tool-error',
-              toolCallId: displayValue.toolCallId,
-              toolName: displayValue.toolName,
-              input: rejectedCall.input,
-              error: new Error(invalidToolInputMessage),
-              dynamic: true,
-            } as TextStreamPart<TOOLS>,
-          ];
-          settledHostToolCallIds.add(displayValue.toolCallId);
-        } else {
-          translatedParts = translateStreamPart<TOOLS>(
-            displayValue,
-            translateOptions,
-          );
-        }
+        const translatedParts = translateStreamPart<TOOLS>(
+          displayValue,
+          translateOptions,
+        );
         if (value.type === 'tool-result') {
           bufferedToolOutcomes.push(() => {
             for (const part of translatedParts) result.enqueue(part);
@@ -1262,8 +1226,18 @@ export function runPrompt<
             );
           }
           if (validatedHostToolCall.invalid) {
-            rejectedHostToolCallIds.add(toolCall.toolCallId);
+            settledHostToolCallIds.add(toolCall.toolCallId);
             toolExecutions.delete(toolCall.toolCallId);
+            bufferedToolOutcomes.push(() => {
+              result.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: parsedToolCall.input,
+                error: new Error(invalidToolInputMessage),
+                dynamic: true,
+              } as TextStreamPart<TOOLS>);
+            });
             await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output: { error: invalidToolInputMessage },

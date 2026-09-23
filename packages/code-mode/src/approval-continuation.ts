@@ -111,5 +111,4 @@ export function getCodeModeApprovalResponse(
       }
     }
   }
-  return undefined;
 }

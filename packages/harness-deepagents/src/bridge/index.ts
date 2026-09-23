@@ -322,7 +322,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hostToolNames,
     mcpToolNames,
     structuredOutputToolNames: new Set(
-      currentResponseFormat?.map(format => format.name) ?? [],
+      currentResponseFormat?.map(format => format.name),
     ),
     emit,
   });

@@ -2013,7 +2013,7 @@ function withNativeQuestionRequest({
     providerMetadata: {
       ...toolCall.providerMetadata,
       [harnessId]: {
-        ...(harnessMetadata ?? {}),
+        ...harnessMetadata,
         nativeRequest,
       } as NonNullable<
         Extract<HarnessV1StreamPart, { type: 'tool-call' }>['providerMetadata']
@@ -2067,7 +2067,6 @@ function takeBufferedQuestionResult({
       return buffered;
     }
   }
-  return undefined;
 }
 
 function isPermissionModeMappingValue({

@@ -486,8 +486,8 @@ function emitLegacyToolPart({
   const toolName = toWireToolName(rawToolName);
   if (toolName === 'agent') {
     const metadata = {
-      ...(toolPart.metadata ?? {}),
-      ...(toolPart.state?.metadata ?? {}),
+      ...toolPart.metadata,
+      ...toolPart.state?.metadata,
     };
     const parentSessionId = stringValue(metadata.parentSessionId);
     const sessionId = stringValue(metadata.sessionId);
@@ -541,9 +541,9 @@ function emitLegacyToolPart({
 
 function legacyToolPartInput(part: LegacyToolPart): Record<string, unknown> {
   return {
-    ...(part.metadata ?? {}),
-    ...(part.state?.metadata ?? {}),
-    ...(part.state?.input ?? {}),
+    ...part.metadata,
+    ...part.state?.metadata,
+    ...part.state?.input,
   };
 }
 

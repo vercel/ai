@@ -737,8 +737,6 @@ export async function discoverAuthorizationServerMetadata(
       return metadata;
     }
   }
-
-  return undefined;
 }
 
 export async function startAuthorization(

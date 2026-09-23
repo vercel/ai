@@ -1806,7 +1806,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 activeOutputItemIds[value.output_index] = value.item.id;
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations.splice(0);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
