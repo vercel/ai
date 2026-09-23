@@ -1376,6 +1376,9 @@ importers:
         specifier: ^1.9.0
         version: 1.9.0
     devDependencies:
+      '@ai-sdk/google':
+        specifier: workspace:*
+        version: link:../google
       '@ai-sdk/test-server':
         specifier: workspace:*
         version: link:../test-server

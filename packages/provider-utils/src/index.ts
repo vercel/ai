@@ -12,10 +12,14 @@ export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-export { EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from './embedding-model-capabilities';
 export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
