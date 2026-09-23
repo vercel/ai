@@ -205,6 +205,61 @@ emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
 
+### Tool Input Schema Wrapping
+
+Anthropic requires tool input schemas with an object root and no root-level
+`anyOf`, `oneOf`, or `allOf`. The provider automatically wraps incompatible custom
+tool schemas in an object and unwraps the generated arguments. Your `inputSchema`,
+input validation, and `execute` function keep their original shape.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { generateText, tool } from 'ai';
+import { z } from 'zod/v4';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-4-6'),
+  tools: {
+    lookup: tool({
+      inputSchema: z.discriminatedUnion('action', [
+        z.object({ action: z.literal('lookup'), id: z.string() }),
+        z.object({ action: z.literal('search'), query: z.string() }),
+      ]),
+      execute: async input => {
+        // Receives the original union input, without the provider's wrapper.
+        return input.action === 'lookup'
+          ? { id: input.id }
+          : { query: input.query };
+      },
+    }),
+  },
+  prompt: 'Look up item 123.',
+});
+```
+
+The provider also wraps input examples and tool calls sent in conversation
+history. Returned tool calls include `providerMetadata.anthropic.toolInputWrapped`
+so their inputs can be wrapped again when replayed without the tool definition.
+Preserve provider metadata when storing and replaying messages; AI SDK response
+messages already include it.
+
+For wrapped tools, `streamText` buffers arguments until the tool call completes,
+then emits the unwrapped input as one delta. Ordinary object-root tools retain
+incremental input streaming. Raw request and response bodies retain the wrapper.
+
+Local JSON-pointer references are relocated with the schema. Schemas requiring
+wrapping that contain resource identifiers (`$id`), anchors, dynamic references,
+or external references throw `UnsupportedFunctionalityError`; wrap these schemas
+explicitly in an object property. Wrapping addresses root shape restrictions;
+model-specific and strict-mode restrictions still apply.
+
+Message Batches also require explicit wrapping: batch results are retrieved
+without the original schemas needed to unwrap them. Batch submission fails
+locally if a tool needs automatic wrapping.
+
+This behavior applies to the Anthropic adapter. Using Anthropic through AI
+Gateway depends on the adapter deployed by Gateway.
+
 ### Effort
 
 Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
