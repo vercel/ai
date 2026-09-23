@@ -1,5 +1,15 @@
 # @ai-sdk/open-responses
 
+## 1.0.45
+
+### Patch Changes
+
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
 ## 1.0.44
 
 ### Patch Changes

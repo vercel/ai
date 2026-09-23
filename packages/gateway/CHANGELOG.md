@@ -1,5 +1,17 @@
 # @ai-sdk/gateway
 
+## 3.0.200
+
+### Patch Changes
+
+- be4ca16: feat(provider/gateway): add quantization conditions to the has provider option
+- ffb9507: Backport: chore(provider/gateway): update gateway model settings files
+- bbd0115: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
 ## 3.0.199
 
 ### Patch Changes

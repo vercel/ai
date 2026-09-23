@@ -1,5 +1,26 @@
 # ai
 
+## 6.0.290
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 7f42b4d: fix(ai): resume tool approvals from earlier messages
+- d1a36d2: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- f7f36d2: chore: enable dead code lint rules
+- 7c41f5e: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+- Updated dependencies [be4ca16]
+- Updated dependencies [ffb9507]
+- Updated dependencies [bbd0115]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/gateway@3.0.200
+
 ## 6.0.289
 
 ### Patch Changes

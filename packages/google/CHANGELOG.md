@@ -1,5 +1,15 @@
 # @ai-sdk/google
 
+## 3.0.127
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
 ## 3.0.126
 
 ### Patch Changes
