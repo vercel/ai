@@ -409,10 +409,10 @@ function createMutableStreamContext(
   context: HarnessWorkflowStreamContext | undefined,
 ): MutableStreamContext {
   return {
-    activeTextParts: { ...(context?.activeTextParts ?? {}) },
-    activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
-    activeToolInputs: { ...(context?.activeToolInputs ?? {}) },
-    pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
+    activeTextParts: { ...context?.activeTextParts },
+    activeReasoningParts: { ...context?.activeReasoningParts },
+    activeToolInputs: { ...context?.activeToolInputs },
+    pendingToolInputs: { ...context?.pendingToolInputs },
   };
 }
 

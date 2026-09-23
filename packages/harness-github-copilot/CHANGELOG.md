@@ -1,5 +1,64 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.18
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+  - @ai-sdk/harness-acp@1.0.61
+
+## 1.0.17
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+- @ai-sdk/harness-acp@1.0.60
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness-acp@1.0.59
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.15
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+- @ai-sdk/harness-acp@1.0.58
+
+## 1.0.14
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [2adbb77]
+- Updated dependencies [125f493]
+  - @ai-sdk/harness-acp@1.0.57
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.13
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+- Updated dependencies [c0e5d1d]
+  - @ai-sdk/harness-acp@1.0.56
+  - @ai-sdk/harness@1.0.118
+
 ## 1.0.12
 
 ### Patch Changes

@@ -105,7 +105,7 @@ import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: klingai.video('kling-v2.6-t2v'),
+  model: klingai.video('kling-v3.0-t2v'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -126,7 +126,7 @@ import { klingai, type KlingAIVideoModelOptions } from '@ai-sdk/klingai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: klingai.video('kling-v2.6-i2v'),
+  model: klingai.video('kling-v3.0-i2v'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',

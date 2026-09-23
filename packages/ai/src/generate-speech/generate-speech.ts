@@ -204,10 +204,21 @@ function getOutputFormatMediaType(outputFormat: string | undefined) {
 
   const normalizedOutputFormat = outputFormat.trim().toLowerCase();
 
-  return normalizedOutputFormat === 'pcm' ||
-    normalizedOutputFormat === 'audio/pcm'
-    ? 'audio/pcm'
-    : undefined;
+  switch (normalizedOutputFormat) {
+    case 'pcm':
+    case 'audio/pcm':
+      return 'audio/pcm';
+    case 'audio/l16':
+      return 'audio/l16';
+    case 'mulaw':
+    case 'audio/mulaw':
+      return 'audio/mulaw';
+    case 'alaw':
+    case 'audio/alaw':
+      return 'audio/alaw';
+    default:
+      return undefined;
+  }
 }
 
 class DefaultSpeechResult implements SpeechResult {

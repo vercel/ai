@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 4.0.2
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
 ## 4.0.1
 
 ### Patch Changes

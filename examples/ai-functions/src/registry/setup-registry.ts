@@ -18,9 +18,9 @@ import 'dotenv/config';
 // custom provider with alias names:
 const myAnthropic = customProvider({
   languageModels: {
-    opus: anthropic('claude-3-opus-20240229'),
-    sonnet: anthropic('claude-3-5-sonnet-20240620'),
-    haiku: anthropic('claude-3-haiku-20240307'),
+    opus: anthropic('claude-opus-5-5'),
+    sonnet: anthropic('claude-sonnet-5'),
+    haiku: anthropic('claude-haiku-4-5'),
   },
   fallbackProvider: anthropic,
 });
@@ -29,8 +29,8 @@ const myAnthropic = customProvider({
 const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom provider options:
-    'gpt-5.6': wrapLanguageModel({
-      model: openai('gpt-5.6'),
+    'gpt-6-astra': wrapLanguageModel({
+      model: openai('gpt-6-astra'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -42,8 +42,8 @@ const myOpenAI = customProvider({
       }),
     }),
     // alias model with custom provider options:
-    'gpt-4o-high-reasoning': wrapLanguageModel({
-      model: openai('gpt-4o'),
+    'gpt-6-astra-high-reasoning': wrapLanguageModel({
+      model: openai('gpt-6-astra'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {

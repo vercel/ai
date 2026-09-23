@@ -7,7 +7,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
     messages: [
       {
         role: 'system',

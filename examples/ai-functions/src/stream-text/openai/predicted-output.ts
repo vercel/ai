@@ -27,7 +27,8 @@ public class User
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o'),
+    // Predicted outputs require a supported Chat Completions model.
+    model: openai.chat('gpt-4o'),
     messages: [
       {
         role: 'user',

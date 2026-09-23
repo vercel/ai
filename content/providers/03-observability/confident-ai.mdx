@@ -74,7 +74,7 @@ registerTelemetry(new OpenTelemetry({ tracer: createVercelAITracer() }));
 
 try {
   const { text } = await generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'How do you make the best coffee?',
   });
   console.log(text);
@@ -142,7 +142,7 @@ const { text } = await traceContext(
   },
   () =>
     generateText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       prompt: 'How do you make the best coffee?',
     }),
 );
@@ -160,7 +160,7 @@ import { turn, updateTrace } from 'confident-trace';
 async function chat(prompt: string, threadId: string) {
   return turn({ name: 'chat', threadId }, async () => {
     const { text } = await generateText({
-      model: openai('gpt-4o'),
+      model: openai('gpt-6-astra'),
       prompt,
     });
     updateTrace({ input: prompt, output: text });

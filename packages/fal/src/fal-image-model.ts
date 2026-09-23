@@ -298,7 +298,6 @@ function convertAspectRatioToSize(
     case '9:21':
       return { width: 1080, height: 2560 };
   }
-  return undefined;
 }
 
 // Validation error has a particular payload to inform the exact property that is invalid

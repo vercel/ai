@@ -661,6 +661,7 @@ export function mapToolResultOutput({
         }
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          const url = new URL(item.url);
           let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
           if (!item.mediaType) {
             const inferenceSuffix =
@@ -676,7 +677,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType,
             providerOptions: item.providerOptions,
           };
@@ -732,6 +737,7 @@ export function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          const url = new URL(item.url);
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
@@ -739,7 +745,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType: 'image',
             providerOptions: item.providerOptions,
           };

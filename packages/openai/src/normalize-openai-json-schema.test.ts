@@ -83,4 +83,102 @@ describe('normalizeOpenAIJsonSchema', () => {
       }),
     ).toThrow(UnsupportedFunctionalityError);
   });
+
+  it('removes regex lookaround patterns recursively and warns', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          format: 'email',
+          pattern: '^(?!\\.)(?!.*\\.\\.).+@.+$',
+        },
+        username: {
+          type: 'string',
+          pattern: '^@[a-zA-Z0-9_]+$',
+        },
+        contacts: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              value: {
+                type: 'string',
+                pattern: '(?<=prefix)value',
+              },
+            },
+          },
+        },
+      },
+      $defs: {
+        value: {
+          type: 'string',
+          pattern: 'value(?=suffix)',
+        },
+      },
+    };
+
+    expect(normalizeOpenAIJsonSchema(schema)).toStrictEqual({
+      schema: {
+        type: 'object',
+        properties: {
+          email: {
+            type: 'string',
+            format: 'email',
+          },
+          username: {
+            type: 'string',
+            pattern: '^@[a-zA-Z0-9_]+$',
+          },
+          contacts: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                value: {
+                  type: 'string',
+                },
+              },
+            },
+          },
+        },
+        $defs: {
+          value: {
+            type: 'string',
+          },
+        },
+      },
+      warnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema pattern with regex lookaround',
+          details:
+            'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+        },
+      ],
+    });
+
+    expect(schema.properties?.email).toHaveProperty('pattern');
+  });
+
+  it('preserves escaped and character-class lookaround-like text', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        escaped: {
+          type: 'string',
+          pattern: '\\(\\?=literal\\)',
+        },
+        characterClass: {
+          type: 'string',
+          pattern: '[(?=!)]',
+        },
+      },
+    };
+
+    expect(normalizeOpenAIJsonSchema(schema)).toStrictEqual({
+      schema,
+      warnings: [],
+    });
+  });
 });

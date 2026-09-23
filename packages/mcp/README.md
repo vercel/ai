@@ -44,7 +44,7 @@ try {
   const tools = await mcpClient.tools();
 
   const { text } = await generateText({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-6-astra',
     tools,
     stopWhen: isStepCount(10),
     prompt: 'Use the available tools to answer the user question.',
@@ -84,7 +84,7 @@ const mcpClient = await createMCPClient({
 });
 
 const result = streamText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
   onEnd: async () => {

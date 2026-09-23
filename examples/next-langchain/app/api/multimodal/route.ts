@@ -14,7 +14,7 @@ export const maxDuration = 60;
  * GPT-4o has excellent vision capabilities for image understanding
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
+  model: 'gpt-6-astra',
 });
 
 /**

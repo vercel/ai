@@ -255,7 +255,7 @@ describe('CartesiaSpeechModel', () => {
       expect(result.warnings).toMatchInlineSnapshot(`
         [
           {
-            "details": "Unsupported Cartesia sample rate in output format \"wav_12345\". Using 44100 Hz instead.",
+            "details": "Unsupported Cartesia sample rate in output format "wav_12345". Using 44100 Hz instead.",
             "feature": "outputFormat",
             "type": "unsupported",
           },

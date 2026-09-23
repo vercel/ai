@@ -12,7 +12,7 @@ run(async () => {
   );
   try {
     const result1 = await generateText({
-      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
       prompt: 'Write a haiku about API keys.',
       // Note: API key is automatically loaded from AWS_BEARER_TOKEN_BEDROCK environment variable
     });
@@ -46,7 +46,7 @@ run(async () => {
     });
 
     const result2 = await generateText({
-      model: bedrockWithApiKey('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: bedrockWithApiKey('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
       prompt: 'Explain the benefits of API key authentication over AWS SigV4.',
     });
 
@@ -91,7 +91,7 @@ API Key authentication is ideal for:
     // This will use API key if AWS_BEARER_TOKEN_BEDROCK is set,
     // otherwise fall back to SigV4 authentication
     const result4 = await generateText({
-      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
       prompt: 'Write a short poem about authentication methods.',
     });
 
