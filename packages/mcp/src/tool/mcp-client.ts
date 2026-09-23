@@ -757,24 +757,20 @@ class DefaultMCPClient implements MCPClient {
     args: Record<string, unknown>;
     options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
-    try {
-      return this.callToolWithRetry({
-        options,
-        execute: () =>
-          this.request({
-            request: {
-              method: 'tools/call',
-              params: { name, arguments: args },
-            },
-            resultSchema: CallToolResultSchema,
-            options: {
-              signal: options?.abortSignal,
-            },
-          }),
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.callToolWithRetry({
+      options,
+      execute: () =>
+        this.request({
+          request: {
+            method: 'tools/call',
+            params: { name, arguments: args },
+          },
+          resultSchema: CallToolResultSchema,
+          options: {
+            signal: options?.abortSignal,
+          },
+        }),
+    });
   }
 
   private async listResourcesInternal({
@@ -784,15 +780,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListResourcesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/list', params },
-        resultSchema: ListResourcesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/list', params },
+      resultSchema: ListResourcesResultSchema,
+      options,
+    });
   }
 
   private async readResourceInternal({
@@ -802,15 +794,11 @@ class DefaultMCPClient implements MCPClient {
     uri: string;
     options?: RequestOptions;
   }): Promise<ReadResourceResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/read', params: { uri } },
-        resultSchema: ReadResourceResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/read', params: { uri } },
+      resultSchema: ReadResourceResultSchema,
+      options,
+    });
   }
 
   private async listResourceTemplatesInternal({
@@ -818,15 +806,11 @@ class DefaultMCPClient implements MCPClient {
   }: {
     options?: RequestOptions;
   } = {}): Promise<ListResourceTemplatesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/templates/list' },
-        resultSchema: ListResourceTemplatesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/templates/list' },
+      resultSchema: ListResourceTemplatesResultSchema,
+      options,
+    });
   }
 
   private async listPromptsInternal({
@@ -836,15 +820,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListPromptsResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/list', params },
-        resultSchema: ListPromptsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/list', params },
+      resultSchema: ListPromptsResultSchema,
+      options,
+    });
   }
 
   private async getPromptInternal({
@@ -856,15 +836,11 @@ class DefaultMCPClient implements MCPClient {
     args?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/get', params: { name, arguments: args } },
-        resultSchema: GetPromptResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/get', params: { name, arguments: args } },
+      resultSchema: GetPromptResultSchema,
+      options,
+    });
   }
 
   private async completeInternal({

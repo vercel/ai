@@ -343,7 +343,7 @@ export async function embedMany({
                 result.providerMetadata,
               )) {
                 providerMetadata[providerName] = {
-                  ...(providerMetadata[providerName] ?? {}),
+                  ...providerMetadata[providerName],
                   ...metadata,
                 };
               }

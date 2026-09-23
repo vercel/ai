@@ -309,10 +309,10 @@ export class GoogleVertexImageModel implements ImageModelV3 {
                 >['aspectRatio'],
               }
             : undefined,
-          ...((providerOptions?.vertex as Omit<
+          ...(providerOptions?.vertex as Omit<
             GoogleLanguageModelOptions,
             'responseModalities' | 'imageConfig'
-          >) ?? {}),
+          >),
         } satisfies GoogleLanguageModelOptions,
       },
       headers,

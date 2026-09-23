@@ -43,7 +43,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     describe('basic generation', () => {
