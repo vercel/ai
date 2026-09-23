@@ -2573,7 +2573,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2596,7 +2601,7 @@ describe('HarnessAgent', () => {
 
     expect(writeTextFile).toHaveBeenCalledWith({
       path: expect.stringMatching(
-        /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
       ),
       content: expect.any(String),
       abortSignal: undefined,
@@ -2772,7 +2777,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2812,9 +2822,68 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     const markerWrite = writeCalls.at(-1)?.[0];
+    // Applied by `onFirstCreate`, before a `HarnessV1NetworkSandboxSession`
+    // even exists — resolved straight from the plain `SandboxSession`'s HOME,
+    // never the working directory.
     expect(markerWrite?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
+
+    await session.destroy();
+  });
+
+  test('resolves harness state under the sandbox HOME, never the working directory', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [{ path: '.harness-bootstrap/mock/bridge.mjs', content: 'x' }],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const readTextFile = vi.fn(async () => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    // All harness-generated state resolves under the sandbox's own HOME,
+    // not `defaultWorkingDirectory` (`/work`) …
+    const writtenPaths = (
+      writeTextFile.mock.calls as unknown as Array<[{ path: string }]>
+    ).map(call => call[0].path);
+    expect(writtenPaths).toContain(
+      '/home/agent/.ai-sdk-harness/.harness-bootstrap/mock/bridge.mjs',
+    );
+    for (const path of writtenPaths) {
+      expect(path).toMatch(/^\/home\/agent\/\.ai-sdk-harness\//);
+    }
+    // … while the session still works in the sandbox working directory.
+    expect(base.doStart.mock.calls[0]![0]).toMatchObject({
+      sessionWorkDir: '/work/ai-sdk',
+    });
 
     await session.destroy();
   });
@@ -2836,7 +2905,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = { run, readTextFile, writeTextFile };
@@ -2863,7 +2937,7 @@ describe('HarnessAgent', () => {
     expect(readTextFile.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         path: expect.stringMatching(
-          /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+          /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
         ),
       }),
     );
@@ -2871,7 +2945,7 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     expect(writeCalls.at(-1)?.[0]?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
 
     await session.destroy();

@@ -212,7 +212,7 @@ describe('codex adapter — instructions transport', () => {
     expect(firstStart.prompt).toContain('</host-tool-instructions>');
     expect(firstStart.prompt).not.toContain('/wd/codex-s1/harness-tool.mjs');
     expect(firstStart.prompt).toContain(
-      "node /wd/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
+      "node /home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/codex/harness-tool.mjs <toolName> '<jsonInput>'",
     );
     expect(firstStart.prompt).toContain(
       'run a separate CLI invocation for each needed tool call in the current turn before answering',
@@ -430,7 +430,7 @@ describe('codex adapter — skills', () => {
       write.path.endsWith('/bridge-meta.json'),
     );
     expect(bridgeMetaWrite).toEqual({
-      path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
+      path: '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'codex', state: 'starting' }),
     });
     expect(skillWrites).toEqual(

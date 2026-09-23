@@ -21,6 +21,8 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -34,7 +36,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -842,11 +843,6 @@ export function createClaudeCode(
             'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -932,21 +928,25 @@ export function createClaudeCode(
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
       // The conversation the host wants back, when it is known. Absent on
       // state written before this field existed; those resumes fall back to
       // the `continue` flag as before.
       const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
       });
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 

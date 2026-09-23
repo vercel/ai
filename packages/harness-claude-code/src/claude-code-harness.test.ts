@@ -461,11 +461,13 @@ describe('createClaudeCode adapter', () => {
         '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #',
     });
 
+    const sessionStateDir =
+      '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1%3B%20env%20%3E%20%2Ftmp%2Fleak%20%23';
     expect(runs).toContain(
-      "mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      `mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '${sessionStateDir}/bridge'`,
     );
     expect(spawns).toEqual([
-      "node '/vercel/sandbox/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge'`,
     ]);
     await session.doDestroy();
   });
@@ -1211,7 +1213,7 @@ describe('createClaudeCode adapter', () => {
     );
     expect(runs).toContain("mkdir -p '/home/vercel-sandbox/.claude/skills'");
     expect(bridgeMetaWrite).toEqual({
-      path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
+      path: '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
     });
     expect(skillWrites.map(write => write.path)).toEqual(
