@@ -160,7 +160,6 @@ describe('AmazonBedrockProvider', () => {
           if (environmentVariableName === 'AWS_ENDPOINT_URL') {
             return 'https://global.example.com';
           }
-          return undefined;
         },
       );
 
@@ -385,7 +384,6 @@ describe('AmazonBedrockProvider', () => {
             if (environmentVariableName === 'AWS_BEARER_TOKEN_BEDROCK') {
               return 'env-api-key';
             }
-            return undefined;
           },
         );
 

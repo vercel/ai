@@ -1101,7 +1101,7 @@ describe('createPiSession', () => {
         {
           "content": [
             {
-              "text": "{\"error\":\"answer unavailable\"}",
+              "text": "{"error":"answer unavailable"}",
               "type": "text",
             },
           ],

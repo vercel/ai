@@ -890,8 +890,6 @@ function normalizeImageData(
       data: bytes,
     };
   }
-
-  return undefined;
 }
 
 /**

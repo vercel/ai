@@ -412,7 +412,7 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                   result.providerMetadata,
                 )) {
                   providerMetadata[providerName] = {
-                    ...(providerMetadata[providerName] ?? {}),
+                    ...providerMetadata[providerName],
                     ...metadata,
                   };
                 }
