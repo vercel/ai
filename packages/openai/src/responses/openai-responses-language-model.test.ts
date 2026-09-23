@@ -8995,6 +8995,26 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should throw a retryable api error for nested error events with a null code before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":null,"message":"Sorry, something went wrong.","param":null}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Sorry, something went wrong.',
+          statusCode: 500,
+          isRetryable: true,
+        });
+      });
+
       it('should throw an api error for documented top-level error events before output starts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
