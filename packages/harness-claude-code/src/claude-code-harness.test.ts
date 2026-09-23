@@ -124,6 +124,9 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         await this.connect({ abortSignal: new AbortController().signal });
       }
     }
+    beginListenerAttachment(): () => void {
+      return () => {};
+    }
     on(
       type: string,
       listener: (event: Record<string, unknown>) => void,
