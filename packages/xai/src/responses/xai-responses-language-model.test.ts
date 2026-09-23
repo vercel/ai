@@ -800,6 +800,45 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
 
+        it('additional request options', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            topK: 40,
+            providerOptions: {
+              xai: {
+                minP: 0.1,
+                maxTurns: 5,
+                parallelToolCalls: false,
+                promptCacheKey: 'conversation-123',
+                safetyIdentifier: 'hashed-user-123',
+                serviceTier: 'priority',
+                user: 'user-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody).toMatchObject({
+            top_k: 40,
+            min_p: 0.1,
+            max_turns: 5,
+            parallel_tool_calls: false,
+            prompt_cache_key: 'conversation-123',
+            safety_identifier: 'hashed-user-123',
+            service_tier: 'priority',
+            user: 'user-123',
+          });
+        });
+
         it('serviceTier', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -871,6 +910,29 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.include).toStrictEqual([
             'file_search_call.results',
           ]);
+        });
+
+        it('include with no_inline_citations', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['no_inline_citations'],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual(['no_inline_citations']);
         });
 
         it('include with file_search_call.results and store:false', async () => {
@@ -1274,10 +1336,6 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.warnings).toMatchInlineSnapshot(`
           [
-            {
-              "feature": "topK",
-              "type": "unsupported",
-            },
             {
               "feature": "frequencyPenalty",
               "type": "unsupported",
@@ -2422,10 +2480,6 @@ describe('XaiResponsesLanguageModel', () => {
       expect(parts.find(part => part.type === 'stream-start')?.warnings)
         .toMatchInlineSnapshot(`
         [
-          {
-            "feature": "topK",
-            "type": "unsupported",
-          },
           {
             "feature": "frequencyPenalty",
             "type": "unsupported",
