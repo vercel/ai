@@ -755,6 +755,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 ...(chunk.approvalDescriptor != null
                   ? { descriptor: chunk.approvalDescriptor }
                   : {}),
+                ...(Object.prototype.hasOwnProperty.call(
+                  chunk,
+                  'inputSchemaInput',
+                )
+                  ? { inputSchemaInput: chunk.inputSchemaInput }
+                  : {}),
                 ...(chunk.reason != null
                   ? { requestReason: chunk.reason }
                   : {}),

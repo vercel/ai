@@ -259,6 +259,34 @@ describe('generateSpeech', () => {
       },
     );
 
+    it.each([
+      ['audio/l16', 'audio/l16'],
+      ['mulaw', 'audio/mulaw'],
+      ['audio/mulaw', 'audio/mulaw'],
+      ['alaw', 'audio/alaw'],
+      ['audio/alaw', 'audio/alaw'],
+    ])(
+      'should identify headerless %s audio',
+      async (outputFormat, mediaType) => {
+        const result = await generateSpeech({
+          model: new MockSpeechModelV4({
+            doGenerate: async () => ({
+              audio,
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model',
+                headers: { 'content-type': 'application/json' },
+              },
+            }),
+          }),
+          text: sampleText,
+          outputFormat,
+        });
+        expect(result.audio.mediaType).toBe(mediaType);
+      },
+    );
+
     it('should identify headerless audio from the response content type', async () => {
       const result = await generateSpeech({
         model: new MockSpeechModelV4({
