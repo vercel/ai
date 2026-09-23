@@ -293,16 +293,21 @@ describe('invokeToolCallbacksFromStream', () => {
 
   it('should invoke onInputAvailable for the tool named by the completed tool call', async () => {
     const recordedCalls: string[] = [];
-    const availableContexts: unknown[] = [];
+    const callbackContexts: Array<{
+      callback: 'onInputStart' | 'onInputDelta' | 'onInputAvailable';
+      context: unknown;
+    }> = [];
     const tools = {
       originalTool: tool({
         inputSchema: z.object({ value: z.string() }),
         contextSchema: z.object({ source: z.literal('original') }),
-        onInputStart: () => {
+        onInputStart: ({ context }) => {
           recordedCalls.push('originalTool.onInputStart');
+          callbackContexts.push({ callback: 'onInputStart', context });
         },
-        onInputDelta: () => {
+        onInputDelta: ({ context }) => {
           recordedCalls.push('originalTool.onInputDelta');
+          callbackContexts.push({ callback: 'onInputDelta', context });
         },
         onInputAvailable: () => {
           recordedCalls.push('originalTool.onInputAvailable');
@@ -312,7 +317,7 @@ describe('invokeToolCallbacksFromStream', () => {
         inputSchema: z.object({ count: z.number() }),
         contextSchema: z.object({ source: z.literal('repaired') }),
         onInputAvailable: ({ input, context }) => {
-          availableContexts.push(context);
+          callbackContexts.push({ callback: 'onInputAvailable', context });
           recordedCalls.push(
             `repairedTool.onInputAvailable:${JSON.stringify(input)}`,
           );
@@ -357,6 +362,19 @@ describe('invokeToolCallbacksFromStream', () => {
       'originalTool.onInputDelta',
       'repairedTool.onInputAvailable:{"count":3}',
     ]);
-    expect(availableContexts).toEqual([{ source: 'repaired' }]);
+    expect(callbackContexts).toEqual([
+      {
+        callback: 'onInputStart',
+        context: { source: 'original' },
+      },
+      {
+        callback: 'onInputDelta',
+        context: { source: 'original' },
+      },
+      {
+        callback: 'onInputAvailable',
+        context: { source: 'repaired' },
+      },
+    ]);
   });
 });
