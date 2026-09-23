@@ -1,5 +1,17 @@
 # @ai-sdk/openai
 
+## 3.0.117
+
+### Patch Changes
+
+- a3e970b: fix(openai): expose Chat Completions audio transcripts as generated text
+- f7f36d2: chore: enable dead code lint rules
+- 57256a0: fix(openai): preserve retryability for early stream errors
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
 ## 3.0.116
 
 ### Patch Changes

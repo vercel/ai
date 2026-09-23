@@ -1,5 +1,16 @@
 # @ai-sdk/mcp
 
+## 1.0.85
+
+### Patch Changes
+
+- 03c91a0: fix(mcp): preserve pre-registered OAuth clients after client authentication errors and require explicit provider provenance before replacing dynamically registered credentials
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
 ## 1.0.84
 
 ### Patch Changes

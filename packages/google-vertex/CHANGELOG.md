@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 4.0.205
+
+### Patch Changes
+
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/google@3.0.127
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/anthropic@3.0.122
+  - @ai-sdk/openai-compatible@2.0.78
+
 ## 4.0.204
 
 ### Patch Changes
