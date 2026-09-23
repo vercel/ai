@@ -1,6 +1,15 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
+
+/*
+ * Keep every asset URL literal so bundlers can emit each file separately.
+ * Dynamic new URL() paths can collapse multiple assets into one resolution.
+ */
+const readBridgeAsset = createReadBridgeAsset({
+  'package.json': new URL('./bridge/package.json', import.meta.url),
+  'pnpm-lock.yaml': new URL('./bridge/pnpm-lock.yaml', import.meta.url),
+  'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
+});
 
 /*
  * Bootstrap is derived state stored under the sandbox's default working
@@ -39,26 +48,4 @@ export async function getCodexBootstrap(): Promise<HarnessV1Bootstrap> {
     ],
   };
   return cachedBootstrap;
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  return readFile(
-    fileURLToPath(
-      resolveBridgeAssetUrl({
-        name,
-        moduleUrl: import.meta.url,
-      }),
-    ),
-    'utf8',
-  );
-}
-
-export function resolveBridgeAssetUrl({
-  name,
-  moduleUrl,
-}: {
-  name: string;
-  moduleUrl: string | URL;
-}): URL {
-  return new URL(`./bridge/${name}`, moduleUrl);
 }

@@ -5,9 +5,25 @@ import {
   validateUIMessages,
   validateUIMessagesForAgent,
 } from './validate-ui-messages';
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  expectTypeOf,
+  vi,
+} from 'vitest';
 
 describe('validateUIMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('parameter validation', () => {
     it('should throw InvalidArgumentError when messages parameter is null', async () => {
       await expect(
@@ -185,6 +201,32 @@ describe('validateUIMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should return parsed metadata', async () => {
+      type TestMessage = UIMessage<{ attempts: number; label: string }>;
+      const input = [
+        {
+          id: '1',
+          role: 'user',
+          metadata: { label: 'ready' },
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: input,
+        metadataSchema: z.object({
+          attempts: z.number().default(0),
+          label: z.string().transform(async value => value.toUpperCase()),
+        }),
+      });
+
+      expect(messages[0].metadata).toEqual({
+        attempts: 0,
+        label: 'READY',
+      });
+      expect(input[0].metadata).toEqual({ label: 'ready' });
     });
 
     it('should throw type validation error when metadata is invalid ', async () => {
@@ -662,6 +704,30 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should return parsed data', async () => {
+      type TestMessage = UIMessage<never, { counter: { count: number } }>;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'data-counter', data: { count: '12' } }],
+          },
+        ],
+        dataSchemas: {
+          counter: z.object({ count: z.coerce.number() }),
+        },
+      });
+
+      const part = messages[0].parts[0];
+      expect(part.type).toBe('data-counter');
+      if (part.type === 'data-counter') {
+        expect(part.data).toEqual({ count: 12 });
+        expect(part.data.count.toFixed(0)).toBe('12');
+      }
+    });
+
     it('should throw type validation error when data is invalid', async () => {
       await expect(
         validateUIMessages<UIMessage<never, { foo: { foo: string } }>>({
@@ -713,6 +779,62 @@ describe('validateUIMessages', () => {
   });
 
   describe('dynamic tool parts', () => {
+    it('should preserve titles on static and dynamic tool parts in every state', async () => {
+      const stateDetails = {
+        'input-streaming': { input: { value: 'test' } },
+        'input-available': { input: { value: 'test' } },
+        'approval-requested': {
+          input: { value: 'test' },
+          approval: { id: 'approval-requested' },
+        },
+        'approval-responded': {
+          input: { value: 'test' },
+          approval: { id: 'approval-responded', approved: true },
+        },
+        'output-available': {
+          input: { value: 'test' },
+          output: { result: 'success' },
+        },
+        'output-error': {
+          input: { value: 'test' },
+          errorText: 'Tool execution failed',
+        },
+        'output-denied': {
+          input: { value: 'test' },
+          approval: { id: 'output-denied', approved: false },
+        },
+      };
+      const parts = Object.entries(stateDetails).flatMap(([state, details]) => [
+        {
+          type: 'tool-foo',
+          toolCallId: `static-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+        {
+          type: 'dynamic-tool',
+          toolName: 'foo',
+          toolCallId: `dynamic-${state}`,
+          title: 'Example tool',
+          state,
+          ...details,
+        },
+      ]);
+
+      const messages = await validateUIMessages({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts,
+          },
+        ],
+      });
+
+      expect(messages[0].parts).toEqual(parts);
+    });
+
     it('should validate an assistant message with a dynamic tool part in input-streaming state', async () => {
       const messages = await validateUIMessages({
         messages: [
@@ -888,6 +1010,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should validate a dynamic tool part in output-error state when input key is absent', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const messages = [
         {
           id: '1',
@@ -909,6 +1034,17 @@ describe('validateUIMessages', () => {
 
       expectTypeOf(result).toEqualTypeOf<Array<UIMessage>>();
       expect(result).toEqual(messages);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
     });
   });
 
@@ -1180,6 +1316,74 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    describe.each([
+      'approval-requested',
+      'approval-responded',
+      'output-available',
+      'output-denied',
+      'output-error',
+    ] as const)('transformed approval input in %s state', state => {
+      const tools = {
+        count: {
+          inputSchema: z.object({ count: z.string().transform(Number) }),
+        },
+      };
+
+      function createMessages(input: unknown) {
+        return [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-count',
+                toolCallId: '1',
+                state,
+                input,
+                ...(state === 'output-available' ? { output: 'ok' } : {}),
+                ...(state === 'output-error' ? { errorText: 'failed' } : {}),
+                approval: {
+                  id: 'approval-1',
+                  inputSchemaInput: { count: '3' },
+                  ...(state === 'approval-requested'
+                    ? {}
+                    : { approved: state !== 'output-denied' }),
+                },
+              },
+            ],
+          },
+        ];
+      }
+
+      it('should preserve input matching the reconstructed schema output', async () => {
+        const messages = createMessages({ count: 3 });
+
+        expect(await validateUIMessages({ messages, tools })).toEqual(messages);
+      });
+
+      it.each([{ count: 4 }, { count: 'not-a-number' }])(
+        'should not expose mismatched input %j as a validated static tool part',
+        async input => {
+          const messages = createMessages(input);
+
+          if (state === 'output-error') {
+            const result = await validateUIMessages({ messages, tools });
+            expect(result[0].parts[0]).toMatchObject({
+              type: 'dynamic-tool',
+              toolName: 'count',
+              input,
+            });
+          } else {
+            await expect(
+              validateUIMessages({ messages, tools }),
+            ).rejects.toThrow(/does not match the output reconstructed/);
+          }
+
+          expect(messages[0].parts[0].input).toEqual(input);
+        },
+      );
+    });
+
     it('should validate tool input when state is approval-requested', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -1237,6 +1441,93 @@ describe('validateUIMessages', () => {
       ).rejects.toThrowError(
         'Type validation failed for messages[0].parts[0].input',
       );
+    });
+
+    it('should reject transformed approval input that does not match its schema input', async () => {
+      const transformedTool = {
+        inputSchema: z.object({
+          count: z.string().transform(Number),
+        }),
+      };
+      type TransformedMessage = UIMessage<
+        never,
+        never,
+        { count: InferUITool<typeof transformedTool> }
+      >;
+
+      await expect(
+        validateUIMessages<TransformedMessage>({
+          messages: [
+            {
+              id: '1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-count',
+                  toolCallId: 'call-1',
+                  state: 'approval-responded',
+                  input: { count: 4 },
+                  approval: {
+                    id: 'approval-1',
+                    approved: true,
+                    inputSchemaInput: { count: '3' },
+                  },
+                },
+              ],
+            },
+          ],
+          tools: {
+            count: transformedTool,
+          },
+        }),
+      ).rejects.toThrowError(
+        'Tool input does not match the output reconstructed from inputSchemaInput.',
+      );
+    });
+
+    it('should compare transformed approval input after applying input refinement', async () => {
+      const refinedTool = {
+        inputSchema: z.object({
+          value: z.string(),
+        }),
+      };
+      type RefinedMessage = UIMessage<
+        never,
+        never,
+        { refined: InferUITool<typeof refinedTool> }
+      >;
+
+      const messages = await validateUIMessages<RefinedMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-refined',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { value: 'trimmed' },
+                approval: {
+                  id: 'approval-1',
+                  approved: true,
+                  inputSchemaInput: { value: ' trimmed ' },
+                },
+              },
+            ],
+          },
+        ],
+        tools: {
+          refined: refinedTool,
+        },
+        experimental_refineToolInput: {
+          refined: input => ({ value: input.value.trim() }),
+        },
+      });
+
+      expect(messages[0].parts[0]).toMatchObject({
+        input: { value: 'trimmed' },
+      });
     });
 
     it('should validate tool input when state is output-denied', async () => {
@@ -1559,6 +1850,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should preserve rawInput when state is output-error', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const inputMessages = [
         {
           id: '1',
@@ -1585,6 +1879,17 @@ describe('validateUIMessages', () => {
       });
 
       expect(result).toEqual(inputMessages);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
+      });
     });
 
     it('should throw error when no tool schema is found', async () => {
@@ -1906,6 +2211,52 @@ describe('validateUIMessages', () => {
       expect(result).toEqual(inputMessages);
     });
 
+    it('should preserve approval descriptors', async () => {
+      const descriptor = {
+        action: 'deleteAccount',
+        permissions: ['account:delete'],
+        risk: 'high',
+      };
+      const inputMessages: TestMessage[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'approval-requested',
+              input: { foo: 'bar' },
+              approval: {
+                id: 'approval-1',
+                descriptor,
+              },
+            },
+            {
+              type: 'tool-foo',
+              toolCallId: '2',
+              state: 'approval-responded',
+              input: { foo: 'baz' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+                descriptor,
+              },
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages<TestMessage>({
+        messages: inputMessages,
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(result).toEqual(inputMessages);
+    });
+
     it('should throw error when tool input validation fails', async () => {
       await expect(
         validateUIMessages<TestMessage>({
@@ -2061,6 +2412,38 @@ describe('safeValidateUIMessages', () => {
         },
       ]
     `);
+  });
+
+  it('should return parsed metadata and data', async () => {
+    type TestMessage = UIMessage<
+      { attempts: number },
+      { counter: { count: number } }
+    >;
+
+    const result = await safeValidateUIMessages<TestMessage>({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          metadata: {},
+          parts: [{ type: 'data-counter', data: { count: '12' } }],
+        },
+      ],
+      metadataSchema: z.object({
+        attempts: z.number().default(0),
+      }),
+      dataSchemas: {
+        counter: z.object({ count: z.coerce.number() }),
+      },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data[0]).toEqual({
+      id: '1',
+      role: 'assistant',
+      metadata: { attempts: 0 },
+      parts: [{ type: 'data-counter', data: { count: 12 } }],
+    });
   });
 
   it('should return failure result when messages parameter is null', async () => {

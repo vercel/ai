@@ -135,6 +135,13 @@ You can use the following optional settings to customize the provider instance:
   Optional. Base URL for the Google Vertex API calls e.g. to use proxy servers. By default, it is constructed using the location and project:
   `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google`
 
+- **toolResultDownloads** _object_
+
+  Settings for downloading remote files in tool results before sending them to Vertex as inline data.
+  - **maxBytes** _number_
+
+    Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
+
 <a id="google-vertex-edge-runtime"></a>
 #### Edge Runtime
 
@@ -238,10 +245,10 @@ const googleVertex = createGoogleVertex({
 ### Language Models
 
 You can create models that call the Vertex API using the provider instance.
-The first argument is the model id, e.g. `gemini-3.7-flash`.
+The first argument is the model id, e.g. `gemini-3.8-flash`.
 
 ```ts
-const model = googleVertex('gemini-3.7-flash');
+const model = googleVertex('gemini-3.8-flash');
 ```
 
 <Note>
@@ -516,7 +523,7 @@ import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.7-flash'),
+  model: googleVertex('gemini-3.8-flash'),
   tools: {
     enterprise_web_search: googleVertex.tools.enterpriseWebSearch({}),
   },
@@ -534,7 +541,7 @@ import { type GoogleLanguageModelOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: googleVertex('gemini-3.7-flash'),
+  model: googleVertex('gemini-3.8-flash'),
   tools: {
     google_maps: googleVertex.tools.googleMaps({}),
   },
@@ -907,6 +914,7 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                   | Image Input | Object Generation | Tool Usage | Tool Streaming |
 | ----------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `gemini-3.8-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.7-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.6-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
 | `gemini-3.5-flash`      | <Check />   | <Check />         | <Check />  | <Check />      |
@@ -1824,6 +1832,7 @@ See also [Anthropic Model Comparison](https://docs.anthropic.com/en/docs/about-c
 
 | Model                           | Image Input | Object Generation | Tool Usage | Tool Streaming | Computer Use |
 | ------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------ |
+| `claude-fable-5-1`              | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-7-sonnet@20250219`    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet-v2@20241022` | <Check />   | <Check />         | <Check />  | <Check />      | <Check />    |
 | `claude-3-5-sonnet@20240620`    | <Check />   | <Check />         | <Check />  | <Check />      | <Cross />    |
@@ -2153,6 +2162,12 @@ The following models are available through the MaaS provider. You can also pass 
 | `qwen/qwen3-next-80b-a3b-instruct-maas`        | Qwen     |
 | `qwen/qwen3-next-80b-a3b-thinking-maas`        | Qwen     |
 | `moonshotai/kimi-k2-thinking-maas`             | Moonshot |
+
+<Note>
+  Llama 4 MaaS models default to their 8,192-token output limit when
+  `maxOutputTokens` is not specified. An explicit `maxOutputTokens` value takes
+  precedence.
+</Note>
 
 <Note>
   Model availability depends on your Google Cloud project and region. Check the

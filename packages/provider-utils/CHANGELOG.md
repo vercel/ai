@@ -1,5 +1,104 @@
 # @ai-sdk/provider-utils
 
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 5.0.45
+
+### Patch Changes
+
+- 2973485: fix(provider-utils): detect AVIF and HEIC images with variable ftyp box sizes
+- a4db5ea: fix(provider-utils): detect AAC audio with ADTS headers
+- 2937ea2: fix(provider-utils): follow validated redirects without waiting for response clone cancellation
+
+## 5.0.44
+
+### Patch Changes
+
+- 0455398: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
+## 5.0.43
+
+### Patch Changes
+
+- 215b25e: Default language-model evaluation adapters to `reasoning: 'none'`, using each provider's existing reasoning mapping. Explicit reasoning settings in `providerOptions` continue to override the default.
+- d4d96bf: Add experimental Choice, Score, and Boolean evaluations through `openai.evaluationModel()` and a shared structured language-model evaluation adapter in `@ai-sdk/provider-utils/experimental-evaluation`. Preserve exact labels and metadata, validate score bounds, and return prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.42
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2fa5e0e: fix(provider-utils): avoid crashing when DOMException is not a global constructor
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
+## 5.0.40
+
+### Patch Changes
+
+- 813bb36: fix(provider-utils): avoid detecting plain text prefixes as BMP or GIF images
+- c43e4b7: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 5.0.39
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 5.0.38
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
+## 5.0.37
+
+### Patch Changes
+
+- 9e1d1b2: chore(provider-utils): fix test that can timeout
+- a495511: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
+## 5.0.36
+
+### Patch Changes
+
+- 6bcc0f8: Update Undici to a version patched for CVE-2026-13697.
+
+## 5.0.35
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+
 ## 5.0.34
 
 ### Patch Changes

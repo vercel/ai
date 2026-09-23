@@ -13,6 +13,8 @@ import {
   streamText,
   type StreamTextEndEvent,
   type StreamTextOnEndCallback,
+  type StreamTextOnErrorCallback,
+  type StreamTextOnErrorRetryCallback,
 } from '../generate-text';
 import type { Instructions } from '../prompt';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
@@ -24,11 +26,79 @@ import type {
 } from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
 import type { DeepPartial } from '../util/deep-partial';
-import type { GenerateTextEndEvent } from './generate-text-events';
+import type {
+  GenerateTextAbortEvent,
+  GenerateTextEndEvent,
+} from './generate-text-events';
 import type { ResponseMessage } from './response-message';
 import type { StepResult } from './step-result';
 
 describe('streamText types', () => {
+  describe('stream retries', () => {
+    it('should accept streamRetries and an onError retry result', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 2,
+        onError: () => ({ retry: true }),
+      });
+    });
+
+    it('should preserve the existing async void callback contract', () => {
+      expectTypeOf<
+        ReturnType<StreamTextOnErrorCallback>
+      >().toEqualTypeOf<PromiseLike<void> | void>();
+
+      const callbackResult: ReturnType<StreamTextOnErrorCallback> =
+        Promise.resolve();
+
+      expectTypeOf(callbackResult).toMatchTypeOf<PromiseLike<void> | void>();
+    });
+
+    it('should accept existing value-returning callbacks', () => {
+      const errors: unknown[] = [];
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: async () => 'replacement text',
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: ({ error }) => errors.push(error),
+      });
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onError: () => ({ ignored: true }),
+      });
+    });
+
+    it('should accept a conditional async retry result', () => {
+      const onError: StreamTextOnErrorRetryCallback = async ({ error }) => {
+        if (error instanceof Error) {
+          return { retry: true } as const;
+        }
+      };
+
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        streamRetries: 0,
+        onError,
+      });
+    });
+  });
+
   describe('onLanguageModelCallEnd', () => {
     it('should expose provider metadata', () => {
       streamText({
@@ -83,6 +153,20 @@ describe('streamText types', () => {
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
         timeout: { firstChunkMs: 1000 },
+      });
+    });
+  });
+
+  describe('onAbort', () => {
+    it('should expose call metadata and the abort reason', () => {
+      streamText({
+        model: new MockLanguageModelV4(),
+        prompt: 'Hello',
+        onAbort: event => {
+          expectTypeOf(event).toMatchTypeOf<GenerateTextAbortEvent>();
+          expectTypeOf(event.callId).toEqualTypeOf<string>();
+          expectTypeOf(event.reason).toEqualTypeOf<unknown>();
+        },
       });
     });
   });

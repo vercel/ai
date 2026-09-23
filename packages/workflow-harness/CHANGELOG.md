@@ -1,5 +1,194 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.117
+
+## 1.0.116
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.113
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.108
+
+### Patch Changes
+
+- 633a385: fix(workflow-harness): preserve resumability when harness runs fail
+- d70a334: feat(workflow-harness): automatically persist validated `HarnessAgent` output in workflow results
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+  - @ai-sdk/harness@1.0.108
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+
+## 1.0.106
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+
+## 1.0.105
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.103
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.103
+
+## 1.0.102
+
+### Patch Changes
+
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- 4c64779: fix(workflow-harness): preserve partial tool inputs across time slices
+  - @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
 ## 1.0.94
 
 ### Patch Changes

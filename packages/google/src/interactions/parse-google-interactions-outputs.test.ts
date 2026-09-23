@@ -176,6 +176,52 @@ describe('parseGoogleInteractionsOutputs', () => {
     });
   });
 
+  describe('agentic video processing steps', () => {
+    it('emits custom parts with IDs and signatures', () => {
+      const { content } = parseGoogleInteractionsOutputs({
+        steps: [
+          {
+            type: 'processing_call',
+            id: 'processing-1',
+            signature: 'call-signature',
+          },
+          {
+            type: 'processing_result',
+            call_id: 'processing-1',
+            signature: 'result-signature',
+          },
+        ],
+        generateId,
+        interactionId: 'interaction-1',
+      });
+
+      expect(content).toEqual([
+        {
+          type: 'custom',
+          kind: 'google.processing_call',
+          providerMetadata: {
+            google: {
+              signature: 'call-signature',
+              interactionId: 'interaction-1',
+              processingId: 'processing-1',
+            },
+          },
+        },
+        {
+          type: 'custom',
+          kind: 'google.processing_result',
+          providerMetadata: {
+            google: {
+              signature: 'result-signature',
+              interactionId: 'interaction-1',
+              processingCallId: 'processing-1',
+            },
+          },
+        },
+      ]);
+    });
+  });
+
   describe('image content in model_output steps', () => {
     it('emits a file content part with mediaType + base64 data when an image block carries inline data', () => {
       const steps = [

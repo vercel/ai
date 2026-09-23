@@ -103,6 +103,13 @@ Settings:
 - `portEndpoint`: host endpoint for the ACP bridge when the sandbox session
   cannot expose ports directly.
 - `startupTimeoutMs`: maximum time to wait for the ACP bridge to start.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the ACP bridge authentication token. By default, the adapter generates
   a random 32-byte token.
@@ -118,6 +125,10 @@ Set one of these environment variables:
 
 - `VERCEL_OIDC_TOKEN`
 - `AI_GATEWAY_API_KEY`
+
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
 
 fx prefers `VERCEL_OIDC_TOKEN` when both are available. The adapter brokers the
 selected credential only to the configured Gateway origin when the sandbox
@@ -191,6 +202,10 @@ or apply its own permission policy without sending an ACP permission request.
   supported, but filtering fx built-ins throws an unsupported-capability error.
 - fx ACP does not expose a structured-output metadata mapping, so schema-backed
   structured output is unsupported.
+- Custom `headers` are not natively supported and only applied via
+  sandbox-external request transformations. When a sandbox without that
+  capability is provided, custom `headers` therefore cannot be passed and are
+  ignored.
 
 ## Related
 

@@ -1,5 +1,310 @@
 # @ai-sdk/workflow
 
+## 2.0.43
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 2.0.41
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 2.0.38
+
+### Patch Changes
+
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+
+## 2.0.37
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+- Updated dependencies [0455398]
+  - ai@7.0.106
+  - @ai-sdk/provider-utils@5.0.44
+
+## 2.0.36
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 2.0.35
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - ai@7.0.104
+  - @ai-sdk/provider@4.0.17
+
+## 2.0.34
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - ai@7.0.103
+  - @ai-sdk/provider@4.0.16
+
+## 2.0.33
+
+### Patch Changes
+
+- 0916fe8: fix(workflow): add a browser-safe client entry point for WorkflowChatTransport
+- 8f9808e: fix(workflow): make agent timeouts compatible with workflow functions
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - @ai-sdk/provider@4.0.15
+  - ai@7.0.102
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.32
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 2.0.31
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
+## 2.0.30
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 2.0.29
+
+### Patch Changes
+
+- 72d9e05: fix(workflow): preserve provider-executed tool results across terminal, deferred, and paused responses
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - ai@7.0.98
+  - @ai-sdk/provider-utils@5.0.40
+
+## 2.0.28
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 2.0.27
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - @ai-sdk/provider@4.0.12
+  - ai@7.0.96
+  - @ai-sdk/provider-utils@5.0.38
+
+## 2.0.26
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
+## 2.0.25
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [36b3364]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - ai@7.0.94
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 2.0.24
+
+### Patch Changes
+
+- 3204ab6: fix(workflow): preserve per-tool types in execution callbacks and export the callback event types
+- Updated dependencies [df6c009]
+- Updated dependencies [6ee74a3]
+- Updated dependencies [f13d371]
+- Updated dependencies [d4485fe]
+- Updated dependencies [4f201cc]
+- Updated dependencies [8cdb2a7]
+- Updated dependencies [0f2281e]
+- Updated dependencies [fc8e8ac]
+- Updated dependencies [ee8391e]
+  - ai@7.0.93
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [a51cc94]
+- Updated dependencies [d1904d3]
+- Updated dependencies [84e5a79]
+- Updated dependencies [a8e8ad0]
+  - ai@7.0.92
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [802af1e]
+  - ai@7.0.91
+
+## 2.0.21
+
+### Patch Changes
+
+- 180ce77: fix(workflow): preserve tool behavior across workflow step boundaries
+- 82a16c9: fix(workflow): retain model files and sources in provider order across durable agent results and message history
+- 30306cf: fix(workflow): include executed tool results in completed agent steps
+- 19d8f30: fix(workflow): infer constructor-level structured output in stream results
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - ai@7.0.90
+
+## 2.0.20
+
+### Patch Changes
+
+- 85d2081: fix(workflow): preserve configured tool and runtime context types in stop conditions
+
+## 2.0.19
+
+### Patch Changes
+
+- 902ce3b: fix(workflow): respect empty activeTools lists
+- c143af4: fix(workflow): propagate agent abort signals to local tool executions
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - ai@7.0.89
+
+## 2.0.18
+
+### Patch Changes
+
+- 238aff0: fix(workflow): preserve context and lifecycle callbacks for approved tools
+- 05672ad: fix(workflow): stream failed tool executions as tool errors
+- 3b6ef0c: fix(workflow): infer configured tool parts in WorkflowAgent UI messages
+- d3b1ffb: feat(workflow): add stable onStart and onStepStart callbacks to WorkflowAgent
+- 33d185e: fix(workflow): restrict prepareStep activeTools to configured tool names
+- Updated dependencies [8b6b756]
+- Updated dependencies [e07b577]
+  - ai@7.0.88
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [850d863]
+  - ai@7.0.87
+
+## 2.0.16
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [11109ae]
+  - ai@7.0.86
+
 ## 2.0.15
 
 ### Patch Changes

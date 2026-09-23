@@ -1,0 +1,82 @@
+---
+title: Tool Search
+description: Let models discover tools on demand, with direct calling or cache-preserving code mode.
+---
+
+# Tool Search
+
+`toolSearch()` lets a model find the tools it needs without loading every tool's
+definition into its initial context. Register tools with `deferLoading: true`;
+search matches their names and descriptions and makes them available on the
+**next model step**.
+
+Use it with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
+`@ai-sdk/workflow`. The factory takes no arguments; the model supplies a search
+query. `WorkflowAgent` supports direct tool calling; the other APIs also support
+cache-preserving code mode.
+
+## Direct Tool Calling
+
+The model initially sees only `search`. After searching, matching definitions are
+added to the provider's tool list and the model calls those tools directly. This
+changes the tool definitions and can invalidate the cached prompt prefix.
+
+```ts
+import { generateText, isStepCount, tool, toolSearch } from 'ai';
+import { z } from 'zod/v4';
+
+const weather = tool({
+  deferLoading: true,
+  description: 'Get the weather forecast for a city.',
+  inputSchema: z.object({ city: z.string() }),
+  execute: async ({ city }) => ({ city, forecast: 'Rain tomorrow.' }),
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: { search: toolSearch(), weather },
+  stopWhen: isStepCount(5),
+  prompt: 'Will it rain in Bangalore tomorrow?',
+});
+```
+
+## Code Mode
+
+With [code mode](/docs/ai-sdk-core/code-mode), the model searches and calls tools
+through generated code. Set `toolDiscovery: 'conversation'` to announce discovered
+definitions in user messages while keeping the provider-visible code tool
+unchanged. **This preserves the tool-definition cache as tools are discovered.**
+Actual prompt-cache reuse depends on the provider.
+
+Using the `weather` tool defined above:
+
+```ts
+import { experimental_codeModeTool as codeModeTool } from '@ai-sdk/code-mode';
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    code: codeModeTool({ toolDiscovery: 'conversation' }),
+    search: toolSearch(),
+    weather,
+  },
+  experimental_toolCallers: {
+    search: ['code'],
+    weather: ['code'],
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'Will it rain in Bangalore tomorrow?',
+});
+```
+
+The model first runs `tools.search({ query: 'weather forecast' })`. On the next
+step, it receives the updated capability catalog and can call
+`tools.weather({ city: 'Bangalore' })`.
+
+In both modes, search loads up to five matches, respects `activeTools` and caller
+routing, and keeps discovered tools available for the rest of the generation.
+MCP client tools work too: add `deferLoading: true` to the tools returned by
+`client.tools()`.
+
+See the [`toolSearch()` reference](/docs/reference/ai-sdk-core/tool-search) for
+input, output, and matching details.

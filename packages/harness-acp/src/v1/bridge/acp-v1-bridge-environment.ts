@@ -1,6 +1,7 @@
 import { z } from 'zod/v4';
 import type {
   ACPAuthentication,
+  ACPHostToolMCPTransport,
   ACPProfileValue,
   ACPSerializableValue,
 } from '../acp-v1-settings';
@@ -33,6 +34,11 @@ const profileValueSchema: z.ZodType<ACPProfileValue> = z.lazy(() =>
   ]),
 );
 
+const hostToolMcpTransportSchema: z.ZodType<ACPHostToolMCPTransport> = z.enum([
+  'stdio',
+  'http',
+]);
+
 const serializableRecordSchema = z.record(z.string(), serializableValueSchema);
 const profileRecordSchema = z.record(z.string(), profileValueSchema);
 
@@ -60,6 +66,8 @@ export type ACPBridgeConfiguration = {
   readonly providerEnvironment?: Readonly<Record<string, string>>;
   readonly sessionMeta?: Readonly<Record<string, ACPSerializableValue>>;
   readonly clientCapabilities?: Readonly<Record<string, ACPSerializableValue>>;
+  readonly askUserQuestionsRequestMethod?: string;
+  readonly hostToolMcpTransport?: ACPHostToolMCPTransport;
 };
 
 const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
@@ -68,6 +76,8 @@ const bridgeConfigurationSchema: z.ZodType<ACPBridgeConfiguration> = z.object({
   providerEnvironment: z.record(z.string(), z.string()).optional(),
   sessionMeta: serializableRecordSchema.optional(),
   clientCapabilities: serializableRecordSchema.optional(),
+  askUserQuestionsRequestMethod: z.string().optional(),
+  hostToolMcpTransport: hostToolMcpTransportSchema.optional(),
 });
 
 export function createACPBridgeEnvironment({
@@ -76,6 +86,8 @@ export function createACPBridgeEnvironment({
   providerEnvironment,
   sessionMeta,
   clientCapabilities,
+  askUserQuestionsRequestMethod,
+  hostToolMcpTransport,
 }: ACPBridgeConfiguration): Record<string, string> {
   return {
     [ACP_BRIDGE_CONFIGURATION_ENV]: JSON.stringify({
@@ -84,6 +96,10 @@ export function createACPBridgeEnvironment({
       ...(providerEnvironment == null ? {} : { providerEnvironment }),
       ...(sessionMeta == null ? {} : { sessionMeta }),
       ...(clientCapabilities == null ? {} : { clientCapabilities }),
+      ...(askUserQuestionsRequestMethod == null
+        ? {}
+        : { askUserQuestionsRequestMethod }),
+      ...(hostToolMcpTransport == null ? {} : { hostToolMcpTransport }),
     }),
   };
 }

@@ -1,9 +1,10 @@
 import type {
   JSONValue,
   SharedV4ProviderOptions,
+  Experimental_VideoModelV4 as VideoModelV4,
   Experimental_VideoModelV4File,
 } from '@ai-sdk/provider';
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import { DownloadError, type FetchFunction } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { MiniMaxVideoModel } from './minimax-video-model';
@@ -84,17 +85,19 @@ const defaultOptions = {
 } as const;
 
 function createModel({
+  baseURL = TEST_BASE_URL,
   currentDate,
   fetch,
   modelId = 'MiniMax-H3',
 }: {
+  baseURL?: string;
   currentDate?: () => Date;
   fetch?: FetchFunction;
   modelId?: MiniMaxVideoModelId;
 } = {}) {
   return new MiniMaxVideoModel(modelId, {
     provider: 'minimax.video',
-    baseURL: TEST_BASE_URL,
+    baseURL,
     headers: () => ({ Authorization: 'Bearer test-key' }),
     fetch,
     _internal: { currentDate },
@@ -131,6 +134,469 @@ describe('MiniMaxVideoModel', () => {
       expect(model.modelId).toBe('MiniMax-H3');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
+    });
+  });
+
+  it('should leave the generic webhook hook undefined', () => {
+    const model: VideoModelV4 = createModel();
+    expect(model.handleWebhookOption).toBeUndefined();
+  });
+
+  describe('doStart / doStatus', () => {
+    const operation = {
+      taskId: TASK_ID,
+      resolvedInputs: { imageCount: 0, referenceVideoIndices: [] },
+    };
+
+    it('should submit once with callback_url without polling', async () => {
+      const testDate = new Date('2026-01-01T00:00:00Z');
+      server.urls[CREATE_URL].response = {
+        type: 'json-value',
+        body: createVideoResponse,
+        headers: { 'x-minimax-request-id': 'start-request' },
+      };
+      const model = createModel({ currentDate: () => testDate });
+      const result = await model.doStart({
+        ...defaultOptions,
+        providerOptions: {},
+        webhookUrl: 'https://example.com/callback',
+      });
+
+      expect(server.calls).toHaveLength(1);
+      expect(server.calls[0].requestMethod).toBe('POST');
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        callback_url: 'https://example.com/callback',
+        model: 'MiniMax-H3',
+        content: [{ type: 'text', text: prompt }],
+        resolution: '2K',
+        duration: 5,
+        ratio: '16:9',
+      });
+      expect(result.operation).toStrictEqual(operation);
+      expect(result.warnings).toStrictEqual([]);
+      expect(result.response).toMatchObject({
+        timestamp: testDate,
+        modelId: 'MiniMax-H3',
+        headers: { 'x-minimax-request-id': 'start-request' },
+      });
+    });
+
+    it('should omit callback_url when webhookUrl is not provided', async () => {
+      const result = await createModel().doStart(defaultOptions);
+
+      expect(server.calls).toHaveLength(1);
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'callback_url',
+      );
+      expect(result.operation).toStrictEqual(operation);
+    });
+
+    it('should preserve normalized inputs and metadata across JSON and a fresh model', async () => {
+      const options = {
+        ...defaultOptions,
+        duration: 20,
+        inputReferences: [
+          ...Array.from({ length: 10 }, () => imageUrlFile),
+          ...Array.from({ length: 4 }, (_, i) => ({
+            ...videoUrlFile,
+            type: 'url' as const,
+            url: `https://cdn.example.com/clip-${i}.mp4`,
+          })),
+        ],
+      };
+      const start = await createModel().doStart(options);
+      const restoredOperation = JSON.parse(JSON.stringify(start.operation));
+      expect(restoredOperation).toStrictEqual({
+        taskId: TASK_ID,
+        resolvedInputs: {
+          imageCount: 9,
+          referenceVideoIndices: [10, 11, 12],
+        },
+      });
+      const testDate = new Date('2026-01-02T00:00:00Z');
+      const status = await createModel({
+        currentDate: () => testDate,
+      }).doStatus({
+        operation: restoredOperation,
+      });
+      expect(server.calls).toHaveLength(2);
+      expect(server.calls[1].requestMethod).toBe('GET');
+      expect(status.status).toBe('completed');
+      if (status.status !== 'completed') {
+        throw new Error('Expected completed status');
+      }
+      expect(status.response.timestamp).toBe(testDate);
+      expect(status.warnings).toStrictEqual([]);
+      expect(status.providerMetadata?.minimax?.resolvedInputs).toStrictEqual(
+        restoredOperation.resolvedInputs,
+      );
+
+      const generated = await createModel().doGenerate(options);
+      expect(await server.calls[2].requestBodyJson).toStrictEqual(
+        await server.calls[0].requestBodyJson,
+      );
+      expect(generated.warnings).toStrictEqual(start.warnings);
+      expect(start.warnings).toHaveLength(3);
+      expect(generated.videos).toStrictEqual(status.videos);
+      expect(generated.providerMetadata).toStrictEqual({
+        minimax: {
+          ...status.providerMetadata?.minimax,
+          resolvedInputs: {
+            imageCount: 9,
+            referenceVideoUrls: [0, 1, 2].map(
+              i => `https://cdn.example.com/clip-${i}.mp4`,
+            ),
+          },
+        },
+      });
+      expect(server.calls).toHaveLength(4);
+    });
+
+    it('should retain mixed input indices, preserving duplicates and counting inline videos toward the cap', async () => {
+      const options = {
+        ...defaultOptions,
+        inputReferences: [
+          {
+            type: 'url' as const,
+            url: 'https://example.com/audio.mp3',
+            mediaType: 'audio/mpeg',
+          },
+          imageUrlFile,
+          videoUrlFile,
+          {
+            type: 'file' as const,
+            data: 'aW5saW5lLXZpZGVv',
+            mediaType: 'video/mp4',
+          },
+          videoUrlFile,
+          {
+            type: 'url' as const,
+            url: 'https://example.com/capped.mp4',
+            mediaType: 'video/mp4',
+          },
+          { type: 'url' as const, url: 'https://example.com/untyped.png' },
+        ],
+      };
+      const start = await createModel().doStart(options);
+      const serialized = JSON.stringify(start.operation);
+      const restored = JSON.parse(serialized);
+      expect(restored).toStrictEqual({
+        taskId: TASK_ID,
+        resolvedInputs: { imageCount: 2, referenceVideoIndices: [2, 4] },
+      });
+      expect(serialized).not.toContain('https://');
+      expect(serialized).not.toContain(prompt);
+      expect(serialized).not.toContain('aW5saW5lLXZpZGVv');
+      expect((await server.calls[0].requestBodyJson).content).toStrictEqual([
+        { type: 'text', text: prompt },
+        {
+          type: 'image_url',
+          image_url: { url: imageUrlFile.url },
+          role: 'reference_image',
+        },
+        {
+          type: 'image_url',
+          image_url: { url: 'https://example.com/untyped.png' },
+          role: 'reference_image',
+        },
+        {
+          type: 'video_url',
+          video_url: { url: videoUrlFile.url },
+          role: 'reference_video',
+        },
+        {
+          type: 'video_url',
+          video_url: { url: 'data:video/mp4;base64,aW5saW5lLXZpZGVv' },
+          role: 'reference_video',
+        },
+        {
+          type: 'video_url',
+          video_url: { url: videoUrlFile.url },
+          role: 'reference_video',
+        },
+      ]);
+
+      const status = await createModel().doStatus({ operation: restored });
+      expect(status.status).toBe('completed');
+      expect(status.providerMetadata?.minimax?.resolvedInputs).toStrictEqual(
+        restored.resolvedInputs,
+      );
+      const generated = await createModel().doGenerate(options);
+      expect(generated.providerMetadata?.minimax?.resolvedInputs).toStrictEqual(
+        {
+          imageCount: 2,
+          referenceVideoUrls: [videoUrlFile.url, videoUrlFile.url],
+        },
+      );
+      expect(generated.warnings).toStrictEqual(start.warnings);
+    });
+
+    it.each([
+      {
+        name: 'standalone frame',
+        modelId: 'MiniMax-H3',
+        options: { image: imageUrlFile },
+        imageCount: 1,
+      },
+      {
+        name: 'first and last frames',
+        modelId: 'MiniMax-H3',
+        options: {
+          frameImages: [
+            { frameType: 'first_frame' as const, image: imageUrlFile },
+            { frameType: 'last_frame' as const, image: imageUrlFile },
+          ],
+        },
+        imageCount: 2,
+      },
+      {
+        name: 'H3-Max references',
+        modelId: 'MiniMax-H3-Max',
+        options: {},
+        imageCount: 0,
+      },
+      {
+        name: 'H3-Max frame',
+        modelId: 'MiniMax-H3-Max',
+        options: { image: imageUrlFile },
+        imageCount: 1,
+      },
+    ])(
+      'should omit ignored video indices for $name',
+      async ({ modelId, options, imageCount }) => {
+        const callOptions = {
+          ...defaultOptions,
+          ...options,
+          inputReferences: [imageUrlFile, videoUrlFile],
+        };
+        const start = await createModel({ modelId }).doStart(callOptions);
+        const restored = JSON.parse(JSON.stringify(start.operation));
+        expect(restored).toStrictEqual({
+          taskId: TASK_ID,
+          resolvedInputs: { imageCount, referenceVideoIndices: [] },
+        });
+        const status = await createModel({ modelId }).doStatus({
+          operation: restored,
+        });
+        expect(status.providerMetadata?.minimax?.resolvedInputs).toStrictEqual(
+          restored.resolvedInputs,
+        );
+        const generated = await createModel({ modelId }).doGenerate(
+          callOptions,
+        );
+        expect(
+          generated.providerMetadata?.minimax?.resolvedInputs,
+        ).toStrictEqual({ imageCount, referenceVideoUrls: [] });
+        expect(generated.warnings).toStrictEqual(start.warnings);
+      },
+    );
+
+    it.each(['queued', 'running', 'unknown', null, undefined])(
+      'should return pending after one GET for status %s',
+      async status => {
+        server.urls[POLL_URL].response = {
+          type: 'json-value',
+          body: { task: { status } },
+        };
+        const result = await createModel().doStatus({ operation });
+        expect(result).toMatchObject({
+          status: 'pending',
+          response: { modelId: 'MiniMax-H3', timestamp: expect.any(Date) },
+        });
+        expect(server.calls).toHaveLength(1);
+        expect(server.calls[0].requestMethod).toBe('GET');
+      },
+    );
+
+    it.each([
+      ['failed', 'MiniMax video generation failed'],
+      ['cancelled', 'MiniMax video generation was cancelled'],
+      ['expired', 'MiniMax video generation request expired'],
+    ])('should return an error result for %s', async (status, message) => {
+      server.urls[POLL_URL].response = {
+        type: 'json-value',
+        body: { task: { status } },
+        headers: { 'x-minimax-request-id': 'status-request' },
+      };
+      expect(await createModel().doStatus({ operation })).toMatchObject({
+        status: 'error',
+        error: `${message}. Task ID: ${TASK_ID}`,
+        response: { headers: { 'x-minimax-request-id': 'status-request' } },
+      });
+      expect(server.calls).toHaveLength(1);
+    });
+
+    it.each([1027, 'content_policy'])(
+      'should include task error code %s',
+      async code => {
+        server.urls[POLL_URL].response = {
+          type: 'json-value',
+          body: {
+            task: { status: 'failed', error: { code, message: 'Rejected' } },
+          },
+        };
+        expect(await createModel().doStatus({ operation })).toMatchObject({
+          status: 'error',
+          error: `MiniMax video generation failed: Rejected (${code}). Task ID: ${TASK_ID}`,
+        });
+      },
+    );
+
+    it.each([undefined, {}, { url: '' }])(
+      'should reject a succeeded task without a video URL (%j)',
+      async content => {
+        server.urls[POLL_URL].response = {
+          type: 'json-value',
+          body: { task: { status: 'succeeded', content } },
+        };
+        await expect(
+          createModel().doStatus({ operation }),
+        ).rejects.toMatchObject({
+          name: 'MINIMAX_VIDEO_GENERATION_ERROR',
+          message: `MiniMax video generation completed but no video URL was returned. Task ID: ${TASK_ID}`,
+        });
+        expect(server.calls).toHaveLength(1);
+      },
+    );
+
+    it.each([undefined, null, ''])(
+      'should reject missing task ID %s without polling',
+      async task_id => {
+        server.urls[CREATE_URL].response = {
+          type: 'json-value',
+          body: { task_id },
+        };
+        await expect(
+          createModel().doStart(defaultOptions),
+        ).rejects.toMatchObject({
+          name: 'MINIMAX_VIDEO_GENERATION_ERROR',
+        });
+        expect(server.calls).toHaveLength(1);
+      },
+    );
+
+    it.each(['start', 'status'] as const)(
+      'should surface HTTP errors from %s without retrying',
+      async method => {
+        const url = method === 'start' ? CREATE_URL : POLL_URL;
+        server.urls[url].response = {
+          type: 'error',
+          status: 429,
+          body: errorEnvelope('Rate limited', 429),
+        };
+        const model = createModel();
+        await expect(
+          method === 'start'
+            ? model.doStart(defaultOptions)
+            : model.doStatus({ operation }),
+        ).rejects.toMatchObject({
+          name: 'AI_APICallError',
+          statusCode: 429,
+          message: 'Rate limited',
+          url,
+        });
+        expect(server.calls).toHaveLength(1);
+      },
+    );
+
+    it('should merge and override auth headers separately on start and status', async () => {
+      const model = createModel();
+      await model.doStart({
+        ...defaultOptions,
+        headers: { 'x-request': 'start' },
+      });
+      await model.doStatus({
+        operation,
+        headers: { Authorization: 'Bearer override', 'x-request': 'status' },
+      });
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        authorization: 'Bearer test-key',
+        'x-request': 'start',
+      });
+      expect(server.calls[1].requestHeaders).toMatchObject({
+        authorization: 'Bearer override',
+        'x-request': 'status',
+      });
+    });
+
+    it('should encode the task ID and forward each abort signal to the custom fetch', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const taskId = 'task/with?query=value#fragment';
+      const model = createModel({
+        fetch: async (url, init) => {
+          calls.push({ url: url.toString(), init });
+          return Response.json(
+            init?.method === 'POST'
+              ? { task_id: taskId }
+              : succeededStatusResponse,
+          );
+        },
+      });
+      const startSignal = new AbortController().signal;
+      const statusSignal = new AbortController().signal;
+      const start = await model.doStart({
+        ...defaultOptions,
+        abortSignal: startSignal,
+      });
+      expect(calls).toHaveLength(1);
+      await model.doStatus({
+        operation: start.operation,
+        abortSignal: statusSignal,
+      });
+      expect(calls).toHaveLength(2);
+      expect(calls[0].init?.signal).toBe(startSignal);
+      expect(calls[1].init?.signal).toBe(statusSignal);
+      expect(calls[1].url).toBe(
+        `${TEST_BASE_URL}/v2/query/video_generation/${encodeURIComponent(taskId)}`,
+      );
+      expect(calls[1].init?.redirect).toBe('manual');
+    });
+
+    it.each(['start', 'status'] as const)(
+      'should propagate abort errors from %s',
+      async method => {
+        const controller = new AbortController();
+        const reason = new DOMException('Cancelled', 'AbortError');
+        const model = createModel({
+          fetch: async (_url, init) => {
+            controller.abort(reason);
+            init?.signal?.throwIfAborted();
+            throw new Error('Expected abort');
+          },
+        });
+        await expect(
+          method === 'start'
+            ? model.doStart({
+                ...defaultOptions,
+                abortSignal: controller.signal,
+              })
+            : model.doStatus({ operation, abortSignal: controller.signal }),
+        ).rejects.toBe(reason);
+      },
+    );
+
+    it('should strip caller headers on cross-origin status redirects', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const model = createModel({
+        fetch: async (url, init) => {
+          calls.push({ url: url.toString(), init });
+          return calls.length === 1
+            ? new Response(null, {
+                status: 302,
+                headers: { Location: 'https://cdn.example.com/status' },
+              })
+            : Response.json(succeededStatusResponse);
+        },
+      });
+      await model.doStatus({ operation, headers: { 'x-secret': 'private' } });
+      expect(calls).toHaveLength(2);
+      expect(new Headers(calls[0].init?.headers).get('authorization')).toBe(
+        'Bearer test-key',
+      );
+      expect(new Headers(calls[1].init?.headers).has('authorization')).toBe(
+        false,
+      );
+      expect(new Headers(calls[1].init?.headers).has('x-secret')).toBe(false);
     });
   });
 
@@ -2013,6 +2479,44 @@ describe('MiniMaxVideoModel', () => {
         message: expect.stringContaining('aborted'),
       });
       expect(pollCount).toBe(1);
+    });
+  });
+
+  describe('polling redirects', () => {
+    it('should validate redirects after trusting the configured origin', async () => {
+      const calls: Array<{ url: string; init?: RequestInit }> = [];
+      const fetch: FetchFunction = async (url, init) => {
+        calls.push({ url: url.toString(), init });
+
+        if (init?.method === 'POST') {
+          return new Response(JSON.stringify(createVideoResponse), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+
+        return new Response(null, {
+          status: 302,
+          headers: {
+            Location: 'http://169.254.169.254/latest/meta-data/',
+          },
+        });
+      };
+
+      const model = createModel({
+        baseURL: 'http://localhost:3000',
+        fetch,
+      });
+
+      await expect(
+        model.doGenerate({ ...defaultOptions }),
+      ).rejects.toBeInstanceOf(DownloadError);
+
+      expect(calls).toHaveLength(2);
+      expect(calls[1]).toMatchObject({
+        url: `http://localhost:3000/v2/query/video_generation/${TASK_ID}`,
+        init: { redirect: 'manual' },
+      });
     });
   });
 

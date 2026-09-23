@@ -1,5 +1,221 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.118
+
+### Patch Changes
+
+- f39733b: fix(sandbox-just-bash): seed `realpath` binary via `readlink` so that it is available to consumers that require it, such as the Pi harness
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+
+## 1.0.110
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.106
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.105
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.102
+
+### Patch Changes
+
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.97
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.95
+
+### Patch Changes
+
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
 ## 1.0.94
 
 ### Patch Changes

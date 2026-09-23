@@ -197,9 +197,9 @@ describe('HarnessAgent telemetry integration', () => {
       'onStart',
       'onStepStart',
       'onLanguageModelCallStart',
+      'onLanguageModelCallEnd',
       'onToolExecutionStart',
       'onToolExecutionEnd',
-      'onLanguageModelCallEnd',
       'onStepFinish',
       'onEnd',
     ]);
@@ -215,18 +215,26 @@ describe('HarnessAgent telemetry integration', () => {
     };
     expect(lmEnd.content).toEqual([
       { type: 'text', text: 'hi' },
-      {
+      expect.objectContaining({
         type: 'tool-call',
         toolCallId: 'c1',
         toolName: 'bash',
-        input: '{"command":"ls"}',
-      },
+        input: { command: 'ls' },
+      }),
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        output: { output: 'ok' },
+      }),
     ]);
-    expect(lmEnd.performance).toEqual({
-      responseTimeMs: undefined,
-      timeToFirstOutputMs: undefined,
-      timeBetweenOutputChunksMs: undefined,
-    });
+    expect(lmEnd.performance).toEqual(
+      expect.objectContaining({
+        responseTimeMs: expect.any(Number),
+        timeToFirstOutputMs: undefined,
+        timeBetweenOutputChunksMs: undefined,
+      }),
+    );
     expect(lmEnd.finishReason).toBe('stop');
     expect(lmEnd.providerMetadata).toEqual({
       gateway: { generationId: 'generation-id' },
@@ -253,19 +261,17 @@ describe('HarnessAgent telemetry integration', () => {
       files: unknown[];
     };
     expect(end.text).toBe('hi');
-    expect(end.finalStep).toEqual({
-      reasoning: [],
-      providerMetadata: {
-        gateway: { generationId: 'generation-id' },
-      },
+    expect(end.finalStep.reasoning).toEqual([]);
+    expect(end.finalStep.providerMetadata).toEqual({
+      gateway: { generationId: 'generation-id' },
     });
     expect(end.toolCalls).toEqual([
-      {
+      expect.objectContaining({
         type: 'tool-call',
         toolCallId: 'c1',
         toolName: 'bash',
-        input: '{"command":"ls"}',
-      },
+        input: { command: 'ls' },
+      }),
     ]);
     expect(end.files).toEqual([]);
     expect(end.finishReason).toBe('stop');
@@ -518,7 +524,9 @@ describe('HarnessAgent telemetry integration', () => {
       finalStep: { reasoning: unknown[] };
     };
     expect(end.text).toBe('final');
-    expect(end.finalStep.reasoning).toEqual([{ text: 'final thought' }]);
+    expect(end.finalStep.reasoning).toEqual([
+      { type: 'reasoning', text: 'final thought' },
+    ]);
   });
 
   test('exports normalized OpenTelemetry spans from HarnessAgent turns', async () => {
@@ -669,7 +677,12 @@ describe('HarnessAgent telemetry integration', () => {
               type: 'tool_call',
               id: 'c1',
               name: 'bash',
-              arguments: '{"command":"ls"}',
+              arguments: { command: 'ls' },
+            },
+            {
+              type: 'tool_call_response',
+              id: 'c1',
+              response: { output: 'ok' },
             },
           ],
           finish_reason: 'stop',

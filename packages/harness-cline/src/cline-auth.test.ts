@@ -1,5 +1,118 @@
-import { describe, expect, it } from 'vitest';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, expect, it, vi } from 'vitest';
 import { resolveClineEnv } from './cline-auth';
+import {
+  readClineSubscription,
+  resolveClineAuthentication,
+  resolveClineProviderSettingsPath,
+} from './cline-subscription';
+
+describe('resolveClineAuthentication', () => {
+  it('never inspects native subscriptions for AI Gateway auth', async () => {
+    const readSubscription = vi.fn();
+
+    await expect(
+      resolveClineAuthentication({
+        auth: 'ai-gateway',
+        env: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      environment: {
+        AI_GATEWAY_API_KEY: 'gateway-key',
+        AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+      },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers an applicable environment API key over native subscriptions', async () => {
+    const readSubscription = vi.fn();
+
+    await expect(
+      resolveClineAuthentication({
+        auth: 'direct',
+        env: { CLINE_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      environment: { CLINE_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses a native subscription after direct environment credentials', async () => {
+    const readSubscription = vi.fn(async () => 'subscription-key');
+
+    await expect(
+      resolveClineAuthentication({
+        auth: 'direct',
+        env: {},
+        providerId: 'cline',
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      environment: {},
+      subscriptionApiKey: 'subscription-key',
+    });
+  });
+});
+
+describe('readClineSubscription', () => {
+  it('reads a current OAuth credential through the Cline token manager', async () => {
+    const homeDirectory = await mkdtemp(join(tmpdir(), 'cline-auth-'));
+    const settingsDirectory = join(homeDirectory, '.cline', 'data', 'settings');
+    await mkdir(settingsDirectory, { recursive: true });
+    await writeFile(
+      join(settingsDirectory, 'providers.json'),
+      JSON.stringify({
+        version: 1,
+        modes: {},
+        providers: {
+          cline: {
+            settings: {
+              provider: 'cline',
+              auth: {
+                accessToken: 'current-access-token',
+                refreshToken: 'refresh-token',
+                expiresAt: Date.now() + 60 * 60 * 1000,
+              },
+            },
+            updatedAt: new Date().toISOString(),
+            tokenSource: 'oauth',
+          },
+        },
+      }),
+    );
+
+    await expect(
+      readClineSubscription({
+        providerId: 'cline',
+        env: {},
+        homeDirectory,
+      }),
+    ).resolves.toBe('workos:current-access-token');
+  });
+});
+
+describe('resolveClineProviderSettingsPath', () => {
+  it('honors the native path overrides', () => {
+    expect(
+      resolveClineProviderSettingsPath({
+        env: { CLINE_PROVIDER_SETTINGS_PATH: '/custom/providers.json' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/custom/providers.json');
+    expect(
+      resolveClineProviderSettingsPath({
+        env: { CLINE_DATA_DIR: '/custom/data' },
+        homeDirectory: '/home/me',
+      }),
+    ).toBe('/custom/data/settings/providers.json');
+  });
+});
 
 describe('resolveClineEnv', () => {
   it('uses direct Cline credentials when direct mode is selected', () => {

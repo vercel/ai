@@ -31,6 +31,8 @@ import {
   type UIMessage,
   type UIMessagePart,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
@@ -737,6 +739,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata: chunk.providerMetadata,
                   toolMetadata: chunk.toolMetadata,
                 });
+
+                warnIfUIMessageHasDeprecatedRawInput([state.message]);
               }
 
               write();
@@ -748,6 +752,15 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               toolInvocation.state = 'approval-requested';
               toolInvocation.approval = {
                 id: chunk.approvalId,
+                ...(chunk.approvalDescriptor != null
+                  ? { descriptor: chunk.approvalDescriptor }
+                  : {}),
+                ...(Object.prototype.hasOwnProperty.call(
+                  chunk,
+                  'inputSchemaInput',
+                )
+                  ? { inputSchemaInput: chunk.inputSchemaInput }
+                  : {}),
                 ...(chunk.reason != null
                   ? { requestReason: chunk.reason }
                   : {}),
@@ -771,16 +784,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
               toolInvocation.state = 'approval-responded';
               toolInvocation.approval = {
+                ...approval,
                 id: chunk.approvalId,
                 approved: chunk.approved,
-                ...(approval.requestReason != null
-                  ? { requestReason: approval.requestReason }
-                  : {}),
                 ...(chunk.reason != null ? { reason: chunk.reason } : {}),
-                ...(approval.isAutomatic === true ? { isAutomatic: true } : {}),
-                ...(approval.signature != null
-                  ? { signature: approval.signature }
-                  : {}),
               };
               if (chunk.providerExecuted != null) {
                 toolInvocation.providerExecuted = chunk.providerExecuted;

@@ -1,4 +1,5 @@
 import {
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type EmbeddingModelV4,
   type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
@@ -13,6 +14,8 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { EvaluationProvider } from '../evaluate/evaluation-provider';
+import { resolveEvaluationModel } from '../model/resolve-model';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
@@ -34,13 +37,38 @@ type RegistryModelType =
   | 'transcriptionModel'
   | 'speechModel'
   | 'rerankingModel'
-  | 'videoModel';
+  | 'videoModel'
+  | 'evaluationModel';
 
 type ProviderVideoModelIdentifier<PROVIDER> = PROVIDER extends {
   videoModel: (...args: infer ARGS) => unknown;
 }
   ? ExtractLiteralUnion<ARGS[0]>
   : never;
+
+type ProviderEvaluationModelIdentifier<PROVIDER> = PROVIDER extends {
+  evaluationModel: (...args: infer ARGS) => unknown;
+}
+  ? ExtractLiteralUnion<ARGS[0]>
+  : never;
+
+/** Registry with experimental evaluation access, separate from the stable interface. */
+export type EvaluationProviderRegistry<
+  PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
+    string,
+    ProviderV4 | ProviderV3
+  >,
+  SEPARATOR extends string = ':',
+> = ProviderRegistryProvider<PROVIDERS, SEPARATOR> & {
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderEvaluationModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): EvaluationModelV4;
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): EvaluationModelV4;
+};
 
 export interface ProviderRegistryProvider<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3> = Record<
@@ -150,7 +178,7 @@ export function createProviderRegistry<
       | LanguageModelMiddleware[];
     imageModelMiddleware?: ImageModelMiddleware | ImageModelMiddleware[];
   } = {},
-): ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+): EvaluationProviderRegistry<PROVIDERS, SEPARATOR> {
   const registry = new DefaultProviderRegistry<PROVIDERS, SEPARATOR>({
     separator,
     languageModelMiddleware,
@@ -175,9 +203,16 @@ export const experimental_createProviderRegistry = createProviderRegistry;
 class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV4 | ProviderV3>,
   SEPARATOR extends string,
-> implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
+>
+  implements
+    ProviderRegistryProvider<PROVIDERS, SEPARATOR>,
+    EvaluationProviderRegistry<PROVIDERS, SEPARATOR>
+{
   private providers: Partial<
-    Record<keyof PROVIDERS, ProviderV4 & ProviderWithOptionalVideoModel>
+    Record<
+      keyof PROVIDERS,
+      ProviderV4 & ProviderWithOptionalVideoModel & EvaluationProvider
+    >
   > = {};
   private separator: SEPARATOR;
   private languageModelMiddleware?:
@@ -213,7 +248,11 @@ class DefaultProviderRegistry<
       provider as ProviderWithOptionalVideoModel
     ).videoModel?.bind(provider);
 
-    this.providers[id] =
+    const evaluationModel = (
+      provider as EvaluationProvider
+    ).evaluationModel?.bind(provider);
+
+    const registeredProvider =
       videoModel == null
         ? providerV4
         : Object.assign(Object.create(Object.getPrototypeOf(providerV4)), {
@@ -221,12 +260,18 @@ class DefaultProviderRegistry<
             videoModel: (modelId: string) =>
               asVideoModelV4(videoModel(modelId)),
           });
+
+    // Keep v4 instances intact. Adapted providers need the original evaluation receiver.
+    if (registeredProvider !== provider && evaluationModel != null) {
+      Object.assign(registeredProvider, { evaluationModel });
+    }
+    this.providers[id] = registeredProvider;
   }
 
   private getProvider(
     id: string,
     modelType: RegistryModelType,
-  ): ProviderV4 & ProviderWithOptionalVideoModel {
+  ): ProviderV4 & ProviderWithOptionalVideoModel & EvaluationProvider {
     const provider = this.providers[id as keyof PROVIDERS];
 
     if (provider == null) {
@@ -380,6 +425,20 @@ class DefaultProviderRegistry<
     }
 
     return asVideoModelV4(model);
+  }
+
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ): EvaluationModelV4 {
+    const [providerId, modelId] = this.splitId(id, 'evaluationModel');
+    const provider = this.getProvider(providerId, 'evaluationModel');
+    const model = provider.evaluationModel?.(modelId);
+
+    if (model == null) {
+      throw new NoSuchModelError({ modelId: id, modelType: 'evaluationModel' });
+    }
+
+    return resolveEvaluationModel(model);
   }
 
   files<KEY extends keyof PROVIDERS>(id: KEY & string): FilesV4 {

@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: [
     '@cline/agents',
+    '@cline/core',
     '@earendil-works/pi-coding-agent',
     '@vercel/oidc',
   ],

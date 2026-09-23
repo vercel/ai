@@ -12,7 +12,7 @@ import {
   type InferUIMessageData,
   type UIMessage,
 } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -41,6 +41,11 @@ describe('processUIMessageStream', () => {
   beforeEach(() => {
     writeCalls = [];
     state = undefined;
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   const runUpdateMessageJob = async (
@@ -6837,7 +6842,12 @@ describe('processUIMessageStream', () => {
   });
 
   describe('tool input error', () => {
+    const warningLogger = vi.fn();
+
     beforeEach(async () => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const stream = createUIMessageStream([
         {
           type: 'start',
@@ -6888,6 +6898,20 @@ describe('processUIMessageStream', () => {
             throw error;
           },
         }),
+      });
+    });
+
+    it('should warn when creating a static output-error part with rawInput', () => {
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith({
+        warnings: [
+          {
+            type: 'deprecated',
+            setting: 'rawInput in output-error UI message parts',
+            message:
+              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+          },
+        ],
       });
     });
 
@@ -7979,6 +8003,124 @@ describe('processUIMessageStream', () => {
         signature: 'test-sig',
       });
     });
+  });
+
+  it('preserves approval descriptors through request and response states', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        input: { userId: 'user-123' },
+        toolCallId: 'call-1',
+        toolName: 'deleteAccount',
+        type: 'tool-input-available',
+      },
+      {
+        approvalDescriptor: descriptor,
+        approvalId: 'approval-1',
+        toolCallId: 'call-1',
+        type: 'tool-approval-request',
+      },
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        descriptor,
+      },
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
+  });
+
+  // The approval is requested on one connection and answered on another, so the
+  // descriptor has to survive being restored from `lastMessage`.
+  it('preserves an approval descriptor restored from a persisted message', async () => {
+    const descriptor = {
+      action: 'deleteAccount',
+      permissions: ['account:delete'],
+      risk: 'high',
+    };
+    const stream = createUIMessageStream([
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        type: 'tool-approval-response',
+      },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: {
+        role: 'assistant',
+        id: 'msg-123',
+        metadata: undefined,
+        parts: [
+          {
+            type: 'tool-deleteAccount',
+            toolCallId: 'call-1',
+            state: 'approval-requested',
+            input: { userId: 'user-123' },
+            approval: {
+              id: 'approval-1',
+              descriptor,
+            },
+          },
+        ],
+      },
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      writeCalls
+        .map(call => call.message.parts.find(isToolUIPart)?.approval)
+        .filter(approval => approval != null),
+    ).toEqual([
+      {
+        id: 'approval-1',
+        approved: true,
+        descriptor,
+      },
+    ]);
   });
 
   describe('tool approval request without signature', () => {

@@ -69,6 +69,17 @@ describe('outboundMessageSchema', () => {
       outboundMessageSchema.parse({ type: 'mystery' as 'error', error: 1 }),
     ).toThrow();
   });
+
+  it('preserves structured Claude Code tool results', () => {
+    const message = {
+      type: 'tool-result' as const,
+      toolCallId: 't1',
+      toolName: 'TaskCreate',
+      result: { task: { id: '1', subject: 'probe-task' } },
+    };
+
+    expect(outboundMessageSchema.parse(message)).toEqual(message);
+  });
 });
 
 describe('inboundMessageSchema', () => {

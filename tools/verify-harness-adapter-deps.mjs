@@ -62,6 +62,12 @@ const adapterConfigs = [
     packageDir: 'packages/harness-fx',
   },
   {
+    name: 'GitHub Copilot',
+    packageDir: 'packages/harness-github-copilot',
+    primarySdk: '@github/copilot',
+    sdkPackages: ['@github/copilot'],
+  },
+  {
     name: 'Grok Build',
     packageDir: 'packages/harness-grok-build',
     primarySdk: '@xai-official/grok',

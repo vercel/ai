@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   createOpenCodeRequestTransformations,
   resolveOpenCodeAuthenticationMode,
@@ -7,6 +7,7 @@ import {
   splitOpenCodeModel,
   toOpenCodeGatewayBaseUrl,
 } from './opencode-auth';
+import { resolveOpenCodeAuthentication } from './opencode-subscription';
 
 describe('OpenCode auth', () => {
   it('resolves provider from explicit provider or model prefix', () => {
@@ -18,6 +19,7 @@ describe('OpenCode auth', () => {
     expect(resolveOpenCodeProvider({ model: 'custom/model' })).toBe(
       'anthropic',
     );
+    expect(resolveOpenCodeProvider({ model: 'xai/grok-4' })).toBe('xai');
   });
 
   it('splits provider-prefixed models', () => {
@@ -139,6 +141,37 @@ describe('OpenCode auth', () => {
       AI_GATEWAY_API_KEY: 'gw-mode',
       AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
+  });
+});
+
+describe('resolveOpenCodeAuthentication', () => {
+  it('never reads native subscriptions for Gateway auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'ai-gateway',
+        provider: 'openai',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway-key' },
+        readSubscription,
+      }),
+    ).resolves.toMatchObject({ authenticationMode: 'ai-gateway' });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers a provider API key before native subscriptions', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveOpenCodeAuthentication({
+        auth: 'auto',
+        provider: 'xai',
+        processEnv: { XAI_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      authenticationMode: 'xai',
+      environment: { XAI_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
   });
 });
 

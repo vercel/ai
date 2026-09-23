@@ -46,7 +46,6 @@ describe('AnthropicLanguageModel', () => {
         fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   function prepareChunksFixtureResponse(filename: string) {
@@ -1200,6 +1199,36 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    it('should use native structured output by default for claude-fable-5', async () => {
+      prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+      await provider('claude-fable-5').doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.output_config?.format).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      });
+      expect(requestBody.tools).toBeUndefined();
+      expect(requestBody.tool_choice).toBeUndefined();
+    });
+
     it('should sanitize unsupported JSON schema keywords for output format', async () => {
       prepareJsonFixtureResponse('anthropic-json-output-format.1');
 
@@ -1766,6 +1795,18 @@ describe('AnthropicLanguageModel', () => {
           },
         }
       `);
+    });
+
+    it('should omit preserved thinking input transformations when absent', async () => {
+      prepareJsonFixtureResponse('anthropic-text');
+
+      const result = await provider('claude-fable-5-1').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(
+        result.providerMetadata?.anthropic?.inputTransformations,
+      ).toBeUndefined();
     });
 
     describe('refusal stop reason', () => {
@@ -3376,6 +3417,75 @@ describe('AnthropicLanguageModel', () => {
         expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
           'code-execution-web-tools-2026-02-09',
         );
+      });
+
+      it('should use web_search_20260318 with response inclusion and map custom tool names', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            type: 'message',
+            id: 'msg_test',
+            content: [
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_code',
+                name: 'code_execution',
+                input: { code: 'search("AI SDK")' },
+                caller: { type: 'direct' },
+              },
+              {
+                type: 'server_tool_use',
+                id: 'srvtoolu_search',
+                name: 'web_search',
+                input: { query: 'AI SDK' },
+                caller: {
+                  type: 'code_execution_20260120',
+                  tool_id: 'srvtoolu_code',
+                },
+              },
+            ],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 10, output_tokens: 20 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.web_search_20260318',
+              name: 'research',
+              args: {
+                maxUses: 3,
+                responseInclusion: 'excluded',
+              },
+            },
+          ],
+        });
+
+        expect((await server.calls[0].requestBodyJson).tools).toEqual([
+          {
+            type: 'web_search_20260318',
+            name: 'web_search',
+            max_uses: 3,
+            response_inclusion: 'excluded',
+          },
+        ]);
+        expect(
+          server.calls[0].requestHeaders['anthropic-beta'],
+        ).toBeUndefined();
+        expect(result.content).toEqual([
+          expect.objectContaining({
+            type: 'tool-call',
+            toolName: 'code_execution',
+            dynamic: true,
+          }),
+          expect.objectContaining({
+            type: 'tool-call',
+            toolName: 'research',
+          }),
+        ]);
       });
 
       it('should pass web search configuration with blocked domains', async () => {
@@ -6281,6 +6391,37 @@ describe('AnthropicLanguageModel', () => {
         });
       });
 
+      it.each([
+        ['empty', ''],
+        ['null', null],
+      ])(
+        'should omit compaction response with %s content',
+        async (_, content) => {
+          server.urls['https://api.anthropic.com/v1/messages'].response = {
+            type: 'json-value',
+            body: {
+              id: 'msg_123',
+              type: 'message',
+              role: 'assistant',
+              content: [
+                { type: 'compaction', content },
+                { type: 'text', text: 'Hello' },
+              ],
+              model: 'claude-3-haiku-20240307',
+              stop_reason: 'end_turn',
+              stop_sequence: null,
+              usage: { input_tokens: 100, output_tokens: 50 },
+            },
+          };
+
+          const result = await model.doGenerate({
+            prompt: TEST_PROMPT,
+          });
+
+          expect(result.content).toEqual([{ type: 'text', text: 'Hello' }]);
+        },
+      );
+
       it('should parse context_management with compact_20260112 from response', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
@@ -6563,6 +6704,129 @@ describe('AnthropicLanguageModel', () => {
           unified: 'other',
           raw: 'compaction',
         });
+      });
+    });
+
+    describe('safeguards', () => {
+      const safeguardResults = [
+        {
+          type: 'dangerous_tool_use',
+          status: {
+            type: 'available',
+            tool_uses: {
+              toolu_01: { type: 'evaluated', outcome: 'not_flagged' },
+            },
+          },
+        },
+      ];
+
+      it('should send safeguards in request body and add the beta', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              safeguards: [
+                {
+                  type: 'dangerous_tool_use',
+                  classifierContext: { v: 1, permission_mode: 'auto' },
+                },
+              ],
+            },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          safeguards: [
+            {
+              type: 'dangerous_tool_use',
+              classifier_context: { v: 1, permission_mode: 'auto' },
+            },
+          ],
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'dangerous-tool-use-2026-09-03',
+        );
+      });
+
+      it('should not send safeguards or the beta when the option is absent', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'safeguards',
+        );
+        expect(
+          server.calls[0].requestHeaders['anthropic-beta'] ?? '',
+        ).not.toContain('dangerous-tool-use');
+      });
+
+      it('should expose safeguard_results as provider metadata', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_123',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool_use',
+                id: 'toolu_01',
+                name: 'Bash',
+                input: { command: 'echo hello' },
+              },
+            ],
+            model: 'claude-3-haiku-20240307',
+            stop_reason: 'tool_use',
+            stop_sequence: null,
+            usage: { input_tokens: 100, output_tokens: 50 },
+            safeguard_results: [
+              {
+                type: 'dangerous_tool_use',
+                status: {
+                  type: 'available',
+                  tool_uses: {
+                    toolu_01: {
+                      type: 'evaluated',
+                      outcome: 'flagged',
+                      explanation: '[Data Exfiltration]',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        };
+
+        const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(result.providerMetadata?.anthropic?.safeguardResults).toEqual([
+          {
+            type: 'dangerous_tool_use',
+            status: {
+              type: 'available',
+              tool_uses: {
+                toolu_01: {
+                  type: 'evaluated',
+                  outcome: 'flagged',
+                  explanation: '[Data Exfiltration]',
+                },
+              },
+            },
+          },
+        ]);
+      });
+
+      it('should omit safeguardResults when the response has none', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+        expect(result.providerMetadata?.anthropic).not.toHaveProperty(
+          'safeguardResults',
+        );
       });
     });
   });
@@ -7485,6 +7749,69 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should stream thinking updates between tool calls', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_updates","type":"message","role":"assistant","content":[],"model":"claude-fable-5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"First update"}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"sig-1"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"tool-1","name":"lookup","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":"{}"}}\n\n`,
+          `data: {"type":"content_block_stop","index":1}\n\n`,
+          `data: {"type":"content_block_start","index":2,"content_block":{"type":"thinking","thinking":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"thinking_delta","thinking":"Second update"}}\n\n`,
+          `data: {"type":"content_block_delta","index":2,"delta":{"type":"signature_delta","signature":"sig-2"}}\n\n`,
+          `data: {"type":"content_block_stop","index":2}\n\n`,
+          `data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}\n\n`,
+          `data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"Done"}}\n\n`,
+          `data: {"type":"content_block_stop","index":3}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":20}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await provider('claude-fable-5').doStream({
+        prompt: TEST_PROMPT,
+        tools: [
+          {
+            type: 'function',
+            name: 'lookup',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        providerOptions: {
+          anthropic: {
+            thinking: { type: 'adaptive', display: 'updates' },
+          } satisfies AnthropicLanguageModelOptions,
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      expect(
+        result.flatMap<{
+          type: 'reasoning-start' | 'reasoning-delta';
+          id: string;
+          delta?: string;
+        }>(part => {
+          if (part.type === 'reasoning-start') {
+            return [{ type: part.type, id: part.id }];
+          }
+          if (part.type === 'reasoning-delta' && part.delta !== '') {
+            return [{ type: part.type, id: part.id, delta: part.delta }];
+          }
+          return [];
+        }),
+      ).toEqual([
+        { type: 'reasoning-start', id: '0' },
+        { type: 'reasoning-delta', id: '0', delta: 'First update' },
+        { type: 'reasoning-start', id: '2' },
+        { type: 'reasoning-delta', id: '2', delta: 'Second update' },
+      ]);
+    });
+
     it('should stream redacted reasoning', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
@@ -7694,6 +8021,73 @@ describe('AnthropicLanguageModel', () => {
           },
         ],
       });
+    });
+
+    it('should expose the last non-null safeguard_results from message_delta', async () => {
+      const safeguardResults = [
+        {
+          type: 'dangerous_tool_use',
+          status: {
+            type: 'available',
+            tool_uses: {
+              toolu_01: { type: 'evaluated', outcome: 'not_flagged' },
+            },
+          },
+        },
+      ];
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_01","name":"Bash","input":{}}}\n\n`,
+          `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"command\\":\\"echo hello\\"}"}}\n\n`,
+          `data: {"type":"content_block_stop","index":0}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null,"safeguard_results":null},"usage":{"output_tokens":50}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null,"safeguard_results":${JSON.stringify(safeguardResults)}},"usage":{"output_tokens":50}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: { safeguards: [{ type: 'dangerous_tool_use' }] },
+        },
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        safeguards: [{ type: 'dangerous_tool_use' }],
+      });
+      expect(finishPart?.finishReason).toEqual({
+        unified: 'tool-calls',
+        raw: 'tool_use',
+      });
+      expect(finishPart?.providerMetadata?.anthropic?.safeguardResults).toEqual(
+        safeguardResults,
+      );
+    });
+
+    it('should omit safeguardResults when no message_delta carries them', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"type":"message_start","message":{"id":"msg_01KfpJoAEabmH2iHRRFjQMAG","type":"message","role":"assistant","content":[],"model":"claude-3-haiku-20240307","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":17,"output_tokens":1}}}\n\n`,
+          `data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null,"safeguard_results":null},"usage":{"output_tokens":50}}\n\n`,
+          `data: {"type":"message_stop"}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+
+      const result = await convertReadableStreamToArray(stream);
+      const finishPart = result.find(part => part.type === 'finish');
+
+      expect(finishPart?.providerMetadata?.anthropic).not.toHaveProperty(
+        'safeguardResults',
+      );
     });
 
     it('should stream compaction content blocks with provider metadata', async () => {
@@ -11247,7 +11641,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11261,7 +11657,25 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should return correct capabilities for claude-fable-5-1', () => {
+    expect(getModelCapabilities('claude-fable-5-1')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11275,7 +11689,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11289,7 +11705,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11317,7 +11735,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": true,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11331,7 +11751,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": false,
         "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": true,
         "supportsAdaptiveThinking": true,
         "supportsStructuredOutput": true,
@@ -11346,7 +11768,9 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 128000,
+          "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": true,
+          "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": true,
           "supportsAdaptiveThinking": true,
           "supportsStructuredOutput": true,
@@ -11367,7 +11791,9 @@ describe('getModelCapabilities', () => {
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
+          "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": false,
           "supportsAdaptiveThinking": false,
           "supportsStructuredOutput": false,
@@ -11382,7 +11808,9 @@ describe('getModelCapabilities', () => {
       {
         "isKnownModel": true,
         "maxOutputTokens": 64000,
+        "rejectsForcedToolUse": false,
         "rejectsSamplingParameters": false,
+        "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": false,
         "supportsStructuredOutput": true,
@@ -11391,13 +11819,25 @@ describe('getModelCapabilities', () => {
     `);
   });
 
+  it.each([
+    ['claude-sonnet-4@20250514', 64000],
+    ['claude-opus-4@20250514', 32000],
+  ])('should recognize the Vertex model ID %s', (modelId, maxOutputTokens) => {
+    expect(getModelCapabilities(modelId)).toMatchObject({
+      isKnownModel: true,
+      maxOutputTokens,
+    });
+  });
+
   it('should return conservative capabilities for an unknown non-Claude model', () => {
     expect(getModelCapabilities('third-party-future-model'))
       .toMatchInlineSnapshot(`
         {
           "isKnownModel": false,
           "maxOutputTokens": 4096,
+          "rejectsForcedToolUse": false,
           "rejectsSamplingParameters": false,
+          "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": false,
           "supportsAdaptiveThinking": false,
           "supportsStructuredOutput": false,
@@ -11545,6 +11985,42 @@ describe('mid-conversation tool changes', () => {
     });
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'mid-conversation-tool-changes-2026-07-01',
+    );
+  });
+
+  it('should send clearAt and per-turn effort with their beta headers', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5').doGenerate({
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              clearAt: 'next_user_message',
+              effort: 'xhigh',
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toContainEqual({
+      role: 'system',
+      content: [],
+      clear_at: 'next_user_message',
+      output_config: { effort: 'xhigh' },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-system-clear-at-2026-08-21',
+    );
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'mid-conversation-output-config-2026-07-01',
     );
   });
 });
@@ -11703,5 +12179,810 @@ describe('claude-opus-4-7 specific behavior', () => {
       type: 'adaptive',
       display: 'summarized',
     });
+  });
+
+  it('should include the updates thinking display mode', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await opusModel.doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'adaptive', display: 'updates' },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'updates',
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-display-updates-2026-08-18',
+    );
+  });
+
+  it('should serialize thinking binding controls and add the beta header', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            blockBinding: {
+              prefixMismatchBehavior: 'drop_block',
+            },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      block_binding: {
+        prefix_mismatch_behavior: 'drop_block',
+      },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
+  });
+
+  it('should serialize strict thinking binding controls with adaptive thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-fable-5-1').doGenerate({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+      maxOutputTokens: 4096,
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            type: 'adaptive',
+            blockBinding: {
+              prefixMismatchBehavior: 'error',
+            },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "Hello",
+                "type": "text",
+              },
+            ],
+            "role": "user",
+          },
+        ],
+        "model": "claude-fable-5-1",
+        "thinking": {
+          "block_binding": {
+            "prefix_mismatch_behavior": "error",
+          },
+          "type": "adaptive",
+        },
+      }
+    `);
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
+  });
+});
+
+describe('claude-opus-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const TEST_TOOL = {
+    type: 'function' as const,
+    name: 'testTool',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { value: { type: 'string' as const } },
+      required: ['value'],
+      additionalProperties: false,
+    },
+  };
+
+  it('should return capabilities that always use adaptive thinking and reject forced tool use', () => {
+    expect(getModelCapabilities('claude-opus-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsAdaptiveThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should not send thinking by default', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should remove disabled thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "thinking cannot be disabled for claude-opus-5-5; it always uses adaptive thinking. The thinking setting has been removed. Lower 'effort' to reduce thinking.",
+          "feature": "providerOptions.anthropic.thinking",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should not lower the effort when disabled thinking is removed at xhigh effort', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.output_config).toEqual({ effort: 'xhigh' });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      feature: 'providerOptions.anthropic.thinking',
+    });
+  });
+
+  it('should convert budget-based thinking to adaptive thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 5000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "budget-based thinking is not supported by claude-opus-5-5; it always uses adaptive thinking. Using adaptive thinking instead. Use 'effort' to control how much the model thinks.",
+          "feature": "providerOptions.anthropic.thinking",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should keep adaptive thinking with display and block binding', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: {
+            type: 'adaptive',
+            display: 'updates',
+            blockBinding: { prefixMismatchBehavior: 'drop_block' },
+          },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({
+      type: 'adaptive',
+      display: 'updates',
+      block_binding: { prefix_mismatch_behavior: 'drop_block' },
+    });
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-display-updates-2026-08-18',
+    );
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+      'thinking-binding-controls-2026-08-01',
+    );
+  });
+
+  it('should map reasoning "none" to low effort instead of disabling thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "reasoning 'none' is not supported by claude-opus-5-5; it always uses adaptive thinking. Using effort 'low' to minimize thinking instead.",
+          "feature": "reasoning",
+          "type": "compatibility",
+        },
+      ]
+    `);
+  });
+
+  it('should map reasoning "xhigh" to adaptive thinking with effort "xhigh"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'xhigh',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      thinking: { type: 'adaptive', display: 'summarized' },
+      output_config: { effort: 'xhigh' },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should fall back to auto tool choice when tool choice is "required"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(requestBody.tools).toHaveLength(1);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "toolChoice 'required' is not supported by this model because it rejects forced tool use. Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should only send the selected tool with auto tool choice when tool choice is "tool"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL, { ...TEST_TOOL, name: 'otherTool' }],
+      toolChoice: { type: 'tool', toolName: 'otherTool' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(
+      requestBody.tools.map((tool: { name: string }) => tool.name),
+    ).toEqual(['otherTool']);
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "toolChoice 'tool' is not supported by this model because it rejects forced tool use. Only the 'otherTool' tool is sent with 'auto' tool choice. Instruct the model to use the tool in the prompt and verify that a tool call was made.",
+          "feature": "toolChoice",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should use native structured outputs when jsonTool mode is requested', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    const result = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        anthropic: {
+          structuredOutputMode: 'jsonTool',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    });
+    expect(requestBody.tools).toBeUndefined();
+    expect(requestBody.tool_choice).toBeUndefined();
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "structuredOutputMode 'jsonTool' is not supported by claude-opus-5-5 because it rejects forced tool use. Using 'outputFormat' instead.",
+          "feature": "providerOptions.anthropic.structuredOutputMode",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should use auto tool choice for claude-fable-5-1 when tool choice is "required"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-fable-5-1').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it('should still send forced tool choice for claude-opus-5', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-opus-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'any' });
+    expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('computer toolset', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  const computerToolset = {
+    type: 'provider' as const,
+    id: 'anthropic.computer_toolset_20260801' as const,
+    name: 'computer',
+    args: {},
+  };
+
+  it('should send the toolset definition without a name and map member calls to the computer tool', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_toolset',
+        type: 'message',
+        role: 'assistant',
+        content: [
+          { type: 'text', text: 'Clicking the search box.' },
+          {
+            type: 'tool_use',
+            id: 'toolu_click',
+            name: 'left_click',
+            toolset_name: 'computer',
+            input: { coordinate: [640, 60] },
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_type',
+            name: 'type',
+            toolset_name: 'computer',
+            input: { text: 'pictures of cats' },
+          },
+          {
+            type: 'tool_use',
+            id: 'toolu_screenshot',
+            name: 'screenshot',
+            toolset_name: 'computer',
+            input: {},
+          },
+        ],
+        model: 'claude-opus-5-5',
+        stop_reason: 'tool_use',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 30 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [computerToolset],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toEqual([{ type: 'computer_toolset_20260801' }]);
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+
+    expect(content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Clicking the search box.",
+          "type": "text",
+        },
+        {
+          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "providerMetadata": {
+            "anthropic": {
+              "toolsetName": "computer",
+            },
+          },
+          "toolCallId": "toolu_click",
+          "toolName": "computer",
+          "type": "tool-call",
+        },
+        {
+          "input": "{"action":"type","text":"pictures of cats"}",
+          "providerMetadata": {
+            "anthropic": {
+              "toolsetName": "computer",
+            },
+          },
+          "toolCallId": "toolu_type",
+          "toolName": "computer",
+          "type": "tool-call",
+        },
+        {
+          "input": "{"action":"screenshot"}",
+          "providerMetadata": {
+            "anthropic": {
+              "toolsetName": "computer",
+            },
+          },
+          "toolCallId": "toolu_screenshot",
+          "toolName": "computer",
+          "type": "tool-call",
+        },
+      ]
+    `);
+  });
+
+  it('should map member calls to a custom tool name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_toolset',
+        type: 'message',
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool_use',
+            id: 'toolu_screenshot',
+            name: 'screenshot',
+            toolset_name: 'computer',
+            input: {},
+          },
+        ],
+        model: 'claude-opus-5-5',
+        stop_reason: 'tool_use',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 30 },
+      },
+    };
+
+    const { content } = await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [{ ...computerToolset, name: 'desktop' }],
+    });
+
+    expect(content).toMatchObject([
+      {
+        type: 'tool-call',
+        toolCallId: 'toolu_screenshot',
+        toolName: 'desktop',
+        input: '{"action":"screenshot"}',
+      },
+    ]);
+  });
+
+  it('should send member configs', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_toolset',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'ok' }],
+        model: 'claude-opus-5-5',
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 30 },
+      },
+    };
+
+    await provider('claude-opus-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          ...computerToolset,
+          args: {
+            configs: {
+              zoom: { enabled: false },
+              hold_key: { deferLoading: true },
+            },
+          },
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tools).toEqual([
+      {
+        type: 'computer_toolset_20260801',
+        configs: {
+          zoom: { enabled: false },
+          hold_key: { defer_loading: true },
+        },
+      },
+    ]);
+  });
+
+  it('should round-trip member calls and results with toolset_name', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: {
+        id: 'msg_toolset',
+        type: 'message',
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Done.' }],
+        model: 'claude-opus-5-5',
+        stop_reason: 'end_turn',
+        stop_sequence: null,
+        usage: { input_tokens: 4, output_tokens: 30 },
+      },
+    };
+
+    await provider('claude-opus-5-5').doGenerate({
+      tools: [computerToolset],
+      prompt: [
+        { role: 'user', content: [{ type: 'text', text: 'Open the search.' }] },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              input: { action: 'left_click', coordinate: [640, 60] },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              input: { action: 'screenshot' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              output: {
+                type: 'error-text',
+                value:
+                  'Not executed: an earlier computer action in this turn failed.',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "text": "Open the search.",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "content": [
+            {
+              "id": "toolu_click",
+              "input": {
+                "coordinate": [
+                  640,
+                  60,
+                ],
+              },
+              "name": "left_click",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+            {
+              "id": "toolu_screenshot",
+              "input": {},
+              "name": "screenshot",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "content": "OK",
+              "tool_use_id": "toolu_click",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+            {
+              "content": "Not executed: an earlier computer action in this turn failed.",
+              "is_error": true,
+              "tool_use_id": "toolu_screenshot",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should stream member calls as a single input delta with the action injected', async () => {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"type":"message_start","message":{"id":"msg_toolset","type":"message","role":"assistant","model":"claude-opus-5-5","stop_sequence":null,"usage":{"input_tokens":10,"output_tokens":1},"content":[],"stop_reason":null}}\n\n`,
+        `data: {"type":"content_block_start","index":0,"content_block":{"type":"tool_use","id":"toolu_click","name":"left_click","toolset_name":"computer","input":{}}}\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":""}}\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":"{\\"coordinate\\""}}\n\n`,
+        `data: {"type":"content_block_delta","index":0,"delta":{"type":"input_json_delta","partial_json":":[640,60]}"}}\n\n`,
+        `data: {"type":"content_block_stop","index":0}\n\n`,
+        `data: {"type":"content_block_start","index":1,"content_block":{"type":"tool_use","id":"toolu_screenshot","name":"screenshot","toolset_name":"computer","input":{}}}\n\n`,
+        `data: {"type":"content_block_delta","index":1,"delta":{"type":"input_json_delta","partial_json":""}}\n\n`,
+        `data: {"type":"content_block_stop","index":1}\n\n`,
+        `data: {"type":"message_delta","delta":{"stop_reason":"tool_use","stop_sequence":null},"usage":{"output_tokens":20}}\n\n`,
+        `data: {"type":"message_stop"}\n\n`,
+      ],
+    };
+
+    const { stream } = await provider('claude-opus-5-5').doStream({
+      prompt: TEST_PROMPT,
+      tools: [computerToolset],
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    expect(
+      parts.filter(part =>
+        [
+          'tool-input-start',
+          'tool-input-delta',
+          'tool-input-end',
+          'tool-call',
+        ].includes(part.type),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "id": "toolu_click",
+          "toolName": "computer",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"action":"left_click","coordinate":[640,60]}",
+          "id": "toolu_click",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "toolu_click",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"action":"left_click","coordinate":[640,60]}",
+          "providerExecuted": undefined,
+          "providerMetadata": {
+            "anthropic": {
+              "toolsetName": "computer",
+            },
+          },
+          "toolCallId": "toolu_click",
+          "toolName": "computer",
+          "type": "tool-call",
+        },
+        {
+          "id": "toolu_screenshot",
+          "toolName": "computer",
+          "type": "tool-input-start",
+        },
+        {
+          "delta": "{"action":"screenshot"}",
+          "id": "toolu_screenshot",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "toolu_screenshot",
+          "type": "tool-input-end",
+        },
+        {
+          "input": "{"action":"screenshot"}",
+          "providerExecuted": undefined,
+          "providerMetadata": {
+            "anthropic": {
+              "toolsetName": "computer",
+            },
+          },
+          "toolCallId": "toolu_screenshot",
+          "toolName": "computer",
+          "type": "tool-call",
+        },
+      ]
+    `);
   });
 });

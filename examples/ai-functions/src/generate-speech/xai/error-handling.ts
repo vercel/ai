@@ -7,10 +7,9 @@ import { run } from '../../lib/run';
  * Checks that xAI error details survive to the caller.
  *
  * xAI's /v1/tts error body is usually `{"error":"..."}` (no code), while
- * other xAI APIs use `{"code":"...","error":"..."}` or the chat completions
- * `{"error":{"message":"..."}}` shape. If the provider's error schema does
- * not match the actual shape, the message falls back to the HTTP reason
- * phrase ("Bad Request", "Not Found") and the real cause is lost.
+ * other xAI APIs use `{"code":"...","error":"..."}`. If the provider's error
+ * schema does not match the actual shape, the message falls back to the HTTP
+ * reason phrase ("Bad Request", "Not Found") and the real cause is lost.
  *
  * Print `message` next to the raw `body`: a message that is only a status
  * phrase while the body holds real text means the schema does not match.

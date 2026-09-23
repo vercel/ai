@@ -1,16 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
-import * as readline from 'node:readline/promises';
 import { z } from 'zod';
 import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-
-const terminal = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
 
 run(async () => {
   const getUserName = tool({
@@ -46,10 +40,7 @@ run(async () => {
       throw new Error('Expected the turn to wait for a client tool result.');
     }
 
-    const userName = (await terminal.question('Enter your name: ')).trim();
-    if (userName.length === 0) {
-      throw new Error('Expected the user to enter a name.');
-    }
+    const userName = 'Felix';
 
     const sessionId = session.sessionId;
     const continueFrom = await session.suspendTurn();
@@ -66,18 +57,23 @@ run(async () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: toolCall.toolCallId,
-          output: { name: userName },
+          toolName: toolCall.toolName,
+          output: { type: 'json', value: { name: userName } },
         },
       ],
     });
     await printFullStream({ result: continued });
+    const continuedText = await continued.text;
+    if (!continuedText.includes('Felix')) {
+      throw new Error('Expected the agent response to include Felix.');
+    }
 
     if (session.hasUnfinishedTurn()) {
       throw new Error('Expected the continued turn to finish.');
     }
   } finally {
-    terminal.close();
     await session.destroy();
   }
 });
