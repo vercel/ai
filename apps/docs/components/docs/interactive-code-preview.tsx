@@ -49,8 +49,8 @@ const identityHref: ResolveHref = href => href;
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
 
 const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
-  text: 'anthropic/claude-sonnet-4.5',
-  image: 'openai/gpt-image-1',
+  text: 'anthropic/claude-sonnet-5',
+  image: 'openai/gpt-image-2.5-sunburst',
   video: 'google/veo-3.1-generate-001',
 };
 
@@ -182,15 +182,17 @@ const providerPreferredModels: Partial<
   Record<ModelKind, Record<string, string>>
 > = {
   text: {
-    google: 'google/gemini-3-pro-preview',
+    openai: 'openai/gpt-6-astra',
+    google: 'google/gemini-3.1-pro-preview',
+    xai: 'spacexai/grok-4.7',
   },
   image: {
-    openai: 'openai/gpt-image-1',
-    xai: 'xai/grok-imagine-image-pro',
+    openai: 'openai/gpt-image-2.5-sunburst',
+    xai: 'spacexai/grok-imagine-image-2.0',
   },
   video: {
     google: 'google/veo-3.1-generate-001',
-    xai: 'xai/grok-imagine-video',
+    xai: 'spacexai/grok-imagine-video-1.5',
   },
 };
 
@@ -258,10 +260,10 @@ const getDefaultModelOption = (kind: ModelKind): ModelOption => {
     kind,
     name:
       kind === 'image'
-        ? 'GPT Image 1'
+        ? 'GPT Image 2.5 Sunburst'
         : kind === 'video'
           ? 'Veo 3.1'
-          : 'Claude Sonnet 4.5',
+          : 'Claude Sonnet 5',
     provider,
     providerTitle: providerTitles[provider] ?? provider,
     code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],
@@ -284,15 +286,17 @@ function parseModels(data: GatewayResponse | null): ModelOption[] {
       continue;
     }
 
+    // Gateway lists xAI models under spacexai; the SDK package is @ai-sdk/xai.
+    const provider = model.owned_by === 'spacexai' ? 'xai' : model.owned_by;
     const code = model.id.split('/')[1] || model.id;
     models.push({
       id: model.id,
       kind,
       name: model.name,
-      provider: model.owned_by,
-      providerTitle: providerTitles[model.owned_by] || model.owned_by,
+      provider,
+      providerTitle: providerTitles[provider] || provider,
       code,
-      icon: <ProviderLogo provider={model.owned_by} />,
+      icon: <ProviderLogo provider={provider} />,
       created: model.created,
     });
   }

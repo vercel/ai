@@ -93,7 +93,7 @@ const registry = createProviderRegistry({
   triage: customProvider({
     evaluationModels: {
       native: typeSafeAi.evaluationModel('jev-latest'),
-      compact: openai.evaluationModel('gpt-5.6-luna'),
+      compact: openai.evaluationModel('gpt-6-luna'),
     },
     fallbackProvider: typeSafeAi,
   }),

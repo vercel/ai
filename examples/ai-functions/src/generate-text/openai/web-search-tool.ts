@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'What happened in tech news today? Open a few pages and search for a key word pattern vercel on those pages.',
     tools: {
