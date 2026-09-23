@@ -10,6 +10,7 @@ import type {
 import {
   type ModelMessage,
   type Tool,
+  DelayedPromise,
   delay,
   dynamicTool,
   jsonSchema,
@@ -13048,10 +13049,16 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -13061,7 +13068,7 @@ describe('streamText', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: new ReadableStream({
-                pull(controller) {
+                async pull(controller) {
                   switch (pullCalls++) {
                     case 0:
                       controller.enqueue({
@@ -13083,6 +13090,8 @@ describe('streamText', () => {
                       });
                       break;
                     case 3:
+                      // Wait for the chunk to reach the output before aborting.
+                      await textChunkReceived.promise;
                       abortController.abort();
                       controller.error(
                         new DOMException(
@@ -13129,6 +13138,16 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -13144,6 +13163,15 @@ describe('streamText', () => {
             },
             {
               "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "type": "abort",
@@ -13163,11 +13191,17 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onAbort: event => {
             onAbortCalls.push(event);
           },
@@ -13178,7 +13212,7 @@ describe('streamText', () => {
                   streamCalls++;
                   pullCalls = 0;
                 },
-                pull(controller) {
+                async pull(controller) {
                   if (streamCalls === 1) {
                     switch (pullCalls++) {
                       case 0:
@@ -13226,6 +13260,8 @@ describe('streamText', () => {
                         });
                         break;
                       case 3:
+                        // Wait for the chunk to reach the output before aborting.
+                        await textChunkReceived.promise;
                         abortController.abort();
                         controller.error(
                           new DOMException(
@@ -13400,6 +13436,16 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -13436,6 +13482,15 @@ describe('streamText', () => {
               "type": "start-step",
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -13453,12 +13508,18 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const toolCallReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           ...defaultSettings(),
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'tool-call') {
+              toolCallReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -13540,6 +13601,8 @@ describe('streamText', () => {
             tool1: {
               inputSchema: z.object({ value: z.string() }),
               execute: async () => {
+                // Wait for the tool call to reach the output before aborting.
+                await toolCallReceived.promise;
                 abortController.abort();
                 return 'result1';
               },
@@ -13576,6 +13639,16 @@ describe('streamText', () => {
               "request": {},
               "type": "start-step",
               "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
             },
             {
               "type": "abort",
