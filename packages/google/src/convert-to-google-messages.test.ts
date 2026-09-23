@@ -1545,6 +1545,33 @@ describe('tool results with thought signatures', () => {
 });
 
 describe('server tool combination round-trip', () => {
+  it('should parse stringified code execution input', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'code-call-1',
+            toolName: 'code_execution',
+            input: JSON.stringify({
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            }),
+            providerExecuted: true,
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      executableCode: {
+        language: 'PYTHON',
+        code: 'print(17 * 19)',
+      },
+    });
+  });
+
   it('should preserve code execution parts alongside a function tool call', () => {
     const result = convertToGoogleMessages(
       [

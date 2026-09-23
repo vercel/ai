@@ -475,7 +475,9 @@ export function convertToGoogleMessages(
                   ) {
                     return {
                       executableCode: codeExecutionInputSchema.parse(
-                        part.input,
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
                       ),
                     };
                   }
