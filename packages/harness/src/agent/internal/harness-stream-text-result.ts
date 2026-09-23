@@ -853,10 +853,8 @@ export class HarnessStreamTextResult<
         this.currentStepContent.push({
           ...(part as object),
         } as ContentPart<TOOLS>);
-        return;
       default:
-        // Boundary, raw, error, and finish parts are not ContentParts.
-        return;
+      // Boundary, raw, error, and finish parts are not ContentParts.
     }
   }
 }

@@ -38,10 +38,9 @@ export async function POST(req: Request) {
     reqJson as PreviousResponseIdRequestBody;
 
   // Extract the prior OpenAI responseId so the Responses API can replay history.
-  const previousResponseId: string | null | undefined =
-    !!previousProviderMetadata
-      ? previousProviderMetadata.openai.responseId
-      : undefined;
+  const previousResponseId: string | null | undefined = previousProviderMetadata
+    ? previousProviderMetadata.openai.responseId
+    : undefined;
 
   const stream = createUIMessageStream<PreviousResponseIdUIMessage>({
     execute: async ({ writer }) => {
@@ -63,7 +62,7 @@ export async function POST(req: Request) {
         onEnd: ({ finalStep }) => {
           const providerMetadata = finalStep.providerMetadata;
 
-          if (!!providerMetadata) {
+          if (providerMetadata) {
             // Return provider metadata so the client can persist the latest responseId.
             writer.write({
               type: 'data-providerMetadata',

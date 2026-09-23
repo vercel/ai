@@ -146,7 +146,6 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
     await ensureRealpath(sandbox);
     const sandboxSession = new JustBashNetworkSandboxSession({
       sandbox,
-      ownsLifecycle,
     });
 
     if (options?.onFirstCreate != null) {
