@@ -88,6 +88,16 @@ export interface OAuthClientProvider {
     | OAuthClientInformation
     | undefined
     | Promise<OAuthClientInformation | undefined>;
+  /**
+   * Returns whether the current client information was obtained through
+   * dynamic client registration.
+   *
+   * Return `true` only when the current client information was saved after a
+   * dynamic registration response. When this method is omitted or returns
+   * `false`, the client information is treated as pre-registered and is not
+   * automatically invalidated after client authentication errors.
+   */
+  isClientInformationDynamicallyRegistered?(): boolean | Promise<boolean>;
   saveClientInformation?(
     clientInformation: OAuthClientInformation,
   ): void | Promise<void>;
@@ -1137,6 +1147,13 @@ export async function auth(
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
     ) {
+      if (
+        options.authorizationCode !== undefined ||
+        !(await provider.isClientInformationDynamicallyRegistered?.())
+      ) {
+        throw error;
+      }
+
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
