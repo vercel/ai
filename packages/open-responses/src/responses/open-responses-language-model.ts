@@ -792,7 +792,10 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               const toolCall = toolCallsByItemId.get(chunk.item.id);
               const toolName = toolCall?.toolName ?? chunk.item.name;
               const toolCallId = toolCall?.toolCallId ?? chunk.item.call_id;
-              const input = toolCall?.arguments ?? chunk.item.arguments ?? '';
+              const input =
+                chunk.item.arguments !== ''
+                  ? chunk.item.arguments
+                  : (toolCall?.arguments ?? '');
 
               controller.enqueue({
                 type: 'tool-call',

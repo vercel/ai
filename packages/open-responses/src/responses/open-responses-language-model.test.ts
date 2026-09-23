@@ -1701,6 +1701,58 @@ describe('OpenResponsesLanguageModel', () => {
       },
     );
 
+    it('should use complete function arguments from the completed item when argument events are omitted', async () => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'in_progress',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 1,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'completed',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '{"path":"icon.svg"}',
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'write_svg',
+        input: '{"path":"icon.svg"}',
+        providerMetadata: {
+          lmstudio: {
+            itemId: 'fc_1',
+          },
+        },
+      });
+    });
+
     it.each([
       {
         event: {
