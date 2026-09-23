@@ -2,6 +2,8 @@ import { z } from 'zod/v4';
 
 export type XaiResponsesIncludeValue =
   | 'file_search_call.results'
+  | 'web_search_call.action.sources'
+  | 'code_interpreter_call.outputs'
   | 'reasoning.encrypted_content'
   | 'no_inline_citations';
 

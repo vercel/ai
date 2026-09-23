@@ -331,15 +331,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((resolvedReasoningEffort != null ||
-        options.reasoningSummary != null) && {
+      ...(resolvedReasoningEffort != null && {
         reasoning: {
-          ...(resolvedReasoningEffort != null && {
-            effort: resolvedReasoningEffort,
-          }),
-          ...(options.reasoningSummary != null && {
-            summary: options.reasoningSummary,
-          }),
+          effort: resolvedReasoningEffort,
         },
       }),
       ...(options.store === false && {

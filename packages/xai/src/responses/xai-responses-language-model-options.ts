@@ -26,7 +26,6 @@ export const xaiLanguageModelResponsesOptions = z.object({
   reasoningEffort: z
     .enum(['none', 'low', 'medium', 'high', 'xhigh'])
     .optional(),
-  reasoningSummary: z.enum(['auto', 'concise', 'detailed']).optional(),
   logprobs: z.boolean().optional(),
   topLogprobs: z.number().int().min(0).max(8).optional(),
   /** Min-p sampling threshold between 0 and 1. */
@@ -61,6 +60,8 @@ export const xaiLanguageModelResponsesOptions = z.object({
     .array(
       z.enum([
         'file_search_call.results',
+        'web_search_call.action.sources',
+        'code_interpreter_call.outputs',
         'reasoning.encrypted_content',
         'no_inline_citations',
       ]),
