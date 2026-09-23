@@ -7,6 +7,7 @@ import type { FetchFunction } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
+import { streamText, StreamProviderError } from 'ai';
 import { createQuiverAI } from './quiverai-provider';
 
 const URL = 'https://api.quiver.ai/v1/responses';
@@ -198,76 +199,85 @@ describe('QuiverAI language model', () => {
     });
   });
 
-  it('replays opaque reasoning ids without private or encrypted reasoning', async () => {
-    server.urls[URL].response = {
-      type: 'json-value',
-      body: createResponse({ output: [] }),
-    };
+  it.each(['doGenerate', 'doStream'] as const)(
+    'replays opaque reasoning ids without private or encrypted reasoning in %s',
+    async method => {
+      server.urls[URL].response = {
+        type: 'json-value',
+        body: createResponse({ output: [] }),
+      };
 
-    await createQuiverAI({ apiKey: 'test-api-key' })('arrow-2').doGenerate({
-      prompt: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'reasoning',
-              text: 'private reasoning',
-              providerOptions: {
-                quiverai: {
-                  itemId: 'rs_opaque',
-                  reasoningSummary: [
-                    { type: 'summary_text', text: 'safe summary' },
-                  ],
-                  reasoningContent: [
-                    { type: 'reasoning_text', text: 'private reasoning' },
-                  ],
-                  reasoningEncryptedContent: 'encrypted',
+      if (method === 'doStream') {
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks: ['data: [DONE]\n\n'],
+        };
+      }
+      await createQuiverAI({ apiKey: 'test-api-key' })('arrow-2')[method]({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'reasoning',
+                text: 'private reasoning',
+                providerOptions: {
+                  quiverai: {
+                    itemId: 'rs_opaque',
+                    reasoningSummary: [
+                      { type: 'summary_text', text: 'safe summary' },
+                    ],
+                    reasoningContent: [
+                      { type: 'reasoning_text', text: 'private reasoning' },
+                    ],
+                    reasoningEncryptedContent: 'encrypted',
+                  },
                 },
               },
-            },
-            {
-              type: 'tool-call',
-              toolCallId: 'call_1',
-              toolName: 'write_file',
-              input: '{"path":"icon.svg"}',
-              providerOptions: { quiverai: { itemId: 'fc_1' } },
-            },
-          ],
+              {
+                type: 'tool-call',
+                toolCallId: 'call_1',
+                toolName: 'write_file',
+                input: '{"path":"icon.svg"}',
+                providerOptions: { quiverai: { itemId: 'fc_1' } },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_1',
+                toolName: 'write_file',
+                output: { type: 'json', value: { staged: true } },
+              },
+            ],
+          },
+        ],
+      });
+
+      expect((await server.calls[0].requestBodyJson).input).toEqual([
+        {
+          type: 'reasoning',
+          id: 'rs_opaque',
+          summary: [{ type: 'summary_text', text: 'safe summary' }],
         },
         {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call_1',
-              toolName: 'write_file',
-              output: { type: 'json', value: { staged: true } },
-            },
-          ],
+          type: 'function_call',
+          id: 'fc_1',
+          call_id: 'call_1',
+          name: 'write_file',
+          arguments: '{"path":"icon.svg"}',
         },
-      ],
-    });
-
-    expect((await server.calls[0].requestBodyJson).input).toEqual([
-      {
-        type: 'reasoning',
-        id: 'rs_opaque',
-        summary: [{ type: 'summary_text', text: 'safe summary' }],
-      },
-      {
-        type: 'function_call',
-        id: 'fc_1',
-        call_id: 'call_1',
-        name: 'write_file',
-        arguments: '{"path":"icon.svg"}',
-      },
-      {
-        type: 'function_call_output',
-        call_id: 'call_1',
-        output: '{"staged":true}',
-      },
-    ]);
-  });
+        {
+          type: 'function_call_output',
+          call_id: 'call_1',
+          output: '{"staged":true}',
+        },
+      ]);
+    },
+  );
 
   it('warns and omits structured output settings', async () => {
     server.urls[URL].response = {
@@ -302,6 +312,75 @@ describe('QuiverAI language model', () => {
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
   });
+
+  it.each(['response.failed', 'error'])(
+    'preserves retry metadata for streamed %s events',
+    async type => {
+      const error = {
+        code: 'service_unavailable',
+        message: 'Try again later.',
+        status_code: 503,
+      };
+      const event =
+        type === 'response.failed'
+          ? {
+              type,
+              sequence_number: 0,
+              response: {
+                ...createResponse({ output: [], status: 'failed' }),
+                error,
+              },
+            }
+          : { type, sequence_number: 0, error };
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [`data: ${JSON.stringify(event)}\n\n`, 'data: [DONE]\n\n'],
+      };
+      const result = streamText({
+        model: createQuiverAI({ apiKey: 'test-api-key' })('arrow-2'),
+        prompt: 'Create an icon.',
+        maxRetries: 0,
+      });
+      const parts = await convertReadableStreamToArray(result.fullStream);
+      const failure = parts.find(part => part.type === 'error');
+      expect(failure?.error).toBeInstanceOf(StreamProviderError);
+      expect(failure?.error).toMatchObject({
+        statusCode: 503,
+        isRetryable: true,
+      });
+    },
+  );
+
+  it.each(['doGenerate', 'doStream'] as const)(
+    'validates native reasoning and warns for unsupported top-level reasoning in %s',
+    async method => {
+      const model = createQuiverAI({ apiKey: 'test-api-key' })('arrow-2');
+      for (const quiverai of [
+        { reasoningEffort: 'none' },
+        { reasoningSummary: 'detailed' },
+      ]) {
+        await expect(
+          model[method]({ prompt, providerOptions: { quiverai } }),
+        ).rejects.toBeInstanceOf(InvalidArgumentError);
+      }
+      server.urls[URL].response =
+        method === 'doGenerate'
+          ? { type: 'json-value', body: createResponse({ output: [] }) }
+          : { type: 'stream-chunks', chunks: ['data: [DONE]\n\n'] };
+      const result = await model[method]({ prompt, reasoning: 'none' });
+      const warnings =
+        'stream' in result
+          ? (await convertReadableStreamToArray(result.stream)).find(
+              part => part.type === 'stream-start',
+            )?.warnings
+          : result.warnings;
+      expect(warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning effort none',
+      });
+      expect((await server.calls[0].requestBodyJson).reasoning).toBeUndefined();
+    },
+  );
 
   it('streams complete function calls and terminal usage', async () => {
     const completedResponse = createResponse({

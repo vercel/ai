@@ -1,6 +1,5 @@
 import {
   APICallError,
-  InvalidArgumentError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
@@ -49,6 +48,7 @@ import {
   type OpenResponsesResponseBody,
   type OpenResponsesChunk,
   type ReasoningBody,
+  type ResponseError,
   type ToolChoiceParam,
 } from './open-responses-api';
 import { mapOpenResponsesFinishReason } from './map-open-responses-finish-reason';
@@ -154,7 +154,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       providerToolsByName,
       strictResponseInput: this.config.strictResponseInput,
       customToolId: this.config.customToolId,
-      reasoningReplay: this.config.reasoningReplay,
     });
 
     warnings.push(...inputWarnings);
@@ -334,7 +333,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
       schema: openResponsesLanguageModelOptions,
     });
 
-    let resolvedReasoningEffort =
+    const resolvedReasoningEffort =
       openResponsesOptions?.reasoningEffort ??
       (isCustomReasoning(reasoning)
         ? reasoning === 'none'
@@ -351,44 +350,6 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
               warnings,
             })
         : undefined);
-
-    if (
-      openResponsesOptions?.reasoningEffort != null &&
-      this.config.supportedReasoningEfforts != null &&
-      !this.config.supportedReasoningEfforts.includes(
-        openResponsesOptions.reasoningEffort,
-      )
-    ) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: `Unsupported reasoning effort: ${openResponsesOptions.reasoningEffort}`,
-      });
-    }
-
-    if (
-      openResponsesOptions?.reasoningSummary != null &&
-      this.config.supportedReasoningSummaries != null &&
-      !this.config.supportedReasoningSummaries.includes(
-        openResponsesOptions.reasoningSummary,
-      )
-    ) {
-      throw new InvalidArgumentError({
-        argument: 'providerOptions',
-        message: `Unsupported reasoning summary: ${openResponsesOptions.reasoningSummary}`,
-      });
-    }
-
-    if (
-      resolvedReasoningEffort != null &&
-      this.config.supportedReasoningEfforts != null &&
-      !this.config.supportedReasoningEfforts.includes(resolvedReasoningEffort)
-    ) {
-      warnings.push({
-        type: 'unsupported',
-        feature: `reasoning effort ${resolvedReasoningEffort}`,
-      });
-      resolvedReasoningEffort = undefined;
-    }
 
     return {
       body: {
@@ -446,11 +407,15 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     });
 
     if (response.error) {
+      const errorMetadata = this.config.getResponseErrorMetadata?.(
+        response.error,
+      );
       throw new APICallError({
         message: response.error.message,
         url: this.config.url,
         requestBodyValues: body,
-        statusCode: response.error.status_code ?? 400,
+        statusCode: errorMetadata?.statusCode ?? 400,
+        isRetryable: errorMetadata?.isRetryable,
         responseHeaders,
         responseBody: rawResponse as string,
         data: response.error,
@@ -701,6 +666,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
     const providerOptionsName = this.config.providerOptionsName;
     const extensionRegistry = this.extensionRegistry;
     const extensionStreamState = new Map<string, unknown>();
+    const getResponseErrorMetadata = this.config.getResponseErrorMetadata;
 
     return {
       stream: response.pipeThrough(
@@ -990,6 +956,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                     type: chunk.type,
                     error: chunk.response.error,
                     data: chunk,
+                    getResponseErrorMetadata,
                   }),
                 });
               }
@@ -1004,6 +971,7 @@ export class OpenResponsesLanguageModel implements LanguageModelV4 {
                   type: chunk.type,
                   error: chunk.error,
                   data: chunk,
+                  getResponseErrorMetadata,
                 }),
               });
             }
@@ -1036,15 +1004,18 @@ function createOpenResponsesStreamError({
   type,
   error,
   data,
+  getResponseErrorMetadata,
 }: {
   type: 'error' | 'response.failed';
-  error: { message: string; code: string };
+  error: ResponseError;
   data: unknown;
+  getResponseErrorMetadata: OpenResponsesConfig['getResponseErrorMetadata'];
 }) {
   return createProviderStreamError({
     message: error.message,
     type,
     code: error.code,
+    ...getResponseErrorMetadata?.(error),
     data,
   });
 }

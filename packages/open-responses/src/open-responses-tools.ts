@@ -42,8 +42,8 @@ export function createOpenResponsesTools({
 
   return {
     /**
-     * Creates a caller-executed Open Responses custom tool. Custom tools return
-     * a raw string, optionally constrained by a grammar.
+     * Creates a caller-executed OpenAI-compatible custom tool. Custom tools accept
+     * a raw string, optionally constrained by a grammar. Requires endpoint support.
      */
     customTool: (
       options: Parameters<typeof customToolFactory>[0],

@@ -12,7 +12,11 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { quiveraiFailedResponseHandler } from './quiverai-error';
+import {
+  getQuiverAIResponseErrorMetadata,
+  quiveraiFailedResponseHandler,
+} from './quiverai-error';
+import { QuiverAILanguageModel } from './quiverai-language-model';
 import { QuiverAIImageModel } from './quiverai-image-model';
 import type { QuiverAIImageModelId } from './quiverai-image-settings';
 import type { QuiverAILanguageModelId } from './quiverai-language-model-settings';
@@ -106,17 +110,15 @@ export function createQuiverAI(
     headers: getHeaders,
     fetch: options.fetch,
     failedResponseHandler: quiveraiFailedResponseHandler,
+    getResponseErrorMetadata: getQuiverAIResponseErrorMetadata,
     strictResponseInput: true,
     customToolId: 'quiverai.custom',
-    reasoningReplay: 'id-and-summary',
     structuredOutputs: false,
-    supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh'],
-    supportedReasoningSummaries: ['auto'],
     userAgentSuffix: `ai-sdk/quiverai/${VERSION}`,
   });
 
   const createLanguageModel = (modelId: QuiverAILanguageModelId) =>
-    responsesProvider.languageModel(modelId);
+    new QuiverAILanguageModel(responsesProvider.languageModel(modelId));
 
   const createImageModel = (modelId: QuiverAIImageModelId) =>
     new QuiverAIImageModel(modelId, {

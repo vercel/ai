@@ -17,7 +17,6 @@ import {
 } from '../open-responses-extension';
 import type {
   FunctionCallOutputItemParam,
-  CustomToolCallOutputItemParam,
   InputFileContentParam,
   InputImageContentParam,
   InputTextContentParam,
@@ -34,7 +33,6 @@ export async function convertToOpenResponsesInput({
   providerToolsByName = new Map(),
   strictResponseInput = false,
   customToolId,
-  reasoningReplay = 'full',
 }: {
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
@@ -42,7 +40,6 @@ export async function convertToOpenResponsesInput({
   providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
   strictResponseInput?: boolean;
   customToolId?: `${string}.${string}`;
-  reasoningReplay?: 'full' | 'id-and-summary';
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -245,25 +242,21 @@ export async function convertToOpenResponsesInput({
                 type: 'reasoning',
                 summary: summary ?? [],
                 ...(itemId != null && { id: itemId }),
-                ...(reasoningReplay === 'full'
-                  ? {
-                      ...(reasoningContent != null
-                        ? { content: reasoningContent }
-                        : !hasReasoningContent && part.text.length > 0
-                          ? {
-                              content: [
-                                {
-                                  type: 'reasoning_text' as const,
-                                  text: part.text,
-                                },
-                              ],
-                            }
-                          : {}),
-                      ...(encryptedContent != null && {
-                        encrypted_content: encryptedContent,
-                      }),
-                    }
-                  : {}),
+                ...(reasoningContent != null
+                  ? { content: reasoningContent }
+                  : !hasReasoningContent && part.text.length > 0
+                    ? {
+                        content: [
+                          {
+                            type: 'reasoning_text' as const,
+                            text: part.text,
+                          },
+                        ],
+                      }
+                    : {}),
+                ...(encryptedContent != null && {
+                  encrypted_content: encryptedContent,
+                }),
               };
               const previousItem = input[input.length - 1];
 
@@ -395,34 +388,6 @@ export async function convertToOpenResponsesInput({
             }
 
             const output = part.output;
-            if (customToolId != null && providerTool?.id === customToolId) {
-              let outputValue: CustomToolCallOutputItemParam['output'];
-              switch (output.type) {
-                case 'text':
-                case 'error-text':
-                  outputValue = output.value;
-                  break;
-                case 'execution-denied':
-                  outputValue = output.reason ?? 'Tool call execution denied.';
-                  break;
-                case 'json':
-                case 'error-json':
-                  outputValue = JSON.stringify(output.value);
-                  break;
-                case 'content':
-                  outputValue = output.value
-                    .filter(item => item.type === 'text')
-                    .map(item => item.text)
-                    .join('');
-                  break;
-              }
-              input.push({
-                type: 'custom_tool_call_output',
-                call_id: part.toolCallId,
-                output: outputValue,
-              });
-              continue;
-            }
             let contentValue: FunctionCallOutputItemParam['output'];
 
             switch (output.type) {
@@ -508,7 +473,10 @@ export async function convertToOpenResponsesInput({
             }
 
             input.push({
-              type: 'function_call_output',
+              type:
+                customToolId != null && providerTool?.id === customToolId
+                  ? 'custom_tool_call_output'
+                  : 'function_call_output',
               call_id: part.toolCallId,
               output: contentValue,
             });

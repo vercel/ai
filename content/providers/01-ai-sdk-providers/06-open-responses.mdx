@@ -68,6 +68,15 @@ You can use the following optional settings to customize the Open Responses prov
   returns an error envelope that differs from the default OpenAI-compatible
   `{ error: { message, type, param, code } }` shape.
 
+- **getResponseErrorMetadata** _function_
+
+  Extracts optional `statusCode` and `isRetryable` metadata from a response error
+  object, including endpoint-specific fields. Applies to generation failures and
+  streaming `response.failed` and `error` events. The standard Open Responses
+  error fields are `code` and `message`; endpoint-specific status fields require
+  this callback. When only a status code is supplied, the SDK derives retryability
+  from it. HTTP failures are handled separately by `failedResponseHandler`.
+
 - **strictResponseInput** _boolean_
 
   Serializes assistant history using strict OpenAI Responses input schemas.
@@ -80,24 +89,11 @@ You can use the following optional settings to customize the Open Responses prov
   Provider-tool ID used by `provider.tools.customTool`. Defaults to
   `open-responses.custom`.
 
-- **reasoningReplay** _'full' | 'id-and-summary'_
-
-  Controls whether stateless history replay includes all reasoning fields or
-  only opaque item IDs and safe summaries. Defaults to `full`.
-
 - **structuredOutputs** _boolean_
 
   Whether JSON response formats are sent to the endpoint. When `false`,
   structured-output requests are omitted with an unsupported warning.
   Defaults to `true`.
-
-- **supportedReasoningEfforts** _readonly string[]_
-
-  Optional allowlist for provider-native reasoning effort values.
-
-- **supportedReasoningSummaries** _readonly string[]_
-
-  Optional allowlist for provider-native reasoning summary values.
 
 - **userAgentSuffix** _string_
 
@@ -236,8 +232,9 @@ rejected or ignored by the endpoint.
 
 ## Custom Tools
 
-Open Responses custom tools return a caller-executed raw string, optionally
-constrained by a regex or Lark grammar:
+Endpoints with OpenAI-compatible custom-tool support can call tools with raw
+string inputs, optionally constrained by a regex or Lark grammar. These tools
+execute in your application:
 
 ```ts
 import { generateText, isStepCount } from 'ai';
@@ -260,8 +257,11 @@ const result = await generateText({
 });
 ```
 
-The endpoint must support the standard Open Responses `custom` tool,
-`custom_tool_call`, and `custom_tool_call_output` wire types.
+The endpoint must support the OpenAI-compatible `custom` tool,
+`custom_tool_call`, and `custom_tool_call_output` wire types, as OpenAI and
+QuiverAI do. These are compatibility extensions, not part of the Open Responses
+2026-04-24 specification. Custom-tool results can include text, images, and files
+when supported by the endpoint.
 
 ## File Inputs
 

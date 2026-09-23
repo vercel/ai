@@ -33,6 +33,9 @@ describe('OpenResponsesExtension', () => {
       name: 'acme',
       url: 'https://example.com/v1/responses',
       experimental_extensions: [extension],
+      getResponseErrorMetadata: error => ({
+        statusCode: typeof error.status === 'number' ? error.status : undefined,
+      }),
       failedResponseHandler: async ({ url, requestBodyValues, response }) => ({
         value: new APICallError({
           message: response.statusText,

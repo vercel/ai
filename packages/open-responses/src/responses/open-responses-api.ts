@@ -244,7 +244,7 @@ export type CustomToolCallOutputItemParam = {
   id?: string;
   call_id: string;
   type: 'custom_tool_call_output';
-  output: string;
+  output: FunctionCallOutputItemParam['output'];
   status?: FunctionCallStatus;
 };
 
@@ -571,7 +571,7 @@ export type IncompleteDetails = {
 export type ResponseError = {
   code: string;
   message: string;
-  status_code?: number;
+  [key: string]: unknown;
 };
 
 /**

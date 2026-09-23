@@ -17,6 +17,7 @@ import {
 import { createOpenResponsesTools } from './open-responses-tools';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
 import { VERSION } from './version';
+import type { OpenResponsesConfig } from './responses/open-responses-config';
 
 export interface OpenResponsesProvider extends ProviderV4 {
   (modelId: string): LanguageModelV4;
@@ -57,6 +58,12 @@ export interface OpenResponsesProviderSettings {
   failedResponseHandler?: ResponseHandler<APICallError>;
 
   /**
+   * Extracts HTTP status and retryability metadata from endpoint-specific
+   * response errors. Applies to both generation and streaming errors.
+   */
+  getResponseErrorMetadata?: OpenResponsesConfig['getResponseErrorMetadata'];
+
+  /**
    * Whether to serialize assistant history using the strict OpenAI Responses
    * input schemas. Assistant messages without an item ID are sent as easy input
    * messages, while messages with an item ID are sent as complete output items.
@@ -73,29 +80,12 @@ export interface OpenResponsesProviderSettings {
   customToolId?: `${string}.${string}`;
 
   /**
-   * Controls which reasoning fields are replayed in stateless history.
-   *
-   * @default 'full'
-   */
-  reasoningReplay?: 'full' | 'id-and-summary';
-
-  /**
    * Whether JSON response formats are sent to the endpoint. When disabled,
    * structured output requests produce an unsupported warning and are omitted.
    *
    * @default true
    */
   structuredOutputs?: boolean;
-
-  /**
-   * Restricts provider-native reasoning effort values.
-   */
-  supportedReasoningEfforts?: readonly string[];
-
-  /**
-   * Restricts provider-native reasoning summary values.
-   */
-  supportedReasoningSummaries?: readonly string[];
 
   /**
    * User-agent suffix for requests.
@@ -144,14 +134,12 @@ export function createOpenResponses(
       url: options.url,
       fetch: options.fetch,
       failedResponseHandler: options.failedResponseHandler,
+      getResponseErrorMetadata: options.getResponseErrorMetadata,
       generateId: () => generateId(),
       extensionRegistry,
       strictResponseInput: options.strictResponseInput,
       customToolId,
-      reasoningReplay: options.reasoningReplay,
       structuredOutputs: options.structuredOutputs,
-      supportedReasoningEfforts: options.supportedReasoningEfforts,
-      supportedReasoningSummaries: options.supportedReasoningSummaries,
     });
   };
 
