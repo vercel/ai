@@ -71,7 +71,7 @@ export class GoogleVertexImageModel implements ImageModelV2 {
         sampleCount: n,
         ...(aspectRatio != null ? { aspectRatio } : {}),
         ...(seed != null ? { seed } : {}),
-        ...(vertexImageOptions ?? {}),
+        ...vertexImageOptions,
       },
     };
 

@@ -1020,7 +1020,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations.splice(0);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',

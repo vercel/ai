@@ -75,7 +75,7 @@ export class ReplicateImageModel implements ImageModelV2 {
           size,
           seed,
           num_outputs: n,
-          ...(providerOptions.replicate ?? {}),
+          ...providerOptions.replicate,
         },
         // for versioned models, include the version in the body:
         ...(version != null ? { version } : {}),

@@ -10,10 +10,6 @@ type DeepInfraChatConfig = {
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-  constructor(modelId: string, config: DeepInfraChatConfig) {
-    super(modelId, config);
-  }
-
   private fixUsage(usage: LanguageModelV2Usage): LanguageModelV2Usage {
     const outputTokens = usage.outputTokens ?? 0;
     const reasoningTokens = usage.reasoningTokens ?? 0;

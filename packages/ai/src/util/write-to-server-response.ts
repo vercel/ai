@@ -38,8 +38,6 @@ export function writeToServerResponse({
           });
         }
       }
-    } catch (error) {
-      throw error;
     } finally {
       response.end();
     }

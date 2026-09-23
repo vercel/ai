@@ -506,7 +506,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV2 {
                 id: value.item_id,
                 delta: value.delta,
               });
-              return;
             }
           },
 

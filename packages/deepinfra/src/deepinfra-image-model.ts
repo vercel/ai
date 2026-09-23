@@ -60,7 +60,7 @@ export class DeepInfraImageModel implements ImageModelV2 {
         ...(aspectRatio && { aspect_ratio: aspectRatio }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(seed != null && { seed }),
-        ...(providerOptions.deepinfra ?? {}),
+        ...providerOptions.deepinfra,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,

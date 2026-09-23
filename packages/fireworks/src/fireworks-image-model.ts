@@ -125,7 +125,7 @@ export class FireworksImageModel implements ImageModelV2 {
         seed,
         samples: n,
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-        ...(providerOptions.fireworks ?? {}),
+        ...providerOptions.fireworks,
       },
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
