@@ -49,31 +49,6 @@ function parseBase64DataUrl(
   };
 }
 
-function convertUrlToolResultPart(
-  url: string,
-  mediaType: string,
-  supportedUrls: Record<string, RegExp[]>,
-): GoogleFunctionResponsePart | undefined {
-  const parsedDataUrl = parseBase64DataUrl(url);
-  if (parsedDataUrl != null) {
-    return {
-      inlineData: {
-        mimeType: parsedDataUrl.mediaType,
-        data: parsedDataUrl.data,
-      },
-    };
-  }
-
-  return isUrlSupported({ url, mediaType, supportedUrls })
-    ? {
-        fileData: {
-          mimeType: mediaType,
-          fileUri: url,
-        },
-      }
-    : undefined;
-}
-
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -108,17 +83,29 @@ function appendToolResultParts(
             },
           });
         } else if (contentPart.data.type === 'url') {
-          const mediaType = resolveFullMediaType({ part: contentPart });
-          const functionResponsePart = convertUrlToolResultPart(
-            contentPart.data.url.toString(),
-            mediaType,
-            supportedUrls,
-          );
+          const url = contentPart.data.url.toString();
+          const parsedDataUrl = parseBase64DataUrl(url);
 
-          if (functionResponsePart != null) {
-            functionResponseParts.push(functionResponsePart);
+          if (parsedDataUrl != null) {
+            functionResponseParts.push({
+              inlineData: {
+                mimeType: parsedDataUrl.mediaType,
+                data: parsedDataUrl.data,
+              },
+            });
           } else {
-            responseTextParts.push(JSON.stringify(contentPart));
+            const mediaType = resolveFullMediaType({ part: contentPart });
+
+            if (isUrlSupported({ url, mediaType, supportedUrls })) {
+              functionResponseParts.push({
+                fileData: {
+                  mimeType: mediaType,
+                  fileUri: url,
+                },
+              });
+            } else {
+              responseTextParts.push(JSON.stringify(contentPart));
+            }
           }
         } else {
           responseTextParts.push(JSON.stringify(contentPart));

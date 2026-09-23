@@ -844,6 +844,53 @@ describe('tool messages', () => {
     });
   });
 
+  it('should derive the full media type from a tool result data URL', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('data:image/png;base64,base64pngdata'),
+                  },
+                  mediaType: 'image',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should convert supported tool result URLs into functionResponse file data', async () => {
     const result = convertToGoogleMessages(
       [
