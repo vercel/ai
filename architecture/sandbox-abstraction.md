@@ -2,43 +2,20 @@
 
 This document explains the two-tier sandbox abstraction in the AI SDK.
 It starts with the basic sandbox session surface and then describes the harness-specific layer.
+For how `HarnessAgent` and harness adapters use these contracts, see the [harness abstraction architecture](./harness-abstraction.md).
 
 ## High-Level Architecture
 
 - **Basic sandbox session**: `Experimental_SandboxSession`
 - **Network sandbox session**: `HarnessV1NetworkSandboxSession`, an extension of `Experimental_SandboxSession`
 - **Sandbox provider**: `HarnessV1SandboxProvider`
-- **Consumers**: AI SDK tools, `HarnessAgent`, and harness adapters
-
-```mermaid
-classDiagram
-    class Experimental_SandboxSession {
-      <<interface>>
-    }
-    class HarnessV1NetworkSandboxSession {
-      <<interface>>
-    }
-    class HarnessV1SandboxProvider {
-      <<interface>>
-    }
-    class ToolExecute
-    class HarnessAgent
-    class HarnessAdapter
-
-    HarnessV1NetworkSandboxSession --|> Experimental_SandboxSession : extends
-    HarnessV1SandboxProvider ..> HarnessV1NetworkSandboxSession : creates/resumes
-    ToolExecute ..> Experimental_SandboxSession : uses
-    HarnessAgent ..> HarnessV1SandboxProvider : acquires sandbox
-    HarnessAgent ..> HarnessV1NetworkSandboxSession : owns lifecycle
-    HarnessAdapter ..> HarnessV1NetworkSandboxSession : operates on
-```
 
 The basic layer is the file and process API.
-The harness layer adds resource identity, port resolution, lifecycle, and provider-managed creation/resume.
+The network layer adds resource identity, port resolution, lifecycle, and provider-managed creation/resume.
 
 ## Basic Layer: `Experimental_SandboxSession`
 
-Implement this layer when the sandbox only needs to support tools that operate on the sandbox.
+Implement this layer when consumers only need filesystem and process APIs.
 
 - `description`
 - `readFile()`, `readBinaryFile()`, `readTextFile()`
@@ -47,35 +24,6 @@ Implement this layer when the sandbox only needs to support tools that operate o
   - `writeBinaryFile()` and `writeTextFile()` can be implemented to wrap `writeFile()`, unless dedicated methods exist in the underlying sandbox SDK
 - `spawn()`, `run()`
   - `run()` can be implemented to wrap `spawn()`, unless a dedicated method exists in the underlying sandbox SDK
-
-```mermaid
-classDiagram
-    class Experimental_SandboxSession {
-      description
-      readFile(options)
-      readBinaryFile(options)
-      readTextFile(options)
-      writeFile(options)
-      writeBinaryFile(options)
-      writeTextFile(options)
-      run(options)
-      spawn(options)
-    }
-    class SandboxProcess {
-      stdout
-      stderr
-      wait()
-      kill()
-    }
-
-    Experimental_SandboxSession ..> SandboxProcess : spawn() returns
-```
-
-### Basic Use Cases
-
-- AI SDK tool execution with `experimental_sandbox`
-- host-driven agents that use a sandbox as a remote filesystem and shell
-- examples and local adapters that do not need network ports or sandbox lifecycle
 
 ```ts
 import type { Experimental_SandboxSession } from 'ai';
@@ -93,7 +41,7 @@ The basic layer does not describe how the sandbox is created, stopped, destroyed
 
 ## Advanced Layer: Harness Network Sandbox
 
-Implement this layer when the sandbox should support `HarnessAgent`.
+Implement this layer when consumers need ports, network policy or request transformations, lifecycle methods, or provider-managed creation and resume.
 
 - `HarnessV1NetworkSandboxSession` extends `Experimental_SandboxSession`
 - `HarnessV1SandboxProvider` creates and resumes network sandbox sessions
@@ -133,13 +81,6 @@ classDiagram
 
 It is recommended that you implement this sandbox layer decoupled from the basic sandbox layer. Ideally the advanced layer extends the basic layer, but allows to use the basic layer on its own. That way the sandbox implementation satisfies both use-cases efficiently.
 
-### Advanced Use Cases
-
-- `HarnessAgent` sessions
-- bridge-backed harness adapters that need a sandbox-exposed WebSocket port
-- persistent or resumable sandbox resources
-- provider-managed bootstrap caching via `identity` and `onFirstCreate`
-
 ```ts
 import type {
   HarnessV1NetworkSandboxSession,
@@ -177,16 +118,6 @@ class DockerSandboxProvider implements HarnessV1SandboxProvider {
 The advanced layer is additive.
 Every `HarnessV1NetworkSandboxSession` is also an `Experimental_SandboxSession`.
 
-```mermaid
-flowchart TD
-    basic["Experimental_SandboxSession\nfiles + commands"]
-    network["HarnessV1NetworkSandboxSession\nbasic API + id + ports + lifecycle"]
-    provider["HarnessV1SandboxProvider\ncreateSession() + resumeSession()"]
-
-    basic --> network
-    provider --> network
-```
-
 `getPortEndpoint()` returns the public URL together with any headers required
 to connect to it. `getPortUrl()` remains available for compatibility but is
 deprecated because it drops those headers.
@@ -195,43 +126,21 @@ deprecated because it drops those headers.
 such as deleting the backing resource or freeing resources. Implementations
 with no additional cleanup can implement `destroy()` by calling `stop()`.
 
-`restricted()` is the boundary between infrastructure code and user/tool code.
-`HarnessAgent` owns the network sandbox session, while host-executed tools receive only the restricted basic session.
+`restricted()` is the boundary between infrastructure code and user/tool code for a network sandbox session.
 
-```mermaid
-sequenceDiagram
-    participant Agent as HarnessAgent
-    participant Provider as HarnessV1SandboxProvider
-    participant Network as HarnessV1NetworkSandboxSession
-    participant Tool as AI SDK tool
+## Harness integration
 
-    Agent->>Provider: createSession({ sessionId, identity })
-    Provider-->>Agent: networkSandboxSession
-    Agent->>Network: stop() / destroy() / getPortEndpoint()
-    Agent->>Network: restricted()
-    Network-->>Agent: Experimental_SandboxSession
-    Agent->>Tool: execute({ experimental_sandbox })
-```
+The harness abstraction document defines how these contracts are used:
 
-## Harness and Sandbox Interaction
-
-See [Harness and Sandbox Interaction](./harness-abstraction.md#harness-and-sandbox-interaction).
+- [Sandbox ownership and lifecycle](./harness-abstraction.md#sandbox-ownership-and-lifecycle) covers provisioning, resume, and lifecycle behavior.
+- [Adapter runtime placement](./harness-abstraction.md#adapter-runtime-placement) covers host-driven and bridge-backed adapters, including bridge port requirements.
+- [Credential handling](./harness-abstraction.md#credential-handling) covers request transformations and credential brokering.
 
 ## Choosing a Layer
 
-Use the basic layer when:
+Use the basic layer when consumers need only filesystem and process APIs.
 
-- the caller already has a sandbox session;
-- no port URL is needed;
-- no harness session lifecycle is needed;
-- the sandbox is passed to tools as `experimental_sandbox`.
-
-Use the advanced layer when:
-
-- the sandbox is passed to `HarnessAgent`;
-- the adapter needs a public URL for an in-sandbox bridge;
-- the sandbox must be stopped, destroyed, or resumed by `sessionId`;
-- bootstrap setup should be cached by `identity`.
+Use the network layer when consumers need ports, network policy or request transformations, or lifecycle methods. Also implement `HarnessV1SandboxProvider` when creation, resume, or bootstrap caching should be provider-managed.
 
 ## Reference Implementations
 

@@ -937,6 +937,64 @@ describe('Anthropic batch', () => {
     ]);
   });
 
+  it('exposes safeguard results on batch result metadata', async () => {
+    const safeguardResults = [
+      {
+        type: 'dangerous_tool_use',
+        status: {
+          type: 'available',
+          tool_uses: {
+            toolu_123: { type: 'evaluated', outcome: 'not_flagged' },
+          },
+        },
+      },
+    ];
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'safeguarded',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'tool_use',
+                  id: 'toolu_123',
+                  name: 'bash',
+                  input: { command: 'echo hello' },
+                },
+              ],
+              stop_reason: 'tool_use',
+              safeguard_results: safeguardResults,
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+    const [result] = await convertReadableStreamToArray(stream);
+
+    expect(result.status).toBe('succeeded');
+    if (result.status !== 'succeeded') {
+      throw new Error('expected a succeeded result');
+    }
+    expect(result.result.providerMetadata).toEqual({
+      anthropic: expect.objectContaining({ safeguardResults }),
+    });
+  });
+
   it('preserves client and provider-executed tool content', async () => {
     server.urls[urls.batch].response = {
       type: 'json-value',
@@ -1873,6 +1931,58 @@ describe('Anthropic batch', () => {
               inputTokens: { total: 13 },
               outputTokens: { total: 3 },
             },
+          },
+        },
+      ]);
+    });
+
+    it('omits empty and null compaction blocks from successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'compaction',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  { type: 'compaction', content: '' },
+                  { type: 'compaction', content: null },
+                  { type: 'compaction', content: 'Summary' },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'compaction',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: 'Summary',
+                providerMetadata: { anthropic: { type: 'compaction' } },
+              },
+              { type: 'text', text: 'Done' },
+            ],
           },
         },
       ]);

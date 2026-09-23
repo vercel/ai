@@ -174,6 +174,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const warnings: SharedV4Warning[] = [];
 
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
+
     if (frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
@@ -193,6 +199,35 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         type: 'unsupported',
         feature: 'seed',
       });
+    }
+
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
     }
 
     if (temperature != null && temperature > 1) {
@@ -245,9 +280,6 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
       amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
 
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
-
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
       anthropicOptions?.structuredOutputMode ??
@@ -297,13 +329,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
-      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
-      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools != null &&
-      tools.length > 0;
+      (rejectsForcedToolUse ||
+        (structuredOutputMode !== 'jsonTool' &&
+          !supportsStrictTools(this.modelId) &&
+          tools != null &&
+          tools.length > 0));
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&

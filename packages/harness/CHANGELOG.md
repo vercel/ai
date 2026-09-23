@@ -1,5 +1,74 @@
 # @ai-sdk/harness
 
+## 1.0.122
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 1.0.121
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 1.0.120
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 1.0.119
+
+### Patch Changes
+
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 1.0.118
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- b2baeba: fix(harness): preserve work directory text inside longer path segments
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 1.0.117
+
+### Patch Changes
+
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 1.0.116
 
 ### Patch Changes

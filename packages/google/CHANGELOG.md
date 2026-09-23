@@ -1,5 +1,29 @@
 # @ai-sdk/google
 
+## 4.0.78
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 4.0.75
 
 ### Patch Changes

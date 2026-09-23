@@ -220,7 +220,7 @@ the failure without inspecting the Gateway's serialized error payload.
 </Note>
 
 AI Gateway supports durable text batches through `experimental_startBatch`,
-`experimental_getBatchStatus`, and `experimental_getBatchResults`. See
+`experimental_getBatchStatus`, `experimental_getBatchResults`, and `experimental_cancelBatch`. See
 [Batch](/docs/ai-sdk-core/batch) for the provider-agnostic workflow,
 and the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)
 for supported models, limits, and Gateway-specific behavior.
@@ -413,6 +413,19 @@ AI Gateway expects a 2xx response within 10 seconds and retries failed deliverie
 Each request specifies its `type` and `model`. AI Gateway currently requires
 every text request in a batch to use the same model and throws before submission
 when the models differ.
+
+### Cancelling a batch
+
+Pass the batch reference returned by `experimental_startBatch` to request cancellation:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_cancelBatch as cancelBatch } from 'ai';
+
+await cancelBatch({ provider: gateway, batch });
+```
+
+Cancellation is asynchronous. Continue checking `experimental_getBatchStatus` until the batch is terminal, then read `experimental_getBatchResults` for any partial results. A batch may finish before cancellation takes effect, and successful requests remain billable. Cancellation returns acknowledgement metadata, not confirmation that provider execution has stopped.
 
 ## Reranking Models
 
@@ -736,7 +749,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: 'xai/grok-4.6',
+  model: 'xai/grok-4.7',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -1377,15 +1390,17 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
-- **has** _Array&lt;'implicit-caching' | 'vision'&gt;_
+- **has** _Array&lt;'implicit-caching' | 'reasoning' | 'tool-use' | 'vision'&gt;_
 
   Restricts routing to provider models that have all of the specified capabilities. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
 
   Supported capabilities:
   - `'implicit-caching'` — models that perform automatic (implicit) prompt caching.
+  - `'reasoning'` — models that support reasoning.
+  - `'tool-use'` — models that support tool calling.
   - `'vision'` — models that accept image input.
 
-  Example: `has: ['implicit-caching']` will only route to models that support implicit caching. Example: `has: ['vision']` will only route to models that accept image input.
+  Example: `has: ['implicit-caching']` will only route to models that support implicit caching. Example: `has: ['vision']` will only route to models that accept image input. Example: `has: ['tool-use']` will only route to models that support tool calling.
 
 - **providerTimeouts** _object_
 
@@ -1523,7 +1538,7 @@ const { text } = await generateText({
 
 #### Filtering by Model Capability
 
-Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, and `'vision'` limits routing to models that accept image input. If no provider model for the requested model satisfies the capabilities, the request fails.
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, `'vision'` limits routing to models that accept image input, `'reasoning'` limits routing to models that support reasoning, and `'tool-use'` limits routing to models that support tool calling. If no provider model for the requested model satisfies the capabilities, the request fails.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';

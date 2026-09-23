@@ -140,8 +140,6 @@ function resolveReferences(
   ) {
     return xaiOptions.referenceImageUrls.map(url => ({ url }));
   }
-
-  return undefined;
 }
 
 // True when at least one reference would survive as an image.
@@ -178,8 +176,6 @@ function resolveVideoMode(
   ) {
     return 'reference-to-video';
   }
-
-  return undefined;
 }
 
 export class XaiVideoModel implements VideoModelV4 {

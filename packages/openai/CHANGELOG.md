@@ -1,5 +1,32 @@
 # @ai-sdk/openai
 
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
+## 4.0.71
+
+### Patch Changes
+
+- e76a0a3: fix(openai): cancel image edit URL downloads when the request is aborted
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
 ## 4.0.70
 
 ### Patch Changes

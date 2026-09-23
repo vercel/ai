@@ -41,6 +41,16 @@ function convertUrlToFilePartData(url: URL): ConvertResult {
   return { data: { type: 'url', url }, mediaType: undefined };
 }
 
+function convertUrlStringToFilePartData(content: string): ConvertResult {
+  const result = convertUrlToFilePartData(new URL(content));
+
+  if (result.data.type === 'url' && result.data.url.toString() !== content) {
+    result.data.originalUrl = content;
+  }
+
+  return result;
+}
+
 function convertInlineDataToFilePartData(content: DataContent): ConvertResult {
   if (content instanceof Uint8Array) {
     return { data: { type: 'data', data: content }, mediaType: undefined };
@@ -108,7 +118,7 @@ export function convertToLanguageModelV4FilePart(
 
   if (typeof content === 'string') {
     try {
-      return convertUrlToFilePartData(new URL(content));
+      return convertUrlStringToFilePartData(content);
     } catch {
       return convertInlineDataToFilePartData(content);
     }
