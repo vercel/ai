@@ -2241,9 +2241,8 @@ const model = google.speech('gemini-3.8-flash-tts');
 ```
 
 The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
-e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`, or a custom `voice_...` ID or
-`voicekey_...` replication key. Custom voices require Gemini 3.8 TTS. Voice names
-are case-sensitive. The default voice is `Kore`.
+e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive.
+The default voice is `Kore`. Custom voice IDs and replication keys are not supported.
 
 ```ts highlight="6"
 import { generateSpeech } from 'ai';
@@ -2318,10 +2317,8 @@ instead of combining turns with top-level `speechMetadata`. Each turn's style
 overrides `instructions`; turns without a style inherit `instructions`.
 
 `multiSpeakerVoiceConfig` overrides the top-level `voice`. Each `voiceConfig`
-accepts either `prebuiltVoiceConfig: { voiceName: 'Kore' }` or
-`voice: 'voice_...'`, but not both. Google currently supports up to two prebuilt
-voices in a multi-speaker request. For dialogue with designed or replicated
-voices, generate each speaker's turns separately and concatenate the audio.
+uses `prebuiltVoiceConfig: { voiceName: 'Kore' }`. Google supports up to two
+prebuilt voices in a multi-speaker request.
 
 ```ts
 import { generateSpeech } from 'ai';
@@ -2362,14 +2359,6 @@ const result = await generateSpeech({
 Older models continue to use labelled transcripts, such as
 `text: 'Joe: How are you? Jane: Doing great, thanks!'`, with
 `multiSpeakerVoiceConfig` and without `turns`.
-
-### Custom voices
-
-Create a voice persona with Google's [Voice design](https://ai.google.dev/gemini-api/docs/voice-design)
-tools, then pass the existing `voice_...` ID as `voice` in speech requests.
-Use minimal or empty style instructions instead of putting long audio profiles
-or director's notes in the transcript. Voice creation and management are not
-exposed by this provider.
 
 <Note>
   Gemini TTS models do not support the `speed` or `language` options; passing

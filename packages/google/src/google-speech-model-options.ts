@@ -17,16 +17,10 @@ const prebuiltVoiceConfigSchema = z.object({
   voiceName: z.string(),
 });
 
-const voiceConfigSchema = z.union([
-  z.object({
-    prebuiltVoiceConfig: prebuiltVoiceConfigSchema,
-    voice: z.never().optional(),
-  }),
-  z.object({
-    voice: z.string().min(1),
-    prebuiltVoiceConfig: z.never().optional(),
-  }),
-]);
+const voiceConfigSchema = z.object({
+  prebuiltVoiceConfig: prebuiltVoiceConfigSchema,
+  voice: z.never().optional(),
+});
 
 const speechMetadataSchema = z.object({
   speaker: z.string().min(1).optional(),

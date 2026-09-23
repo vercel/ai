@@ -118,15 +118,19 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       providerOptions: { google: googleOptions },
     });
 
+    if (input.usesCustomVoice) {
+      throw new InvalidArgumentError({
+        argument: 'voice',
+        message:
+          'Custom voices are not supported. Use a prebuilt voice instead.',
+      });
+    }
+
     // Multi-speaker (provider option) takes precedence over the single voice.
     const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
     const speechConfig = multiSpeakerVoiceConfig
       ? { multiSpeakerVoiceConfig }
-      : {
-          voiceConfig: input.usesCustomVoice
-            ? { voice }
-            : { prebuiltVoiceConfig: { voiceName: voice } },
-        };
+      : { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
 
     // Older models expect directions in the prompt. Prepending them to a
     // labelled multi-speaker transcript would break speaker parsing.

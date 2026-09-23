@@ -563,14 +563,42 @@ describe.each(modernModels)('%s', modelId => {
   });
 
   it.each(['voice_custom', 'voicekey_custom'])(
-    'supports custom voice %s',
+    'rejects custom voice %s before fetching',
     async voice => {
-      prepareResponse();
-      await modernModel.doGenerate({ text: 'Hello', voice });
-      const request = await server.calls[0].requestBodyJson;
-      expect(request.generationConfig.speechConfig.voiceConfig).toStrictEqual({
-        voice,
+      await expect(
+        modernModel.doGenerate({ text: 'Hello', voice }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'voice',
       });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    { voice: 'voice_custom' },
+    { voice: 'voicekey_custom' },
+    { voice: 'voice_custom', prebuiltVoiceConfig: { voiceName: 'Kore' } },
+  ])(
+    'rejects custom speaker voice configuration %j before fetching',
+    async voiceConfig => {
+      await expect(
+        modernModel.doGenerate({
+          text: '',
+          providerOptions: {
+            google: {
+              turns: [{ text: 'Hello', speechMetadata: { speaker: 'Joe' } }],
+              multiSpeakerVoiceConfig: {
+                speakerVoiceConfigs: [{ speaker: 'Joe', voiceConfig }],
+              },
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
     },
   );
 
