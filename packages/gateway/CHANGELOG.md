@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 2.0.159
+
+### Patch Changes
+
+- 3569298: feat(provider/gateway): accept structured-output in the has provider option
+
 ## 2.0.158
 
 ### Patch Changes
