@@ -269,6 +269,33 @@ describe('createFx', () => {
       shellInputSchema.safeParse({
         action: 'run',
         command: 'printf "hello"',
+        tty: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: null,
+        profile: null,
+        tty: false,
+        yield_time_ms: null,
+        timeout_ms: null,
+        future_shell_option: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        profile: 'clean',
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
         shell: { kind: 'executable', path: '/bin/bash' },
         tty: true,
       }).success,
@@ -277,12 +304,15 @@ describe('createFx', () => {
       shellInputSchema.safeParse({
         action: 'interact',
         session_id: 'session-1',
+        chars: null,
+        yield_time_ms: null,
       }).success,
     ).toBe(true);
     expect(
       shellInputSchema.safeParse({
         action: 'stop',
         session_id: 'session-1',
+        force: null,
       }).success,
     ).toBe(true);
     expect(shellInputSchema.safeParse({ action: 'exec' }).success).toBe(false);

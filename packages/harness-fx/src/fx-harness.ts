@@ -239,44 +239,45 @@ const terminalRequestSchema = z.looseObject({
   close_policy: z.enum(['graceful', 'force']).nullable().optional(),
 });
 
-const shellExecutableSchema = z.strictObject({
+const shellExecutableSchema = z.looseObject({
   kind: z.literal('executable'),
   path: z.string(),
-  clean_start: z.boolean().optional(),
+  clean_start: z.boolean().nullish(),
 });
 
-const shellRunWithProfileSchema = z.strictObject({
+const shellRunWithProfileSchema = z.looseObject({
   action: z.literal('run'),
   command: z.string(),
-  cwd: z.string().optional(),
-  profile: z.enum(['clean', 'user']).optional(),
-  yield_time_ms: z.number().int().nonnegative().optional(),
-  timeout_ms: z.number().int().positive().optional(),
+  cwd: z.string().nullish(),
+  profile: z.enum(['clean', 'user']).nullish(),
+  tty: z.boolean().nullish(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
 });
 
-const shellRunWithExecutableSchema = z.strictObject({
+const shellRunWithExecutableSchema = z.looseObject({
   action: z.literal('run'),
   command: z.string(),
-  cwd: z.string().optional(),
+  cwd: z.string().nullish(),
   shell: shellExecutableSchema,
   tty: z.boolean(),
-  yield_time_ms: z.number().int().nonnegative().optional(),
-  timeout_ms: z.number().int().positive().optional(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
 });
 
 const shellInputSchema = z.union([
   shellRunWithProfileSchema,
   shellRunWithExecutableSchema,
-  z.strictObject({
+  z.looseObject({
     action: z.literal('interact'),
     session_id: z.string(),
-    chars: z.string().optional(),
-    yield_time_ms: z.number().int().nonnegative().optional(),
+    chars: z.string().nullish(),
+    yield_time_ms: z.number().int().nonnegative().nullish(),
   }),
-  z.strictObject({
+  z.looseObject({
     action: z.literal('stop'),
     session_id: z.string(),
-    force: z.boolean().optional(),
+    force: z.boolean().nullish(),
   }),
 ]);
 
