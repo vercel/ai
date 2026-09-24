@@ -102,7 +102,8 @@
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
-            "${providerId}-video-model.ts"
+            "${providerId}-video-model.ts",
+            "${providerId}-evaluation-model.ts"
           ]
         },
         {
@@ -117,17 +118,23 @@
         "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
         {
+          "use": "aisdk/provider-evaluation-model-file-must-export-model-class",
+          "excludeFiles": ["packages/gateway/src/gateway-evaluation-model.ts"]
+        },
+        {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-evaluation-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
-            "packages/gateway/src/gateway-transcription-model.ts"
+            "packages/gateway/src/gateway-transcription-model.ts",
+            "packages/typesafe-ai/src/typesafe-ai-evaluation-model.ts"
           ]
         },
         {
@@ -270,6 +277,12 @@
                 "from": "@ai-sdk/harness/utils"
               }
             ],
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -280,6 +293,7 @@
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -298,6 +312,12 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "v1/bridge/index.ts" },
           "must": {
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -308,6 +328,7 @@
                     "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
                     "port": { "type": "number" },
                     "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
                     "startupTimeoutMs": { "type": "number" }
                   }
                 }
@@ -706,7 +727,8 @@
     "openai-compatible": "OpenAICompatible",
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
-    "togetherai": "TogetherAI"
+    "togetherai": "TogetherAI",
+    "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {
     "acp": "acp",

@@ -1,5 +1,102 @@
 # @ai-sdk/azure
 
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [4cf5a99]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai@4.0.74
+  - @ai-sdk/deepseek@3.0.52
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [6d1f881]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/openai@4.0.73
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/deepseek@3.0.51
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [7bed0ef]
+- Updated dependencies [411b3f2]
+- Updated dependencies [e13c32f]
+  - @ai-sdk/deepseek@3.0.50
+  - @ai-sdk/openai@4.0.72
+
+## 4.0.75
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [e76a0a3]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [a36eaaf]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/openai@4.0.71
+  - @ai-sdk/deepseek@3.0.49
+
+## 4.0.74
+
+### Patch Changes
+
+- Updated dependencies [fd75cee]
+- Updated dependencies [1f5bb62]
+- Updated dependencies [0455398]
+  - @ai-sdk/openai@4.0.70
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/deepseek@3.0.48
+
+## 4.0.73
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/openai@4.0.69
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/deepseek@3.0.47
+
+## 4.0.72
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+  - @ai-sdk/deepseek@3.0.46
+  - @ai-sdk/openai@4.0.68
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/openai@4.0.67
+  - @ai-sdk/deepseek@3.0.45
+  - @ai-sdk/provider-utils@5.0.41
+
 ## 4.0.70
 
 ### Patch Changes

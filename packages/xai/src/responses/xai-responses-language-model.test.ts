@@ -196,6 +196,30 @@ describe('XaiResponsesLanguageModel', () => {
         expect(result.providerMetadata).toBeUndefined();
       });
 
+      it('should expose echoed request identifiers in providerMetadata', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [],
+          usage: { input_tokens: 10, output_tokens: 5 },
+          prompt_cache_key: 'conversation-123',
+          safety_identifier: 'hashed-user-123',
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.providerMetadata).toStrictEqual({
+          xai: {
+            promptCacheKey: 'conversation-123',
+            safetyIdentifier: 'hashed-user-123',
+          },
+        });
+      });
+
       it('should extract finish reason from status', async () => {
         prepareJsonResponse({
           id: 'resp_123',
@@ -628,12 +652,12 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
-        it('reasoningSummary', async () => {
+        it('accepts deprecated reasoningSummary without sending it', async () => {
           prepareJsonResponse({
             id: 'resp_123',
             object: 'response',
             status: 'completed',
-            model: 'grok-4-fast-non-reasoning',
+            model: 'grok-4.7',
             output: [],
             usage: { input_tokens: 10, output_tokens: 5 },
           });
@@ -648,34 +672,7 @@ describe('XaiResponsesLanguageModel', () => {
           });
 
           const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.reasoning.summary).toBe('concise');
-        });
-
-        it('reasoningEffort and reasoningSummary together', async () => {
-          prepareJsonResponse({
-            id: 'resp_123',
-            object: 'response',
-            status: 'completed',
-            model: 'grok-4-fast-non-reasoning',
-            output: [],
-            usage: { input_tokens: 10, output_tokens: 5 },
-          });
-
-          await createModel().doGenerate({
-            prompt: TEST_PROMPT,
-            providerOptions: {
-              xai: {
-                reasoningEffort: 'high',
-                reasoningSummary: 'detailed',
-              } satisfies XaiLanguageModelResponsesOptions,
-            },
-          });
-
-          const requestBody = await server.calls[0].requestBodyJson;
-          expect(requestBody.reasoning).toStrictEqual({
-            effort: 'high',
-            summary: 'detailed',
-          });
+          expect(requestBody.reasoning).toBeUndefined();
         });
 
         it('logprobs and topLogprobs', async () => {
@@ -800,6 +797,45 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.previous_response_id).toBe('resp_456');
         });
 
+        it('additional request options', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            topK: 40,
+            providerOptions: {
+              xai: {
+                minP: 0.1,
+                maxTurns: 5,
+                parallelToolCalls: false,
+                promptCacheKey: 'conversation-123',
+                safetyIdentifier: 'hashed-user-123',
+                serviceTier: 'priority',
+                user: 'user-123',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody).toMatchObject({
+            top_k: 40,
+            min_p: 0.1,
+            max_turns: 5,
+            parallel_tool_calls: false,
+            prompt_cache_key: 'conversation-123',
+            safety_identifier: 'hashed-user-123',
+            service_tier: 'priority',
+            user: 'user-123',
+          });
+        });
+
         it('serviceTier', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -870,6 +906,58 @@ describe('XaiResponsesLanguageModel', () => {
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.include).toStrictEqual([
             'file_search_call.results',
+          ]);
+        });
+
+        it('include with no_inline_citations', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: ['no_inline_citations'],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual(['no_inline_citations']);
+        });
+
+        it('include with server-side tool outputs', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.7',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                include: [
+                  'web_search_call.action.sources',
+                  'code_interpreter_call.outputs',
+                ],
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.include).toStrictEqual([
+            'web_search_call.action.sources',
+            'code_interpreter_call.outputs',
           ]);
         });
 
@@ -1274,10 +1362,6 @@ describe('XaiResponsesLanguageModel', () => {
 
         expect(result.warnings).toMatchInlineSnapshot(`
           [
-            {
-              "feature": "topK",
-              "type": "unsupported",
-            },
             {
               "feature": "frequencyPenalty",
               "type": "unsupported",
@@ -2062,144 +2146,6 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
-
-      it('should omit additionalProperties from serialized function tool schemas', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast-non-reasoning',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
-
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'saveContactWithAddress',
-              description: 'Save a contact with an address.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  address: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['address'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-            {
-              type: 'function',
-              name: 'saveContactWithProperties',
-              description: 'Save a contact with a properties field.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  properties: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['properties'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "grok-4-fast-non-reasoning",
-            "tools": [
-              {
-                "description": "Save a contact with an address.",
-                "name": "saveContactWithAddress",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "address": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "address",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-              {
-                "description": "Save a contact with a properties field.",
-                "name": "saveContactWithProperties",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "properties": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "properties",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-            ],
-          }
-        `);
-      });
     });
 
     describe('citations', () => {
@@ -2560,10 +2506,6 @@ describe('XaiResponsesLanguageModel', () => {
       expect(parts.find(part => part.type === 'stream-start')?.warnings)
         .toMatchInlineSnapshot(`
         [
-          {
-            "feature": "topK",
-            "type": "unsupported",
-          },
           {
             "feature": "frequencyPenalty",
             "type": "unsupported",
@@ -4725,6 +4667,50 @@ describe('XaiResponsesLanguageModel', () => {
           type: 'finish',
           providerMetadata: {
             xai: { costInUsdTicks: 113500 },
+          },
+        });
+      });
+
+      it('should expose echoed request identifiers in finish providerMetadata', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.completed',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+              prompt_cache_key: 'conversation-123',
+              safety_identifier: 'hashed-user-123',
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+        const finishPart = parts.find(p => p.type === 'finish');
+
+        expect(finishPart).toMatchObject({
+          type: 'finish',
+          providerMetadata: {
+            xai: {
+              promptCacheKey: 'conversation-123',
+              safetyIdentifier: 'hashed-user-123',
+            },
           },
         });
       });

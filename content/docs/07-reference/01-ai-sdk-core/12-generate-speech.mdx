@@ -12,7 +12,7 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { audio } = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello from the AI SDK!',
   voice: 'alloy',
 });
@@ -29,7 +29,7 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { audio } = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello from the AI SDK!',
   voice: 'alloy',
 });
@@ -79,7 +79,7 @@ const { audio } = await generateSpeech({
       type: 'string',
       isOptional: true,
       description:
-        'The output format to use for the speech e.g. "mp3", "wav", etc.',
+        'The output format to use for the speech, such as "mp3", "wav", or headerless "audio/l16", "audio/mulaw", and "audio/alaw". Supported formats and defaults vary by provider and model.',
     },
     {
       name: 'instructions',

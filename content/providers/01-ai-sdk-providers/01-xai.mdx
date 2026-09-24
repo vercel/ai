@@ -59,18 +59,11 @@ You can use the following optional settings to customize the xAI provider instan
 ## Language Models
 
 You can create [xAI models](https://console.x.ai) using a provider instance. The
-first argument is the model id, e.g. `grok-4.6`.
+first argument is the model id, e.g. `grok-4.7`.
 
 ```ts
-const model = xai('grok-4.6');
+const model = xai('grok-4.7');
 ```
-
-<Note>
-  Since AI SDK 7, `xai(modelId)` uses the xAI Responses API by default. To use
-  the [Chat Completions
-  API](https://docs.x.ai/docs/api-reference#chat-completions) (legacy), use
-  `xai.chat(modelId)`.
-</Note>
 
 ### Example
 
@@ -81,7 +74,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.6'),
+  model: xai('grok-4.7'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -94,8 +87,7 @@ and support structured data generation with [`Output`](/docs/reference/ai-sdk-co
 
 For models with configurable reasoning, you can control how much effort the
 model spends thinking before responding via
-`providerOptions.xai.reasoningEffort`. This works for both the Responses API
-(default) and the Chat Completions API (`xai.chat()`).
+`providerOptions.xai.reasoningEffort`.
 
 ```ts
 import { xai } from '@ai-sdk/xai';
@@ -141,16 +133,14 @@ The AI SDK option accepts these values, but each xAI model supports a subset:
 ### Priority Processing
 
 `providerOptions.xai.serviceTier` requests higher scheduling priority, which
-typically lowers time-to-first-token and speeds up inter-token latency. This
-works for both the Responses API (default) and the Chat Completions API
-(`xai.chat()`).
+typically lowers time-to-first-token and speeds up inter-token latency.
 
 ```ts
 import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { providerMetadata } = await generateText({
-  model: xai('grok-4.6'),
+  model: xai('grok-4.7'),
   prompt: 'Explain quantum entanglement.',
   providerOptions: {
     xai: { serviceTier: 'priority' },
@@ -199,7 +189,7 @@ calling pattern.
 The xAI Responses API is the default when using `xai(modelId)` (since AI SDK 7). You can also use `xai.responses(modelId)` explicitly. This enables the model to autonomously orchestrate tool calls and research on xAI's servers.
 
 ```ts
-const model = xai.responses('grok-4.6');
+const model = xai.responses('grok-4.7');
 ```
 
 The Responses API provides server-side tools that the model can autonomously execute during its reasoning process:
@@ -221,7 +211,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   messages: [
     {
       role: 'user',
@@ -246,7 +236,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: xai('grok-4.6'),
+  model: xai('grok-4.7'),
   messages: [
     {
       role: 'user',
@@ -283,7 +273,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'What are the latest developments in AI?',
   tools: {
     web_search: xai.tools.webSearch({
@@ -321,7 +311,7 @@ The X search tool enables searching X (Twitter) for posts, with filtering by han
 
 ```ts
 const { text, sources } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'What are people saying about AI on X this week?',
   tools: {
     x_search: xai.tools.xSearch({
@@ -367,7 +357,7 @@ The code execution tool enables the model to write and execute Python code for c
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt:
     'Calculate the compound interest for $10,000 at 5% annually for 10 years',
   tools: {
@@ -382,7 +372,7 @@ The view image tool enables the model to view and analyze images:
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'Describe what you see in the image',
   tools: {
     view_image: xai.tools.viewImage(),
@@ -396,7 +386,7 @@ The view X video tool enables the model to view and analyze videos from X (Twitt
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'Summarize the content of this X video',
   tools: {
     view_x_video: xai.tools.viewXVideo(),
@@ -413,7 +403,7 @@ import { xai } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt:
     'Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print',
   tools: {
@@ -451,7 +441,7 @@ The MCP server tool enables the model to connect to remote [Model Context Protoc
 
 ```ts
 const { text } = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'Use the weather tool to check conditions in San Francisco',
   tools: {
     weather_server: xai.tools.mcpServer({
@@ -499,7 +489,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'What documents do you have access to?',
   tools: {
     file_search: xai.tools.fileSearch({
@@ -546,7 +536,7 @@ import { xai } from '@ai-sdk/xai';
 import { streamText } from 'ai';
 
 const { stream } = streamText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   prompt: 'Research AI safety developments and calculate risk metrics',
   tools: {
     web_search: xai.tools.webSearch(),
@@ -580,7 +570,7 @@ import { xai, type XaiLanguageModelResponsesOptions } from '@ai-sdk/xai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: xai.responses('grok-4.6'),
+  model: xai.responses('grok-4.7'),
   providerOptions: {
     xai: {
       reasoningEffort: 'high',
@@ -598,15 +588,39 @@ The following provider options are available:
 
 - **logprobs** _boolean_
 
-  Return log probabilities for output tokens.
+  Return log probabilities for output tokens. This is silently ignored by `grok-4.20` and newer models.
 
 - **topLogprobs** _number_
 
-  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled. This is silently ignored by `grok-4.20` and newer models.
 
-- **include** _Array&lt;'file_search_call.results'&gt;_
+- **minP** _number_
 
-  Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
+  Set the min-p sampling threshold between 0 and 1. Tokens whose probability is below `minP` times the most likely token's probability are excluded. Unlike the standard AI SDK `topK` option, `minP` is xAI-specific and must be set in `providerOptions.xai`.
+
+- **maxTurns** _number_
+
+  Set the maximum number of assistant/server-side tool turns xAI may perform within one API request. This limits xAI's internal loop for provider-executed tools such as web search; it is separate from AI SDK's `stopWhen`, which limits the outer loop of AI SDK steps and API requests.
+
+- **parallelToolCalls** _boolean_
+
+  Allow the model to call tools in parallel. Defaults to `true`.
+
+- **promptCacheKey** _string_
+
+  Route requests with shared prompt prefixes to improve cache reuse.
+
+- **safetyIdentifier** _string_
+
+  Provide a stable, preferably hashed end-user identifier for safety monitoring.
+
+- **user** _string_
+
+  Provide an end-user identifier for abuse monitoring.
+
+- **include** _Array&lt;'file_search_call.results' | 'web_search_call.action.sources' | 'code_interpreter_call.outputs' | 'reasoning.encrypted_content' | 'no_inline_citations'&gt;_
+
+  Include file-search results, web-search sources, code-interpreter outputs, or encrypted reasoning content, or disable inline citations.
 
 - **store** _boolean_
 
@@ -1072,7 +1086,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -1094,7 +1108,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',
@@ -1116,7 +1130,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'The cat slowly turns its head and blinks',
   frameImages: [
     {
@@ -1148,7 +1162,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'Give the person sunglasses and a hat',
   providerOptions: {
     xai: {
@@ -1186,7 +1200,7 @@ const providerOptions = {
 
 // Step 1: Apply an initial edit
 const step1 = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'Add a party hat to the person',
   providerOptions,
 });
@@ -1197,7 +1211,7 @@ const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
 // Step 2: Apply two more edits concurrently, building on step 1
 const [withSunglasses, withScarf] = await Promise.all([
   generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: xai.video('grok-imagine-video-1.5'),
     prompt: 'Add sunglasses',
     providerOptions: {
       xai: {
@@ -1208,7 +1222,7 @@ const [withSunglasses, withScarf] = await Promise.all([
     },
   }),
   generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: xai.video('grok-imagine-video-1.5'),
     prompt: 'Add a scarf',
     providerOptions: {
       xai: {
@@ -1231,7 +1245,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 
 // Step 1: Generate a source video
 const source = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
   duration: 5,
   aspectRatio: '16:9',
@@ -1246,7 +1260,7 @@ const sourceUrl = source.providerMetadata?.xai?.videoUrl as string;
 
 // Step 2: Extend the video with a new scene
 const extended = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'The cat turns its head, notices a butterfly, and leaps off.',
   duration: 6,
   providerOptions: {
@@ -1274,7 +1288,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt:
     'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
     'are having a playful chase through a sunlit park. ' +
@@ -1304,7 +1318,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt:
     'The comic cat and the comic dog are having a playful chase ' +
     'through a sunlit park. Cinematic slow-motion, warm afternoon light.',

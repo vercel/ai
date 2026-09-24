@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt:
       "How has ChatGPT's web traffic trended this year, and what do analysts say about it?",
     tools: {

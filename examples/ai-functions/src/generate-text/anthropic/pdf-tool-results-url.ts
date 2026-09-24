@@ -38,7 +38,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5'),
     prompt:
       'Please read the pdf document using the tool provided and return the summary of that pdf',
     tools: {

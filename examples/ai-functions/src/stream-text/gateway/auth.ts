@@ -130,7 +130,7 @@ async function testAuthenticationScenario(scenario: (typeof testScenarios)[0]) {
 async function testStream(abortSignal?: AbortSignal) {
   return new Promise<{ detectedAuthMethod: string }>((resolve, reject) => {
     const result = streamText({
-      model: gateway('openai/gpt-4'),
+      model: gateway('openai/gpt-6-astra'),
       prompt: 'Respond with "OK"',
       onError: reject,
       abortSignal,

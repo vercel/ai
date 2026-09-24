@@ -122,6 +122,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-1',
     'anthropic.claude-sonnet-5',
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
@@ -154,6 +157,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-1',
     'anthropic.claude-sonnet-5',
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
@@ -236,7 +242,6 @@ describe('amazon-bedrock-anthropic-provider', () => {
         if (environmentVariableName === 'AWS_ENDPOINT_URL') {
           return 'https://global.example.com';
         }
-        return undefined;
       },
     );
 
@@ -619,6 +624,69 @@ describe('amazon-bedrock-anthropic-provider', () => {
     );
 
     expect(transformedBody?.anthropic_beta).toBeUndefined();
+  });
+
+  it('should rename thinking block_binding prefix_mismatch_behavior to mismatch_behavior', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        thinking: {
+          type: 'adaptive',
+          display: 'summarized',
+          block_binding: { prefix_mismatch_behavior: 'drop_block' },
+        },
+      },
+      new Set(['thinking-binding-controls-2026-08-01']),
+    );
+
+    expect(transformedBody?.thinking).toEqual({
+      type: 'adaptive',
+      display: 'summarized',
+      block_binding: { mismatch_behavior: 'drop_block' },
+    });
+  });
+
+  it('should leave thinking unchanged when it has no block_binding', () => {
+    const provider = createAmazonBedrockAnthropic({
+      region: 'us-east-1',
+      accessKeyId: 'test-key',
+      secretAccessKey: 'test-secret',
+    });
+    provider('test-model-id');
+
+    const constructorCall = vi.mocked(AnthropicLanguageModel).mock.calls[
+      vi.mocked(AnthropicLanguageModel).mock.calls.length - 1
+    ];
+    const config = constructorCall[1];
+
+    const transformedBody = config.transformRequestBody?.(
+      {
+        model: 'test-model-id',
+        messages: [{ role: 'user', content: 'Hello' }],
+        max_tokens: 1024,
+        thinking: { type: 'enabled', budget_tokens: 2000 },
+      },
+      new Set(),
+    );
+
+    expect(transformedBody?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 2000,
+    });
   });
 
   it('should translate eager_input_streaming on tools into the fine-grained-tool-streaming beta', () => {

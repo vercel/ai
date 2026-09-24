@@ -1,5 +1,7 @@
 import {
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type EmbeddingModelV4,
+  type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
   type FilesV4,
   type ImageModelV4,
@@ -13,6 +15,8 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { EvaluationModel } from '../evaluate/evaluation-result';
+import type { EvaluationProvider } from '../evaluate/evaluation-provider';
 import { asProviderV4 } from '../model/as-provider-v4';
 import {
   resolveEmbeddingModel,
@@ -22,6 +26,7 @@ import {
   resolveSpeechModel,
   resolveTranscriptionModel,
   resolveVideoModel,
+  resolveEvaluationModel,
 } from '../model/resolve-model';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { ImageModel } from '../types/image-model';
@@ -30,6 +35,12 @@ import type { RerankingModel } from '../types/reranking-model';
 import type { SpeechModel } from '../types/speech-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { VideoModel } from '../types/video-model';
+
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (
+    modelId: string,
+  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+};
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
@@ -42,6 +53,7 @@ import type { VideoModel } from '../types/video-model';
  * @param {Record<string, SpeechModel>} [options.speechModels] - A record of speech models, where keys are model IDs and values are speech model instances.
  * @param {Record<string, RerankingModel>} [options.rerankingModels] - A record of reranking models, where keys are model IDs and values are reranking model instances.
  * @param {Record<string, VideoModel>} [options.videoModels] - A record of video models, where keys are model IDs and values are video model instances.
+ * @param {Record<string, EvaluationModel>} [options.evaluationModels] - Experimental evaluation models or default-provider model IDs, keyed by alias.
  * @param {FilesV4} [options.files] - A files interface for uploading files.
  * @param {SkillsV4} [options.skills] - A skills interface for uploading skills.
  * @param {ProviderV2 | ProviderV3 | ProviderV4} [options.fallbackProvider] - An optional fallback provider to use when a requested model is not found in the custom provider.
@@ -60,6 +72,10 @@ export function customProvider<
   FILES extends FilesV4 | undefined = undefined,
   SKILLS extends SkillsV4 | undefined = undefined,
   FALLBACK extends ProviderV2 | ProviderV3 | ProviderV4 | undefined = undefined,
+  EVALUATION_MODELS extends Record<string, EvaluationModel> = Record<
+    string,
+    EvaluationModel
+  >,
 >({
   languageModels,
   embeddingModels,
@@ -68,6 +84,7 @@ export function customProvider<
   speechModels,
   rerankingModels,
   videoModels,
+  evaluationModels,
   files,
   skills,
   fallbackProvider: fallbackProviderArg,
@@ -79,6 +96,7 @@ export function customProvider<
   speechModels?: SPEECH_MODELS;
   rerankingModels?: RERANKING_MODELS;
   videoModels?: VIDEO_MODELS;
+  evaluationModels?: EVALUATION_MODELS;
   files?: FILES;
   skills?: SKILLS;
   fallbackProvider?: FALLBACK;
@@ -92,6 +110,9 @@ export function customProvider<
   rerankingModel(modelId: ExtractModelId<RERANKING_MODELS>): RerankingModelV4;
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
+  evaluationModel(
+    modelId: ExtractModelId<EVALUATION_MODELS>,
+  ): EvaluationModelV4;
 } & (FILES extends FilesV4
     ? { files(): FilesV4 }
     : [FALLBACK] extends [{ files: () => FilesV4 }]
@@ -117,6 +138,9 @@ export function customProvider<
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4;
+    evaluationModel(
+      modelId: ExtractModelId<EVALUATION_MODELS>,
+    ): EvaluationModelV4;
   } = {
     specificationVersion: 'v4',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4 {
@@ -203,6 +227,26 @@ export function customProvider<
 
       throw new NoSuchModelError({ modelId, modelType: 'rerankingModel' });
     },
+    evaluationModel(
+      modelId: ExtractModelId<EVALUATION_MODELS>,
+    ): EvaluationModelV4 {
+      if (
+        evaluationModels != null &&
+        Object.hasOwn(evaluationModels, modelId)
+      ) {
+        return resolveEvaluationModel(evaluationModels[modelId]);
+      }
+
+      const provider = fallbackProviderArg as EvaluationProvider | undefined;
+      if (typeof provider?.evaluationModel === 'function') {
+        const model = provider.evaluationModel(modelId);
+        if (model != null) {
+          return resolveEvaluationModel(model);
+        }
+      }
+
+      throw new NoSuchModelError({ modelId, modelType: 'evaluationModel' });
+    },
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4 {
@@ -210,11 +254,11 @@ export function customProvider<
         return resolveVideoModel(videoModels[modelId]);
       }
 
-      // TODO AI SDK v7
-      // @ts-expect-error - videoModel support is experimental
-      const videoModel = fallbackProvider?.videoModel;
-      if (videoModel) {
-        return videoModel(modelId);
+      const provider = fallbackProviderArg as
+        | ProviderWithOptionalVideoModel
+        | undefined;
+      if (provider?.videoModel) {
+        return resolveVideoModel(provider.videoModel(modelId));
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });

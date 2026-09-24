@@ -89,6 +89,7 @@ import {
   executeToolsFromStream,
   type ExecuteToolsStreamPart,
 } from './execute-tools-from-stream';
+import { createToolSearchState } from '../tool-search/prepare-tool-search';
 import { executeToolCall } from './execute-tool-call';
 import {
   filterActiveTools,
@@ -146,6 +147,7 @@ import type {
 import { toResponseMessages } from './to-response-messages';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import {
+  appendToolCallerMessages,
   prepareToolsForToolCallers,
   resolveToolCallerConfiguration,
   type Experimental_ToolCallers,
@@ -196,6 +198,7 @@ const isOutputChunkType = {
   'tool-call': true,
   'tool-result': false,
   'tool-error': false,
+  'tool-output-denied': false,
   'tool-execution-end': false,
   'model-call-start': false,
   'model-call-response-metadata': false,
@@ -965,14 +968,16 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedValue = '';
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
 
-  function resetAttemptState() {
+  function resetOutputState() {
     firstTextChunkId = undefined;
     text = '';
     textChunk = '';
     textProviderMetadata = undefined;
-    lastPublishedValue = '';
+    lastPublishedValue = undefined;
+    hasPublishedValue = false;
   }
 
   function enqueueChunk({
@@ -1017,9 +1022,13 @@ function createOutputTransformStream<
   >({
     async transform(chunk, controller) {
       if (isStreamRetryBoundaryPart(chunk)) {
-        resetAttemptState();
+        resetOutputState();
         controller.enqueue(chunk);
         return;
+      }
+
+      if (chunk.type === 'start-step') {
+        resetOutputState();
       }
 
       // ensure that we publish the last text chunk before the step finish:
@@ -1093,9 +1102,10 @@ function createOutputTransformStream<
           typeof result.partial === 'string'
             ? result.partial
             : JSON.stringify(result.partial);
-        if (currentValue !== lastPublishedValue) {
+        if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          hasPublishedValue = true;
         }
       }
     },
@@ -1380,6 +1390,10 @@ class DefaultStreamTextResult<
       tools,
       toolCallers: experimental_toolCallers,
     });
+    const prepareToolSearch = createToolSearchState({
+      tools,
+      toolCallers: resolvedToolCallers,
+    });
 
     const telemetryDispatcher = createRestrictedTelemetryDispatcher<
       TOOLS,
@@ -1407,6 +1421,8 @@ class DefaultStreamTextResult<
     const initialResponseMessages: Array<ResponseMessage> = [];
     let stepMessagesForNextStep: Array<ModelMessage> | undefined;
     let currentStepMessages: Array<ModelMessage> = [];
+    let isAborted = false;
+    let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1654,8 +1670,8 @@ class DefaultStreamTextResult<
             new DefaultStepResult({
               callId,
               stepNumber: recordedSteps.length,
-              provider: model.provider,
-              modelId: model.modelId,
+              provider: currentStepModel.provider,
+              modelId: currentStepModel.modelId,
               runtimeContext,
               toolsContext,
               content: recordedContent,
@@ -1684,8 +1700,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: model.provider,
-            model: model.modelId,
+            provider: currentStepModel.provider,
+            model: currentStepModel.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1735,6 +1751,10 @@ class DefaultStreamTextResult<
 
           // aggregate results:
           self._steps.resolve(recordedSteps);
+
+          if (isAborted) {
+            return;
+          }
 
           // call onEnd callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
@@ -1838,6 +1858,8 @@ class DefaultStreamTextResult<
       async pull(controller) {
         // abort handling:
         async function abort() {
+          isAborted = true;
+
           await notify({
             event: {
               callId,
@@ -1878,6 +1900,7 @@ class DefaultStreamTextResult<
           if (isAbortError(error) && abortSignal?.aborted) {
             await abort();
           } else {
+            await telemetryDispatcher.onError?.({ callId, error });
             controller.error(error);
           }
         }
@@ -2023,6 +2046,7 @@ class DefaultStreamTextResult<
           toolsContext,
           runtimeContext,
           toolApprovalSecret: experimental_toolApprovalSecret,
+          refineToolInput,
         });
 
         const localDeniedToolApprovals = [
@@ -2321,6 +2345,7 @@ class DefaultStreamTextResult<
           const stepModel = resolveLanguageModel(
             prepareStepResult?.model ?? model,
           );
+          currentStepModel = stepModel;
 
           const stepActiveTools = filterActiveTools({
             tools,
@@ -2329,8 +2354,12 @@ class DefaultStreamTextResult<
           const {
             executionTools: stepExecutionTools,
             modelTools: stepModelTools,
+            toolCallerMessages,
           } = prepareToolsForToolCallers({
-            tools: stepActiveTools,
+            tools: prepareToolSearch(stepActiveTools, {
+              toolsContext,
+              experimental_sandbox: stepSandbox,
+            }),
             toolCallers: resolvedToolCallers,
           });
           const stepToolOrder = prepareStepResult?.toolOrder ?? toolOrder;
@@ -2354,7 +2383,10 @@ class DefaultStreamTextResult<
             toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
           });
 
-          const stepMessages = prepareStepResult?.messages ?? stepInputMessages;
+          const stepMessages = appendToolCallerMessages({
+            messages: prepareStepResult?.messages ?? stepInputMessages,
+            toolCallerMessages,
+          });
           currentStepMessages = stepMessages;
           const stepInstructions =
             prepareStepResult?.instructions ??
@@ -2644,7 +2676,7 @@ class DefaultStreamTextResult<
               tools: stepExecutionTools as TOOLS,
               stepInputMessages: stepMessages,
               abortSignal,
-              runtimeContext,
+              toolsContext,
             });
 
           // Create child spans under the current step context.
@@ -2739,7 +2771,7 @@ class DefaultStreamTextResult<
           const createStepResponse = () => ({
             id: generateId(),
             timestamp: new Date(),
-            modelId: model.modelId,
+            modelId: stepModel.modelId,
           });
           let stepResponse: {
             id: string;
@@ -2834,7 +2866,8 @@ class DefaultStreamTextResult<
                     case 'tool-input-start':
                     case 'tool-input-end':
                     case 'tool-input-delta':
-                    case 'tool-approval-request': {
+                    case 'tool-approval-request':
+                    case 'tool-output-denied': {
                       enqueueStepPart(controller, chunk);
                       break;
                     }
@@ -3365,7 +3398,7 @@ class DefaultStreamTextResult<
           InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
-            if (partialOutput != null) {
+            if (partialOutput !== undefined) {
               controller.enqueue(partialOutput);
             }
           },

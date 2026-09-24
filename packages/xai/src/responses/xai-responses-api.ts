@@ -2,7 +2,10 @@ import { z } from 'zod/v4';
 
 export type XaiResponsesIncludeValue =
   | 'file_search_call.results'
-  | 'reasoning.encrypted_content';
+  | 'web_search_call.action.sources'
+  | 'code_interpreter_call.outputs'
+  | 'reasoning.encrypted_content'
+  | 'no_inline_citations';
 
 export type XaiResponsesIncludeOptions =
   | Array<XaiResponsesIncludeValue>
@@ -317,6 +320,8 @@ export const xaiResponsesResponseSchema = z.object({
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
   service_tier: z.string().nullish(),
+  prompt_cache_key: z.string().nullish(),
+  safety_identifier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -602,6 +607,8 @@ export const xaiResponsesChunkSchema = z.union([
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
       service_tier: z.string().nullish(),
+      prompt_cache_key: z.string().nullish(),
+      safety_identifier: z.string().nullish(),
     }),
   }),
   z.object({

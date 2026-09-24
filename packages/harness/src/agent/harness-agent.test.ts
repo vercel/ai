@@ -2573,7 +2573,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2596,7 +2601,7 @@ describe('HarnessAgent', () => {
 
     expect(writeTextFile).toHaveBeenCalledWith({
       path: expect.stringMatching(
-        /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
       ),
       content: expect.any(String),
       abortSignal: undefined,
@@ -2772,7 +2777,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2812,9 +2822,68 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     const markerWrite = writeCalls.at(-1)?.[0];
+    // Applied by `onFirstCreate`, before a `HarnessV1NetworkSandboxSession`
+    // even exists — resolved straight from the plain `SandboxSession`'s HOME,
+    // never the working directory.
     expect(markerWrite?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
+
+    await session.destroy();
+  });
+
+  test('resolves harness state under the sandbox HOME, never the working directory', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [{ path: '.harness-bootstrap/mock/bridge.mjs', content: 'x' }],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const readTextFile = vi.fn(async () => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    // All harness-generated state resolves under the sandbox's own HOME,
+    // not `defaultWorkingDirectory` (`/work`) …
+    const writtenPaths = (
+      writeTextFile.mock.calls as unknown as Array<[{ path: string }]>
+    ).map(call => call[0].path);
+    expect(writtenPaths).toContain(
+      '/home/agent/.ai-sdk-harness/.harness-bootstrap/mock/bridge.mjs',
+    );
+    for (const path of writtenPaths) {
+      expect(path).toMatch(/^\/home\/agent\/\.ai-sdk-harness\//);
+    }
+    // … while the session still works in the sandbox working directory.
+    expect(base.doStart.mock.calls[0]![0]).toMatchObject({
+      sessionWorkDir: '/work/ai-sdk',
+    });
 
     await session.destroy();
   });
@@ -2836,7 +2905,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = { run, readTextFile, writeTextFile };
@@ -2863,7 +2937,7 @@ describe('HarnessAgent', () => {
     expect(readTextFile.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         path: expect.stringMatching(
-          /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+          /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
         ),
       }),
     );
@@ -2871,7 +2945,7 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     expect(writeCalls.at(-1)?.[0]?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
 
     await session.destroy();
@@ -3004,6 +3078,237 @@ describe('HarnessAgent', () => {
     ]);
     expect(result.toolCalls).toHaveLength(1);
     expect(result.toolCalls[0]!.toolName).toBe('echo');
+
+    await session.destroy();
+  });
+
+  test('passes prepareCall tool context to host tools and step results', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(
+      async (
+        _input: Record<string, never>,
+        { context }: { context: { userId: string } },
+      ) => ({ userId: context.userId }),
+    );
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
+      sandbox: makeSandboxProvider(),
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, ...rest }) => ({
+        ...rest,
+        toolsContext: {
+          lookupAccount: { userId: options.userId },
+        },
+      }),
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({
+      session,
+      prompt: 'go',
+      options: { userId: 'user-123' },
+    });
+
+    expect(execute).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        context: { userId: 'user-123' },
+      }),
+    );
+    expect(toolResults).toEqual([
+      { toolCallId: 'c1', output: { userId: 'user-123' } },
+    ]);
+    expect(result.steps[0]?.toolsContext).toEqual({
+      lookupAccount: { userId: 'user-123' },
+    });
+
+    await session.destroy();
+  });
+
+  test('rebinds prepareCall tool context after recreating a suspended session', async () => {
+    let finishInitialPrompt!: () => void;
+    const initialPromptDone = new Promise<void>(resolve => {
+      finishInitialPrompt = resolve;
+    });
+    const { harness, toolResults } = mockHarness({
+      script: () => [],
+      promptDone: () => initialPromptDone,
+      onSuspendTurn: () => finishInitialPrompt(),
+      continueScript: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(
+      async (
+        _input: Record<string, never>,
+        { context }: { context: { userId: string } },
+      ) => ({ userId: context.userId }),
+    );
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
+      sandbox: makeSandboxProvider(),
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, ...rest }) => ({
+        ...rest,
+        toolsContext: {
+          lookupAccount: { userId: options.userId },
+        },
+      }),
+    });
+    let session = await agent.createSession();
+    const first = await agent.stream({
+      session,
+      prompt: 'go',
+      options: { userId: 'user-123' },
+    });
+    const firstConsumption = first.consumeStream();
+    const sessionId = session.sessionId;
+    const continueFrom = await session.suspendTurn();
+    await firstConsumption;
+
+    // Context remains host-only instead of being serialized with turn state.
+    expect(continueFrom.turnSettings).not.toHaveProperty('toolsContext');
+
+    session = await agent.createSession({
+      sessionId,
+      continueFrom: structuredClone(continueFrom),
+      toolsContext: {
+        lookupAccount: { userId: 'user-123' },
+      },
+    });
+    await agent.continueGenerate({ session });
+
+    expect(execute).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ context: { userId: 'user-123' } }),
+    );
+    expect(toolResults).toEqual([
+      { toolCallId: 'c1', output: { userId: 'user-123' } },
+    ]);
+
+    await session.destroy();
+  });
+
+  test('rejects missing required host tool context before execution', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(async () => ({ ok: true }));
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      sandbox: makeSandboxProvider(),
+      toolsContext: {} as never,
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool context validation failed.' },
+        isError: true,
+      },
+    ]);
+
+    await session.destroy();
+  });
+
+  test('validates host tool context without disclosing it to the model', async () => {
+    const { harness, toolResults } = mockHarness({
+      script: () => [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'lookupAccount',
+          input: JSON.stringify({}),
+        },
+        ...finishEvents(),
+      ],
+    });
+    const execute = vi.fn(async () => ({ ok: true }));
+    let hostValidationError: unknown;
+    const lookupAccount = tool({
+      inputSchema: z.object({}),
+      contextSchema: z.object({ userId: z.string() }),
+      execute,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      tools: { lookupAccount },
+      toolsContext: {
+        lookupAccount: { userId: 123, apiKey: 'host-secret' },
+      } as never,
+      sandbox: makeSandboxProvider(),
+      onToolExecutionEnd: event => {
+        if (event.toolOutput.type === 'tool-error') {
+          hostValidationError = event.toolOutput.error;
+        }
+      },
+    });
+    const session = await agent.createSession();
+
+    await agent.generate({ session, prompt: 'go' });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(toolResults).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool context validation failed.' },
+        isError: true,
+      },
+    ]);
+    expect(JSON.stringify(toolResults)).not.toContain('host-secret');
+    expect(String(hostValidationError)).toContain('host-secret');
 
     await session.destroy();
   });

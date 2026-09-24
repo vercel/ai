@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 import { weatherTool } from '../../tools/weather-tool';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   // context engineering required to make sure the model does not retry
   // the tool execution if it is not approved for a particular tool call:
   instructions:

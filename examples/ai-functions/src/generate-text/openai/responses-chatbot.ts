@@ -22,7 +22,7 @@ run(async () => {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: openai.responses('o3'),
+        model: openai.responses('gpt-6-astra'),
         tools: { weatherTool },
         instructions: `You are a helpful, respectful and honest assistant.`,
         messages,

@@ -515,7 +515,6 @@ function findTokenInvocation({
       return invocation;
     }
   }
-  return undefined;
 }
 
 function removeInvocationForToolCall({

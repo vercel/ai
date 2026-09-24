@@ -8,7 +8,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
     providerOptions: {
       anthropic: {

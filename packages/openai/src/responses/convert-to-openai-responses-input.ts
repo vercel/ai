@@ -19,6 +19,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -136,6 +137,32 @@ async function convertFunctionToolResultOutput({
               const topLevel = getTopLevelMediaType(item.mediaType);
               const imageDetail =
                 item.providerOptions?.[providerOptionsName]?.imageDetail;
+
+              if (item.data.type === 'reference') {
+                const fileId = resolveProviderReference({
+                  reference: item.data.reference,
+                  provider: providerOptionsName,
+                });
+
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    file_id: fileId,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+
+                return {
+                  type: 'input_file' as const,
+                  file_id: fileId,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
 
               if (item.data.type === 'data') {
                 const fullMediaType = resolveFullMediaType({ part: item });
@@ -354,6 +381,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
+  configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
@@ -373,6 +401,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -394,6 +423,42 @@ export async function convertToOpenAIResponsesInput({
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
+        // Keep effort updates at their original positions so they apply to
+        // the same parts of the conversation when the history is sent again.
+        let options = await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: openaiResponsesSystemMessageOptionsSchema,
+        });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
+        const effort = options?.reasoningEffortUpdate;
+        if (effort != null) {
+          const unsupportedReason =
+            content !== ''
+              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              : configurationUpdateUnsupportedReason;
+
+          if (unsupportedReason != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level reasoningEffortUpdate',
+              message: unsupportedReason,
+            });
+          }
+
+          input.push({
+            type: 'configuration_update',
+            reasoning: { effort },
+          });
+          // The control is independent of systemMessageMode's text handling.
+          break;
+        }
+
         switch (systemMessageMode) {
           case 'system': {
             const promptCacheBreakpoint = getPromptCacheBreakpoint(
@@ -611,8 +676,7 @@ export async function convertToOpenAIResponsesInput({
               input.push({
                 ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: part.text,
                 ...(phase != null && { phase }),
               });
 

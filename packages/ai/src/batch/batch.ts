@@ -202,6 +202,7 @@ export async function startBatch<
               prompt: standardizedPrompt,
               supportedUrls,
               download: undefined,
+              abortSignal: operationAbortSignal,
               provider: batchApi.provider.split('.')[0],
             }),
             tools: preparedTools,
@@ -373,7 +374,13 @@ export function getBatchResults<TOOLS extends ToolSet>({
     cancel?: (reason?: unknown) => void;
   } = {
     async transform(item, controller) {
-      controller.enqueue(await convertBatchItemResult({ item, tools }));
+      controller.enqueue(
+        await convertBatchItemResult({
+          item,
+          tools,
+          abortSignal: operationAbortSignal,
+        }),
+      );
     },
 
     cancel(reason) {
@@ -506,9 +513,11 @@ function validateBatchReference({
 async function convertBatchItemResult<TOOLS extends ToolSet>({
   item,
   tools,
+  abortSignal,
 }: {
   item: BatchV4ItemResult;
   tools: TOOLS | undefined;
+  abortSignal: AbortSignal | undefined;
 }): Promise<BatchItemResult<TOOLS>> {
   switch (item.type) {
     case 'text':
@@ -518,7 +527,11 @@ async function convertBatchItemResult<TOOLS extends ToolSet>({
             type: item.type,
             id: item.id,
             status: item.status,
-            ...(await convertGenerateResult({ result: item.result, tools })),
+            ...(await convertGenerateResult({
+              result: item.result,
+              tools,
+              abortSignal,
+            })),
           };
         case 'failed':
           return {
@@ -599,9 +612,11 @@ function convertImageResult(
 async function convertGenerateResult<TOOLS extends ToolSet>({
   result,
   tools,
+  abortSignal,
 }: {
   result: LanguageModelV4GenerateResult;
   tools: TOOLS | undefined;
+  abortSignal: AbortSignal | undefined;
 }): Promise<TextBatchGenerationResult<TOOLS>> {
   const toolCalls = await Promise.all(
     result.content
@@ -619,13 +634,14 @@ async function convertGenerateResult<TOOLS extends ToolSet>({
         }),
       ),
   );
-  const content = convertLanguageModelContent<TOOLS>({
+  const content = await convertLanguageModelContent<TOOLS>({
     content: result.content,
     toolCalls,
     toolOutputs: [],
     toolApprovalRequests: [],
     toolApprovalResponses: [],
     tools,
+    abortSignal,
   });
 
   return {

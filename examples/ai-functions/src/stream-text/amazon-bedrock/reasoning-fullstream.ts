@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     tools: {
       weather: weatherTool,
     },

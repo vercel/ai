@@ -8,7 +8,7 @@ run(async () => {
   // Step 1: Apply first edit
   const step1 = await withSpinner('Step 1: Making cat a princess...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: xai.video('grok-imagine-video-1.5'),
       prompt: 'Make the cat look like a princess with a small tiara',
       providerOptions: {
         xai: {
@@ -44,7 +44,7 @@ run(async () => {
       Promise.all(
         edits.map(prompt =>
           generateVideo({
-            model: xai.video('grok-imagine-video'),
+            model: xai.video('grok-imagine-video-1.5'),
             prompt,
             providerOptions: {
               xai: {

@@ -1,15 +1,17 @@
 import { HarnessCapabilityUnsupportedError } from '../errors/harness-capability-unsupported-error';
-import type {
-  HarnessV1,
-  HarnessV1BuiltinToolFiltering,
-  HarnessV1JSONSchema,
-  HarnessV1NetworkSandboxSession,
-  HarnessV1ResponseFormat,
+import {
+  harnessStateDirectoryPath,
+  type HarnessV1,
+  type HarnessV1BuiltinToolFiltering,
+  type HarnessV1JSONSchema,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1ResponseFormat,
 } from '../v1';
 import {
   asArray,
   asSchema,
   generateId,
+  type InferToolSetContext,
   normalizeHeaders,
   validateTypes,
   type Context,
@@ -20,7 +22,7 @@ import {
   type ToolResultPart,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { mergeCallbacks } from 'ai/internal';
+import { mergeCallbacks, type ToolsContextSettings } from 'ai/internal';
 import type {
   Agent,
   AgentCallParameters,
@@ -67,6 +69,7 @@ import {
 } from './internal/permission-mode';
 import { resolveHarnessAgentToolFiltering } from './internal/tool-filtering';
 import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
 
@@ -99,6 +102,7 @@ type PreparedHarnessAgentTurnSettings<
   skills: ReadonlyArray<HarnessAgentSkill>;
   instructions: string | undefined;
   tools: HarnessAllTools<THarness, TUserTools>;
+  toolsContext: InferToolSetContext<HarnessAllTools<THarness, TUserTools>>;
   activeTools: TUserTools;
   toolSpecs: HarnessAgentToolSpec[];
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -315,6 +319,13 @@ export class HarnessAgent<
      */
     continueFrom?: HarnessAgentContinueTurnState;
     /**
+     * Rebinds host-only tool context for an unfinished turn resumed with
+     * `continueFrom` (directly or through `resumeFrom`). Tool context is not
+     * serialized into lifecycle state because it may contain credentials or
+     * non-serializable host objects.
+     */
+    toolsContext?: ToolsContextSettings<TUserTools>['toolsContext'];
+    /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
      */
@@ -356,6 +367,11 @@ export class HarnessAgent<
 
     const effectiveContinueFrom =
       validatedContinueFrom ?? validatedResumeFrom?.continueFrom;
+    if (options?.toolsContext != null && effectiveContinueFrom == null) {
+      throw new Error(
+        'HarnessAgent.createSession: `toolsContext` can only rebind an unfinished turn from `continueFrom` or `resumeFrom`.',
+      );
+    }
     const isResumedSession =
       validatedResumeFrom != null || effectiveContinueFrom != null;
 
@@ -388,7 +404,14 @@ export class HarnessAgent<
             session: toolSafeSandboxSession,
             recipe,
             identity: recipeIdentity,
-            defaultWorkingDirectory,
+            // Harness infrastructure always lives under the sandbox's own
+            // HOME, never the session's working directory.
+            stateDirectory: harnessStateDirectoryPath({
+              sandboxHomeDir: await resolveSandboxHomeDir({
+                sandbox: toolSafeSandboxSession,
+                abortSignal,
+              }),
+            }),
             abortSignal,
           });
         } catch (err) {
@@ -441,8 +464,14 @@ export class HarnessAgent<
               session: resumedSandboxSession.restricted(),
               recipe,
               identity: recipeIdentity,
-              defaultWorkingDirectory:
-                resumedSandboxSession.defaultWorkingDirectory,
+              // Harness infrastructure always lives under the sandbox's own
+              // HOME, never the working directory.
+              stateDirectory: harnessStateDirectoryPath({
+                sandboxHomeDir: await resolveSandboxHomeDir({
+                  sandbox: resumedSandboxSession,
+                  abortSignal,
+                }),
+              }),
               abortSignal,
             });
           } catch (err) {
@@ -489,8 +518,14 @@ export class HarnessAgent<
               session: createdSandboxSession.restricted(),
               recipe: sandboxBootstrapPlan.recipe,
               identity: sandboxBootstrapPlan.recipeIdentity,
-              defaultWorkingDirectory:
-                createdSandboxSession.defaultWorkingDirectory,
+              // Harness infrastructure always lives under the sandbox's own
+              // HOME, never the working directory.
+              stateDirectory: harnessStateDirectoryPath({
+                sandboxHomeDir: await resolveSandboxHomeDir({
+                  sandbox: createdSandboxSession,
+                  abortSignal,
+                }),
+              }),
               abortSignal,
             });
           } catch (err) {
@@ -552,6 +587,7 @@ export class HarnessAgent<
         pendingToolApprovals: effectiveContinueFrom?.pendingToolApprovals,
         pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnSettings: effectiveContinueFrom?.turnSettings,
+        resumedToolsContext: options?.toolsContext,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
@@ -785,6 +821,7 @@ export class HarnessAgent<
       skills: input.turnSettings.skills,
       instructions: input.turnSettings.instructions,
       tools: input.turnSettings.tools,
+      toolsContext: input.turnSettings.toolsContext,
       activeTools: input.turnSettings.activeTools,
       toolSpecs: input.turnSettings.toolSpecs,
       builtinToolFiltering: input.turnSettings.builtinToolFiltering,
@@ -861,7 +898,6 @@ export class HarnessAgent<
         };
       }
     }
-    return undefined;
   }
 
   /*
@@ -943,6 +979,8 @@ export class HarnessAgent<
       skills: this.settings.skills,
       instructions: this.settings.instructions,
       tools: this.settings.tools,
+      toolsContext:
+        this.settings.toolsContext ?? ({} as InferToolSetContext<TUserTools>),
       ...promptOptions,
     };
     const preparedCallArgs =
@@ -972,6 +1010,7 @@ export class HarnessAgent<
         skills: preparedCallArgs.skills,
         instructions: preparedCallArgs.instructions,
         tools: preparedCallArgs.tools,
+        toolsContext: preparedCallArgs.toolsContext,
       }),
     };
   }
@@ -986,6 +1025,7 @@ export class HarnessAgent<
         skills: this.settings.skills,
         instructions: this.settings.instructions,
         tools: this.settings.tools,
+        toolsContext: this.settings.toolsContext,
       }),
       toolApprovalContinuations: options.toolApprovalContinuations ?? [],
       toolResultContinuations: options.toolResultContinuations ?? [],
@@ -997,6 +1037,7 @@ export class HarnessAgent<
     skills?: ReadonlyArray<HarnessAgentSkill>;
     instructions?: string | SystemModelMessage;
     tools?: TUserTools;
+    toolsContext?: InferToolSetContext<TUserTools>;
   }): PreparedHarnessAgentTurnSettings<THarness, TUserTools> {
     const userTools = options.tools ?? ({} as TUserTools);
     assertNoReservedQuestionTool({
@@ -1022,6 +1063,9 @@ export class HarnessAgent<
           ? options.instructions
           : options.instructions?.content,
       tools,
+      toolsContext: (options.toolsContext ?? {}) as InferToolSetContext<
+        HarnessAllTools<THarness, TUserTools>
+      >,
       activeTools: toolFiltering.activeUserTools,
       toolSpecs: this._toToolSpecs(toolFiltering.activeUserTools),
       builtinToolFiltering: toolFiltering.builtinToolFiltering,

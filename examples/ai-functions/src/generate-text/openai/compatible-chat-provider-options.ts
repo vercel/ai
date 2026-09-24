@@ -12,7 +12,7 @@ run(async () => {
     },
   });
 
-  const model = openai.chatModel('gpt-5-mini');
+  const model = openai.chatModel('gpt-6-luna');
 
   const result = await generateText({
     model: model,

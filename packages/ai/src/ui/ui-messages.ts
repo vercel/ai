@@ -324,6 +324,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -340,6 +341,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -358,12 +360,17 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
       state: 'output-error';
       input: asUITool<TOOL>['input'] | undefined;
-      rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+      /**
+       * @deprecated Use `input` instead. This field will be removed in the next
+       * major version.
+       */
+      rawInput?: unknown;
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
@@ -376,6 +383,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -392,6 +400,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -452,6 +461,7 @@ export type DynamicToolUIPart = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -468,6 +478,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -486,6 +497,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -503,6 +515,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -519,6 +532,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );

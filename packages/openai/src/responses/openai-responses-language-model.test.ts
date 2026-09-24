@@ -248,7 +248,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   function prepareChunksFixtureResponse(filename: string) {
@@ -1315,6 +1314,22 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         expect(warnings).toStrictEqual([]);
       });
+
+      it.each(['gpt-6-sol', 'gpt-6-luna'])(
+        'should preserve disabled reasoning for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: { openai: { reasoningEffort: 'none' } },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: modelId,
+            reasoning: { effort: 'none' },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
 
       it.each(['none', 'minimal'])(
         'should omit unsupported GPT-6 reasoning effort %s',
@@ -8976,6 +8991,26 @@ describe('OpenAIResponsesLanguageModel', () => {
             'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
           statusCode: 429,
           isRetryable: false,
+        });
+      });
+
+      it('should throw a retryable api error for nested error events with a null code before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":null,"message":"Sorry, something went wrong.","param":null}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Sorry, something went wrong.',
+          statusCode: 500,
+          isRetryable: true,
         });
       });
 

@@ -1,5 +1,67 @@
 # @ai-sdk/provider-utils
 
+## 5.0.47
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 771e74b: chore: enable dead code lint rules
+
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 5.0.45
+
+### Patch Changes
+
+- 2973485: fix(provider-utils): detect AVIF and HEIC images with variable ftyp box sizes
+- a4db5ea: fix(provider-utils): detect AAC audio with ADTS headers
+- 2937ea2: fix(provider-utils): follow validated redirects without waiting for response clone cancellation
+
+## 5.0.44
+
+### Patch Changes
+
+- 0455398: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
+## 5.0.43
+
+### Patch Changes
+
+- 215b25e: Default language-model evaluation adapters to `reasoning: 'none'`, using each provider's existing reasoning mapping. Explicit reasoning settings in `providerOptions` continue to override the default.
+- d4d96bf: Add experimental Choice, Score, and Boolean evaluations through `openai.evaluationModel()` and a shared structured language-model evaluation adapter in `@ai-sdk/provider-utils/experimental-evaluation`. Preserve exact labels and metadata, validate score bounds, and return prompted Boolean P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.42
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2fa5e0e: fix(provider-utils): avoid crashing when DOMException is not a global constructor
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
 ## 5.0.40
 
 ### Patch Changes

@@ -1,5 +1,128 @@
 # @ai-sdk/google
 
+## 4.0.79
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 2db5621: fix(google): preserve code execution parts when replaying messages
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.78
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.75
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- 2b391f8: fix(google): ignore default prompt block reasons in non-streaming responses
+- 1284569: fix(google): include tool-use prompt tokens in input usage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.74
+
+### Patch Changes
+
+- d4d96bf: Add `google.evaluationModel()` for experimental Choice, Score, and Boolean evaluations through Gemini structured output, preserving provider thinking options and validating exact labels and score bounds. Boolean answers contain prompted P(true) estimates validated to be in [0, 1]. Boolean estimates are not guaranteed to be calibrated; application code chooses thresholds.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.73
+
+### Patch Changes
+
+- a22b5b2: fix(google): preserve prompt feedback and metadata across streaming chunks
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.72
+
+### Patch Changes
+
+- 4a994ad: feat(google): realtime session options for Gemini 3.8 Live
+
+  Add `thinkingConfig` (`thinkingLevel`, `thinkingBudget`, `includeThoughts`) and
+  `defaultToolBehavior` to `GoogleRealtimeModelOptions`. `thinkingConfig` is merged
+  into the Live `setup.generationConfig`. Background-reasoning Live models such as
+  `gemini-3.8-live-extended-thinking` require exactly one of `thinkingLevel` or
+  `thinkingBudget`, so the provider sends `thinkingLevel: 'low'` on those models
+  when neither is set. `defaultToolBehavior` stamps `behavior` on every function
+  declaration in the setup.
+
+  Forward the Live `interactionStatus` and `waitingForInput` server messages as
+  custom events so applications can tell when a background-reasoning model is idle,
+  since `turnComplete` alone no longer means that.
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.70
+
+### Patch Changes
+
+- 2a32459: fix(google): preserve JSON Schema instead of converting to OpenAPI schema
+- d93e295: fix(google): keep a realtime `functionResponse.response` an object
+
+  Gemini types that field as a `google.protobuf.Struct`, which accepts an object and
+  nothing else. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`, so a
+  string, number, array or `null` tool result reached the wire unwrapped, Gemini closed
+  the socket with `1007`, and the close code was dropped on the way back so the
+  application saw a plain disconnect. A non-object result is now wrapped under the
+  `output` key the field's own docstring prescribes; an object is passed through
+  unchanged, as before.
+
+  An `output` that is not valid JSON no longer becomes `{}`. That branch told the model
+  the tool had returned an empty object, with nothing thrown and the socket still up, so
+  the answer was wrong with nothing to notice. The text is kept instead.
+
 ## 4.0.69
 
 ### Patch Changes

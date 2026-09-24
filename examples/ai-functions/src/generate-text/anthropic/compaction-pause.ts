@@ -244,7 +244,7 @@ run(async () => {
   ];
 
   let result = await generateText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages,
     providerOptions: {
       anthropic: {
@@ -284,7 +284,7 @@ run(async () => {
       console.log('Continuing with compacted context...\n');
 
       result = await generateText({
-        model: anthropic('claude-opus-4-6'),
+        model: anthropic('claude-opus-5-5'),
         messages,
         providerOptions: {
           anthropic: {

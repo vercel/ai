@@ -12,6 +12,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -25,7 +26,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -34,6 +34,7 @@ import {
   withBridgeToken,
   writeInstructions,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -130,6 +131,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port: portOverride,
   portEndpoint: portEndpointOverride,
   startupTimeoutMs,
+  reconnect,
   clientApp,
   lifecycleStateSchema,
 }: {
@@ -138,6 +140,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
+  reconnect?: SandboxChannelReconnectOptions;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
@@ -253,11 +256,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOptions.abortSignal,
-        });
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
       const lifecycleState = continueFrom ?? startOptions.resumeFrom;
@@ -373,19 +371,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ),
         );
       }
-      const resolvedBridgeDir = posix.resolve(
-        defaultWorkingDirectory,
-        bootstrap.bootstrapDir,
-      );
-      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
-      const workDir = startOptions.sessionWorkDir;
+      // Harness SDK state always lives under the sandbox's own HOME, never
+      // the working directory, so it stays out of a user-owned workspace.
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
+      const stateDirectory = harnessStateDirectoryPath({ sandboxHomeDir });
+      const resolvedBridgeDir = posix.resolve(
+        stateDirectory,
+        bootstrap.bootstrapDir,
+      );
+      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
+      const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
-        sandboxHomeDir,
-        harnessId: settings.harnessId,
+        stateDirectory,
         sessionId: startOptions.sessionId,
       });
       const implementationHomeDir =
@@ -441,11 +441,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               token: coords.token,
             });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: () => openWebSocket(attachEndpoint),
+              connect: ({ abortSignal }) =>
+                openWebSocket({ ...attachEndpoint, abortSignal }),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
               onBridgeError,
+              reconnect,
             });
             await attachChannel.open(isContinue ? { resume: true } : undefined);
             return createSession({
@@ -700,13 +702,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
           : {}),
         onDiagnostic,
         onBridgeError,
+        reconnect,
       });
       await channel.open(
         respawnStrategy?.mode === 'disk-replay' ? { resume: true } : undefined,
@@ -1009,21 +1013,57 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (error: Error) => {
-      ws.off('open', onOpen);
-      reject(error);
+      rejectWithCleanup(error);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -1970,7 +2010,7 @@ function withNativeQuestionRequest({
     providerMetadata: {
       ...toolCall.providerMetadata,
       [harnessId]: {
-        ...(harnessMetadata ?? {}),
+        ...harnessMetadata,
         nativeRequest,
       } as NonNullable<
         Extract<HarnessV1StreamPart, { type: 'tool-call' }>['providerMetadata']
@@ -2024,7 +2064,6 @@ function takeBufferedQuestionResult({
       return buffered;
     }
   }
-  return undefined;
 }
 
 function isPermissionModeMappingValue({

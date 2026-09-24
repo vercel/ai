@@ -7,7 +7,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     stopWhen: isStepCount(3),
     maxRetries: 0,
     tools: {
