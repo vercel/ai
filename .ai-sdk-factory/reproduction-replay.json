@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21430,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21430-mcp-stdio-explicit-env.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21430-mcp-stdio-explicit-env.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #21430: the MCP child received inherited parent environment values instead of explicit env values."
+  }
+}
