@@ -1,0 +1,126 @@
+---
+title: AgentMark
+description: Monitor, group, and evaluate your AI SDK application with AgentMark
+---
+
+# AgentMark Observability
+
+[AgentMark](https://agentmark.co) ([GitHub](https://github.com/agentmark-ai/agentmark)) is a platform for building and shipping reliable AI agents. Its AI SDK integration captures:
+
+- [Traces](https://docs.agentmark.co/observe/traces-and-logs) for every `generateText`, `streamText`, `generateObject`, and `streamObject` call
+- [Cost and token usage](https://docs.agentmark.co/observe/cost-and-token-tracking) by model
+- [Sessions](https://docs.agentmark.co/observe/sessions) that group a multi-step agent run into one trace
+- [Filtering and search](https://docs.agentmark.co/observe/filtering-and-search) by user, session, tags, and metadata
+- [Evaluations](https://docs.agentmark.co/evaluate/overview)
+
+## Setup
+
+The AI SDK emits traces over OpenTelemetry. The `AgentMarkSpanProcessor` from `@agentmark-ai/otel` collects those traces and sends them to AgentMark.
+
+Install the dependencies:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet
+      text="pnpm add ai @ai-sdk/otel @agentmark-ai/otel @opentelemetry/sdk-trace-node"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="npm install ai @ai-sdk/otel @agentmark-ai/otel @opentelemetry/sdk-trace-node"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="yarn add ai @ai-sdk/otel @agentmark-ai/otel @opentelemetry/sdk-trace-node"
+      dark
+    />
+  </Tab>
+  <Tab>
+    <Snippet
+      text="bun add ai @ai-sdk/otel @agentmark-ai/otel @opentelemetry/sdk-trace-node"
+      dark
+    />
+  </Tab>
+</Tabs>
+
+Get your API key and app id from your AgentMark project settings:
+
+```bash filename=".env.local"
+AGENTMARK_API_KEY="..."
+AGENTMARK_APP_ID="..."
+```
+
+Register the AI SDK telemetry and the `AgentMarkSpanProcessor` once at startup. The `register()` call installs the OpenTelemetry context manager, so grouping carries across `await`:
+
+```ts filename="instrumentation.ts"
+import { registerTelemetry } from 'ai';
+import { LegacyOpenTelemetry } from '@ai-sdk/otel';
+import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
+import { AgentMarkSpanProcessor } from '@agentmark-ai/otel';
+
+registerTelemetry(new LegacyOpenTelemetry());
+
+const tracerProvider = new NodeTracerProvider({
+  spanProcessors: [
+    new AgentMarkSpanProcessor({
+      apiKey: process.env.AGENTMARK_API_KEY!, // raw key, no "Bearer" prefix
+      appId: process.env.AGENTMARK_APP_ID!,
+    }),
+  ],
+});
+
+tracerProvider.register();
+```
+
+That is all the setup needs. Every AI SDK call now sends a trace to AgentMark:
+
+```ts
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+const { text } = await generateText({
+  model: openai('gpt-4o'),
+  prompt: 'Write a short story about a cat.',
+});
+```
+
+## Group by session, user, and metadata
+
+Wrap calls in `withAgentMark` to group them into a session, attribute them to a user, and attach tags or custom metadata. Every span created inside the callback carries the grouping, so the whole trace stays together, not only the model call:
+
+```ts highlight="7-10"
+import { withAgentMark } from '@agentmark-ai/otel';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+
+await withAgentMark(
+  {
+    sessionId: 'session-456',
+    userId: 'user-123',
+    tags: ['support-chat'],
+    metadata: { feature: 'support' },
+  },
+  () =>
+    generateText({
+      model: openai('gpt-4o'),
+      prompt: 'How do I reset my password?',
+    }),
+);
+```
+
+`withAgentMark` accepts `sessionId`, `sessionName`, `userId`, `traceName`, `tags`, and `metadata`. Calls that share a `sessionId` group into one [session](https://docs.agentmark.co/observe/sessions); `tags` and `metadata` drive [filtering and search](https://docs.agentmark.co/observe/filtering-and-search).
+
+<Note>
+  On the AI SDK v7 the `telemetry.metadata` option no longer reaches spans, so
+  `withAgentMark` is how you attach session, user, and metadata. It groups any
+  OpenTelemetry span in the wrapped scope, not only AI SDK calls.
+</Note>
+
+## Learn more
+
+- [AgentMark documentation](https://docs.agentmark.co)
+- [Trace grouping with `@agentmark-ai/otel`](https://docs.agentmark.co/integrations/tracing/agentmark-otel)
+- [AI SDK telemetry documentation](/docs/ai-sdk-core/telemetry)
