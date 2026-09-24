@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
@@ -65,6 +66,30 @@ function convertUrlToolResultPart(
       data: parsedDataUrl.data,
     },
   };
+}
+
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Gemini treats $ref in structured function response content as a protocol
+  // reference and rejects JSON Schema results with a 400. This is a Google API
+  // limitation: serializing preserves the tool result without that interpretation.
+  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
 }
 
 /*
@@ -654,7 +679,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });
