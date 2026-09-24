@@ -3014,6 +3014,91 @@ describe('AnthropicLanguageModel', () => {
     });
 
     describe('programmatic tool calling', () => {
+      it('surfaces the live API error for an orphaned caller source tool reference', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'error',
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+          body: fs.readFileSync(
+            'src/__fixtures__/anthropic-issue-12504-orphaned-caller-error.1.json',
+            'utf8',
+          ),
+        };
+
+        const sourceToolCallId = 'srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK';
+        const dependentToolCallId = 'toolu_019jKkXz4jAdwHweHBw92CVY';
+
+        await expect(
+          model.doGenerate({
+            prompt: [
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: dependentToolCallId,
+                    toolName: 'lookup',
+                    input: { ticker: 'AAPL' },
+                    providerOptions: {
+                      anthropic: {
+                        caller: {
+                          type: 'code_execution_20250825',
+                          toolId: sourceToolCallId,
+                        },
+                      },
+                    },
+                  },
+                ],
+              },
+            ],
+            tools: [
+              {
+                type: 'provider',
+                id: 'anthropic.code_execution_20250825',
+                name: 'code_execution',
+                args: {},
+              },
+              {
+                type: 'function',
+                name: 'lookup',
+                inputSchema: {
+                  type: 'object',
+                  properties: { ticker: { type: 'string' } },
+                  required: ['ticker'],
+                },
+                providerOptions: {
+                  anthropic: {
+                    allowedCallers: ['code_execution_20250825'],
+                  },
+                },
+              },
+            ],
+          }),
+        ).rejects.toMatchObject({
+          statusCode: 400,
+          message:
+            'source tool `srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK` not found for tool use block `toolu_019jKkXz4jAdwHweHBw92CVY`',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool_use',
+                  id: dependentToolCallId,
+                  caller: {
+                    type: 'code_execution_20250825',
+                    tool_id: sourceToolCallId,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+      });
+
       it('should include caller info when tool_use has caller field from code_execution', async () => {
         server.urls['https://api.anthropic.com/v1/messages'].response = {
           type: 'json-value',
