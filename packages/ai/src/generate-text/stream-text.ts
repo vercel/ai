@@ -1665,6 +1665,15 @@ class DefaultStreamTextResult<
             tools,
           });
 
+          // Warnings discovered during the model call can arrive on the
+          // start-step part (call-level warnings) or on the finish-step part
+          // (e.g. reasoning tokens were spent but no reasoning content was
+          // returned by the provider). Both must reach the step result.
+          const stepWarnings = [
+            ...(recordedWarnings ?? []),
+            ...(part.warnings ?? []),
+          ];
+
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS, RUNTIME_CONTEXT> =
             new DefaultStepResult({
@@ -1679,7 +1688,7 @@ class DefaultStreamTextResult<
               rawFinishReason: part.rawFinishReason,
               usage: part.usage,
               performance: part.performance,
-              warnings: recordedWarnings,
+              warnings: stepWarnings,
               request: {
                 ...recordedRequest,
                 messages: include.requestMessages
@@ -1699,7 +1708,7 @@ class DefaultStreamTextResult<
           });
 
           logWarnings({
-            warnings: recordedWarnings,
+            warnings: stepWarnings,
             provider: currentStepModel.provider,
             model: currentStepModel.modelId,
           });
