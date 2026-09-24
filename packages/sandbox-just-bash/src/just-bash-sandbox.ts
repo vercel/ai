@@ -3,7 +3,7 @@ import type {
   HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { Sandbox } from 'just-bash';
+import { defineCommand, Sandbox, type CommandContext } from 'just-bash';
 import { JustBashNetworkSandboxSession } from './just-bash-network-sandbox-session';
 
 /**
@@ -33,51 +33,6 @@ export type JustBashSandboxSettings =
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
 const REALPATH_PATH = '/usr/bin/realpath';
-const REALPATH_SCRIPT = `#!/usr/bin/env bash
-pending=\${1:?}
-resolved=
-link_count=0
-link_marker=__AI_SDK_REALPATH_LINK_END__
-case "$pending" in
-  /*) ;;
-  *) pending=$PWD/$pending ;;
-esac
-while [ -n "$pending" ]; do
-  pending=\${pending#/}
-  [ -n "$pending" ] || break
-  component=\${pending%%/*}
-  if [ "$pending" = "$component" ]; then
-    pending=
-  else
-    pending=\${pending#*/}
-  fi
-  case "$component" in
-    ""|.) continue ;;
-    ..)
-      resolved=\${resolved%/*}
-      continue
-      ;;
-  esac
-  candidate=$resolved/$component
-  if [ -L "$candidate" ]; then
-    link_count=$((link_count + 1))
-    [ "$link_count" -le 64 ] || exit 1
-    link_target_framed=$(readlink "$candidate"; readlink_status=$?; printf '%s' "$link_marker"; exit "$readlink_status")
-    readlink_status=$?
-    [ "$readlink_status" -eq 0 ] || exit 1
-    target=\${link_target_framed%$link_marker}
-    target=\${target%$'\n'}
-    case "$target" in
-      /*) pending=$target\${pending:+/$pending} ;;
-      *) pending=\${candidate%/*}/$target\${pending:+/$pending} ;;
-    esac
-    resolved=
-  else
-    resolved=$candidate
-  fi
-done
-printf '%s\n' "\${resolved:-/}"
-`;
 
 async function ensureRealpath(sandbox: Sandbox): Promise<void> {
   const fs = sandbox.bashEnvInstance.fs;
@@ -90,8 +45,85 @@ async function ensureRealpath(sandbox: Sandbox): Promise<void> {
     }
   }
 
-  await sandbox.writeFiles({ [REALPATH_PATH]: REALPATH_SCRIPT });
-  await fs.chmod(REALPATH_PATH, 0o755);
+  sandbox.bashEnvInstance.registerCommand(
+    defineCommand('realpath', executeRealpath),
+  );
+}
+
+async function executeRealpath(
+  args: string[],
+  context: CommandContext,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  if (args.length === 0 || args[0] === '') {
+    return {
+      stdout: '',
+      stderr: 'realpath: missing operand\n',
+      exitCode: 1,
+    };
+  }
+
+  let pending = args[0].startsWith('/') ? args[0] : `${context.cwd}/${args[0]}`;
+  let resolved = '';
+  let linkCount = 0;
+
+  while (pending.length > 0) {
+    pending = pending.replace(/^\//, '');
+    if (pending.length === 0) {
+      break;
+    }
+
+    const separatorIndex = pending.indexOf('/');
+    const component =
+      separatorIndex === -1 ? pending : pending.slice(0, separatorIndex);
+    pending = separatorIndex === -1 ? '' : pending.slice(separatorIndex + 1);
+
+    if (component === '' || component === '.') {
+      continue;
+    }
+    if (component === '..') {
+      resolved = resolved.slice(0, resolved.lastIndexOf('/'));
+      continue;
+    }
+
+    const candidate = `${resolved}/${component}`;
+    let isSymbolicLink = false;
+    try {
+      isSymbolicLink = (await context.fs.lstat(candidate)).isSymbolicLink;
+    } catch (error) {
+      if (!isFileNotFoundError(error)) {
+        throw error;
+      }
+    }
+
+    if (!isSymbolicLink) {
+      resolved = candidate;
+      continue;
+    }
+
+    linkCount += 1;
+    if (linkCount > 64) {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+
+    let target: string;
+    try {
+      target = await context.fs.readlink(candidate);
+    } catch {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+
+    const remainder = pending.length > 0 ? `/${pending}` : '';
+    pending = target.startsWith('/')
+      ? `${target}${remainder}`
+      : `${candidate.slice(0, candidate.lastIndexOf('/'))}/${target}${remainder}`;
+    resolved = '';
+  }
+
+  return {
+    stdout: `${resolved || '/'}\n`,
+    stderr: '',
+    exitCode: 0,
+  };
 }
 
 function isFileNotFoundError(error: unknown): boolean {
