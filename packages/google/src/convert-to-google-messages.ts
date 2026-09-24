@@ -86,9 +86,9 @@ function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
 function serializeFunctionResponseContent(
   value: JSONValue,
 ): JSONValue | string {
-  // Gemini treats $ref in structured function response content as a protocol
-  // reference and rejects JSON Schema results with a 400. This is a Google API
-  // limitation: serializing preserves the tool result without that interpretation.
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
   return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
 }
 
