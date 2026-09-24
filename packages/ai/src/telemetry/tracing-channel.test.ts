@@ -561,6 +561,115 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('filters text generation context using telemetry allowlists', async () => {
+    const usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 1,
+        text: 1,
+        reasoning: undefined,
+      },
+    };
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        contextSchema: z.object({
+          tenantId: z.string(),
+          apiKey: z.string(),
+        }),
+        execute: async () => 'sunny',
+      }),
+    };
+    const contextOptions = {
+      runtimeContext: {
+        requestId: 'request-1',
+        accessToken: 'secret-token',
+      },
+      toolsContext: {
+        weather: {
+          tenantId: 'tenant-1',
+          apiKey: 'secret-key',
+        },
+      },
+      telemetry: {
+        includeRuntimeContext: { requestId: true },
+        includeToolsContext: { weather: { tenantId: true } },
+      },
+    } as const;
+
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage,
+            warnings: [],
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'generate-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+            ],
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...contextOptions,
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallId: 'stream-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                usage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...contextOptions,
+      });
+
+      await result.consumeStream();
+    });
+
+    for (const type of ['generateText', 'streamText'] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          runtimeContext: { requestId: 'request-1' },
+          toolsContext: { weather: { tenantId: 'tenant-1' } },
+        }),
+      );
+    }
+
+    expect(
+      messages
+        .filter(message => message.type === 'executeTool')
+        .map(
+          message => (message.event as { toolContext: unknown }).toolContext,
+        ),
+    ).toEqual([{ tenantId: 'tenant-1' }, { tenantId: 'tenant-1' }]);
+  });
+
   it('traces the current embed lifecycle sequence', async () => {
     const sequence = await collectTracingChannelEventSequence(async () => {
       await embed({
