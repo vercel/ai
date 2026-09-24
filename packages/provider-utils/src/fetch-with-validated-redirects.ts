@@ -14,57 +14,6 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
 // even when a server attaches a Location header.
 const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
-// Unknown custom header names cannot be classified reliably: providers may use
-// arbitrary names for credentials. When the first hop is not explicitly
-// credentialed, retain only request metadata with established non-credential
-// semantics and withhold every other caller header.
-const SAFE_UNTRUSTED_FIRST_HOP_HEADERS = new Set([
-  'accept',
-  'accept-language',
-  'baggage',
-  'cache-control',
-  'idempotency-key',
-  'if-match',
-  'if-modified-since',
-  'if-none-match',
-  'if-range',
-  'if-unmodified-since',
-  'pragma',
-  'range',
-  'traceparent',
-  'tracestate',
-  'user-agent',
-  'x-correlation-id',
-  'x-request-id',
-]);
-
-function retainSafeUntrustedFirstHopHeaders(
-  headers: Headers,
-  additionalHeaders: readonly string[] | undefined,
-): Headers {
-  const allowedHeaders =
-    additionalHeaders === undefined
-      ? SAFE_UNTRUSTED_FIRST_HOP_HEADERS
-      : new Set([
-          ...SAFE_UNTRUSTED_FIRST_HOP_HEADERS,
-          ...additionalHeaders.map(name => name.toLowerCase()),
-        ]);
-  const retainedHeaders = new Headers();
-  for (const [name, value] of headers) {
-    if (allowedHeaders.has(name)) {
-      retainedHeaders.set(name, value);
-    }
-  }
-  return retainedHeaders;
-}
-
-function retainUserAgentHeader(headers: Headers): Headers {
-  const userAgent = headers.get('user-agent');
-  return new Headers(
-    userAgent == null ? undefined : { 'user-agent': userAgent },
-  );
-}
-
 async function getValidatedFetch(
   customFetch: FetchFunction | undefined,
 ): Promise<FetchFunction> {
@@ -132,14 +81,11 @@ export async function fetchWithValidatedEndpoint({
  * guard.
  *
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
- * proxy/metadata/cookie/hop-by-hop headers. Credential-bearing caller headers
- * are sent on the first hop only when it is same-origin with
- * `credentialedOrigin`, or with `trustedOrigin` when no separate
- * `credentialedOrigin` is provided. Otherwise only an explicit allowlist of
- * non-credential request metadata is retained; all other caller headers are
- * withheld because arbitrary provider credential names cannot be inferred
- * safely. All caller headers except `User-Agent` are also dropped on a
- * cross-origin redirect.
+ * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
+ * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * Credentials and custom headers are preserved on the first hop for backwards
+ * compatibility. The caller must ensure that the initial URL may receive them.
+ * Use `fetchUntrustedUrl` for URLs that require first-hop credential isolation.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -178,9 +124,7 @@ export async function fetchWithValidatedRedirects({
   abortSignal,
   maxRedirects = MAX_DOWNLOAD_REDIRECTS,
   fetch: customFetch,
-  credentialedOrigin,
   trustedOrigin,
-  untrustedFirstHopHeaders,
 }: {
   url: string;
   headers?: HeadersInit;
@@ -188,47 +132,15 @@ export async function fetchWithValidatedRedirects({
   maxRedirects?: number;
   fetch?: FetchFunction;
   /**
-   * An origin that may receive arbitrary caller headers on the first hop. When
-   * omitted, or when `url` is not same-origin with it, only explicitly
-   * allowlisted non-credential request metadata is retained unless `url` is
-   * same-origin with `trustedOrigin`. Set this separately when the origin
-   * allowed to receive credentials is narrower than `trustedOrigin`.
-   */
-  credentialedOrigin?: string;
-  /**
-   * Additional sanitized header names that may be sent when the first hop is
-   * not same-origin with `credentialedOrigin` or `trustedOrigin`. Use this only
-   * for protocol metadata that is safe to disclose to an untrusted URL.
-   * Credential-bearing headers should instead use `credentialedOrigin`.
-   */
-  untrustedFirstHopHeaders?: readonly string[];
-  /**
    * A developer-configured origin (e.g. the provider's `baseURL`) whose hops
    * skip target validation. Must never be derived from response data.
    */
   trustedOrigin?: string;
 }): Promise<Response> {
-  // trustedOrigin is already an explicit developer-configured trust decision.
-  // Preserve compatibility for direct callers that used it before the
-  // credential gate was introduced, while allowing credentialedOrigin to
-  // narrow the header-receiving origin when both options are provided.
-  const firstHopCredentialedOrigin = credentialedOrigin ?? trustedOrigin;
-
   // Left undefined when no headers are provided (bare request); otherwise
-  // sanitized once and reduced to explicitly safe request metadata unless the
-  // first hop is explicitly allowed to receive arbitrary caller headers.
-  let currentHeaders: Headers | undefined;
-  if (headers !== undefined) {
-    const sanitizedHeaders = sanitizeRequestHeaders(headers);
-    currentHeaders =
-      firstHopCredentialedOrigin !== undefined &&
-      isSameOrigin(url, firstHopCredentialedOrigin)
-        ? sanitizedHeaders
-        : retainSafeUntrustedFirstHopHeaders(
-            sanitizedHeaders,
-            untrustedFirstHopHeaders,
-          );
-  }
+  // sanitized once and replaced on a cross-origin hop (credential drop below).
+  let currentHeaders =
+    headers === undefined ? undefined : sanitizeRequestHeaders(headers);
 
   const perHopInit = (redirect: RequestRedirect): RequestInit => {
     const init: RequestInit = { signal: abortSignal, redirect };
@@ -287,7 +199,10 @@ export async function fetchWithValidatedRedirects({
       // with custom headers too (e.g. `x-key`), and without CORS there is
       // nothing else stopping them from riding to a foreign host.
       if (currentHeaders !== undefined && !isSameOrigin(nextUrl, currentUrl)) {
-        currentHeaders = retainUserAgentHeader(currentHeaders);
+        const userAgent = currentHeaders.get('user-agent');
+        currentHeaders = new Headers(
+          userAgent == null ? undefined : { 'user-agent': userAgent },
+        );
       }
 
       currentUrl = nextUrl;

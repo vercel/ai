@@ -2,13 +2,14 @@
 "@ai-sdk/provider-utils": patch
 ---
 
-fix(provider-utils): withhold caller credentials from untrusted first-hop URLs.
+Add `fetchUntrustedUrl`, an opt-in fetch helper that withholds credentials and
+unknown custom headers from untrusted first-hop URLs. A matching configured
+`credentialedOrigin` (or `trustedOrigin` when omitted) allows sanitized caller
+headers. Otherwise only allowlisted metadata is sent; callers can explicitly
+allow additional non-credential metadata with `untrustedFirstHopHeaders`.
 
-`fetchWithValidatedRedirects` now sends arbitrary caller headers on the first
-hop only when `credentialedOrigin` matches the request URL, or `trustedOrigin`
-matches when no separate credentialed origin is configured. Otherwise it
-retains only an explicit allowlist of non-credential request metadata, so
-vendor-defined API-key headers are denied by default without misclassifying
-legitimate headers such as `idempotency-key`. Cross-origin redirects continue
-to retain only `User-Agent`. Direct callers can explicitly enumerate additional
-non-credential protocol metadata with `untrustedFirstHopHeaders`.
+The helper shares URL validation, DNS pinning, and redirect protection with
+`fetchWithValidatedRedirects`, and is now used by `downloadBlob`.
+`fetchWithValidatedRedirects` and `getFromApi` retain their existing behavior.
+Direct callers must opt into the new helper for first-hop credential isolation;
+existing authenticated and custom-header requests are not silently changed.

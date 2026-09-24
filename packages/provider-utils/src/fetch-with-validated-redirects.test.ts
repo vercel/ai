@@ -70,6 +70,30 @@ describe('fetchWithValidatedEndpoint', () => {
 });
 
 describe('fetchWithValidatedRedirects', () => {
+  it.each([undefined, 'https://example.com', 'https://provider.example.com'])(
+    'preserves legacy first-hop credentials and custom headers with trustedOrigin %s',
+    async trustedOrigin => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+      await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        trustedOrigin,
+        headers: {
+          authorization: 'Bearer secret',
+          'x-jfrog-art-api': 'vendor-secret',
+          'x-custom-metadata': 'custom-value',
+        },
+        fetch: fetchMock,
+      });
+
+      expect(Object.fromEntries(fetchMock.mock.calls[0][1].headers)).toEqual({
+        authorization: 'Bearer secret',
+        'x-jfrog-art-api': 'vendor-secret',
+        'x-custom-metadata': 'custom-value',
+      });
+    },
+  );
+
   it('validates the initial URL before requesting it', async () => {
     const fetchMock = vi.fn();
 
@@ -333,7 +357,6 @@ describe('fetchWithValidatedRedirects', () => {
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
       headers: { authorization: 'Bearer secret' },
-      credentialedOrigin: 'https://example.com',
       fetch: fetchMock,
     });
 
@@ -379,51 +402,6 @@ describe('fetchWithValidatedRedirects', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it('sends sanitized caller headers to a matching trusted origin when no separate credentialed origin is provided', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
-
-    await fetchWithValidatedRedirects({
-      url: 'http://localhost:5000/predictions/123',
-      trustedOrigin: 'http://localhost:5000',
-      headers: {
-        authorization: 'Bearer secret',
-        'metadata-flavor': 'Google',
-        'x-request-id': 'request-id',
-      },
-      fetch: fetchMock,
-    });
-
-    const sent = fetchMock.mock.calls[0][1].headers as Headers;
-    expect(sent.get('authorization')).toBe('Bearer secret');
-    expect(sent.get('metadata-flavor')).toBeNull();
-    expect(sent.get('x-request-id')).toBe('request-id');
-  });
-
-  it('uses credentialedOrigin to narrow a matching trusted origin', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
-
-    await fetchWithValidatedRedirects({
-      url: 'http://localhost:5000/predictions/123',
-      trustedOrigin: 'http://localhost:5000',
-      credentialedOrigin: 'https://api.example.com',
-      headers: {
-        accept: 'application/json',
-        authorization: 'Bearer secret',
-        'idempotency-key': 'operation-id',
-        'x-jfrog-art-api': 'jfrog-api-key',
-        'x-request-id': 'request-id',
-      },
-      fetch: fetchMock,
-    });
-
-    const sent = fetchMock.mock.calls[0][1].headers as Headers;
-    expect(sent.get('accept')).toBe('application/json');
-    expect(sent.get('authorization')).toBeNull();
-    expect(sent.get('idempotency-key')).toBe('operation-id');
-    expect(sent.get('x-jfrog-art-api')).toBeNull();
-    expect(sent.get('x-request-id')).toBe('request-id');
-  });
-
   it('uses the injected fetch instead of the global one', async () => {
     globalThis.fetch = vi.fn();
     const injected = vi.fn().mockResolvedValueOnce(okResponse());
@@ -437,79 +415,15 @@ describe('fetchWithValidatedRedirects', () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['no credentialed origin', undefined],
-    ['a different credentialed origin', 'https://provider.example.com'],
-  ])(
-    'withholds arbitrary headers but keeps allowlisted request metadata from a first hop with %s',
-    async (_, origin) => {
-      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
-
-      await fetchWithValidatedRedirects({
-        url: 'https://example.com/file',
-        headers: {
-          accept: 'image/*',
-          authorization: 'Bearer secret',
-          'idempotency-key': 'operation-id',
-          range: 'bytes=0-1023',
-          'x-access-token': 'access-token',
-          'x-client-secret': 'client-secret',
-          'x-goog-api-key': 'google-api-key',
-          'x-jfrog-art-api': 'jfrog-api-key',
-          'x-key': 'provider-api-key',
-          'x-request-id': 'request-id',
-          'user-agent': 'ai-sdk/test',
-        },
-        credentialedOrigin: origin,
-        fetch: fetchMock,
-      });
-
-      const sent = fetchMock.mock.calls[0][1].headers as Headers;
-      expect(sent.get('accept')).toBe('image/*');
-      expect(sent.get('authorization')).toBeNull();
-      expect(sent.get('idempotency-key')).toBe('operation-id');
-      expect(sent.get('range')).toBe('bytes=0-1023');
-      expect(sent.get('x-access-token')).toBeNull();
-      expect(sent.get('x-client-secret')).toBeNull();
-      expect(sent.get('x-goog-api-key')).toBeNull();
-      expect(sent.get('x-jfrog-art-api')).toBeNull();
-      expect(sent.get('x-key')).toBeNull();
-      expect(sent.get('x-request-id')).toBe('request-id');
-      expect(sent.get('user-agent')).toBe('ai-sdk/test');
-    },
-  );
-
-  it('retains caller-approved protocol metadata on an untrusted first hop', async () => {
+  it('strips blocked request headers before sending', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      headers: {
-        authorization: 'Bearer secret',
-        'proxy-authorization': 'Basic secret',
-        'x-protocol-version': '2026-09-24',
-      },
-      untrustedFirstHopHeaders: ['X-Protocol-Version', 'Proxy-Authorization'],
-      fetch: fetchMock,
-    });
-
-    const sent = fetchMock.mock.calls[0][1].headers as Headers;
-    expect(sent.get('authorization')).toBeNull();
-    expect(sent.get('proxy-authorization')).toBeNull();
-    expect(sent.get('x-protocol-version')).toBe('2026-09-24');
-  });
-
-  it('sends sanitized caller headers to a matching credentialed origin', async () => {
-    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
-
-    await fetchWithValidatedRedirects({
-      url: 'https://example.com/file',
-      credentialedOrigin: 'https://example.com',
       headers: {
         authorization: 'Bearer secret',
         'metadata-flavor': 'Google',
         'x-forwarded-for': '10.0.0.1',
-        'x-request-id': 'request-id',
         cookie: 'session=abc',
       },
       fetch: fetchMock,
@@ -520,7 +434,6 @@ describe('fetchWithValidatedRedirects', () => {
     expect(sent.get('x-forwarded-for')).toBeNull();
     expect(sent.get('cookie')).toBeNull();
     expect(sent.get('authorization')).toBe('Bearer secret');
-    expect(sent.get('x-request-id')).toBe('request-id');
   });
 
   it('drops all caller headers except user-agent on a cross-origin redirect but keeps them same-origin', async () => {
@@ -533,7 +446,6 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      credentialedOrigin: 'https://example.com',
       headers: {
         authorization: 'Bearer secret',
         'x-key': 'provider-api-key',
@@ -555,7 +467,6 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      credentialedOrigin: 'https://example.com',
       headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
       fetch: sameOrigin,
     });
@@ -574,7 +485,6 @@ describe('fetchWithValidatedRedirects', () => {
 
     await fetchWithValidatedRedirects({
       url: 'https://example.com/file',
-      credentialedOrigin: 'https://example.com',
       headers: { authorization: 'Bearer secret', 'x-key': 'provider-api-key' },
       fetch: fetchMock,
     });

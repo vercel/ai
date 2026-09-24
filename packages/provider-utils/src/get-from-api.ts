@@ -86,10 +86,6 @@ export const getFromApi = async <T>({
           headers: requestHeaders,
           abortSignal,
           fetch,
-          // getFromApi already applies its backwards-compatible
-          // credentialedOrigin policy above. Preserve that decision when
-          // delegating to the stricter validated-redirect helper.
-          credentialedOrigin: credentialedOrigin ?? url,
           trustedOrigin,
         })
       : await requestFetch(url, {
