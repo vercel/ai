@@ -1,6 +1,7 @@
 import type {
   AssistantModelMessage,
   ModelMessage,
+  ToolCallPart,
   ToolModelMessage,
 } from '@ai-sdk/provider-utils';
 
@@ -110,6 +111,7 @@ export function pruneMessages({
     // unresolved, which caused them to be kept while their request was pruned,
     // producing orphaned approval responses.
     const toolCallIdToToolName = new Map<string, string>();
+    const toolCallIdToDependencyId = new Map<string, string>();
     for (const message of messages) {
       if (
         (message.role === 'assistant' || message.role === 'tool') &&
@@ -118,6 +120,22 @@ export function pruneMessages({
         for (const part of message.content) {
           if (part.type === 'tool-call' || part.type === 'tool-result') {
             toolCallIdToToolName.set(part.toolCallId, part.toolName);
+
+            // Selectively excluded tools are retained by the filter below, so
+            // include them when tracing dependencies as well.
+            if (
+              toolCall.tools != null &&
+              !toolCall.tools.includes(part.toolName)
+            ) {
+              keptToolCallIds.add(part.toolCallId);
+            }
+          }
+
+          if (part.type === 'tool-call') {
+            const dependencyId = getToolCallDependencyId(part);
+            if (dependencyId != null) {
+              toolCallIdToDependencyId.set(part.toolCallId, dependencyId);
+            }
           }
         }
       }
@@ -150,6 +168,18 @@ export function pruneMessages({
       const toolCallId = approvalIdToToolCallId.get(approvalId);
       if (toolCallId != null) {
         keptToolCallIds.add(toolCallId);
+      }
+    }
+
+    // Anthropic programmatic tool calls depend on their originating code
+    // execution call. Trace those dependencies transitively so pruning does
+    // not retain a caller reference after removing its source tool call.
+    const pendingToolCallIds = [...keptToolCallIds];
+    for (const toolCallId of pendingToolCallIds) {
+      const dependencyId = toolCallIdToDependencyId.get(toolCallId);
+      if (dependencyId != null && !keptToolCallIds.has(dependencyId)) {
+        keptToolCallIds.add(dependencyId);
+        pendingToolCallIds.push(dependencyId);
       }
     }
 
@@ -208,4 +238,18 @@ export function pruneMessages({
   }
 
   return messages;
+}
+
+function getToolCallDependencyId(part: ToolCallPart): string | undefined {
+  const caller = (
+    part.providerOptions?.anthropic as
+      | { caller?: { type?: unknown; toolId?: unknown } }
+      | undefined
+  )?.caller;
+
+  return (caller?.type === 'code_execution_20250825' ||
+    caller?.type === 'code_execution_20260120') &&
+    typeof caller.toolId === 'string'
+    ? caller.toolId
+    : undefined;
 }
