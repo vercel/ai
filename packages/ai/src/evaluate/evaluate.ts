@@ -10,7 +10,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import { resolveEvaluationModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
-import { filterIncludedContext } from '../telemetry/filter-included-context';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Callback } from '../util/callback';
 import { notify } from '../util/notify';
@@ -112,17 +111,9 @@ export async function evaluate<
     headers,
     providerOptions,
   };
-  const tracingStartEvent = {
-    ...startEvent,
-    runtimeContext: filterIncludedContext({
-      context: runtimeContext,
-      includeContext: telemetry?.includeRuntimeContext,
-    }),
-  };
-
   return await runInTracingChannelSpan({
     type: 'experimental_evaluate',
-    event: tracingStartEvent,
+    event: startEvent,
     execute: async () => {
       await notify({
         event: startEvent,

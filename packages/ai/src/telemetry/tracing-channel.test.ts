@@ -561,6 +561,188 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
+  it('filters tracing context using telemetry allowlists', async () => {
+    const usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 1,
+        text: 1,
+        reasoning: undefined,
+      },
+    };
+    const tools = {
+      weather: tool({
+        inputSchema: z.object({ city: z.string() }),
+        contextSchema: z.object({
+          tenantId: z.string(),
+          apiKey: z.string(),
+        }),
+        execute: async () => 'sunny',
+      }),
+    };
+    const runtimeContext = {
+      requestId: 'request-1',
+      accessToken: 'secret-token',
+    };
+    const telemetry = {
+      includeRuntimeContext: { requestId: true },
+    } as const;
+    const textContextOptions = {
+      runtimeContext: {
+        ...runtimeContext,
+      },
+      toolsContext: {
+        weather: {
+          tenantId: 'tenant-1',
+          apiKey: 'secret-key',
+        },
+      },
+      telemetry: {
+        ...telemetry,
+        includeToolsContext: { weather: { tenantId: true } },
+      },
+    } as const;
+
+    const messages = await collectTracingChannelStartMessages(async () => {
+      await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+            usage,
+            warnings: [],
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'generate-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+            ],
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...textContextOptions,
+      });
+
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'tool-call',
+                toolCallId: 'stream-weather-call',
+                toolName: 'weather',
+                input: JSON.stringify({ city: 'Berlin' }),
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'tool-calls', raw: 'tool_calls' },
+                usage,
+              },
+            ]),
+          }),
+        }),
+        prompt: 'What is the weather?',
+        tools,
+        ...textContextOptions,
+      });
+
+      await result.consumeStream();
+
+      const embeddingModel = new MockEmbeddingModelV4({
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => [0.1, 0.2, 0.3]),
+          usage: { tokens: 10 },
+          warnings: [],
+        }),
+      });
+
+      await embed({
+        model: embeddingModel,
+        value: 'sunny day at the beach',
+        runtimeContext,
+        telemetry,
+      });
+
+      await embedMany({
+        model: embeddingModel,
+        values: ['sunny day at the beach', 'rainy day in the city'],
+        runtimeContext,
+        telemetry,
+      });
+
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 0.9 }],
+            warnings: [],
+          }),
+        }),
+        documents: ['sunny day at the beach'],
+        query: 'weather',
+        runtimeContext,
+        telemetry,
+      });
+
+      await evaluate({
+        model: new EvaluationMockModelV4({
+          doEvaluate: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        runtimeContext,
+        telemetry,
+      });
+    });
+
+    for (const type of [
+      'generateText',
+      'streamText',
+      'embed',
+      'embedMany',
+      'rerank',
+      'experimental_evaluate',
+    ] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          runtimeContext: { requestId: 'request-1' },
+        }),
+      );
+    }
+
+    for (const type of ['generateText', 'streamText'] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          toolsContext: { weather: { tenantId: 'tenant-1' } },
+        }),
+      );
+    }
+
+    expect(
+      messages
+        .filter(message => message.type === 'executeTool')
+        .map(
+          message => (message.event as { toolContext: unknown }).toolContext,
+        ),
+    ).toEqual([{ tenantId: 'tenant-1' }, { tenantId: 'tenant-1' }]);
+  });
+
   it('traces the current embed lifecycle sequence', async () => {
     const sequence = await collectTracingChannelEventSequence(async () => {
       await embed({
