@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateSpeech({
-    model: google.speech('gemini-2.5-flash-preview-tts'),
+    model: google.speech('gemini-3.8-flash-tts'),
     text: 'Hello from the AI SDK!',
     voice: 'Puck',
   });

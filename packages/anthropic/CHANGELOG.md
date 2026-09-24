@@ -1,5 +1,15 @@
 # @ai-sdk/anthropic
 
+## 4.0.62
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
 ## 4.0.61
 
 ### Patch Changes

@@ -588,15 +588,39 @@ The following provider options are available:
 
 - **logprobs** _boolean_
 
-  Return log probabilities for output tokens.
+  Return log probabilities for output tokens. This is silently ignored by `grok-4.20` and newer models.
 
 - **topLogprobs** _number_
 
-  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled.
+  Number of most likely tokens to return per token position (0-8). When set, `logprobs` is automatically enabled. This is silently ignored by `grok-4.20` and newer models.
 
-- **include** _Array&lt;'file_search_call.results'&gt;_
+- **minP** _number_
 
-  Specify additional output data to include in the model response. Use `['file_search_call.results']` to include file search results with scores and content.
+  Set the min-p sampling threshold between 0 and 1. Tokens whose probability is below `minP` times the most likely token's probability are excluded. Unlike the standard AI SDK `topK` option, `minP` is xAI-specific and must be set in `providerOptions.xai`.
+
+- **maxTurns** _number_
+
+  Set the maximum number of assistant/server-side tool turns xAI may perform within one API request. This limits xAI's internal loop for provider-executed tools such as web search; it is separate from AI SDK's `stopWhen`, which limits the outer loop of AI SDK steps and API requests.
+
+- **parallelToolCalls** _boolean_
+
+  Allow the model to call tools in parallel. Defaults to `true`.
+
+- **promptCacheKey** _string_
+
+  Route requests with shared prompt prefixes to improve cache reuse.
+
+- **safetyIdentifier** _string_
+
+  Provide a stable, preferably hashed end-user identifier for safety monitoring.
+
+- **user** _string_
+
+  Provide an end-user identifier for abuse monitoring.
+
+- **include** _Array&lt;'file_search_call.results' | 'web_search_call.action.sources' | 'code_interpreter_call.outputs' | 'reasoning.encrypted_content' | 'no_inline_citations'&gt;_
+
+  Include file-search results, web-search sources, code-interpreter outputs, or encrypted reasoning content, or disable inline citations.
 
 - **store** _boolean_
 
@@ -1062,7 +1086,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -1084,7 +1108,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',
@@ -1106,7 +1130,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'The cat slowly turns its head and blinks',
   frameImages: [
     {
@@ -1138,7 +1162,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'Give the person sunglasses and a hat',
   providerOptions: {
     xai: {
@@ -1176,7 +1200,7 @@ const providerOptions = {
 
 // Step 1: Apply an initial edit
 const step1 = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'Add a party hat to the person',
   providerOptions,
 });
@@ -1187,7 +1211,7 @@ const step1VideoUrl = step1.providerMetadata?.xai?.videoUrl as string;
 // Step 2: Apply two more edits concurrently, building on step 1
 const [withSunglasses, withScarf] = await Promise.all([
   generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: xai.video('grok-imagine-video-1.5'),
     prompt: 'Add sunglasses',
     providerOptions: {
       xai: {
@@ -1198,7 +1222,7 @@ const [withSunglasses, withScarf] = await Promise.all([
     },
   }),
   generateVideo({
-    model: xai.video('grok-imagine-video'),
+    model: xai.video('grok-imagine-video-1.5'),
     prompt: 'Add a scarf',
     providerOptions: {
       xai: {
@@ -1221,7 +1245,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 
 // Step 1: Generate a source video
 const source = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
   duration: 5,
   aspectRatio: '16:9',
@@ -1236,7 +1260,7 @@ const sourceUrl = source.providerMetadata?.xai?.videoUrl as string;
 
 // Step 2: Extend the video with a new scene
 const extended = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt: 'The cat turns its head, notices a butterfly, and leaps off.',
   duration: 6,
   providerOptions: {
@@ -1264,7 +1288,7 @@ import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt:
     'The comic cat from <IMAGE_1> and the comic dog from <IMAGE_2> ' +
     'are having a playful chase through a sunlit park. ' +
@@ -1294,7 +1318,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 import fs from 'node:fs';
 
 const { video } = await generateVideo({
-  model: xai.video('grok-imagine-video'),
+  model: xai.video('grok-imagine-video-1.5'),
   prompt:
     'The comic cat and the comic dog are having a playful chase ' +
     'through a sunlit park. Cinematic slow-motion, warm afternoon light.',

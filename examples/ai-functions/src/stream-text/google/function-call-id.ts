@@ -23,7 +23,7 @@ run(async () => {
 
   // Turn 1: model emits parallel tool calls; tools execute automatically.
   const turn1 = streamText({
-    model: google('gemini-3.5-flash'),
+    model: google('gemini-3.8-flash'),
     tools: { weather: weatherTool },
     messages,
     stopWhen: isStepCount(1),
@@ -55,7 +55,7 @@ run(async () => {
   // it issued in turn 1 to round-trip on the corresponding functionResponse
   // parts. Without the provider plumbing the id through, this turn fails.
   const turn2 = streamText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     tools: { weather: weatherTool },
     messages,
   });

@@ -15,12 +15,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+let listenerAttachmentsStarted = 0;
+let listenerAttachmentsFinished = 0;
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
+    }
+    beginListenerAttachment(): () => void {
+      listenerAttachmentsStarted++;
+      return () => {
+        listenerAttachmentsFinished++;
+      };
     }
     on(): () => void {
       return () => {};
@@ -118,6 +126,8 @@ describe('claude-code adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    listenerAttachmentsStarted = 0;
+    listenerAttachmentsFinished = 0;
   });
 
   it('keeps instructions separate from every user message', async () => {
@@ -204,7 +214,7 @@ describe('claude-code adapter — instructions transport', () => {
     });
     expect(openCalls.at(-1)).toBeUndefined();
 
-    await startSession({
+    const continuedSession = await startSession({
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'claude-code',
@@ -219,5 +229,15 @@ describe('claude-code adapter — instructions transport', () => {
       },
     });
     expect(openCalls.at(-1)).toEqual({ resume: true });
+    expect(listenerAttachmentsStarted).toBe(1);
+    expect(listenerAttachmentsFinished).toBe(0);
+
+    const control = await continuedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(listenerAttachmentsFinished).toBe(1);
   });
 });

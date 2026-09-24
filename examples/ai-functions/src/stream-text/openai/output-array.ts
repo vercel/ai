@@ -9,7 +9,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     providerOptions: {
       openai: {
         strictJsonSchema: true,

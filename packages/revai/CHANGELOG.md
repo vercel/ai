@@ -1,5 +1,14 @@
 # @ai-sdk/revai
 
+## 3.0.47
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
 ## 3.0.46
 
 ### Patch Changes

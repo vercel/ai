@@ -417,7 +417,7 @@ describe('codex adapter — skills', () => {
       write.path.endsWith('/bridge-meta.json'),
     );
     expect(bridgeMetaWrite).toEqual({
-      path: '/wd/.agent-runs/s1/bridge/bridge-meta.json',
+      path: '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'codex', state: 'starting' }),
     });
     expect(skillWrites).toEqual(

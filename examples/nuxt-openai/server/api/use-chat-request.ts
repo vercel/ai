@@ -21,7 +21,7 @@ export default defineLazyEventHandler(async () => {
 
     // Call the language model
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       messages: await convertToModelMessages(messages),
       async onEnd({ text, toolCalls, toolResults, usage, finishReason }) {
         // Implement your own logic here, e.g. for storing messages

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20241022'),
+    model: anthropic('claude-sonnet-5'),
     messages: [
       {
         role: 'user',

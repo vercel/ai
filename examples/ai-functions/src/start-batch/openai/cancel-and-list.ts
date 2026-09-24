@@ -16,7 +16,7 @@ run(async () => {
       {
         id: 'capital-france',
         type: 'text',
-        model: 'gpt-4.1-nano',
+        model: 'gpt-5.4-nano',
         prompt: 'What is the capital of France?',
       },
     ],
