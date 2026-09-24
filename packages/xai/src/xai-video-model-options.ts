@@ -8,10 +8,35 @@ const modeSchema = z.enum(['edit-video', 'extend-video', 'reference-to-video']);
 export type XaiVideoMode = z.infer<typeof modeSchema>;
 type XaiVideoResolution = z.infer<typeof resolutionSchema>;
 
+const keyframeSchema = z.object({
+  imageUrl: nonEmptyStringSchema,
+  timestampSeconds: z.number().positive(),
+});
+
+const storageOptionsSchema = z.object({
+  filename: nonEmptyStringSchema,
+  expiresAfter: z.number().int().positive().max(2_592_000).optional(),
+  publicUrl: z
+    .union([
+      z.boolean(),
+      z.object({
+        expiresAfter: z.number().int().min(3_600).max(2_592_000).optional(),
+      }),
+    ])
+    .optional(),
+});
+
+export type XaiVideoKeyframe = z.infer<typeof keyframeSchema>;
+export type XaiVideoStorageOptions = z.infer<typeof storageOptionsSchema>;
+
 interface XaiVideoSharedOptions {
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   resolution?: XaiVideoResolution | null;
+  /** Signed URL where xAI uploads the generated video with HTTP PUT. */
+  uploadUrl?: string;
+  /** Store the generated video in the xAI Files API. */
+  storageOptions?: XaiVideoStorageOptions;
 }
 
 interface XaiVideoUserOptions {
@@ -59,6 +84,8 @@ interface XaiVideoGenerationOptions
   mode?: undefined;
   videoUrl?: undefined;
   referenceImageUrls?: undefined;
+  /** Mid-video image anchors (up to 4). */
+  keyframes?: XaiVideoKeyframe[];
 }
 
 interface XaiLegacyEditVideoOptions
@@ -119,6 +146,9 @@ const runtimeSchema = z.looseObject({
   videoUrl: nonEmptyStringSchema.optional(),
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
   referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
+  keyframes: z.array(keyframeSchema).max(4).optional(),
+  uploadUrl: nonEmptyStringSchema.optional(),
+  storageOptions: storageOptionsSchema.optional(),
   user: z.string().optional(),
   ...baseFields,
 });

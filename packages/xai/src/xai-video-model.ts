@@ -323,6 +323,58 @@ export class XaiVideoModel implements VideoModelV4 {
       }
     }
 
+    if (options.generateAudio != null && !isEdit && !isExtension) {
+      body.generate_audio = options.generateAudio;
+    } else if (options.generateAudio != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'generateAudio',
+        details: `xAI ${isEdit ? 'video editing' : 'video extension'} does not support generateAudio.`,
+      });
+    }
+
+    if (xaiOptions?.uploadUrl != null) {
+      body.output = { upload_url: xaiOptions.uploadUrl };
+    }
+
+    if (xaiOptions?.storageOptions != null) {
+      const { filename, expiresAfter, publicUrl } = xaiOptions.storageOptions;
+      body.storage_options = {
+        filename,
+        ...(expiresAfter != null ? { expires_after: expiresAfter } : {}),
+        ...(publicUrl != null
+          ? {
+              public_url:
+                typeof publicUrl === 'boolean'
+                  ? publicUrl
+                  : {
+                      ...(publicUrl.expiresAfter != null
+                        ? { expires_after: publicUrl.expiresAfter }
+                        : {}),
+                    },
+            }
+          : {}),
+      };
+    }
+
+    if (xaiOptions?.keyframes != null && xaiOptions.keyframes.length > 0) {
+      if (this.modelId !== 'grok-imagine-video-1.5' || isEdit || isExtension) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'keyframes',
+          details:
+            this.modelId !== 'grok-imagine-video-1.5'
+              ? 'xAI only supports keyframes with "grok-imagine-video-1.5".'
+              : `xAI ${isEdit ? 'video editing' : 'video extension'} does not support keyframes.`,
+        });
+      } else {
+        body.keyframes = xaiOptions.keyframes.map(keyframe => ({
+          image: { url: keyframe.imageUrl },
+          timestamp_s: keyframe.timestampSeconds,
+        }));
+      }
+    }
+
     // Video editing: pass source video URL (nested object)
     if (isEdit) {
       body.video = { url: xaiOptions!.videoUrl };
@@ -352,20 +404,26 @@ export class XaiVideoModel implements VideoModelV4 {
       }
     }
 
-    // xAI has no first-last-frame interpolation; warn and ignore last_frame.
+    // Only grok-imagine-video-1.5 supports a pinned last frame.
     const lastFrameImage = getLastFrameImage(options);
     if (lastFrameImage != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'frameImages',
-        details: isVideoFile(lastFrameImage)
-          ? 'xAI does not accept a video as a start/frame image. The video ' +
-            'last frame was ignored. Use providerOptions.xai.mode ' +
-            '"extend-video" to continue from a video instead.'
-          : 'xAI video models do not support last_frame. Use ' +
-            'providerOptions.xai.mode "extend-video" to continue from a ' +
-            "video's last frame. The last frame image was ignored.",
-      });
+      if (
+        this.modelId !== 'grok-imagine-video-1.5' ||
+        isEdit ||
+        isExtension ||
+        isVideoFile(lastFrameImage)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'frameImages',
+          details:
+            this.modelId !== 'grok-imagine-video-1.5'
+              ? 'xAI only supports last_frame with "grok-imagine-video-1.5". The last frame was ignored.'
+              : 'xAI only accepts an image last_frame for video generation. The last frame was ignored.',
+        });
+      } else {
+        body.last_frame = { url: fileToXaiUrl(lastFrameImage) };
+      }
     }
 
     // Reference images for R2V (reference-to-video) generation
@@ -468,6 +526,9 @@ export class XaiVideoModel implements VideoModelV4 {
             'videoUrl',
             'referenceImageUrls',
             'referenceVoiceIds',
+            'keyframes',
+            'uploadUrl',
+            'storageOptions',
             'user',
           ].includes(key)
         ) {
@@ -491,7 +552,7 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings, isEdit, isExtension } =
+    const { body, warnings, xaiOptions, isEdit, isExtension } =
       await this.buildRequestBody(options);
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
@@ -527,7 +588,10 @@ export class XaiVideoModel implements VideoModelV4 {
     }
 
     return {
-      operation: { requestId },
+      operation: {
+        requestId,
+        ...(body.output != null ? { uploadUrl: xaiOptions?.uploadUrl } : {}),
+      },
       warnings,
       response: {
         timestamp: currentDate,
@@ -541,7 +605,10 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestId } = options.operation as { requestId: string };
+    const { requestId, uploadUrl } = options.operation as {
+      requestId: string;
+      uploadUrl?: string;
+    };
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
@@ -588,8 +655,10 @@ export class XaiVideoModel implements VideoModelV4 {
       statusResponse.status === 'done' ||
       (statusResponse.status == null && statusResponse.video?.url)
     ) {
+      const video = statusResponse.video;
+
       // Terminal outcomes, so they are reported the same way as an upstream `failed`
-      if (statusResponse.video?.respect_moderation === false) {
+      if (video?.respect_moderation === false) {
         return {
           status: 'error' as const,
           error:
@@ -602,7 +671,10 @@ export class XaiVideoModel implements VideoModelV4 {
         };
       }
 
-      if (!statusResponse.video?.url) {
+      const videoUrl =
+        video?.url ?? video?.file_output?.public_url ?? undefined;
+
+      if (!videoUrl && uploadUrl == null) {
         return {
           status: 'error' as const,
           error: 'Video generation completed but no video URL was returned.',
@@ -616,13 +688,10 @@ export class XaiVideoModel implements VideoModelV4 {
 
       return {
         status: 'completed',
-        videos: [
-          {
-            type: 'url',
-            url: statusResponse.video.url,
-            mediaType: 'video/mp4',
-          },
-        ],
+        videos:
+          videoUrl != null
+            ? [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }]
+            : [],
         warnings: [],
         response: {
           timestamp: currentDate,
@@ -632,15 +701,46 @@ export class XaiVideoModel implements VideoModelV4 {
         providerMetadata: {
           xai: {
             requestId,
-            videoUrl: statusResponse.video.url,
-            ...(statusResponse.video.duration != null
-              ? { duration: statusResponse.video.duration }
-              : {}),
+            ...(videoUrl != null ? { videoUrl } : {}),
+            ...(uploadUrl != null ? { uploadUrl } : {}),
+            ...(video?.duration != null ? { duration: video.duration } : {}),
             ...(statusResponse.usage?.cost_in_usd_ticks != null
               ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
               : {}),
             ...(statusResponse.progress != null
               ? { progress: statusResponse.progress }
+              : {}),
+            ...(video?.file_output != null
+              ? {
+                  fileOutput: {
+                    fileId: video.file_output.file_id,
+                    filename: video.file_output.filename,
+                    ...(video.file_output.expires_at != null
+                      ? {
+                          expiresAt: video.file_output.expires_at,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url != null
+                      ? {
+                          publicUrl: video.file_output.public_url,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url_error != null
+                      ? {
+                          publicUrlError: video.file_output.public_url_error,
+                        }
+                      : {}),
+                    ...(video.file_output.public_url_expires_at != null
+                      ? {
+                          publicUrlExpiresAt:
+                            video.file_output.public_url_expires_at,
+                        }
+                      : {}),
+                  },
+                }
+              : {}),
+            ...(video?.storage_error != null
+              ? { storageError: video.storage_error }
               : {}),
           },
         },
@@ -667,9 +767,20 @@ const xaiVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),
   video: z
     .object({
-      url: z.string(),
+      url: z.string().nullish(),
       duration: z.number().nullish(),
       respect_moderation: z.boolean().nullish(),
+      file_output: z
+        .object({
+          file_id: z.string(),
+          filename: z.string(),
+          expires_at: z.number().nullish(),
+          public_url: z.string().nullish(),
+          public_url_error: z.string().nullish(),
+          public_url_expires_at: z.number().nullish(),
+        })
+        .nullish(),
+      storage_error: z.string().nullish(),
     })
     .nullish(),
   model: z.string().nullish(),
