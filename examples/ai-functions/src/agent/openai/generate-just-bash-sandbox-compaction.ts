@@ -43,7 +43,7 @@ run(async () => {
   }).createSession();
 
   const result = await generateText({
-    model: openai('gpt-5.6'),
+    model: openai('gpt-6-astra'),
     instructions:
       'You have access to a filesystem. Details: ' + sandboxSession.description,
     prompt: 'Read every .ts file in this directory',

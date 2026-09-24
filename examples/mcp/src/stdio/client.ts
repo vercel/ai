@@ -24,7 +24,7 @@ async function main() {
     });
 
     const { text: answer } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools: await mcpClient.tools({
         schemas: {
           'get-pokemon': {

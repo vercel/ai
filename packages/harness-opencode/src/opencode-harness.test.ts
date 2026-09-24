@@ -820,10 +820,10 @@ describe('createOpenCode adapter', () => {
     );
     expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
-      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode/bridge.mjs'",
     );
     expect(spawns.at(-1)?.command).toContain(
-      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode'",
     );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",

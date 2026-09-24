@@ -3,7 +3,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage } = await generateText({
-    model: 'anthropic/claude-3.5-haiku',
+    model: 'anthropic/claude-haiku-4.5',
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

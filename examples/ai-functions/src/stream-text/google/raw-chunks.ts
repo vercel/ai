@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,

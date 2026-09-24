@@ -463,6 +463,61 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should preserve an Anthropic compaction signature through UI message persistence', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'text-start',
+          id: 'compaction',
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              signature: 'compaction-signature',
+            },
+          },
+        },
+        {
+          type: 'text-delta',
+          id: 'compaction',
+          delta: 'Summary of the conversation.',
+        },
+        { type: 'text-end', id: 'compaction' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(recordedMessage.parts).toContainEqual({
+        type: 'text',
+        text: 'Summary of the conversation.',
+        state: 'done',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+
+      await expect(
+        convertToModelMessages([recordedMessage]),
+      ).resolves.toContainEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerOptions: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ],
+      });
+    });
+
     it('should convert an assistant message with reasoning', async () => {
       const result = await convertToModelMessages([
         {

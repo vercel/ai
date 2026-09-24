@@ -235,7 +235,7 @@ import { streamText } from 'ai';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'Hello!',
   telemetry: {
     integrations: [DevToolsTelemetry()],

@@ -29,7 +29,7 @@ run(async () => {
   console.log(`PROMPT: ${prompt}`);
 
   const { images } = await generateImage({
-    model: provider.imageModel('gpt-image-1.5'),
+    model: provider.imageModel('gpt-image-2.5-sunburst'),
     prompt: {
       text: prompt,
       images: [image],

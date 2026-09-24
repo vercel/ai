@@ -1,5 +1,21 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.93
+
+### Patch Changes
+
+- b7bc639: fix(amazon-bedrock): route supported Mantle models through the OpenAI endpoint
+- 31fb009: fix(amazon-bedrock): omit unsupported sampling parameters for newer Claude models
+- fbdda09: fix(amazon-bedrock): omit unsupported OpenAI sampling settings from Converse requests
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [4cf5a99]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai@4.0.74
+  - @ai-sdk/anthropic@4.0.62
+
 ## 5.0.92
 
 ### Patch Changes

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { image } = await generateImage({
-    model: openai.image('gpt-image-1.5'),
+    model: openai.image('gpt-image-2.5-sunburst'),
     prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
     providerOptions: {
       openai: { quality: 'high' },

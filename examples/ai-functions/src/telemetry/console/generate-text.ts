@@ -7,7 +7,7 @@ registerTelemetry(consoleTelemetry);
 
 run(async () => {
   await generateText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
     telemetry: {
       functionId: 'my-awesome-function',

@@ -12,9 +12,9 @@ const readBridgeAsset = createReadBridgeAsset({
 });
 
 /*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers preserve its installation and
- * recipe marker without requiring root filesystem access.
+ * Bootstrap is derived state stored under `$HOME/.ai-sdk-harness`, outside
+ * the agent's working directory. Snapshot-capable providers preserve its
+ * installation and recipe marker there.
  */
 export const DEEPAGENTS_BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
 
