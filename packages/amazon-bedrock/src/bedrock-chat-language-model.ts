@@ -272,6 +272,7 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
         modelFamily: this.config.modelFamily,
         reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+        rejectsForcedToolUse,
       });
 
     warnings.push(...toolWarnings);
