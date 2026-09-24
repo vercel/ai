@@ -260,6 +260,16 @@ describe('DeepInfraImageModel', () => {
           },
         },
       },
+      // a custom baseURL whose own path contains '/inference'
+      'https://edit.example.com/inference/v1/openai/images/edits': {
+        response: {
+          type: 'json-value',
+          body: {
+            created: 1234567890,
+            data: [{ b64_json: 'edited-image-base64' }],
+          },
+        },
+      },
     });
 
     // Model with baseURL that will resolve to edit endpoint
@@ -271,6 +281,41 @@ describe('DeepInfraImageModel', () => {
         headers: () => ({ 'api-key': 'test-key' }),
       },
     );
+
+    it('should only rewrite the trailing /inference of the baseURL', async () => {
+      // The provider appends '/inference' to the configured baseURL, so a custom baseURL
+      // whose own path contains '/inference' has two of them. Only the last may be
+      // rewritten to '/openai'.
+      const model = new DeepInfraImageModel(
+        'black-forest-labs/FLUX.1-Kontext-dev',
+        {
+          provider: 'deepinfra',
+          baseURL: 'https://edit.example.com/inference/v1/inference',
+          headers: () => ({ 'api-key': 'test-key' }),
+        },
+      );
+
+      await model.doGenerate({
+        prompt: 'Turn the cat into a dog',
+        files: [
+          {
+            type: 'file',
+            data: new Uint8Array([137, 80, 78, 71]),
+            mediaType: 'image/png',
+          },
+        ],
+        mask: undefined,
+        n: 1,
+        size: '1024x1024',
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(editServer.calls[0].requestUrl).toBe(
+        'https://edit.example.com/inference/v1/openai/images/edits',
+      );
+    });
 
     it('should send edit request with files', async () => {
       const imageData = new Uint8Array([137, 80, 78, 71]); // PNG magic bytes
