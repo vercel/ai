@@ -149,6 +149,49 @@ describe('StreamingToolCallTracker', () => {
       expect(parts.filter(part => part.type === 'tool-call')).toHaveLength(1);
     });
 
+    it('should handle cumulative argument snapshots', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'search', arguments: '{"query": "' },
+      });
+
+      parts.length = 0;
+
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '{"query": "latest' },
+      });
+
+      expect(parts).toEqual([
+        { type: 'tool-input-delta', id: 'call_1', delta: 'latest' },
+      ]);
+
+      parts.length = 0;
+
+      tracker.processDelta({
+        index: 0,
+        function: { arguments: '{"query": "latest news"}' },
+      });
+
+      tracker.flush();
+
+      expect(parts).toEqual([
+        { type: 'tool-input-delta', id: 'call_1', delta: ' news"}' },
+        { type: 'tool-input-end', id: 'call_1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'search',
+          input: '{"query": "latest news"}',
+        },
+      ]);
+    });
+
     it('should handle multiple concurrent tool calls', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);
