@@ -10,6 +10,7 @@ import { createCodex } from './codex-harness';
 const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
+  channels: [] as Array<{ emit(type: string, message: unknown): void }>,
   connects: [] as Array<
     (options: { abortSignal: AbortSignal }) => Promise<unknown>
   >,
@@ -61,6 +62,10 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
+    private readonly listeners = new Map<
+      string,
+      Set<(message: unknown) => void>
+    >();
     constructor({
       connect,
       reconnect,
@@ -70,6 +75,7 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     }) {
       channelMocks.connects.push(connect);
       channelMocks.reconnects.push(reconnect);
+      channelMocks.channels.push(this);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
@@ -78,8 +84,17 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
         });
       }
     }
-    on(): () => void {
+    on(type: string, listener: (message: unknown) => void): () => void {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return () => listeners.delete(listener);
+    }
+    onReconnect(): () => void {
       return () => {};
+    }
+    emit(type: string, message: unknown): void {
+      for (const listener of this.listeners.get(type) ?? []) listener(message);
     }
     onClose(): void {}
     send(message: unknown): void {
@@ -206,6 +221,7 @@ describe('createCodex adapter', () => {
     sentMessages.length = 0;
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.channels.length = 0;
     channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
   });
@@ -215,11 +231,63 @@ describe('createCodex adapter', () => {
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(false);
-    expect(Object.keys(harness.builtinTools)).toEqual(['bash', 'webSearch']);
+    expect(Object.keys(harness.builtinTools)).toEqual([
+      'bash',
+      'webSearch',
+      'apply_patch',
+      'view_image',
+    ]);
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
     expect(harness.builtinTools.bash.commonName).toBe('bash');
     expect(harness.builtinTools.webSearch.nativeName).toBe('web_search');
     expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
+    expect(harness.builtinTools.apply_patch.toolUseKind).toBe('edit');
+    expect(harness.builtinTools.view_image.toolUseKind).toBe('readonly');
+  });
+
+  it('waits for Codex to accept steering and rejects messages after the turn finishes', async () => {
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Weather in Paris?',
+      emit: () => {},
+    });
+    const channel = channelMocks.channels.at(-1)!;
+    const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+    const request = sentMessages.find(
+      (message): message is { type: string; messageId: string; text: string } =>
+        typeof message === 'object' &&
+        message != null &&
+        Reflect.get(message, 'type') === 'user-message',
+    );
+    expect(request).toEqual({
+      type: 'user-message',
+      messageId: expect.any(String),
+      text: 'Actually, Paris, Texas.',
+    });
+    channel.emit('user-message-response', {
+      type: 'user-message-response',
+      messageId: request!.messageId,
+      accepted: true,
+    });
+    await expect(steering).resolves.toBeUndefined();
+
+    channel.emit('finish', { type: 'finish' });
+    await control.done;
+    await expect(control.submitUserMessage?.('Too late.')).rejects.toThrow(
+      'no longer accepting user messages',
+    );
+    await session.doDestroy();
   });
 
   it('rejects built-in permission modes other than allow-all', async () => {
@@ -230,18 +298,6 @@ describe('createCodex adapter', () => {
         sandboxSession: {} as HarnessV1NetworkSandboxSession,
         sessionWorkDir: '/vercel/sandbox/codex-s1',
         permissionMode: 'allow-edits',
-      }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
-  });
-
-  it('rejects built-in tool filtering controls', async () => {
-    const harness = createCodex();
-    await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: {} as HarnessV1NetworkSandboxSession,
-        sessionWorkDir: '/vercel/sandbox/codex-s1',
-        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
       }),
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
@@ -389,7 +445,7 @@ describe('createCodex adapter', () => {
       `mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '${sessionStateDir}/bridge'`,
     );
     expect(spawns).toEqual([
-      `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge' --cli-shim-dir '${sessionStateDir}/codex'`,
+      `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge'`,
     ]);
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',
@@ -438,6 +494,38 @@ describe('createCodex adapter', () => {
         type: 'start',
         model: 'agent-model',
       });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards built-in tool filtering to the bridge', async () => {
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['bash'],
+    };
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      builtinToolFiltering,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    await vi.waitFor(() => {
+      expect(
+        (sentMessages.at(-1) as { builtinToolFiltering?: unknown })
+          .builtinToolFiltering,
+      ).toEqual(builtinToolFiltering);
     });
     await session.doDestroy();
   });
