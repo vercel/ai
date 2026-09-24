@@ -191,6 +191,10 @@ describe('Codex app-server runtime lifecycle', () => {
       'turn/start',
       'turn/start',
     ]);
+    expect(
+      server.clients[0]!.calls.find(call => call.method === 'thread/start')
+        ?.params,
+    ).toHaveProperty('experimentalRawEvents', true);
     expect(second.emitStreamEvent).toHaveBeenCalledWith({
       type: 'thread.started',
       thread_id: 'thread-1',
@@ -250,6 +254,10 @@ describe('Codex app-server runtime lifecycle', () => {
       'thread/resume',
       'turn/start',
     ]);
+    expect(
+      server.clients[1]!.calls.find(call => call.method === 'thread/resume')
+        ?.params,
+    ).not.toHaveProperty('experimentalRawEvents');
     expect(methods(server.clients[2]!)).toEqual([
       'initialize',
       'thread/resume',

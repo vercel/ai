@@ -226,6 +226,7 @@ export function createCodexAppServerRuntime(): {
                       codexConfig,
                     }),
                     dynamicTools: dynamicTools.specs,
+                    experimentalRawEvents: true,
                   }
                 : {
                     threadId,

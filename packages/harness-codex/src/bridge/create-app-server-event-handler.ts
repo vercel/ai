@@ -15,6 +15,14 @@ export type AppServerTurnResult = {
   error?: string;
 };
 
+type NativeToolName = 'apply_patch' | 'view_image';
+
+type NativeToolCall = {
+  name: NativeToolName;
+  resultEmitted: boolean;
+  successConfirmed: boolean;
+};
+
 export function createAppServerEventHandler({
   stepTracker,
   emitStreamEvent,
@@ -38,6 +46,7 @@ export function createAppServerEventHandler({
   let lastCumulativeUsageKey: string | undefined;
   const textByItem = new Map<string, string>();
   const reasoningByItem = new Map<string, string>();
+  const nativeToolCalls = new Map<string, NativeToolCall>();
   let resolveCompletion: (result: AppServerTurnResult) => void = () => {};
   const completion = new Promise<AppServerTurnResult>(resolve => {
     resolveCompletion = resolve;
@@ -58,6 +67,14 @@ export function createAppServerEventHandler({
     if (!matchesActiveTurn({ params, activeThreadId, activeTurnId })) return;
     const item = asRecord(params.item);
     if (item == null || typeof item.type !== 'string') return;
+    if (eventType === 'item.completed' && typeof item.id === 'string') {
+      const call = nativeToolCalls.get(item.id);
+      if (call?.name === 'apply_patch' && item.type === 'fileChange') {
+        call.successConfirmed = item.status === 'completed';
+      } else if (call?.name === 'view_image' && item.type === 'imageView') {
+        call.successConfirmed = true;
+      }
+    }
     const normalized = normalizeItem({ item, textByItem, reasoningByItem });
     if (normalized == null) return;
     if (normalized.type === 'dynamic_tool_call') {
@@ -68,6 +85,74 @@ export function createAppServerEventHandler({
       return;
     }
     emitStreamEvent({ type: eventType, item: normalized });
+  };
+
+  const emitNativeToolResult = ({
+    callId,
+    result,
+  }: {
+    callId: string;
+    result: unknown;
+  }): void => {
+    const call = nativeToolCalls.get(callId);
+    if (call == null || call.resultEmitted) return;
+    call.resultEmitted = true;
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'native_tool',
+        id: callId,
+        tool: call.name,
+        result,
+        ...(!call.successConfirmed ? { isError: true } : {}),
+      },
+    });
+  };
+
+  const handleRawItem = (params: Record<string, unknown>): void => {
+    if (!matchesActiveTurn({ params, activeThreadId, activeTurnId })) return;
+    const item = asRecord(params.item);
+    if (item == null) return;
+    const toolCall = normalizeNativeToolCall({ item });
+    if (toolCall != null) {
+      if (nativeToolCalls.has(toolCall.callId)) return;
+      nativeToolCalls.set(toolCall.callId, {
+        name: toolCall.name,
+        resultEmitted: false,
+        successConfirmed: false,
+      });
+      emitStreamEvent({
+        type: 'item.started',
+        item: {
+          type: 'native_tool',
+          id: toolCall.callId,
+          tool: toolCall.name,
+          input: toolCall.input,
+        },
+      });
+      return;
+    }
+    if (typeof item.call_id !== 'string') return;
+    const call = nativeToolCalls.get(item.call_id);
+    if (
+      call == null ||
+      (call.name === 'apply_patch'
+        ? item.type !== 'custom_tool_call_output'
+        : item.type !== 'function_call_output') ||
+      !Object.prototype.hasOwnProperty.call(item, 'output')
+    ) {
+      return;
+    }
+    emitNativeToolResult({
+      callId: item.call_id,
+      result:
+        call.name === 'view_image' &&
+        call.successConfirmed &&
+        Array.isArray(item.output) &&
+        item.output.length === 0
+          ? 'Image viewed.'
+          : item.output,
+    });
   };
 
   return {
@@ -98,6 +183,13 @@ export function createAppServerEventHandler({
       }
       if (notification.method === 'item/completed' && params != null) {
         handleItem({ eventType: 'item.completed', params });
+        return;
+      }
+      if (
+        notification.method === 'rawResponseItem/completed' &&
+        params != null
+      ) {
+        handleRawItem(params);
         return;
       }
       if (
@@ -185,6 +277,19 @@ export function createAppServerEventHandler({
         const status =
           typeof turn?.status === 'string' ? turn.status : 'failed';
         const turnError = asRecord(turn?.error);
+        if (status === 'completed') {
+          for (const [callId, call] of nativeToolCalls) {
+            if (call.resultEmitted) continue;
+            emitNativeToolResult({
+              callId,
+              result: call.successConfirmed
+                ? call.name === 'apply_patch'
+                  ? 'Patch applied.'
+                  : 'Image viewed.'
+                : 'Codex did not report the tool result.',
+            });
+          }
+        }
         emitStreamEvent({
           type: 'turn.completed',
           usage: toLegacyUsage(accumulatedUsage),
@@ -199,6 +304,43 @@ export function createAppServerEventHandler({
     },
     waitForCompletion: () => completion,
   };
+}
+
+function normalizeNativeToolCall({
+  item,
+}: {
+  item: Record<string, unknown>;
+}): { callId: string; name: NativeToolName; input: string } | undefined {
+  if (
+    item.namespace != null ||
+    typeof item.call_id !== 'string' ||
+    item.call_id.length === 0
+  ) {
+    return undefined;
+  }
+  if (
+    item.type === 'custom_tool_call' &&
+    item.name === 'apply_patch' &&
+    typeof item.input === 'string'
+  ) {
+    return {
+      callId: item.call_id,
+      name: 'apply_patch',
+      input: JSON.stringify(item.input),
+    };
+  }
+  if (
+    item.type === 'function_call' &&
+    item.name === 'view_image' &&
+    typeof item.arguments === 'string'
+  ) {
+    return {
+      callId: item.call_id,
+      name: 'view_image',
+      input: item.arguments,
+    };
+  }
+  return undefined;
 }
 
 function normalizeItem({

@@ -189,13 +189,12 @@ const sandbox = createVercelSandbox({
 
 ## Built-in Tools
 
-The adapter exposes these common Codex built-ins through `agent.tools`:
+The adapter exposes these Codex built-ins through `agent.tools`:
 
-- `bash`
-- `webSearch`
-
-Additional Codex built-ins may also appear in `agent.tools` when they do not
-fit a common tool shape.
+- `bash` and `webSearch` use the common cross-harness tool names.
+- `apply_patch` accepts Codex's freeform patch string.
+- `view_image` accepts a local image `path`, with optional `detail` and
+  `environment_id` fields.
 
 Codex file changes may also appear as dynamic `fileChange` tool parts because
 some Codex file mutations do not originate from a visible model-callable tool.
@@ -208,7 +207,7 @@ approvals still work.
 
 Codex does not currently support built-in tool filtering. You can still use
 `activeTools` and `inactiveTools` to filter host-executed tools, but filtering
-Codex built-ins such as `bash` or `webSearch` will throw.
+Codex built-ins such as `bash` or `apply_patch` will throw.
 
 ## Related
 

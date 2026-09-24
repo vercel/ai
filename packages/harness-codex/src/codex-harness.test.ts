@@ -215,11 +215,18 @@ describe('createCodex adapter', () => {
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(false);
-    expect(Object.keys(harness.builtinTools)).toEqual(['bash', 'webSearch']);
+    expect(Object.keys(harness.builtinTools)).toEqual([
+      'bash',
+      'webSearch',
+      'apply_patch',
+      'view_image',
+    ]);
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
     expect(harness.builtinTools.bash.commonName).toBe('bash');
     expect(harness.builtinTools.webSearch.nativeName).toBe('web_search');
     expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
+    expect(harness.builtinTools.apply_patch.toolUseKind).toBe('edit');
+    expect(harness.builtinTools.view_image.toolUseKind).toBe('readonly');
   });
 
   it('rejects built-in permission modes other than allow-all', async () => {

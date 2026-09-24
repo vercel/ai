@@ -43,6 +43,7 @@ import {
   type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
+  tool,
   type Experimental_SandboxProcess,
   type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
@@ -151,9 +152,8 @@ export type CodexHarnessSettings = {
  * the wire (`commonName ?? nativeName`). Schemas reflect the corresponding
  * app-server item payloads.
  *
- * Codex's other native operations (`apply_patch`, todo planning) surface
- * only as side-effect events (`file_change`, `todo_list`) and are not
- * model-callable tools — they don't appear here.
+ * Other native operations such as todo planning surface as side-effect
+ * events and are not model-callable tools.
  */
 const CODEX_BUILTIN_TOOLS = {
   bash: commonTool('bash', {
@@ -168,6 +168,24 @@ const CODEX_BUILTIN_TOOLS = {
     description: 'Search the web',
     inputSchema: z.object({ query: z.string() }),
   }),
+  apply_patch: {
+    ...tool({
+      description: 'Apply a patch to files',
+      inputSchema: z.string(),
+    }),
+    toolUseKind: 'edit',
+  },
+  view_image: {
+    ...tool({
+      description: 'View a local image file',
+      inputSchema: z.object({
+        path: z.string(),
+        detail: z.enum(['high', 'original']).optional(),
+        environment_id: z.string().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
 /**

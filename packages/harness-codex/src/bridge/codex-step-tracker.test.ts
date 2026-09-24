@@ -67,6 +67,30 @@ describe('createCodexStepTracker', () => {
     expect(events.map(event => event.type)).toEqual(['finish-step']);
   });
 
+  it('keeps a native tool step open until its result even when typed items share the call id', () => {
+    const { events, tracker } = createTracker();
+
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'native_tool' } },
+      itemId: 'native-tool:call-1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.started', item: { type: 'file_change' } },
+      itemId: 'call-1',
+    });
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'file_change' } },
+      itemId: 'call-1',
+    });
+    expect(events).toEqual([]);
+
+    tracker.observeEvent({
+      event: { type: 'item.completed', item: { type: 'native_tool' } },
+      itemId: 'native-tool:call-1',
+    });
+    expect(events.map(event => event.type)).toEqual(['finish-step']);
+  });
+
   it('does not close a step while a tool item is still pending', () => {
     const { events, tracker } = createTracker();
 

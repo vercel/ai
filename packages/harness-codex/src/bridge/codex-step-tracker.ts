@@ -70,6 +70,7 @@ function isModelStepItem(item: CodexStepTrackerItem): boolean {
 function isToolStepItem(item: CodexStepTrackerItem): boolean {
   return (
     item.type === 'command_execution' ||
+    item.type === 'native_tool' ||
     item.type === 'mcp_tool_call' ||
     item.type === 'dynamic_tool_call' ||
     item.type === 'web_search' ||
