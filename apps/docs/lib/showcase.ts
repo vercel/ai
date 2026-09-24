@@ -53,6 +53,11 @@ export const showcaseProjects: ShowcaseProject[] = [
     image: 'chatbase.png',
   },
   {
+    name: 'MySpec',
+    link: 'https://myspec.dev',
+    image: 'myspec.png',
+  },
+  {
     name: 'ChatPRD',
     link: 'https://www.chatprd.ai',
     image: 'chatprd.png',
