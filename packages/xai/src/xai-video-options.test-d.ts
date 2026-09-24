@@ -79,6 +79,25 @@ describe('XaiVideoModelOptions type', () => {
     expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
   });
 
+  it('should allow current generation output and keyframe options', () => {
+    const options = {
+      uploadUrl: 'https://storage.example.com/upload',
+      storageOptions: {
+        filename: 'result.mp4',
+        expiresAfter: 86_400,
+        publicUrl: { expiresAfter: 3_600 },
+      },
+      keyframes: [
+        {
+          imageUrl: 'https://example.com/middle.png',
+          timestampSeconds: 2.5,
+        },
+      ],
+    } satisfies XaiVideoModelOptions;
+
+    expectTypeOf(options).toMatchTypeOf<XaiVideoModelOptions>();
+  });
+
   it('should allow an explicitly undefined mode for plain generation', () => {
     const options = {
       mode: undefined,

@@ -146,6 +146,82 @@ describe('XaiVideoModel', () => {
       });
     });
 
+    it('should map current xAI generation options', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video-1.5' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        generateAudio: false,
+        frameImages: [
+          {
+            frameType: 'last_frame',
+            image: { type: 'url', url: 'https://example.com/end.png' },
+          },
+        ],
+        providerOptions: {
+          xai: {
+            uploadUrl: 'https://storage.example.com/upload',
+            storageOptions: {
+              filename: 'result.mp4',
+              expiresAfter: 86_400,
+              publicUrl: { expiresAfter: 3_600 },
+            },
+            keyframes: [
+              {
+                imageUrl: 'https://example.com/middle.png',
+                timestampSeconds: 2.5,
+              },
+            ],
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generate_audio: false,
+        last_frame: { url: 'https://example.com/end.png' },
+        output: { upload_url: 'https://storage.example.com/upload' },
+        storage_options: {
+          filename: 'result.mp4',
+          expires_after: 86_400,
+          public_url: { expires_after: 3_600 },
+        },
+        keyframes: [
+          {
+            image: { url: 'https://example.com/middle.png' },
+            timestamp_s: 2.5,
+          },
+        ],
+      });
+      expect(result.operation).toStrictEqual({
+        requestId: 'req-123',
+        uploadUrl: 'https://storage.example.com/upload',
+      });
+    });
+
+    it('should warn and omit last_frame for grok-imagine-video', async () => {
+      const model = createModel({ modelId: 'grok-imagine-video' });
+
+      const result = await model.doStart({
+        ...defaultOptions,
+        frameImages: [
+          {
+            frameType: 'last_frame',
+            image: { type: 'url', url: 'https://example.com/end.png' },
+          },
+        ],
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'last_frame',
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'frameImages',
+        details:
+          'xAI only supports last_frame with "grok-imagine-video-1.5". The last frame was ignored.',
+      });
+    });
+
     it('should pass headers', async () => {
       const model = createModel({
         headers: () => ({
