@@ -49,7 +49,7 @@ const createTestModel = (
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
 ) =>
-  new GatewayEvaluationModel('typesafe-ai/jev-latest', {
+  new GatewayEvaluationModel('typesafe-ai/jev', {
     provider: 'gateway',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -118,7 +118,7 @@ describe('GatewayEvaluationModel', () => {
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
         'ai-evaluation-model-specification-version': '4',
-        'ai-model-id': 'typesafe-ai/jev-latest',
+        'ai-model-id': 'typesafe-ai/jev',
       });
     });
 
@@ -346,7 +346,7 @@ describe('GatewayEvaluationModel', () => {
         questions: testQuestions,
       });
 
-      expect(result.response?.modelId).toBe('typesafe-ai/jev-latest');
+      expect(result.response?.modelId).toBe('typesafe-ai/jev');
       expect(result.response?.headers?.['x-request-id']).toBe('req-123');
     });
 
@@ -369,7 +369,7 @@ describe('GatewayEvaluationModel', () => {
         questions: testQuestions,
       });
 
-      expect(result.response?.modelId).toBe('typesafe-ai/jev-latest');
+      expect(result.response?.modelId).toBe('typesafe-ai/jev');
     });
 
     it('should return provider metadata', async () => {

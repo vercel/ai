@@ -1346,15 +1346,15 @@ The following gateway provider options are available:
 
   When `sort` is active, the response's `providerMetadata.gateway.routing.sort` object contains the sort option used, the resulting execution order, per-provider metric values, and any providers that were deprioritized.
 
-- **models** _GatewayModelFallback[]_
+- **models** _string[] | [GatewayModelFallback, ...string[]]_
 
-  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Evaluation requests can also use one conditional `{ model, when }` entry to retry a successful but uncertain evaluation with another model. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-evaluation requests.
+  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Evaluation requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain evaluation with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-evaluation requests. Type evaluation options with `GatewayEvaluationProviderOptions`, since `GatewayProviderOptions` only accepts string entries.
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
 
   A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
 
-  Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or `{ atLeast: { count, conditions: [...] } }`. Each condition list must be nonempty. `atLeast.count` must be an integer from `1` through the number of conditions. Gateway runtime validation enforces question kinds, numeric bounds, nesting depth, and the v1 limit of one conditional entry. String error fallbacks may follow that entry.
+  Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or `{ atLeast: { count, conditions: [...] } }`. Each condition list holds 1 to 20 conditions. `atLeast.count` must be an integer from `1` through the number of conditions. Conditions nest at most 5 levels deep. Question IDs and the conditional `model` are 1 to 256 characters. The SDK checks these bounds before sending the request, and the gateway also checks that each question exists and has a kind that matches its condition. String error fallbacks may follow the conditional entry.
 
 - **user** _string_
 
@@ -1394,13 +1394,14 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
-- **has** _Array&lt;'implicit-caching' | 'reasoning' | 'tool-use' | 'vision' | `quantization:${string}` | `!quantization:${string}`&gt;_
+- **has** _Array&lt;'implicit-caching' | 'reasoning' | 'structured-output' | 'tool-use' | 'vision' | `quantization:${string}` | `!quantization:${string}`&gt;_
 
   Restricts routing to provider models that have all of the specified capabilities. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
 
   Supported capabilities:
   - `'implicit-caching'` — models that perform automatic (implicit) prompt caching.
   - `'reasoning'` — models that support reasoning.
+  - `'structured-output'` — models that support schema-constrained output.
   - `'tool-use'` — models that support tool calling.
   - `'vision'` — models that accept image input.
 
@@ -1488,11 +1489,15 @@ const { text } = await generateText({
 #### Conditional Evaluation Fallbacks Example
 
 Conditional model entries are available only for evaluation requests. Keep the
-configuration under `providerOptions.gateway.models`; `experimental_evaluate`
+configuration under `providerOptions.gateway.models`. `experimental_evaluate`
 does not have a top-level fallback option.
 
 ```ts
-import { gateway, type GatewayProviderOptions } from '@ai-sdk/gateway';
+import {
+  gateway,
+  type GatewayEvaluationProviderOptions,
+  type GatewayProviderMetadata,
+} from '@ai-sdk/gateway';
 import { experimental_evaluate } from 'ai';
 
 const questions = {
@@ -1527,10 +1532,22 @@ const result = await experimental_evaluate({
           },
         },
       ],
-    } satisfies GatewayProviderOptions<keyof typeof questions>,
+    } satisfies GatewayEvaluationProviderOptions<keyof typeof questions>,
   },
 });
+
+const gatewayMetadata = result.providerMetadata?.gateway as
+  | GatewayProviderMetadata
+  | undefined;
+for (const attempt of gatewayMetadata?.routing?.modelAttempts ?? []) {
+  console.log(attempt.canonicalSlug, attempt.triggeredBy, attempt.usage);
+}
 ```
+
+When the condition matches, `providerMetadata.gateway.routing.modelAttempts`
+lists the primary and fallback attempts. The successful attempt of each stage
+carries its own `generationId`, `usage`, and cost fields, and the first
+fallback attempt lists the questions that triggered it in `triggeredBy`.
 
 #### Zero Data Retention Example
 
@@ -1591,7 +1608,7 @@ const { text } = await generateText({
 
 #### Filtering by Model Capability
 
-Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, `'vision'` limits routing to models that accept image input, `'reasoning'` limits routing to models that support reasoning, and `'tool-use'` limits routing to models that support tool calling. Weight-format conditions (`'quantization:fp8'` to require, `'!quantization:fp8'` to exclude) limit routing by the serving provider's recorded weight format. If no provider model for the requested model satisfies the capabilities, the request fails.
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, `'vision'` limits routing to models that accept image input, `'reasoning'` limits routing to models that support reasoning, `'structured-output'` limits routing to models that support schema-constrained output, and `'tool-use'` limits routing to models that support tool calling. Weight-format conditions (`'quantization:fp8'` to require, `'!quantization:fp8'` to exclude) limit routing by the serving provider's recorded weight format. If no provider model for the requested model satisfies the capabilities, the request fails.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
