@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.126
+
+### Patch Changes
+
+- 0fb3a22: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [0fb3a22]
+  - @ai-sdk/openai@3.0.118
+
 ## 3.0.125
 
 ### Patch Changes
