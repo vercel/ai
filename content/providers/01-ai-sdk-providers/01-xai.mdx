@@ -1459,6 +1459,48 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   Ignored with a warning outside reference-to-video. Reference audio is
   documented as US-only and limited to trusted partners.
 
+- **uploadUrl** _string_
+
+  Signed URL where xAI uploads the generated video using HTTP PUT. When xAI
+  does not also return a downloadable video URL, the destination is exposed as
+  `providerMetadata.xai.uploadUrl`.
+
+- **storageOptions** _object_
+
+  Stores the generated video in the xAI Files API. Set `filename` and
+  optionally `expiresAfter` (up to 30 days) and `publicUrl`. Stored-file
+  details and storage errors are returned in `providerMetadata.xai.fileOutput`
+  and `providerMetadata.xai.storageError`.
+
+- **keyframes** _Array\<{ imageUrl: string; timestampSeconds: number }\>_
+
+  Up to four mid-video image anchors. Each timestamp must fall strictly inside
+  the video duration. Keyframes are supported by `grok-imagine-video-1.5` and
+  are ignored with a warning for editing and extension operations.
+
+### Audio and Frame Controls
+
+Use the provider-neutral `generateAudio` option to request or disable generated
+audio. Use `frameImages` for exact endpoint frames:
+
+```ts
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt: 'A paper boat drifting down a rain-soaked street',
+  generateAudio: false,
+  frameImages: [
+    {
+      frameType: 'last_frame',
+      image: 'https://example.com/final-frame.png',
+    },
+  ],
+});
+```
+
+`last_frame` is supported only by `grok-imagine-video-1.5`. The provider emits
+an unsupported-feature warning and omits the field for other model IDs. A
+`first_frame` is sent as xAI's standard `image` input.
+
 <Note>
   Video generation is an asynchronous process that can take several minutes.
   Consider setting `pollTimeoutMs` to at least 10 minutes (600000ms) for
