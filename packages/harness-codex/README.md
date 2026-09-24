@@ -1,6 +1,6 @@
 # AI SDK - Codex Harness
 
-`HarnessV1` adapter backed by [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk), which drives the `codex` CLI. The adapter ships a bridge process that runs inside a sandbox and talks to the host over a WebSocket on a sandbox-proxied loopback port.
+`HarnessV1` adapter backed by the [Codex CLI](https://www.npmjs.com/package/@openai/codex). The adapter runs Codex app-server inside a sandbox and communicates with it over JSON-RPC. A bridge process connects app-server to the host over a WebSocket on a sandbox-proxied loopback port.
 
 ## Setup
 
@@ -8,7 +8,7 @@
 npm i @ai-sdk/harness-codex @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```
 
-The bridge installs `@openai/codex-sdk` (and the `codex` CLI it depends on) inside the sandbox the first time the session starts.
+The bridge installs the Codex CLI inside the sandbox the first time the session starts.
 
 ## Usage
 
