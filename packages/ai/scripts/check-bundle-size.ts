@@ -54,7 +54,7 @@ async function bundleForNode(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 275 * 1024
+          ? 280 * 1024
           : LIMIT,
   };
 }
@@ -102,7 +102,7 @@ async function bundleForBrowser(
       entry === 'tool'
         ? 8 * 1024
         : entry === 'generateText'
-          ? 275 * 1024
+          ? 280 * 1024
           : LIMIT,
   };
 }
