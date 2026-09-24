@@ -230,9 +230,30 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   );
 
   useEffect(() => {
-    if (resume) {
-      chat.resumeStream();
+    if (!resume) {
+      return;
     }
+
+    chat.resumeStream();
+
+    if (typeof document === 'undefined') {
+      return;
+    }
+
+    const onVisibilityChange = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        chat.status !== 'streaming' &&
+        chat.status !== 'submitted'
+      ) {
+        chat.resumeStream();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
   }, [resume, chat]);
 
   return {
