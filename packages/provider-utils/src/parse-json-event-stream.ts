@@ -21,8 +21,8 @@ export function parseJsonEventStream<T>({
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({
         async transform({ data }, controller) {
-          // ignore the 'DONE' event that e.g. OpenAI sends:
-          if (data === '[DONE]') {
+          // ignore keep-alive events and the 'DONE' event that e.g. OpenAI sends:
+          if (data.trim() === '' || data === '[DONE]') {
             return;
           }
 
