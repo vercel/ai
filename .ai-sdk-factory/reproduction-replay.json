@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 20888,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-20888-snowflake-otel-provider-name.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-20888-snowflake-otel-provider-name.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_20888_REPRODUCED: gen_ai.provider.name was not normalized to snowflake"
+  }
+}
