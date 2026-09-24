@@ -1,6 +1,9 @@
 export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
-export type { OpenAIResponsesProviderOptions } from './responses/openai-responses-options';
+export type {
+  OpenAIResponsesProviderOptions,
+  OpenAIResponsesSystemMessageOptions,
+} from './responses/openai-responses-options';
 export type { OpenAIToolOptions } from './responses/openai-responses-prepare-tools';
 export type {
   OpenaiResponsesProviderMetadata,

@@ -1,5 +1,7 @@
 import type { DeepSeekChatOptions } from '@ai-sdk/deepseek';
 
+export type { OpenAIResponsesSystemMessageOptions } from '@ai-sdk/openai';
+
 export type AzureDeepSeekLanguageModelOptions = Omit<
   DeepSeekChatOptions,
   'thinking'
