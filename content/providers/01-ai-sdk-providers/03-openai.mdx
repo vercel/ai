@@ -3156,6 +3156,30 @@ const { images } = await generateImage({
 });
 ```
 
+#### Moderation
+
+GPT Image models accept a `moderation` level on edits as well as on generations. The default, `auto`, is the standard filtering; `low` applies less restrictive filtering:
+
+```ts
+import { openai, type OpenAIImageModelEditOptions } from '@ai-sdk/openai';
+import { generateImage } from 'ai';
+
+const imageBuffer = readFileSync('./input-image.png');
+
+const { images } = await generateImage({
+  model: openai.image('gpt-image-2.5-flare'),
+  prompt: {
+    text: 'Draw the same scene at dusk',
+    images: [imageBuffer],
+  },
+  providerOptions: {
+    openai: {
+      moderation: 'low',
+    } satisfies OpenAIImageModelEditOptions,
+  },
+});
+```
+
 #### Multi-Image Combining
 
 Combine multiple reference images into a single output. `gpt-image-*` models support up to 16 input images:

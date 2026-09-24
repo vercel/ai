@@ -927,6 +927,7 @@ describe('doGenerate - image editing', () => {
       providerOptions: {
         openai: {
           inputFidelity: 'high',
+          moderation: 'low',
           outputFormat: 'webp',
           outputCompression: 80,
           user: 'user-123',
@@ -936,6 +937,7 @@ describe('doGenerate - image editing', () => {
 
     expect(await server.calls[0].requestBodyMultipart).toMatchObject({
       input_fidelity: 'high',
+      moderation: 'low',
       output_format: 'webp',
       output_compression: '80',
       user: 'user-123',
