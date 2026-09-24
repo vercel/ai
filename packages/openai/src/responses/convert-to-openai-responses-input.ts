@@ -11,6 +11,7 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-options';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -47,6 +48,12 @@ export async function convertToOpenAIResponsesInput({
   explicitMessageItemType = false,
   fileIdPrefixes,
   store,
+<<<<<<< HEAD
+=======
+  hasConversation = false,
+  hasPreviousResponseId = false,
+  configurationUpdateUnsupportedReason,
+>>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV2Prompt;
@@ -54,6 +61,12 @@ export async function convertToOpenAIResponsesInput({
   explicitMessageItemType?: boolean;
   fileIdPrefixes?: readonly string[];
   store: boolean;
+<<<<<<< HEAD
+=======
+  hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
+  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
+  configurationUpdateUnsupportedReason?: string;
+>>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -65,6 +78,42 @@ export async function convertToOpenAIResponsesInput({
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
+        // Keep effort updates at their original positions so they apply to
+        // the same parts of the conversation when the history is sent again.
+        let options = await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: openaiResponsesSystemMessageOptionsSchema,
+        });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
+        const effort = options?.reasoningEffortUpdate;
+        if (effort != null) {
+          const unsupportedReason =
+            content !== ''
+              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              : configurationUpdateUnsupportedReason;
+
+          if (unsupportedReason != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level reasoningEffortUpdate',
+              message: unsupportedReason,
+            });
+          }
+
+          input.push({
+            type: 'configuration_update',
+            reasoning: { effort },
+          });
+          // The control is independent of systemMessageMode's text handling.
+          break;
+        }
+
         switch (systemMessageMode) {
           case 'system': {
             const promptCacheBreakpoint =
