@@ -242,6 +242,58 @@ describe.each(['generate', 'stream'] as const)(
     });
 
     describe.each([
+      {
+        options: { previousResponseId: 'resp_previous' },
+        field: 'previous_response_id',
+        value: 'resp_previous',
+      },
+      {
+        options: { conversation: 'conv_test' },
+        field: 'conversation',
+        value: 'conv_test',
+      },
+    ])(
+      'message-level continuation with $field',
+      ({ options, field, value }) => {
+        const previousReasoning: LanguageModelV4Prompt[number] = {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Earlier reasoning',
+              providerOptions: { openai: { itemId: 'rs_previous' } },
+            },
+          ],
+        };
+
+        it('preserves an update after filtering reasoning already stored in history', async () => {
+          const { body, warnings } = await request(
+            [previousReasoning, update('high'), user],
+            { ...options, reasoningEffort: 'low' },
+          );
+
+          expect(body[field]).toBe(value);
+          expect(body.input).toEqual([wireUpdate('high'), wireUser]);
+          expect(body.reasoning.effort).toBe('low');
+          expect(warnings).toEqual([]);
+        });
+
+        it('rejects updates made adjacent by filtering stored reasoning', async () => {
+          await expect(
+            request(
+              [update('high'), previousReasoning, update('low'), user],
+              options,
+            ),
+          ).rejects.toMatchObject({
+            name: 'AI_UnsupportedFunctionalityError',
+            functionality: 'Adjacent reasoning effort configuration updates',
+          });
+          expect(server.calls).toHaveLength(0);
+        });
+      },
+    );
+
+    describe.each([
       { model: 'gpt-5.6', options: {} },
       { model: 'custom-model', options: { forceReasoning: true } },
       { model: 'gpt-6-astra', options: { reasoningMode: 'pro' } },
