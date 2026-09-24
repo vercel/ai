@@ -55,14 +55,14 @@ run(async () => {
 
   console.log('\n--- OpenAI Response ---');
   const openaiResult = await generateText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     messages,
   });
   console.log(openaiResult.text);
 
   console.log('\n--- Anthropic Follow-up ---');
   const anthropicResult = await generateText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5'),
     messages: [
       ...messages,
       { role: 'assistant' as const, content: openaiResult.text },

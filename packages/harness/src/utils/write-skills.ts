@@ -551,7 +551,7 @@ function resolveSkillsRootDir({
     );
   }
   const containsTraversal = skillsDir
-    .split(/[\\\/]/)
+    .split(/[\\/]/)
     .some(segment => segment === '..');
   const normalizedSkillsDir = path.posix.normalize(skillsDir.trim());
   const normalizedNoTrailingSlash = normalizedSkillsDir.replace(/\/+$/, '');

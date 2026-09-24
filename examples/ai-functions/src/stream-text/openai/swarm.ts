@@ -17,7 +17,7 @@ run(async () => {
   let activeAgent = agentA;
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools: {
       transferToAgentB: tool({
         description: 'Transfer to agent B.',

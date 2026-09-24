@@ -22,6 +22,8 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -35,7 +37,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -43,6 +44,7 @@ import {
   waitForBridgeReady,
   withBridgeToken,
   writeSkills,
+  type SandboxChannelReconnectOptions,
   type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
@@ -120,6 +122,13 @@ export type OpenCodeHarnessSettings = {
    */
   readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
@@ -285,11 +294,6 @@ export function createOpenCode(
             'The OpenCode harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -396,17 +400,22 @@ export function createOpenCode(
         }
         credentialsBrokered = true;
       }
-      const bootstrapDir = path.posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
-      const workDir = startOpts.sessionWorkDir;
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOpts.abortSignal,
       });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
+      const bootstrapDir = path.posix.resolve(stateDir, BOOTSTRAP_DIR);
+
+      const workDir = startOpts.sessionWorkDir;
       const skillsDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
       const report = startOpts.observability?.report;
@@ -437,10 +446,11 @@ export function createOpenCode(
           });
           let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () =>
+            connect: ({ abortSignal }) =>
               openWebSocket({
                 endpoint: attachEndpoint,
                 helloTimeoutMs: Math.min(timeoutMs, 5_000),
+                abortSignal,
                 onHello: supported => {
                   supportsUserMessageResponses = supported;
                 },
@@ -449,6 +459,7 @@ export function createOpenCode(
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
@@ -610,10 +621,11 @@ export function createOpenCode(
       let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () =>
+        connect: ({ abortSignal }) =>
           openWebSocket({
             endpoint: bridgeEndpoint,
             helloTimeoutMs: Math.min(timeoutMs, 5_000),
+            abortSignal,
             onHello: supported => {
               supportsUserMessageResponses = supported;
             },
@@ -621,6 +633,7 @@ export function createOpenCode(
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
@@ -726,25 +739,39 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   endpoint,
   helloTimeoutMs,
+  abortSignal,
   onHello,
 }: {
   endpoint: HarnessV1PortEndpoint;
   helloTimeoutMs: number;
+  abortSignal: AbortSignal;
   onHello(supportsUserMessageResponses: boolean): void;
 }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    const abortReason = () =>
+      abortSignal.reason ?? new Error('WebSocket connection aborted');
+    if (abortSignal.aborted) {
+      reject(abortReason());
+      return;
+    }
+
     const ws = new WebSocket(endpoint.url, {
       headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
     });
     let opened = false;
     let receivedHello = false;
     let settled = false;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     const cleanup = () => {
       clearTimeout(helloTimer);
       ws.off('open', onOpen);
       ws.off('message', onMessage);
       ws.off('close', onClose);
       ws.off('error', onError);
+      if (onAbort != null) {
+        abortSignal.removeEventListener('abort', onAbort);
+      }
     };
     const settle = (error?: unknown) => {
       if (settled) return;
@@ -753,6 +780,20 @@ function openWebSocket({
       if (error == null) {
         resolve(ws);
       } else {
+        const suppressError = () => {};
+        const socketWithOnce = ws as WebSocket & {
+          once?: (event: string, listener: () => void) => void;
+        };
+        socketWithOnce.once?.('error', suppressError);
+        try {
+          ws.terminate();
+        } catch {
+          try {
+            ws.close();
+          } catch {
+            // best-effort
+          }
+        }
         reject(error);
       }
     };
@@ -793,11 +834,17 @@ function openWebSocket({
     const onError = (err: Error) => {
       settle(err);
     };
+    onAbort = () => settle(abortReason());
     ws.on('open', onOpen);
     ws.on('message', onMessage);
     ws.on('close', onClose);
     ws.on('error', onError);
-    const helloTimer = setTimeout(
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+    if (abortSignal.aborted) {
+      onAbort();
+      return;
+    }
+    helloTimer = setTimeout(
       () =>
         settle(
           new Error(

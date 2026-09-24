@@ -9,7 +9,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   callOptionsSchema: z.object({
     model: z.custom<LanguageModel>(),
     city: z.string(),
@@ -21,7 +21,7 @@ const agent = new ToolLoopAgent({
   },
   prepareCall: ({ options, ...rest }) => ({
     ...rest,
-    model: options?.model ?? openai('gpt-5-mini'),
+    model: options?.model ?? openai('gpt-6-luna'),
     providerOptions: {
       openai: {
         reasoningEffort: options?.reasoningEffort ?? 'medium',
@@ -50,7 +50,7 @@ run(async () => {
   const result = await agent.stream({
     prompt: 'What news did happen here yesterday?',
     options: {
-      model: openai('gpt-5-nano'),
+      model: openai('gpt-5.4-nano'),
       city: 'San Francisco',
       region: 'California',
       reasoningEffort: 'low',

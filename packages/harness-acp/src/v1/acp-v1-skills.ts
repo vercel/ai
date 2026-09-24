@@ -1,27 +1,20 @@
-import { createHash } from 'node:crypto';
 import path from 'node:path';
-import type { HarnessV1Skill } from '@ai-sdk/harness';
+import {
+  harnessSessionDataDirectoryPath,
+  type HarnessV1Skill,
+} from '@ai-sdk/harness';
 
 export const ACP_SKILL_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const DEFAULT_ACP_SKILLS_DIRECTORY = '.agents/skills';
 
 export function resolveACPPrivateSessionDirectory({
-  sandboxHomeDir,
-  harnessId,
+  stateDirectory,
   sessionId,
 }: {
-  sandboxHomeDir: string;
-  harnessId: string;
+  stateDirectory: string;
   sessionId: string;
 }): string {
-  const sessionKey = createHash('sha256').update(sessionId).digest('hex');
-  return path.posix.join(
-    sandboxHomeDir,
-    '.ai-sdk',
-    'harness-acp',
-    harnessId,
-    sessionKey,
-  );
+  return harnessSessionDataDirectoryPath({ stateDirectory, sessionId });
 }
 
 export function resolveACPSkillsDirectory({

@@ -59,6 +59,18 @@ export type GoogleContentPart =
         id: string;
       };
       thoughtSignature?: string;
+    }
+  | {
+      executableCode: {
+        language: string;
+        code: string;
+      };
+    }
+  | {
+      codeExecutionResult: {
+        outcome: string;
+        output: string;
+      };
     };
 
 export type GoogleFunctionResponsePart = {
@@ -81,6 +93,7 @@ export interface GoogleProviderMetadata {
   urlContextMetadata: GoogleUrlContextMetadata | null;
   safetyRatings: GoogleSafetyRating[] | null;
   usageMetadata: GoogleUsageMetadata | null;
+  finishReason?: string | null;
   finishMessage: string | null;
   serviceTier: string | null;
 }

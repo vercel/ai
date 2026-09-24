@@ -29,7 +29,7 @@ export const POST = async ({ request }: { request: Request }) => {
   const { prompt } = await request.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     system,
     prompt,
     onError: error => {

@@ -9,6 +9,7 @@ import {
   type GatewayAsyncJobMetadata,
   type GatewayModelId,
   type GatewayProviderMetadata,
+  type GatewayProviderOptions,
 } from './index';
 
 it('types batch support on the Gateway provider', () => {
@@ -43,3 +44,36 @@ createGateway({});
 
 // @ts-expect-error token is not a supported Gateway provider setting
 createGateway({ token: 'vca_test-token' });
+
+it('types weight-format conditions in has', () => {
+  expectTypeOf<GatewayProviderOptions['has']>().toEqualTypeOf<
+    | (
+        | 'implicit-caching'
+        | 'reasoning'
+        | 'structured-output'
+        | 'tool-use'
+        | 'vision'
+        | `quantization:${string}`
+        | `!quantization:${string}`
+      )[]
+    | undefined
+  >();
+
+  const options = {
+    has: ['quantization:fp8', '!quantization:int4'],
+  } satisfies GatewayProviderOptions;
+  void options;
+
+  expectTypeOf<'quantization:fp8'>().toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+  expectTypeOf<'!quantization:fp8'>().toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+  expectTypeOf<'quantization'>().not.toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+  expectTypeOf<'fp8'>().not.toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+});

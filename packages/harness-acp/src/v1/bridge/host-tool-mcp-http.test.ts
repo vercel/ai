@@ -11,7 +11,7 @@ import {
 const cleanups: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  const pending = cleanups.splice(0, cleanups.length).reverse();
+  const pending = cleanups.splice(0).reverse();
   for (const cleanup of pending) await cleanup();
 });
 

@@ -1,5 +1,24 @@
 # @ai-sdk/groq
 
+## 4.0.48
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.47
+
+### Patch Changes
+
+- c0fd23b: fix(groq): return a typed error when non-streaming responses contain no choices
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.46
 
 ### Patch Changes

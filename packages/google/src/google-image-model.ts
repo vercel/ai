@@ -242,6 +242,7 @@ export class GoogleImageModel implements ImageModelV4 {
       providerMetadata: {
         google: {
           ...languageModelGoogleMetadata,
+          finishReason: result.finishReason.raw ?? null,
           images: images.map(() => ({})),
         },
       },

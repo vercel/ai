@@ -412,6 +412,20 @@ describe('videoModel', () => {
     expect(mockFallbackProvider.videoModel).toHaveBeenCalledWith('test-model');
   });
 
+  it('should convert v3 fallback provider video models to v4', () => {
+    const fallbackProvider = Object.assign(new MockProviderV3(), {
+      videoModel(modelId: string) {
+        expect(this).toBe(fallbackProvider);
+        expect(modelId).toBe('test-model');
+        return new MockVideoModelV3();
+      },
+    });
+
+    const provider = customProvider({ fallbackProvider });
+
+    expect(provider.videoModel('test-model').specificationVersion).toBe('v4');
+  });
+
   it('should throw NoSuchModelError if model not found and no fallback', () => {
     const provider = customProvider({});
 

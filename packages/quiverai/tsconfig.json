@@ -16,6 +16,9 @@
       "path": "../ai"
     },
     {
+      "path": "../open-responses"
+    },
+    {
       "path": "../provider"
     },
     {

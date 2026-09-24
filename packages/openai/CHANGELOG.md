@@ -1,5 +1,33 @@
 # @ai-sdk/openai
 
+## 4.0.74
+
+### Patch Changes
+
+- 4cf5a99: fix(openai): classify Responses stream errors with null codes
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
 ## 4.0.71
 
 ### Patch Changes

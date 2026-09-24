@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const tools = await client.tools();
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(5),
       onStepFinish: async ({ toolResults }) => {

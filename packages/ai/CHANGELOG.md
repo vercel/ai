@@ -1,5 +1,83 @@
 # ai
 
+## 7.0.113
+
+### Patch Changes
+
+- dcdb011: fix(ai): route completed streamed tool input callbacks to repaired tools
+- 8f72832: fix(ai): preserve video models from legacy fallback providers
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- b74c0cb: fix(ai): resume tool approvals from earlier messages
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- c93ee90: fix(ai): preserve message history for direct transport stream callbacks
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [b73f2f9]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/gateway@4.0.91
+
+## 7.0.112
+
+### Patch Changes
+
+- 9a98fd9: fix(ai): prune reasoning file parts when removing reasoning
+- a0553d6: feat(ai): report consumer cancellation in UI message stream end callbacks
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- fde0d66: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [ed5a1d7]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/gateway@4.0.90
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 7.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- a65bfd9: fix(ai): securely download URL-backed language model file outputs so generated files expose actual base64 and byte content and UI streams contain valid data URLs. Propagate cancellation to batch file downloads.
+
+## 7.0.110
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/gateway@4.0.89
+
+## 7.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- 2b105fa: fix(ai): preserve overlapping text blocks in reasoning extraction streams
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+
+## 7.0.108
+
+### Patch Changes
+
+- 3f6852a: fix(ai): prevent direct execution of tools governed by tool callers
+- 6317504: fix(ai): stop pending tool-call repairs when generation is cancelled
+- 3cb2dcd: fix(ai): preserve file data when adapting v3 language models
+- ccf98e7: fix(ai): prevent `streamText` from executing tool calls that violate tool choice
+- Updated dependencies [20dd00a]
+- Updated dependencies [7cf7cee]
+- Updated dependencies [c42576a]
+- Updated dependencies [d85dcf5]
+- Updated dependencies [fd9b3f3]
+  - @ai-sdk/gateway@4.0.88
+
 ## 7.0.107
 
 ### Patch Changes

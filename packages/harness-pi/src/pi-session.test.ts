@@ -791,6 +791,7 @@ describe('createPiSession', () => {
       settings: {},
       clientApp: 'ai-sdk/harness-pi/0.0.0-test',
       isResume: true,
+      resumeStateType: 'continue-turn',
     });
     const resumedControl = await resumedSession.doContinueTurn({
       skills: [],
@@ -823,6 +824,155 @@ describe('createPiSession', () => {
       }
     `,
     );
+  });
+
+  it('reattaches a pending turn detached with matching resume-session state', async () => {
+    const toolStarted = createDeferred<void>();
+    let resolvedToolResult: unknown;
+    const { session: fakePiSession, prompt } = createFakePiSession({
+      promptImplementation: async () => {
+        const tool = piMock.customTools.find(tool => tool.name === 'weather');
+        if (!tool) throw new Error('Expected weather tool.');
+        const toolResultPromise = tool.execute(
+          'tool-detached',
+          {},
+          undefined,
+          undefined,
+          undefined as never,
+        );
+        toolStarted.resolve();
+        resolvedToolResult = await toolResultPromise;
+      },
+    });
+    piMock.session = fakePiSession;
+
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: 'session-detached',
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const tools: HarnessV1ToolSpec[] = [{ name: 'weather' }];
+    const originalControl = await session.doPromptTurn({
+      skills: [],
+      tools,
+      prompt: 'go',
+      emit: vi.fn(),
+    });
+    await toolStarted.promise;
+    await session.doDetach();
+
+    const resumedSession = await createPiSession({
+      sessionId: session.sessionId,
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeStateType: 'resume-session',
+    });
+    const resumedControl = await resumedSession.doContinueTurn({
+      skills: [],
+      tools,
+      emit: vi.fn(),
+    });
+    await resumedControl.submitToolResult({
+      toolCallId: 'tool-detached',
+      output: 'sunny',
+    });
+    await resumedControl.done;
+    await originalControl.done;
+
+    expect(prompt).toHaveBeenCalledOnce();
+    expect(resolvedToolResult).toMatchObject({
+      content: [{ type: 'text', text: 'sunny' }],
+    });
+    await resumedSession.doDestroy();
+  });
+
+  it.each([
+    {
+      name: 'in-process reattachment is disabled',
+      settings: { reattachInProcess: false },
+      resumeStateType: 'continue-turn' as const,
+    },
+    {
+      name: 'the lifecycle state has progressed to resume-session',
+      settings: {},
+      resumeStateType: 'resume-session' as const,
+    },
+    {
+      name: 'request-scoped settings changed',
+      settings: {},
+      resumeStateType: 'continue-turn' as const,
+      initialAgentDir: '/request-1/agent',
+      resumeAgentDir: '/request-2/agent',
+    },
+  ])('cold-restores a parked session when $name', async input => {
+    const toolStarted = createDeferred<void>();
+    const {
+      session: fakePiSession,
+      prompt,
+      abort,
+      dispose,
+    } = createFakePiSession({
+      promptImplementation: async () => {
+        const tool = piMock.customTools.find(tool => tool.name === 'weather');
+        if (!tool) throw new Error('Expected weather tool.');
+        const toolResultPromise = tool.execute(
+          'tool-cold-restore',
+          {},
+          undefined,
+          undefined,
+          undefined as never,
+        );
+        toolStarted.resolve();
+        await toolResultPromise;
+      },
+    });
+    piMock.session = fakePiSession;
+
+    const sandboxSession = createSandboxSession();
+    const session = await createPiSession({
+      sessionId: `session-cold-restore-${input.resumeStateType}-${String(
+        'reattachInProcess' in input.settings,
+      )}`,
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: false,
+      ...(input.initialAgentDir ? { agentDir: input.initialAgentDir } : {}),
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'go',
+      tools: [{ name: 'weather' }],
+      emit: vi.fn(),
+    });
+    await toolStarted.promise;
+    await session.doSuspendTurn();
+
+    const resumedSession = await createPiSession({
+      sessionId: session.sessionId,
+      sandboxSession,
+      sessionWorkDir: '/sandbox/work',
+      settings: input.settings,
+      clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+      isResume: true,
+      resumeStateType: input.resumeStateType,
+      ...(input.resumeAgentDir ? { agentDir: input.resumeAgentDir } : {}),
+    });
+
+    await control.done;
+    expect(resumedSession).not.toBe(session);
+    expect(prompt).toHaveBeenCalledOnce();
+    expect(abort).toHaveBeenCalledOnce();
+    expect(dispose).toHaveBeenCalledOnce();
+    await resumedSession.doDestroy();
   });
 
   it('holds a cross-process rerun until dangling host tool results arrive, then injects them into the journal', async () => {
@@ -951,7 +1101,7 @@ describe('createPiSession', () => {
         {
           "content": [
             {
-              "text": "{\"error\":\"answer unavailable\"}",
+              "text": "{"error":"answer unavailable"}",
               "type": "text",
             },
           ],
@@ -1428,17 +1578,22 @@ function createDeferred<T>() {
 
 function createFakePiSession({
   promptEvents = [],
+  promptImplementation,
 }: {
   promptEvents?: unknown[];
+  promptImplementation?: (text: string) => Promise<void>;
 } = {}) {
   const subscribers = new Set<(event: unknown) => void>();
-  const prompt = vi.fn(async (_text: string) => {
-    for (const event of promptEvents) {
-      for (const subscriber of subscribers) {
-        subscriber(event);
-      }
-    }
-  });
+  const prompt = vi.fn(
+    promptImplementation ??
+      (async (_text: string) => {
+        for (const event of promptEvents) {
+          for (const subscriber of subscribers) {
+            subscriber(event);
+          }
+        }
+      }),
+  );
   const abort = vi.fn(async () => {});
   const compact = vi.fn(async () => {});
   const dispose = vi.fn();

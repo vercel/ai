@@ -97,7 +97,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
             mask: mask != null ? await fileToBlob(mask) : undefined,
             n,
             size,
-            ...(deepInfraOptions ?? {}),
+            ...deepInfraOptions,
           },
           { useArrayBrackets: false },
         ),
@@ -136,7 +136,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
         ...(aspectRatio && { aspect_ratio: aspectRatio }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(seed != null && { seed }),
-        ...(deepInfraOptions ?? {}),
+        ...deepInfraOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,
