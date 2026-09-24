@@ -694,6 +694,52 @@ describe('tool messages', () => {
     });
   });
 
+  it('should serialize JSON Schema references in function response content', async () => {
+    const toolResult = {
+      tools: [
+        {
+          name: 'find_records',
+          inputSchema: {
+            $defs: {
+              Node: {
+                type: 'object',
+                properties: {
+                  child: { $ref: '#/$defs/Node' },
+                },
+              },
+            },
+            $ref: '#/$defs/Node',
+          },
+        },
+      ],
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: { type: 'json', value: toolResult },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'get_schema',
+        response: {
+          name: 'get_schema',
+          content: JSON.stringify(toolResult),
+        },
+      },
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
@@ -1545,6 +1591,128 @@ describe('tool results with thought signatures', () => {
 });
 
 describe('server tool combination round-trip', () => {
+  it('should parse stringified code execution input', () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'code-call-1',
+            toolName: 'code_execution',
+            input: JSON.stringify({
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            }),
+            providerExecuted: true,
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      executableCode: {
+        language: 'PYTHON',
+        code: 'print(17 * 19)',
+      },
+    });
+  });
+
+  it('should preserve code execution parts alongside a function tool call', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'code-call-1',
+              toolName: 'code_execution',
+              input: { language: 'PYTHON', code: 'print(17 * 19)' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              input: {},
+              providerOptions: {
+                google: { thoughtSignature: 'function-signature' },
+              },
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'code-call-1',
+              toolName: 'code_execution',
+              output: {
+                type: 'json',
+                value: { outcome: 'OUTCOME_OK', output: '323\n' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              output: {
+                type: 'json',
+                value: { items: ['a', 'b'] },
+              },
+            },
+          ],
+        },
+      ],
+      { isGemini3Model: true },
+    );
+
+    expect(result.contents).toEqual([
+      {
+        role: 'model',
+        parts: [
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            },
+          },
+          {
+            functionCall: {
+              id: 'function-call-1',
+              name: 'listItems',
+              args: {},
+            },
+            thoughtSignature: 'function-signature',
+          },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: '323\n',
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              id: 'function-call-1',
+              name: 'listItems',
+              response: {
+                name: 'listItems',
+                content: { items: ['a', 'b'] },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should convert assistant tool-call with serverToolCallId to toolCall wire format', () => {
     const result = convertToGoogleMessages([
       {

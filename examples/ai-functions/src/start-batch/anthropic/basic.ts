@@ -24,7 +24,7 @@ run(async () => {
       {
         id: 'capital-germany',
         type: 'text',
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-5',
         prompt: 'What is the capital of Germany?',
       },
     ],

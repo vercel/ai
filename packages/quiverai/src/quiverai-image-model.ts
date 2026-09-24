@@ -9,7 +9,6 @@ import {
   combineHeaders,
   convertBase64ToUint8Array,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   parseProviderOptions,
   postJsonToApi,
@@ -23,6 +22,7 @@ import {
   quiveraiImageModelOptionsSchema,
   type QuiverAIImageModelOptions,
 } from './quiverai-image-model-options';
+import { quiveraiFailedResponseHandler } from './quiverai-error';
 import {
   validateQuiverAIImageUrl,
   validateQuiverAIReferenceBase64,
@@ -1020,17 +1020,4 @@ const svgGenerationResponseSchema = z.object({
   data: z.array(svgDocumentSchema).min(1),
   usage: svgUsageSchema.nullish(),
   credits: z.number().int().nonnegative().nullish(),
-});
-
-const quiveraiErrorSchema = z.object({
-  status: z.number().int(),
-  code: z.string().min(1),
-  message: z.string().min(1),
-  request_id: z.string().min(1),
-});
-
-export const quiveraiFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: quiveraiErrorSchema,
-  errorToMessage: error => error.message,
-  isRetryable: response => response.status === 429 || response.status >= 500,
 });

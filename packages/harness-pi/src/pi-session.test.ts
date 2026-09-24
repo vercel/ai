@@ -8,9 +8,11 @@ import {
   ModelRuntime,
   SettingsManager,
 } from '@earendil-works/pi-coding-agent';
+import type * as PiCodingAgentModule from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
+  HarnessV1Session,
   HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
 import {
@@ -88,8 +90,10 @@ vi.mock('pi-mcp-adapter', () => ({
   createMcpAdapter: mcpAdapterMock.createMcpAdapter,
 }));
 
-vi.mock('@earendil-works/pi-coding-agent', () => {
+vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
+  const actual = await importOriginal<typeof PiCodingAgentModule>();
   return {
+    ...actual,
     createAgentSession: piMock.createAgentSession,
     DefaultResourceLoader: class {
       private extensionsResult: FakeExtensionsResult = {
@@ -895,6 +899,71 @@ describe('createPiSession', () => {
 
   it.each([
     {
+      lifecycle: 'suspend',
+      runLifecycle: (session: HarnessV1Session) => session.doSuspendTurn(),
+      expectedStateType: 'continue-turn',
+    },
+    {
+      lifecycle: 'detach',
+      runLifecycle: (session: HarnessV1Session) => session.doDetach(),
+      expectedStateType: 'resume-session',
+    },
+  ])(
+    'releases a pending tool turn on $lifecycle when in-process reattachment is disabled',
+    async ({ lifecycle, runLifecycle, expectedStateType }) => {
+      const toolStarted = createDeferred<void>();
+      const {
+        session: fakePiSession,
+        abort,
+        dispose,
+      } = createFakePiSession({
+        promptImplementation: async () => {
+          const tool = piMock.customTools.find(tool => tool.name === 'weather');
+          if (!tool) throw new Error('Expected weather tool.');
+          const toolResultPromise = tool.execute(
+            `tool-${lifecycle}`,
+            {},
+            undefined,
+            undefined,
+            undefined as never,
+          );
+          toolStarted.resolve();
+          await toolResultPromise;
+        },
+      });
+      piMock.session = fakePiSession;
+
+      const sessionId = `session-disabled-reattach-${lifecycle}`;
+      const hostRoot = path.join(tmpdir(), 'ai-sdk-harness', 'pi', sessionId);
+      const session = await createPiSession({
+        sessionId,
+        sandboxSession: createSandboxSession(),
+        sessionWorkDir: '/sandbox/work',
+        settings: { reattachInProcess: false },
+        clientApp: 'ai-sdk/harness-pi/0.0.0-test',
+        isResume: false,
+      });
+      const control = await session.doPromptTurn({
+        skills: [],
+        prompt: 'go',
+        tools: [{ name: 'weather' }],
+        emit: vi.fn(),
+      });
+      await toolStarted.promise;
+
+      await expect(runLifecycle(session)).resolves.toMatchObject({
+        type: expectedStateType,
+      });
+      await expect(control.done).resolves.toBeUndefined();
+
+      expect(abort).toHaveBeenCalledOnce();
+      expect(dispose).toHaveBeenCalledOnce();
+      expect(existsSync(hostRoot)).toBe(false);
+    },
+  );
+
+  it.each([
+    {
       name: 'in-process reattachment is disabled',
       settings: { reattachInProcess: false },
       resumeStateType: 'continue-turn' as const,
@@ -1101,7 +1170,7 @@ describe('createPiSession', () => {
         {
           "content": [
             {
-              "text": "{\"error\":\"answer unavailable\"}",
+              "text": "{"error":"answer unavailable"}",
               "type": "text",
             },
           ],

@@ -46,7 +46,6 @@ describe('AnthropicLanguageModel', () => {
         fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   function prepareChunksFixtureResponse(filename: string) {
@@ -6740,6 +6739,164 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('on-demand compaction', () => {
+      it('should send compaction in the request body and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              compaction: {
+                type: 'summarize',
+                instructions: 'Preserve decisions and unresolved questions.',
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          compaction: {
+            type: 'summarize',
+            instructions: 'Preserve decisions and unresolved questions.',
+          },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-09-04',
+        );
+      });
+
+      it('should reject compaction together with context management', async () => {
+        await expect(
+          model.doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: {
+                compaction: { type: 'summarize' },
+                contextManagement: {
+                  edits: [{ type: 'clear_tool_uses_20250919' }],
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'providerOptions',
+          message:
+            'Anthropic provider options `compaction` and `contextManagement` cannot be used together.',
+        });
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should preserve the signature on compaction responses', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_compaction',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'compaction',
+                content: 'Summary of the conversation.',
+                signature: 'compaction-signature',
+              },
+            ],
+            model: 'claude-opus-5',
+            stop_reason: 'compaction',
+            stop_sequence: null,
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              iterations: [
+                {
+                  type: 'compaction',
+                  input_tokens: 120,
+                  output_tokens: 30,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ]);
+        expect(result.finishReason).toEqual({
+          unified: 'other',
+          raw: 'compaction',
+        });
+      });
+
+      it('should replay signed compaction blocks and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Summary of the conversation.',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'compaction',
+                      signature: 'compaction-signature',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue the conversation.' }],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Continue the conversation.',
+                },
+              ],
+            },
+          ],
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-09-04',
+        );
+      });
+    });
+
     describe('safeguards', () => {
       const safeguardResults = [
         {
@@ -8167,6 +8324,51 @@ describe('AnthropicLanguageModel', () => {
           !(part as { providerMetadata?: unknown }).providerMetadata,
       );
       expect(regularTextStart).toBeDefined();
+    });
+
+    it('should stream complete signed on-demand compaction blocks', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data: {"type":"message_start","message":{"id":"msg_compaction","type":"message","role":"assistant","content":[],"model":"claude-opus-5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":0,"output_tokens":0}}}\n\n',
+          'data: {"type":"content_block_start","index":0,"content_block":{"type":"compaction","content":"Summary of the conversation.","signature":"compaction-signature"}}\n\n',
+          'data: {"type":"content_block_stop","index":0}\n\n',
+          'data: {"type":"message_delta","delta":{"stop_reason":"compaction","stop_sequence":null},"usage":{"output_tokens":0,"iterations":[{"type":"compaction","input_tokens":120,"output_tokens":30}]}}\n\n',
+          'data: {"type":"message_stop"}\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toContainEqual({
+        type: 'text-start',
+        id: '0',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+      expect(result).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Summary of the conversation.',
+      });
+      expect(result).toContainEqual({
+        type: 'text-end',
+        id: '0',
+      });
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        }),
+      );
     });
 
     it('should parse iterations from streaming compaction response', async () => {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { HarnessV1StreamPart } from '../../v1';
-import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
+import {
+  createToolInputWorkDirStripper,
+  stripParsedToolInputWorkDir,
+  stripWorkDir,
+} from './strip-work-dir';
 
 const WORK_DIR = '/vercel/sandbox/claude-code-abc123';
 
@@ -321,5 +325,58 @@ describe('stripWorkDir', () => {
       delta: `wrote ${WORK_DIR}/foo.ts`,
     };
     expect(stripWorkDir(part, WORK_DIR)).toBe(part);
+  });
+});
+
+describe('stripParsedToolInputWorkDir', () => {
+  it('preserves cycles and shared references without modifying the validated input', () => {
+    const shared = { path: `${WORK_DIR}/shared.ts` };
+    const source: {
+      first: typeof shared;
+      second: typeof shared;
+      self?: unknown;
+      values?: unknown[];
+    } = { first: shared, second: shared };
+    const values: unknown[] = [source];
+    source.self = source;
+    source.values = values;
+    values.push(values);
+
+    const display = stripParsedToolInputWorkDir({
+      value: source,
+      sessionWorkDir: WORK_DIR,
+    }) as typeof source;
+
+    expect(display).not.toBe(source);
+    expect(display.first).toBe(display.second);
+    expect(display.first).not.toBe(shared);
+    expect(display.first.path).toBe('shared.ts');
+    expect(display.self).toBe(display);
+    expect(display.values?.[0]).toBe(display);
+    expect(display.values?.[1]).toBe(display.values);
+    expect(source.first.path).toBe(`${WORK_DIR}/shared.ts`);
+  });
+
+  it('strips deeply nested paths without overflowing the stack', () => {
+    const depth = 12_000;
+    const source: { child?: unknown; path?: string } = {};
+    let current = source;
+    for (let index = 0; index < depth; index++) {
+      const child = {};
+      current.child = child;
+      current = child;
+    }
+    current.path = `${WORK_DIR}/deep.ts`;
+
+    const display = stripParsedToolInputWorkDir({
+      value: source,
+      sessionWorkDir: WORK_DIR,
+    });
+    let projected = display;
+    for (let index = 0; index < depth; index++) {
+      projected = (projected as { child: unknown }).child;
+    }
+    expect(projected).toEqual({ path: 'deep.ts' });
+    expect(current.path).toBe(`${WORK_DIR}/deep.ts`);
   });
 });

@@ -102,7 +102,7 @@ const openaiProvider = createOpenAI({
 });
 
 // 2. Wrap the model to enable automatic tracing
-const tracedGpt4o = wrapAISDKModel(openaiProvider('gpt-4o'));
+const tracedGpt4o = wrapAISDKModel(openaiProvider('gpt-6-astra'));
 
 // 3. Use the wrapped model as you normally would
 const { text } = await generateText({

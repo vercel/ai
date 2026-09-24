@@ -272,7 +272,6 @@ function getWebSearchQuery(item: CodexItem): string | undefined {
   if (typeof item.action?.query === 'string' && item.action.query.length > 0) {
     return item.action.query;
   }
-  return undefined;
 }
 
 function emitWebSearchToolCall({

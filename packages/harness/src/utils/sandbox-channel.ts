@@ -83,6 +83,11 @@ type Listener<TOut extends { type: string }, T extends EventTypeOf<TOut>> = (
   event: Extract<TOut, { type: T }>,
 ) => void;
 
+type BufferedEvent<TOut extends { type: string }> = {
+  message: TOut;
+  listeners?: ReadonlyArray<Listener<TOut, EventTypeOf<TOut>>>;
+};
+
 /*
  * The agent and utilities entrypoints bundle this module separately. A global
  * symbol lets the agent recognize metadata attached by the channel's bundle
@@ -172,11 +177,18 @@ async function awaitWebSocketConnection({
 /**
  * Host-side typed wrapper around the bridge WebSocket connection.
  *
- * Buffers inbound messages until a listener for their type is registered, so
- * callers that subscribe asynchronously do not miss early frames. Inbound
- * dispatch is serialised through a promise chain so a `close` event that
- * arrives on the same microtask as the final `finish` message does not fire
- * close handlers until the message has been dispatched.
+ * Buffers inbound messages in arrival order while listeners attach, so callers
+ * do not miss or reorder early frames. Listener registration drains the
+ * ordered prefix synchronously. Selective listeners are given through the
+ * current task (including its microtasks) to attach before unhandled event
+ * types are retained independently, so they cannot block subscribed event
+ * types indefinitely. A listener that claims an already-buffered event still
+ * receives it if it unsubscribes before that ordered drain completes. Use
+ * {@link SandboxChannel.beginListenerAttachment} to define an explicit
+ * attachment boundary that spans asynchronous work. Inbound dispatch is
+ * serialised through a promise chain so a `close` event that arrives on the
+ * same microtask as the final `finish` message does not fire close handlers
+ * until the message has been dispatched.
  *
  * Survives transient disconnects. The bridge keeps running and
  * accumulates events in an in-memory log keyed by a monotonic `seq`; on an
@@ -193,7 +205,12 @@ export class SandboxChannel<
     EventTypeOf<TOut>,
     Set<Listener<TOut, EventTypeOf<TOut>>>
   >();
-  private readonly buffered = new Map<EventTypeOf<TOut>, TOut[]>();
+  private readonly buffered: BufferedEvent<TOut>[] = [];
+  private readonly bufferedByType = new Map<EventTypeOf<TOut>, TOut[]>();
+  private bufferedOffset = 0;
+  private flushingBuffered = false;
+  private bufferedFlushScheduled = false;
+  private listenerAttachmentDepth = 0;
   private readonly onCloseHandlers = new Set<
     (code: number, reason: string) => void
   >();
@@ -309,16 +326,43 @@ export class SandboxChannel<
     }
     set.add(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
 
-    const buffered = this.buffered.get(type);
-    if (buffered) {
-      this.buffered.delete(type);
-      for (const event of buffered) {
-        listener(event as Extract<TOut, { type: T }>);
-      }
+    this.captureBufferedListeners(type);
+    if (this.listenerAttachmentDepth > 0) {
+      return () => {
+        set!.delete(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
+      };
     }
+
+    this.flushBufferedType(type);
+    this.flushBuffered();
+    this.scheduleSelectiveBufferedFlush();
 
     return () => {
       set!.delete(listener as unknown as Listener<TOut, EventTypeOf<TOut>>);
+    };
+  }
+
+  /**
+   * Hold buffered event delivery while a consumer attaches a related set of
+   * listeners, including across asynchronous boundaries. Call the returned
+   * function once registration is complete. Buffered events are then replayed
+   * in arrival order; event types that remain unhandled are retained
+   * independently so they do not block subscribed types.
+   */
+  beginListenerAttachment(): () => void {
+    this.listenerAttachmentDepth++;
+    let finished = false;
+    return () => {
+      if (finished) return;
+      finished = true;
+      this.listenerAttachmentDepth--;
+      if (this.listenerAttachmentDepth > 0) return;
+
+      for (const type of this.listeners.keys()) {
+        this.flushBufferedType(type);
+      }
+      this.flushBuffered();
+      this.scheduleSelectiveBufferedFlush();
     };
   }
 
@@ -645,18 +689,127 @@ export class SandboxChannel<
     }
     const type = message.type as EventTypeOf<TOut>;
     const set = this.listeners.get(type);
-    if (!set || set.size === 0) {
-      let bucket = this.buffered.get(type);
-      if (!bucket) {
-        bucket = [];
-        this.buffered.set(type, bucket);
-      }
-      bucket.push(message);
+    if (
+      this.listenerAttachmentDepth > 0 ||
+      this.bufferedOffset < this.buffered.length ||
+      !set ||
+      set.size === 0
+    ) {
+      this.buffered.push({
+        message,
+        ...(set != null && set.size > 0 ? { listeners: Array.from(set) } : {}),
+      });
+      this.flushBuffered();
+      this.scheduleSelectiveBufferedFlush();
       return;
     }
     for (const listener of set) {
       listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
     }
+  }
+
+  private flushBuffered({
+    selective = false,
+  }: { selective?: boolean } = {}): void {
+    if (this.flushingBuffered || this.listenerAttachmentDepth > 0) return;
+    this.flushingBuffered = true;
+    try {
+      while (this.bufferedOffset < this.buffered.length) {
+        const bufferedEvent = this.buffered[this.bufferedOffset];
+        const message = bufferedEvent.message;
+        const type = message.type as EventTypeOf<TOut>;
+        const set = this.listeners.get(type);
+        const listeners =
+          bufferedEvent.listeners ??
+          (set != null && set.size > 0 ? Array.from(set) : undefined);
+        if (!listeners || listeners.length === 0) {
+          if (!selective) return;
+          this.bufferedOffset++;
+          const buffered = this.bufferedByType.get(type);
+          if (buffered) {
+            buffered.push(message);
+          } else {
+            this.bufferedByType.set(type, [message]);
+          }
+          continue;
+        }
+
+        this.bufferedOffset++;
+        for (const listener of listeners) {
+          listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
+        }
+      }
+    } finally {
+      if (this.bufferedOffset > 0) {
+        this.buffered.splice(0, this.bufferedOffset);
+        this.bufferedOffset = 0;
+      }
+      this.flushingBuffered = false;
+    }
+  }
+
+  private captureBufferedListeners(type: EventTypeOf<TOut>): void {
+    const set = this.listeners.get(type);
+    if (!set || set.size === 0) return;
+
+    for (let i = this.bufferedOffset; i < this.buffered.length; i++) {
+      const bufferedEvent = this.buffered[i];
+      if (
+        bufferedEvent.listeners == null &&
+        bufferedEvent.message.type === type
+      ) {
+        bufferedEvent.listeners = Array.from(set);
+      }
+    }
+  }
+
+  private flushBufferedType(type: EventTypeOf<TOut>): void {
+    const buffered = this.bufferedByType.get(type);
+    if (!buffered) return;
+
+    let offset = 0;
+    try {
+      while (offset < buffered.length) {
+        const set = this.listeners.get(type);
+        if (!set || set.size === 0) return;
+
+        const message = buffered[offset++];
+        for (const listener of set) {
+          listener(message as Extract<TOut, { type: EventTypeOf<TOut> }>);
+        }
+      }
+    } finally {
+      if (offset === buffered.length) {
+        this.bufferedByType.delete(type);
+      } else if (offset > 0) {
+        buffered.splice(0, offset);
+      }
+    }
+  }
+
+  private scheduleSelectiveBufferedFlush(): void {
+    if (
+      this.bufferedFlushScheduled ||
+      this.bufferedOffset >= this.buffered.length ||
+      !this.hasListeners() ||
+      this.listenerAttachmentDepth > 0
+    ) {
+      return;
+    }
+
+    this.bufferedFlushScheduled = true;
+    setTimeout(() => {
+      this.bufferedFlushScheduled = false;
+      if (this.listenerAttachmentDepth > 0) return;
+      this.flushBuffered({ selective: true });
+    }, 0);
+  }
+
+  private hasListeners(): boolean {
+    for (const listeners of this.listeners.values()) {
+      if (listeners.size > 0) return true;
+    }
+    return false;
   }
 
   private attachEventCheckpoint(options: {

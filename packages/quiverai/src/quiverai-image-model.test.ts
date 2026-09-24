@@ -1,6 +1,6 @@
 import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
-import { quiveraiFailedResponseHandler } from './quiverai-image-model';
+import { quiveraiFailedResponseHandler } from './quiverai-error';
 
 describe('quiveraiFailedResponseHandler', () => {
   it('maps QuiverAI error envelopes into API call errors', async () => {

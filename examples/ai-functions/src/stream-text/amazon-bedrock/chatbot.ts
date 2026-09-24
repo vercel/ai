@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+      model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

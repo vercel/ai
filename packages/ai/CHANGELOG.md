@@ -1,5 +1,31 @@
 # ai
 
+## 7.0.113
+
+### Patch Changes
+
+- dcdb011: fix(ai): route completed streamed tool input callbacks to repaired tools
+- 8f72832: fix(ai): preserve video models from legacy fallback providers
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- b74c0cb: fix(ai): resume tool approvals from earlier messages
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- c93ee90: fix(ai): preserve message history for direct transport stream callbacks
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [b73f2f9]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/gateway@4.0.91
+
 ## 7.0.112
 
 ### Patch Changes

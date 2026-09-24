@@ -21,7 +21,7 @@ const elevenLabs = createElevenLabs({
 run(async () => {
   // Generate raw PCM audio (24kHz, 16-bit, mono) to transcribe:
   const speech = await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello from the AI SDK! Streaming transcription is experimental.',
     outputFormat: 'pcm',
   });

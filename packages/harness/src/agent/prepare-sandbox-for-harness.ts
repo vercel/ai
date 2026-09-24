@@ -1,7 +1,9 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import { harnessStateDirectoryPath } from '../v1';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import type { HarnessAgentAdapter } from './harness-agent-types';
 import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -67,7 +69,7 @@ export async function prepareSandboxForHarness(options: {
       : normalizeSandboxWorkDir(sandboxConfig.workDir);
   const recipeIdentities: Record<string, string> = {};
   const skippedHarnessIds: string[] = [];
-  let defaultWorkingDirectory: string | undefined;
+  let stateDirectory: string | undefined;
 
   for (const harness of harnesses) {
     const recipe = await harness.getBootstrap?.({
@@ -80,20 +82,27 @@ export async function prepareSandboxForHarness(options: {
 
     const recipeIdentity = await hashHarnessBootstrap(recipe);
     recipeIdentities[harness.harnessId] = recipeIdentity;
-    defaultWorkingDirectory ??= await resolveSandboxDefaultWorkingDirectory({
-      sandboxSession: options.session,
-      abortSignal: options.abortSignal,
+    // Harness infrastructure always lives under the sandbox's own HOME,
+    // never the working directory.
+    stateDirectory ??= harnessStateDirectoryPath({
+      sandboxHomeDir: await resolveSandboxHomeDir({
+        sandbox: options.session,
+        abortSignal: options.abortSignal,
+      }),
     });
     await applyBootstrapRecipe({
       session: options.session,
       recipe,
       identity: recipeIdentity,
-      defaultWorkingDirectory,
+      stateDirectory,
       abortSignal: options.abortSignal,
     });
   }
 
   if (sandboxConfig.onBootstrap != null) {
+    const defaultWorkingDirectory = await resolveSandboxDefaultWorkingDirectory(
+      { sandboxSession: options.session, abortSignal: options.abortSignal },
+    );
     await runSandboxBootstrap({
       session: options.session,
       workDir,

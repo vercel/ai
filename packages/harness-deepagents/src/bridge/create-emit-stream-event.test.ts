@@ -122,7 +122,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "execute",
           "providerExecuted": true,
           "toolCallId": "run-1",
@@ -230,7 +230,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"query\":\"AI SDK\"}",
+          "input": "{"query":"AI SDK"}",
           "nativeName": "mcp__memory__search",
           "providerExecuted": true,
           "toolCallId": "mcp-run",

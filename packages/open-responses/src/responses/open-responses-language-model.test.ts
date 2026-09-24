@@ -181,7 +181,6 @@ describe('OpenResponsesLanguageModel', () => {
           ),
         ),
       };
-      return;
     }
 
     function prepareOutputResponse(output: Array<Record<string, unknown>>) {
@@ -1615,6 +1614,143 @@ describe('OpenResponsesLanguageModel', () => {
           },
         },
       ]);
+    });
+
+    it.each([
+      {
+        source: 'the custom tool input done event',
+        doneInput: '<svg />',
+        completedItemInput: '',
+      },
+      {
+        source: 'the completed custom tool item',
+        doneInput: undefined,
+        completedItemInput: '<svg />',
+      },
+    ])(
+      'should use complete custom tool input from $source when deltas are omitted',
+      async ({ doneInput, completedItemInput }) => {
+        const chunks = [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'ct_1',
+              type: 'custom_tool_call',
+              status: 'in_progress',
+              call_id: 'call_1',
+              name: 'write_svg',
+              input: '',
+            },
+          })}\n\n`,
+        ];
+
+        if (doneInput != null) {
+          chunks.push(
+            `data: ${JSON.stringify({
+              type: 'response.custom_tool_call_input.done',
+              sequence_number: 1,
+              item_id: 'ct_1',
+              output_index: 0,
+              input: doneInput,
+            })}\n\n`,
+          );
+        }
+
+        chunks.push(
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 2,
+            output_index: 0,
+            item: {
+              id: 'ct_1',
+              type: 'custom_tool_call',
+              status: 'completed',
+              call_id: 'call_1',
+              name: 'write_svg',
+              input: completedItemInput,
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        );
+        server.urls[URL].response = {
+          type: 'stream-chunks',
+          chunks,
+        };
+
+        const result = await createModel().doStream({
+          prompt: TEST_PROMPT,
+        });
+        const parts = await convertReadableStreamToArray(result.stream);
+
+        expect(
+          parts.filter(part => part.type === 'tool-input-delta'),
+        ).toStrictEqual([]);
+        expect(parts).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'write_svg',
+          input: '"<svg />"',
+          providerMetadata: {
+            lmstudio: {
+              itemId: 'ct_1',
+            },
+          },
+        });
+      },
+    );
+
+    it('should use complete function arguments from the completed item when argument events are omitted', async () => {
+      server.urls[URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'response.output_item.added',
+            sequence_number: 0,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'in_progress',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '',
+            },
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'response.output_item.done',
+            sequence_number: 1,
+            output_index: 0,
+            item: {
+              id: 'fc_1',
+              type: 'function_call',
+              status: 'completed',
+              call_id: 'call_1',
+              name: 'write_svg',
+              arguments: '{"path":"icon.svg"}',
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await createModel().doStream({
+        prompt: TEST_PROMPT,
+      });
+      const parts = await convertReadableStreamToArray(result.stream);
+
+      expect(parts).toContainEqual({
+        type: 'tool-call',
+        toolCallId: 'call_1',
+        toolName: 'write_svg',
+        input: '{"path":"icon.svg"}',
+        providerMetadata: {
+          lmstudio: {
+            itemId: 'fc_1',
+          },
+        },
+      });
     });
 
     it.each([

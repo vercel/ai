@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { request } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

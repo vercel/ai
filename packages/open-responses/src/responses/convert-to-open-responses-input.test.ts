@@ -675,7 +675,7 @@ describe('convertToOpenResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "arguments": "{\"location\":\"Berlin\"}",
+            "arguments": "{"location":"Berlin"}",
             "call_id": "call_124",
             "name": "get_weather",
             "type": "function_call",
@@ -1257,7 +1257,7 @@ describe('convertToOpenResponsesInput', () => {
             "type": "message",
           },
           {
-            "arguments": "{\"location\":\"Tokyo\"}",
+            "arguments": "{"location":"Tokyo"}",
             "call_id": "call_weather",
             "name": "get_weather",
             "type": "function_call",
@@ -1405,5 +1405,134 @@ describe('convertToOpenResponsesInput', () => {
         detail: 'auto',
       });
     });
+  });
+});
+
+describe('custom tool results', () => {
+  it('preserves text, images, and files in custom tool history', async () => {
+    const result = await convertToOpenResponsesInput({
+      customToolId: 'acme.custom',
+      providerToolsByName: new Map([
+        [
+          'render',
+          { type: 'provider', id: 'acme.custom', name: 'render', args: {} },
+        ],
+      ]),
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'Rendered result' },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/result.png'),
+                    },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'application/pdf',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/result.pdf'),
+                    },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'data', data: 'aW1hZ2U=' },
+                  },
+                  {
+                    type: 'file',
+                    mediaType: 'application/pdf',
+                    filename: 'result.pdf',
+                    data: { type: 'data', data: 'cGRm' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([]);
+    expect(result.input).toEqual([
+      {
+        type: 'custom_tool_call_output',
+        call_id: 'call_1',
+        output: [
+          { type: 'input_text', text: 'Rendered result' },
+          {
+            type: 'input_image',
+            image_url: 'https://example.com/result.png',
+            detail: 'auto',
+          },
+          {
+            type: 'input_file',
+            file_url: 'https://example.com/result.pdf',
+          },
+          {
+            type: 'input_image',
+            image_url: 'data:image/png;base64,aW1hZ2U=',
+            detail: 'auto',
+          },
+          {
+            type: 'input_file',
+            filename: 'result.pdf',
+            file_data: 'data:application/pdf;base64,cGRm',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('warns when a custom tool result contains unsupported provider file references', async () => {
+    const result = await convertToOpenResponsesInput({
+      customToolId: 'acme.custom',
+      providerToolsByName: new Map([
+        [
+          'render',
+          { type: 'provider', id: 'acme.custom', name: 'render', args: {} },
+        ],
+      ]),
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call_1',
+              toolName: 'render',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    mediaType: 'image/png',
+                    data: { type: 'reference', reference: { acme: 'file_1' } },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'unsupported tool content part type: file with data type: reference',
+      },
+    ]);
   });
 });
