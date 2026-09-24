@@ -46,7 +46,7 @@ This feature is experimental and may change or be removed in the future.
               type: 'Record<string, string>',
               isOptional: true,
               description:
-                'The environment variables to set for the MCP server.',
+                'The environment variables to set for the MCP server. A small set of variables such as `PATH` is inherited from the parent process by default; values set here take precedence over inherited ones.',
             },
             {
               name: 'stderr',

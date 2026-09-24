@@ -24,9 +24,19 @@ export function getEnvironment(
         ]
       : ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
 
-  const env: Record<string, string> = customEnv ? { ...customEnv } : {};
+  // Windows environment variable names are case-insensitive (`Path` and `PATH`
+  // are the same variable), so an explicit `Path` must replace an inherited `PATH`.
+  const isWindows = globalThis.process.platform === 'win32';
+  const normalizeKey = (key: string) => (isWindows ? key.toUpperCase() : key);
+  const explicitKeys = new Set(Object.keys(customEnv ?? {}).map(normalizeKey));
+
+  const env: Record<string, string> = {};
 
   for (const key of DEFAULT_INHERITED_ENV_VARS) {
+    if (explicitKeys.has(normalizeKey(key))) {
+      continue;
+    }
+
     const value = globalThis.process.env[key];
     if (value === undefined) {
       continue;
@@ -39,5 +49,6 @@ export function getEnvironment(
     env[key] = value;
   }
 
-  return env;
+  // explicit values configured for the server take precedence over inherited defaults
+  return { ...env, ...customEnv };
 }
