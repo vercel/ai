@@ -8,6 +8,7 @@ import {
   ModelRuntime,
   SettingsManager,
 } from '@earendil-works/pi-coding-agent';
+import type * as PiCodingAgentModule from '@earendil-works/pi-coding-agent';
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
@@ -89,8 +90,10 @@ vi.mock('pi-mcp-adapter', () => ({
   createMcpAdapter: mcpAdapterMock.createMcpAdapter,
 }));
 
-vi.mock('@earendil-works/pi-coding-agent', () => {
+vi.mock('@earendil-works/pi-coding-agent', async importOriginal => {
+  const actual = await importOriginal<typeof PiCodingAgentModule>();
   return {
+    ...actual,
     createAgentSession: piMock.createAgentSession,
     DefaultResourceLoader: class {
       private extensionsResult: FakeExtensionsResult = {
