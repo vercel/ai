@@ -144,20 +144,17 @@ export function streamTranscribe({
 
   const callId = generateCallId();
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
-  const telemetryEnabled =
-    telemetryDispatcher.runInTracingChannelSpan != null ||
-    telemetryDispatcher.experimental_onStreamTranscriptionStart != null ||
-    telemetryDispatcher.experimental_onStreamTranscriptionEnd != null;
   const runInTracingChannelSpan =
     telemetryDispatcher.runInTracingChannelSpan ??
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
   let audioByteLength = 0;
-  const countedAudio = telemetryEnabled
-    ? createByteCountingStream(audio, byteLength => {
-        audioByteLength += byteLength;
-      })
-    : audio;
+  const countedAudio =
+    telemetryDispatcher.experimental_onStreamTranscriptionEnd != null
+      ? createByteCountingStream(audio, byteLength => {
+          audioByteLength += byteLength;
+        })
+      : audio;
   const startEvent: StreamTranscriptionStartEvent = {
     callId,
     operationId: 'ai.streamTranscribe',
@@ -273,32 +270,36 @@ export function streamTranscribe({
           responsesPromise.resolve([currentResponseMetadata()]);
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
 
-          const endEvent: StreamTranscriptionEndEvent = {
-            callId,
-            operationId: 'ai.streamTranscribe',
-            provider: resolvedModel.provider,
-            modelId: resolvedModel.modelId,
-            audio: {
-              byteLength: audioByteLength,
-              mediaType: inputAudioFormat.type,
-            },
-            text: value.text,
-            segments: value.segments,
-            language: value.language,
-            durationInSeconds: value.durationInSeconds,
-            usage: value.usage,
-            warnings,
-            providerMetadata: value.providerMetadata,
-            response: currentResponseMetadata(),
-          };
-
           telemetrySettled = true;
-          await notify({
-            event: endEvent,
-            callbacks: [
-              telemetryDispatcher.experimental_onStreamTranscriptionEnd,
-            ],
-          });
+          if (
+            telemetryDispatcher.experimental_onStreamTranscriptionEnd != null
+          ) {
+            const endEvent: StreamTranscriptionEndEvent = {
+              callId,
+              operationId: 'ai.streamTranscribe',
+              provider: resolvedModel.provider,
+              modelId: resolvedModel.modelId,
+              audio: {
+                byteLength: audioByteLength,
+                mediaType: inputAudioFormat.type,
+              },
+              text: value.text,
+              segments: value.segments,
+              language: value.language,
+              durationInSeconds: value.durationInSeconds,
+              usage: value.usage,
+              warnings,
+              providerMetadata: value.providerMetadata,
+              response: currentResponseMetadata(),
+            };
+
+            await notify({
+              event: endEvent,
+              callbacks: [
+                telemetryDispatcher.experimental_onStreamTranscriptionEnd,
+              ],
+            });
+          }
           break;
         }
       }

@@ -230,30 +230,29 @@ export async function generateSpeech({
             'audio/mp3',
         });
 
-        const endEvent: GenerateSpeechEndEvent = {
-          callId,
-          operationId: 'ai.generateSpeech',
-          provider: resolvedModel.provider,
-          modelId: resolvedModel.modelId,
-          text,
-          audio: {
-            byteLength:
-              telemetryDispatcher.onEnd == null
-                ? 0
-                : getBase64OrBinaryByteLength(result.audio),
-            mediaType: audio.mediaType,
-            format: audio.format,
-          },
-          usage: result.usage,
-          warnings: result.warnings,
-          providerMetadata: result.providerMetadata,
-          response: result.response,
-        };
+        if (telemetryDispatcher.onEnd != null) {
+          const endEvent: GenerateSpeechEndEvent = {
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: resolvedModel.provider,
+            modelId: resolvedModel.modelId,
+            text,
+            audio: {
+              byteLength: getBase64OrBinaryByteLength(result.audio),
+              mediaType: audio.mediaType,
+              format: audio.format,
+            },
+            usage: result.usage,
+            warnings: result.warnings,
+            providerMetadata: result.providerMetadata,
+            response: getTelemetryResponseMetadata(result.response),
+          };
 
-        await notify({
-          event: endEvent,
-          callbacks: [telemetryDispatcher.onEnd],
-        });
+          await notify({
+            event: endEvent,
+            callbacks: [telemetryDispatcher.onEnd],
+          });
+        }
 
         return new DefaultSpeechResult({
           audio,
@@ -289,6 +288,16 @@ function getBase64OrBinaryByteLength(audio: string | Uint8Array): number {
   const padding =
     lastCharacter === '=' ? (secondLastCharacter === '=' ? 2 : 1) : 0;
   return Math.floor((characterCount * 3) / 4) - padding;
+}
+
+function getTelemetryResponseMetadata(
+  response: SpeechModelResponseMetadata,
+): SpeechModelResponseMetadata {
+  return {
+    timestamp: response.timestamp,
+    modelId: response.modelId,
+    headers: response.headers,
+  };
 }
 
 function getResponseAudioMediaType(

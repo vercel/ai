@@ -133,6 +133,31 @@ describe('experimental_streamTranscribe', () => {
     expect(capturedAudio).toBe(audioStream);
   });
 
+  it('should pass the original audio stream through when no telemetry integration is configured', async () => {
+    const audioStream = convertArrayToReadableStream([
+      new Uint8Array([1, 2, 3]),
+    ]);
+    let capturedAudio: ReadableStream<Uint8Array | string> | undefined;
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio }) => {
+          capturedAudio = audio;
+          return createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]);
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+    });
+
+    await convertAsyncIterableToArray(result.fullStream);
+
+    expect(capturedAudio).toBe(audioStream);
+  });
+
   it('should stream transcript parts and resolve final metadata', async () => {
     const result = streamTranscribe({
       model: new MockTranscriptionModelV4({

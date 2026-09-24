@@ -433,16 +433,21 @@ describe('generateSpeech', () => {
 
   it('should emit telemetry start and end events without raw audio', async () => {
     const events: Array<{ type: string; event: unknown }> = [];
+    const rawAudio = 'AQIDBA==';
 
     await generateSpeech({
       model: new MockSpeechModelV4({
         doGenerate: async () => ({
-          ...createMockResponse({
-            audio: mockFile,
-            timestamp: testDate,
-            providerMetadata: { mock: { traceId: 'trace-1' } },
-          }),
+          audio: rawAudio,
+          warnings: [],
           usage: { characters: sampleText.length },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          response: {
+            timestamp: testDate,
+            modelId: 'test-model',
+            headers: { 'content-type': 'audio/mp3' },
+            body: { audioContent: rawAudio },
+          },
         }),
       }),
       text: sampleText,
@@ -498,6 +503,33 @@ describe('generateSpeech', () => {
       },
     ]);
     expect(events[1]).not.toHaveProperty('event.audio.data');
+    expect(events[1]).not.toHaveProperty('event.response.body');
+  });
+
+  it('should not measure output bytes when no telemetry integration is configured', async () => {
+    let byteLengthReads = 0;
+    class CountingAudio extends Uint8Array {
+      override get byteLength() {
+        byteLengthReads++;
+        return super.byteLength;
+      }
+    }
+
+    await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () => ({
+          audio: new CountingAudio([1, 2, 3, 4]),
+          warnings: [],
+          response: {
+            timestamp: testDate,
+            modelId: 'test-model',
+          },
+        }),
+      }),
+      text: sampleText,
+    });
+
+    expect(byteLengthReads).toBe(0);
   });
 
   it('should emit a telemetry error event when speech generation fails', async () => {
