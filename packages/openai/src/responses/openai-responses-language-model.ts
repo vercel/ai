@@ -1,6 +1,8 @@
 import {
   APICallError,
+  UnsupportedFunctionalityError,
   type JSONValue,
+<<<<<<< HEAD
   type LanguageModelV3,
   type LanguageModelV3Prompt,
   type LanguageModelV3CallOptions,
@@ -14,6 +16,21 @@ import {
   type LanguageModelV3ToolApprovalRequest,
   type SharedV3ProviderMetadata,
   type SharedV3Warning,
+=======
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4FunctionTool,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ProviderTool,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type LanguageModelV4ToolApprovalRequest,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -26,7 +43,15 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+<<<<<<< HEAD
 import type { OpenAIConfig } from '../openai-config';
+=======
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
+import {
+  prepareOpenAIConfigForWorkflowDeserialize,
+  type OpenAIConfig,
+} from '../openai-config';
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
@@ -42,6 +67,10 @@ import type { fileSearchOutputSchema } from '../tool/file-search';
 import type { imageGenerationOutputSchema } from '../tool/image-generation';
 import type { localShellInputSchema } from '../tool/local-shell';
 import type { mcpOutputSchema } from '../tool/mcp';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import type {
   toolSearchInputSchema,
@@ -61,17 +90,24 @@ import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-rea
 import {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
+  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
   type OpenAIResponsesChunk,
+  type OpenAIResponsesComputerAction,
   type OpenAIResponsesIncludeOptions,
   type OpenAIResponsesIncludeValue,
   type OpenAIResponsesLogprobs,
   type OpenAIResponsesWebSearchAction,
+<<<<<<< HEAD
   type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
   type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
+=======
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 } from './openai-responses-api';
 import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -108,8 +144,127 @@ function extractApprovalRequestIdToToolCallIdMapping(
   return mapping;
 }
 
+<<<<<<< HEAD
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
   readonly specificationVersion = 'v3';
+=======
+function mapComputerAction(
+  action: OpenAIResponsesComputerAction,
+): InferSchema<typeof computerInputSchema>['actions'][number] {
+  switch (action.type) {
+    case 'click':
+      return {
+        type: 'click',
+        button: action.button,
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'double_click':
+      return {
+        type: 'double_click',
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'drag':
+      return {
+        type: 'drag',
+        path: action.path,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'keypress':
+      return action;
+    case 'move':
+      return {
+        type: 'move',
+        x: action.x,
+        y: action.y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'screenshot':
+      return action;
+    case 'scroll':
+      return {
+        type: 'scroll',
+        x: action.x,
+        y: action.y,
+        scrollX: action.scroll_x,
+        scrollY: action.scroll_y,
+        ...(action.keys != null && { keys: action.keys }),
+      };
+    case 'type':
+      return action;
+    case 'wait':
+      return action;
+  }
+}
+
+function mapComputerCallInput({
+  action,
+  actions,
+  pending_safety_checks,
+  status,
+}: {
+  action?: OpenAIResponsesComputerAction | null;
+  actions?: OpenAIResponsesComputerAction[] | null;
+  pending_safety_checks?: Array<{
+    id: string;
+    code?: string | null;
+    message?: string | null;
+  }> | null;
+  status: 'in_progress' | 'completed' | 'incomplete';
+}): InferSchema<typeof computerInputSchema> {
+  return {
+    actions: (actions ?? (action != null ? [action] : [])).map(
+      mapComputerAction,
+    ),
+    pendingSafetyChecks:
+      pending_safety_checks?.map(safetyCheck => ({
+        id: safetyCheck.id,
+        ...(safetyCheck.code != null && { code: safetyCheck.code }),
+        ...(safetyCheck.message != null && { message: safetyCheck.message }),
+      })) ?? [],
+    status,
+  };
+}
+
+export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  'application/pdf': [/^https?:\/\/.*$/],
+};
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAILanguageModelResponsesOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (
+    options?.reasoningMode === 'pro' ||
+    options?.contextManagement != null ||
+    options?.truncation === 'auto'
+  ) {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation';
+  }
+
+  return undefined;
+}
+
+export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4';
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -246,6 +401,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -256,8 +417,14 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
+<<<<<<< HEAD
         explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
+=======
+        configurationUpdateUnsupportedReason,
+        explicitMessageItemType: config.explicitMessageItemType,
+        fileIdPrefixes: config.fileIdPrefixes,
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
         store: openaiOptions?.store ?? true,
@@ -276,6 +443,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     warnings.push(...inputWarnings);
 
     const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+<<<<<<< HEAD
     const configurationUpdateIsSupported =
       reasoningEffortUpdate == null ||
       (modelCapabilities.supportsConfigurationUpdate &&
@@ -289,12 +457,43 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         details: !modelCapabilities.supportsConfigurationUpdate
           ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
           : 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+=======
+    if (
+      reasoningEffortUpdate != null &&
+      configurationUpdateUnsupportedReason != null
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffortUpdate',
+        details: configurationUpdateUnsupportedReason,
+>>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
       });
     } else if (reasoningEffortUpdate != null) {
-      input.unshift({
-        type: 'configuration_update',
-        reasoning: { effort: reasoningEffortUpdate },
-      });
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
     }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;

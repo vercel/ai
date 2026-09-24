@@ -2,6 +2,7 @@ export { createOpenAI, openai } from './openai-provider';
 export type { OpenAIProvider, OpenAIProviderSettings } from './openai-provider';
 export type {
   OpenAILanguageModelResponsesOptions,
+  OpenAIResponsesSystemMessageOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
 } from './responses/openai-responses-options';
