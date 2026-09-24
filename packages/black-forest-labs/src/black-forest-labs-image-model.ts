@@ -2,12 +2,10 @@ import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -18,6 +16,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import {
+  bflFailedResponseHandler,
+  isTrustedUrl,
+} from './black-forest-labs-api';
 import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
@@ -311,77 +313,71 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       pollOverrides?.pollTimeoutMillis ??
       this.config.pollTimeoutMillis ??
       DEFAULT_POLL_TIMEOUT_MILLIS;
-    const maxPollAttempts = Math.ceil(
-      pollTimeoutMillis / Math.max(1, pollIntervalMillis),
-    );
 
     const url = new URL(pollUrl);
     if (!url.searchParams.has('id')) {
       url.searchParams.set('id', requestId);
     }
 
-    for (let i = 0; i < maxPollAttempts; i++) {
-      const { value } = await getFromApi({
-        url: url.toString(),
-        // The polling URL comes from the provider response; validate it.
-        validateUrl: true,
-        trustedOrigin: this.config.baseURL,
-        // Only send credentials when it stays on a trusted provider host.
-        headers: isTrustedUrl(url.toString(), this.config.baseURL)
-          ? headers
-          : undefined,
-        failedResponseHandler: bflFailedResponseHandler,
-        successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
-        abortSignal,
-        fetch: this.config.fetch,
-      });
+    const timeoutController = new AbortController();
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      timeoutController.abort();
+    }, pollTimeoutMillis);
+    const pollingAbortSignal =
+      abortSignal == null
+        ? timeoutController.signal
+        : AbortSignal.any([abortSignal, timeoutController.signal]);
 
-      const status = value.status;
-      if (status === 'Ready') {
-        if (typeof value.result?.sample === 'string') {
-          return {
-            imageUrl: value.result.sample,
-            seed: value.result.seed ?? undefined,
-            start_time: value.result.start_time ?? undefined,
-            end_time: value.result.end_time ?? undefined,
-            duration: value.result.duration ?? undefined,
-          };
+    try {
+      while (true) {
+        const { value } = await getFromApi({
+          url: url.toString(),
+          // The polling URL comes from the provider response; validate it.
+          validateUrl: true,
+          trustedOrigin: this.config.baseURL,
+          // Only send credentials when it stays on a trusted provider host.
+          headers: isTrustedUrl(url.toString(), this.config.baseURL)
+            ? headers
+            : undefined,
+          failedResponseHandler: bflFailedResponseHandler,
+          successfulResponseHandler: createJsonResponseHandler(bflPollSchema),
+          abortSignal: pollingAbortSignal,
+          fetch: this.config.fetch,
+        });
+
+        const status = value.status;
+        if (status === 'Ready') {
+          if (typeof value.result?.sample === 'string') {
+            return {
+              imageUrl: value.result.sample,
+              seed: value.result.seed ?? undefined,
+              start_time: value.result.start_time ?? undefined,
+              end_time: value.result.end_time ?? undefined,
+              duration: value.result.duration ?? undefined,
+            };
+          }
+          throw new Error(
+            'Black Forest Labs poll response is Ready but missing result.sample',
+          );
         }
-        throw new Error(
-          'Black Forest Labs poll response is Ready but missing result.sample',
-        );
-      }
-      if (status === 'Error' || status === 'Failed') {
-        throw new Error('Black Forest Labs generation failed.');
-      }
+        if (status === 'Error' || status === 'Failed') {
+          throw new Error('Black Forest Labs generation failed.');
+        }
 
-      await delay(pollIntervalMillis);
+        await delay(pollIntervalMillis, {
+          abortSignal: pollingAbortSignal,
+        });
+      }
+    } catch (error) {
+      if (didTimeout) {
+        throw new Error('Black Forest Labs generation timed out.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    throw new Error('Black Forest Labs generation timed out.');
-  }
-}
-
-/**
- * Black Forest Labs returns response-supplied URLs (polling and delivery) on
- * sibling cluster hosts of the API origin (e.g. `api.us1.bfl.ai` for a base
- * URL on `api.bfl.ai`), so a strict same-origin check against the configured
- * base URL is not enough. Credentials may also be sent to any https host under
- * the official `bfl.ai` domain.
- */
-function isTrustedUrl(url: string, baseUrl: string): boolean {
-  if (isSameOrigin(url, baseUrl)) {
-    return true;
-  }
-
-  try {
-    const { protocol, hostname } = new URL(url);
-    return (
-      protocol === 'https:' &&
-      (hostname === 'bfl.ai' || hostname.endsWith('.bfl.ai'))
-    );
-  } catch {
-    return false;
   }
 }
 
@@ -452,29 +448,3 @@ const bflPollSchema = z
     status: (v.status ?? v.state)!,
     result: v.result,
   }));
-
-const bflErrorSchema = z.object({
-  message: z.string().optional(),
-  detail: z.any().optional(),
-});
-
-const bflFailedResponseHandler = createJsonErrorResponseHandler({
-  errorSchema: bflErrorSchema,
-  errorToMessage: error =>
-    bflErrorToMessage(error) ?? 'Unknown Black Forest Labs error',
-});
-
-function bflErrorToMessage(error: unknown): string | undefined {
-  const parsed = bflErrorSchema.safeParse(error);
-  if (!parsed.success) return undefined;
-  const { message, detail } = parsed.data;
-  if (typeof detail === 'string') return detail;
-  if (detail != null) {
-    try {
-      return JSON.stringify(detail);
-    } catch {
-      // ignore
-    }
-  }
-  return message;
-}

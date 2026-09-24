@@ -1,8 +1,10 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { createClaudeCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const claudeCode = createClaudeCode();
 
 /*
  * Skills are domain-specific reference material the agent loads on demand
@@ -60,7 +62,6 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
     ],
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.stream({
@@ -69,11 +70,7 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
         'Draft release notes for our next release, v2.4.0. We added a dark mode toggle in #892, fixed an autofocus bug in the search bar in #901, and renamed the `--legacy` CLI flag to `--compat` (old flag removed, no alias).',
     });
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

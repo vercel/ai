@@ -20,7 +20,7 @@ describe('writeToServerResponse', () => {
       response: mockResponse,
       status: 200,
       statusText: 'OK',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: new Headers({ 'Content-Type': 'text/plain' }),
       stream,
     });
 
@@ -29,6 +29,25 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.statusCode).toBe(200);
     expect(mockResponse.statusMessage).toBe('OK');
     expect(mockResponse.writtenChunks).toHaveLength(2);
+    expect(mockResponse.ended).toBe(true);
+  });
+
+  it('should reject when reading the stream fails', async () => {
+    const mockResponse = createMockServerResponse();
+    const error = new Error('stream read failed');
+    const stream = new ReadableStream<Uint8Array>({
+      pull() {
+        throw error;
+      },
+    });
+
+    await expect(
+      writeToServerResponse({
+        response: mockResponse,
+        stream,
+      }),
+    ).rejects.toBe(error);
+
     expect(mockResponse.ended).toBe(true);
   });
 
@@ -138,15 +157,15 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Chat-Title': 'My Conversation',
+      'x-example-header': 'example-value',
+      'x-example-chat-title': 'My Conversation',
     };
 
     writeToServerResponse({
       response: mockResponse,
       status: 200,
       statusText: undefined,
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 
@@ -169,15 +188,15 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Chat-Title': 'New Chat Session',
+      'x-example-header': 'example-value',
+      'x-example-chat-title': 'New Chat Session',
     };
 
     writeToServerResponse({
       response: mockResponse,
       status: 201,
       statusText: 'Created',
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 
@@ -201,13 +220,13 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Message': 'Hello World',
+      'x-example-header': 'example-value',
+      'x-example-message': 'Hello World',
     };
 
     writeToServerResponse({
       response: mockResponse,
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 

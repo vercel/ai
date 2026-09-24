@@ -1,5 +1,562 @@
 # @ai-sdk/gateway
 
+## 4.0.92
+
+### Patch Changes
+
+- 124b6ef: chore(provider/gateway): update gateway model settings files
+
+## 4.0.91
+
+### Patch Changes
+
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- b73f2f9: feat(provider/gateway): add quantization conditions to the has provider option
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.90
+
+### Patch Changes
+
+- ed5a1d7: chore(provider/gateway): update gateway model settings files
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.89
+
+### Patch Changes
+
+- 49295bb: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting, maps `reasoning: 'none'` to `effort: 'low'`, and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 4.0.88
+
+### Patch Changes
+
+- 20dd00a: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+- c42576a: feat(gateway): support cancelling batches with `experimental_cancelBatch`
+- d85dcf5: chore(provider/gateway): update gateway model settings files
+- fd9b3f3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.87
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.86
+
+### Patch Changes
+
+- 4fdf51e: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 4.0.85
+
+### Patch Changes
+
+- 6982e9d: Include evaluation models in getAvailableModels() instead of filtering them out as unknown model types.
+- 6982e9d: feat(gateway): add experimental evaluation model support
+
+## 4.0.84
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 4.0.83
+
+### Patch Changes
+
+- 0c9ab5a: chore(provider/gateway): update gateway model settings files
+- 2cce7da: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 4.0.81
+
+### Patch Changes
+
+- 23a0fff: chore(provider/gateway): update gateway model settings files
+
+## 4.0.80
+
+### Patch Changes
+
+- 7f76d83: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 4.0.79
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- 7469a3b: feat: support image generation requests in batches
+- dbd83a3: chore(provider/gateway): update gateway model settings files
+- 03f4e59: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 4.0.77
+
+### Patch Changes
+
+- aa4cc14: Preserve image-result retryability returned by the AI Gateway.
+- f102e41: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
+## 4.0.76
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- e9bf5e3: chore(provider/gateway): update gateway model settings files
+- 56c004c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/provider-utils@5.0.37
+
+## 4.0.75
+
+### Patch Changes
+
+- 3cfc1fc: feat(gateway): add support for gpt-6-astra
+
+## 4.0.74
+
+### Patch Changes
+
+- a7e324b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.73
+
+### Patch Changes
+
+- 5484f27: chore(provider/gateway): update gateway model settings files
+- 36eb7ee: chore(provider/gateway): update gateway model settings files
+- 622fa7f: feat(google): add gemini-3.8-flash model
+
+## 4.0.72
+
+### Patch Changes
+
+- 4d25a08: feat(anthropic): add fable 5.1 support
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+
+## 4.0.71
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+
+## 4.0.70
+
+### Patch Changes
+
+- 1329d5a: chore(provider/gateway): update gateway model settings files
+
+## 4.0.69
+
+### Patch Changes
+
+- d2507af: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 4.0.68
+
+### Patch Changes
+
+- 805bbfc: chore(provider/gateway): update gateway model settings files
+- 90192f1: Mark transient network errors that occur while reading successful response bodies as retryable.
+- Updated dependencies [90192f1]
+  - @ai-sdk/provider-utils@5.0.33
+
+## 4.0.67
+
+### Patch Changes
+
+- 0e7994c: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [3e125ba]
+  - @ai-sdk/provider-utils@5.0.32
+
+## 4.0.66
+
+### Patch Changes
+
+- 81bebaf: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 4.0.65
+
+### Patch Changes
+
+- 80227cf: chore(provider/gateway): update gateway model settings files
+- a9782e1: fix: align batch result parsing, request counts, and lifecycle behavior across providers
+- 5533946: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- Updated dependencies [a9782e1]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/provider-utils@5.0.31
+
+## 4.0.64
+
+### Patch Changes
+
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 4.0.63
+
+### Patch Changes
+
+- e12e068: chore(provider/gateway): update gateway model settings files
+
+## 4.0.62
+
+### Patch Changes
+
+- a371615: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [b74971f]
+  - @ai-sdk/provider-utils@5.0.29
+
+## 4.0.61
+
+### Patch Changes
+
+- dedac59: chore(provider/gateway): update gateway model settings files
+
+## 4.0.60
+
+### Patch Changes
+
+- 5941bd6: feat(gateway): implement `handleWebhookOption` on the video model so `generateVideo({ webhook })` registers the factory URL as the gateway's `callbackUrl` and awaits delivery instead of falling back to polling
+- 9a4337d: feat: add DeepSeek V4 Flash Vision Exp image input and Files API support
+
+## 4.0.59
+
+### Patch Changes
+
+- f607a12: chore(google): drop support for Imagen models and their integration following API shutdown
+
+## 4.0.58
+
+### Patch Changes
+
+- fdcc814: chore(provider/gateway): update gateway model settings files
+
+## 4.0.57
+
+### Patch Changes
+
+- 936719b: add experimental batch API support (startTextBatch/getBatchStatus/getBatchResults) via the AI Gateway batch routes
+
+## 4.0.56
+
+### Patch Changes
+
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+
+## 4.0.55
+
+### Patch Changes
+
+- 1f7a464: chore(provider/gateway): update gateway model settings files
+
+## 4.0.54
+
+### Patch Changes
+
+- 257632b: chore(provider/gateway): update gateway model settings files
+
+## 4.0.53
+
+### Patch Changes
+
+- a0b1ffc: chore(provider/gateway): update gateway model settings files
+
+## 4.0.52
+
+### Patch Changes
+
+- 16650e9: feat(google): add `gemini-3.7-flash` model
+
+## 4.0.51
+
+### Patch Changes
+
+- ea75787: Serialize structured Gateway error responses in nested API call error messages.
+- b20de9e: chore(provider/gateway): update gateway model settings files
+
+## 4.0.50
+
+### Patch Changes
+
+- a4d386d: feat(xai): add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 4.0.49
+
+### Patch Changes
+
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+
+## 4.0.48
+
+### Patch Changes
+
+- 3cc1bb6: chore(provider/gateway): update gateway model settings files
+
+## 4.0.47
+
+### Patch Changes
+
+- 7af9646: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [401a4ba]
+  - @ai-sdk/provider-utils@5.0.26
+
+## 4.0.46
+
+### Patch Changes
+
+- c477556: chore(provider/gateway): update gateway model settings files
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 4.0.45
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+
+## 4.0.44
+
+### Patch Changes
+
+- 89080c8: feat (provider/gateway): support the async video operation flow (doStart/doStatus) on the v4 video model
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+## 4.0.43
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/provider-utils@5.0.23
+
+## 4.0.42
+
+### Patch Changes
+
+- 7aeab10: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b60826]
+  - @ai-sdk/provider-utils@5.0.22
+
+## 4.0.41
+
+### Patch Changes
+
+- 53c326e: chore(provider/gateway): update gateway model settings files
+- d765f82: Export the Gateway embedding and image model ID types.
+- Updated dependencies [1bec07d]
+  - @ai-sdk/provider-utils@5.0.21
+
+## 4.0.40
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+
+## 4.0.39
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/provider-utils@5.0.19
+
+## 4.0.38
+
+### Patch Changes
+
+- fb6d2f8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.37
+
+### Patch Changes
+
+- bdd5e28: feat(provider/gateway): support `'vision'` (image input) in the `has` provider option
+
+## 4.0.36
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+
+## 4.0.35
+
+### Patch Changes
+
+- 4f2e064: chore(provider/gateway): update gateway model settings files
+
+## 4.0.34
+
+### Patch Changes
+
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+
+## 4.0.33
+
+### Patch Changes
+
+- af3f400: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [d8210b6]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+
+## 4.0.32
+
+### Patch Changes
+
+- 0012529: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+  - @ai-sdk/provider-utils@5.0.15
+
+## 4.0.31
+
+### Patch Changes
+
+- bf216b3: chore(provider/gateway): update gateway model settings files
+
+## 4.0.30
+
+### Patch Changes
+
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+
+## 4.0.29
+
+### Patch Changes
+
+- d9d2a11: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 4.0.28
+
+### Patch Changes
+
+- 0a7c7f4: chore(provider/gateway): update gateway model settings files
+
+## 4.0.27
+
+### Patch Changes
+
+- 2112ff1: chore(provider/gateway): update gateway model settings files
+
+## 4.0.26
+
+### Patch Changes
+
+- 7c16f21: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 4.0.25
+
+### Patch Changes
+
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+
 ## 4.0.24
 
 ### Patch Changes

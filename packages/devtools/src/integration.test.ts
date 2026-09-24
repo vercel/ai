@@ -203,6 +203,104 @@ describe('DevToolsTelemetry', () => {
         }
       `);
     });
+
+    it('stores binary prompts and transformed tool media as base64', async () => {
+      const integration = createIntegration();
+
+      await integration.onStart!(makeStartEvent());
+      await integration.onStepStart!(
+        makeStepStartEvent({
+          promptMessages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'file',
+                  mediaType: 'image/png',
+                  data: {
+                    type: 'data',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      );
+      await integration.onStepEnd!(
+        makeStepFinishEvent({
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'screenshot',
+              toolCallId: 'call-1',
+              output: { base64: 'raw execute output' },
+            },
+          ],
+          response: {
+            id: 'resp-1',
+            modelId: 'test-model',
+            timestamp: new Date('2025-01-01'),
+            messages: [
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolName: 'screenshot',
+                    toolCallId: 'call-1',
+                    output: {
+                      type: 'content',
+                      value: [
+                        {
+                          type: 'file',
+                          mediaType: 'image/png',
+                          data: {
+                            type: 'data',
+                            data: new Uint8Array([137, 80, 78, 71]),
+                          },
+                        },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        }),
+      );
+
+      expect(JSON.parse(mockCreateStep.mock.calls[0][0].input)).toMatchObject({
+        prompt: [
+          {
+            content: [
+              {
+                data: { data: 'iVBORw==' },
+              },
+            ],
+          },
+        ],
+      });
+      const capturedOutput = JSON.parse(
+        mockUpdateStepResult.mock.calls[0][1].output,
+      );
+      expect(capturedOutput).not.toHaveProperty('toolResults');
+      expect(capturedOutput.response.messages).toMatchObject([
+        {
+          content: [
+            {
+              output: {
+                value: [
+                  {
+                    data: { data: 'iVBORw==' },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('streamText lifecycle', () => {

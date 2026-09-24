@@ -1,5 +1,5 @@
 import type {
-  Experimental_VideoModelV4,
+  Experimental_VideoModelV4 as VideoModelV4,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -24,7 +24,7 @@ import {
 import { prodiaVideoModelOptionsSchema } from './prodia-video-model-options';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
-export class ProdiaVideoModel implements Experimental_VideoModelV4 {
+export class ProdiaVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -38,8 +38,8 @@ export class ProdiaVideoModel implements Experimental_VideoModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<Experimental_VideoModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<Experimental_VideoModelV4['doGenerate']>>> {
+    options: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0],
+  ): Promise<Awaited<ReturnType<NonNullable<VideoModelV4['doGenerate']>>>> {
     const warnings: Array<SharedV4Warning> = [];
 
     const prodiaOptions = await parseProviderOptions({
@@ -234,7 +234,7 @@ function createVideoMultipartResponseHandler() {
 
 async function resolveVideoFileData(
   file: NonNullable<
-    Parameters<Experimental_VideoModelV4['doGenerate']>[0]['image']
+    Parameters<NonNullable<VideoModelV4['doGenerate']>>[0]['image']
   >,
   abortSignal?: AbortSignal,
 ): Promise<{ bytes: Uint8Array; mediaType: string }> {

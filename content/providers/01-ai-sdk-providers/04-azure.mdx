@@ -32,6 +32,15 @@ const azure = createAzure({
 });
 ```
 
+You can also use a complete [Microsoft Foundry OpenAI v1 base URL](https://learn.microsoft.com/en-us/azure/foundry/openai/api-version-lifecycle#model-support):
+
+```ts
+const azure = createAzure({
+  baseURL: 'https://your-resource.services.ai.azure.com/openai/v1',
+  apiKey: 'your-api-key',
+});
+```
+
 For Microsoft Entra ID authentication, you can provide a token provider.
 Install `@azure/identity` separately if you want to use its credential helpers:
 
@@ -76,6 +85,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 
   Sets a custom [api version](https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation).
   Defaults to `v1`.
+  This setting is applied when the provider constructs the v1 path or uses
+  deployment-based URLs. Complete v1 base URLs are used as-is.
 
 - **baseURL** _string_
 
@@ -84,7 +95,18 @@ You can use the following optional settings to customize the OpenAI provider ins
   Either this or `resourceName` can be used.
   When a baseURL is provided, the resourceName is ignored.
 
-  With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+  For Azure-hosted URLs ending in `.openai.azure.com`,
+  `.services.ai.azure.com`, or `.cognitiveservices.azure.com`, you can pass
+  either an unversioned OpenAI prefix such as `https://your-resource.services.ai.azure.com/openai`
+  or a complete v1 base URL such as `https://your-resource.services.ai.azure.com/openai/v1`.
+  The provider appends `/v1` and the configured `api-version` to unversioned
+  resource URLs. Complete v1 URLs are used as-is.
+
+  Complete Microsoft Foundry project v1 URLs, such as
+  `https://your-resource.services.ai.azure.com/api/projects/your-project/openai/v1`,
+  are also used as-is. If `/v1` is omitted from a Foundry project URL, the
+  provider appends it without adding an `api-version` query parameter.
+
   With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`;
   the SDK does not append `/v1` or an `api-version` query parameter in this mode.
 
@@ -397,6 +419,54 @@ The following Azure-specific metadata may be returned:
   not supported when using 'azure.chat' or 'azure.completion'
 </Note>
 
+#### Changing Reasoning Effort Mid-Conversation
+
+Azure Responses models support message-level reasoning effort updates through
+`providerOptions.azure.reasoningEffortUpdate`. The `openai` namespace is also
+accepted when the message has no `azure` options. Use the
+`OpenAIResponsesSystemMessageOptions` type exported from `@ai-sdk/azure` to
+validate these options:
+
+```ts
+import { azure, type OpenAIResponsesSystemMessageOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // Use the name of your GPT-6 deployment.
+  model: azure.responses('gpt-6-astra'),
+  reasoning: 'low',
+  allowSystemInMessages: true,
+  messages: [
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        azure: {
+          reasoningEffortUpdate: 'high',
+        } satisfies OpenAIResponsesSystemMessageOptions,
+      },
+    },
+    { role: 'user', content: 'Analyze the failure modes of this migration.' },
+  ],
+});
+```
+
+Keep the request-level `reasoning` unchanged throughout the conversation and
+retain earlier effort updates when resending message history. These updates
+also work with `streamText`. See the [OpenAI reasoning effort
+guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversation)
+for continuation, compaction, and configuration restrictions.
+
+<Note>
+  The SDK infers support for effort updates from the deployment name passed to
+  `azure.responses()`. The name must identify a supported GPT-6-or-later model
+  family, such as `gpt-6-astra`. A custom name such as `production` is not
+  recognized, even when the underlying deployment runs GPT-6. In that case,
+  message-level updates throw, and request-level updates are omitted with a
+  warning. Setting `forceReasoning: true` does not override this capability
+  check.
+</Note>
+
 #### Web Search Tool
 
 The Azure OpenAI responses API supports web search through the `azure.tools.webSearch` tool.
@@ -416,6 +486,7 @@ const result = await generateText({
       },
       filters: {
         allowedDomains: ['sfchronicle.com', 'sfgate.com'],
+        blockedDomains: ['example.com'],
       },
     }),
   },
@@ -442,7 +513,10 @@ The web search tool supports the following configuration options:
 - **searchContextSize** _'low' | 'medium' | 'high'_ - Controls the amount of context used for the search. Higher values provide more comprehensive results but may have higher latency and cost.
 - **userLocation** - Optional location information to provide geographically relevant results. Includes `type` (always `'approximate'`), `country`, `city`, `region`, and `timezone`.
 - **filters** - Optional filter configuration to restrict search results.
-  - **allowedDomains** _string[]_ - Array of allowed domains for the search. Subdomains of the provided domains are automatically included.
+  - **allowedDomains** _string[]_ - Up to 100 allowed domains for the search.
+  - **blockedDomains** _string[]_ - Up to 100 blocked domains for the search.
+
+Omit the HTTP or HTTPS prefix from domain filters. Subdomains of configured domains are automatically included or excluded.
 
 For detailed information on configuration options see the [Azure OpenAI Web Search Tool documentation](https://learn.microsoft.com/en-us/azure/foundry/openai/how-to/web-search).
 

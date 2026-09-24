@@ -12,10 +12,12 @@ import {
   HarnessAgent,
   type HarnessAgentResumeSessionState,
 } from '@ai-sdk/harness/agent';
-import { openCode } from '@ai-sdk/harness-opencode';
+import { createOpenCode } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const openCode = createOpenCode();
 
 run(async () => {
   const sandbox = createVercelSandbox({
@@ -53,8 +55,17 @@ run(async () => {
       session,
       prompt: 'What is my name? Answer in one word.',
     });
-    await printFullStream({ result });
+    let secondTurnText = '';
+    await printFullStream({
+      result,
+      onText: text => {
+        secondTurnText += text.text;
+      },
+    });
     await session.destroy();
+    if (!secondTurnText.includes('Felix')) {
+      throw new Error('Second turn did not retain context from previous turn');
+    }
   }
 
   process.exit(0);

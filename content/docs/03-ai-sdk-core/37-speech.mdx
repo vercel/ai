@@ -13,24 +13,9 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   voice: 'alloy',
-});
-```
-
-### Language Setting
-
-You can specify the language for speech generation (provider support varies):
-
-```ts
-import { generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const audio = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hola, mundo!',
-  language: 'es', // Spanish
 });
 ```
 
@@ -53,7 +38,7 @@ import { generateSpeech } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   providerOptions: {
     openai: {
@@ -74,7 +59,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   abortSignal: AbortSignal.timeout(1000), // Abort after 1 second
 });
@@ -90,7 +75,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
   headers: { 'X-Custom-Header': 'custom-value' },
 });
@@ -105,7 +90,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateSpeech } from 'ai';
 
 const audio = await generateSpeech({
-  model: openai.speech('tts-1'),
+  model: openai.speech('gpt-4o-mini-tts'),
   text: 'Hello, world!',
 });
 
@@ -132,7 +117,7 @@ import { openai } from '@ai-sdk/openai';
 
 try {
   await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello, world!',
   });
 } catch (error) {
@@ -158,12 +143,12 @@ try {
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_flash_v2`                   |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_turbo_v2_5`                 |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_turbo_v2`                   |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)                   | `aurora`                            |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)                   | `blizzard`                          |
 | [Hume](/providers/ai-sdk-providers/hume#speech-models)                   | `default`                           |
 | [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-2.5-flash-preview-tts`      |
 | [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-2.5-pro-preview-tts`        |
 | [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.1-flash-tts-preview`      |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.8-flash-tts`              |
+| [Google](/providers/ai-sdk-providers/google#speech-models)               | `gemini-3.8-flash-lite-tts`         |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-flash-tts`              |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-pro-tts`                |
 | [Google Vertex](/providers/ai-sdk-providers/google-vertex#speech-models) | `gemini-2.5-flash-lite-preview-tts` |
@@ -173,5 +158,8 @@ try {
 | [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-3`                           |
 | [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-2`                           |
 | [Cartesia](/providers/ai-sdk-providers/cartesia#speech-models)           | `sonic-turbo`                       |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s1`                                |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s2-pro`                            |
+| [Fish Audio](/providers/ai-sdk-providers/fish-audio#speech-models)       | `s2.1-pro`                          |
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.

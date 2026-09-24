@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import type { Experimental_VideoModelV4 } from '@ai-sdk/provider';
+import { describe, it, expect, vi } from 'vitest';
 import { GatewayVideoModel } from './gateway-video-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
@@ -26,6 +27,8 @@ const createTestModel = (
 describe('GatewayVideoModel', () => {
   const server = createTestServer({
     'https://api.test.com/video-model': {},
+    'https://api.test.com/video-model/start': {},
+    'https://api.test.com/video-model/status': {},
   });
 
   describe('constructor', () => {
@@ -1174,6 +1177,285 @@ describe('GatewayVideoModel', () => {
         expect(requestBody).not.toHaveProperty('frameImages');
         expect(requestBody).not.toHaveProperty('inputReferences');
       });
+    });
+  });
+
+  describe('handleWebhookOption', () => {
+    it('should pass the factory URL and received promise straight through', async () => {
+      const received = Promise.resolve({
+        headers: { 'x-ai-gateway-signature': 't=1,v1=abc' },
+        body: { type: 'video.generation.completed' },
+      });
+      const webhook = vi.fn(async () => ({
+        url: 'https://example.com/hook',
+        received,
+      }));
+
+      const result = await createTestModel().handleWebhookOption!({ webhook });
+
+      expect(webhook).toHaveBeenCalledOnce();
+      expect(result.webhookUrl).toBe('https://example.com/hook');
+      expect(result.received).toBe(received);
+    });
+  });
+
+  describe('doStart', () => {
+    const baseCallOptions = {
+      prompt: 'A beautiful sunset over mountains',
+      image: undefined,
+      frameImages: undefined,
+      inputReferences: undefined,
+      n: 1,
+      aspectRatio: undefined,
+      resolution: undefined,
+      duration: undefined,
+      fps: undefined,
+      seed: undefined,
+      generateAudio: undefined,
+      providerOptions: {},
+    };
+
+    it('should call the Gateway start endpoint and return the operation', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: {
+          operation: { gatewayJobId: 'job_123' },
+          warnings: [{ type: 'other', message: 'queued' }],
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStart({
+        ...baseCallOptions,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        generateAudio: true,
+        providerOptions: { gateway: { tags: ['async'] } },
+        webhookUrl: 'https://example.com/webhook',
+      });
+
+      expect(result.operation).toEqual({ gatewayJobId: 'job_123' });
+      expect(result.warnings).toEqual([{ type: 'other', message: 'queued' }]);
+      expect(result.providerMetadata).toEqual({
+        gateway: { asyncJob: { jobId: 'job_123', status: 'queued' } },
+      });
+      expect(result.response.modelId).toBe(TEST_MODEL_ID);
+      expect(result.response.timestamp).toBeInstanceOf(Date);
+      expect(result.response.headers).toBeDefined();
+
+      const call = server.calls[0];
+      expect(call.requestHeaders).toMatchObject({
+        authorization: 'Bearer test-token',
+        'ai-video-model-specification-version': '4',
+        'ai-model-id': TEST_MODEL_ID,
+      });
+      await expect(call.requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        aspectRatio: '16:9',
+        resolution: '1280x720',
+        duration: 5,
+        fps: 24,
+        seed: 123,
+        generateAudio: true,
+        providerOptions: { gateway: { tags: ['async'] } },
+        // The spec-side `webhookUrl` option maps onto the Gateway's
+        // `callbackUrl` wire field (its completion-webhook contract).
+        callbackUrl: 'https://example.com/webhook',
+      });
+    });
+
+    it('should omit optional fields and callbackUrl when webhookUrl is not provided', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      const result = await createTestModel().doStart(baseCallOptions);
+
+      // warnings defaults to an empty array when omitted by the gateway
+      expect(result.warnings).toEqual([]);
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        prompt: 'A beautiful sunset over mountains',
+        n: 1,
+        providerOptions: {},
+      });
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          error: { message: 'Invalid request', code: 'invalid_request' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStart(baseCallOptions),
+      ).rejects.toThrow();
+    });
+
+    it('should forward the caller-supplied idempotency key', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      // The key is minted by `generateVideo` once per logical start and passed
+      // down, so a retry of a lost response dedupes at the gateway rather than
+      // starting a second billable generation. The model must not invent one:
+      // inferring retry identity from an options object would collide across
+      // unrelated calls that happen to share it.
+      await createTestModel().doStart({
+        ...baseCallOptions,
+        headers: { 'idempotency-key': 'aisdk_vid_abc123' },
+      });
+
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBe(
+        'aisdk_vid_abc123',
+      );
+    });
+
+    it('should send no idempotency key when the caller supplies none', async () => {
+      server.urls['https://api.test.com/video-model/start'].response = {
+        type: 'json-value',
+        body: { operation: { gatewayJobId: 'job_123' } },
+      };
+
+      await createTestModel().doStart(baseCallOptions);
+
+      expect(server.calls[0].requestHeaders['idempotency-key']).toBeUndefined();
+    });
+  });
+
+  describe('doStatus', () => {
+    it('should return pending status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'pending',
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'pending',
+        providerMetadata: {
+          gateway: { asyncJob: { jobId: 'job_123', status: 'running' } },
+        },
+      });
+      expect(result.response.modelId).toBe(TEST_MODEL_ID);
+      await expect(server.calls[0].requestBodyJson).resolves.toEqual({
+        operation: { gatewayJobId: 'job_123' },
+      });
+    });
+
+    it('should return completed videos (provider-hosted URLs)', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'completed',
+          videos: [
+            {
+              type: 'url',
+              url: 'https://cdn.example.com/v.mp4',
+              mediaType: 'video/mp4',
+            },
+          ],
+          warnings: [{ type: 'other', message: 'complete' }],
+          providerMetadata: {
+            gateway: {
+              asyncJob: {
+                jobId: 'job_123',
+                result: { expiresAt: 1234 },
+                status: 'completed',
+              },
+            },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'completed',
+        videos: [
+          {
+            type: 'url',
+            url: 'https://cdn.example.com/v.mp4',
+            mediaType: 'video/mp4',
+          },
+        ],
+        warnings: [{ type: 'other', message: 'complete' }],
+      });
+    });
+
+    it('should return error status', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'error',
+          error: 'Async video job failed',
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Async video job failed',
+      });
+    });
+
+    it('maps the gateway cancelled status to a terminal error', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'json-value',
+        body: {
+          status: 'cancelled',
+          providerMetadata: {
+            gateway: { asyncJob: { jobId: 'job_123', status: 'cancelled' } },
+          },
+        },
+      };
+
+      const result = await createTestModel().doStatus({
+        operation: { gatewayJobId: 'job_123' },
+      });
+
+      expect(result).toMatchObject({
+        status: 'error',
+        error: 'Video generation was cancelled.',
+      });
+    });
+
+    it('should map gateway errors', async () => {
+      server.urls['https://api.test.com/video-model/status'].response = {
+        type: 'error',
+        status: 401,
+        body: JSON.stringify({
+          error: { message: 'Unauthorized', code: 'unauthorized' },
+        }),
+      };
+
+      await expect(
+        createTestModel().doStatus({ operation: { gatewayJobId: 'job_123' } }),
+      ).rejects.toThrow();
     });
   });
 });

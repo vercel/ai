@@ -1,5 +1,905 @@
 # ai
 
+## 7.0.114
+
+### Patch Changes
+
+- b5679a7: fix(ai): filter tracing-channel context with telemetry allowlists
+- ca31b89: Clarify in the prompt validation code that `allowSystemInMessages` permits all system messages, including instruction text.
+- Updated dependencies [124b6ef]
+  - @ai-sdk/gateway@4.0.92
+
+## 7.0.113
+
+### Patch Changes
+
+- dcdb011: fix(ai): route completed streamed tool input callbacks to repaired tools
+- 8f72832: fix(ai): preserve video models from legacy fallback providers
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- b74c0cb: fix(ai): resume tool approvals from earlier messages
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- c93ee90: fix(ai): preserve message history for direct transport stream callbacks
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [b73f2f9]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/gateway@4.0.91
+
+## 7.0.112
+
+### Patch Changes
+
+- 9a98fd9: fix(ai): prune reasoning file parts when removing reasoning
+- a0553d6: feat(ai): report consumer cancellation in UI message stream end callbacks
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- fde0d66: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [ed5a1d7]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/gateway@4.0.90
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 7.0.111
+
+### Patch Changes
+
+- 31d24ce: feat: add telemetry support to `experimental_evaluate`
+- a65bfd9: fix(ai): securely download URL-backed language model file outputs so generated files expose actual base64 and byte content and UI streams contain valid data URLs. Propagate cancellation to batch file downloads.
+
+## 7.0.110
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/gateway@4.0.89
+
+## 7.0.109
+
+### Patch Changes
+
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- 2b105fa: fix(ai): preserve overlapping text blocks in reasoning extraction streams
+- 125f493: fix(harness): forward validated `toolsContext` to host-executed tools in alignment with `ToolLoopAgent`
+
+## 7.0.108
+
+### Patch Changes
+
+- 3f6852a: fix(ai): prevent direct execution of tools governed by tool callers
+- 6317504: fix(ai): stop pending tool-call repairs when generation is cancelled
+- 3cb2dcd: fix(ai): preserve file data when adapting v3 language models
+- ccf98e7: fix(ai): prevent `streamText` from executing tool calls that violate tool choice
+- Updated dependencies [20dd00a]
+- Updated dependencies [7cf7cee]
+- Updated dependencies [c42576a]
+- Updated dependencies [d85dcf5]
+- Updated dependencies [fd9b3f3]
+  - @ai-sdk/gateway@4.0.88
+
+## 7.0.107
+
+### Patch Changes
+
+- 79681c4: fix(ai): preserve provider file and skill upload APIs in wrapProvider
+- 98c7275: fix(ai): preserve query parameters in chat reconnect URLs
+- a105059: fix(workflow): support deferred tool discovery in WorkflowAgent
+- 31532f3: fix(ai): prevent preliminary tool outputs from completing chats
+- e61cbd8: fix(ai): preserve raw speech audio format metadata
+- 8ade040: fix(ai): pass tool-specific context to input callbacks
+- 970a01e: fix(ai): enforce polling timeouts for in-flight video status requests
+- 85539c5: fix(ai): preserve multiple Set-Cookie headers in Node stream responses
+- 611d301: fix(ai): prevent duplicate content types in chat transport requests
+- c415657: fix(ai): decode base64 text data URLs using their declared charset
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/gateway@4.0.87
+
+## 7.0.106
+
+### Patch Changes
+
+- 4775577: fix(ai): preserve provider metadata when simulating text streams
+- 6696728: fix(ai): report the prepareStep model in streamed step results
+- 09516a1: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+- 1aef01e: fix(ai): preserve prototype-named properties in serialized tool outputs
+- 9c1ea74: fix(ai): close telemetry spans when provider response streams fail
+- 107343a: fix(ai): use the prepareStep-selected model for streamed response metadata fallbacks
+- 03c3e33: fix(ai): preserve tool calls required by retained pending approvals
+- 5d42ebd: fix(ai): skip input available callbacks for invalid streamed tool calls
+- 4a67783: fix(ai): cancel prompt attachment downloads when model calls are aborted or time out
+- 1058ed5: fix(ai): strip streamed JSON fences before arbitrary trailing whitespace
+- 84f5d1b: fix(ai): stream null and empty string JSON partial outputs
+- 2d53a5d: fix(ai): prevent onEnd after aborting a multi-step text stream
+- 2a5ed55: fix(ai): stream structured output from the final tool-loop step
+- Updated dependencies [4fdf51e]
+- Updated dependencies [0455398]
+  - @ai-sdk/gateway@4.0.86
+  - @ai-sdk/provider-utils@5.0.44
+
+## 7.0.105
+
+### Patch Changes
+
+- 6982e9d: Resolve evaluation model IDs through AI Gateway when no default provider is configured, including string aliases in custom providers.
+- Updated dependencies [6982e9d]
+- Updated dependencies [6982e9d]
+  - @ai-sdk/gateway@4.0.85
+
+## 7.0.104
+
+### Patch Changes
+
+- a7dd893: Add experimental evaluation model aliases and registry resolution. `customProvider` accepts `evaluationModels`, registries expose `evaluationModel`, and `experimental_evaluate` accepts string IDs when an evaluation-capable default provider is explicitly configured. Evaluation never implicitly falls back to Gateway. Model-resolution errors now identify `evaluationModel` while stable provider contracts remain unchanged.
+- 227f3b0: fix(ai): report abnormal realtime WebSocket close diagnostics through `onError`
+- 3456e2c: feat(ai): support tool search with direct tool calling
+- c4e76de: feat(ai): add native tool search tool
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/gateway@4.0.84
+
+## 7.0.103
+
+### Patch Changes
+
+- 91c2128: feat(ai): add mid conversation tool discovery/updates for code-mode
+- 25a0447: feat(ai): deprecate rawInput in output-error UI message parts
+- 2cd80b3: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 123d71f: Add `experimental_evaluate` and the isolated experimental v4 evaluation model specification for Choice, Score, and Boolean questions against shared state. Includes typed answers, optional Choice/Score distributions, required Boolean probabilities, validation, retries, cancellation, and `Experimental_EvaluationUnsupportedQuestionTypeError` for unsupported questions.
+- Updated dependencies [91c2128]
+- Updated dependencies [0c9ab5a]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+- Updated dependencies [2cce7da]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/gateway@4.0.83
+  - @ai-sdk/provider@4.0.16
+
+## 7.0.102
+
+### Patch Changes
+
+- 5c0054d: Add optional browser-direct WebRTC for experimental client-delegated Live conversations alongside the existing WebSocket path. Exchange SDP through an application endpoint with `api.session`, configure server-owned data-channel permissions, and preserve committed React session ownership. Capture follows the selected sender track, borrowed tracks remain caller-owned, and disconnect recovery and finalization stay bounded. Applications continue to handle client delegation and submit context; Live session updates and Responses delegation remain unsupported.
+
+  Serialize microphone sender changes and close the peer if detachment fails, without stopping borrowed tracks. Validate nonempty SDP setup answers with a bounded response body, and document the same-origin broker authentication contract.
+
+- 39535af: Add experimental OpenAI Live provider support through the unified `openai.experimental_realtime` factory for server WebSocket sessions with client delegation. Applications own their agents and tools, receive continuous audio/transcript events and delegation metadata, and return context through validated channels. Support immutable startup options, microphone mute controls, graceful session close, and cumulative voice usage. Responses delegation and Live session updates reject before sending.
+
+  Route known Live model IDs to Live, allow an OpenAI-specific `api` override for early-access models, and preserve legacy Realtime defaults for unknown IDs. Token minting follows the same selection rules and rejects Live before requesting unsupported credentials. Extend the realtime v4 specification with optional server WebSocket configuration, per-connection raw-event parsers, and model-wide startup/finalization capabilities. This provider layer supplies connection settings and protocol mapping for server adapters; browser lifecycle and UI integration belong to the core runtime and framework hooks.
+
+  Preserve Realtime client event IDs for session updates and audio appends, and correlate server errors with the originating client event.
+
+- 8b92ba9: fix(ai): settle automatically denied tool calls in UI streams
+- 4b306c2: Report abnormal realtime WebSocket close codes and reasons through the session error path.
+- 4b306c2: Add the client-delegation-first realtime WebSocket runtime with session lifecycle, exact final duration, bounded event queues and command acknowledgement tracking, transcripts, context append, and reversible capture. Continuous sessions support PCM16 audio-chunk playback over an application relay with a recoverable live-edge buffer policy. Legacy turn-based WebSockets retain queued playback and frontend tool handling.
+
+  Remove the deferred managed Responses coordinator, autoContinueTools option, backend usage state, and Live tool-result aliases. Continuous text and delegation handling belong to the application; sendTextMessage and addToolOutput reject continuous sessions. Server-confirmed provider delegation and turn-based audio-delta on the continuous profile fail explicitly. maxPlaybackBufferSeconds is supported only for continuous PCM sessions.
+
+  Fence callbacks, startup publications, tool results, and teardown by connection attempt. Validate token setup before opening a client-secret socket, require explicit relay transport mode, and include WebSocket URL, protocol values, and runtime timeouts/buffer settings in React session configuration keys.
+
+  Retain immediate local capture for explicit legacy preconnect streams, including owned-track cleanup and capture continuity through asynchronous setup. Signal transport closing before draining accepted terminal events, share reentrant close settlement, and cancel stale readiness and deadlines. Enforce 128 KiB frame and combined buffered-send budgets only for Live continuous sessions, using actual encoded wire bytes; oversized manual operations remain recoverable while startup and automatic audio failures close the session. Legacy startup, text, tool output, and audio retain their pre-Live behavior without these byte caps. Live pending-audio overflow drains accepted terminal usage within the existing one-second drain window. Validate final provider-transformed WebSocket URL syntax without removing native authentication query parameters.
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/gateway@4.0.82
+  - @ai-sdk/provider-utils@5.0.41
+
+## 7.0.101
+
+### Patch Changes
+
+- 6aa7c54: fix(ai): serialize tool output JSON values
+
+## 7.0.100
+
+### Patch Changes
+
+- 6431635: feat(ai): expose typed AI SDK errors for UI transport and completion failures
+- Updated dependencies [23a0fff]
+  - @ai-sdk/gateway@4.0.81
+
+## 7.0.99
+
+### Patch Changes
+
+- 615ac89: feat(ai): use InvalidArgumentError for utility input validation
+- Updated dependencies [7f76d83]
+  - @ai-sdk/gateway@4.0.80
+
+## 7.0.98
+
+### Patch Changes
+
+- 5ec21a6: fix: reject unsupported batch request types
+- db59d78: feat(ai): add runtime context attribution to embed, embedMany and rerank
+- 7469a3b: feat: support image generation requests in batches
+- f87bf07: fix(ai): reject invalid reranking provider indices
+- bc5cb7a: fix(ai): accept inferred tools in `validateUIMessages`
+- a5f449a: feat(ai): add a stable UI message type and type guard for tool output errors
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [dbd83a3]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+- Updated dependencies [03f4e59]
+  - @ai-sdk/gateway@4.0.79
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 7.0.97
+
+### Patch Changes
+
+- ef3bac4: Observe video webhook receiver rejections before generation starts to prevent unhandled rejections during or after a failed start. Preserve start error precedence and assimilate custom receivers only once.
+- 9942196: feat: add batch cancel and list APIs
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/gateway@4.0.78
+  - @ai-sdk/provider-utils@5.0.39
+
+## 7.0.96
+
+### Patch Changes
+
+- 912fb01: feat: add batch cancel and list APIs
+- c595e6e: fix(ai): call `atob` without a receiver for Cloudflare Workers compatibility
+- Updated dependencies [912fb01]
+- Updated dependencies [aa4cc14]
+- Updated dependencies [f102e41]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/gateway@4.0.77
+  - @ai-sdk/provider-utils@5.0.38
+
+## 7.0.95
+
+### Patch Changes
+
+- 27f6d7a: fix(ai): reject embedding model responses that contain no embeddings
+
+## 7.0.94
+
+### Patch Changes
+
+- a4ba394: feat: support per-request models in batch
+- 36b3364: fix(ai): enforce tool choices in streamText
+- 45099da: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, and mark Google and Google Vertex prompt blocks as terminal.
+- Updated dependencies [a4ba394]
+- Updated dependencies [e9bf5e3]
+- Updated dependencies [45099da]
+- Updated dependencies [56c004c]
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider@4.0.11
+  - @ai-sdk/gateway@4.0.76
+  - @ai-sdk/provider-utils@5.0.37
+
+## 7.0.93
+
+### Patch Changes
+
+- df6c009: fix(ai): use new message ID when replacing a message in `sendMessage`
+- 6ee74a3: fix(ai): preserve tool part titles when validating UI messages
+- f13d371: fix(ai): preserve provider metadata when converting failed tool calls
+- d4485fe: feat(ai): support minItems and maxItems in array outputs
+- 4f201cc: chore(ai): formally include already supported `onLanguageModelCallStart` and `onLanguageModelCallEnd` in `ToolLoopAgentSettings` type
+- 8cdb2a7: fix(ai): decode text data URLs in Node.js
+- 0f2281e: fix(ai): reject embedding responses whose count does not match the input values
+- fc8e8ac: fix(ai): preserve image call diagnostics when no image is generated
+- ee8391e: fix(ai): support abort signals when the global AbortSignal is not a constructor
+- Updated dependencies [3cfc1fc]
+  - @ai-sdk/gateway@4.0.75
+
+## 7.0.92
+
+### Patch Changes
+
+- a51cc94: fix(ai): preserve provider metadata from empty smooth stream deltas
+- d1904d3: fix(ai): surface fallback errors for empty HTTP response bodies
+- 84e5a79: fix(ai): skip `smoothStream` delays while the document is hidden
+- a8e8ad0: fix(ai): expose call ID and abort reason in streamText onAbort callbacks
+- Updated dependencies [a7e324b]
+  - @ai-sdk/gateway@4.0.74
+
+## 7.0.91
+
+### Patch Changes
+
+- 802af1e: Add configurable recovery for provider errors received after `streamText` response streaming begins. Explicitly configuring `streamRetries` enables isolated retry attempts, including one bounded callback-directed recovery through `StreamTextOnErrorRetryCallback` with `streamRetries: 0`; recovered results and metadata reflect only the successful attempt, while the existing `StreamTextOnErrorCallback` contract and logging-only observer behavior remain compatible.
+- Updated dependencies [5484f27]
+- Updated dependencies [36eb7ee]
+- Updated dependencies [622fa7f]
+  - @ai-sdk/gateway@4.0.73
+
+## 7.0.90
+
+### Patch Changes
+
+- Updated dependencies [4d25a08]
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/gateway@4.0.72
+  - @ai-sdk/provider-utils@5.0.36
+
+## 7.0.89
+
+### Patch Changes
+
+- 5190b67: feat(provider): extend the FilesV4 interface with optional `getFileMetadata`, `downloadFile` (streaming), and `deleteFile` operations, plus `abortSignal`/`headers` call options and a `{ type: 'stream' }` upload data variant; upload results now expose `byteSize`, `createdAt`, and `expiresAt` (also surfaced by the core `uploadFile()` helper, which now forwards `abortSignal`/`headers`); add `postMultipartStreamToApi` (streaming multipart uploads with deterministic part ordering and failure-path stream teardown), `deleteFromApi`, and `createBinaryStreamResponseHandler` to provider-utils
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/gateway@4.0.71
+
+## 7.0.88
+
+### Patch Changes
+
+- 8b6b756: fix(ai): prevent generateText from accepting responses that violate required tool choices
+- e07b577: feat: add tool calling support to batch
+
+## 7.0.87
+
+### Patch Changes
+
+- 850d863: fix(ai): preserve approval descriptors in UI message streams
+
+## 7.0.86
+
+### Patch Changes
+
+- 11109ae: feat(ai): support signed tool approvals in WorkflowAgent
+- Updated dependencies [1329d5a]
+  - @ai-sdk/gateway@4.0.70
+
+## 7.0.85
+
+### Patch Changes
+
+- 55a9981: Ensure canonical hashes preserve undefined array element positions.
+- dd32de2: fix(ai): sum Gateway image-generation costs across split requests
+- aa45741: fix(provider/anthropic): preserve native message batch request counts in provider metadata and support the full language-model option surface in batch requests
+- cc29073: feat(ai): expose individual image generation calls
+- Updated dependencies [d2507af]
+- Updated dependencies [aa45741]
+  - @ai-sdk/gateway@4.0.69
+  - @ai-sdk/provider@4.0.9
+  - @ai-sdk/provider-utils@5.0.34
+
+## 7.0.84
+
+### Patch Changes
+
+- 6669d69: Expose parsed structured output in `streamText` end callbacks.
+- a6463ca: fix(ai): allow tool approval secrets in ToolLoopAgent settings and prepareCall
+- e604532: fix(ai): handle stateful and empty-match regular expressions in smoothStream
+- Updated dependencies [805bbfc]
+- Updated dependencies [90192f1]
+  - @ai-sdk/gateway@4.0.68
+  - @ai-sdk/provider-utils@5.0.33
+
+## 7.0.83
+
+### Patch Changes
+
+- 8dd86a9: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and terminal history from unavailable
+  tools remain loadable as dynamic tool parts instead of exposing unvalidated
+  values under current static tool types.
+- fda13b3: Allow chats to continue automatically after tool approval denials reach the `output-denied` state.
+- 957146c: add operation-level outcomes to UI message stream end callbacks
+- ce6849a: fix(ai): handle stitchable stream cancellation before an inner stream is registered
+
+## 7.0.82
+
+### Patch Changes
+
+- 3e125ba: Allow manual tool approval statuses to include a reason and preserve it across
+  core, model, and UI approval requests. OPA `requires-approval` decisions now
+  surface their reason to human approvers. UI request chunks serialize the
+  optional `reason`, while UI messages retain it as `approval.requestReason`
+  separately from an approver's response `reason`.
+- Updated dependencies [0e7994c]
+- Updated dependencies [3e125ba]
+  - @ai-sdk/gateway@4.0.67
+  - @ai-sdk/provider-utils@5.0.32
+
+## 7.0.81
+
+### Patch Changes
+
+- Updated dependencies [81bebaf]
+  - @ai-sdk/gateway@4.0.66
+
+## 7.0.80
+
+### Patch Changes
+
+- 35841f5: feat: normalize mid-stream provider error events across supported providers into public StreamProviderError instances and preserve provider-owned type, code, status, retry, and raw payload metadata
+- d2f3353: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- eed7950: Expose structured output parsing diagnostics from `generateText` when generation stops because of the output token limit.
+- Updated dependencies [80227cf]
+- Updated dependencies [a9782e1]
+- Updated dependencies [5533946]
+- Updated dependencies [35841f5]
+- Updated dependencies [d2f3353]
+  - @ai-sdk/gateway@4.0.65
+  - @ai-sdk/provider-utils@5.0.31
+
+## 7.0.79
+
+### Patch Changes
+
+- b251584: Preserve active text and reasoning parts when another merged UI message stream finishes a step, and align workflow stream normalization with the explicit part end chunks.
+- 591d25b: feat: add batch completion webhooks. `experimental_startTextBatch` accepts a `webhookUrl`, and the gateway provider registers it through the batch `callbackUrl` contract and exports typed async-job metadata. Direct Anthropic and OpenAI batch providers return an unsupported warning when the option is provided.
+- 9de0baf: Parse structured generateText output when providers omit finishReason but return text.
+- Updated dependencies [591d25b]
+  - @ai-sdk/gateway@4.0.64
+  - @ai-sdk/provider@4.0.8
+  - @ai-sdk/provider-utils@5.0.30
+
+## 7.0.78
+
+### Patch Changes
+
+- 96970bb: Continue approved `generateText`, `streamText`, and `WorkflowAgent` turns with a model-visible tool error when revalidated tool input is invalid.
+- Updated dependencies [e12e068]
+  - @ai-sdk/gateway@4.0.63
+
+## 7.0.77
+
+### Patch Changes
+
+- Updated dependencies [b74971f]
+- Updated dependencies [a371615]
+  - @ai-sdk/provider-utils@5.0.29
+  - @ai-sdk/gateway@4.0.62
+
+## 7.0.76
+
+### Patch Changes
+
+- c6d57f3: fix(ai): prevent duplicate text and reasoning part ids
+- 677a707: fix(ai): allow nullish metadata schemas for UI messages with branded IDs
+
+## 7.0.75
+
+### Patch Changes
+
+- 8978ad8: feat(ai): add `experimental_startVideo` and `experimental_videoStatus` — user-facing fire-and-forget wrappers over the video model `doStart`/`doStatus` spec methods, with the same sparse-options DX as `generateVideo`
+- Updated dependencies [dedac59]
+  - @ai-sdk/gateway@4.0.61
+
+## 7.0.74
+
+### Patch Changes
+
+- Updated dependencies [5941bd6]
+- Updated dependencies [9a4337d]
+  - @ai-sdk/gateway@4.0.60
+
+## 7.0.73
+
+### Patch Changes
+
+- Updated dependencies [f607a12]
+  - @ai-sdk/gateway@4.0.59
+
+## 7.0.72
+
+### Patch Changes
+
+- Updated dependencies [fdcc814]
+  - @ai-sdk/gateway@4.0.58
+
+## 7.0.71
+
+### Patch Changes
+
+- 9a37469: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [936719b]
+  - @ai-sdk/gateway@4.0.57
+
+## 7.0.70
+
+### Patch Changes
+
+- 9566914: Stop multi-step text generation for client tool approval even when a provider-executed tool has a deferred result.
+- b181020: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 7054073: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- a828527: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+- d3cc3fe: Clear partial UI message parts when a WorkflowAgent model-call step is retried.
+- Updated dependencies [e6087c9]
+  - @ai-sdk/provider-utils@5.0.28
+  - @ai-sdk/gateway@4.0.56
+
+## 7.0.69
+
+### Patch Changes
+
+- Updated dependencies [1f7a464]
+  - @ai-sdk/gateway@4.0.55
+
+## 7.0.68
+
+### Patch Changes
+
+- Updated dependencies [257632b]
+  - @ai-sdk/gateway@4.0.54
+
+## 7.0.67
+
+### Patch Changes
+
+- Updated dependencies [a0b1ffc]
+  - @ai-sdk/gateway@4.0.53
+
+## 7.0.66
+
+### Patch Changes
+
+- 0782259: Keep chat status submitted until response content begins streaming.
+- 2fd1214: Fix declaration emit for exported values that infer an `Output` type.
+
+## 7.0.65
+
+### Patch Changes
+
+- dc8caae: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 72ec74f: Preserve root-level JSON Schema definitions when wrapping array output schemas.
+- c5b0515: Propagate errors thrown by the Chat `onFinish` callback to the initiating request.
+- Updated dependencies [16650e9]
+  - @ai-sdk/gateway@4.0.52
+
+## 7.0.64
+
+### Patch Changes
+
+- Updated dependencies [ea75787]
+- Updated dependencies [b20de9e]
+  - @ai-sdk/gateway@4.0.51
+
+## 7.0.63
+
+### Patch Changes
+
+- d0a5807: Preserve reasoning block IDs from UI message streams on reasoning UI parts.
+- dcf33e8: Allow providers without reranking model support to be assigned to `Provider`.
+- Updated dependencies [a4d386d]
+  - @ai-sdk/gateway@4.0.50
+
+## 7.0.62
+
+### Patch Changes
+
+- e0bcf52: feat(ui): add typed custom bodies to Completion APIs
+
+## 7.0.61
+
+### Patch Changes
+
+- 326054b: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+- 975bb28: Cancel messages that are still being prepared when a chat is stopped.
+- Updated dependencies [7fbfc6d]
+  - @ai-sdk/provider-utils@5.0.27
+  - @ai-sdk/gateway@4.0.49
+
+## 7.0.60
+
+### Patch Changes
+
+- 79c52ef: Align `ToolLoopAgent` `prepareCall` types with the settings available and honored at runtime.
+- Updated dependencies [3cc1bb6]
+  - @ai-sdk/gateway@4.0.48
+
+## 7.0.59
+
+### Patch Changes
+
+- Updated dependencies [401a4ba]
+- Updated dependencies [7af9646]
+  - @ai-sdk/provider-utils@5.0.26
+  - @ai-sdk/gateway@4.0.47
+
+## 7.0.58
+
+### Patch Changes
+
+- 72ad23f: Respect ToolLoopAgent timeouts configured in agent settings.
+- ad6a650: feat(video): allow `aspectRatio: 'adaptive'` on `generateVideo`
+
+  Some video models derive the output ratio from the input and reject explicit
+  `{width}:{height}` values — BytePlus Seedance 2.5 does this for first-frame,
+  first-and-last-frame, editing, and extension tasks. `aspectRatio` on
+  `VideoModelV3CallOptions`, `VideoModelV4CallOptions`, and
+  `experimental_generateVideo` is now `` `${number}:${number}` | 'adaptive' ``, so
+  those calls no longer need a type assertion. Support is provider-specific.
+
+- 81cd026: Reduce bundle size by making internal Zod v4 imports tree-shakeable.
+- Updated dependencies [c477556]
+- Updated dependencies [ad6a650]
+- Updated dependencies [81cd026]
+  - @ai-sdk/gateway@4.0.46
+  - @ai-sdk/provider@4.0.7
+  - @ai-sdk/provider-utils@5.0.25
+
+## 7.0.57
+
+### Patch Changes
+
+- Updated dependencies [1937bef]
+  - @ai-sdk/provider-utils@5.0.24
+  - @ai-sdk/gateway@4.0.45
+
+## 7.0.56
+
+### Patch Changes
+
+- 25c9120: Expose provider metadata on language-model-call end callbacks and telemetry spans.
+- 89080c8: fix (ai/gateway): make retried `doStart` calls idempotent
+
+  `generateVideo` retries `doStart`, which creates a billable generation, so a
+  retry after a lost response could start a second one. It now mints one
+  idempotency token per logical start — outside the retry closure — and forwards it
+  as an `idempotency-key` header, so a provider that deduplicates (the Vercel AI
+  Gateway does) sees the same key on every attempt. `GatewayVideoModel` simply
+  forwards the caller's headers rather than inferring retry identity from an
+  options object, which would collide across unrelated calls.
+
+- 79d6195: Stop pending and active resumed chat streams after cancellation, and prevent
+  overlapping resumptions from applying stale updates.
+- Updated dependencies [89080c8]
+- Updated dependencies [89080c8]
+  - @ai-sdk/gateway@4.0.44
+
+## 7.0.55
+
+### Patch Changes
+
+- 3469d0c: feat: add batch APIs
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+  - @ai-sdk/gateway@4.0.43
+  - @ai-sdk/provider-utils@5.0.23
+
+## 7.0.54
+
+### Patch Changes
+
+- a6b17a2: Allow `ToolLoopAgent` `prepareCall` callbacks to read and override the top-level `reasoning` option.
+- 5615eb7: Add `defaultInstructionsMiddleware` for applying default language model instructions while preserving call-level overrides.
+- 36a3ff6: Preserve preceding assistant messages when regenerating a response.
+
+## 7.0.53
+
+### Patch Changes
+
+- cd0177b: Filter unresolved tool approval requests and tool parts without state when ignoring incomplete tool calls.
+- a09fdef: Release async iterable stream reader locks when source reads fail.
+- Updated dependencies [7aeab10]
+- Updated dependencies [2b60826]
+  - @ai-sdk/gateway@4.0.42
+  - @ai-sdk/provider-utils@5.0.22
+
+## 7.0.52
+
+### Patch Changes
+
+- 3836a85: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1bec07d]
+- Updated dependencies [53c326e]
+- Updated dependencies [d765f82]
+  - @ai-sdk/provider-utils@5.0.21
+  - @ai-sdk/gateway@4.0.41
+
+## 7.0.51
+
+### Patch Changes
+
+- Updated dependencies [160ccdb]
+  - @ai-sdk/provider-utils@5.0.20
+  - @ai-sdk/gateway@4.0.40
+
+## 7.0.50
+
+### Patch Changes
+
+- 79e133c: async APIs for generateVideo (poll, webhook)
+
+  Adds an asynchronous start/status flow to the experimental video model
+  interface (`VideoModelV4`): models may now implement `doStart`, `doStatus`,
+  and `handleWebhookOption` instead of (or in addition to) `doGenerate`, and
+  `experimental_generateVideo` accepts `poll` and `webhook` options to
+  orchestrate completion via polling or webhooks. Polling configuration can use
+  a custom delay implementation for durable workflow compatibility.
+
+- da64b51: feat(code-mode): simplify tool caller configuration
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+  - @ai-sdk/gateway@4.0.39
+  - @ai-sdk/provider-utils@5.0.19
+
+## 7.0.49
+
+### Patch Changes
+
+- Updated dependencies [fb6d2f8]
+  - @ai-sdk/gateway@4.0.38
+
+## 7.0.48
+
+### Patch Changes
+
+- Updated dependencies [bdd5e28]
+  - @ai-sdk/gateway@4.0.37
+
+## 7.0.47
+
+### Patch Changes
+
+- Updated dependencies [5fc7da5]
+- Updated dependencies [93b2acd]
+  - @ai-sdk/provider-utils@5.0.18
+  - @ai-sdk/gateway@4.0.36
+
+## 7.0.46
+
+### Patch Changes
+
+- Updated dependencies [4f2e064]
+  - @ai-sdk/gateway@4.0.35
+
+## 7.0.45
+
+### Patch Changes
+
+- d6ce0ee: feat(ai): support experimental_toolCallers in streamText
+- fa95504: feat(ai): support experimental tool callers in ToolLoopAgent
+- 349afe7: Warn when `generateText` receives streaming-only `firstChunkMs` or `chunkMs` timeout settings.
+- Updated dependencies [fa95504]
+  - @ai-sdk/provider-utils@5.0.17
+  - @ai-sdk/gateway@4.0.34
+
+## 7.0.44
+
+### Patch Changes
+
+- 015acb4: fix telemetry attribution for language model calls that resolve to a different response model
+
+## 7.0.43
+
+### Patch Changes
+
+- b192878: feat: add experimental_toolCaller routing to generateText for code mode
+- Updated dependencies [d8210b6]
+- Updated dependencies [af3f400]
+- Updated dependencies [b192878]
+  - @ai-sdk/provider-utils@5.0.16
+  - @ai-sdk/gateway@4.0.33
+
+## 7.0.42
+
+### Patch Changes
+
+- 1659cd5: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- 60f97f6: support overriding model call settings for individual `prepareStep` invocations
+- 6a5bdff: Fix validated Node.js downloads when the HTTP connector requests a single DNS address.
+- 6de2ec1: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [1659cd5]
+- Updated dependencies [6a5bdff]
+- Updated dependencies [0012529]
+  - @ai-sdk/provider-utils@5.0.15
+  - @ai-sdk/gateway@4.0.32
+
+## 7.0.41
+
+### Patch Changes
+
+- 2e2224b: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [bf216b3]
+  - @ai-sdk/gateway@4.0.31
+
+## 7.0.40
+
+### Patch Changes
+
+- c3782a6: Deprecate `Experimental_GeneratedImage` in favor of `GeneratedFile`.
+
+## 7.0.39
+
+### Patch Changes
+
+- 09a52cb: Promote the `repairText` option to stable on `generateObject` and `streamObject`, with a deprecated `experimental_repairText` alias for backwards compatibility.
+- Updated dependencies [0c464d9]
+- Updated dependencies [c49380c]
+  - @ai-sdk/provider-utils@5.0.14
+  - @ai-sdk/gateway@4.0.30
+
+## 7.0.38
+
+### Patch Changes
+
+- 7bd6bdd: Avoid synthesizing client tool errors for invalid provider-executed tool calls.
+- 1e2f324: feat: add experimental speech translation model specification (`Experimental_SpeechTranslationModelV4`) and `experimental_streamTranslate` for streaming speech-to-speech translation
+- Updated dependencies [d9d2a11]
+- Updated dependencies [1e2f324]
+  - @ai-sdk/gateway@4.0.29
+  - @ai-sdk/provider@4.0.4
+  - @ai-sdk/provider-utils@5.0.13
+
+## 7.0.37
+
+### Patch Changes
+
+- Updated dependencies [0a7c7f4]
+  - @ai-sdk/gateway@4.0.28
+
+## 7.0.36
+
+### Patch Changes
+
+- 7fa85b2: fix(ai): use injective serialization for tool approval HMAC payload
+
+  The tool approval signature (`experimental_toolApprovalSecret`) built its HMAC
+  payload by joining fields with `\n`. Because fields such as `toolName` and
+  `toolCallId` can themselves contain a newline, distinct field tuples could
+  serialize to identical bytes, allowing a signed approval to verify against a
+  different tuple. The payload is now serialized with `JSON.stringify` (with a
+  versioned domain-separation prefix), which escapes delimiter/control characters
+  and makes the encoding injective.
+
+  Verification remains backwards compatible: a signature in the old format still
+  verifies, but only when no field contains the `\n` delimiter (the condition
+  that made the old format ambiguous), so a pending approval that straddles an
+  upgrade is not rejected while the collision stays closed.
+
+## 7.0.35
+
+### Patch Changes
+
+- 7f6650b: Return response piping promises so callers can catch stream read and write errors.
+- 106ea59: feat(ai): add per-step first content timeout for streaming generations
+- Updated dependencies [2112ff1]
+  - @ai-sdk/gateway@4.0.27
+
+## 7.0.34
+
+### Patch Changes
+
+- Updated dependencies [7c16f21]
+  - @ai-sdk/gateway@4.0.26
+
+## 7.0.33
+
+### Patch Changes
+
+- 76cb673: fix: detect MP4 audio from its ftyp box during transcription
+- e808fa5: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- 33647d7: Preserve provider options when combining consecutive tool messages.
+- Updated dependencies [02ffdcb]
+- Updated dependencies [76cb673]
+  - @ai-sdk/provider-utils@5.0.12
+  - @ai-sdk/gateway@4.0.25
+
 ## 7.0.32
 
 ### Patch Changes

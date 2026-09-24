@@ -1,7 +1,10 @@
-import type {
-  Experimental_VideoModelV4,
-  Experimental_VideoModelV4VideoData,
-  SharedV4ProviderMetadata,
+import {
+  APICallError,
+  type Experimental_VideoModelV4 as VideoModelV4,
+  type Experimental_VideoModelV4CallOptions as VideoModelV4CallOptions,
+  type Experimental_VideoModelV4VideoData as VideoModelV4VideoData,
+  type Experimental_VideoModelV4OperationWebhook as VideoModelV4OperationWebhook,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 import {
@@ -32,7 +35,7 @@ vi.mock('../version', () => {
 });
 
 const createMockResponse = (options: {
-  videos: Experimental_VideoModelV4VideoData[];
+  videos: VideoModelV4VideoData[];
   warnings?: Warning[];
   timestamp?: Date;
   modelId?: string;
@@ -79,7 +82,7 @@ describe('experimental_generateVideo', () => {
     const abortController = new AbortController();
     const abortSignal = abortController.signal;
 
-    let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+    let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
 
     await experimental_generateVideo({
       model: new MockVideoModelV4({
@@ -98,7 +101,6 @@ describe('experimental_generateVideo', () => {
       duration: 5,
       fps: 30,
       seed: 12345,
-      generateAudio: true,
       providerOptions: {
         'mock-provider': {
           loop: true,
@@ -120,8 +122,8 @@ describe('experimental_generateVideo', () => {
       resolution: '1920x1080',
       duration: 5,
       fps: 30,
+      generateAudio: undefined,
       seed: 12345,
-      generateAudio: true,
       providerOptions: { 'mock-provider': { loop: true } },
       headers: {
         'custom-request-header': 'request-header-value',
@@ -798,7 +800,7 @@ describe('experimental_generateVideo', () => {
 
   describe('prompt normalization', () => {
     it('should handle string prompt', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -819,7 +821,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle object prompt with text and image', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
       const imageBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
 
@@ -845,7 +847,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle URL image in prompt', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -870,7 +872,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle data URL image in prompt', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const dataUrl = `data:image/png;base64,${pngBase64}`;
@@ -899,7 +901,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should handle Uint8Array image in prompt', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
       const uint8Array = convertBase64ToUint8Array(pngBase64);
@@ -925,7 +927,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect image mediaType from raw base64 string via signature detection', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
       // Raw base64 PNG (not a data URL) - must be detected via signature
       const pngBase64 =
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==';
@@ -954,7 +956,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect image mediaType from Uint8Array via signature detection', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: Parameters<NonNullable<VideoModelV4['doGenerate']>>[0];
       // JPEG magic bytes: 0xFF 0xD8 0xFF
       const jpegBytes = new Uint8Array([
         0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46,
@@ -984,9 +986,1394 @@ describe('experimental_generateVideo', () => {
     });
   });
 
+  describe('doStart/doStatus flow', () => {
+    it('should use doStart/doStatus when poll is provided and model supports it', async () => {
+      let startCalled = false;
+      let statusCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async options => {
+            startCalled = true;
+            expect(options.prompt).toBe(prompt);
+            return {
+              operation: { taskId: 'task-123' },
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async options => {
+            statusCallCount++;
+            expect(options.operation).toStrictEqual({ taskId: 'task-123' });
+            if (statusCallCount < 3) {
+              return {
+                status: 'pending' as const,
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            }
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(startCalled).toBe(true);
+      expect(statusCallCount).toBe(3);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should use doStart/doStatus when model only has doStart/doStatus (no doGenerate)', async () => {
+      let doGenerateCalled = false;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(doGenerateCalled).toBe(false);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should retry doStatus without restarting the operation', async () => {
+      let startCallCount = 0;
+      let statusCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => {
+            startCallCount++;
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => {
+            statusCallCount++;
+
+            if (statusCallCount === 1) {
+              throw new APICallError({
+                message: 'temporary status failure',
+                url: 'https://example.com/status',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: {
+                  'retry-after-ms': '0',
+                },
+              });
+            }
+
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        maxRetries: 1,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(startCallCount).toBe(1);
+      expect(statusCallCount).toBe(2);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should send one stable idempotency key across doStart retries', async () => {
+      // `doStart` creates a billable generation, so a retry after a lost
+      // response must dedupe rather than start a second one. The key is minted
+      // once per logical start, not inferred from options identity.
+      const seenKeys: Array<string | undefined> = [];
+      let startCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async options => {
+            startCallCount++;
+            seenKeys.push(options.headers?.['idempotency-key']);
+            if (startCallCount === 1) {
+              throw new APICallError({
+                message: 'lost response',
+                url: 'https://example.com/start',
+                requestBodyValues: {},
+                statusCode: 500,
+                responseHeaders: { 'retry-after-ms': '0' },
+              });
+            }
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        maxRetries: 1,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(startCallCount).toBe(2);
+      expect(seenKeys[0]).toMatch(/^aisdk_vid_/);
+      expect(seenKeys[1]).toBe(seenKeys[0]);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should mint a distinct idempotency key per generateVideo call', async () => {
+      const seenKeys: Array<string | undefined> = [];
+      const model = () =>
+        new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async options => {
+            seenKeys.push(options.headers?.['idempotency-key']);
+            return {
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        });
+
+      await experimental_generateVideo({
+        model: model(),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+      await experimental_generateVideo({
+        model: model(),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(seenKeys).toHaveLength(2);
+      expect(seenKeys[1]).not.toBe(seenKeys[0]);
+    });
+
+    it('should preserve a caller-supplied idempotency key instead of minting one', async () => {
+      const seenKeys: Array<string | undefined> = [];
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        doStart: async options => {
+          seenKeys.push(options.headers?.['idempotency-key']);
+          return {
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        headers: { 'idempotency-key': 'caller-key-1' },
+        poll: { intervalMs: 0 },
+      });
+
+      expect(seenKeys).toEqual(['caller-key-1']);
+    });
+
+    it('should honor a caller-supplied idempotency key regardless of header casing', async () => {
+      const seenHeaders: Array<Record<string, string | undefined> | undefined> =
+        [];
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        doStart: async options => {
+          seenHeaders.push(options.headers);
+          return {
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        headers: { 'Idempotency-Key': 'caller-key-cased' },
+        poll: { intervalMs: 0 },
+      });
+
+      // generateVideo normalizes header casing via the Headers round-trip in
+      // withUserAgentSuffix, so the caller's key arrives lowercased — and no
+      // minted key replaces or duplicates it.
+      expect(seenHeaders[0]?.['idempotency-key']).toBe('caller-key-cased');
+      expect(
+        Object.values(seenHeaders[0] ?? {}).filter(value =>
+          String(value).startsWith('aisdk_vid_'),
+        ),
+      ).toHaveLength(0);
+    });
+
+    it('should fall back to doGenerate when poll is provided but model lacks doStart/doStatus', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: async () =>
+            createMockResponse({
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+            }),
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should throw error when model lacks both doGenerate and doStart/doStatus', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+          }),
+          prompt,
+        }),
+      ).rejects.toThrow(
+        'Video model mock-model-id does not implement doGenerate or doStart/doStatus.',
+      );
+    });
+
+    it('should use custom intervalMs for polling', async () => {
+      const timestamps: number[] = [];
+      let statusCallCount = 0;
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => {
+            statusCallCount++;
+            timestamps.push(Date.now());
+            if (statusCallCount < 2) {
+              return {
+                status: 'pending' as const,
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            }
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        poll: { intervalMs: 50 },
+      });
+
+      expect(statusCallCount).toBe(2);
+      // Verify the interval was roughly 50ms (allow some tolerance)
+      const diff = timestamps[1] - timestamps[0];
+      expect(diff).toBeGreaterThanOrEqual(30);
+    });
+
+    it('should use a custom delay for polling', async () => {
+      const delay = vi.fn(async () => {});
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-custom-delay',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        poll: { delay },
+      });
+
+      expect(delay).toHaveBeenCalledWith(5000, { abortSignal: undefined });
+    });
+
+    it('should throw timeout error when polling exceeds timeoutMs', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-1',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => ({
+              status: 'pending' as const,
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+          }),
+          prompt,
+          poll: { intervalMs: 10, timeoutMs: 50 },
+        }),
+      ).rejects.toThrow('Video generation timed out after 50ms.');
+    });
+
+    it('should abort an in-flight status request when polling times out', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-stalled-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+
+              return new Promise((_resolve, reject) => {
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => reject(abortSignal.reason),
+                  { once: true },
+                );
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+        expect(statusSignal?.reason).toHaveProperty(
+          'message',
+          'Video generation timed out after 50ms.',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should reject a completed status result returned after the polling timeout', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-late-completed-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+              await new Promise(resolve => setTimeout(resolve, 300));
+
+              return {
+                status: 'completed' as const,
+                videos: [
+                  { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                ],
+                warnings: [],
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(250);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should merge warnings from doStart and doStatus', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [{ type: 'other', message: 'start warning' }],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [{ type: 'other', message: 'status warning' }],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'start warning' },
+        { type: 'other', message: 'status warning' },
+      ]);
+    });
+
+    it('should merge warnings and metadata from pending status results', async () => {
+      let statusCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async () => {
+            statusCallCount++;
+
+            if (statusCallCount === 1) {
+              return {
+                status: 'pending' as const,
+                warnings: [
+                  { type: 'other' as const, message: 'pending warning' },
+                ],
+                providerMetadata: {
+                  testProvider: {
+                    requestId: 'req-001',
+                  },
+                },
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            }
+
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [{ type: 'other', message: 'completed warning' }],
+              providerMetadata: {
+                testProvider: {
+                  videos: [{ duration: 5 }],
+                },
+              },
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        poll: { intervalMs: 0 },
+      });
+
+      expect(result.warnings).toStrictEqual([
+        { type: 'other', message: 'pending warning' },
+        { type: 'other', message: 'completed warning' },
+      ]);
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          requestId: 'req-001',
+          videos: [{ duration: 5 }],
+        },
+      });
+    });
+
+    it('should use webhook flow when webhook is provided', async () => {
+      let webhookUrlCapture: string | undefined;
+      let resolveWebhook: (value: VideoModelV4OperationWebhook) => void;
+      const webhookReceived = new Promise<VideoModelV4OperationWebhook>(
+        resolve => {
+          resolveWebhook = resolve;
+        },
+      );
+
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
+        doStart: async options => {
+          webhookUrlCapture = options.webhookUrl;
+          // Simulate async webhook notification
+          setTimeout(() => resolveWebhook!({ headers: {}, body: {} }), 10);
+          return {
+            operation: 'op-webhook',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async options => {
+          expect(options.operation).toBe('op-webhook');
+          return {
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+      });
+
+      const result = await experimental_generateVideo({
+        model,
+        prompt,
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received: webhookReceived,
+        }),
+      });
+
+      expect(webhookUrlCapture).toBe('https://example.com/webhook');
+      expect(result.videos.length).toBe(1);
+    });
+
+    describe('webhook receiver rejection', () => {
+      let unhandledRejections: unknown[];
+      const onUnhandledRejection = (reason: unknown) => {
+        unhandledRejections.push(reason);
+      };
+
+      beforeEach(() => {
+        unhandledRejections = [];
+        process.on('unhandledRejection', onUnhandledRejection);
+      });
+
+      afterEach(async () => {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
+      it.each([
+        { timing: 'during start', startFails: false },
+        { timing: 'at factory handoff', startFails: false },
+        { timing: 'during start', startFails: true },
+        { timing: 'at factory handoff', startFails: true },
+      ])(
+        'should observe rejection $timing while preserving start precedence (startFails: $startFails)',
+        async ({ timing, startFails }) => {
+          const webhookError = new Error('webhook delivery failed');
+          const startError = new Error('start failed');
+          let rejectWebhook!: (reason: unknown) => void;
+          const received = new Promise<VideoModelV4OperationWebhook>(
+            (_, reject) => {
+              rejectWebhook = reject;
+            },
+          );
+          let signalStarted!: () => void;
+          const started = new Promise<void>(resolve => {
+            signalStarted = resolve;
+          });
+          let releaseStart!: () => void;
+          const startGate = new Promise<void>(resolve => {
+            releaseStart = resolve;
+          });
+          const doStatus = vi.fn(async () => {
+            throw new Error('doStatus should not be called');
+          });
+          const settled = vi.fn();
+          const result = experimental_generateVideo({
+            model: new MockVideoModelV4({
+              doGenerate: undefined,
+              handleWebhookOption: async ({ webhook }) => {
+                const { url, received } = await webhook();
+                return { webhookUrl: url, received };
+              },
+              doStart: async () => {
+                signalStarted();
+                await startGate;
+                if (startFails) {
+                  throw startError;
+                }
+                return {
+                  operation: 'op-webhook',
+                  warnings: [],
+                  response: {
+                    timestamp: testDate,
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
+                };
+              },
+              doStatus,
+            }),
+            prompt,
+            maxRetries: 0,
+            webhook: async () => {
+              if (timing === 'at factory handoff') {
+                rejectWebhook(webhookError);
+              }
+              return { url: 'https://example.com/webhook', received };
+            },
+          });
+          void result.then(settled, settled);
+
+          try {
+            await started;
+            if (timing === 'during start') {
+              rejectWebhook(webhookError);
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(settled).not.toHaveBeenCalled();
+          } finally {
+            releaseStart();
+          }
+
+          await expect(result).rejects.toBe(
+            startFails ? startError : webhookError,
+          );
+          expect(doStatus).not.toHaveBeenCalled();
+        },
+      );
+
+      it('should observe late webhook rejection after start fails', async () => {
+        const startError = new Error('start failed');
+        let rejectWebhook!: (reason: unknown) => void;
+        const received = new Promise<VideoModelV4OperationWebhook>(
+          (_, reject) => {
+            rejectWebhook = reject;
+          },
+        );
+        const doStatus = vi.fn(async () => {
+          throw new Error('doStatus should not be called');
+        });
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => {
+              throw startError;
+            },
+            doStatus,
+          }),
+          prompt,
+          maxRetries: 0,
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received,
+          }),
+        });
+
+        await expect(result).rejects.toBe(startError);
+        rejectWebhook(new Error('late webhook delivery failure'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await expect(result).rejects.toBe(startError);
+        expect(doStatus).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should assimilate a then-only webhook receiver once before start completes', async () => {
+      const notification = Promise.resolve<VideoModelV4OperationWebhook>({
+        headers: {},
+        body: {},
+      });
+      const received: PromiseLike<VideoModelV4OperationWebhook> = {
+        // oxlint-disable-next-line unicorn/no-thenable -- Test a PromiseLike receiver.
+        then: notification.then.bind(notification),
+      };
+      const then = vi.spyOn(received, 'then');
+      const doStatus = vi.fn(async () => ({
+        status: 'completed' as const,
+        ...createMockResponse({
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+        }),
+      }));
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          handleWebhookOption: async ({ webhook }) => {
+            const { url, received } = await webhook();
+            return { webhookUrl: url, received };
+          },
+          doStart: async () => {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(then).toHaveBeenCalledTimes(1);
+            return {
+              operation: 'op-webhook',
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus,
+        }),
+        prompt,
+        maxRetries: 0,
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received,
+        }),
+      });
+
+      expect(then).toHaveBeenCalledTimes(1);
+      expect(doStatus).toHaveBeenCalledTimes(1);
+      expect(result.video.base64).toBe(mp4Base64);
+    });
+
+    it('should use a custom delay for the webhook timeout', async () => {
+      const delay = vi.fn(() => new Promise<void>(() => {}));
+
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
+        doStart: async () => ({
+          operation: 'op-custom-delay',
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+        doStatus: async () => ({
+          status: 'completed' as const,
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+      });
+
+      await experimental_generateVideo({
+        model,
+        prompt,
+        poll: { delay },
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received: Promise.resolve({ headers: {}, body: {} }),
+        }),
+      });
+
+      expect(delay).toHaveBeenCalledWith(600_000, {
+        abortSignal: expect.any(AbortSignal),
+      });
+    });
+
+    it('should support a custom webhook delay without AbortController', async () => {
+      const delay = vi.fn(() => new Promise<void>(() => {}));
+      vi.stubGlobal('AbortController', undefined);
+
+      try {
+        await experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-custom-delay-without-abort-controller',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => ({
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+          }),
+          prompt,
+          poll: { delay },
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: Promise.resolve({ headers: {}, body: {} }),
+          }),
+        });
+      } finally {
+        vi.unstubAllGlobals();
+      }
+
+      expect(delay).toHaveBeenCalledWith(600_000, {
+        abortSignal: undefined,
+      });
+    });
+
+    it('should use webhook over poll when both are provided', async () => {
+      let statusCallCount = 0;
+      let resolveWebhook: (value: VideoModelV4OperationWebhook) => void;
+      const webhookReceived = new Promise<VideoModelV4OperationWebhook>(
+        resolve => {
+          resolveWebhook = resolve;
+        },
+      );
+
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        handleWebhookOption: async ({ webhook }) => {
+          const { url, received } = await webhook();
+          return { webhookUrl: url, received };
+        },
+        doStart: async options => {
+          expect(options.webhookUrl).toBe('https://example.com/webhook');
+          setTimeout(() => resolveWebhook!({ headers: {}, body: {} }), 10);
+          return {
+            operation: 'op-both',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+        doStatus: async () => {
+          statusCallCount++;
+          return {
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+      });
+
+      const result = await experimental_generateVideo({
+        model,
+        prompt,
+        poll: { intervalMs: 10 },
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received: webhookReceived,
+        }),
+      });
+
+      // Should only call doStatus once (after webhook), not via polling loop
+      expect(statusCallCount).toBe(1);
+      expect(result.videos.length).toBe(1);
+    });
+
+    it('should timeout when webhook notification is not received', async () => {
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-webhook-timeout',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => {
+              throw new Error('doStatus should not be called');
+            },
+          }),
+          prompt,
+          poll: { timeoutMs: 20 },
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: new Promise<VideoModelV4OperationWebhook>(() => {}),
+          }),
+        }),
+      ).rejects.toThrow('Video generation timed out after 20ms.');
+    });
+
+    it('should abort while waiting for webhook notification', async () => {
+      const abortController = new AbortController();
+      abortController.abort();
+
+      await expect(
+        experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => ({
+              operation: 'op-webhook-abort',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async () => {
+              throw new Error('doStatus should not be called');
+            },
+          }),
+          prompt,
+          abortSignal: abortController.signal,
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received: new Promise<VideoModelV4OperationWebhook>(() => {}),
+          }),
+        }),
+      ).rejects.toHaveProperty('name', 'AbortError');
+    });
+
+    it('should fall back to polling when model has no handleWebhookOption', async () => {
+      let statusCallCount = 0;
+      let webhookFactoryCalled = false;
+
+      const model = new MockVideoModelV4({
+        doGenerate: undefined,
+        // no handleWebhookOption — model does not support webhooks
+        doStart: async () => ({
+          operation: 'op-fallback',
+          warnings: [],
+          response: {
+            timestamp: new Date(),
+            modelId: 'test-model-id',
+            headers: {},
+          },
+        }),
+        doStatus: async () => {
+          statusCallCount++;
+          return {
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          };
+        },
+      });
+
+      const result = await experimental_generateVideo({
+        model,
+        prompt,
+        poll: { intervalMs: 10 },
+        webhook: async () => {
+          webhookFactoryCalled = true;
+          return {
+            url: 'https://example.com/webhook',
+            received: new Promise<VideoModelV4OperationWebhook>(() => {}),
+          };
+        },
+      });
+
+      // Webhook factory should never be called
+      expect(webhookFactoryCalled).toBe(false);
+      // Should have used polling instead
+      expect(statusCallCount).toBeGreaterThanOrEqual(1);
+      expect(result.videos.length).toBe(1);
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'webhook',
+        details:
+          'This model does not support webhooks. Falling back to polling.',
+      });
+    });
+
+    it('should handle n > maxVideosPerCall with doStart/doStatus', async () => {
+      let startCallCount = 0;
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          maxVideosPerCall: 1,
+          doGenerate: undefined,
+          doStart: async options => {
+            startCallCount++;
+            return {
+              operation: `op-${startCallCount}`,
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        n: 3,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(startCallCount).toBe(3);
+      expect(result.videos.length).toBe(3);
+    });
+
+    it('should return provider metadata from doStart/doStatus flow', async () => {
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            providerMetadata: {
+              testProvider: { requestId: 'req-001' },
+            },
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {},
+            },
+          }),
+          doStatus: async () => ({
+            status: 'completed' as const,
+            videos: [
+              { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+            ],
+            warnings: [],
+            providerMetadata: {
+              testProvider: {
+                videos: [{ duration: 5 }],
+              },
+            },
+            response: {
+              timestamp: testDate,
+              modelId: 'test-model',
+              headers: {},
+            },
+          }),
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        testProvider: {
+          requestId: 'req-001',
+          videos: [{ duration: 5 }],
+        },
+      });
+    });
+
+    it('should pass headers and abortSignal to doStatus', async () => {
+      const abortController = new AbortController();
+      let capturedStatusOptions: any;
+
+      await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          doStart: async () => ({
+            operation: 'op-1',
+            warnings: [],
+            response: {
+              timestamp: new Date(),
+              modelId: 'test-model-id',
+              headers: {},
+            },
+          }),
+          doStatus: async options => {
+            capturedStatusOptions = options;
+            return {
+              status: 'completed' as const,
+              videos: [
+                { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+              ],
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+        }),
+        prompt,
+        poll: { intervalMs: 10 },
+        headers: { 'x-custom': 'value' },
+        abortSignal: abortController.signal,
+      });
+
+      expect(capturedStatusOptions.operation).toBe('op-1');
+      expect(capturedStatusOptions.abortSignal).not.toBe(
+        abortController.signal,
+      );
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(false);
+      abortController.abort();
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(true);
+      expect(capturedStatusOptions.headers).toStrictEqual({
+        'x-custom': 'value',
+        'user-agent': 'ai/0.0.0-test',
+      });
+    });
+  });
+
   describe('frameImages', () => {
     it('should normalize and pass frameImages through to the model', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1025,7 +2412,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should copy a first_frame entry into the image field when no image is provided', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1060,7 +2447,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should prefer the first_frame over prompt.image and warn when both are provided', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1104,7 +2491,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should pass only last_frame in frameImages without setting image', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1136,7 +2523,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should keep the prompt image when frameImages only has a last_frame and prompt image is provided', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1176,7 +2563,7 @@ describe('experimental_generateVideo', () => {
 
   describe('inputReferences', () => {
     it('should normalize and pass inputReferences through to the model', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1203,7 +2590,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should detect video media type from binary inputReferences without object form', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
       const mp4Bytes = new Uint8Array([
         0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
       ]);
@@ -1233,7 +2620,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should carry mediaType from the object form for URL references', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1267,7 +2654,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should pass inputReferences as undefined when not provided', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1287,7 +2674,7 @@ describe('experimental_generateVideo', () => {
     });
 
     it('should ignore inputReferences when frameImages is provided', async () => {
-      let capturedArgs!: Parameters<Experimental_VideoModelV4['doGenerate']>[0];
+      let capturedArgs!: VideoModelV4CallOptions;
 
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({

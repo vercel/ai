@@ -1,4 +1,37 @@
+import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+
+/**
+ * Connection details for a sandbox-exposed port. Headers are scoped to the
+ * returned URL and must be included when opening the connection.
+ */
+export type HarnessV1PortEndpoint = {
+  readonly url: string;
+  readonly headers?: Readonly<Record<string, string>>;
+};
+
+/**
+ * Fixed directory, relative to the sandbox's own HOME, that holds every
+ * piece of state the harness machinery generates.
+ */
+const HARNESS_V1_STATE_DIRECTORY_NAME = '.ai-sdk-harness';
+
+/**
+ * Fixed, non-configurable path for harness-generated state (bootstrap files,
+ * markers, and `.agent-runs`) under the sandbox's own HOME, never under
+ * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}. Resolve HOME
+ * with `resolveSandboxHomeDir` when it is not already known. This works from
+ * provider creation hooks that only have a plain sandbox session. The
+ * framework also calls this with a symbolic `$HOME` when hashing bootstrap
+ * recipes, so changes to the state path invalidate existing templates.
+ */
+export function harnessStateDirectoryPath({
+  sandboxHomeDir,
+}: {
+  sandboxHomeDir: string;
+}): string {
+  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
+}
 
 /**
  * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The
@@ -8,8 +41,8 @@ import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/prov
  *
  * Code that should only touch the filesystem and spawn processes receives the
  * reduced view from {@link HarnessV1NetworkSandboxSession.restricted}, never the
- * network sandbox session itself — so it cannot stop the sandbox or change its
- * network policy.
+ * network sandbox session itself — so it cannot stop the sandbox, change
+ * network access, or transform requests.
  */
 export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   /**
@@ -36,12 +69,22 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    */
   readonly defaultWorkingDirectory: string;
 
-  /** Ports the sandbox exposes; resolvable to public URLs via `getPortUrl`. */
+  /** Ports the sandbox exposes; resolvable via `getPortEndpoint`. */
   readonly ports: ReadonlyArray<number>;
 
   /**
-   * Resolve a publicly-reachable URL for a sandbox-exposed port. Bridge-backed
+   * Resolve the connection details for a sandbox-exposed port. Bridge-backed
    * adapters call this to open their WebSocket to the in-sandbox bridge.
+   */
+  readonly getPortEndpoint: (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }) => PromiseLike<HarnessV1PortEndpoint>;
+
+  /**
+   * Resolve a publicly-reachable URL for a sandbox-exposed port.
+   *
+   * @deprecated Use `getPortEndpoint` instead.
    */
   readonly getPortUrl: (options: {
     port: number;
@@ -52,11 +95,13 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
   readonly stop: () => PromiseLike<void>;
 
   /**
-   * Destroy/delete the sandbox resource when supported. Optional because some
-   * providers only have a stop/dispose concept. Implementations must handle
-   * both a still-running sandbox and a previously stopped sandbox.
+   * Stop the sandbox session, then perform any additional cleanup necessary
+   * to destroy it, such as deleting its backing resource or freeing resources.
+   * Implementations with no cleanup beyond stopping may delegate to `stop()`.
+   * Implementations must handle both a still-running sandbox and a previously
+   * stopped sandbox.
    */
-  readonly destroy?: () => PromiseLike<void>;
+  readonly destroy: () => PromiseLike<void>;
 
   /**
    * Update the sandbox's outbound network policy. Optional — implementations
@@ -66,6 +111,29 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    */
   readonly setNetworkPolicy?: (
     policy: HarnessV1NetworkPolicy,
+  ) => PromiseLike<void>;
+
+  /**
+   * Replace the sandbox's outbound request-transformation rules. Optional —
+   * implementations expose this only when credentials can be injected outside
+   * the sandbox security boundary. Calling this method assumes authority over
+   * the complete transformation set; harness adapters should normally use
+   * `addRequestTransformations` instead. Adapters may preserve legacy
+   * credential-forwarding behavior when additive request transformations are
+   * unavailable.
+   */
+  readonly setRequestTransformations?: (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ) => PromiseLike<void>;
+
+  /**
+   * Add outbound request-transformation rules without replacing rules already
+   * managed by the sandbox session. Optional for the same reason as
+   * `setRequestTransformations`. Harness adapters should use this additive
+   * capability unless they explicitly own the complete transformation set.
+   */
+  readonly addRequestTransformations?: (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ) => PromiseLike<void>;
 
   /**
@@ -86,7 +154,8 @@ export interface HarnessV1NetworkSandboxSession extends SandboxSession {
    *
    * The returned object points at exactly the same underlying sandbox
    * resource as the network sandbox session it was produced from; it is only a
-   * narrower surface over the same resource, not a separate sandbox.
+   * narrower surface over the same resource, not a separate sandbox. In
+   * particular, it cannot mutate network access or request transformations.
    */
   readonly restricted: () => SandboxSession;
 }
@@ -121,3 +190,48 @@ export type HarnessV1NetworkPolicy =
       allowedCIDRs: ReadonlyArray<string>;
       deniedCIDRs?: ReadonlyArray<string>;
     };
+
+type HarnessV1RequestTransformationPathMatcher =
+  | { exact: string }
+  | { startsWith: string }
+  | { regex: string };
+
+type HarnessV1RequestTransformationKeyValuePartMatcher =
+  | { exact: string }
+  | { startsWith: string }
+  | { regex: string };
+
+type HarnessV1RequestTransformationKeyValueMatcher = {
+  readonly key?: HarnessV1RequestTransformationKeyValuePartMatcher;
+  readonly value?: HarnessV1RequestTransformationKeyValuePartMatcher;
+};
+
+/**
+ * Outbound HTTPS request transformation applied outside the sandbox security
+ * boundary. The host is part of the match so each rule is self-contained and
+ * several rules, including several for the same host, can be installed at
+ * once.
+ *
+ * Credential values belong in `transform.headers`, while the sandbox process
+ * receives only a non-secret placeholder. Implementations must overwrite
+ * matching request headers after the request leaves the sandbox rather than
+ * making transformed values available inside it.
+ */
+export type HarnessV1RequestTransformation = {
+  readonly match: {
+    readonly host: string;
+    readonly path?: HarnessV1RequestTransformationPathMatcher;
+    readonly method?: ReadonlyArray<string>;
+    readonly queryString?: ReadonlyArray<HarnessV1RequestTransformationKeyValueMatcher>;
+    readonly headers?: ReadonlyArray<HarnessV1RequestTransformationKeyValueMatcher>;
+  };
+  readonly transform: {
+    readonly headers: Readonly<Record<string, string>>;
+  };
+};
+
+export type HarnessV1RequestTransformationSources<AuthenticationMode> = {
+  env: Record<string, string>;
+  sandboxEnv: Record<string, string>;
+  auth: AuthenticationMode;
+};

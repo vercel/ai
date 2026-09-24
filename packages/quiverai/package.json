@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/quiverai",
-  "version": "2.0.11",
+  "version": "2.0.48",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -42,6 +42,7 @@
     }
   },
   "dependencies": {
+    "@ai-sdk/open-responses": "workspace:*",
     "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },
@@ -49,6 +50,7 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
     "zod": "3.25.76"

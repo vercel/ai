@@ -15,6 +15,7 @@ import {
   updateStepResult,
   notifyServerAsync,
 } from './db.js';
+import { serializeForDevTools } from './serialize.js';
 
 type OperationType = 'generate' | 'stream';
 
@@ -261,7 +262,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt,
           tools: stepStartEvent.tools
             ? Object.entries(stepStartEvent.tools).map(([name, tool]) => ({
@@ -311,7 +312,7 @@ export function DevToolsTelemetry(
         model_id: stepStartEvent.modelId,
         provider: stepStartEvent.provider ?? null,
         started_at: new Date().toISOString(),
-        input: JSON.stringify({
+        input: serializeForDevTools({
           prompt: stepStartEvent.promptMessages,
           maxOutputTokens: state.settings.maxOutputTokens,
           temperature: state.settings.temperature,
@@ -353,7 +354,7 @@ export function DevToolsTelemetry(
 
       await updateStepResult(stepState.stepId, {
         duration_ms: durationMs,
-        output: JSON.stringify(output),
+        output: serializeForDevTools(output),
         usage: stepResult.usage ? JSON.stringify(stepResult.usage) : null,
         error: null,
         raw_request: stepResult.request?.body

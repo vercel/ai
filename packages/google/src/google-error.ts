@@ -13,6 +13,7 @@ const googleErrorDataSchema = lazySchema(() =>
         code: z.number().nullable(),
         message: z.string(),
         status: z.string(),
+        details: z.array(z.unknown()).nullish(),
       }),
     }),
   ),

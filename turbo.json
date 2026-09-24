@@ -37,8 +37,10 @@
         "GOOGLE_VERTEX_API_KEY",
         "GOOGLE_VERTEX_LOCATION",
         "GOOGLE_VERTEX_PROJECT",
+        "GMI_CLOUD_APIKEY",
         "GROQ_API_KEY",
         "KLINGAI_ACCESS_KEY",
+        "KLINGAI_API_KEY",
         "KLINGAI_SECRET_KEY",
         "LUMA_API_KEY",
         "MISTRAL_API_KEY",
@@ -61,7 +63,9 @@
         "VERCEL_OIDC_TOKEN",
         "VERCEL_REGION",
         "VERCEL_URL",
-        "XAI_API_KEY"
+        "TYPESAFE_AI_API_KEY",
+        "XAI_API_KEY",
+        "ZAI_API_KEY"
       ],
       "outputs": [
         "dist/**",
@@ -77,7 +81,8 @@
     },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SKIP_RSC_E2E"]
+      "env": ["SKIP_RSC_E2E"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/tools/setup-download-fetch.node.js"]
     },
     "test:e2e:ci": {
       "env": ["SKIP_RSC_E2E"]

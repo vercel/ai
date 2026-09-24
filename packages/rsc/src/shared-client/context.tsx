@@ -69,11 +69,8 @@ export function InternalAIProvider({
             (async () => {
               const delta = await aiStateDelta;
               if (delta !== undefined) {
-                aiState[1](
-                  jsondiffpatch.patch(
-                    jsondiffpatch.clone(aiStateSnapshot),
-                    delta,
-                  ),
+                setAIState((currentState: any) =>
+                  jsondiffpatch.patch(jsondiffpatch.clone(currentState), delta),
                 );
               }
             })();
@@ -191,7 +188,7 @@ function useAIState<AI extends AIProvider = any>(
               return { ...s, [key]: newState(s[key]) };
             });
           } else {
-            return state[1]({ ...state[0], [key]: newState });
+            return state[1](s => ({ ...s, [key]: newState }));
           }
         },
     [key],

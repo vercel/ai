@@ -42,20 +42,28 @@ export async function recordFixture(result: RecordableResult) {
 
   if (isStreamResult(result)) {
     const steps: string[][] = [];
-    for await (const chunk of result.fullStream) {
-      if (chunk.type === 'start-step') {
-        steps.push([]);
+    try {
+      for await (const chunk of result.fullStream) {
+        if (chunk.type === 'start-step') {
+          steps.push([]);
+        }
+        if (chunk.type === 'raw') {
+          // Non-language-model streams such as speech translation do not emit
+          // start-step parts. Record their raw chunks as a single response.
+          if (steps.length === 0) {
+            steps.push([]);
+          }
+          steps.at(-1)?.push(JSON.stringify(chunk.rawValue));
+        }
       }
-      if (chunk.type === 'raw') {
-        steps.at(-1)?.push(JSON.stringify(chunk.rawValue));
-      }
+    } finally {
+      steps.forEach((chunks, i) =>
+        fs.writeFileSync(
+          path.join(OUTPUT_DIR, `${name}.${i + 1}.chunks.txt`),
+          chunks.join('\n'),
+        ),
+      );
     }
-    steps.forEach((chunks, i) =>
-      fs.writeFileSync(
-        path.join(OUTPUT_DIR, `${name}.${i + 1}.chunks.txt`),
-        chunks.join('\n'),
-      ),
-    );
   } else {
     result.steps.forEach((step, i) =>
       fs.writeFileSync(

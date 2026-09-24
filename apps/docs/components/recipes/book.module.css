@@ -1,0 +1,146 @@
+/* 3D book cover for the Recipes guides grid (simple variant of the legacy
+   ai-sdk.dev Book component). Consumes the Geist --ds-* variables provided
+   by @vercel/geistdocs/styles.css. */
+
+.perspective {
+  --book-default-width: 196;
+  --book-depth: 29cqw;
+  --book-border-radius: 6px 4px 4px 6px;
+  --bg-shadow:
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0) 12%,
+      rgba(255, 255, 255, 0.25) 29.25%,
+      rgba(255, 255, 255, 0) 50.5%,
+      rgba(255, 255, 255, 0) 75.25%,
+      rgba(255, 255, 255, 0.25) 91%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.03) 0%,
+      rgba(0, 0, 0, 0.1) 12%,
+      rgba(0, 0, 0, 0) 30%,
+      rgba(0, 0, 0, 0.02) 50%,
+      rgba(0, 0, 0, 0.2) 73.5%,
+      rgba(0, 0, 0, 0.5) 75.25%,
+      rgba(0, 0, 0, 0.15) 85.25%,
+      rgba(0, 0, 0, 0) 100%
+    );
+
+  perspective: 900px;
+  display: inline-block;
+  width: fit-content;
+}
+
+.perspective:hover .rotateWrapper {
+  transform: rotateY(-20deg) scale(1.066) translateX(-8px);
+}
+
+.rotateWrapper {
+  aspect-ratio: 49 / 60;
+  width: fit-content;
+  position: relative;
+  transform-style: preserve-3d;
+  min-width: calc(var(--book-width) * 1px);
+  transition: transform 0.25s ease-out;
+  container-type: inline-size;
+}
+
+.rotateWrapper > :first-child {
+  position: absolute;
+  min-width: calc(var(--book-width) * 1px);
+}
+
+.book {
+  display: flex;
+  flex-direction: column;
+  width: calc(var(--book-width) * 1px);
+  height: 100%;
+  border-radius: var(--book-border-radius);
+  overflow: hidden;
+  background: var(--book-color);
+  position: relative;
+  box-shadow:
+    0px 1px 1px 0px rgba(0, 0, 0, 0.02),
+    0px 4px 8px -4px rgba(0, 0, 0, 0.1),
+    0px 16px 24px -8px rgba(0, 0, 0, 0.03);
+  transform: translateZ(0);
+}
+
+.book::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--ds-gray-alpha-400);
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  box-shadow: 0px 1px 2px 0px rgba(255, 255, 255, 0.3) inset;
+  pointer-events: none;
+}
+
+:global(.dark) .book::after {
+  border: none;
+}
+
+.body {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+}
+
+.bind {
+  height: 100%;
+  min-width: 8.2%;
+  background: var(--bg-shadow);
+  mix-blend-mode: overlay;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: calc((16px / var(--book-default-width)) * var(--book-width));
+  padding: 6.1%;
+  container-type: inline-size;
+  width: 100%;
+}
+
+.title {
+  font-weight: 600;
+  line-height: 1.25em;
+  font-size: 12cqw;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  color: var(--book-text-color);
+  text-shadow:
+    0px 0.025em 0.5px color-mix(in srgb, var(--book-color) 80%, white 20%),
+    -0.02em -0.02em 0.5px color-mix(in srgb, var(--book-color) 80%, black 20%);
+}
+
+.pages {
+  background:
+    linear-gradient(90deg, #eaeaea 0%, transparent 70%),
+    linear-gradient(#fff, #fafafa);
+  height: calc(100% - 2 * 3px);
+  width: calc(var(--book-depth) - 2px);
+  top: 3px;
+  position: absolute;
+  transform: translateX(
+      calc(var(--book-width) * 1px - var(--book-depth) / 2 - 3px)
+    )
+    rotateY(90deg) translateX(calc(var(--book-depth) / 2));
+}
+
+.back {
+  position: absolute;
+  left: 0;
+  width: calc(var(--book-width) * 1px);
+  height: 100%;
+  border-radius: var(--book-border-radius);
+  background: var(--book-color);
+  transform: translateZ(calc(-1 * var(--book-depth)));
+}

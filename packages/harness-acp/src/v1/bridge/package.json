@@ -1,0 +1,12 @@
+{
+  "name": "harness-acp-bridge",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@agentclientprotocol/sdk": "1.4.0",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "ws": "8.21.0",
+    "zod": "4.4.3"
+  }
+}

@@ -1,6 +1,7 @@
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -9,6 +10,7 @@ import {
   processUIMessageStream,
 } from './process-ui-message-stream';
 import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 async function recordAssistantMessageFromChunks<
   UI_MESSAGE extends UIMessage = UIMessage,
@@ -37,6 +39,14 @@ async function recordAssistantMessageFromChunks<
 }
 
 describe('convertToModelMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('system message', () => {
     it('should convert a simple system message', async () => {
       const result = await convertToModelMessages([
@@ -453,6 +463,61 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    it('should preserve an Anthropic compaction signature through UI message persistence', async () => {
+      const recordedMessage = await recordAssistantMessageFromChunks([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'text-start',
+          id: 'compaction',
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              signature: 'compaction-signature',
+            },
+          },
+        },
+        {
+          type: 'text-delta',
+          id: 'compaction',
+          delta: 'Summary of the conversation.',
+        },
+        { type: 'text-end', id: 'compaction' },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      expect(recordedMessage.parts).toContainEqual({
+        type: 'text',
+        text: 'Summary of the conversation.',
+        state: 'done',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+
+      await expect(
+        convertToModelMessages([recordedMessage]),
+      ).resolves.toContainEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerOptions: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ],
+      });
+    });
+
     it('should convert an assistant message with reasoning', async () => {
       const result = await convertToModelMessages([
         {
@@ -716,7 +781,67 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
         const result = await convertToModelMessages([
           {
             role: 'assistant',
@@ -733,7 +858,7 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call1',
                 errorText: 'Error: Invalid input',
                 input: undefined,
-                rawInput: { operation: 'add', numbers: [1, 2] },
+                rawInput: '{"operation":"add","numbers":[1,2]',
               },
             ],
           },
@@ -748,13 +873,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
-                },
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -779,6 +898,44 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+        expect(warningLogger).toHaveBeenCalledWith({
+          warnings: [
+            {
+              type: 'deprecated',
+              setting: 'rawInput in output-error UI message parts',
+              message:
+                'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+            },
+          ],
+        });
+      });
+
+      it('should preserve the deprecated rawInput fallback when input is null', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'output-error',
+                toolCallId: 'call1',
+                errorText: 'Error: Invalid input',
+                input: null,
+                rawInput: 'legacy input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result[0]).toMatchObject({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: 'legacy input',
+            },
+          ],
+        });
       });
 
       it('should handle assistant message with tool output error that has no raw input', async () => {
@@ -1350,6 +1507,229 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', async () => {
+      let toModelOutputCalls = 0;
+
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-streamingTool',
+                state: 'output-available',
+                toolCallId: 'call-preliminary',
+                input: { task: 'finish the work' },
+                output: { complete: false, progress: 'half finished' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            streamingTool: tool({
+              inputSchema: z.object({ task: z.string() }),
+              toModelOutput: ({ output }) => {
+                toModelOutputCalls++;
+                return { type: 'json', value: output };
+              },
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutputCalls).toBe(0);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should ignore tool calls that are awaiting approval or have no state', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'text',
+                text: 'Waiting for completed tool calls.',
+                state: 'done',
+              },
+              {
+                type: 'tool-weather',
+                state: 'approval-requested',
+                toolCallId: 'call-awaiting-approval',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-without-state',
+                input: { city: 'Berlin' },
+              } as any,
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Waiting for completed tool calls.',
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
+    it('should preserve tool calls with approval responses', async () => {
+      const result = await convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                state: 'approval-responded',
+                toolCallId: 'call-approved',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+        { ignoreIncompleteToolCalls: true },
+      );
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'call-approved',
+              toolName: 'weather',
+              input: { city: 'Tokyo' },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'call-approved',
+              isAutomatic: undefined,
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve transformed approval input through a UI message round trip', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const assistantMessage = await recordAssistantMessageFromChunks([
+        {
+          type: 'tool-input-available',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: { count: 3 },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'count-call',
+          inputSchemaInput: { count: '3' },
+        },
+        {
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
+        },
+      ]);
+      const persistedMessage = JSON.parse(
+        JSON.stringify(assistantMessage),
+      ) as UIMessage;
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools,
+      });
+      const result = await convertToModelMessages(validatedMessages, {
+        tools,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: { count: 3 },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'count-call',
+              isAutomatic: undefined,
+              inputSchemaInput: { count: '3' },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should handle conversation with multiple tool invocations and user message at the end', async () => {
       const result = await convertToModelMessages(
         [
@@ -2529,6 +2909,83 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should propagate reason from a pending approval request', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                id: 'a1',
+                requestReason: 'requires operator review',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-requested',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+    });
+
+    it('should keep request and response reasons separate after approval', async () => {
+      const result = await convertToModelMessages([
+        {
+          parts: [
+            {
+              approval: {
+                approved: true,
+                id: 'a1',
+                requestReason: 'requires operator review',
+                reason: 'approved by on-call operator',
+              },
+              input: {
+                city: 'Tokyo',
+              },
+              state: 'approval-responded',
+              toolCallId: 'call-1',
+              type: 'tool-weather',
+            },
+          ],
+          role: 'assistant',
+        },
+      ]);
+
+      const assistantMessage = result.find(
+        message => message.role === 'assistant',
+      );
+      expect(assistantMessage?.content).toContainEqual({
+        type: 'tool-approval-request',
+        approvalId: 'a1',
+        toolCallId: 'call-1',
+        isAutomatic: undefined,
+        reason: 'requires operator review',
+      });
+
+      const toolMessage = result.find(message => message.role === 'tool');
+      expect(toolMessage?.content).toContainEqual({
+        type: 'tool-approval-response',
+        approvalId: 'a1',
+        approved: true,
+        providerExecuted: undefined,
+        reason: 'approved by on-call operator',
+      });
     });
 
     it('should propagate signature from approval to tool-approval-request part', async () => {

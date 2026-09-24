@@ -1,6 +1,9 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import { harnessStateDirectoryPath } from '../v1';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import type { HarnessAgentAdapter } from './harness-agent-types';
+import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
@@ -35,6 +38,9 @@ export type PrepareSandboxForHarnessResult = {
  * When a later `HarnessAgent` session uses a sandbox created from the persisted
  * artifact, the adapter recomputes the same recipe identity and the existing
  * bootstrap marker makes the bootstrap logic a no-op.
+ *
+ * Repeated harness IDs are prepared once. When multiple adapters use the same
+ * ID, the last adapter in `harnesses` is used.
  */
 export async function prepareSandboxForHarness(options: {
   readonly session: SandboxSession;
@@ -51,10 +57,11 @@ export async function prepareSandboxForHarness(options: {
     );
   }
 
-  const harnesses = [...options.harnesses].sort((a, b) =>
-    a.harnessId.localeCompare(b.harnessId),
-  );
-  assertUniqueHarnessIds(harnesses);
+  const harnesses = [
+    ...new Map(
+      options.harnesses.map(harness => [harness.harnessId, harness]),
+    ).values(),
+  ].sort((a, b) => a.harnessId.localeCompare(b.harnessId));
 
   const workDir =
     sandboxConfig.workDir == null
@@ -62,6 +69,7 @@ export async function prepareSandboxForHarness(options: {
       : normalizeSandboxWorkDir(sandboxConfig.workDir);
   const recipeIdentities: Record<string, string> = {};
   const skippedHarnessIds: string[] = [];
+  let stateDirectory: string | undefined;
 
   for (const harness of harnesses) {
     const recipe = await harness.getBootstrap?.({
@@ -74,16 +82,32 @@ export async function prepareSandboxForHarness(options: {
 
     const recipeIdentity = await hashHarnessBootstrap(recipe);
     recipeIdentities[harness.harnessId] = recipeIdentity;
-    await applyBootstrapRecipe(options.session, recipe, recipeIdentity, {
+    // Harness infrastructure always lives under the sandbox's own HOME,
+    // never the working directory.
+    stateDirectory ??= harnessStateDirectoryPath({
+      sandboxHomeDir: await resolveSandboxHomeDir({
+        sandbox: options.session,
+        abortSignal: options.abortSignal,
+      }),
+    });
+    await applyBootstrapRecipe({
+      session: options.session,
+      recipe,
+      identity: recipeIdentity,
+      stateDirectory,
       abortSignal: options.abortSignal,
     });
   }
 
   if (sandboxConfig.onBootstrap != null) {
+    const defaultWorkingDirectory = await resolveSandboxDefaultWorkingDirectory(
+      { sandboxSession: options.session, abortSignal: options.abortSignal },
+    );
     await runSandboxBootstrap({
       session: options.session,
       workDir,
       onBootstrap: sandboxConfig.onBootstrap,
+      defaultWorkingDirectory,
       abortSignal: options.abortSignal,
     });
   }
@@ -99,20 +123,6 @@ export async function prepareSandboxForHarness(options: {
     recipeIdentities,
     skippedHarnessIds,
   };
-}
-
-function assertUniqueHarnessIds(
-  harnesses: ReadonlyArray<HarnessAgentAdapter>,
-): void {
-  const seen = new Set<string>();
-  for (const harness of harnesses) {
-    if (seen.has(harness.harnessId)) {
-      throw new Error(
-        `prepareSandboxForHarness: duplicate harness id "${harness.harnessId}".`,
-      );
-    }
-    seen.add(harness.harnessId);
-  }
 }
 
 async function resolvePreparedSandboxIdentity({

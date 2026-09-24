@@ -195,12 +195,16 @@ describe('formatInputMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in prompt order', () => {
     const prompt: LanguageModelV4Prompt = [
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'First' }],
+      },
       { role: 'system', content: 'Be helpful' },
       {
         role: 'user',
-        content: [{ type: 'text', text: 'Hello' }],
+        content: [{ type: 'text', text: 'Second' }],
       },
     ];
     expect(formatInputMessages(prompt)).toMatchInlineSnapshot(`
@@ -208,7 +212,25 @@ describe('formatInputMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],
@@ -454,6 +476,36 @@ describe('formatOutputMessages', () => {
     `);
   });
 
+  it('should format output with tool results', () => {
+    expect(
+      formatOutputMessages({
+        toolResults: [
+          {
+            toolCallId: 'call_abc',
+            output: { temperature: 21 },
+          },
+        ],
+        finishReason: 'stop',
+      }),
+    ).toMatchInlineSnapshot(`
+      [
+        {
+          "finish_reason": "stop",
+          "parts": [
+            {
+              "id": "call_abc",
+              "response": {
+                "temperature": 21,
+              },
+              "type": "tool_call_response",
+            },
+          ],
+          "role": "assistant",
+        },
+      ]
+    `);
+  });
+
   it('should format output with files', () => {
     expect(
       formatOutputMessages({
@@ -635,13 +687,14 @@ describe('formatModelMessages', () => {
     `);
   });
 
-  it('should exclude system messages', () => {
+  it('should preserve system messages in message order', () => {
     expect(
       formatModelMessages({
         prompt: undefined,
         messages: [
+          { role: 'user', content: 'First' },
           { role: 'system', content: 'Be helpful' },
-          { role: 'user', content: 'Hello' },
+          { role: 'user', content: 'Second' },
         ],
       }),
     ).toMatchInlineSnapshot(`
@@ -649,7 +702,25 @@ describe('formatModelMessages', () => {
         {
           "parts": [
             {
-              "content": "Hello",
+              "content": "First",
+              "type": "text",
+            },
+          ],
+          "role": "user",
+        },
+        {
+          "parts": [
+            {
+              "content": "Be helpful",
+              "type": "text",
+            },
+          ],
+          "role": "system",
+        },
+        {
+          "parts": [
+            {
+              "content": "Second",
               "type": "text",
             },
           ],

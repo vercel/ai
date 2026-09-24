@@ -18,7 +18,7 @@ run(async () => {
   });
 
   const result = await generateText({
-    model: google('gemini-2.5-pro'),
+    model: google('gemini-3.1-pro-preview'),
     output: Output.object({
       schema: z.object({
         title: z.string(),

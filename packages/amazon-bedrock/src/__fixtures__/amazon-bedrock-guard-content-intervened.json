@@ -1,0 +1,43 @@
+{
+  "metrics": {
+    "latencyMs": 412
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "text": "Sorry, the model cannot answer this question."
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "guardrail_intervened",
+  "trace": {
+    "guardrail": {
+      "inputAssessment": {
+        "1abcd2ef34gh": {
+          "topicPolicy": {
+            "topics": [
+              {
+                "action": "BLOCKED",
+                "name": "Restricted topic",
+                "type": "DENY"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "usage": {
+    "cacheReadInputTokenCount": 0,
+    "cacheReadInputTokens": 0,
+    "cacheWriteInputTokenCount": 0,
+    "cacheWriteInputTokens": 0,
+    "inputTokens": 18,
+    "outputTokens": 12,
+    "serverToolUsage": {},
+    "totalTokens": 30
+  }
+}

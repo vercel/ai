@@ -1,4 +1,9 @@
-import type { HarnessV1SandboxProvider } from '../v1';
+import {
+  harnessStateDirectoryPath,
+  type HarnessV1Bootstrap,
+  type HarnessV1SandboxProvider,
+} from '../v1';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import type { HarnessAgentAdapter } from './harness-agent-types';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
@@ -31,9 +36,14 @@ export async function prepareHarnessSandboxTemplate(options: {
 }): Promise<void> {
   const sandboxConfig = options.sandboxConfig ?? {};
   validateSandboxBootstrapSettings(sandboxConfig);
-  const recipe = await options.harness.getBootstrap?.({
-    abortSignal: options.abortSignal,
-  });
+
+  const { harness, sandboxProvider, abortSignal } = options;
+
+  let recipe: HarnessV1Bootstrap | undefined;
+  if (harness.getBootstrap != null) {
+    recipe = await harness.getBootstrap({ abortSignal });
+  }
+
   const bootstrapPlan = await createSandboxBootstrapPlan({
     recipe,
     settings: sandboxConfig,
@@ -42,22 +52,32 @@ export async function prepareHarnessSandboxTemplate(options: {
     return;
   }
 
-  const sandboxSession = await options.sandboxProvider.createSession({
-    abortSignal: options.abortSignal,
+  const sandboxSession = await sandboxProvider.createSession({
+    abortSignal,
     identity: bootstrapPlan.identity,
     onFirstCreate: bootstrapPlan.onFirstCreate,
   });
 
+  // Unlike `prepareSandboxForHarness()` and `HarnessAgent.createSession()`, this function
+  // does not apply the agent-specific sandbox config, since the function is meant as a
+  // general harness utility, not for a concrete agent.
   try {
     if (bootstrapPlan.recipe != null && bootstrapPlan.recipeIdentity != null) {
-      await applyBootstrapRecipe(
-        sandboxSession.restricted(),
-        bootstrapPlan.recipe,
-        bootstrapPlan.recipeIdentity,
-        {
-          abortSignal: options.abortSignal,
-        },
-      );
+      const restrictedSession = sandboxSession.restricted();
+      await applyBootstrapRecipe({
+        session: restrictedSession,
+        recipe: bootstrapPlan.recipe,
+        identity: bootstrapPlan.recipeIdentity,
+        // Harness infrastructure always lives under the sandbox's own HOME,
+        // never the working directory.
+        stateDirectory: harnessStateDirectoryPath({
+          sandboxHomeDir: await resolveSandboxHomeDir({
+            sandbox: restrictedSession,
+            abortSignal,
+          }),
+        }),
+        abortSignal,
+      });
     }
   } finally {
     await Promise.resolve(sandboxSession.stop()).catch(() => {});

@@ -31,7 +31,20 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    if: github.repository_owner == 'vercel'
+    if: |
+      github.repository_owner == 'vercel' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.action == 'labeled' &&
+          github.event.label.name == 'backport'
+        ) ||
+        (
+          github.event.action == 'closed' &&
+          github.event.pull_request.merged == true &&
+          contains(github.event.pull_request.labels.*.name, 'backport')
+        )
+      )
     outputs:
       should-backport: ${{ steps.resolve.outputs.should-backport }}
       pr-number: ${{ steps.resolve.outputs.pr-number }}
@@ -137,10 +150,8 @@ jobs:
           PR_NUMBER=""
 
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            # `labeled`: only react to the "backport" label being added.
-            # `closed`: react to every closed PR here and let the downstream
-            # "is merged" and "has backport label" checks decide. This catches
-            # the case where the label was added before the PR was merged.
+            # The job-level condition filters unrelated labels and closures.
+            # Keep these checks as defense in depth for future trigger changes.
             if [ "$PR_ACTION" = "labeled" ] && [ "$ISSUE_LABEL" != "backport" ]; then
               skip "Ignoring non-backport label: $ISSUE_LABEL"
             fi
@@ -164,9 +175,7 @@ jobs:
           [ "$MERGED" = "true" ] || skip "PR #${PR_NUMBER} is not merged"
 
           # Gate on the backport label before anything else — in particular
-          # before the fork-detection comment below. The `closed` trigger fires
-          # for every merged PR, so without this an unlabeled fork PR would be
-          # spammed with a "use workflow_dispatch" comment it never asked for.
+          # before the fork-detection comment below.
           HAS_BACKPORT_LABEL=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/labels" \
             --jq 'any(.[]; .name == "backport")')
           [ "$HAS_BACKPORT_LABEL" = "true" ] || skip "PR #${PR_NUMBER} does not have the backport label"
@@ -226,7 +235,7 @@ jobs:
       # outages. We add two explicit retries with longer waits on top of that.
       - name: Checkout Repository
         id: checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         continue-on-error: true
         with:
           fetch-depth: 0
@@ -238,7 +247,7 @@ jobs:
       - name: Checkout Repository (retry 1)
         id: checkout-retry-1
         if: steps.checkout.outcome == 'failure'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         continue-on-error: true
         with:
           fetch-depth: 0
@@ -249,7 +258,7 @@ jobs:
 
       - name: Checkout Repository (retry 2)
         if: steps.checkout.outcome == 'failure' && steps.checkout-retry-1.outcome == 'failure'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
@@ -438,7 +447,7 @@ jobs:
 
       - name: Checkout Repository
         if: '!steps.check-existing.outputs.existing-pr'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           ref: ${{ needs.find-branch.outputs.release-branch }}
@@ -618,24 +627,72 @@ jobs:
         if: '!steps.check-existing.outputs.existing-pr'
         id: create-pr
         run: |
+          set -euo pipefail
+
           ASSIGNEE_FLAG=""
           if [ -n "$ASSIGNEE_LOGIN" ]; then
             ASSIGNEE_FLAG="--assignee $ASSIGNEE_LOGIN"
           fi
 
+          # Preserve any issue-closing links from the original PR so the
+          # backport is associated with the same GitHub issues.
+          OWNER="${REPO%%/*}"
+          NAME="${REPO#*/}"
+          CLOSING_ISSUES=$(gh api graphql \
+            -f query='
+              query($owner: String!, $name: String!, $number: Int!) {
+                repository(owner: $owner, name: $name) {
+                  pullRequest(number: $number) {
+                    closingIssuesReferences(first: 100) {
+                      nodes {
+                        number
+                        repository {
+                          nameWithOwner
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' \
+            -f owner="$OWNER" \
+            -f name="$NAME" \
+            -F number="$ORIGINAL_PR_NUMBER" \
+            --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[] | [.repository.nameWithOwner, .number] | @tsv')
+
+          ISSUE_REFERENCES=""
+          if [ -n "$CLOSING_ISSUES" ]; then
+            while IFS=$'\t' read -r issue_repo issue_number; do
+              if [ "$issue_repo" = "$REPO" ]; then
+                issue_reference="#${issue_number}"
+              else
+                issue_reference="${issue_repo}#${issue_number}"
+              fi
+              ISSUE_REFERENCES+="${ISSUE_REFERENCES:+$'\n'}Fixes ${issue_reference}"
+            done <<< "$CLOSING_ISSUES"
+          fi
+
           # Create the backport PR
           if [ "${{ steps.cherry-pick.outputs.has-conflicts }}" = "true" ]; then
+            PR_BODY="$PR_BODY_CONFLICTS"
+            if [ -n "$ISSUE_REFERENCES" ]; then
+              PR_BODY+=$'\n\n'"$ISSUE_REFERENCES"
+            fi
             PR_URL=$(gh pr create \
               --title "$PR_TITLE" \
-              --body "$PR_BODY_CONFLICTS" \
+              --body "$PR_BODY" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} \
               $ASSIGNEE_FLAG \
               --draft)
           else
+            PR_BODY="$PR_BODY_NO_CONFLICTS"
+            if [ -n "$ISSUE_REFERENCES" ]; then
+              PR_BODY+=$'\n\n'"$ISSUE_REFERENCES"
+            fi
             PR_URL=$(gh pr create \
               --title "$PR_TITLE" \
-              --body "$PR_BODY_NO_CONFLICTS" \
+              --body "$PR_BODY" \
               --base ${{ needs.find-branch.outputs.release-branch }} \
               --head backport-pr-${{ needs.resolve-pr.outputs.pr-number }}-to-${{ needs.find-branch.outputs.release-branch }} \
               $ASSIGNEE_FLAG)
@@ -645,6 +702,8 @@ jobs:
           echo "Created backport PR $PR_URL"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ORIGINAL_PR_NUMBER: ${{ needs.resolve-pr.outputs.pr-number }}
           ASSIGNEE_LOGIN: ${{ steps.assignee.outputs.login }}
           PR_TITLE: 'Backport: ${{ needs.resolve-pr.outputs.pr-title }}'
           PR_BODY_NO_CONFLICTS: 'This is an automated backport of #${{ needs.resolve-pr.outputs.pr-number }} to the ${{ needs.find-branch.outputs.release-branch }} branch. FYI @${{ needs.resolve-pr.outputs.pr-author-login }}'

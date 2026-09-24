@@ -1,6 +1,6 @@
 import type { FetchFunction } from '@ai-sdk/provider-utils';
 
-export type CompletionRequestOptions = {
+export type CompletionRequestOptions<BODY extends object = object> = {
   /**
    * An optional object of headers to be passed to the API endpoint.
    */
@@ -9,10 +9,10 @@ export type CompletionRequestOptions = {
   /**
    * An optional object to be passed to the API endpoint.
    */
-  body?: object;
+  body?: BODY;
 };
 
-export type UseCompletionOptions = {
+export type UseCompletionOptions<BODY extends object = object> = {
   /**
    * The API endpoint that accepts a `{ prompt: string }` object and returns
    * a stream of tokens of the AI completion response. Defaults to `/api/completion`.
@@ -69,7 +69,7 @@ export type UseCompletionOptions = {
    * })
    * ```
    */
-  body?: object;
+  body?: BODY;
 
   /**
    * Streaming protocol that is used. Defaults to `data`.

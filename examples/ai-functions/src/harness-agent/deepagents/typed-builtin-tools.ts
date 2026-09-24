@@ -1,10 +1,12 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createDeepAgents } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const deepAgents = createDeepAgents();
 
 // Deep Agents's builtin tool set (read/write/edit/bash/grep/glob/ls/task/write_todos)
 // merges with user tools; TypeScript narrows `toolName`/`input` per tool across both surfaces.
@@ -27,7 +29,6 @@ run(async () => {
     tools: { echo },
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.stream({
@@ -36,11 +37,7 @@ run(async () => {
         'Call the `echo` tool with the message "hello", then run `uname -a` and tell me the kernel.',
     });
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

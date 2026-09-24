@@ -3,13 +3,14 @@ import {
   type CompletionRequestOptions,
   type UseCompletionOptions,
 } from 'ai';
+import { normalizeHeaders } from '@ai-sdk/provider-utils';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { throttle } from './throttle';
 
 export type { UseCompletionOptions };
 
-export type UseCompletionHelpers = {
+export type UseCompletionHelpers<BODY extends object = object> = {
   /** The current completion result */
   completion: string;
   /**
@@ -17,7 +18,7 @@ export type UseCompletionHelpers = {
    */
   complete: (
     prompt: string,
-    options?: CompletionRequestOptions,
+    options?: CompletionRequestOptions<BODY>,
   ) => Promise<string | null | undefined>;
   /** The error object of the API request */
   error: undefined | Error;
@@ -61,7 +62,7 @@ export type UseCompletionHelpers = {
   isLoading: boolean;
 };
 
-export function useCompletion({
+export function useCompletion<BODY extends object = object>({
   api = '/api/completion',
   id,
   initialCompletion = '',
@@ -75,7 +76,7 @@ export function useCompletion({
   onError,
   throttle: throttleWait,
   experimental_throttle,
-}: UseCompletionOptions & {
+}: UseCompletionOptions<NoInfer<BODY>> & {
   /**
    * Custom throttle wait in ms for the completion and data updates.
    * Default is undefined, which disables throttling.
@@ -86,7 +87,7 @@ export function useCompletion({
    * @deprecated Use `throttle` instead.
    */
   experimental_throttle?: number;
-} = {}): UseCompletionHelpers {
+} = {}): UseCompletionHelpers<BODY> {
   const throttleWaitMs = throttleWait ?? experimental_throttle;
   // Generate an unique id for the completion if not provided.
   const hookId = useId();
@@ -106,8 +107,8 @@ export function useCompletion({
   const completion = data!;
 
   // Abort controller to cancel the current API call.
-  const [abortController, setAbortController] =
-    useState<AbortController | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const requestIdRef = useRef(0);
 
   const extraMetadataRef = useRef({
     credentials,
@@ -124,12 +125,17 @@ export function useCompletion({
   }, [credentials, headers, body]);
 
   const triggerRequest = useCallback(
-    async (prompt: string, options?: CompletionRequestOptions) =>
-      callCompletionApi({
+    async (prompt: string, options?: CompletionRequestOptions<BODY>) => {
+      const requestId = ++requestIdRef.current;
+
+      return callCompletionApi({
         api,
         prompt,
         credentials: extraMetadataRef.current.credentials,
-        headers: { ...extraMetadataRef.current.headers, ...options?.headers },
+        headers: {
+          ...normalizeHeaders(extraMetadataRef.current.headers),
+          ...normalizeHeaders(options?.headers),
+        },
         body: {
           ...extraMetadataRef.current.body,
           ...options?.body,
@@ -137,22 +143,26 @@ export function useCompletion({
         streamProtocol,
         fetch,
         // throttle streamed ui updates:
-        setCompletion: throttle(
-          (completion: string) => mutate(completion, false),
-          throttleWaitMs,
-        ),
+        setCompletion: throttle((completion: string) => {
+          if (requestIdRef.current === requestId) {
+            mutate(completion, false);
+          }
+        }, throttleWaitMs),
         setLoading: mutateLoading,
         setError,
-        setAbortController,
+        setAbortController: controller => {
+          abortControllerRef.current = controller;
+        },
+        getAbortController: () => abortControllerRef.current,
         onFinish,
         onError,
-      }),
+      });
+    },
     [
       mutate,
       mutateLoading,
       api,
       extraMetadataRef,
-      setAbortController,
       onFinish,
       onError,
       setError,
@@ -163,11 +173,8 @@ export function useCompletion({
   );
 
   const stop = useCallback(() => {
-    if (abortController) {
-      abortController.abort();
-      setAbortController(null);
-    }
-  }, [abortController]);
+    abortControllerRef.current?.abort();
+  }, []);
 
   const setCompletion = useCallback(
     (completion: string) => {
@@ -176,7 +183,7 @@ export function useCompletion({
     [mutate],
   );
 
-  const complete = useCallback<UseCompletionHelpers['complete']>(
+  const complete = useCallback<UseCompletionHelpers<BODY>['complete']>(
     async (prompt, options) => {
       return triggerRequest(prompt, options);
     },
@@ -188,9 +195,15 @@ export function useCompletion({
   const handleSubmit = useCallback(
     (event?: { preventDefault?: () => void }) => {
       event?.preventDefault?.();
-      return input ? complete(input) : undefined;
+      if (!input) {
+        return;
+      }
+
+      const result = complete(input);
+      setInput('');
+      return result;
     },
-    [input, complete],
+    [input, complete, setInput],
   );
 
   const handleInputChange = useCallback(

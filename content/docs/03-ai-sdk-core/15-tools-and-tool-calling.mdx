@@ -188,14 +188,15 @@ string or as an object with a `type` field:
 - `'denied'`: record an automatic denial by emitting approval request/response parts in the output, then surface a denied tool output
 - `'user-approval'`: emit an approval request and wait for an explicit response
 
-For automatic approvals and denials, you can also return an object to include a
-reason:
+Object statuses can also include a reason. For automatic approvals and denials,
+the reason is emitted on the approval response. For manual approval, the reason
+is emitted on the approval request so it can be shown to the approver:
 
 ```ts
 toolApproval: {
   runCommand: {
-    type: 'denied',
-    reason: 'blocked by policy',
+    type: 'user-approval',
+    reason: 'filesystem changes require operator review',
   },
 }
 ```
@@ -285,6 +286,7 @@ for (const part of result.content) {
   if (part.type === 'tool-approval-request' && !part.isAutomatic) {
     console.log(part.approvalId); // Unique ID for this approval request
     console.log(part.toolCall); // Contains toolName, input, etc.
+    console.log(part.reason); // Why this tool call requires approval
   }
 }
 ```
@@ -1131,11 +1133,12 @@ async function generateSomething(prompt: string): Promise<{
 
 ## Handling Errors
 
-The AI SDK has three tool-call related errors:
+The AI SDK has four tool-call related errors:
 
 - [`NoSuchToolError`](/docs/reference/ai-sdk-errors/ai-no-such-tool-error): the model tries to call a tool that is not defined in the tools object
 - [`InvalidToolInputError`](/docs/reference/ai-sdk-errors/ai-invalid-tool-input-error): the model calls a tool with inputs that do not match the tool's input schema
 - [`ToolCallRepairError`](/docs/reference/ai-sdk-errors/ai-tool-call-repair-error): an error that occurred during tool call repair
+- [`ToolChoiceViolationError`](/docs/reference/ai-sdk-errors/ai-tool-choice-violation-error): the `generateText` response does not satisfy a required or specifically selected tool choice
 
 When tool execution fails (errors thrown by your tool's `execute` function), the AI SDK adds them as `tool-error` content parts to enable automated LLM roundtrips in multi-step scenarios.
 

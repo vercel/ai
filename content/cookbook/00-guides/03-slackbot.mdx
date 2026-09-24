@@ -327,7 +327,7 @@ export const generateResponse = async (
 ) => {
   const { text } = await generateText({
     model: __MODEL__,
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}`,
     messages,
@@ -360,7 +360,7 @@ export const generateResponse = async (
 ) => {
   const { text } = await generateText({
     model: __MODEL__,
-    system: `You are a Slack bot assistant. Keep your responses concise and to the point.
+    instructions: `You are a Slack bot assistant. Keep your responses concise and to the point.
     - Do not tag users.
     - Current date is: ${new Date().toISOString().split('T')[0]}
     - Always include sources in your final response if you use web search.`,
@@ -500,3 +500,5 @@ You've built a Slack chatbot powered by the AI SDK! Here are some ways you could
   In a production environment, it is recommended to implement a robust queueing
   system to ensure messages are properly handled.
 </Note>
+
+For a framework-managed alternative with durable threaded sessions, typing indicators, approval buttons, and multichannel support, see [eve's Slack channel](https://eve.dev/docs/channels/slack).

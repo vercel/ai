@@ -1,4 +1,5 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
 export function convertPerplexityUsage(
   usage:
@@ -11,20 +12,7 @@ export function convertPerplexityUsage(
     | null,
 ): LanguageModelV4Usage {
   if (usage == null) {
-    return {
-      inputTokens: {
-        total: undefined,
-        noCache: undefined,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: undefined,
-        text: undefined,
-        reasoning: undefined,
-      },
-      raw: undefined,
-    };
+    return createNullLanguageModelUsage();
   }
 
   const promptTokens = usage.prompt_tokens ?? 0;
@@ -39,8 +27,9 @@ export function convertPerplexityUsage(
       cacheWrite: undefined,
     },
     outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
+      // Perplexity reports reasoning tokens separately from completion tokens.
+      total: completionTokens + reasoningTokens,
+      text: completionTokens,
       reasoning: reasoningTokens,
     },
     raw: usage,

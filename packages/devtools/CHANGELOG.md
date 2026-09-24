@@ -1,5 +1,132 @@
 # @ai-sdk/devtools
 
+## 1.0.24
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
+## 1.0.23
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
+## 1.0.22
+
+### Patch Changes
+
+- Updated dependencies [a7dd893]
+  - @ai-sdk/provider@4.0.17
+
+## 1.0.21
+
+### Patch Changes
+
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+  - @ai-sdk/provider@4.0.16
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+
+## 1.0.19
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+  - @ai-sdk/provider@4.0.14
+
+## 1.0.18
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+
+## 1.0.17
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+
+## 1.0.16
+
+### Patch Changes
+
+- Updated dependencies [a4ba394]
+- Updated dependencies [45099da]
+  - @ai-sdk/provider@4.0.11
+
+## 1.0.15
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider@4.0.10
+
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [aa45741]
+  - @ai-sdk/provider@4.0.9
+
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [591d25b]
+  - @ai-sdk/provider@4.0.8
+
+## 1.0.12
+
+### Patch Changes
+
+- Updated dependencies [ad6a650]
+  - @ai-sdk/provider@4.0.7
+
+## 1.0.11
+
+### Patch Changes
+
+- Updated dependencies [3469d0c]
+  - @ai-sdk/provider@4.0.6
+
+## 1.0.10
+
+### Patch Changes
+
+- Updated dependencies [79e133c]
+  - @ai-sdk/provider@4.0.5
+
+## 1.0.9
+
+### Patch Changes
+
+- d09a5fd: Add safe image, audio, and video previews for media parts in DevTools prompts and tool inputs and outputs.
+
+## 1.0.8
+
+### Patch Changes
+
+- Updated dependencies [1e2f324]
+  - @ai-sdk/provider@4.0.4
+
+## 1.0.7
+
+### Patch Changes
+
+- 1c53b40: feat(devtools): add a persistent light theme to the viewer
+
 ## 1.0.6
 
 ### Patch Changes

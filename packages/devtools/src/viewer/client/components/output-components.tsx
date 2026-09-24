@@ -8,16 +8,27 @@ import type {
   TextContentPart,
   ReasoningContentPart,
 } from '../types';
-import { safeParseJson, formatToolParams } from '../utils';
-import { JsonBlock, ReasoningBlock, TextBlock } from './shared-components';
+import {
+  safeParseJson,
+  formatToolParams,
+  getOutputToolResults,
+} from '../utils';
+import {
+  MediaAwareValue,
+  ReasoningBlock,
+  TextBlock,
+} from './shared-components';
+import { MediaPreviewList } from './media-components';
 
 export function OutputDisplay({
   output,
-  toolResults = [],
+  fallbackToolResults = [],
 }: {
   output: ParsedOutput;
-  toolResults?: ContentPart[];
+  fallbackToolResults?: ContentPart[];
 }) {
+  const toolResults = getOutputToolResults(output, fallbackToolResults);
+
   const getToolResult = (toolCallId: string) => {
     return toolResults.find(
       (r): r is ToolResultContentPart =>
@@ -62,6 +73,15 @@ export function OutputDisplay({
         <TextBlock content={textContent} defaultExpanded={!!isTextOnly} />
       )}
 
+      <MediaPreviewList
+        data={output?.content?.filter(
+          part =>
+            part.type === 'file' ||
+            part.type === 'reasoning-file' ||
+            part.type === 'image',
+        )}
+      />
+
       {toolCalls.map((call, i) => {
         const result = call.toolCallId
           ? getToolResult(call.toolCallId)
@@ -97,25 +117,25 @@ function ToolCallCard({
     typeof result === 'string' ? safeParseJson(result) : result;
 
   return (
-    <div className="rounded-md border border-purple/30 overflow-hidden">
+    <div className="rounded-md border border-tool/30 overflow-hidden">
       <button
-        className="w-full flex items-center gap-2 px-3 py-2 bg-purple/10 hover:bg-purple/20 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-tool/10 hover:bg-tool/20 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <ChevronRight
-          className={`size-3 text-purple transition-transform shrink-0 ${
+          className={`size-3 text-tool transition-transform shrink-0 ${
             expanded ? 'rotate-90' : ''
           }`}
         />
-        <Wrench className="size-3 text-purple shrink-0" />
-        <span className="text-xs font-mono font-medium text-purple">
+        <Wrench className="size-3 text-tool shrink-0" />
+        <span className="text-xs font-mono font-medium text-tool">
           {toolName}
         </span>
         {!expanded &&
           parsedArgs &&
           typeof parsedArgs === 'object' &&
           !Array.isArray(parsedArgs) && (
-            <span className="text-[11px] font-mono text-purple/70 truncate">
+            <span className="text-[11px] font-mono text-tool truncate">
               {formatToolParams(parsedArgs)}
             </span>
           )}
@@ -123,11 +143,11 @@ function ToolCallCard({
 
       {expanded && (
         <>
-          <div className="p-3 bg-card/50 border-t border-purple/30">
+          <div className="p-3 bg-card/50 border-t border-tool/30">
             <div className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
               Input
             </div>
-            <JsonBlock data={parsedArgs} />
+            <MediaAwareValue data={parsedArgs} />
           </div>
 
           {parsedResult != null && (
@@ -135,7 +155,7 @@ function ToolCallCard({
               <div className="text-[10px] font-medium uppercase tracking-wider text-success mb-2">
                 Output
               </div>
-              <JsonBlock data={parsedResult} />
+              <MediaAwareValue data={parsedResult} />
             </div>
           )}
         </>

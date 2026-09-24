@@ -93,8 +93,8 @@ export async function POST(req: Request) {
   const { prompt }: { prompt: string } = await req.json();
 
   const result = await generateText({
-    model: 'openai/gpt-4o',
-    system: 'You generate three notifications for a messages app.',
+    model: 'openai/gpt-6-astra',
+    instructions: 'You generate three notifications for a messages app.',
     prompt,
     output: Output.object({
       schema: z.object({

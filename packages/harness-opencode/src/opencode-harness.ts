@@ -1,51 +1,79 @@
-import { randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   commonTool,
+  HARNESS_V1_BUILTIN_TOOLS,
   HarnessCapabilityUnsupportedError,
   harnessV1DiagnosticFromBridgeFrame,
   type HarnessV1,
-  type HarnessV1Bootstrap,
   type HarnessV1BuiltinTool,
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
+  type HarnessV1CredentialForwarding,
   type HarnessV1DebugConfig,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
   type HarnessV1PromptControl,
+  type HarnessV1ResponseFormat,
+  type HarnessV1PortEndpoint,
+  type HarnessV1RequestTransformation,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
+  applyCredentialForwarding,
   classifyDiskLog,
+  createSandboxCredentialEnvironment,
+  createBridgeToken,
+  experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
   createBridgeStartupError,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
+  getRestrictedSandboxSession,
   markBridgeStarting,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
+  warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
-  writeSkills as writeHarnessSkills,
+  withBridgeToken,
+  writeSkills,
+  type SandboxChannelReconnectOptions,
+  type WriteSkillsResult,
 } from '@ai-sdk/harness/utils';
 import {
+  safeParseJSON,
   tool,
   type Experimental_SandboxProcess,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import { WebSocket } from 'ws';
 import { z } from 'zod/v4';
 import {
-  resolveOpenCodeEnv,
-  splitOpenCodeModel,
-  type OpenCodeAuthOptions,
+  getOpenCodeBootstrap,
+  OPENCODE_BOOTSTRAP_DIR as BOOTSTRAP_DIR,
+} from './opencode-bootstrap';
+import {
+  createOpenCodeRequestTransformations,
+  OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+  OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+  type OpenCodeAuthenticationMode,
 } from './opencode-auth';
+import {
+  createOpenCodeGitLabSubscriptionConfig,
+  createOpenCodeGitLabSubscriptionRequestTransformations,
+  createOpenCodeSubscriptionAuthContent,
+  createOpenCodeSubscriptionRequestTransformations,
+  requestOpenCodeGitLabDirectAccess,
+  resolveOpenCodeAuthentication,
+  resolveOpenCodeGitLabSubscriptionModel,
+} from './opencode-subscription';
 import {
   outboundMessageSchema,
   type InboundMessage,
@@ -56,18 +84,30 @@ import { VERSION } from './version';
 type OpenCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type OpenCodeRespawnStrategy = 'replay' | 'rerun';
 
-type WriteSkillsResult = {
-  readonly skillsDir: string;
-};
-
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const OPENCODE_CLIENT_APP = `ai-sdk/harness-opencode/${VERSION}`;
 
 export type OpenCodeHarnessSettings = {
-  readonly auth?: OpenCodeAuthOptions;
-  readonly model?: string;
+  readonly auth?: OpenCodeAuthenticationMode;
+  /**
+   * Customizes each credential value before it is forwarded into a sandbox
+   * process. This does not restrict which credentials the harness adapter can
+   * discover, read, or otherwise access in the host process.
+   */
+  readonly credentialForwarding?: HarnessV1CredentialForwarding;
+  /**
+   * Additional configuration passed through to OpenCode as-is. OpenCode
+   * config keys must use their native names. Values managed by this adapter
+   * take precedence over conflicting entries.
+   */
+  readonly openCodeConfig?: Record<string, unknown>;
+  /**
+   * MCP server definitions keyed by server name. Each definition uses the
+   * underlying runtime's native MCP server configuration format.
+   */
+  readonly mcpServers?: Record<string, unknown>;
   readonly provider?: string;
   /**
    * OpenCode reasoning/thinking variant for reasoning-capable models, e.g.
@@ -76,12 +116,34 @@ export type OpenCodeHarnessSettings = {
    */
   readonly reasoningVariant?: string;
   readonly port?: number;
+  /**
+   * Override the host endpoint used to connect to the sandbox bridge. Required
+   * together with `port` when using a basic sandbox session.
+   */
+  readonly portEndpoint?: HarnessV1PortEndpoint;
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
+   * Creates the authentication token used by the sandbox bridge. Defaults to
+   * a random 32-byte hexadecimal token.
+   */
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const optionalStringRecord = z.record(z.string(), z.unknown()).optional();
 
 const OPENCODE_BUILTIN_TOOLS = {
+  askUserQuestions: {
+    ...HARNESS_V1_BUILTIN_TOOLS.askUserQuestions,
+    nativeName: 'question',
+    toolUseKind: 'readonly',
+  },
   read: commonTool('read', {
     nativeName: 'view',
     toolUseKind: 'readonly',
@@ -182,8 +244,6 @@ const OPENCODE_BUILTIN_TOOLS = {
   }),
 } as const satisfies Record<string, HarnessV1BuiltinTool<any, any>>;
 
-const BOOTSTRAP_DIR = '/tmp/harness/opencode';
-
 const openCodeBridgeCoordsSchema = z.object({
   port: z.number(),
   token: z.string(),
@@ -194,6 +254,7 @@ const openCodeBridgeCoordsSchema = z.object({
 const openCodeResumeStateSchema = z.object({
   openCodeSessionId: z.string().optional(),
   bridge: openCodeBridgeCoordsSchema.optional(),
+  sandboxCredentialEnvironment: z.record(z.string(), z.string()).optional(),
 });
 
 type OpenCodeBridgeCoords = z.infer<typeof openCodeBridgeCoordsSchema>;
@@ -201,50 +262,38 @@ type OpenCodeBridgeCoords = z.infer<typeof openCodeBridgeCoordsSchema>;
 export function createOpenCode(
   settings: OpenCodeHarnessSettings = {},
 ): HarnessV1<typeof OPENCODE_BUILTIN_TOOLS> {
-  let cachedBootstrap: HarnessV1Bootstrap | undefined;
-
+  if (
+    settings.mcpServers != null &&
+    Object.prototype.hasOwnProperty.call(settings.mcpServers, 'harness-tools')
+  ) {
+    throw new Error(
+      'OpenCode MCP server name "harness-tools" is reserved for HarnessAgent tools.',
+    );
+  }
   return {
     specificationVersion: 'harness-v1',
     harnessId: 'opencode',
     builtinTools: OPENCODE_BUILTIN_TOOLS,
     supportsBuiltinToolApprovals: true,
     lifecycleStateSchema: openCodeResumeStateSchema,
-    getBootstrap: async () => {
-      if (cachedBootstrap != null) return cachedBootstrap;
-      const [pkg, lock, bridge, hostToolMcp] = await Promise.all([
-        readBridgeAsset('package.json'),
-        readBridgeAsset('pnpm-lock.yaml'),
-        readBridgeAsset('index.mjs'),
-        readBridgeAsset('host-tool-mcp.mjs'),
-      ]);
-      cachedBootstrap = {
-        harnessId: 'opencode',
-        bootstrapDir: BOOTSTRAP_DIR,
-        files: [
-          { path: `${BOOTSTRAP_DIR}/package.json`, content: pkg },
-          { path: `${BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
-          { path: `${BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
-          {
-            path: `${BOOTSTRAP_DIR}/host-tool-mcp.mjs`,
-            content: hostToolMcp,
-          },
-        ],
-        commands: [
-          { command: `mkdir -p ${BOOTSTRAP_DIR}` },
-          {
-            command: `pnpm --dir ${BOOTSTRAP_DIR} install --frozen-lockfile --store-dir ${BOOTSTRAP_DIR}/.pnpm-store`,
-          },
-          {
-            command: `cd ${BOOTSTRAP_DIR} && node node_modules/opencode-ai/postinstall.mjs && ./node_modules/.bin/opencode --version`,
-          },
-        ],
-      };
-      return cachedBootstrap;
-    },
+    getBootstrap: getOpenCodeBootstrap,
     doStart: async startOpts => {
       const sandboxSession = startOpts.sandboxSession;
-      const session = sandboxSession.restricted();
-      const sandboxId = sandboxSession.id;
+      const toolSafeSandboxSession =
+        getRestrictedSandboxSession(sandboxSession);
+      const sandboxId = 'id' in sandboxSession ? sandboxSession.id : undefined;
+      validateBasicSandboxSettings({
+        sandboxSession,
+        port: settings.port,
+        portEndpoint: settings.portEndpoint,
+      });
+      if (settings.mintBridgeToken != null && sandboxId == null) {
+        throw new HarnessCapabilityUnsupportedError({
+          harnessId: 'opencode',
+          message:
+            'The OpenCode harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
+        });
+      }
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -253,6 +302,7 @@ export function createOpenCode(
           ? (lifecycleState.data as {
               openCodeSessionId?: unknown;
               bridge?: OpenCodeBridgeCoords;
+              sandboxCredentialEnvironment?: Record<string, string>;
             })
           : undefined;
       const resumeSessionId =
@@ -261,13 +311,113 @@ export function createOpenCode(
           ? resumeData.openCodeSessionId
           : undefined;
       const coords = resumeData?.bridge;
+      const authentication = await resolveOpenCodeAuthentication({
+        auth: settings.auth,
+        provider: settings.provider,
+      });
+      const authenticationMode = authentication.authenticationMode;
+      const resolvedAuthEnvironment = authentication.environment;
+      let resolvedOpenCodeConfig = settings.openCodeConfig;
+      let transformModel:
+        | ((model: string | undefined) => string | undefined)
+        | undefined;
+      let gitLabSubscriptionBrokered = false;
+      let sandboxAuthEnvironment = resolvedAuthEnvironment;
+      let sandboxCredentialEnvironment: Record<string, string> | undefined;
+      let credentialsBrokered = false;
+      if (
+        'addRequestTransformations' in sandboxSession &&
+        sandboxSession.addRequestTransformations != null
+      ) {
+        sandboxCredentialEnvironment =
+          resumeData?.sandboxCredentialEnvironment ??
+          (await createSandboxCredentialEnvironment({
+            environment: resolvedAuthEnvironment,
+            credentialEnvironmentVariables:
+              OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          }));
+        sandboxAuthEnvironment = {
+          ...resolvedAuthEnvironment,
+          ...sandboxCredentialEnvironment,
+        };
+        const transformationSources = {
+          env: resolvedAuthEnvironment,
+          sandboxEnv: sandboxAuthEnvironment,
+          auth: authenticationMode,
+        };
+        const sandboxSubscriptionAccessToken =
+          sandboxAuthEnvironment[
+            OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
+          ];
+        let requestTransformations: HarnessV1RequestTransformation[];
+        if (
+          authentication.subscription?.providerId === 'gitlab' &&
+          sandboxSubscriptionAccessToken != null
+        ) {
+          const directAccess = await requestOpenCodeGitLabDirectAccess({
+            accessToken: authentication.subscription.accessToken,
+            ...(authentication.subscription.enterpriseUrl == null
+              ? {}
+              : { instanceUrl: authentication.subscription.enterpriseUrl }),
+            ...(process.env.GITLAB_AI_GATEWAY_URL == null
+              ? {}
+              : { aiGatewayUrl: process.env.GITLAB_AI_GATEWAY_URL }),
+          });
+          requestTransformations =
+            createOpenCodeGitLabSubscriptionRequestTransformations({
+              directAccess,
+              sandboxAccessToken: sandboxSubscriptionAccessToken,
+            });
+          resolvedOpenCodeConfig = createOpenCodeGitLabSubscriptionConfig({
+            openCodeConfig: settings.openCodeConfig,
+            sandboxAccessToken: sandboxSubscriptionAccessToken,
+            aiGatewayUrl: directAccess.aiGatewayUrl,
+            ...(startOpts.headers == null
+              ? {}
+              : { headers: startOpts.headers }),
+          });
+          transformModel = model =>
+            resolveOpenCodeGitLabSubscriptionModel({
+              model,
+              provider: settings.provider,
+            });
+          gitLabSubscriptionBrokered = true;
+        } else {
+          requestTransformations =
+            authentication.subscription == null ||
+            sandboxSubscriptionAccessToken == null
+              ? createOpenCodeRequestTransformations(transformationSources)
+              : createOpenCodeSubscriptionRequestTransformations({
+                  authentication: authentication.subscription,
+                  sandboxAccessToken: sandboxSubscriptionAccessToken,
+                });
+        }
+        if (requestTransformations.length > 0) {
+          await sandboxSession.addRequestTransformations(
+            requestTransformations,
+          );
+        }
+        credentialsBrokered = true;
+      }
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
+      const bootstrapDir = path.posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
-      const sessionDataDir = `${sandboxSession.defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const skillsDir = path.posix.join(sandboxHomeDir, '.agents', 'skills');
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
-      const model = splitOpenCodeModel(settings.model, settings.provider).model;
-
       const report = startOpts.observability?.report;
       const onDiagnostic = report
         ? (frame: Parameters<typeof harnessV1DiagnosticFromBridgeFrame>[0]) =>
@@ -285,26 +435,42 @@ export function createOpenCode(
 
       if (coords) {
         try {
-          const attachUrl =
-            (await sandboxSession.getPortUrl({
-              port: coords.port,
-              protocol: 'ws',
-            })) + `?agent_bridge_token=${encodeURIComponent(coords.token)}`;
+          const endpoint = await resolveBridgeEndpoint({
+            sandboxSession,
+            override: settings.portEndpoint,
+            port: coords.port,
+          });
+          const attachEndpoint = withBridgeToken({
+            endpoint,
+            token: coords.token,
+          });
+          let supportsUserMessageResponses = false;
           const attachChannel: OpenCodeChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachUrl),
+            connect: ({ abortSignal }) =>
+              openWebSocket({
+                endpoint: attachEndpoint,
+                helloTimeoutMs: Math.min(timeoutMs, 5_000),
+                abortSignal,
+                onHello: supported => {
+                  supportsUserMessageResponses = supported;
+                },
+              }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model,
             provider: settings.provider,
             reasoningVariant: settings.reasoningVariant,
+            openCodeConfig: resolvedOpenCodeConfig,
+            mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
             openCodeSessionId: resumeSessionId,
             isResume: true,
             seedResumeSessionOnFirstPrompt: false,
@@ -312,9 +478,14 @@ export function createOpenCode(
             bridgePort: coords.port,
             bridgeToken: coords.token,
             sandboxId,
+            sandboxCredentialEnvironment,
             debug: startOpts.observability?.debug,
             permissionMode: startOpts.permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
+            sandbox: toolSafeSandboxSession,
+            sandboxHomeDir,
+            transformModel,
+            supportsUserMessageResponses: () => supportsUserMessageResponses,
           });
         } catch {}
       }
@@ -324,7 +495,7 @@ export function createOpenCode(
         : undefined;
       if (coords && isContinue) {
         const logRaw = await Promise.resolve(
-          session.readTextFile({
+          toolSafeSandboxSession.readTextFile({
             path: `${bridgeStateDir}/event-log.ndjson`,
             abortSignal: startOpts.abortSignal,
           }),
@@ -334,61 +505,76 @@ export function createOpenCode(
         }
       }
 
-      const port = resolveBridgePort(sandboxSession, settings.port);
-      const token = randomBytes(32).toString('hex');
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: session,
-        abortSignal: startOpts.abortSignal,
+      const port = resolveBridgePort({
+        sandboxSession,
+        override: settings.port,
       });
-      const xdgConfigHome = `${sandboxHomeDir}/.config`;
-      const xdgCacheHome = `${sandboxHomeDir}/.cache`;
-      const xdgDataHome = `${sandboxHomeDir}/.local/share`;
-      const xdgStateHome = `${sandboxHomeDir}/.local/state`;
-      const skillSetup =
-        startOpts.skills && startOpts.skills.length > 0
-          ? await writeOpenCodeSkills({
-              sandbox: session,
-              skills: startOpts.skills,
-              homeDir: sandboxHomeDir,
-              abortSignal: startOpts.abortSignal,
-            })
-          : undefined;
+      const token =
+        settings.mintBridgeToken == null
+          ? createBridgeToken()
+          : settings.mintBridgeToken(sandboxId!);
+      const forwardedAuthEnvironment = credentialsBrokered
+        ? sandboxAuthEnvironment
+        : await applyCredentialForwarding({
+            environment: sandboxAuthEnvironment,
+            credentialEnvironmentVariables:
+              OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+            credentialForwarding: settings.credentialForwarding,
+          });
+      if (!credentialsBrokered) {
+        warnCredentialBrokeringUnavailable({
+          environment: resolvedAuthEnvironment,
+          forwardedEnvironment: forwardedAuthEnvironment,
+          credentialEnvironmentVariables:
+            OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
+        });
+      }
+      const subscriptionAccessToken =
+        forwardedAuthEnvironment[
+          OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE
+        ];
+      const forwardableAuthEnvironment = Object.fromEntries(
+        Object.entries(forwardedAuthEnvironment).filter(
+          ([name]) =>
+            name !== OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
+        ),
+      );
       const env = {
-        ...resolveOpenCodeEnv({
-          auth: settings.auth,
-          model: settings.model,
-          provider: settings.provider,
-        }),
+        ...forwardableAuthEnvironment,
+        ...(gitLabSubscriptionBrokered ||
+        authentication.subscription == null ||
+        subscriptionAccessToken == null
+          ? {}
+          : {
+              OPENCODE_AUTH_CONTENT: createOpenCodeSubscriptionAuthContent({
+                authentication: authentication.subscription,
+                accessToken: subscriptionAccessToken,
+              }),
+            }),
         AI_SDK_HARNESS_CLIENT_APP: OPENCODE_CLIENT_APP,
         BRIDGE_CHANNEL_TOKEN: token,
         BRIDGE_WS_PORT: String(port),
-        HOME: sandboxHomeDir,
-        USERPROFILE: sandboxHomeDir,
-        XDG_CONFIG_HOME: xdgConfigHome,
-        XDG_CACHE_HOME: xdgCacheHome,
-        XDG_DATA_HOME: xdgDataHome,
-        XDG_STATE_HOME: xdgStateHome,
         ...(respawnStrategy === 'replay'
           ? { BRIDGE_REPLAY_FROM_DISK: '1' }
           : {}),
       };
 
       if (respawnStrategy === undefined) {
-        await session.run({
-          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)} ${shellQuote(xdgConfigHome)} ${shellQuote(xdgCacheHome)} ${shellQuote(xdgDataHome)} ${shellQuote(xdgStateHome)}`,
+        await toolSafeSandboxSession.run({
+          command: `mkdir -p ${shellQuote(workDir)} ${shellQuote(bridgeStateDir)}`,
           abortSignal: startOpts.abortSignal,
         });
       }
 
       await markBridgeStarting({
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'opencode',
         abortSignal: startOpts.abortSignal,
       });
 
-      const proc = await session.spawn({
-        command: `node ${BOOTSTRAP_DIR}/bridge.mjs --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(BOOTSTRAP_DIR)}${skillSetup ? ` --skills-dir ${shellQuote(skillSetup.skillsDir)}` : ''}`,
+      const proc = await toolSafeSandboxSession.spawn({
+        command: `node ${shellQuote(`${bootstrapDir}/bridge.mjs`)} --workdir ${shellQuote(workDir)} --bridge-state-dir ${shellQuote(bridgeStateDir)} --bootstrap-dir ${shellQuote(bootstrapDir)} --skills-dir ${shellQuote(skillsDir)}`,
         env,
         abortSignal: startOpts.abortSignal,
       });
@@ -402,7 +588,7 @@ export function createOpenCode(
 
       const { port: boundPort } = await waitForBridgeReady({
         proc,
-        sandbox: session,
+        sandbox: toolSafeSandboxSession,
         bridgeStateDir,
         bridgeType: 'opencode',
         timeoutMs,
@@ -426,17 +612,28 @@ export function createOpenCode(
       });
       void drainBridgeProcessStream(proc.stdout);
 
-      const wsUrl =
-        (await sandboxSession.getPortUrl({
-          port: boundPort,
-          protocol: 'ws',
-        })) + `?agent_bridge_token=${encodeURIComponent(token)}`;
+      const endpoint = await resolveBridgeEndpoint({
+        sandboxSession,
+        override: settings.portEndpoint,
+        port: boundPort,
+      });
+      const bridgeEndpoint = withBridgeToken({ endpoint, token });
+      let supportsUserMessageResponses = false;
 
       const channel: OpenCodeChannel = new SandboxChannel({
-        connect: () => openWebSocket(wsUrl),
+        connect: ({ abortSignal }) =>
+          openWebSocket({
+            endpoint: bridgeEndpoint,
+            helloTimeoutMs: Math.min(timeoutMs, 5_000),
+            abortSignal,
+            onHello: supported => {
+              supportsUserMessageResponses = supported;
+            },
+          }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
         ...(respawnStrategy === 'replay'
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
@@ -449,9 +646,11 @@ export function createOpenCode(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model,
         provider: settings.provider,
         reasoningVariant: settings.reasoningVariant,
+        openCodeConfig: resolvedOpenCodeConfig,
+        mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
         openCodeSessionId: resumeSessionId,
         isResume: respawnStrategy !== undefined,
         seedResumeSessionOnFirstPrompt: respawnStrategy !== undefined,
@@ -459,20 +658,30 @@ export function createOpenCode(
         bridgePort: boundPort,
         bridgeToken: token,
         sandboxId,
+        sandboxCredentialEnvironment,
         debug: startOpts.observability?.debug,
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
+        sandbox: toolSafeSandboxSession,
+        sandboxHomeDir,
+        transformModel,
+        supportsUserMessageResponses: () => supportsUserMessageResponses,
       });
     },
   };
 }
 
-function resolveBridgePort(
-  sandboxSession: HarnessV1NetworkSandboxSession,
-  override: number | undefined,
-): number {
+function resolveBridgePort({
+  sandboxSession,
+  override,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: number | undefined;
+}): number {
   if (override !== undefined) return override;
-  if (sandboxSession.ports.length > 0) return sandboxSession.ports[0];
+  if ('ports' in sandboxSession && sandboxSession.ports.length > 0) {
+    return sandboxSession.ports[0];
+  }
   throw new HarnessCapabilityUnsupportedError({
     harnessId: 'opencode',
     message:
@@ -481,73 +690,195 @@ function resolveBridgePort(
   });
 }
 
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
-}
-
-async function writeOpenCodeSkills({
-  sandbox,
-  skills,
-  homeDir,
-  abortSignal,
+function validateBasicSandboxSettings({
+  sandboxSession,
+  port,
+  portEndpoint,
 }: {
-  sandbox: Experimental_SandboxSession;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  homeDir: string;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  const skillsDir = path.posix.join(homeDir, '.agents', 'skills');
-  await writeHarnessSkills({
-    sandbox,
-    rootDir: skillsDir,
-    skills,
-    abortSignal,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid OpenCode skill name: ${name}`,
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
-  });
-
-  return { skillsDir };
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  port: number | undefined;
+  portEndpoint: HarnessV1PortEndpoint | undefined;
+}): void {
+  if ('getPortEndpoint' in sandboxSession) return;
+  if (port == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        'The OpenCode harness requires an explicit `port` when using a basic sandbox session.',
+    });
+  }
+  if (portEndpoint == null) {
+    throw new HarnessCapabilityUnsupportedError({
+      harnessId: 'opencode',
+      message:
+        'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
+    });
+  }
 }
 
-function openWebSocket(url: string): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url);
-    const onOpen = () => {
-      ws.off('error', onError);
-      resolve(ws);
-    };
-    const onError = (err: Error) => {
-      ws.off('open', onOpen);
-      reject(err);
-    };
-    ws.once('open', onOpen);
-    ws.once('error', onError);
+async function resolveBridgeEndpoint({
+  sandboxSession,
+  override,
+  port,
+}: {
+  sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
+  override: HarnessV1PortEndpoint | undefined;
+  port: number;
+}): Promise<HarnessV1PortEndpoint> {
+  if (override != null) return override;
+  if ('getPortEndpoint' in sandboxSession) {
+    return sandboxSession.getPortEndpoint({ port, protocol: 'ws' });
+  }
+  throw new HarnessCapabilityUnsupportedError({
+    harnessId: 'opencode',
+    message:
+      'The OpenCode harness requires an explicit `portEndpoint` when using a basic sandbox session.',
   });
+}
+
+function openWebSocket({
+  endpoint,
+  helloTimeoutMs,
+  abortSignal,
+  onHello,
+}: {
+  endpoint: HarnessV1PortEndpoint;
+  helloTimeoutMs: number;
+  abortSignal: AbortSignal;
+  onHello(supportsUserMessageResponses: boolean): void;
+}): Promise<WebSocket> {
+  return new Promise((resolve, reject) => {
+    const abortReason = () =>
+      abortSignal.reason ?? new Error('WebSocket connection aborted');
+    if (abortSignal.aborted) {
+      reject(abortReason());
+      return;
+    }
+
+    const ws = new WebSocket(endpoint.url, {
+      headers: endpoint.headers == null ? undefined : { ...endpoint.headers },
+    });
+    let opened = false;
+    let receivedHello = false;
+    let settled = false;
+    let helloTimer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
+    const cleanup = () => {
+      clearTimeout(helloTimer);
+      ws.off('open', onOpen);
+      ws.off('message', onMessage);
+      ws.off('close', onClose);
+      ws.off('error', onError);
+      if (onAbort != null) {
+        abortSignal.removeEventListener('abort', onAbort);
+      }
+    };
+    const settle = (error?: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error == null) {
+        resolve(ws);
+      } else {
+        const suppressError = () => {};
+        const socketWithOnce = ws as WebSocket & {
+          once?: (event: string, listener: () => void) => void;
+        };
+        socketWithOnce.once?.('error', suppressError);
+        try {
+          ws.terminate();
+        } catch {
+          try {
+            ws.close();
+          } catch {
+            // best-effort
+          }
+        }
+        reject(error);
+      }
+    };
+    const tryResolve = () => {
+      if (opened && receivedHello) settle();
+    };
+    const onOpen = () => {
+      opened = true;
+      tryResolve();
+    };
+    const onMessage = (raw: unknown) => {
+      void (async () => {
+        const parsed = await safeParseJSON({
+          text: webSocketMessageToString(raw),
+        });
+        if (!parsed.success) return;
+        const value = parsed.value;
+        if (
+          typeof value !== 'object' ||
+          value == null ||
+          Array.isArray(value) ||
+          (value as { type?: unknown }).type !== 'bridge-hello'
+        ) {
+          return;
+        }
+        const capabilities = (
+          value as {
+            capabilities?: { experimental_userMessageResponses?: unknown };
+          }
+        ).capabilities;
+        onHello(capabilities?.experimental_userMessageResponses === true);
+        receivedHello = true;
+        tryResolve();
+      })();
+    };
+    const onClose = () =>
+      settle(new Error('OpenCode bridge closed before sending bridge-hello.'));
+    const onError = (err: Error) => {
+      settle(err);
+    };
+    onAbort = () => settle(abortReason());
+    ws.on('open', onOpen);
+    ws.on('message', onMessage);
+    ws.on('close', onClose);
+    ws.on('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
+    if (abortSignal.aborted) {
+      onAbort();
+      return;
+    }
+    helloTimer = setTimeout(
+      () =>
+        settle(
+          new Error(
+            `OpenCode bridge did not send bridge-hello within ${helloTimeoutMs}ms.`,
+          ),
+        ),
+      helloTimeoutMs,
+    );
+    helloTimer.unref?.();
+  });
+}
+
+function webSocketMessageToString(raw: unknown): string {
+  if (typeof raw === 'string') return raw;
+  if (Buffer.isBuffer(raw)) return raw.toString('utf8');
+  if (Array.isArray(raw)) return Buffer.concat(raw).toString('utf8');
+  if (raw instanceof ArrayBuffer) return Buffer.from(raw).toString('utf8');
+  if (ArrayBuffer.isView(raw)) {
+    return Buffer.from(raw.buffer, raw.byteOffset, raw.byteLength).toString(
+      'utf8',
+    );
+  }
+  return String(raw);
 }
 
 function createSession({
   sessionId,
   channel,
   proc,
-  model,
   provider,
   reasoningVariant,
+  openCodeConfig,
+  mcpServers,
+  headers,
   openCodeSessionId,
   isResume,
   seedResumeSessionOnFirstPrompt,
@@ -555,26 +886,40 @@ function createSession({
   bridgePort,
   bridgeToken,
   sandboxId,
+  sandboxCredentialEnvironment,
   debug,
   permissionMode,
   builtinToolFiltering,
+  sandbox,
+  sandboxHomeDir,
+  transformModel,
+  supportsUserMessageResponses,
 }: {
   sessionId: string;
   channel: OpenCodeChannel;
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   provider: string | undefined;
   reasoningVariant: string | undefined;
+  openCodeConfig: Record<string, unknown> | undefined;
+  mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   openCodeSessionId: string | undefined;
   isResume: boolean;
   seedResumeSessionOnFirstPrompt: boolean;
   rerunContinue: boolean;
   bridgePort: number;
   bridgeToken: string;
-  sandboxId: string;
+  sandboxId: string | undefined;
+  sandboxCredentialEnvironment: Record<string, string> | undefined;
   debug: HarnessV1DebugConfig | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
+  sandbox: SandboxSession;
+  sandboxHomeDir: string;
+  transformModel:
+    | ((model: string | undefined) => string | undefined)
+    | undefined;
+  supportsUserMessageResponses: () => boolean;
 }): HarnessV1Session {
   let stopped = false;
   let stopPromise: Promise<void> | undefined;
@@ -582,14 +927,13 @@ function createSession({
   let pendingResumeSessionId = seedResumeSessionOnFirstPrompt
     ? openCodeSessionId
     : undefined;
-  let instructionsApplied = isResume;
+  let selectedModel: string | undefined;
   let activeTurn = false;
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
   channel.on('bridge-thread', msg => {
     latestOpenCodeSessionId = msg.threadId;
   });
-
   const wireTurn = (turnOpts: {
     emit: (event: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
@@ -601,6 +945,13 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = supportsUserMessageResponses()
+      ? experimental_createBridgeUserMessageSubmitter({
+          send: message => channel.send(message),
+          onResponse: listener => channel.on('user-message-response', listener),
+          onReconnect: listener => channel.onReconnect(listener),
+        })
+      : undefined;
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -630,6 +981,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
@@ -637,6 +989,7 @@ function createSession({
       if (isSettled) return;
       isSettled = true;
       activeTurn = false;
+      userMessageSubmitter?.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -704,6 +1057,9 @@ function createSession({
           toolCallId: input.toolCallId,
           output: input.output,
           isError: input.isError,
+          ...(input.toolResult !== undefined
+            ? { toolResult: input.toolResult }
+            : {}),
         });
       },
       submitToolApproval: async input => {
@@ -714,17 +1070,24 @@ function createSession({
           reason: input.reason,
         });
       },
-      submitUserMessage: async text => {
-        channel.send({ type: 'user-message', text });
-      },
+      ...(userMessageSubmitter == null
+        ? {}
+        : {
+            submitUserMessage: async (text: string) => {
+              await userMessageSubmitter.submit(text);
+            },
+          }),
       done,
     };
   };
 
-  const startBase = () => ({
-    model,
+  const startBase = (turnModel: string | undefined) => ({
+    model: transformModel == null ? turnModel : transformModel(turnModel),
     provider,
     ...(reasoningVariant ? { variant: reasoningVariant } : {}),
+    ...(openCodeConfig == null ? {} : { openCodeConfig }),
+    ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
     ...(pendingResumeSessionId
@@ -735,18 +1098,50 @@ function createSession({
     ...(debug ? { debug } : {}),
   });
 
+  const prepareTurn = async (opts: {
+    responseFormat?: HarnessV1ResponseFormat;
+    skills: ReadonlyArray<HarnessV1Skill>;
+    emit: (event: HarnessV1StreamPart) => void;
+    abortSignal?: AbortSignal;
+  }): Promise<{
+    control: HarnessV1PromptControl;
+    skillWriteResult: WriteSkillsResult;
+  }> => {
+    if (
+      opts.responseFormat?.type === 'json' &&
+      opts.responseFormat.schema == null
+    ) {
+      throw new HarnessCapabilityUnsupportedError({
+        message:
+          "Harness 'opencode' requires a JSON schema for structured output.",
+        harnessId: 'opencode',
+      });
+    }
+    const skillWriteResult = await writeSkills({
+      sandbox,
+      homePath: sandboxHomeDir,
+      skillsDir: '.agents/skills',
+      skills: opts.skills,
+      abortSignal: opts.abortSignal,
+      invalidSkillNameMessage: ({ name }) =>
+        `Invalid OpenCode skill name: ${name}`,
+      invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+        `Invalid OpenCode skill file path for ${skillName}: ${filePath}`,
+    });
+    const control = wireTurn({
+      emit: opts.emit,
+      abortSignal: opts.abortSignal,
+    });
+    return { control, skillWriteResult };
+  };
+
   return {
     sessionId,
     isResume,
-    modelId: model,
     doPromptTurn: async promptOpts => {
-      const control = wireTurn({
-        emit: promptOpts.emit,
-        abortSignal: promptOpts.abortSignal,
-      });
-      const applyInstructions =
-        !instructionsApplied && !!promptOpts.instructions;
-      instructionsApplied = true;
+      const { control, skillWriteResult } = await prepareTurn(promptOpts);
+      const turnModel = promptOpts.model ?? selectedModel;
+      if (turnModel) selectedModel = turnModel;
       channel.send({
         type: 'start',
         operation: 'prompt',
@@ -756,18 +1151,23 @@ function createSession({
           description: t.description,
           inputSchema: t.inputSchema,
         })),
-        ...(applyInstructions ? { instructions: promptOpts.instructions } : {}),
-        ...startBase(),
+        ...(promptOpts.responseFormat == null
+          ? {}
+          : { responseFormat: promptOpts.responseFormat }),
+        ...(promptOpts.instructions
+          ? { instructions: promptOpts.instructions }
+          : {}),
+        skillsChanged: skillWriteResult.changed,
+        ...startBase(turnModel),
       });
       pendingResumeSessionId = undefined;
       return control;
     },
     doContinueTurn: async continueOpts => {
-      const control = wireTurn({
-        emit: continueOpts.emit,
-        abortSignal: continueOpts.abortSignal,
-      });
+      const { control, skillWriteResult } = await prepareTurn(continueOpts);
       if (rerunContinue) {
+        const turnModel = continueOpts.model ?? selectedModel;
+        if (turnModel) selectedModel = turnModel;
         channel.send({
           type: 'start',
           operation: 'prompt',
@@ -777,7 +1177,14 @@ function createSession({
             description: t.description,
             inputSchema: t.inputSchema,
           })),
-          ...startBase(),
+          ...(continueOpts.responseFormat == null
+            ? {}
+            : { responseFormat: continueOpts.responseFormat }),
+          ...(continueOpts.instructions
+            ? { instructions: continueOpts.instructions }
+            : {}),
+          skillsChanged: skillWriteResult.changed,
+          ...startBase(turnModel),
         });
         pendingResumeSessionId = undefined;
       }
@@ -800,10 +1207,16 @@ function createSession({
       }
       await runCompactOperation({
         channel,
-        model,
+        model:
+          transformModel == null
+            ? selectedModel
+            : transformModel(selectedModel),
         provider,
         permissionMode,
         debug,
+        openCodeConfig,
+        mcpServers,
+        headers,
         resumeSessionId: latestOpenCodeSessionId,
         onCompaction: part => pendingCompactionParts.push(part),
       });
@@ -824,11 +1237,14 @@ function createSession({
           ...(latestOpenCodeSessionId
             ? { openCodeSessionId: latestOpenCodeSessionId }
             : {}),
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -840,7 +1256,7 @@ function createSession({
         channel.beginClose();
         try {
           if (!channel.isClosed()) {
-            channel.send({ type: 'shutdown' });
+            channel.send({ type: 'destroy' });
           }
         } catch {}
         let stopTimer: ReturnType<typeof setTimeout> | undefined;
@@ -879,18 +1295,18 @@ function createSession({
               unsub();
               reject(
                 new Error(
-                  `OpenCode session ${sessionId} did not reply to detach within 5s.`,
+                  `OpenCode session ${sessionId} did not reply to stop within 5s.`,
                 ),
               );
             }, 5000);
             timer.unref?.();
-            const unsub = channel.on('bridge-detach', msg => {
+            const unsub = channel.on('bridge-stop', msg => {
               clearTimeout(timer);
               unsub();
               resolve(msg.data);
             });
             try {
-              channel.send({ type: 'detach' });
+              channel.send({ type: 'stop' });
             } catch (err) {
               clearTimeout(timer);
               unsub();
@@ -917,11 +1333,20 @@ function createSession({
         channel.close();
       }
 
+      const lifecycleData =
+        data != null && typeof data === 'object' && !Array.isArray(data)
+          ? { ...(data as Record<string, unknown>) }
+          : {};
       const payload: HarnessV1ResumeSessionState = {
         type: 'resume-session',
         harnessId: 'opencode',
         specificationVersion: 'harness-v1',
-        data: (data ?? {}) as HarnessV1ResumeSessionState['data'],
+        data: {
+          ...lifecycleData,
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
+        } as HarnessV1ResumeSessionState['data'],
       };
       return payload;
     },
@@ -932,7 +1357,6 @@ function createSession({
         );
       }
       stopped = true;
-      await channel.interrupt();
       const lastSeenEventId = await channel.suspend();
       const payload: HarnessV1ContinueTurnState = {
         type: 'continue-turn',
@@ -942,11 +1366,14 @@ function createSession({
           ...(latestOpenCodeSessionId
             ? { openCodeSessionId: latestOpenCodeSessionId }
             : {}),
+          ...(sandboxCredentialEnvironment == null
+            ? {}
+            : { sandboxCredentialEnvironment }),
           bridge: {
             port: bridgePort,
             token: bridgeToken,
             lastSeenEventId,
-            sandboxId,
+            ...(sandboxId == null ? {} : { sandboxId }),
           },
         },
       };
@@ -961,6 +1388,9 @@ async function runCompactOperation({
   provider,
   permissionMode,
   debug,
+  openCodeConfig,
+  mcpServers,
+  headers,
   resumeSessionId,
   onCompaction,
 }: {
@@ -969,6 +1399,9 @@ async function runCompactOperation({
   provider: string | undefined;
   permissionMode: HarnessV1PermissionMode | undefined;
   debug: HarnessV1DebugConfig | undefined;
+  openCodeConfig: Record<string, unknown> | undefined;
+  mcpServers: Record<string, unknown> | undefined;
+  headers: Readonly<Record<string, string>> | undefined;
   resumeSessionId: string | undefined;
   onCompaction: (part: HarnessV1StreamPart) => void;
 }): Promise<void> {
@@ -996,6 +1429,9 @@ async function runCompactOperation({
     tools: [],
     model,
     provider,
+    ...(openCodeConfig == null ? {} : { openCodeConfig }),
+    ...(mcpServers == null ? {} : { mcpServers }),
+    ...(headers == null ? {} : { headers }),
     ...(permissionMode ? { permissionMode } : {}),
     ...(resumeSessionId ? { resumeSessionId } : {}),
     ...(debug ? { debug } : {}),

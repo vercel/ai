@@ -1,13 +1,163 @@
-import type { ToolNameMapping } from '../../../provider-utils/src/create-tool-name-mapping';
-import { convertToOpenAIResponsesInput } from './convert-to-openai-responses-input';
+import {
+  UnsupportedFunctionalityError,
+  type LanguageModelV4Prompt,
+  type LanguageModelV4ToolResultOutput,
+  type LanguageModelV4ToolResultPart,
+} from '@ai-sdk/provider';
+import type { ToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, it, expect } from 'vitest';
+import { convertToOpenAIResponsesInput as convertToOpenAIResponsesInputBase } from './convert-to-openai-responses-input';
 
 const testToolNameMapping: ToolNameMapping = {
   toProviderToolName: (customToolName: string) => customToolName,
   toCustomToolName: (providerToolName: string) => providerToolName,
 };
 
+const convertToOpenAIResponsesInput = (
+  options: Parameters<typeof convertToOpenAIResponsesInputBase>[0],
+) =>
+  convertToOpenAIResponsesInputBase({
+    toolSearchToolName: 'tool_search',
+    ...options,
+  });
+
+const parallelToolCallInput =
+  '{"tool_uses":[{"recipient_name":"functions.weather","parameters":{"location":"San Francisco"}},{"recipient_name":"functions.cityAttractions","parameters":{"city":"Rome"}}]}';
+
+function createExpandedParallelToolCallPrompt({
+  withPromptCacheBreakpoints = false,
+}: {
+  withPromptCacheBreakpoints?: boolean;
+} = {}): LanguageModelV4Prompt {
+  const promptCacheBreakpoint = { mode: 'explicit' } as const;
+  const providerOptions = (index: number) => ({
+    openai: {
+      parallelToolCall: {
+        itemId: 'fc_parallel',
+        toolCallId: 'call_parallel',
+        toolName: 'parallel',
+        input: parallelToolCallInput,
+        index,
+        count: 2,
+      },
+    },
+  });
+
+  return [
+    {
+      role: 'assistant',
+      content: [
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          input: { location: 'San Francisco' },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          input: { city: 'Rome' },
+          providerOptions: providerOptions(1),
+        },
+      ],
+    },
+    {
+      role: 'tool',
+      content: [
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_0',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { temperature: 72 },
+            ...(withPromptCacheBreakpoints && {
+              providerOptions: {
+                openai: { promptCacheBreakpoint },
+              },
+            }),
+          },
+          providerOptions: providerOptions(0),
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call_parallel_1',
+          toolName: 'cityAttractions',
+          output: { type: 'text', value: 'Colosseum' },
+          providerOptions: {
+            ...providerOptions(1),
+            ...(withPromptCacheBreakpoints && {
+              openai: {
+                ...providerOptions(1).openai,
+                promptCacheBreakpoint,
+              },
+            }),
+          },
+        },
+      ],
+    },
+  ];
+}
+
+const parallelToolCallOutput = '{"temperature":72}\nColosseum';
+
 describe('convertToOpenAIResponsesInput', () => {
+  describe('explicit message item types', () => {
+    it('should add the message type to system, user, and assistant messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          { role: 'system', content: 'You are helpful.' },
+          { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
+          { role: 'assistant', content: [{ type: 'text', text: 'Hi!' }] },
+        ],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'system',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'system',
+          content: 'You are helpful.',
+        },
+        {
+          type: 'message',
+          role: 'user',
+          content: [{ type: 'input_text', text: 'Hello' }],
+        },
+        {
+          type: 'message',
+          role: 'assistant',
+          content: 'Hi!',
+        },
+      ]);
+    });
+
+    it('should add the message type to developer messages', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [{ role: 'system', content: 'You are helpful.' }],
+        toolNameMapping: testToolNameMapping,
+        systemMessageMode: 'developer',
+        providerOptionsName: 'azure',
+        explicitMessageItemType: true,
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'message',
+          role: 'developer',
+          content: 'You are helpful.',
+        },
+      ]);
+    });
+  });
+
   describe('system messages', () => {
     it('should convert system messages to system role', async () => {
       const result = await convertToOpenAIResponsesInput({
@@ -1165,7 +1315,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: 'Hello',
         },
       ]);
     });
@@ -1198,8 +1348,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'I will search for that' }],
-          id: 'msg_001',
+          content: 'I will search for that',
           phase: 'commentary',
         },
       ]);
@@ -1233,10 +1382,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [
-            { type: 'output_text', text: 'The capital of France is Paris.' },
-          ],
-          id: 'msg_002',
+          content: 'The capital of France is Paris.',
           phase: 'final_answer',
         },
       ]);
@@ -1269,8 +1415,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
-          id: 'msg_003',
+          content: 'Hello',
         },
       ]);
     });
@@ -1300,12 +1445,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [
-            {
-              type: 'output_text',
-              text: 'I will search for that information.',
-            },
-          ],
+          content: 'I will search for that information.',
         },
         {
           type: 'function_call',
@@ -1669,6 +1809,84 @@ describe('convertToOpenAIResponsesInput', () => {
           name: 'get_weather',
           arguments: JSON.stringify({ location: 'Tokyo' }),
           namespace: 'weather_tools',
+        },
+      ]);
+    });
+
+    it('should round-trip async mode on function tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_async',
+                toolName: 'get_weather',
+                input: { location: 'Berlin' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'fc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_async',
+          name: 'get_weather',
+          arguments: JSON.stringify({ location: 'Berlin' }),
+          async: true,
+        },
+      ]);
+    });
+
+    it('should round-trip async mode on custom tool calls', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call_custom_async',
+                toolName: 'write_sql',
+                input: 'SELECT 1',
+                providerOptions: {
+                  openai: {
+                    itemId: 'ctc_async',
+                    async: true,
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+        customProviderToolNames: new Set(['write_sql']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'custom_tool_call',
+          call_id: 'call_custom_async',
+          name: 'write_sql',
+          input: 'SELECT 1',
+          async: true,
+          id: 'ctc_async',
         },
       ]);
     });
@@ -2176,13 +2394,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "First response",
                 "role": "assistant",
               },
               {
@@ -2199,13 +2411,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "Second response",
                 "role": "assistant",
               },
             ]
@@ -2300,13 +2506,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "reasoning",
               },
               {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "First response",
                 "role": "assistant",
               },
               {
@@ -2330,13 +2530,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "reasoning",
               },
               {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "Second response",
                 "role": "assistant",
               },
             ]
@@ -2537,12 +2731,8 @@ describe('convertToOpenAIResponsesInput', () => {
             // Final text output
             {
               role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Based on my analysis and calculations, here is the final answer.',
-                },
-              ],
+              content:
+                'Based on my analysis and calculations, here is the final answer.',
             },
           ]);
 
@@ -2702,6 +2892,82 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('tool messages', () => {
+    it('should preserve prompt cache breakpoints on scalar tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_${outputIndex}_${placement}`,
+            toolName: 'lookup',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV4ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'function_call_output',
+            call_id: `call_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with json value', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2772,6 +3038,106 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should JSON-encode text outputs only for tools with an output schema', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_text',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'The weather is sunny',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_error',
+                toolName: 'search',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: boom',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_denied',
+                toolName: 'search',
+                output: {
+                  type: 'execution-denied',
+                  reason: 'User denied the tool execution',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_without_schema',
+                toolName: 'lookup',
+                output: {
+                  type: 'error-text',
+                  value: 'Error: unchanged',
+                },
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'call_schema_breakpoint',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value: 'Structured output',
+                  providerOptions: {
+                    openai: { promptCacheBreakpoint },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        outputSchemaToolNames: new Set(['search']),
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_text',
+          output: '"The weather is sunny"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_error',
+          output: '"Error: boom"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_denied',
+          output: '"User denied the tool execution"',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_without_schema',
+          output: 'Error: unchanged',
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_schema_breakpoint',
+          output: [
+            {
+              type: 'input_text',
+              text: '"Structured output"',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should convert execution-denied tool result to function_call_output', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -2803,6 +3169,52 @@ describe('convertToOpenAIResponsesInput', () => {
           output: 'User denied the tool execution',
         },
       ]);
+    });
+
+    it('should reject execution-denied programmatic tool results', async () => {
+      await expect(
+        convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  input: { query: 'test' },
+                  providerOptions: {
+                    openai: {
+                      caller: {
+                        type: 'program',
+                        callerId: 'program_call_123',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call_denied_123',
+                  toolName: 'search',
+                  output: {
+                    type: 'execution-denied',
+                    reason: 'User denied the tool execution',
+                  },
+                },
+              ],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: true,
+        }),
+      ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
     });
 
     it('should convert single tool result part with multipart that contains text', async () => {
@@ -3048,6 +3460,87 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should convert provider references in tool result content', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Referenced files:',
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'application/pdf',
+                      data: {
+                        type: 'reference',
+                        reference: { openai: 'file-pdf-123' },
+                      },
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'reference',
+                        reference: { openai: 'file-image-123' },
+                      },
+                      providerOptions: {
+                        openai: {
+                          imageDetail: 'high',
+                          promptCacheBreakpoint,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Referenced files:',
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              file_id: 'file-image-123',
+              detail: 'high',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
@@ -3700,23 +4193,11 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           "input": [
             {
-              "content": [
-                {
-                  "text": "Let me search for recent news from San Francisco.",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
+              "content": "Let me search for recent news from San Francisco.",
               "role": "assistant",
             },
             {
-              "content": [
-                {
-                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
+              "content": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
               "role": "assistant",
             },
           ],
@@ -3766,23 +4247,11 @@ describe('convertToOpenAIResponsesInput', () => {
         input: [
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'I need approval before running that tool.',
-              },
-            ],
-            id: undefined,
+            content: 'I need approval before running that tool.',
           },
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'The tool was not run.',
-              },
-            ],
-            id: undefined,
+            content: 'The tool was not run.',
           },
         ],
         warnings: [],
@@ -3828,26 +4297,108 @@ describe('convertToOpenAIResponsesInput', () => {
         input: [
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'I need approval before running that tool.',
-              },
-            ],
-            id: undefined,
+            content: 'I need approval before running that tool.',
           },
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'The tool was not run.',
-              },
-            ],
-            id: undefined,
+            content: 'The tool was not run.',
           },
         ],
         warnings: [],
+      });
+    });
+
+    describe('provider-executed shell', () => {
+      it('should reconstruct the shell call and output with store: false', async () => {
+        const callId = 'call_shell';
+
+        const result = await convertToOpenAIResponsesInput({
+          toolNameMapping: testToolNameMapping,
+          prompt: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Run `printf hello` using the shell tool.',
+                },
+              ],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  input: {
+                    action: {
+                      commands: ['printf hello'],
+                    },
+                  },
+                  providerExecuted: true,
+                  providerOptions: {
+                    openai: {
+                      itemId: 'shell_item',
+                    },
+                  },
+                },
+                {
+                  type: 'tool-result',
+                  toolCallId: callId,
+                  toolName: 'shell',
+                  output: {
+                    type: 'json',
+                    value: {
+                      output: [
+                        {
+                          stdout: 'hello',
+                          stderr: '',
+                          outcome: { type: 'exit', exitCode: 0 },
+                        },
+                      ],
+                    },
+                  },
+                },
+                {
+                  type: 'text',
+                  text: 'hello',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'What did the command print?' }],
+            },
+          ],
+          systemMessageMode: 'system',
+          providerOptionsName: 'openai',
+          store: false,
+          hasShellTool: true,
+        });
+
+        expect(result.input).toContainEqual({
+          type: 'shell_call',
+          call_id: callId,
+          id: 'shell_item',
+          status: 'completed',
+          action: {
+            commands: ['printf hello'],
+            timeout_ms: undefined,
+            max_output_length: undefined,
+          },
+        });
+        expect(result.input).toContainEqual({
+          type: 'shell_call_output',
+          call_id: callId,
+          output: [
+            {
+              stdout: 'hello',
+              stderr: '',
+              outcome: { type: 'exit', exit_code: 0 },
+            },
+          ],
+        });
       });
     });
 
@@ -4329,6 +4880,66 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('MCP tool approval responses', () => {
+    it('should not reference an MCP approval request from a previous response', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-previous-response',
+                approved: true,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-previous-response',
+          approve: true,
+        },
+      ]);
+    });
+
+    it('should not reference an MCP approval request from a conversation', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-approval-response',
+                approvalId: 'mcp-approval-conversation',
+                approved: false,
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'mcp_approval_response',
+          approval_request_id: 'mcp-approval-conversation',
+          approve: false,
+        },
+      ]);
+    });
+
     it('should convert approved tool-approval-response to mcp_approval_response with store: true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4734,6 +5345,60 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should send expanded parallel tool results back to the stored wrapper call', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should preserve scalar prompt cache breakpoints on expanded parallel tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt({
+          withPromptCacheBreakpoints: true,
+        }),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasConversation: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: [
+            {
+              type: 'input_text',
+              text: '{"temperature":72}',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_text',
+              text: '\nColosseum',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should include assistant messages without item IDs when hasConversation is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
@@ -4772,13 +5437,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "role": "user",
           },
           {
-            "content": [
-              {
-                "text": "Hi there!",
-                "type": "output_text",
-              },
-            ],
-            "id": undefined,
+            "content": "Hi there!",
             "role": "assistant",
           },
         ]
@@ -4875,7 +5534,33 @@ describe('convertToOpenAIResponsesInput', () => {
   });
 
   describe('hasPreviousResponseId', () => {
-    it('should keep text item references and skip function call item references when hasPreviousResponseId is true', async () => {
+    it('should reconstruct expanded parallel tool calls with one wrapper output', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: createExpandedParallelToolCallPrompt(),
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        hasPreviousResponseId: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call',
+          call_id: 'call_parallel',
+          name: 'parallel',
+          arguments: parallelToolCallInput,
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'call_parallel',
+          output: parallelToolCallOutput,
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
+    it('should keep client-executed function calls paired with their outputs when hasPreviousResponseId is true', async () => {
       const result = await convertToOpenAIResponsesInput({
         toolNameMapping: testToolNameMapping,
         prompt: [
@@ -4934,6 +5619,12 @@ describe('convertToOpenAIResponsesInput', () => {
           {
             "id": "msg_existing_123",
             "type": "item_reference",
+          },
+          {
+            "arguments": "{"location":"San Francisco"}",
+            "call_id": "call_123",
+            "name": "getWeather",
+            "type": "function_call",
           },
           {
             "call_id": "call_123",
@@ -5145,13 +5836,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": [
-              {
-                "text": "Here is my response.",
-                "type": "output_text",
-              },
-            ],
-            "id": "msg_001",
+            "content": "Here is my response.",
             "role": "assistant",
           },
           {
@@ -5321,6 +6006,83 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+
+    it('should preserve prompt cache breakpoints on scalar custom tool results', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const providerOptions = {
+        openai: { promptCacheBreakpoint },
+      };
+      const scalarOutputs: Array<{
+        output: LanguageModelV4ToolResultOutput;
+        expectedText: string;
+      }> = [
+        {
+          output: { type: 'text', value: 'stable tool output' },
+          expectedText: 'stable tool output',
+        },
+        {
+          output: { type: 'json', value: { stable: true } },
+          expectedText: '{"stable":true}',
+        },
+        {
+          output: { type: 'error-text', value: 'tool error' },
+          expectedText: 'tool error',
+        },
+        {
+          output: { type: 'error-json', value: { error: 'boom' } },
+          expectedText: '{"error":"boom"}',
+        },
+        {
+          output: {
+            type: 'execution-denied',
+            reason: 'execution denied',
+          },
+          expectedText: 'execution denied',
+        },
+      ];
+      const toolResults = scalarOutputs.flatMap(
+        ({ output }, outputIndex): LanguageModelV4ToolResultPart[] =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'tool-result',
+            toolCallId: `call_custom_${outputIndex}_${placement}`,
+            toolName: 'write_sql',
+            output:
+              placement === 'output'
+                ? ({
+                    ...output,
+                    providerOptions,
+                  } as LanguageModelV4ToolResultOutput)
+                : output,
+            ...(placement === 'tool-result' && { providerOptions }),
+          })),
+      );
+
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [{ role: 'tool', content: toolResults }],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+        customProviderToolNames,
+      });
+
+      expect(result.input).toEqual(
+        scalarOutputs.flatMap(({ expectedText }, outputIndex) =>
+          (['output', 'tool-result'] as const).map(placement => ({
+            type: 'custom_tool_call_output',
+            call_id: `call_custom_${outputIndex}_${placement}`,
+            output: [
+              {
+                type: 'input_text',
+                text: expectedText,
+                prompt_cache_breakpoint: promptCacheBreakpoint,
+              },
+            ],
+          })),
+        ),
+      );
+      expect(result.warnings).toEqual([]);
     });
 
     it('should convert custom tool result to custom_tool_call_output with text value', async () => {
@@ -5557,6 +6319,177 @@ describe('convertToOpenAIResponsesInput', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('programmatic tool calling', () => {
+    it('should preserve the program output item reference from provider metadata', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                ...({
+                  providerMetadata: {
+                    openai: { itemId: 'program_output_item_1' },
+                  },
+                } as object),
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        { type: 'item_reference', id: 'program_output_item_1' },
+      ]);
+    });
+
+    it('should replay program items and preserve nested function caller linkage', async () => {
+      const result = await convertToOpenAIResponsesInput({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                input: {
+                  code: 'const value = await tools.get_inventory({ sku: "A" });',
+                  fingerprint: 'fingerprint_1',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  openai: { itemId: 'program_item_1' },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                input: { sku: 'A' },
+                providerOptions: {
+                  openai: {
+                    itemId: 'function_item_1',
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function_call_1',
+                toolName: 'get_inventory',
+                output: {
+                  type: 'json',
+                  value: { sku: 'A', availableUnits: 42 },
+                },
+                providerOptions: {
+                  openai: {
+                    caller: {
+                      type: 'program',
+                      callerId: 'program_call_1',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'program_call_1',
+                toolName: 'program',
+                output: {
+                  type: 'json',
+                  value: {
+                    result: '{"availableUnits":42}',
+                    status: 'completed',
+                  },
+                },
+                providerOptions: {
+                  openai: { itemId: 'program_output_item_1' },
+                },
+              },
+            ],
+          },
+        ],
+        toolNameMapping: {
+          toProviderToolName: name =>
+            name === 'program' ? 'programmatic_tool_calling' : name,
+          toCustomToolName: name =>
+            name === 'programmatic_tool_calling' ? 'program' : name,
+        },
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: false,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'program',
+          id: 'program_item_1',
+          call_id: 'program_call_1',
+          code: 'const value = await tools.get_inventory({ sku: "A" });',
+          fingerprint: 'fingerprint_1',
+        },
+        {
+          type: 'function_call',
+          call_id: 'function_call_1',
+          name: 'get_inventory',
+          arguments: '{"sku":"A"}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'function_call_output',
+          call_id: 'function_call_1',
+          output: '{"sku":"A","availableUnits":42}',
+          caller: {
+            type: 'program',
+            caller_id: 'program_call_1',
+          },
+        },
+        {
+          type: 'program_output',
+          id: 'program_output_item_1',
+          call_id: 'program_call_1',
+          result: '{"availableUnits":42}',
+          status: 'completed',
+        },
+      ]);
     });
   });
 });

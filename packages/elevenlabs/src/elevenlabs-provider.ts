@@ -8,6 +8,7 @@ import {
   loadApiKey,
   withUserAgentSuffix,
   type FetchFunction,
+  type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
 import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
@@ -55,6 +56,12 @@ export interface ElevenLabsProviderSettings {
    * or to provide a custom fetch implementation for e.g. testing.
    */
   fetch?: FetchFunction;
+
+  /**
+   * Custom WebSocket implementation. Required in runtimes whose native
+   * WebSocket constructor does not support headers for realtime transcription.
+   */
+  webSocket?: WebSocketConstructor;
 }
 
 /**
@@ -82,6 +89,7 @@ export function createElevenLabs(
       url: ({ path }) => `https://api.elevenlabs.io${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      webSocket: options.webSocket,
     });
 
   const createSpeechModel = (modelId: ElevenLabsSpeechModelId) =>

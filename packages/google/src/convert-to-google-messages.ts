@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
@@ -18,6 +19,10 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -63,6 +68,30 @@ function convertUrlToolResultPart(
   };
 }
 
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+}
+
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -76,6 +105,7 @@ function appendToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -118,7 +148,9 @@ function appendToolResultParts(
 
   parts.push({
     functionResponse: {
-      ...(toolCallId != null ? { id: toolCallId } : {}),
+      ...(includeFunctionCallIds && toolCallId != null
+        ? { id: toolCallId }
+        : {}),
       name: toolName,
       response: {
         name: toolName,
@@ -147,13 +179,16 @@ function appendLegacyToolResultParts(
     { type: 'content' }
   >['value'],
   toolCallId?: string,
+  includeFunctionCallIds = true,
 ): void {
   for (const contentPart of outputValue) {
     switch (contentPart.type) {
       case 'text':
         parts.push({
           functionResponse: {
-            ...(toolCallId != null ? { id: toolCallId } : {}),
+            ...(includeFunctionCallIds && toolCallId != null
+              ? { id: toolCallId }
+              : {}),
             name: toolName,
             response: {
               name: toolName,
@@ -206,6 +241,7 @@ export function convertToGoogleMessages(
      */
     providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
+    includeFunctionCallIds?: boolean;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -218,6 +254,7 @@ export function convertToGoogleMessages(
   const isVertexLike = !providerOptionsNames.includes('google');
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
+  const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -278,7 +315,11 @@ export function convertToGoogleMessages(
                   parts.push({
                     fileData: {
                       mimeType: resolveFullMediaType({ part }),
-                      fileUri: part.data.url.toString(),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
                     },
                   });
                   break;
@@ -336,6 +377,8 @@ export function convertToGoogleMessages(
 
       case 'assistant': {
         systemMessagesAllowed = false;
+
+        let modelResponseHasSignedFunctionCall = false;
 
         contents.push({
           role: 'model',
@@ -451,6 +494,19 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    return {
+                      executableCode: codeExecutionInputSchema.parse(
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -459,13 +515,27 @@ export function convertToGoogleMessages(
                     providerOpts?.serverToolType != null
                       ? String(providerOpts.serverToolType)
                       : undefined;
+                  const isServerToolCall =
+                    serverToolCallId != null && serverToolType != null;
+                  const shouldSkipMissingSignatureMitigation =
+                    // Gemini 3 returns a single signature for a parallel
+                    // function-call response on the first standard function
+                    // call. Subsequent standard function calls in the same
+                    // model response legitimately have no signature.
+                    !isServerToolCall &&
+                    thoughtSignature == null &&
+                    modelResponseHasSignedFunctionCall;
                   const effectiveThoughtSignature =
                     thoughtSignature ??
-                    (isGemini3Model
+                    (isGemini3Model && !shouldSkipMissingSignatureMitigation
                       ? injectSkipSignature(part.toolName)
                       : undefined);
 
-                  if (serverToolCallId && serverToolType) {
+                  if (!isServerToolCall && thoughtSignature != null) {
+                    modelResponseHasSignedFunctionCall = true;
+                  }
+
+                  if (isServerToolCall) {
                     return {
                       toolCall: {
                         toolType: serverToolType,
@@ -481,7 +551,7 @@ export function convertToGoogleMessages(
 
                   return {
                     functionCall: {
-                      ...(part.toolCallId != null
+                      ...(includeFunctionCallIds && part.toolCallId != null
                         ? { id: part.toolCallId }
                         : {}),
                       name: part.toolName,
@@ -492,6 +562,17 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-result': {
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.output.type === 'json'
+                  ) {
+                    return {
+                      codeExecutionResult: codeExecutionOutputSchema.parse(
+                        part.output.value,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -575,6 +656,7 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             } else {
               appendLegacyToolResultParts(
@@ -582,19 +664,22 @@ export function convertToGoogleMessages(
                 part.toolName,
                 output.value,
                 part.toolCallId,
+                includeFunctionCallIds,
               );
             }
           } else {
             parts.push({
               functionResponse: {
-                ...(part.toolCallId != null ? { id: part.toolCallId } : {}),
+                ...(includeFunctionCallIds && part.toolCallId != null
+                  ? { id: part.toolCallId }
+                  : {}),
                 name: part.toolName,
                 response: {
                   name: part.toolName,
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });

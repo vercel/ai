@@ -1,10 +1,12 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { pi } from '@ai-sdk/harness-pi';
+import { createPi } from './_create';
 import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const pi = createPi();
 
 /*
  * Demonstrates that a HarnessAgent's `fullStream` exposes both Pi's built-in
@@ -31,7 +33,6 @@ run(async () => {
     tools: { today },
   });
 
-  let exitCode = 0;
   const session = await agent.createSession();
   try {
     const result = await agent.stream({
@@ -41,11 +42,7 @@ run(async () => {
     });
 
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
     await session.destroy();
-    process.exit(exitCode);
   }
 });

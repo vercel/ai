@@ -4,6 +4,7 @@ import {
   getToolTimeoutMs,
   getTotalTimeoutMs,
   getStepTimeoutMs,
+  getFirstChunkTimeoutMs,
   getChunkTimeoutMs,
 } from './request-options';
 import { describe, it, expect } from 'vitest';
@@ -265,6 +266,20 @@ describe('timeout helpers (from request-options)', () => {
 
     it('should return stepMs from an object', () => {
       expect(getStepTimeoutMs({ stepMs: 3000 })).toBe(3000);
+    });
+  });
+
+  describe('getFirstChunkTimeoutMs', () => {
+    it('should return undefined when timeout is undefined', () => {
+      expect(getFirstChunkTimeoutMs(undefined)).toBeUndefined();
+    });
+
+    it('should return undefined when timeout is a number', () => {
+      expect(getFirstChunkTimeoutMs(5000)).toBeUndefined();
+    });
+
+    it('should return firstChunkMs from an object', () => {
+      expect(getFirstChunkTimeoutMs({ firstChunkMs: 1500 })).toBe(1500);
     });
   });
 

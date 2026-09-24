@@ -14,7 +14,7 @@ run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: cerebras('llama3.1-8b'),
+    model: cerebras('gpt-oss-120b'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

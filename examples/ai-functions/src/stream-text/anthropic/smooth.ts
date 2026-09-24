@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-20240620'),
+    model: anthropic('claude-sonnet-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
     experimental_transform: smoothStream(),
   });
