@@ -10,4 +10,5 @@ matches when no separate credentialed origin is configured. Otherwise it
 retains only an explicit allowlist of non-credential request metadata, so
 vendor-defined API-key headers are denied by default without misclassifying
 legitimate headers such as `idempotency-key`. Cross-origin redirects continue
-to retain only `User-Agent`.
+to retain only `User-Agent`. Direct callers can explicitly enumerate additional
+non-credential protocol metadata with `untrustedFirstHopHeaders`.

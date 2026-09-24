@@ -29,7 +29,6 @@ const SAFE_UNTRUSTED_FIRST_HOP_HEADERS = new Set([
   'if-none-match',
   'if-range',
   'if-unmodified-since',
-  'mcp-protocol-version',
   'pragma',
   'range',
   'traceparent',
@@ -39,10 +38,20 @@ const SAFE_UNTRUSTED_FIRST_HOP_HEADERS = new Set([
   'x-request-id',
 ]);
 
-function retainSafeUntrustedFirstHopHeaders(headers: Headers): Headers {
+function retainSafeUntrustedFirstHopHeaders(
+  headers: Headers,
+  additionalHeaders: readonly string[] | undefined,
+): Headers {
+  const allowedHeaders =
+    additionalHeaders === undefined
+      ? SAFE_UNTRUSTED_FIRST_HOP_HEADERS
+      : new Set([
+          ...SAFE_UNTRUSTED_FIRST_HOP_HEADERS,
+          ...additionalHeaders.map(name => name.toLowerCase()),
+        ]);
   const retainedHeaders = new Headers();
   for (const [name, value] of headers) {
-    if (SAFE_UNTRUSTED_FIRST_HOP_HEADERS.has(name)) {
+    if (allowedHeaders.has(name)) {
       retainedHeaders.set(name, value);
     }
   }
@@ -171,6 +180,7 @@ export async function fetchWithValidatedRedirects({
   fetch: customFetch,
   credentialedOrigin,
   trustedOrigin,
+  untrustedFirstHopHeaders,
 }: {
   url: string;
   headers?: HeadersInit;
@@ -185,6 +195,13 @@ export async function fetchWithValidatedRedirects({
    * allowed to receive credentials is narrower than `trustedOrigin`.
    */
   credentialedOrigin?: string;
+  /**
+   * Additional sanitized header names that may be sent when the first hop is
+   * not same-origin with `credentialedOrigin` or `trustedOrigin`. Use this only
+   * for protocol metadata that is safe to disclose to an untrusted URL.
+   * Credential-bearing headers should instead use `credentialedOrigin`.
+   */
+  untrustedFirstHopHeaders?: readonly string[];
   /**
    * A developer-configured origin (e.g. the provider's `baseURL`) whose hops
    * skip target validation. Must never be derived from response data.
@@ -207,7 +224,10 @@ export async function fetchWithValidatedRedirects({
       firstHopCredentialedOrigin !== undefined &&
       isSameOrigin(url, firstHopCredentialedOrigin)
         ? sanitizedHeaders
-        : retainSafeUntrustedFirstHopHeaders(sanitizedHeaders);
+        : retainSafeUntrustedFirstHopHeaders(
+            sanitizedHeaders,
+            untrustedFirstHopHeaders,
+          );
   }
 
   const perHopInit = (redirect: RequestRedirect): RequestInit => {

@@ -466,6 +466,7 @@ async function fetchWithCorsRetry(
         }),
       headers,
       trustedOrigin,
+      untrustedFirstHopHeaders: ['mcp-protocol-version'],
     });
   } catch (error) {
     if (error instanceof TypeError) {

@@ -479,6 +479,26 @@ describe('fetchWithValidatedRedirects', () => {
     },
   );
 
+  it('retains caller-approved protocol metadata on an untrusted first hop', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+    await fetchWithValidatedRedirects({
+      url: 'https://example.com/file',
+      headers: {
+        authorization: 'Bearer secret',
+        'proxy-authorization': 'Basic secret',
+        'x-protocol-version': '2026-09-24',
+      },
+      untrustedFirstHopHeaders: ['X-Protocol-Version', 'Proxy-Authorization'],
+      fetch: fetchMock,
+    });
+
+    const sent = fetchMock.mock.calls[0][1].headers as Headers;
+    expect(sent.get('authorization')).toBeNull();
+    expect(sent.get('proxy-authorization')).toBeNull();
+    expect(sent.get('x-protocol-version')).toBe('2026-09-24');
+  });
+
   it('sends sanitized caller headers to a matching credentialed origin', async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
 

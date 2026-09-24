@@ -78,11 +78,23 @@ Direct `fetchWithValidatedRedirects` callers follow the same rule. Without a
 matching `credentialedOrigin` or, when that option is omitted, a matching
 `trustedOrigin`, the first hop receives only an explicit allowlist of
 non-credential request metadata such as content negotiation, range,
-idempotency, tracing, request-id, protocol-version, and user-agent headers.
+idempotency, tracing, request-id, and user-agent headers.
 Every other caller header is withheld because arbitrary provider credential
 names cannot be identified safely. Set `credentialedOrigin` separately when the
 origin allowed to receive arbitrary caller headers should be narrower than the
 origin exempted from URL validation.
+
+If a direct caller needs to send additional protocol metadata to an untrusted
+first hop, list only those sanitized header names in
+`untrustedFirstHopHeaders`. Do not use this option for credentials:
+
+```ts
+await fetchWithValidatedRedirects({
+  url: discoveryUrl,
+  headers: { 'x-protocol-version': protocolVersion },
+  untrustedFirstHopHeaders: ['x-protocol-version'],
+});
+```
 
 ## DNS validation and deployment hardening
 
