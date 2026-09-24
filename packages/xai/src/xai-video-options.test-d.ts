@@ -81,7 +81,6 @@ describe('XaiVideoModelOptions type', () => {
 
   it('should allow current generation output and keyframe options', () => {
     const options = {
-      uploadUrl: 'https://storage.example.com/upload',
       storageOptions: {
         filename: 'result.mp4',
         expiresAfter: 86_400,

@@ -33,8 +33,6 @@ interface XaiVideoSharedOptions {
   pollIntervalMs?: number | null;
   pollTimeoutMs?: number | null;
   resolution?: XaiVideoResolution | null;
-  /** Signed URL where xAI uploads the generated video with HTTP PUT. */
-  uploadUrl?: string;
   /** Store the generated video in the xAI Files API. */
   storageOptions?: XaiVideoStorageOptions;
 }
@@ -147,7 +145,6 @@ const runtimeSchema = z.looseObject({
   referenceImageUrls: z.array(nonEmptyStringSchema).min(1).max(7).optional(),
   referenceVoiceIds: z.array(nonEmptyStringSchema).max(3).optional(),
   keyframes: z.array(keyframeSchema).max(4).optional(),
-  uploadUrl: nonEmptyStringSchema.optional(),
   storageOptions: storageOptionsSchema.optional(),
   user: z.string().optional(),
   ...baseFields,

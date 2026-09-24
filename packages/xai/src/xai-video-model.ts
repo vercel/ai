@@ -87,6 +87,9 @@ const isVideoFile = (file: VideoModelV4File): boolean =>
 const isImageReference = (file: VideoModelV4File): boolean =>
   file.mediaType == null || getTopLevelMediaType(file.mediaType) === 'image';
 
+const isAudioReference = (file: VideoModelV4File): boolean =>
+  file.mediaType != null && getTopLevelMediaType(file.mediaType) === 'audio';
+
 function fileToXaiUrl(file: VideoModelV4File): string {
   if (file.type === 'url') {
     return file.url;
@@ -101,8 +104,8 @@ function fileToXaiUrl(file: VideoModelV4File): string {
 
 // Resolves the reference images for R2V generation. First-class
 // `inputReferences` win over the legacy `referenceImageUrls` provider option.
-// Non-image references (video or audio) are not supported for
-// reference-to-video and are skipped with a warning.
+// Video references are not supported for reference-to-video and are skipped
+// with a warning. Audio references are handled separately below.
 function resolveReferences(
   options: XaiVideoCallOptions,
   xaiOptions: XaiParsedVideoModelOptions | undefined,
@@ -112,16 +115,18 @@ function resolveReferences(
     const imageFiles: VideoModelV4File[] = [];
 
     for (const reference of options.inputReferences) {
+      if (isAudioReference(reference)) {
+        continue;
+      }
+
       if (!isImageReference(reference)) {
         warnings.push({
           type: 'unsupported',
           feature: 'inputReferences',
-          details: isVideoFile(reference)
-            ? 'xAI reference-to-video accepts image references only. The ' +
-              'video reference was ignored. Use providerOptions.xai.mode ' +
-              '"extend-video" to continue from a video.'
-            : 'xAI reference-to-video accepts image references only. The ' +
-              'non-image reference was ignored.',
+          details:
+            'xAI reference-to-video does not accept video references. The ' +
+            'video reference was ignored. Use providerOptions.xai.mode ' +
+            '"extend-video" to continue from a video.',
         });
         continue;
       }
@@ -142,9 +147,23 @@ function resolveReferences(
   }
 }
 
+function resolveReferenceAudios(
+  options: XaiVideoCallOptions,
+): Array<{ url: string }> | undefined {
+  const audioReferences = options.inputReferences?.filter(isAudioReference);
+
+  return audioReferences != null && audioReferences.length > 0
+    ? audioReferences.map(reference => ({ url: fileToXaiUrl(reference) }))
+    : undefined;
+}
+
 // True when at least one reference would survive as an image.
 function hasImageInputReference(options: XaiVideoCallOptions): boolean {
   return options.inputReferences?.some(isImageReference) ?? false;
+}
+
+function hasAudioInputReference(options: XaiVideoCallOptions): boolean {
+  return options.inputReferences?.some(isAudioReference) ?? false;
 }
 
 function resolveVideoMode(
@@ -159,20 +178,16 @@ function resolveVideoMode(
     return 'edit-video';
   }
 
-  // frameImages (first/last frame) take precedence over reference images, so
-  // only auto-select reference-to-video when no frame images are provided.
-  const hasFrameImages =
-    options.frameImages != null && options.frameImages.length > 0;
   const hasLegacyReferenceUrls =
     xaiOptions?.referenceImageUrls != null &&
     xaiOptions.referenceImageUrls.length > 0;
 
-  // Reference-to-video needs at least one image reference. An audio-only (or
-  // video-only) `inputReferences` array must not flip a text- or
-  // image-to-video request into R2V.
+  // xAI supports image references, audio references, or both. Video-only
+  // references must not flip a standard generation request into R2V.
   if (
-    !hasFrameImages &&
-    (hasImageInputReference(options) || hasLegacyReferenceUrls)
+    hasImageInputReference(options) ||
+    hasAudioInputReference(options) ||
+    hasLegacyReferenceUrls
   ) {
     return 'reference-to-video';
   }
@@ -333,10 +348,6 @@ export class XaiVideoModel implements VideoModelV4 {
       });
     }
 
-    if (xaiOptions?.uploadUrl != null) {
-      body.output = { upload_url: xaiOptions.uploadUrl };
-    }
-
     if (xaiOptions?.storageOptions != null) {
       const { filename, expiresAfter, publicUrl } = xaiOptions.storageOptions;
       body.storage_options = {
@@ -429,10 +440,11 @@ export class XaiVideoModel implements VideoModelV4 {
     // Reference images for R2V (reference-to-video) generation
     if (hasReferenceImages) {
       const referenceImages = resolveReferences(options, xaiOptions, warnings);
+      const referenceAudios = resolveReferenceAudios(options);
 
       if (referenceImages != null) {
         body.reference_images = referenceImages;
-      } else {
+      } else if (referenceAudios == null) {
         // Explicit R2V with no usable image references would silently send
         // a plain generations request; tell the user it is no longer R2V.
         warnings.push({
@@ -445,10 +457,23 @@ export class XaiVideoModel implements VideoModelV4 {
       }
 
       const referenceVoiceIds = xaiOptions?.referenceVoiceIds;
-      if (referenceVoiceIds != null && referenceVoiceIds.length > 0) {
-        body.reference_audios = referenceVoiceIds.map(voiceId => ({
-          voice_id: voiceId,
-        }));
+      const referenceVoices = referenceVoiceIds?.map(voiceId => ({
+        voice_id: voiceId,
+      }));
+      const referenceAudioInputs = [
+        ...(referenceAudios ?? []),
+        ...(referenceVoices ?? []),
+      ];
+      if (referenceAudioInputs.length > 0) {
+        if (referenceAudioInputs.length > 3) {
+          warnings.push({
+            type: 'unsupported',
+            feature: 'inputReferences',
+            details:
+              'xAI reference-to-video supports at most 3 audio references. Only the first 3 were used.',
+          });
+        }
+        body.reference_audios = referenceAudioInputs.slice(0, 3);
       }
 
       // Reference-to-video is capped at 720p; downgrade a 1080p request.
@@ -488,11 +513,12 @@ export class XaiVideoModel implements VideoModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: 'inputReferences',
-        details: hasImageInputReference(options)
-          ? 'xAI only supports inputReferences for reference-to-video ' +
-            'generation. The reference images were ignored.'
-          : 'xAI reference-to-video requires at least one image reference. ' +
-            'The references were ignored.',
+        details:
+          hasImageInputReference(options) || hasAudioInputReference(options)
+            ? 'xAI only supports inputReferences for reference-to-video ' +
+              'generation. The references were ignored.'
+            : 'xAI reference-to-video requires at least one image or audio reference. ' +
+              'The references were ignored.',
       });
     }
 
@@ -527,7 +553,6 @@ export class XaiVideoModel implements VideoModelV4 {
             'referenceImageUrls',
             'referenceVoiceIds',
             'keyframes',
-            'uploadUrl',
             'storageOptions',
             'user',
           ].includes(key)
@@ -552,7 +577,7 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { body, warnings, xaiOptions, isEdit, isExtension } =
+    const { body, warnings, isEdit, isExtension } =
       await this.buildRequestBody(options);
 
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
@@ -588,10 +613,7 @@ export class XaiVideoModel implements VideoModelV4 {
     }
 
     return {
-      operation: {
-        requestId,
-        ...(body.output != null ? { uploadUrl: xaiOptions?.uploadUrl } : {}),
-      },
+      operation: { requestId },
       warnings,
       response: {
         timestamp: currentDate,
@@ -605,10 +627,7 @@ export class XaiVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestId, uploadUrl } = options.operation as {
-      requestId: string;
-      uploadUrl?: string;
-    };
+    const { requestId } = options.operation as { requestId: string };
     const baseURL = this.config.baseURL ?? 'https://api.x.ai/v1';
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
@@ -674,7 +693,7 @@ export class XaiVideoModel implements VideoModelV4 {
       const videoUrl =
         video?.url ?? video?.file_output?.public_url ?? undefined;
 
-      if (!videoUrl && uploadUrl == null) {
+      if (!videoUrl) {
         return {
           status: 'error' as const,
           error: 'Video generation completed but no video URL was returned.',
@@ -688,10 +707,7 @@ export class XaiVideoModel implements VideoModelV4 {
 
       return {
         status: 'completed',
-        videos:
-          videoUrl != null
-            ? [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }]
-            : [],
+        videos: [{ type: 'url', url: videoUrl, mediaType: 'video/mp4' }],
         warnings: [],
         response: {
           timestamp: currentDate,
@@ -701,8 +717,7 @@ export class XaiVideoModel implements VideoModelV4 {
         providerMetadata: {
           xai: {
             requestId,
-            ...(videoUrl != null ? { videoUrl } : {}),
-            ...(uploadUrl != null ? { uploadUrl } : {}),
+            videoUrl,
             ...(video?.duration != null ? { duration: video.duration } : {}),
             ...(statusResponse.usage?.cost_in_usd_ticks != null
               ? { costInUsdTicks: statusResponse.usage.cost_in_usd_ticks }
