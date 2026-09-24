@@ -48,18 +48,16 @@ export type GatewayProviderOptions = {
    * Restrict routing to provider models that satisfy every given entry.
    *
    * Entries are capability tags (`'implicit-caching'`, `'reasoning'`,
-   * `'tool-use'`, `'vision'` (image input), `'structured-output'`
-   * (schema-constrained output)) or weight-format conditions:
-   * `'quantization:fp8'` requires the serving provider to report that weight
-   * format, `'!quantization:fp8'` excludes it (providers with no recorded
-   * format still pass an exclusion). Format values are an open space but must
-   * match `[a-zA-Z0-9._-]{1,32}` and compare case-insensitively. Unknown
-   * capability names are rejected by the Gateway with a 400.
+   * `'tool-use'`, `'vision'`) or weight-format conditions: `'quantization:fp8'`
+   * requires the serving provider to report that weight format,
+   * `'!quantization:fp8'` excludes it (providers with no recorded format still
+   * pass an exclusion). Format values are an open space but must match
+   * `[a-zA-Z0-9._-]{1,32}` and compare case-insensitively; unknown capability
+   * names are rejected by the Gateway with a 400.
    */
   has?: Array<
     | 'implicit-caching'
     | 'reasoning'
-    | 'structured-output'
     | 'tool-use'
     | 'vision'
     | `quantization:${string}`

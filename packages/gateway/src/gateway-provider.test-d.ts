@@ -107,7 +107,6 @@ it('types weight-format conditions in has', () => {
     | (
         | 'implicit-caching'
         | 'reasoning'
-        | 'structured-output'
         | 'tool-use'
         | 'vision'
         | `quantization:${string}`
