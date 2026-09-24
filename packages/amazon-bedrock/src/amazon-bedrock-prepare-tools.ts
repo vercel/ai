@@ -27,6 +27,7 @@ export async function prepareTools({
   modelFamily,
   reasoningBudgetTokens,
   disableParallelToolUse,
+  rejectsForcedToolUse = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice?: LanguageModelV4CallOptions['toolChoice'];
@@ -34,6 +35,7 @@ export async function prepareTools({
   modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
   reasoningBudgetTokens?: number;
   disableParallelToolUse?: boolean;
+  rejectsForcedToolUse?: boolean;
 }): Promise<{
   toolConfig: AmazonBedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -84,13 +86,22 @@ export async function prepareTools({
     modelFamily,
     reasoningBudgetTokens,
   });
-  const ProviderTools = supportedTools.filter(t => t.type === 'provider');
+  const providerTools = supportedTools.filter(t => t.type === 'provider');
   const functionTools = supportedTools.filter(t => t.type === 'function');
+  const rejectsForcedToolChoice =
+    isAnthropicModel &&
+    rejectsForcedToolUse &&
+    (toolChoice?.type === 'required' || toolChoice?.type === 'tool');
+  const providerToolsForRequest =
+    rejectsForcedToolChoice && toolChoice.type === 'tool'
+      ? providerTools.filter(tool => tool.name === toolChoice.toolName)
+      : providerTools;
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
   const amazonBedrockTools: AmazonBedrockTool[] = [];
 
-  const usingAnthropicTools = isAnthropicModel && ProviderTools.length > 0;
+  const usingAnthropicTools =
+    isAnthropicModel && providerToolsForRequest.length > 0;
 
   // Handle Anthropic provider-defined tools for Anthropic models on Bedrock
   if (usingAnthropicTools) {
@@ -99,11 +110,12 @@ export async function prepareTools({
       toolWarnings: anthropicToolWarnings,
       betas: anthropicBetas,
     } = await prepareAnthropicTools({
-      tools: ProviderTools,
+      tools: providerTools,
       toolChoice,
       disableParallelToolUse,
       supportsStructuredOutput: false,
       supportsStrictTools: false,
+      rejectsForcedToolUse,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -118,7 +130,7 @@ export async function prepareTools({
     }
 
     // Create a standard Bedrock tool representation for validation purposes
-    for (const tool of ProviderTools) {
+    for (const tool of providerToolsForRequest) {
       const toolFactory = Object.values(anthropicTools).find(factory => {
         const instance = (factory as (args: any) => any)({});
         return instance.id === tool.id;
@@ -141,9 +153,32 @@ export async function prepareTools({
     }
   } else {
     // Report unsupported provider-defined tools for non-anthropic models
-    for (const tool of ProviderTools) {
+    for (const tool of providerToolsForRequest) {
       toolWarnings.push({ type: 'unsupported', feature: `tool ${tool.id}` });
     }
+  }
+
+  let preparedToolChoice = toolChoice;
+  if (!usingAnthropicTools && rejectsForcedToolChoice) {
+    if (toolChoice.type === 'tool') {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'toolChoice',
+        details:
+          `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+          `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
+          `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
+      });
+    } else {
+      toolWarnings.push({
+        type: 'unsupported',
+        feature: 'toolChoice',
+        details:
+          `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+          `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
+      });
+    }
+    preparedToolChoice = { type: 'auto' };
   }
 
   const filteredFunctionTools =
@@ -193,16 +228,16 @@ export async function prepareTools({
     !usingAnthropicTools &&
     disableParallelToolUse &&
     amazonBedrockTools.length > 0 &&
-    toolChoice?.type !== 'none'
+    preparedToolChoice?.type !== 'none'
   ) {
     additionalTools = {
       tool_choice:
-        toolChoice?.type === 'required'
+        preparedToolChoice?.type === 'required'
           ? { type: 'any', disable_parallel_tool_use: true }
-          : toolChoice?.type === 'tool'
+          : preparedToolChoice?.type === 'tool'
             ? {
                 type: 'tool',
-                name: toolChoice.toolName,
+                name: preparedToolChoice.toolName,
                 disable_parallel_tool_use: true,
               }
             : { type: 'auto', disable_parallel_tool_use: true },
@@ -216,9 +251,9 @@ export async function prepareTools({
     !usingAnthropicTools &&
     additionalTools?.tool_choice == null &&
     amazonBedrockTools.length > 0 &&
-    toolChoice
+    preparedToolChoice
   ) {
-    const type = toolChoice.type;
+    const type = preparedToolChoice.type;
     switch (type) {
       case 'auto':
         amazonBedrockToolChoice = { auto: {} };
@@ -231,7 +266,9 @@ export async function prepareTools({
         amazonBedrockToolChoice = undefined;
         break;
       case 'tool':
-        amazonBedrockToolChoice = { tool: { name: toolChoice.toolName } };
+        amazonBedrockToolChoice = {
+          tool: { name: preparedToolChoice.toolName },
+        };
         break;
       default: {
         const _exhaustiveCheck: never = type;

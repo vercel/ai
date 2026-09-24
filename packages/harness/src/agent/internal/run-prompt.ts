@@ -53,7 +53,11 @@ import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-set
 import { HarnessStreamTextResult } from './harness-stream-text-result';
 import { getOwn } from './get-own';
 import { translateStreamPart } from './translate-stream-part';
-import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
+import {
+  createToolInputWorkDirStripper,
+  stripParsedToolInputWorkDir,
+  stripWorkDir,
+} from './strip-work-dir';
 import {
   createTurnLifecycle,
   type HarnessAgentLifecycleCallbacks,
@@ -62,6 +66,8 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+
+const invalidToolInputMessage = 'Tool input validation failed.';
 
 function unwrapToolResultOutput(toolResult: ToolResultPart): {
   output: unknown;
@@ -647,7 +653,9 @@ export function runPrompt<
       continuation: ToolApprovalResponse,
     ): Promise<'continued' | 'awaiting-tool-result'> => {
       const rawToolCall =
-        rawToolCallsByToolCallId.get(approval.toolCallId) ??
+        (approval.kind === 'builtin'
+          ? rawToolCallsByToolCallId.get(approval.toolCallId)
+          : undefined) ??
         ({
           type: 'tool-call',
           toolCallId: approval.toolCallId,
@@ -656,16 +664,31 @@ export function runPrompt<
           providerExecuted: approval.providerExecuted,
           nativeName: approval.nativeName,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
-      const parsedInput = await safeParseJSON({ text: rawToolCall.input });
-      const toolCall: ToolCallTextStreamPart = {
-        type: 'tool-call',
-        toolCallId: rawToolCall.toolCallId,
-        toolName: rawToolCall.toolName,
-        input: parsedInput.success ? parsedInput.value : rawToolCall.input,
-        ...(rawToolCall.providerExecuted !== undefined
-          ? { providerExecuted: rawToolCall.providerExecuted }
-          : {}),
-      };
+      let validatedToolCall: ToolCallTextStreamPart | undefined;
+      let toolCall: ToolCallTextStreamPart;
+      if (approval.kind === 'custom' && continuation.approved) {
+        validatedToolCall = asToolCallTextStreamPart({
+          part: await validateToolCall({
+            event: rawToolCall,
+            tools: input.tools,
+          }),
+        });
+        toolCall = displayHostToolCall({
+          toolCall: validatedToolCall,
+          sessionWorkDir: input.sessionWorkDir,
+        });
+      } else {
+        const parsedInput = await safeParseJSON({ text: rawToolCall.input });
+        toolCall = {
+          type: 'tool-call',
+          toolCallId: rawToolCall.toolCallId,
+          toolName: rawToolCall.toolName,
+          input: parsedInput.success ? parsedInput.value : rawToolCall.input,
+          ...(rawToolCall.providerExecuted !== undefined
+            ? { providerExecuted: rawToolCall.providerExecuted }
+            : {}),
+        };
+      }
 
       enqueueApprovalResponse(approval, continuation, toolCall);
       onToolApprovalSettled(approval.approvalId);
@@ -699,6 +722,29 @@ export function runPrompt<
         return 'continued';
       }
 
+      if (validatedToolCall == null) {
+        throw new Error(
+          `Harness '${input.harness.harnessId}' could not validate approved host tool '${approval.toolName}'.`,
+        );
+      }
+
+      if (validatedToolCall.invalid) {
+        const error = new Error(invalidToolInputMessage);
+        await submitToolResult({
+          toolCallId: approval.toolCallId,
+          output: { error: invalidToolInputMessage },
+          isError: true,
+        });
+        bufferedToolOutcomes.push(() => {
+          enqueueHostToolOutcome({
+            toolCall,
+            outcome: { ok: false, error },
+          });
+        });
+        await publishToolExecutions();
+        return 'continued';
+      }
+
       await lifecycle.start(input.model);
       toolExecutions.set(rawToolCall.toolCallId, {
         toolCall: toolCall as TypedToolCall<TOOLS>,
@@ -706,6 +752,7 @@ export function runPrompt<
       const executionStartedAt = Date.now();
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
+        parsedToolCall: validatedToolCall,
         tools: activeTools,
         toolsContext,
         wrappedExecuteTool: lifecycle.executeTool,
@@ -886,7 +933,6 @@ export function runPrompt<
         if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
-
         if (displayValue.type === 'finish-step' && closingResumedStep) {
           closingResumedStep = false;
           await publishToolExecutions();
@@ -971,15 +1017,34 @@ export function runPrompt<
 
         // Tool-call validation lives here (not in translateStreamPart) because
         // schema parsing is async and needs the merged tool set in scope.
+        let validatedHostToolCall: ToolCallTextStreamPart | undefined;
         if (displayValue.type === 'tool-call') {
+          const isHostTool =
+            value.type === 'tool-call' &&
+            !value.providerExecuted &&
+            hasTool({ tools: activeTools, toolName: value.toolName }) &&
+            !(
+              value.toolName === 'askUserQuestions' &&
+              hasTool({
+                tools: input.harness.builtinTools,
+                toolName: value.toolName,
+              })
+            );
           const parsed = await validateToolCall<TOOLS>({
-            event: displayValue,
+            event: isHostTool ? value : displayValue,
             tools: input.tools,
           });
           const parsedToolCall = asToolCallTextStreamPart({ part: parsed });
+          validatedHostToolCall = isHostTool ? parsedToolCall : undefined;
+          const displayToolCall = isHostTool
+            ? displayHostToolCall({
+                toolCall: parsedToolCall,
+                sessionWorkDir: input.sessionWorkDir,
+              })
+            : parsedToolCall;
           rawToolCallsByToolCallId.set(displayValue.toolCallId, displayValue);
-          toolCallsByToolCallId.set(displayValue.toolCallId, parsedToolCall);
-          result.enqueue(parsed);
+          toolCallsByToolCallId.set(displayValue.toolCallId, displayToolCall);
+          result.enqueue(displayToolCall as TextStreamPart<TOOLS>);
         }
 
         if (value.type === 'text-delta') {
@@ -1155,6 +1220,31 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
+          if (validatedHostToolCall == null) {
+            throw new Error(
+              `Harness '${input.harness.harnessId}' could not validate host tool '${toolCall.toolName}'.`,
+            );
+          }
+          if (validatedHostToolCall.invalid) {
+            settledHostToolCallIds.add(toolCall.toolCallId);
+            toolExecutions.delete(toolCall.toolCallId);
+            bufferedToolOutcomes.push(() => {
+              result.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: parsedToolCall.input,
+                error: new Error(invalidToolInputMessage),
+                dynamic: true,
+              } as TextStreamPart<TOOLS>);
+            });
+            await submitToolResult({
+              toolCallId: toolCall.toolCallId,
+              output: { error: invalidToolInputMessage },
+              isError: true,
+            });
+            continue;
+          }
           const customToolApprovalDecision = resolveCustomToolApproval({
             toolName: toolCall.toolName,
             toolApproval: input.toolApproval,
@@ -1266,6 +1356,7 @@ export function runPrompt<
               const executionStartedAt = Date.now();
               const execution = await maybeExecuteHostTool({
                 event: toolCall,
+                parsedToolCall: validatedHostToolCall,
                 tools: activeTools,
                 toolsContext,
                 wrappedExecuteTool: lifecycle.executeTool,
@@ -1414,6 +1505,22 @@ function asToolCallTextStreamPart<TOOLS extends ToolSet>(input: {
   return input.part as ToolCallTextStreamPart;
 }
 
+function displayHostToolCall(input: {
+  toolCall: ToolCallTextStreamPart;
+  sessionWorkDir: string;
+}): ToolCallTextStreamPart {
+  return {
+    ...input.toolCall,
+    input: stripParsedToolInputWorkDir({
+      value: input.toolCall.input,
+      sessionWorkDir: input.sessionWorkDir,
+    }),
+    ...(input.toolCall.invalid
+      ? { error: new Error(invalidToolInputMessage) }
+      : {}),
+  };
+}
+
 type ToolCallTextStreamPart = {
   readonly type: 'tool-call';
   readonly toolCallId: string;
@@ -1433,6 +1540,7 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
+  parsedToolCall: ToolCallTextStreamPart;
   tools: TOOLS;
   toolsContext: InferToolSetContext<TOOLS>;
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
@@ -1450,8 +1558,15 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
 
   if (!isExecutableTool(tool)) return { executed: false };
 
-  const parsed = await safeParseJSON({ text: input.event.input });
-  const args = parsed.success ? parsed.value : input.event.input;
+  if (input.parsedToolCall.invalid) {
+    const error = new Error(invalidToolInputMessage);
+    await input.submitToolResult({
+      toolCallId: input.event.toolCallId,
+      output: { error: invalidToolInputMessage },
+      isError: true,
+    });
+    return { executed: true, outcome: { ok: false, error } };
+  }
 
   let context: unknown;
   try {
@@ -1489,7 +1604,7 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
         let output: unknown;
         const stream = executeTool({
           tool,
-          input: args as never,
+          input: input.parsedToolCall.input as never,
           options: {
             toolCallId: input.event.toolCallId,
             messages: [],

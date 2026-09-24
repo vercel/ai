@@ -2994,7 +2994,7 @@ importers:
         specifier: ^8.21.0
         version: 8.21.3
     devDependencies:
-      '@openai/codex-sdk':
+      '@openai/codex':
         specifier: 0.155.0
         version: 0.155.0
       '@types/node':
@@ -9728,10 +9728,6 @@ packages:
 
   '@open-policy-agent/ucast-prisma@0.1.6':
     resolution: {integrity: sha512-4bnz9aZzQQyfoo6OrXCWA8IH6Kp6pB34e4A2vGv2B0S/dbfFVN8TzmUn+WTJg7Eyr/NiF2EPFShiFgBwbUhhrA==}
-
-  '@openai/codex-sdk@0.155.0':
-    resolution: {integrity: sha512-oD/7iCZnXqDlrnoWWpGkZExrUStpAau1koyUO/fSW3WwkqewRf+MGj3OS41Buw7gNwj0oM6ilI9RHqP5QQWJaQ==}
-    engines: {node: '>=18'}
 
   '@openai/codex@0.144.5':
     resolution: {integrity: sha512-jjB+K+OMv572mKhS+2QuLxWXDJNdpwbPenf+V+8bdq7wg4Scqt3cn6WEekD8wPqDVZqck0HSX17K9rD9kbDJQA==}
@@ -32160,10 +32156,6 @@ snapshots:
     dependencies:
       '@ucast/core': 1.10.2
       lodash.merge: 4.6.2
-
-  '@openai/codex-sdk@0.155.0':
-    dependencies:
-      '@openai/codex': 0.155.0
 
   '@openai/codex@0.144.5':
     optionalDependencies:

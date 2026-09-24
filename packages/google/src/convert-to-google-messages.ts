@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
@@ -65,6 +66,30 @@ function convertUrlToolResultPart(
       data: parsedDataUrl.data,
     },
   };
+}
+
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
 }
 
 /*
@@ -654,7 +679,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });

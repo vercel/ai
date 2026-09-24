@@ -367,6 +367,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         reasoningBudgetTokens:
           amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+        rejectsForcedToolUse,
       });
 
     warnings.push(...toolWarnings);
