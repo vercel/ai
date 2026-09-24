@@ -452,27 +452,39 @@ for await (const part of result.fullStream) {
 Each AssemblyAI `Turn` becomes a `transcript-partial` part while the turn is in
 progress and a `transcript-final` part once the turn ends. Final parts carry
 turn-level details under `providerMetadata.assemblyai`: `turnOrder`,
-`endOfTurnConfidence`, `speakerLabel`, `languageCode`, `languageConfidence`,
-the `words` array (word timings in milliseconds), and `error` when the server
-cleared the turn's text (for example because PII redaction failed; a non-fatal
-`error` part is emitted as well). The `finish` metadata includes the
-`sessionId`, the `speechModelUsed` that the server actually applied,
-`sessionDurationSeconds`, and any `speakerRevisions` emitted at session close
-when `speakerLabels` is enabled.
+`endOfTurnConfidence`, `speakerLabel`, `speakerConfidence`, `languageCode`,
+`languageConfidence`, the `words` array (word timings in milliseconds), and
+`error` when the server cleared the turn's text (for example because PII
+redaction failed; a non-fatal `error` part is emitted as well).
 
-Send audio in chunks of 50ms to 1000ms, no faster than real time. The
-AssemblyAI streaming endpoint authenticates with a WebSocket header, so use a
-header-capable WebSocket implementation such as `ws` (see the `webSocket`
-provider setting).
+The `finish` metadata includes the `sessionId`, the `speechModelUsed` that the
+server actually applied, `sessionDurationSeconds`, and `speakerRevisions` when
+`speakerLabels` is enabled. Speaker revisions are deltas listing only the turns
+whose label changed; the server emits one at session end and, when
+`speakerLabelsRevisionIntervalMs` is set, periodically during the session. They
+are collected in arrival order, so apply them in order and let the last entry
+for a `turnOrder` win.
 
-The following top-level provider options also apply to streaming: `prompt`,
-`keytermsPrompt` (up to 100 terms), `languageDetection`, `speakerLabels`,
-`filterProfanity`, `redactPii`, `redactPiiPolicies`, `redactPiiSub`, and
-`domain`. Other top-level options are pre-recorded only and produce a warning
-when streaming; likewise, `streaming` options produce a warning when passed to
-`transcribe`. Combinations that AssemblyAI rejects at connect time (for example
-Pro-only options on a Universal Streaming model, or `redactPiiSub` without
-`redactPii`) produce a warning up front. The `streaming` provider options
+`SpeechStarted`, `Heartbeat`, `Silence`, and `Warning` messages have no
+normalized equivalent and are available as `raw` parts when `includeRawChunks`
+is enabled.
+
+Send audio in chunks of 50ms to 1000ms, no faster than real time. Raw PCM
+sample rates must be between 8 and 96 kHz. The AssemblyAI streaming endpoint
+authenticates with a WebSocket header, so use a header-capable WebSocket
+implementation such as `ws` (see the `webSocket` provider setting).
+
+The following top-level provider options also apply to streaming: `prompt` (up
+to 1,750 characters), `keytermsPrompt` (up to 100 terms), `languageCode`,
+`languageDetection`, `speakerLabels`, `filterProfanity`, `redactPii`,
+`redactPiiPolicies`, `redactPiiSub`, `domain`, `webhookUrl`,
+`webhookAuthHeaderName`, and `webhookAuthHeaderValue`. Other top-level options
+are pre-recorded only and produce a warning when streaming; likewise, `streaming`
+options produce a warning when passed to `transcribe`. Options that AssemblyAI
+rejects at connect time (`prompt`, `mode`, or `agentContext` on a Universal
+Streaming model, `redactPiiPolicies` without `redactPii`, a `voiceFocusThreshold`
+without `voiceFocus`) and Pro-only options that it silently ignores on Universal
+Streaming models produce a warning up front. The `streaming` provider options
 mirror AssemblyAI's streaming connection parameters:
 
 - **mode** _'min_latency' | 'balanced' | 'max_accuracy'_
@@ -496,8 +508,8 @@ mirror AssemblyAI's streaming connection parameters:
 
 - **minTurnSilence** / **maxTurnSilence** _number_
 
-  Silence in milliseconds before a speculative end-of-turn check, and before a
-  turn is forced to end.
+  Silence in milliseconds before a speculative end-of-turn check (clamped by the
+  server to 50-10000), and before a turn is forced to end.
 
 - **endOfTurnConfidenceThreshold** _number_
 
@@ -540,6 +552,23 @@ mirror AssemblyAI's streaming connection parameters:
   when `redactPii` is enabled (partials would contain unredacted text). Setting
   `false` also drops the unformatted end-of-turn message Universal Streaming
   models send when `formatTurns` is enabled.
+
+- **speakerLabelsRevisionIntervalMs** _number_
+
+  Cadence in milliseconds of audio time at which the server emits mid-stream
+  `SpeakerRevision` messages (a final one is always emitted at session end).
+  Non-zero values are clamped to 120000-300000; `0` behaves like unset. Only
+  used when `speakerLabels` is enabled.
+
+- **sessionHeartbeat** _boolean_
+
+  Opt in to periodic `Heartbeat` messages (available as `raw` parts) reporting
+  audio received, session duration, and the real-time ingest factor.
+
+- **acknowledgeSilence** _boolean_
+
+  Opt in to `Silence` messages (available as `raw` parts) roughly once per
+  second while no speech is transcribed. Universal-3.x Pro only.
 
 - **inactivityTimeout** _number_
 

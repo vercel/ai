@@ -233,10 +233,12 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Options for streaming transcription over WebSocket
    * (`experimental_streamTranscribe`). Ignored by `transcribe`.
    *
-   * The following top-level options also apply to streaming: `prompt`,
-   * `keytermsPrompt`, `languageDetection`, `speakerLabels`,
-   * `filterProfanity`, `redactPii`, `redactPiiPolicies`, `redactPiiSub`, and
-   * `domain`. All other top-level options are pre-recorded only.
+   * The following top-level options also apply to streaming: `prompt`
+   * (up to 1,750 characters), `keytermsPrompt` (up to 100 terms),
+   * `languageCode`, `languageDetection`, `speakerLabels`, `filterProfanity`,
+   * `redactPii`, `redactPiiPolicies`, `redactPiiSub`, `domain`, `webhookUrl`,
+   * `webhookAuthHeaderName`, and `webhookAuthHeaderValue`. All other
+   * top-level options are pre-recorded only.
    *
    * @see https://www.assemblyai.com/docs/api-reference/streaming-api/streaming-api
    */
@@ -266,6 +268,7 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
       maxSpeakers: z.number().int().min(1).max(10).nullish(),
       /**
        * Silence in milliseconds before a speculative end-of-turn check.
+       * The server clamps values to 50-10000.
        */
       minTurnSilence: z.number().int().min(0).nullish(),
       /**
@@ -324,6 +327,31 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
        * `formatTurns` is enabled.
        */
       includePartialTurns: z.boolean().nullish(),
+      /**
+       * Cadence in milliseconds of audio time at which the server emits
+       * mid-stream `SpeakerRevision` messages with corrected speaker labels
+       * for earlier turns (a final one is always emitted at session end).
+       * Non-zero values are clamped by the server to 120000-300000; `0`
+       * behaves like unset. Only used when `speakerLabels` is enabled.
+       */
+      speakerLabelsRevisionIntervalMs: z
+        .number()
+        .int()
+        .min(0)
+        .max(86_400_000)
+        .nullish(),
+      /**
+       * Opt in to periodic `Heartbeat` messages reporting audio received,
+       * session duration, and the real-time ingest factor. Surfaced as `raw`
+       * parts when `includeRawChunks` is enabled.
+       */
+      sessionHeartbeat: z.boolean().nullish(),
+      /**
+       * Opt in to `Silence` messages (roughly once per second while no speech
+       * is transcribed). Universal-3.x Pro only. Surfaced as `raw` parts when
+       * `includeRawChunks` is enabled.
+       */
+      acknowledgeSilence: z.boolean().nullish(),
       /**
        * Seconds of inactivity (5 to 3600) before the server closes the
        * session. Omit to disable the timeout.

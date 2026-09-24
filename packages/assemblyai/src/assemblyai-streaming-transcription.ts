@@ -49,6 +49,14 @@ const pcmEncodings: ReadonlySet<AssemblyAIStreamingEncoding> = new Set([
 ]);
 
 const DEFAULT_SAMPLE_RATE = 16000;
+const MIN_SAMPLE_RATE = 8000;
+const MAX_SAMPLE_RATE = 96000;
+
+/**
+ * The streaming API rejects prompts longer than this (the pre-recorded API
+ * allows longer prompts).
+ */
+const MAX_STREAMING_PROMPT_CHARS = 1750;
 
 /**
  * The streaming API accepts at most this many `keyterms_prompt` entries.
@@ -95,10 +103,18 @@ export function buildAssemblyAIStreamingUrl({
   url.searchParams.set('speech_model', modelId);
   url.searchParams.set('encoding', encoding);
   if (pcmEncodings.has(encoding)) {
-    url.searchParams.set(
-      'sample_rate',
-      String(inputAudioFormat.rate ?? DEFAULT_SAMPLE_RATE),
-    );
+    const sampleRate = inputAudioFormat.rate ?? DEFAULT_SAMPLE_RATE;
+    if (
+      !Number.isInteger(sampleRate) ||
+      sampleRate < MIN_SAMPLE_RATE ||
+      sampleRate > MAX_SAMPLE_RATE
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'inputAudioFormat',
+        message: `AssemblyAI streaming transcription accepts PCM sample rates from ${MIN_SAMPLE_RATE} to ${MAX_SAMPLE_RATE} Hz (got ${sampleRate}).`,
+      });
+    }
+    url.searchParams.set('sample_rate', String(sampleRate));
   }
 
   const parameters: Record<
@@ -108,7 +124,14 @@ export function buildAssemblyAIStreamingUrl({
     // options shared with pre-recorded transcription:
     prompt: options?.prompt,
     keyterms_prompt: jsonArray(options?.keytermsPrompt),
+    // `streaming.languageCodes` and the singular `languageCode` fill the same
+    // server field; the streaming option wins when both are set.
+    language_code:
+      streaming?.languageCodes != null ? undefined : options?.languageCode,
     language_detection: options?.languageDetection,
+    webhook_url: options?.webhookUrl,
+    webhook_auth_header_name: options?.webhookAuthHeaderName,
+    webhook_auth_header_value: options?.webhookAuthHeaderValue,
     speaker_labels: options?.speakerLabels,
     filter_profanity: options?.filterProfanity,
     redact_pii: options?.redactPii,
@@ -133,6 +156,10 @@ export function buildAssemblyAIStreamingUrl({
     voice_focus_threshold: streaming?.voiceFocusThreshold,
     include_partial_turns: streaming?.includePartialTurns,
     inactivity_timeout: streaming?.inactivityTimeout,
+    speaker_labels_revision_interval_ms:
+      streaming?.speakerLabelsRevisionIntervalMs,
+    session_heartbeat: streaming?.sessionHeartbeat,
+    acknowledge_silence: streaming?.acknowledgeSilence,
   };
 
   for (const [key, value] of Object.entries(parameters)) {
@@ -149,10 +176,12 @@ function jsonArray(value: string[] | null | undefined): string | undefined {
 }
 
 /**
- * Warnings for option combinations that the streaming server rejects at
- * connect time (closing the socket before `Begin`) or silently ignores.
- * Emitting them up front gives callers an actionable message instead of a
- * bare close code.
+ * Warnings for options the streaming server rejects at connect time (closing
+ * the socket before `Begin`) or silently ignores. Emitting them up front
+ * gives callers an actionable message instead of a bare close code. The
+ * rejected/ignored split mirrors the server's validators: only `prompt`,
+ * `mode`, and `agent_context` are hard errors on non-Pro models; the other
+ * Pro-only options are dropped.
  */
 export function getAssemblyAIStreamingWarnings({
   modelId,
@@ -163,23 +192,53 @@ export function getAssemblyAIStreamingWarnings({
 }): SharedV4Warning[] {
   const warnings: SharedV4Warning[] = [];
   const streaming = options?.streaming;
+  const isUniversalStreaming = isAssemblyAIUniversalStreamingModelId(modelId);
 
   if (
-    (options?.redactPiiPolicies != null || options?.redactPiiSub != null) &&
-    !options?.redactPii
+    options?.prompt != null &&
+    options.prompt.length > MAX_STREAMING_PROMPT_CHARS
+  ) {
+    warnings.push({
+      type: 'other',
+      message: `AssemblyAI streaming transcription accepts a 'prompt' of at most ${MAX_STREAMING_PROMPT_CHARS} characters (${options.prompt.length} given); the connection is rejected otherwise.`,
+    });
+  }
+
+  if (!options?.redactPii) {
+    const rejected: string[] = [];
+    if (options?.redactPiiPolicies != null)
+      rejected.push("'redactPiiPolicies'");
+    // the server only rejects a non-default substitution scheme
+    if (options?.redactPiiSub != null && options.redactPiiSub !== 'hash') {
+      rejected.push("'redactPiiSub'");
+    }
+    if (rejected.length > 0) {
+      warnings.push({
+        type: 'other',
+        message: `${rejected.join(' and ')} require 'redactPii' to be enabled; AssemblyAI rejects the streaming connection otherwise.`,
+      });
+    }
+  }
+
+  // On Universal Streaming models the server drops both voice focus options
+  // before validating them, so the pairing rule only applies to Pro models.
+  if (
+    !isUniversalStreaming &&
+    streaming?.voiceFocusThreshold != null &&
+    streaming.voiceFocus == null
   ) {
     warnings.push({
       type: 'other',
       message:
-        "'redactPiiPolicies' and 'redactPiiSub' require 'redactPii' to be enabled; AssemblyAI rejects the streaming connection otherwise.",
+        "'streaming.voiceFocusThreshold' requires 'streaming.voiceFocus' to be set; AssemblyAI rejects the streaming connection otherwise.",
     });
   }
 
-  if (streaming?.voiceFocusThreshold != null && streaming.voiceFocus == null) {
+  if (options?.languageCode != null && streaming?.languageCodes != null) {
     warnings.push({
       type: 'other',
       message:
-        "'streaming.voiceFocusThreshold' only applies when 'streaming.voiceFocus' is set; it is otherwise ignored.",
+        "'languageCode' is ignored because 'streaming.languageCodes' is set; both configure the same AssemblyAI parameter.",
     });
   }
 
@@ -193,26 +252,32 @@ export function getAssemblyAIStreamingWarnings({
     });
   }
 
-  if (isAssemblyAIUniversalStreamingModelId(modelId)) {
-    const proOnlyOptions = (
-      [
-        ['prompt', options?.prompt],
-        ['streaming.mode', streaming?.mode],
-        ['streaming.languageCodes', streaming?.languageCodes],
-        ['streaming.interruptionDelay', streaming?.interruptionDelay],
-        ['streaming.continuousPartials', streaming?.continuousPartials],
-        ['streaming.agentContext', streaming?.agentContext],
-        ['streaming.previousContextNTurns', streaming?.previousContextNTurns],
-        ['streaming.voiceFocus', streaming?.voiceFocus],
-      ] as const
-    )
-      .filter(([, value]) => value != null)
-      .map(([name]) => `'${name}'`);
-
-    if (proOnlyOptions.length > 0) {
+  if (isUniversalStreaming) {
+    const rejectedOptions = setOptionNames([
+      ['prompt', options?.prompt],
+      ['streaming.mode', streaming?.mode],
+      ['streaming.agentContext', streaming?.agentContext],
+    ]);
+    if (rejectedOptions.length > 0) {
       warnings.push({
         type: 'other',
-        message: `${proOnlyOptions.join(', ')} require a Universal-3.x Pro model such as 'universal-3-5-pro'; AssemblyAI rejects the streaming connection for '${modelId}'.`,
+        message: `${rejectedOptions.join(', ')} require a Universal-3.x Pro model such as 'universal-3-5-pro'; AssemblyAI rejects the streaming connection for '${modelId}'.`,
+      });
+    }
+
+    const ignoredOptions = setOptionNames([
+      ['streaming.languageCodes', streaming?.languageCodes],
+      ['streaming.interruptionDelay', streaming?.interruptionDelay],
+      ['streaming.continuousPartials', streaming?.continuousPartials],
+      ['streaming.previousContextNTurns', streaming?.previousContextNTurns],
+      ['streaming.voiceFocus', streaming?.voiceFocus],
+      ['streaming.voiceFocusThreshold', streaming?.voiceFocusThreshold],
+      ['streaming.acknowledgeSilence', streaming?.acknowledgeSilence],
+    ]);
+    if (ignoredOptions.length > 0) {
+      warnings.push({
+        type: 'other',
+        message: `${ignoredOptions.join(', ')} only apply to Universal-3.x Pro models and are ignored for '${modelId}'.`,
       });
     }
   } else if (
@@ -228,6 +293,13 @@ export function getAssemblyAIStreamingWarnings({
   return warnings;
 }
 
+/** Quoted names of the options in `pairs` whose value is set. */
+function setOptionNames(pairs: ReadonlyArray<readonly [string, unknown]>) {
+  return pairs
+    .filter(([, value]) => value != null)
+    .map(([name]) => `'${name}'`);
+}
+
 type AssemblyAIStreamingWord = {
   text?: string;
   start?: number;
@@ -235,6 +307,7 @@ type AssemblyAIStreamingWord = {
   confidence?: number;
   word_is_final?: boolean;
   speaker?: string | null;
+  speaker_confidence?: number | null;
 };
 
 /**
@@ -255,6 +328,7 @@ type AssemblyAIStreamingMessage = {
   language_code?: string | null;
   language_confidence?: number | null;
   speaker_label?: string | null;
+  speaker_confidence?: number | null;
   words?: AssemblyAIStreamingWord[];
   // SpeakerRevision
   revisions?: JSONObject[];
@@ -549,10 +623,15 @@ export function createAssemblyAIStreamingTranscriptionStream({
             }
 
             case 'SpeakerRevision': {
-              // Final speaker-label refinement emitted right before
-              // `Termination` when `speakerLabels` is enabled. Text and word
-              // timestamps never change, only speaker assignments.
-              speakerRevisions = raw.revisions ?? [];
+              // Delta of earlier turns whose speaker labels changed. Emitted
+              // once at session end and, when `speakerLabelsRevisionIntervalMs`
+              // is set, periodically mid-stream; later items supersede earlier
+              // ones per `turn_order`, so keep every item in arrival order.
+              // Text and word timestamps never change, only speaker labels.
+              speakerRevisions = [
+                ...(speakerRevisions ?? []),
+                ...(raw.revisions ?? []),
+              ];
               break;
             }
 
@@ -660,6 +739,9 @@ function turnMetadata(
     metadata.endOfTurnConfidence = raw.end_of_turn_confidence;
   }
   if (raw.speaker_label != null) metadata.speakerLabel = raw.speaker_label;
+  if (raw.speaker_confidence != null) {
+    metadata.speakerConfidence = raw.speaker_confidence;
+  }
   if (raw.language_code != null) metadata.languageCode = raw.language_code;
   if (raw.language_confidence != null) {
     metadata.languageConfidence = raw.language_confidence;
@@ -672,6 +754,9 @@ function turnMetadata(
     if (word.end != null) entry.end = word.end;
     if (word.confidence != null) entry.confidence = word.confidence;
     if (word.speaker != null) entry.speaker = word.speaker;
+    if (word.speaker_confidence != null) {
+      entry.speakerConfidence = word.speaker_confidence;
+    }
     return entry;
   });
   return metadata;

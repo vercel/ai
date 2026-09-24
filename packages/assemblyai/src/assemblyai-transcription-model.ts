@@ -50,6 +50,10 @@ const streamingOptionKeys: ReadonlySet<string> = new Set([
   'redactPiiPolicies',
   'redactPiiSub',
   'domain',
+  'languageCode',
+  'webhookUrl',
+  'webhookAuthHeaderName',
+  'webhookAuthHeaderValue',
   'streaming',
 ]);
 
@@ -533,10 +537,7 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       warnings.push({
         type: 'unsupported',
         feature: `providerOptions.assemblyai.${key}`,
-        details:
-          key === 'languageCode'
-            ? 'AssemblyAI streaming transcription does not support languageCode. Use providerOptions.assemblyai.streaming.languageCodes instead.'
-            : `AssemblyAI streaming transcription does not support ${key}.`,
+        details: `AssemblyAI streaming transcription does not support ${key}.`,
       });
     }
 
@@ -557,7 +558,14 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       options: assemblyaiOptions ?? undefined,
     });
 
-    const languageCodes = assemblyaiOptions?.streaming?.languageCodes;
+    // a single steered language is reported as the transcript language until
+    // the server reports a detected one ('multi' is a model selector, not a
+    // language):
+    const languageCodes =
+      assemblyaiOptions?.streaming?.languageCodes ??
+      (assemblyaiOptions?.languageCode != null
+        ? [assemblyaiOptions.languageCode]
+        : undefined);
 
     return {
       request: { body: url.toString() },
@@ -578,7 +586,9 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         includePartialTurns:
           assemblyaiOptions?.streaming?.includePartialTurns !== false,
         initialLanguage:
-          languageCodes?.length === 1 ? languageCodes[0] : undefined,
+          languageCodes?.length === 1 && languageCodes[0] !== 'multi'
+            ? languageCodes[0]
+            : undefined,
         currentDate,
       }),
     };

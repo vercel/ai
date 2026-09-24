@@ -116,6 +116,9 @@ describe('doStream', () => {
             redactPiiPolicies: ['person_name', 'phone_number'],
             redactPiiSub: 'entity_name',
             domain: 'medical-v1',
+            webhookUrl: 'https://example.com/hook',
+            webhookAuthHeaderName: 'x-token',
+            webhookAuthHeaderValue: 'secret',
             streaming: {
               mode: 'max_accuracy',
               formatTurns: true,
@@ -132,6 +135,9 @@ describe('doStream', () => {
               voiceFocusThreshold: 0.8,
               includePartialTurns: false,
               inactivityTimeout: 60,
+              speakerLabelsRevisionIntervalMs: 120000,
+              sessionHeartbeat: true,
+              acknowledgeSilence: true,
             },
           },
         },
@@ -157,6 +163,9 @@ describe('doStream', () => {
         redact_pii_policies: '["person_name","phone_number"]',
         redact_pii_sub: 'entity_name',
         domain: 'medical-v1',
+        webhook_url: 'https://example.com/hook',
+        webhook_auth_header_name: 'x-token',
+        webhook_auth_header_value: 'secret',
         mode: 'max_accuracy',
         format_turns: 'true',
         language_codes: '["en","es"]',
@@ -172,6 +181,9 @@ describe('doStream', () => {
         voice_focus_threshold: '0.8',
         include_partial_turns: 'false',
         inactivity_timeout: '60',
+        speaker_labels_revision_interval_ms: '120000',
+        session_heartbeat: 'true',
+        acknowledge_silence: 'true',
       });
       expect(ws.options?.headers).toMatchObject({
         authorization: 'test-api-key',
@@ -321,6 +333,53 @@ describe('doStream', () => {
         });
         expect(MockWebSocket.instances).toHaveLength(0);
       }
+    });
+
+    it('rejects out-of-range PCM sample rates before opening a socket', async () => {
+      const model = createModel();
+
+      for (const rate of [4000, 100000]) {
+        await expect(
+          model.doStream({
+            audio: audio(),
+            inputAudioFormat: { type: 'audio/pcm', rate },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'inputAudioFormat',
+          message: expect.stringContaining('8000 to 96000'),
+        });
+      }
+      expect(MockWebSocket.instances).toHaveLength(0);
+    });
+
+    it('forwards the singular languageCode and drops it when languageCodes is set', async () => {
+      const model = createModel();
+
+      await model.doStream({
+        audio: audio(),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: { assemblyai: { languageCode: 'es' } },
+      });
+      expect(
+        new URL(MockWebSocket.instances[0].url).searchParams.get(
+          'language_code',
+        ),
+      ).toBe('es');
+
+      await model.doStream({
+        audio: audio(),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          assemblyai: {
+            languageCode: 'es',
+            streaming: { languageCodes: ['en'] },
+          },
+        },
+      });
+      const params = new URL(MockWebSocket.instances[1].url).searchParams;
+      expect(params.get('language_code')).toBeNull();
+      expect(params.get('language_codes')).toBe('["en"]');
     });
 
     it('rejects out-of-range inactivityTimeout before opening a socket', async () => {
@@ -515,6 +574,7 @@ describe('doStream', () => {
         transcript: 'Hello world.',
         end_of_turn_confidence: 1,
         speaker_label: 'A',
+        speaker_confidence: 0.91,
         language_code: 'en',
         language_confidence: 0.98,
         words: [
@@ -525,6 +585,7 @@ describe('doStream', () => {
             confidence: 0.9,
             word_is_final: true,
             speaker: 'A',
+            speaker_confidence: 0.91,
           },
           {
             text: 'world.',
@@ -553,9 +614,18 @@ describe('doStream', () => {
       );
       // only surfaced as raw / finish metadata:
       ws.message({ type: 'SpeechStarted' });
+      // revisions are deltas and may arrive more than once; all are kept in
+      // arrival order so the last entry per turn wins:
       ws.message({
         type: 'SpeakerRevision',
         revisions: [{ turn_order: 0, speaker_label: 'B', words: [] }],
+      });
+      ws.message({
+        type: 'SpeakerRevision',
+        revisions: [
+          { turn_order: 2, speaker_label: 'C', words: [] },
+          { turn_order: 0, speaker_label: 'A', words: [] },
+        ],
       });
       ws.message({
         type: 'Termination',
@@ -588,6 +658,7 @@ describe('doStream', () => {
               turnOrder: 0,
               endOfTurnConfidence: 1,
               speakerLabel: 'A',
+              speakerConfidence: 0.91,
               languageCode: 'en',
               languageConfidence: 0.98,
               words: [
@@ -597,6 +668,7 @@ describe('doStream', () => {
                   end: 500,
                   confidence: 0.9,
                   speaker: 'A',
+                  speakerConfidence: 0.91,
                 },
                 {
                   text: 'world.',
@@ -641,6 +713,8 @@ describe('doStream', () => {
               sessionDurationSeconds: 4,
               speakerRevisions: [
                 { turn_order: 0, speaker_label: 'B', words: [] },
+                { turn_order: 2, speaker_label: 'C', words: [] },
+                { turn_order: 0, speaker_label: 'A', words: [] },
               ],
             },
           },
@@ -834,32 +908,36 @@ describe('doStream', () => {
       ]);
     });
 
-    it('uses a single steered language as the transcript language', async () => {
-      const model = createModel();
+    it.each([
+      { assemblyai: { streaming: { languageCodes: ['es'] } } },
+      { assemblyai: { languageCode: 'es' } },
+    ])(
+      'uses a single steered language as the transcript language (%j)',
+      async providerOptions => {
+        const model = createModel();
 
-      const result = await model.doStream({
-        audio: audio(),
-        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-        providerOptions: {
-          assemblyai: { streaming: { languageCodes: ['es'] } },
-        },
-      });
-      const partsPromise = convertReadableStreamToArray(result.stream);
-      const ws = MockWebSocket.instances[0];
+        const result = await model.doStream({
+          audio: audio(),
+          inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+          providerOptions,
+        });
+        const partsPromise = convertReadableStreamToArray(result.stream);
+        const ws = MockWebSocket.instances[0];
 
-      ws.open();
-      ws.message(begin);
-      await flush();
-      ws.message(finalTurn(0, 'Hola.'));
-      ws.message(termination);
+        ws.open();
+        ws.message(begin);
+        await flush();
+        ws.message(finalTurn(0, 'Hola.'));
+        ws.message(termination);
 
-      const parts = await partsPromise;
-      expect(parts.at(-1)).toMatchObject({
-        type: 'finish',
-        text: 'Hola.',
-        language: 'es',
-      });
-    });
+        const parts = await partsPromise;
+        expect(parts.at(-1)).toMatchObject({
+          type: 'finish',
+          text: 'Hola.',
+          language: 'es',
+        });
+      },
+    );
 
     it('reports the speech model the server actually applied', async () => {
       const model = createModel('u3-rt-pro');
@@ -964,8 +1042,9 @@ describe('doStream', () => {
       await expect(
         warningsFor('universal-3-5-pro', {
           summarization: true,
+          audioStartFrom: 1000,
+          webhookUrl: 'https://example.com/hook',
           languageCode: 'en',
-          webhookUrl: undefined,
           prompt: 'Supported in streaming.',
         }),
       ).resolves.toEqual([
@@ -977,9 +1056,9 @@ describe('doStream', () => {
         },
         {
           type: 'unsupported',
-          feature: 'providerOptions.assemblyai.languageCode',
+          feature: 'providerOptions.assemblyai.audioStartFrom',
           details:
-            'AssemblyAI streaming transcription does not support languageCode. Use providerOptions.assemblyai.streaming.languageCodes instead.',
+            'AssemblyAI streaming transcription does not support audioStartFrom.',
         },
       ]);
     });
@@ -987,9 +1066,13 @@ describe('doStream', () => {
     it('warns about option combinations the server rejects at connect', async () => {
       await expect(
         warningsFor('universal-3-5-pro', {
+          prompt: 'x'.repeat(1751),
+          redactPiiPolicies: ['person_name'],
           redactPiiSub: 'entity_name',
+          languageCode: 'en',
           keytermsPrompt: Array.from({ length: 101 }, (_, i) => `term-${i}`),
           streaming: {
+            languageCodes: ['es'],
             voiceFocusThreshold: 0.5,
             endOfTurnConfidenceThreshold: 0.4,
           },
@@ -998,12 +1081,22 @@ describe('doStream', () => {
         {
           type: 'other',
           message:
+            "AssemblyAI streaming transcription accepts a 'prompt' of at most 1750 characters (1751 given); the connection is rejected otherwise.",
+        },
+        {
+          type: 'other',
+          message:
             "'redactPiiPolicies' and 'redactPiiSub' require 'redactPii' to be enabled; AssemblyAI rejects the streaming connection otherwise.",
         },
         {
           type: 'other',
           message:
-            "'streaming.voiceFocusThreshold' only applies when 'streaming.voiceFocus' is set; it is otherwise ignored.",
+            "'streaming.voiceFocusThreshold' requires 'streaming.voiceFocus' to be set; AssemblyAI rejects the streaming connection otherwise.",
+        },
+        {
+          type: 'other',
+          message:
+            "'languageCode' is ignored because 'streaming.languageCodes' is set; both configure the same AssemblyAI parameter.",
         },
         {
           type: 'other',
@@ -1018,13 +1111,22 @@ describe('doStream', () => {
       ]);
     });
 
-    it('warns about Pro-only options on Universal Streaming models', async () => {
+    it('does not warn for the default redactPiiSub without redactPii', async () => {
+      await expect(
+        warningsFor('universal-3-5-pro', { redactPiiSub: 'hash' }),
+      ).resolves.toEqual([]);
+    });
+
+    it('splits Pro-only options into rejected and ignored on Universal Streaming models', async () => {
       await expect(
         warningsFor('universal-streaming-english', {
           prompt: 'Support call.',
           streaming: {
             mode: 'balanced',
             languageCodes: ['en'],
+            // dropped server-side before the pairing rule runs, so only the
+            // "ignored" warning applies here:
+            voiceFocusThreshold: 0.5,
             endOfTurnConfidenceThreshold: 0.4,
           },
         }),
@@ -1032,7 +1134,12 @@ describe('doStream', () => {
         {
           type: 'other',
           message:
-            "'prompt', 'streaming.mode', 'streaming.languageCodes' require a Universal-3.x Pro model such as 'universal-3-5-pro'; AssemblyAI rejects the streaming connection for 'universal-streaming-english'.",
+            "'prompt', 'streaming.mode' require a Universal-3.x Pro model such as 'universal-3-5-pro'; AssemblyAI rejects the streaming connection for 'universal-streaming-english'.",
+        },
+        {
+          type: 'other',
+          message:
+            "'streaming.languageCodes', 'streaming.voiceFocusThreshold' only apply to Universal-3.x Pro models and are ignored for 'universal-streaming-english'.",
         },
       ]);
     });
@@ -1043,7 +1150,7 @@ describe('doStream', () => {
       const result = await model.doStream({
         audio: audio(),
         inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
-        providerOptions: { assemblyai: { languageCode: 'es' } },
+        providerOptions: { assemblyai: { audioStartFrom: 1000 } },
       });
       const reader = result.stream.getReader();
       const ws = MockWebSocket.instances[0];
@@ -1054,7 +1161,7 @@ describe('doStream', () => {
         type: 'stream-start',
         warnings: [
           expect.objectContaining({
-            feature: 'providerOptions.assemblyai.languageCode',
+            feature: 'providerOptions.assemblyai.audioStartFrom',
           }),
         ],
       });
@@ -1062,7 +1169,7 @@ describe('doStream', () => {
       ws.message({
         type: 'Error',
         error_code: 3006,
-        error: 'language_code is not supported',
+        error: 'audio_start_from is not supported',
       });
       await expect(reader.read()).rejects.toThrow(/code 3006/);
     });
