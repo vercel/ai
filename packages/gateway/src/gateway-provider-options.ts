@@ -4,6 +4,9 @@ import { z } from './zod';
 
 // https://vercel.com/docs/ai-gateway/provider-options
 export const EVALUATION_FALLBACK_MAX_CONDITION_DEPTH = 5;
+export const EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST = 20;
+export const EVALUATION_FALLBACK_MAX_QUESTION_LENGTH = 256;
+export const EVALUATION_FALLBACK_MAX_MODEL_LENGTH = 256;
 
 export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
   zodSchema(
@@ -25,7 +28,7 @@ export type GatewayModelFallback<QUESTION_ID extends string = string> =
       when: EvaluationFallbackCondition<QUESTION_ID>;
     };
 
-export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
+export type GatewayProviderOptions = {
   /**
    * Service-owned options may be added by the Gateway without requiring an SDK
    * release. The Gateway service validates and applies the runtime schema.
@@ -70,11 +73,11 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   idempotencyKey?: string;
 
   /**
-   * Fallback models to use in order. Conditional entries are only valid for
-   * evaluation requests. At most one conditional entry is allowed, it must be
-   * first, and string error fallbacks may follow it.
+   * Array of model slugs specifying fallback models to use in order.
+   * Conditional entries are only valid on evaluation requests, see
+   * `GatewayEvaluationProviderOptions`.
    */
-  models?: GatewayModelFallbackList<QUESTION_ID>;
+  models?: string[];
 
   /** Array of provider slugs that are the only ones allowed to be used. */
   only?: string[];
@@ -104,6 +107,20 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
 
   /** Filter to providers with zero data retention agreements. */
   zeroDataRetention?: boolean;
+};
+
+/**
+ * Gateway provider options for evaluation requests. Same as
+ * `GatewayProviderOptions`, except `models` may start with one conditional
+ * `{ model, when }` entry followed by string error fallbacks.
+ *
+ * The SDK validates `models` strictly before sending the request, so new
+ * condition shapes need an SDK release. Other keys pass through unchanged.
+ */
+export type GatewayEvaluationProviderOptions<
+  QUESTION_ID extends string = string,
+> = GatewayProviderOptionsWithoutModels & {
+  models?: GatewayModelFallbackList<QUESTION_ID>;
 };
 
 type EvaluationFallbackDirectCondition<QUESTION_ID extends string> =
@@ -185,6 +202,12 @@ type EvaluationFallbackConditionAtDepth1<QUESTION_ID extends string> =
       EvaluationFallbackConditionAtDepth2<QUESTION_ID>
     >;
 
+type GatewayProviderOptionsWithoutModels = {
+  [KEY in keyof GatewayProviderOptions as KEY extends 'models'
+    ? never
+    : KEY]: GatewayProviderOptions[KEY];
+};
+
 type ConditionalGatewayModelFallback<QUESTION_ID extends string> = Exclude<
   GatewayModelFallback<QUESTION_ID>,
   string
@@ -195,7 +218,10 @@ type GatewayModelFallbackList<QUESTION_ID extends string> =
   | [ConditionalGatewayModelFallback<QUESTION_ID>, ...string[]];
 
 const probabilitySchema = z.number().finite().min(0).max(1);
-const questionSchema = z.string().min(1);
+const questionSchema = z
+  .string()
+  .min(1)
+  .max(EVALUATION_FALLBACK_MAX_QUESTION_LENGTH);
 const directConditionSchema = z.union([
   z
     .object({
@@ -218,7 +244,7 @@ const directConditionSchema = z.union([
 
 const conditionalModelFallbackSchema = z
   .object({
-    model: z.string().min(1),
+    model: z.string().min(1).max(EVALUATION_FALLBACK_MAX_MODEL_LENGTH),
     when: conditionSchema(1),
   })
   .strict();
@@ -251,7 +277,10 @@ function conditionSchema(depth: number): ZodType<EvaluationFallbackCondition> {
   }
 
   const childConditionSchema = conditionSchema(depth + 1);
-  const conditionListSchema = z.array(childConditionSchema).min(1);
+  const conditionListSchema = z
+    .array(childConditionSchema)
+    .min(1)
+    .max(EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST);
 
   return z.union([
     directConditionSchema,

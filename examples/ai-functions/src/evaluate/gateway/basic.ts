@@ -1,4 +1,7 @@
-import { gateway, type GatewayProviderOptions } from '@ai-sdk/gateway';
+import {
+  gateway,
+  type GatewayEvaluationProviderOptions,
+} from '@ai-sdk/gateway';
 import { experimental_evaluate } from 'ai';
 import { run } from '../../lib/run';
 
@@ -44,7 +47,7 @@ run(async () => {
             },
           },
         ],
-      } satisfies GatewayProviderOptions<keyof typeof questions>,
+      } satisfies GatewayEvaluationProviderOptions<keyof typeof questions>,
     },
   });
 

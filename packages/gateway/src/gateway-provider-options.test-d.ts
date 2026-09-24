@@ -1,6 +1,7 @@
 import { expectTypeOf, it } from 'vitest';
 import type {
   EvaluationFallbackCondition,
+  GatewayEvaluationProviderOptions,
   GatewayModelFallback,
   GatewayProviderOptions,
 } from './index';
@@ -77,14 +78,38 @@ it('types conditional evaluation model fallbacks', () => {
     models: existingModels,
   } satisfies GatewayProviderOptions;
   expectTypeOf(existingOptions.models).toEqualTypeOf<string[]>();
+  expectTypeOf<GatewayProviderOptions['models']>().toEqualTypeOf<
+    string[] | undefined
+  >();
+  const existingEvaluationOptions = {
+    models: existingModels,
+    order: ['openai'],
+  } satisfies GatewayEvaluationProviderOptions;
+  void existingEvaluationOptions;
 
   const options = {
     models: [
       { model: 'openai/gpt-5.6-sol', when: any },
       'anthropic/claude-haiku-4.5',
     ],
-  } satisfies GatewayProviderOptions<QuestionId>;
-  expectTypeOf(options).toMatchTypeOf<GatewayProviderOptions<QuestionId>>();
+    order: ['openai'],
+    serviceOwnedOption: true,
+  } satisfies GatewayEvaluationProviderOptions<QuestionId>;
+  expectTypeOf(options).toMatchTypeOf<
+    GatewayEvaluationProviderOptions<QuestionId>
+  >();
+  expectTypeOf<GatewayEvaluationProviderOptions['sort']>().toEqualTypeOf<
+    GatewayProviderOptions['sort']
+  >();
+
+  const languageOptions: GatewayProviderOptions = {
+    // @ts-expect-error Conditional fallbacks are only valid on evaluation requests.
+    models: [{ model: 'openai/gpt-5.6-sol', when: confidence }],
+  };
+  const invalidEvaluationSort: GatewayEvaluationProviderOptions = {
+    // @ts-expect-error Evaluation options keep the typed routing options.
+    sort: 'latency',
+  };
 
   // @ts-expect-error Conditional fallbacks require a model.
   const missingModel: GatewayModelFallback = {
@@ -149,15 +174,17 @@ it('types conditional evaluation model fallbacks', () => {
     model: 'openai/gpt-5.6-sol',
     when: confidence,
   };
-  const conditionalAfterString: GatewayProviderOptions = {
+  const conditionalAfterString: GatewayEvaluationProviderOptions = {
     // @ts-expect-error A conditional fallback must be the first models entry.
     models: ['anthropic/claude-haiku-4.5', conditional],
   };
-  const multipleConditionals: GatewayProviderOptions = {
+  const multipleConditionals: GatewayEvaluationProviderOptions = {
     // @ts-expect-error models supports at most one conditional fallback.
     models: [conditional, conditional],
   };
 
+  void languageOptions;
+  void invalidEvaluationSort;
   void missingModel;
   void malformedBounds;
   void invalidField;
