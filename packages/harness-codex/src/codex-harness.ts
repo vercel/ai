@@ -30,6 +30,7 @@ import {
   createSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
+  experimental_createBridgeUserMessageSubmitter,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
@@ -847,6 +848,11 @@ function createSession({
       pendingResolve = resolve;
       pendingReject = reject;
     });
+    const userMessageSubmitter = experimental_createBridgeUserMessageSubmitter({
+      send: message => channel.send(message),
+      onResponse: listener => channel.on('user-message-response', listener),
+      onReconnect: listener => channel.onReconnect(listener),
+    });
 
     const unsubs: Array<() => void> = [];
     const forward = (event: HarnessV1StreamPart) => {
@@ -874,12 +880,14 @@ function createSession({
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter.close();
       for (const u of unsubs) u();
       pendingResolve!();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
+      userMessageSubmitter.close(err);
       for (const u of unsubs) u();
       pendingReject!(err);
     };
@@ -956,6 +964,9 @@ function createSession({
           approved: input.approved,
           reason: input.reason,
         });
+      },
+      submitUserMessage: async text => {
+        await userMessageSubmitter.submit(text);
       },
       done,
     };

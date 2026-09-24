@@ -33,6 +33,9 @@ const server = vi.hoisted(() => ({
   nextTurn: 0,
   autoComplete: true,
   hookResponse: undefined as unknown,
+  steerResponse: undefined as
+    | ((params: unknown) => Promise<unknown> | unknown)
+    | undefined,
 }));
 
 vi.mock('./codex-app-server-client', () => ({
@@ -114,6 +117,13 @@ vi.mock('./codex-app-server-client', () => ({
         }
         return { turn };
       }
+      if (method === 'turn/steer') {
+        return (
+          server.steerResponse?.(params) ?? {
+            turnId: `turn-${server.nextTurn}`,
+          }
+        );
+      }
       return {};
     }
 
@@ -132,6 +142,60 @@ vi.mock('./codex-app-server-client', () => ({
   },
 }));
 
+function createUserMessages() {
+  type Message = {
+    messageId: string;
+    text: string;
+    accept: () => void;
+    reject: (error?: unknown) => void;
+  };
+  const messages: Message[] = [];
+  const pending = new Set<Message>();
+  const waiters: Array<(result: IteratorResult<Message>) => void> = [];
+  let closed = false;
+  const queue = {
+    get pendingCount() {
+      return pending.size;
+    },
+    close(error?: unknown) {
+      closed = true;
+      for (const message of pending) message.reject(error);
+      pending.clear();
+      messages.length = 0;
+      for (const waiter of waiters.splice(0)) {
+        waiter({ done: true, value: undefined });
+      }
+    },
+    [Symbol.asyncIterator]() {
+      return {
+        next(): Promise<IteratorResult<Message>> {
+          const message = messages.shift();
+          if (message != null)
+            return Promise.resolve({ done: false, value: message });
+          if (closed) return Promise.resolve({ done: true, value: undefined });
+          return new Promise(resolve => waiters.push(resolve));
+        },
+      };
+    },
+  };
+  return {
+    queue,
+    push(text: string, messageId: string) {
+      const message: Message = {
+        messageId,
+        text,
+        accept: vi.fn(),
+        reject: vi.fn(),
+      };
+      pending.add(message);
+      const waiter = waiters.shift();
+      if (waiter != null) waiter({ done: false, value: message });
+      else messages.push(message);
+      return message;
+    },
+  };
+}
+
 describe('Codex app-server runtime lifecycle', () => {
   beforeEach(() => {
     server.clients = [];
@@ -139,6 +203,7 @@ describe('Codex app-server runtime lifecycle', () => {
     server.nextTurn = 0;
     server.autoComplete = true;
     server.hookResponse = undefined;
+    server.steerResponse = undefined;
   });
 
   function createOptions({
@@ -147,12 +212,14 @@ describe('Codex app-server runtime lifecycle', () => {
     start = {},
     abortSignal = new AbortController().signal,
     emit = () => {},
+    userMessages = createUserMessages(),
   }: {
     threadId?: string;
     codexConfig?: Record<string, unknown>;
     start?: Partial<StartMessage>;
     abortSignal?: AbortSignal;
     emit?: (event: Record<string, unknown>) => void;
+    userMessages?: ReturnType<typeof createUserMessages>;
   } = {}) {
     const send = vi.fn();
     return {
@@ -168,6 +235,7 @@ describe('Codex app-server runtime lifecycle', () => {
         emitError: vi.fn(),
         bridgeLog: vi.fn(),
         requestToolResult: vi.fn(async () => ({ output: 'done' })),
+        experimental_userMessages: userMessages.queue,
       } as unknown as BridgeTurn,
       emit,
       workdir: '/workspace',
@@ -454,6 +522,146 @@ describe('Codex app-server runtime lifecycle', () => {
       },
     });
     await pendingNext;
+    await runtime.close();
+  });
+
+  it('steers the active turn while a host tool result is pending and sends messages in order', async () => {
+    server.autoComplete = false;
+    const runtime = createCodexAppServerRuntime();
+    const userMessages = createUserMessages();
+    const options = createOptions({ userMessages });
+    let releaseTool: ((value: { output: string }) => void) | undefined;
+    vi.mocked(options.turn.requestToolResult).mockImplementation(
+      () => new Promise(resolve => (releaseTool = resolve)),
+    );
+    const pending = runtime.runTurn(options);
+    await vi.waitFor(() =>
+      expect(
+        server.clients[0]?.calls.some(call => call.method === 'turn/start'),
+      ).toBe(true),
+    );
+    const client = server.clients[0]!;
+    const toolRequest = client.onRequest({
+      id: 1,
+      method: 'item/tool/call',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        tool: 'host_tool',
+        callId: 'call-1',
+      },
+    });
+    await vi.waitFor(() =>
+      expect(options.turn.requestToolResult).toHaveBeenCalledWith('call-1'),
+    );
+    const first = userMessages.push('Actually, Paris, Texas.', 'message-1');
+    const second = userMessages.push('Use Celsius.', 'message-2');
+    await vi.waitFor(() => expect(second.accept).toHaveBeenCalledOnce());
+    expect(first.accept).toHaveBeenCalledOnce();
+    expect(first.reject).not.toHaveBeenCalled();
+    expect(second.reject).not.toHaveBeenCalled();
+    expect(client.calls.filter(call => call.method === 'turn/steer')).toEqual([
+      {
+        method: 'turn/steer',
+        params: {
+          threadId: 'thread-1',
+          expectedTurnId: 'turn-1',
+          clientUserMessageId: 'message-1',
+          input: [
+            {
+              type: 'text',
+              text: 'Actually, Paris, Texas.',
+              text_elements: [],
+            },
+          ],
+        },
+      },
+      {
+        method: 'turn/steer',
+        params: {
+          threadId: 'thread-1',
+          expectedTurnId: 'turn-1',
+          clientUserMessageId: 'message-2',
+          input: [{ type: 'text', text: 'Use Celsius.', text_elements: [] }],
+        },
+      },
+    ]);
+    releaseTool!({ output: 'done' });
+    await toolRequest;
+    client.onNotification({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'completed' },
+      },
+    });
+    await pending;
+    await runtime.close();
+  });
+
+  it('rejects failed and mismatched steering requests without failing the turn', async () => {
+    server.autoComplete = false;
+    let count = 0;
+    server.steerResponse = () => {
+      count++;
+      if (count === 1) throw new Error('No active turn');
+      if (count === 2) return { turnId: 'a-different-turn' };
+      return { turnId: 'turn-1' };
+    };
+    const runtime = createCodexAppServerRuntime();
+    const userMessages = createUserMessages();
+    const pending = runtime.runTurn(createOptions({ userMessages }));
+    await vi.waitFor(() =>
+      expect(
+        server.clients[0]?.calls.some(call => call.method === 'turn/start'),
+      ).toBe(true),
+    );
+    const rejected = userMessages.push('First', 'message-1');
+    const mismatched = userMessages.push('Second', 'message-2');
+    const accepted = userMessages.push('Third', 'message-3');
+    await vi.waitFor(() => expect(accepted.accept).toHaveBeenCalledOnce());
+    expect(rejected.reject).toHaveBeenCalledWith(new Error('No active turn'));
+    expect(mismatched.reject).toHaveBeenCalledWith(
+      new Error('Codex app-server turn/steer returned an unexpected turn ID.'),
+    );
+    server.clients[0]!.onNotification({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'completed' },
+      },
+    });
+    await pending;
+    await runtime.close();
+  });
+
+  it('rejects a pending steering request when the turn ends', async () => {
+    server.autoComplete = false;
+    server.steerResponse = () => new Promise(() => {});
+    const runtime = createCodexAppServerRuntime();
+    const userMessages = createUserMessages();
+    const pending = runtime.runTurn(createOptions({ userMessages }));
+    await vi.waitFor(() =>
+      expect(
+        server.clients[0]?.calls.some(call => call.method === 'turn/start'),
+      ).toBe(true),
+    );
+    const message = userMessages.push('Too late.', 'message-1');
+    await vi.waitFor(() =>
+      expect(
+        server.clients[0]?.calls.some(call => call.method === 'turn/steer'),
+      ).toBe(true),
+    );
+    server.clients[0]!.onNotification({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'completed' },
+      },
+    });
+    await pending;
+    expect(message.accept).not.toHaveBeenCalled();
+    expect(message.reject).toHaveBeenCalledOnce();
     await runtime.close();
   });
 

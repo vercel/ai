@@ -220,6 +220,44 @@ export function createCodexAppServerRuntime(): {
         clientFailure,
         exitFailure,
       ]);
+    let stopSteering = () => {};
+    const steeringStopped = new Promise<void>(resolve => {
+      stopSteering = resolve;
+    });
+    const userMessageLoop = async () => {
+      for await (const message of turn.experimental_userMessages) {
+        try {
+          const response = await Promise.race([
+            raceWithProcess({
+              operation: runningClient.request({
+                method: 'turn/steer',
+                params: {
+                  threadId: currentTurn.threadId!,
+                  expectedTurnId: currentTurn.turnId!,
+                  clientUserMessageId: message.messageId,
+                  input: [
+                    { type: 'text', text: message.text, text_elements: [] },
+                  ],
+                },
+              }),
+            }),
+            steeringStopped.then(() => {
+              throw new Error(
+                'The Codex turn ended before accepting the user message.',
+              );
+            }),
+          ]);
+          if (asRecord(response)?.turnId !== currentTurn.turnId) {
+            throw new Error(
+              'Codex app-server turn/steer returned an unexpected turn ID.',
+            );
+          }
+          message.accept();
+        } catch (error) {
+          message.reject(error);
+        }
+      }
+    };
     let keepClient = false;
     try {
       if (initialized) {
@@ -306,6 +344,7 @@ export function createCodexAppServerRuntime(): {
         method: 'turn/start',
       });
       handler.setTurnId(currentTurn.turnId);
+      void userMessageLoop();
       const result = await raceWithProcess({
         operation: handler.waitForCompletion(),
       });
@@ -331,6 +370,8 @@ export function createCodexAppServerRuntime(): {
       }
       throw error;
     } finally {
+      turn.experimental_userMessages.close();
+      stopSteering();
       removeAbortListener();
       if (activeTurn === currentTurn) activeTurn = undefined;
       if (!keepClient) await close();
