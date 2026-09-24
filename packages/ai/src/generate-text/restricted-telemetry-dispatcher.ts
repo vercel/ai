@@ -7,6 +7,7 @@ import type {
 import { filterIncludedContext } from '../telemetry/filter-included-context';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
+import type { TelemetryTracingEventType } from '../telemetry/tracing-channel';
 import type {
   IncludedContext,
   IncludedToolsContext,
@@ -167,9 +168,79 @@ export function createRestrictedTelemetryDispatcher<
   includeToolsContext?: IncludedToolsContext<TOOLS>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const runInTracingChannelSpan = telemetryDispatcher.runInTracingChannelSpan;
+  const startTracingChannelContext =
+    telemetryDispatcher.startTracingChannelContext;
+
+  const filterTracingChannelEvent = ({
+    type,
+    event,
+  }: {
+    type: TelemetryTracingEventType;
+    event: unknown;
+  }): unknown => {
+    if (event == null || typeof event !== 'object') {
+      return event;
+    }
+
+    if (type === 'generateText' || type === 'streamText') {
+      const startEvent = event as {
+        runtimeContext: RUNTIME_CONTEXT;
+        toolsContext: InferToolSetContext<TOOLS>;
+      };
+
+      return {
+        ...event,
+        runtimeContext: filterIncludedContext({
+          context: startEvent.runtimeContext,
+          includeContext: includeRuntimeContext,
+        }),
+        toolsContext: filterToolsContext({
+          toolsContext: startEvent.toolsContext,
+          includeToolsContext,
+        }),
+      };
+    }
+
+    if (type === 'executeTool') {
+      const toolExecutionEvent = event as {
+        toolCall: { toolName: string };
+        toolContext: unknown;
+      };
+
+      return {
+        ...event,
+        toolContext: filterToolContext({
+          toolName: toolExecutionEvent.toolCall.toolName,
+          toolContext: toolExecutionEvent.toolContext,
+          includeToolsContext,
+        }),
+      };
+    }
+
+    return event;
+  };
 
   return {
     ...telemetryDispatcher,
+    runInTracingChannelSpan:
+      runInTracingChannelSpan == null
+        ? undefined
+        : async ({ type, event, execute }) =>
+            await runInTracingChannelSpan({
+              type,
+              event: filterTracingChannelEvent({ type, event }),
+              execute,
+            }),
+    startTracingChannelContext:
+      startTracingChannelContext == null
+        ? undefined
+        : ({ type, event, completion }) =>
+            startTracingChannelContext({
+              type,
+              event: filterTracingChannelEvent({ type, event }),
+              completion,
+            }),
     onStart: event =>
       telemetryDispatcher.onStart?.({
         ...event,
