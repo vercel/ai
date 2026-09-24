@@ -536,10 +536,10 @@ importers:
         version: 4.6.1(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))
       '@opentelemetry/auto-instrumentations-node':
         specifier: 0.77.0
-        version: 0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@10.2.2)
+        version: 0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)
       '@opentelemetry/sdk-node':
         specifier: ^0.219.0
-        version: 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+        version: 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/sdk-trace-node':
         specifier: ^2.7.1
         version: 2.7.1(@opentelemetry/api@1.9.1)
@@ -569,13 +569,13 @@ importers:
         version: 4.1.0
       google-auth-library:
         specifier: ^9.15.1
-        version: 9.15.1(encoding@0.1.13)(supports-color@10.2.2)
+        version: 9.15.1(encoding@0.1.13)(supports-color@8.1.1)
       image-type:
         specifier: ^5.2.0
         version: 5.2.0
       just-bash:
         specifier: ^2.14.5
-        version: 2.14.5(supports-color@10.2.2)
+        version: 2.14.5(supports-color@8.1.1)
       mathjs:
         specifier: ^15.2.0
         version: 15.2.0
@@ -584,7 +584,7 @@ importers:
         version: 0.33.5
       terminal-image:
         specifier: ^2.0.0
-        version: 2.0.0(debug@4.4.3(supports-color@10.2.2))
+        version: 2.0.0(debug@4.4.3(supports-color@8.1.1))
       undici:
         specifier: ^8.9.0
         version: 8.9.0
@@ -593,7 +593,7 @@ importers:
         version: 1.1.0(typescript@5.8.3)
       workflow:
         specifier: 5.0.0-beta.42
-        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(react@19.0.0-rc-cc1ec60d0d-20240607)(supports-color@10.2.2)(typescript@5.8.3)(ws@8.21.3)
+        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.49)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@8.1.1))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(react@19.0.0-rc-cc1ec60d0d-20240607)(supports-color@8.1.1)(typescript@5.8.3)(ws@8.21.3)
       ws:
         specifier: ^8.21.0
         version: 8.21.3
@@ -661,7 +661,7 @@ importers:
     devDependencies:
       '@angular-devkit/build-angular':
         specifier: ^20.3.26
-        version: 20.3.26(bd26937bfed7d8677641463a5bb559d3)
+        version: 20.3.26(264365ee4a80a295d575c346bde9111c)
       '@angular/cli':
         specifier: ^20.3.28
         version: 20.3.28(@cfworker/json-schema@4.1.1)(@types/node@22.19.19)(chokidar@4.0.3)(supports-color@10.2.2)
@@ -1620,7 +1620,7 @@ importers:
         version: 18.3.1(react@18.3.1)
       workflow:
         specifier: 5.0.0-beta.42
-        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(supports-color@10.2.2)(typescript@5.8.3)(ws@8.21.3)
+        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(supports-color@10.2.2)(typescript@5.8.3)
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -4406,19 +4406,19 @@ importers:
         version: link:../../tools/tsconfig
       '@workflow/vitest':
         specifier: 5.0.0-beta.42
-        version: 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@8.1.1)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@8.1.1))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(ws@8.21.3)
+        version: 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(ws@8.21.3)
       tsup:
         specifier: ^8.5.1
-        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(jiti@2.7.0)(postcss@8.5.26)(supports-color@8.1.1)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.1)
+        version: 8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(jiti@2.7.0)(postcss@8.5.26)(supports-color@10.2.2)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.1)
       typescript:
         specifier: 5.8.3
         version: 5.8.3
       vitest:
         specifier: 4.1.6
-        version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@8.1.1))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
+        version: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
       workflow:
         specifier: 5.0.0-beta.42
-        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.49)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@8.1.1))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@8.1.1))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(react@19.0.0-rc-cc1ec60d0d-20240607)(supports-color@8.1.1)(typescript@5.8.3)(ws@8.21.3)
+        version: 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.0.0-rc-cc1ec60d0d-20240607(react@19.0.0-rc-cc1ec60d0d-20240607))(react@19.0.0-rc-cc1ec60d0d-20240607)(sass@1.90.0))(react@19.0.0-rc-cc1ec60d0d-20240607)(supports-color@10.2.2)(typescript@5.8.3)(ws@8.21.3)
       zod:
         specifier: 4.4.3
         version: 4.4.3
@@ -25201,7 +25201,7 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@angular-devkit/build-angular@20.3.26(bd26937bfed7d8677641463a5bb559d3)':
+  '@angular-devkit/build-angular@20.3.26(264365ee4a80a295d575c346bde9111c)':
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@angular-devkit/architect': 0.2003.26(chokidar@4.0.3)
@@ -25263,7 +25263,7 @@ snapshots:
       '@angular/core': 20.3.27(@angular/compiler@20.3.27)(rxjs@7.8.2)(zone.js@0.15.1)
       '@angular/platform-browser': 20.3.25(@angular/common@20.3.27(@angular/core@20.3.27(@angular/compiler@20.3.27)(rxjs@7.8.2)(zone.js@0.15.1))(rxjs@7.8.2))(@angular/core@20.3.27(@angular/compiler@20.3.27)(rxjs@7.8.2)(zone.js@0.15.1))
       esbuild: 0.28.0
-      jest: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3))
+      jest: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
       tailwindcss: 4.3.0
     transitivePeerDependencies:
       - '@angular/compiler'
@@ -29375,6 +29375,42 @@ snapshots:
       jest-util: 29.7.0
       slash: 3.0.0
 
+  '@jest/core@29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))':
+    dependencies:
+      '@jest/console': 29.7.0
+      '@jest/reporters': 29.7.0(supports-color@10.2.2)
+      '@jest/test-result': 29.7.0
+      '@jest/transform': 29.7.0(supports-color@10.2.2)
+      '@jest/types': 29.6.3
+      '@types/node': 22.19.19
+      ansi-escapes: 4.3.2
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      exit: 0.1.2
+      graceful-fs: 4.2.11
+      jest-changed-files: 29.7.0
+      jest-config: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      jest-haste-map: 29.7.0
+      jest-message-util: 29.7.0
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-resolve-dependencies: 29.7.0(supports-color@10.2.2)
+      jest-runner: 29.7.0(supports-color@10.2.2)
+      jest-runtime: 29.7.0(supports-color@10.2.2)
+      jest-snapshot: 29.7.0(supports-color@10.2.2)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      jest-watcher: 29.7.0
+      micromatch: 4.0.8
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-ansi: 6.0.1
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+    optional: true
+
   '@jest/core@29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3))':
     dependencies:
       '@jest/console': 29.7.0
@@ -29528,21 +29564,21 @@ snapshots:
       '@types/yargs': 17.0.35
       chalk: 4.1.2
 
-  '@jimp/bmp@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/bmp@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
       bmp-js: 0.1.0
 
-  '@jimp/bmp@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/bmp@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
       bmp-js: 0.1.0
 
-  '@jimp/core@0.14.0(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/core@0.14.0(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
       '@jimp/utils': 0.14.0
@@ -29550,7 +29586,7 @@ snapshots:
       buffer: 5.7.1
       exif-parser: 0.1.12
       file-type: 9.0.0
-      load-bmfont: 1.4.2(debug@4.4.3(supports-color@10.2.2))
+      load-bmfont: 1.4.2(debug@4.4.3(supports-color@8.1.1))
       mkdirp: 0.5.6
       phin: 2.9.3
       pixelmatch: 4.0.2
@@ -29558,7 +29594,7 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@jimp/core@0.16.13(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/core@0.16.13(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
       '@jimp/utils': 0.16.13
@@ -29566,7 +29602,7 @@ snapshots:
       buffer: 5.7.1
       exif-parser: 0.1.12
       file-type: 16.5.4
-      load-bmfont: 1.4.2(debug@4.4.3(supports-color@10.2.2))
+      load-bmfont: 1.4.2(debug@4.4.3(supports-color@8.1.1))
       mkdirp: 0.5.6
       phin: 2.9.3
       pixelmatch: 4.0.2
@@ -29574,446 +29610,446 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/core': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/core': 0.14.0(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
-  '@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/core': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/core': 0.16.13(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
-  '@jimp/gif@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/gif@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
       gifwrap: 0.9.4
       omggif: 1.0.10
 
-  '@jimp/gif@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/gif@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
       gifwrap: 0.9.4
       omggif: 1.0.10
 
-  '@jimp/jpeg@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/jpeg@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
       jpeg-js: 0.4.4
 
-  '@jimp/jpeg@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/jpeg@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
       jpeg-js: 0.4.4
 
-  '@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-circle@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-circle@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-circle@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-circle@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
       tinycolor2: 1.6.0
 
-  '@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
       tinycolor2: 1.6.0
 
-  '@jimp/plugin-contain@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-contain@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-contain@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-contain@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-cover@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-cover@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-cover@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-cover@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-displace@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-displace@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-displace@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-displace@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-dither@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-dither@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-dither@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-dither@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-fisheye@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-fisheye@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-fisheye@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-fisheye@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-flip@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-flip@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-rotate': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-rotate': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-flip@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))':
+  '@jimp/plugin-flip@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-rotate': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-rotate': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-gaussian@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-gaussian@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-gaussian@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-gaussian@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-invert@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-invert@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-invert@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-invert@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-mask@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-mask@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-mask@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-mask@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-normalize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-normalize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-normalize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-normalize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-print@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/plugin-print@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.14.0
-      load-bmfont: 1.4.2(debug@4.4.3(supports-color@10.2.2))
+      load-bmfont: 1.4.2(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
-  '@jimp/plugin-print@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/plugin-print@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.16.13
-      load-bmfont: 1.4.2(debug@4.4.3(supports-color@10.2.2))
+      load-bmfont: 1.4.2(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
-  '@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-shadow@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-shadow@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blur': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blur': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-shadow@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-shadow@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blur': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blur': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugin-threshold@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-threshold@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-color': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-color': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.14.0
 
-  '@jimp/plugin-threshold@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))':
+  '@jimp/plugin-threshold@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-color': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-color': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       '@jimp/utils': 0.16.13
 
-  '@jimp/plugins@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/plugins@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-blur': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-circle': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-color': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-contain': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-cover': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-displace': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-dither': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-fisheye': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-flip': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-gaussian': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-invert': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-mask': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-normalize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-print': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-rotate': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-shadow': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-threshold': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-blur': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-circle': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-color': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-contain': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-cover': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-crop': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-displace': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-dither': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-fisheye': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-flip': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-rotate@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-gaussian': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-invert': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-mask': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-normalize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-print': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-resize': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-rotate': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-scale': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-shadow': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blur@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-threshold': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-color@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1))))
       timm: 1.7.1
     transitivePeerDependencies:
       - debug
 
-  '@jimp/plugins@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(debug@4.4.3(supports-color@10.2.2))':
+  '@jimp/plugins@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-blur': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-circle': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-color': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-contain': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-cover': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-displace': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-dither': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-fisheye': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-flip': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))))
-      '@jimp/plugin-gaussian': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-invert': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-mask': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-normalize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-print': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/plugin-rotate': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-shadow': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
-      '@jimp/plugin-threshold': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2))))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-blit': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-blur': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-circle': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-color': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-contain': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-cover': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-scale@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-crop': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-displace': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-dither': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-fisheye': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-flip': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-rotate@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))))
+      '@jimp/plugin-gaussian': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-invert': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-mask': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-normalize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-print': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugin-resize': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/plugin-rotate': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blit@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-crop@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-scale': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-shadow': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-blur@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
+      '@jimp/plugin-threshold': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(@jimp/plugin-color@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))(@jimp/plugin-resize@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1))))
       timm: 1.7.1
     transitivePeerDependencies:
       - debug
 
-  '@jimp/png@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/png@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.14.0
       pngjs: 3.4.0
 
-  '@jimp/png@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/png@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       '@jimp/utils': 0.16.13
       pngjs: 3.4.0
 
-  '@jimp/tiff@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/tiff@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
       utif: 2.0.1
 
-  '@jimp/tiff@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/tiff@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
       utif: 2.0.1
 
-  '@jimp/types@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/types@0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/bmp': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/gif': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/jpeg': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/png': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/tiff': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/bmp': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/gif': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/jpeg': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/png': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/tiff': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       timm: 1.7.1
 
-  '@jimp/types@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))':
+  '@jimp/types@0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))':
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/bmp': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/gif': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/jpeg': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/png': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
-      '@jimp/tiff': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/bmp': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/gif': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/jpeg': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/png': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
+      '@jimp/tiff': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       timm: 1.7.1
 
   '@jimp/utils@0.14.0':
@@ -32210,59 +32246,59 @@ snapshots:
 
   '@opentelemetry/api@1.9.1': {}
 
-  '@opentelemetry/auto-instrumentations-node@0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@10.2.2)':
+  '@opentelemetry/auto-instrumentations-node@0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.11.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-amqplib': 0.66.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-aws-lambda': 0.71.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-aws-sdk': 0.74.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-bunyan': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-cassandra-driver': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-connect': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-cucumber': 0.35.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-dataloader': 0.36.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-dns': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-express': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-fs': 0.38.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-generic-pool': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-graphql': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-grpc': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-hapi': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-host-metrics': 0.2.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-http': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-ioredis': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-kafkajs': 0.28.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-knex': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-koa': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-lru-memoizer': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-memcached': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-mongodb': 0.72.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-mongoose': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-mysql': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-mysql2': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-nestjs-core': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-net': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-openai': 0.17.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-oracledb': 0.44.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-pg': 0.71.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-pino': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-redis': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-restify': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-router': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-runtime-node': 0.32.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-socket.io': 0.66.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-tedious': 0.38.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-undici': 0.29.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
-      '@opentelemetry/instrumentation-winston': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-amqplib': 0.66.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-aws-lambda': 0.71.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-aws-sdk': 0.74.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-bunyan': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-cassandra-driver': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-connect': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-cucumber': 0.35.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-dataloader': 0.36.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-dns': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-express': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-fs': 0.38.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-generic-pool': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-graphql': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-grpc': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-hapi': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-host-metrics': 0.2.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-http': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-ioredis': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-kafkajs': 0.28.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-knex': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-koa': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-lru-memoizer': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-memcached': 0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-mongodb': 0.72.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-mongoose': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-mysql': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-mysql2': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-nestjs-core': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-net': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-openai': 0.17.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-oracledb': 0.44.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-pg': 0.71.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-pino': 0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-redis': 0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-restify': 0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-router': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-runtime-node': 0.32.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-socket.io': 0.66.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-tedious': 0.38.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-undici': 0.29.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
+      '@opentelemetry/instrumentation-winston': 0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/resource-detector-alibaba-cloud': 0.34.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resource-detector-aws': 2.19.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resource-detector-azure': 0.27.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resource-detector-container': 0.8.10(@opentelemetry/api@1.9.1)
-      '@opentelemetry/resource-detector-gcp': 0.54.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/resource-detector-gcp': 0.54.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/resources': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/sdk-node': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/sdk-node': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -32461,47 +32497,47 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-amqplib@0.66.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-amqplib@0.66.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-aws-lambda@0.71.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-aws-lambda@0.71.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/propagator-aws-xray': 2.2.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/aws-lambda': 8.10.162
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-aws-sdk@0.74.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-aws-sdk@0.74.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-bunyan@0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-bunyan@0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@types/bunyan': 1.8.11
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-cassandra-driver@0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-cassandra-driver@0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32516,20 +32552,20 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-connect@0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-connect@0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/connect': 3.4.38
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-cucumber@0.35.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-cucumber@0.35.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32541,25 +32577,25 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-dataloader@0.36.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-dataloader@0.36.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-dns@0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-dns@0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-express@0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-express@0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32572,11 +32608,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-fs@0.38.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-fs@0.38.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -32587,10 +32623,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-generic-pool@0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-generic-pool@0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -32601,17 +32637,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-graphql@0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-graphql@0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-grpc@0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-grpc@0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32625,19 +32661,19 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-hapi@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-hapi@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-host-metrics@0.2.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-host-metrics@0.2.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       systeminformation: 5.31.7
     transitivePeerDependencies:
       - supports-color
@@ -32652,20 +32688,20 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-http@0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-http@0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       forwarded-parse: 2.1.2
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-ioredis@0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-ioredis@0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/redis-common': 0.38.3
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
@@ -32679,10 +32715,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-kafkajs@0.28.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-kafkajs@0.28.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32695,10 +32731,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-knex@0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-knex@0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32712,11 +32748,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-koa@0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-koa@0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32728,17 +32764,17 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-lru-memoizer@0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-lru-memoizer@0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-memcached@0.62.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-memcached@0.62.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/memcached': 2.2.10
     transitivePeerDependencies:
@@ -32752,10 +32788,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-mongodb@0.72.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-mongodb@0.72.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32769,11 +32805,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-mongoose@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-mongoose@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
@@ -32787,10 +32823,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-mysql2@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-mysql2@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@opentelemetry/sql-common': 0.42.0(@opentelemetry/api@1.9.1)
     transitivePeerDependencies:
@@ -32805,44 +32841,44 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-mysql@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-mysql@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/mysql': 2.15.27
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-nestjs-core@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-nestjs-core@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-net@0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-net@0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-openai@0.17.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-openai@0.17.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-oracledb@0.44.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-oracledb@0.44.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/oracledb': 6.5.2
     transitivePeerDependencies:
@@ -32860,11 +32896,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-pg@0.71.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-pg@0.71.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@opentelemetry/sql-common': 0.42.0(@opentelemetry/api@1.9.1)
       '@types/pg': 8.15.6
@@ -32872,54 +32908,54 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-pino@0.65.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-pino@0.65.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-redis@0.67.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-redis@0.67.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/redis-common': 0.38.3
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-restify@0.64.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-restify@0.64.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-router@0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-router@0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-runtime-node@0.32.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-runtime-node@0.32.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-socket.io@0.66.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-socket.io@0.66.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -32932,29 +32968,29 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-tedious@0.38.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-tedious@0.38.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
       '@types/tedious': 4.0.14
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-undici@0.29.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-undici@0.29.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/semantic-conventions': 1.43.0
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation-winston@0.63.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation-winston@0.63.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -32985,12 +33021,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@opentelemetry/instrumentation@0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/instrumentation@0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
       import-in-the-middle: 3.0.2
-      require-in-the-middle: 8.0.1(supports-color@10.2.2)
+      require-in-the-middle: 8.0.1(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -33101,12 +33137,12 @@ snapshots:
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.11.0(@opentelemetry/api@1.9.1)
 
-  '@opentelemetry/resource-detector-gcp@0.54.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/resource-detector-gcp@0.54.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.10.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.11.0(@opentelemetry/api@1.9.1)
-      gcp-metadata: 8.1.2(supports-color@10.2.2)
+      gcp-metadata: 8.1.2(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -33193,7 +33229,7 @@ snapshots:
       '@opentelemetry/core': 2.8.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.8.0(@opentelemetry/api@1.9.1)
 
-  '@opentelemetry/sdk-node@0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)':
+  '@opentelemetry/sdk-node@0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.219.0
@@ -33211,7 +33247,7 @@ snapshots:
       '@opentelemetry/exporter-trace-otlp-http': 0.219.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-trace-otlp-proto': 0.219.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-zipkin': 2.8.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@10.2.2)
+      '@opentelemetry/instrumentation': 0.219.0(@opentelemetry/api@1.9.1)(supports-color@8.1.1)
       '@opentelemetry/otlp-exporter-base': 0.219.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/otlp-grpc-exporter-base': 0.219.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/propagator-b3': 2.8.0(@opentelemetry/api@1.9.1)
@@ -38287,6 +38323,23 @@ snapshots:
       - supports-color
       - ws
 
+  '@workflow/astro@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
+      '@workflow/vite': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      exsolve: 1.1.1
+      pathe: 2.0.3
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+
   '@workflow/astro@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.23)
@@ -38339,6 +38392,28 @@ snapshots:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - supports-color
+      - ws
+
+  '@workflow/builders@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
+      '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/errors': 5.0.0-beta.17
+      '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
+      '@workflow/utils': 5.0.0-beta.8
+      builtin-modules: 5.0.0
+      chalk: 5.6.2
+      enhanced-resolve: 5.19.0
+      esbuild: 0.28.2
+      find-up: 7.0.0
+      json5: 2.2.3
+      tinyglobby: 0.2.17
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
       - ws
 
   '@workflow/builders@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
@@ -38465,13 +38540,13 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@workflow/cli@5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)':
+  '@workflow/cli@5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)':
     dependencies:
       '@oclif/core': 4.11.4
       '@oclif/plugin-help': 6.2.37
       '@swc/core': 1.15.3(@swc/helpers@0.5.23)
       '@vercel/cli-auth': 0.0.1
-      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
       '@workflow/errors': 5.0.0-beta.17
       '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
@@ -38661,6 +38736,24 @@ snapshots:
       - supports-color
       - ws
 
+  '@workflow/nest@5.0.0-beta.42(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@nestjs/common': 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2)
+      '@nestjs/core': 11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/platform-express@10.4.22)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@swc/cli': 0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2)
+      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
+      esbuild: 0.28.2
+      pathe: 2.0.3
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+
   '@workflow/nest@5.0.0-beta.42(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
     dependencies:
       '@nestjs/common': 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2)
@@ -38729,10 +38822,10 @@ snapshots:
       - supports-color
       - ws
 
-  '@workflow/next@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(supports-color@10.2.2)(ws@8.21.3)':
+  '@workflow/next@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(supports-color@10.2.2)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.23)
-      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
       '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
       chokidar: 4.0.3
@@ -38803,14 +38896,14 @@ snapshots:
       - supports-color
       - ws
 
-  '@workflow/nitro@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)':
+  '@workflow/nitro@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)':
     dependencies:
       '@swc/core': 1.15.3(@swc/helpers@0.5.23)
-      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
-      '@workflow/vite': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/vite': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/web': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(react@18.3.1)(supports-color@10.2.2)
       exsolve: 1.0.8
       pathe: 2.0.3
@@ -38874,10 +38967,10 @@ snapshots:
       - supports-color
       - ws
 
-  '@workflow/nuxt@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(magicast@0.5.4)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)':
+  '@workflow/nuxt@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(magicast@0.5.4)(react@18.3.1)(supports-color@10.2.2)':
     dependencies:
       '@nuxt/kit': 4.4.8(magicast@0.5.4)
-      '@workflow/nitro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/nitro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@swc/helpers'
@@ -38926,6 +39019,20 @@ snapshots:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - supports-color
+      - ws
+
+  '@workflow/rollup@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
+      exsolve: 1.0.7
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
       - ws
 
   '@workflow/rollup@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
@@ -38978,6 +39085,24 @@ snapshots:
       - '@opentelemetry/api'
       - '@swc/helpers'
       - supports-color
+      - ws
+
+  '@workflow/sveltekit@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/swc-plugin': 5.0.0-beta.5(@swc/core@1.15.3(@swc/helpers@0.5.23))
+      '@workflow/vite': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      exsolve: 1.1.1
+      fs-extra: 11.3.6
+      pathe: 2.0.3
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
       - ws
 
   '@workflow/sveltekit@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
@@ -39049,6 +39174,17 @@ snapshots:
       - supports-color
       - ws
 
+  '@workflow/vite@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)':
+    dependencies:
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+    transitivePeerDependencies:
+      - '@opentelemetry/api'
+      - '@swc/helpers'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
+      - ws
+
   '@workflow/vite@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)':
     dependencies:
       '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
@@ -39071,14 +39207,14 @@ snapshots:
       - utf-8-validate
       - ws
 
-  '@workflow/vitest@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@8.1.1)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@8.1.1))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(ws@8.21.3)':
+  '@workflow/vitest@5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)))(ws@8.21.3)':
     dependencies:
-      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.21.3)
-      '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@8.1.1)(ws@8.21.3)
-      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@8.1.1)(ws@8.21.3)
+      '@workflow/builders': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
       '@workflow/world': 5.0.0-beta.27
       '@workflow/world-local': 5.0.0-beta.36(@opentelemetry/api@1.9.1)
-      vitest: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@8.1.1))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
+      vitest: 4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@10.2.2))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
     optionalDependencies:
       vite: 7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)
     transitivePeerDependencies:
@@ -40349,9 +40485,9 @@ snapshots:
     dependencies:
       react: 19.2.6
 
-  centra@2.7.0(debug@4.4.3(supports-color@10.2.2)):
+  centra@2.7.0(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
-      follow-redirects: 1.16.0(debug@4.4.3(supports-color@10.2.2))
+      follow-redirects: 1.16.0(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
@@ -40748,6 +40884,22 @@ snapshots:
     dependencies:
       crc-32: 1.2.2
       readable-stream: 4.7.0
+
+  create-jest@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3)):
+    dependencies:
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      exit: 0.1.2
+      graceful-fs: 4.2.11
+      jest-config: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      jest-util: 29.7.0
+      prompts: 2.4.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+    optional: true
 
   create-jest@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3)):
     dependencies:
@@ -42880,10 +43032,10 @@ snapshots:
 
   fzf@0.5.2: {}
 
-  gaxios@6.7.1(encoding@0.1.13)(supports-color@10.2.2):
+  gaxios@6.7.1(encoding@0.1.13)(supports-color@8.1.1):
     dependencies:
       extend: 3.0.2
-      https-proxy-agent: 7.0.6(supports-color@10.2.2)
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
       is-stream: 2.0.1
       node-fetch: 2.7.0(encoding@0.1.13)
       uuid: 9.0.1
@@ -42907,6 +43059,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  gaxios@7.2.0(supports-color@8.1.1):
+    dependencies:
+      extend: 3.0.2
+      https-proxy-agent: 7.0.6(supports-color@8.1.1)
+      node-fetch: 3.3.2
+    transitivePeerDependencies:
+      - supports-color
+
   gaxios@7.3.0(supports-color@10.2.2):
     dependencies:
       extend: 3.0.2
@@ -42915,9 +43075,9 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  gcp-metadata@6.1.1(encoding@0.1.13)(supports-color@10.2.2):
+  gcp-metadata@6.1.1(encoding@0.1.13)(supports-color@8.1.1):
     dependencies:
-      gaxios: 6.7.1(encoding@0.1.13)(supports-color@10.2.2)
+      gaxios: 6.7.1(encoding@0.1.13)(supports-color@8.1.1)
       google-logging-utils: 0.0.2
       json-bigint: 1.0.0
     transitivePeerDependencies:
@@ -42927,6 +43087,14 @@ snapshots:
   gcp-metadata@8.1.2(supports-color@10.2.2):
     dependencies:
       gaxios: 7.2.0(supports-color@10.2.2)
+      google-logging-utils: 1.1.3
+      json-bigint: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  gcp-metadata@8.1.2(supports-color@8.1.1):
+    dependencies:
+      gaxios: 7.2.0(supports-color@8.1.1)
       google-logging-utils: 1.1.3
       json-bigint: 1.0.0
     transitivePeerDependencies:
@@ -43121,13 +43289,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  google-auth-library@9.15.1(encoding@0.1.13)(supports-color@10.2.2):
+  google-auth-library@9.15.1(encoding@0.1.13)(supports-color@8.1.1):
     dependencies:
       base64-js: 1.5.1
       ecdsa-sig-formatter: 1.0.11
-      gaxios: 6.7.1(encoding@0.1.13)(supports-color@10.2.2)
-      gcp-metadata: 6.1.1(encoding@0.1.13)(supports-color@10.2.2)
-      gtoken: 7.1.0(encoding@0.1.13)(supports-color@10.2.2)
+      gaxios: 6.7.1(encoding@0.1.13)(supports-color@8.1.1)
+      gcp-metadata: 6.1.1(encoding@0.1.13)(supports-color@8.1.1)
+      gtoken: 7.1.0(encoding@0.1.13)(supports-color@8.1.1)
       jws: 4.0.1
     transitivePeerDependencies:
       - encoding
@@ -43160,9 +43328,9 @@ snapshots:
 
   grok-mermaid@0.2.2: {}
 
-  gtoken@7.1.0(encoding@0.1.13)(supports-color@10.2.2):
+  gtoken@7.1.0(encoding@0.1.13)(supports-color@8.1.1):
     dependencies:
-      gaxios: 6.7.1(encoding@0.1.13)(supports-color@10.2.2)
+      gaxios: 6.7.1(encoding@0.1.13)(supports-color@8.1.1)
       jws: 4.0.1
     transitivePeerDependencies:
       - encoding
@@ -43484,14 +43652,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  http-proxy-agent@7.0.2(supports-color@8.1.1):
-    dependencies:
-      agent-base: 7.1.4
-      debug: 4.4.3(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - supports-color
-    optional: true
-
   http-proxy-middleware@2.0.9(@types/express@4.17.25)(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       '@types/http-proxy': 1.17.17
@@ -43550,7 +43710,6 @@ snapshots:
       debug: 4.4.3(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   httpxy@0.5.5: {}
 
@@ -44093,6 +44252,26 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
+  jest-cli@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3)):
+    dependencies:
+      '@jest/core': 29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      '@jest/test-result': 29.7.0
+      '@jest/types': 29.6.3
+      chalk: 4.1.2
+      create-jest: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      exit: 0.1.2
+      import-local: 3.2.0
+      jest-config: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      yargs: 17.7.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+    optional: true
+
   jest-cli@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3))
@@ -44111,6 +44290,38 @@ snapshots:
       - babel-plugin-macros
       - supports-color
       - ts-node
+
+  jest-config@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3)):
+    dependencies:
+      '@babel/core': 7.29.7(supports-color@10.2.2)
+      '@jest/test-sequencer': 29.7.0
+      '@jest/types': 29.6.3
+      babel-jest: 29.7.0(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
+      chalk: 4.1.2
+      ci-info: 3.9.0
+      deepmerge: 4.3.1
+      glob: 7.2.3
+      graceful-fs: 4.2.11
+      jest-circus: 29.7.0(supports-color@10.2.2)
+      jest-environment-node: 29.7.0
+      jest-get-type: 29.6.3
+      jest-regex-util: 29.6.3
+      jest-resolve: 29.7.0
+      jest-runner: 29.7.0(supports-color@10.2.2)
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      micromatch: 4.0.8
+      parse-json: 5.2.0
+      pretty-format: 29.7.0
+      slash: 3.0.0
+      strip-json-comments: 3.1.1
+    optionalDependencies:
+      '@types/node': 22.19.19
+      ts-node: 10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3)
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+    optional: true
 
   jest-config@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3)):
     dependencies:
@@ -44364,6 +44575,19 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
+  jest@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3)):
+    dependencies:
+      '@jest/core': 29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+      '@jest/types': 29.6.3
+      import-local: 3.2.0
+      jest-cli: 29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.8.3))
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+    optional: true
+
   jest@29.7.0(@types/node@22.19.19)(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(supports-color@10.2.2)(ts-node@10.9.2(@swc/core@1.15.3(@swc/helpers@0.5.23))(@types/node@22.19.19)(typescript@5.9.3))
@@ -44376,22 +44600,22 @@ snapshots:
       - supports-color
       - ts-node
 
-  jimp@0.14.0(debug@4.4.3(supports-color@10.2.2)):
+  jimp@0.14.0(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       '@babel/runtime': 7.29.7
-      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugins': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/types': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.14.0(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugins': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/types': 0.14.0(@jimp/custom@0.14.0(debug@4.4.3(supports-color@8.1.1)))
       regenerator-runtime: 0.13.11
     transitivePeerDependencies:
       - debug
 
-  jimp@0.16.13(debug@4.4.3(supports-color@10.2.2)):
+  jimp@0.16.13(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       '@babel/runtime': 7.29.2
-      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/plugins': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))(debug@4.4.3(supports-color@10.2.2))
-      '@jimp/types': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@10.2.2)))
+      '@jimp/custom': 0.16.13(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/plugins': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))(debug@4.4.3(supports-color@8.1.1))
+      '@jimp/types': 0.16.13(@jimp/custom@0.16.13(debug@4.4.3(supports-color@8.1.1)))
       regenerator-runtime: 0.13.11
     transitivePeerDependencies:
       - debug
@@ -44525,34 +44749,6 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  jsdom@26.1.0(supports-color@8.1.1):
-    dependencies:
-      cssstyle: 4.6.0
-      data-urls: 5.0.0
-      decimal.js: 10.6.0
-      html-encoding-sniffer: 4.0.0
-      http-proxy-agent: 7.0.2(supports-color@8.1.1)
-      https-proxy-agent: 7.0.6(supports-color@8.1.1)
-      is-potential-custom-element-name: 1.0.1
-      nwsapi: 2.2.23
-      parse5: 7.3.0
-      rrweb-cssom: 0.8.0
-      saxes: 6.0.0
-      symbol-tree: 3.2.4
-      tough-cookie: 5.1.2
-      w3c-xmlserializer: 5.0.0
-      webidl-conversions: 7.0.0
-      whatwg-encoding: 3.1.1
-      whatwg-mimetype: 4.0.0
-      whatwg-url: 14.2.0
-      ws: 8.21.0
-      xml-name-validator: 5.0.0
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
-    optional: true
-
   jsesc@3.1.0: {}
 
   json-bigint@1.0.0:
@@ -44626,6 +44822,29 @@ snapshots:
       diff: 8.0.4
       fast-xml-parser: 5.8.0
       file-type: 21.3.4(supports-color@10.2.2)
+      ini: 6.0.0
+      minimatch: 10.2.5
+      modern-tar: 0.7.6
+      papaparse: 5.5.3
+      quickjs-emscripten: 0.32.0
+      re2js: 1.3.3
+      seek-bzip: 2.0.0
+      smol-toml: 1.6.1
+      sprintf-js: 1.1.3
+      sql.js: 1.14.1
+      turndown: 7.2.4
+      yaml: 2.9.0
+    optionalDependencies:
+      '@mongodb-js/zstd': 7.0.0
+      node-liblzma: 2.2.0
+    transitivePeerDependencies:
+      - supports-color
+
+  just-bash@2.14.5(supports-color@8.1.1):
+    dependencies:
+      diff: 8.0.4
+      fast-xml-parser: 5.8.0
+      file-type: 21.3.4(supports-color@8.1.1)
       ini: 6.0.0
       minimatch: 10.2.5
       modern-tar: 0.7.6
@@ -45007,14 +45226,14 @@ snapshots:
       '@lmdb/lmdb-win32-x64': 3.4.2
     optional: true
 
-  load-bmfont@1.4.2(debug@4.4.3(supports-color@10.2.2)):
+  load-bmfont@1.4.2(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       buffer-equal: 0.0.1
       mime: 1.6.0
       parse-bmfont-ascii: 1.0.6
       parse-bmfont-binary: 1.0.6
       parse-bmfont-xml: 1.1.6
-      phin: 3.7.1(debug@4.4.3(supports-color@10.2.2))
+      phin: 3.7.1(debug@4.4.3(supports-color@8.1.1))
       xhr: 2.6.0
       xtend: 4.0.2
     transitivePeerDependencies:
@@ -47542,9 +47761,9 @@ snapshots:
 
   phin@2.9.3: {}
 
-  phin@3.7.1(debug@4.4.3(supports-color@10.2.2)):
+  phin@3.7.1(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
-      centra: 2.7.0(debug@4.4.3(supports-color@10.2.2))
+      centra: 2.7.0(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
@@ -49150,12 +49369,12 @@ snapshots:
 
   remend@1.3.0: {}
 
-  render-gif@2.0.4(debug@4.4.3(supports-color@10.2.2)):
+  render-gif@2.0.4(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       cycled: 1.2.0
       decode-gif: 1.0.1
       delay: 4.4.1
-      jimp: 0.14.0(debug@4.4.3(supports-color@10.2.2))
+      jimp: 0.14.0(debug@4.4.3(supports-color@8.1.1))
     transitivePeerDependencies:
       - debug
 
@@ -49190,6 +49409,13 @@ snapshots:
   require-in-the-middle@8.0.1(supports-color@10.2.2):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
+      module-details-from-path: 1.0.4
+    transitivePeerDependencies:
+      - supports-color
+
+  require-in-the-middle@8.0.1(supports-color@8.1.1):
+    dependencies:
+      debug: 4.4.3(supports-color@8.1.1)
       module-details-from-path: 1.0.4
     transitivePeerDependencies:
       - supports-color
@@ -50615,12 +50841,12 @@ snapshots:
 
   term-size@2.2.1: {}
 
-  terminal-image@2.0.0(debug@4.4.3(supports-color@10.2.2)):
+  terminal-image@2.0.0(debug@4.4.3(supports-color@8.1.1)):
     dependencies:
       chalk: 4.1.2
-      jimp: 0.16.13(debug@4.4.3(supports-color@10.2.2))
+      jimp: 0.16.13(debug@4.4.3(supports-color@8.1.1))
       log-update: 4.0.0
-      render-gif: 2.0.4(debug@4.4.3(supports-color@10.2.2))
+      render-gif: 2.0.4(debug@4.4.3(supports-color@8.1.1))
       term-img: 6.0.0
     transitivePeerDependencies:
       - debug
@@ -51023,35 +51249,6 @@ snapshots:
       chokidar: 4.0.3
       consola: 3.4.2
       debug: 4.4.3(supports-color@10.2.2)
-      esbuild: 0.27.7
-      fix-dts-default-cjs-exports: 1.0.1
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss-load-config: 6.0.1(jiti@2.7.0)(postcss@8.5.26)(tsx@4.23.12)(yaml@2.9.1)
-      resolve-from: 5.0.0
-      rollup: 4.62.4
-      source-map: 0.7.6
-      sucrase: 3.35.1
-      tinyexec: 1.0.2
-      tinyglobby: 0.2.17
-      tree-kill: 1.2.2
-    optionalDependencies:
-      '@swc/core': 1.15.3(@swc/helpers@0.5.23)
-      postcss: 8.5.26
-      typescript: 5.8.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-
-  tsup@8.5.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(jiti@2.7.0)(postcss@8.5.26)(supports-color@8.1.1)(tsx@4.23.12)(typescript@5.8.3)(yaml@2.9.1):
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.27.7)
-      cac: 6.7.14
-      chokidar: 4.0.3
-      consola: 3.4.2
-      debug: 4.4.3(supports-color@8.1.1)
       esbuild: 0.27.7
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
@@ -52005,36 +52202,6 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.6(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.1)(@types/node@22.19.19)(jsdom@26.1.0(supports-color@8.1.1))(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)):
-    dependencies:
-      '@vitest/expect': 4.1.6
-      '@vitest/mocker': 4.1.6(msw@2.14.6(@types/node@22.19.19)(typescript@5.8.3))(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
-      '@vitest/pretty-format': 4.1.6
-      '@vitest/runner': 4.1.6
-      '@vitest/snapshot': 4.1.6
-      '@vitest/spy': 4.1.6
-      '@vitest/utils': 4.1.6
-      es-module-lexer: 2.1.0
-      expect-type: 1.4.0
-      magic-string: 0.30.21
-      obug: 2.1.3
-      pathe: 2.0.3
-      picomatch: 4.0.5
-      std-env: 4.1.0
-      tinybench: 2.9.0
-      tinyexec: 1.0.2
-      tinyglobby: 0.2.17
-      tinyrainbow: 3.1.0
-      vite: 7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)
-      why-is-node-running: 2.3.0
-    optionalDependencies:
-      '@edge-runtime/vm': 5.0.0
-      '@opentelemetry/api': 1.9.1
-      '@types/node': 22.19.19
-      jsdom: 26.1.0(supports-color@8.1.1)
-    transitivePeerDependencies:
-      - msw
-
   voca@1.4.1: {}
 
   vscode-jsonrpc@9.0.1: {}
@@ -52576,18 +52743,18 @@ snapshots:
       - utf-8-validate
       - ws
 
-  workflow@5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(supports-color@10.2.2)(typescript@5.8.3)(ws@8.21.3):
+  workflow@5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(magicast@0.5.4)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(react@18.3.1)(supports-color@10.2.2)(typescript@5.8.3):
     dependencies:
-      '@workflow/astro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/cli': 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/astro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/cli': 5.0.0-beta.42(@aws-sdk/credential-provider-web-identity@3.972.77)(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)
       '@workflow/core': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(supports-color@10.2.2)(ws@8.21.3)
       '@workflow/errors': 5.0.0-beta.17
-      '@workflow/nest': 5.0.0-beta.42(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/next': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/nitro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/nuxt': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(magicast@0.5.4)(react@18.3.1)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
-      '@workflow/sveltekit': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)(ws@8.21.3)
+      '@workflow/nest': 5.0.0-beta.42(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(@nestjs/core@11.1.18(@nestjs/common@10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@10.2.2))(reflect-metadata@0.2.2)(rxjs@7.8.2))(@opentelemetry/api@1.9.1)(@swc/cli@0.8.1(@swc/core@1.15.3(@swc/helpers@0.5.23))(chokidar@5.0.0)(supports-color@10.2.2))(@swc/core@1.15.3(@swc/helpers@0.5.23))(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/next': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.90.0))(supports-color@10.2.2)
+      '@workflow/nitro': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(react@18.3.1)(supports-color@10.2.2)
+      '@workflow/nuxt': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(magicast@0.5.4)(react@18.3.1)(supports-color@10.2.2)
+      '@workflow/rollup': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
+      '@workflow/sveltekit': 5.0.0-beta.42(@opentelemetry/api@1.9.1)(@swc/helpers@0.5.23)(supports-color@10.2.2)
       '@workflow/typescript-plugin': 5.0.0-beta.5(typescript@5.8.3)
       '@workflow/utils': 5.0.0-beta.8
       ms: 2.1.3
