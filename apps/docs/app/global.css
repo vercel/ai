@@ -2,10 +2,7 @@
 
 @source "../content/**/*.mdx";
 
-/* App-layer override matching the geistdocs template: use the 200 surface as
-   the page background. Since @vercel/geistdocs 1.15 the package defaults the
-   body to background-100, which leaves white gutters around the docs
-   container (it uses bg-background-200). */
+/* AI SDK keeps the page background aligned with the docs container surface. */
 @layer base {
   body {
     @apply bg-background-200 text-gray-1000;

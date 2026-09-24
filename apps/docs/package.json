@@ -16,7 +16,7 @@
     "@shikijs/langs": "3.23.0",
     "@shikijs/transformers": "3.23.0",
     "@vercel/analytics": "^2.0.1",
-    "@vercel/geistdocs": "1.28.1",
+    "@vercel/geistdocs": "2.6.1",
     "fumadocs-core": "16.2.2",
     "fumadocs-mdx": "14.0.4",
     "fumadocs-ui": "16.2.2",
@@ -25,8 +25,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "shiki": "3.23.0",
-    "streamdown": "^2.1.0",
-    "zod": "^4.1.13"
+    "streamdown": "^2.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",

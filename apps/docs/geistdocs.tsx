@@ -1,5 +1,5 @@
-import { LogoAiSdk } from '@vercel/geistdocs/assets/logos/logo-ai-sdk';
 import type { GeistdocsConfig } from '@vercel/geistdocs/config';
+import { AiSdkLogo } from '@/components/brand-icons';
 
 export const title = 'AI SDK';
 
@@ -13,7 +13,7 @@ export const siteId = 'ai-sdk';
 // accessible name on the wordmark link.
 export const Logo = () => (
   <>
-    <LogoAiSdk />
+    <AiSdkLogo />
     <span className="sr-only">AI SDK</span>
   </>
 );
@@ -30,6 +30,7 @@ export const nav: NonNullable<GeistdocsConfig['nav']> = [
     ],
   },
   { label: 'Providers', href: '/providers' },
+  { label: 'Playground', href: 'https://playground.ai-sdk.dev' },
 ];
 
 export const content: NonNullable<GeistdocsConfig['content']> = [

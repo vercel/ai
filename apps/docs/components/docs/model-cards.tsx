@@ -1,12 +1,12 @@
 import { Badge } from '@vercel/geistdocs/components/badge';
 import {
-  IconApi,
-  IconDisplay,
-  IconLogs,
-  IconSandbox,
-  IconSparkles,
-  IconWrench,
-} from '@vercel/geistdocs/assets/icons';
+  Box as IconSandbox,
+  Braces as IconApi,
+  Monitor as IconDisplay,
+  ScrollText as IconLogs,
+  Sparkles as IconSparkles,
+  Wrench as IconWrench,
+} from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
@@ -62,17 +62,13 @@ const FeatureBadges = ({ features }: { features: ModelFeatures }) => {
         <Badge
           className="gap-1 border-none bg-gray-200 font-normal text-gray-900"
           key={key}
-          variant="secondary"
         >
           <Icon className="size-3.5" />
           {label}
         </Badge>
       ))}
       {active.length === 0 ? (
-        <Badge
-          className="gap-1 border-none bg-gray-200 font-normal text-gray-900"
-          variant="secondary"
-        >
+        <Badge className="gap-1 border-none bg-gray-200 font-normal text-gray-900">
           <IconSandbox className="size-3.5" />
           Provider Dependent
         </Badge>

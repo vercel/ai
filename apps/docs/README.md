@@ -38,13 +38,12 @@ The outside-root setting is required because the content sync reads the
 repository's `content/docs/` directory and Git metadata.
 
 Edit-source links remain disabled until the `NN-` filename codemod lands on
-`main` (page paths don't match source paths yet). Playground and
-getting-started links continue to the existing production site while those
-route families remain outside this application; the resources family
-(recipes, tools registry, templates, showcase) is served by this
-application, and legacy URLs such as `/tools-registry`, `/showcase`,
-`/examples`, `/elements`, and `/model-library` redirect the same way
-production does.
+`main` (page paths don't match source paths yet). Playground links use hard
+navigation to `playground.ai-sdk.dev`; legacy playground pages and read-only
+resources redirect there, while retired mutation endpoints return `410 Gone`.
+The resources family (recipes, tools registry, templates, showcase) is served
+by this application. Legacy documentation and resource URLs preserve the
+production redirect contract.
 
 Feedback and markdown-request tracking go through the Geistdocs platform,
 labeled with the `siteId` exported from `geistdocs.tsx`. Social cards are
