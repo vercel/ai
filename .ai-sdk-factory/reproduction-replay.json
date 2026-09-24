@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21433,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21433-just-bash-filesystems.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21433-just-bash-filesystems.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21433: MountableFs and ReadWriteFs commands fail with bash: bash: command not found"
+  }
+}
