@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21430,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mcp-stdio-explicit-env-overridden.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/mcp-stdio-explicit-env-overridden.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "MCP_STDIO_ENV_OVERRIDE_BUG: explicit environment values were replaced by parent values"
+  }
+}
