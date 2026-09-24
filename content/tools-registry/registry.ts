@@ -625,4 +625,34 @@ console.log(text);`,
     websiteUrl: 'https://www.fatstack.net',
     npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
   },
+  {
+    slug: 'al-buddy-memory',
+    name: 'al-buddy-memory',
+    description:
+      'Long-term memory tools that run locally on SQLite with no API key: remember, recall, invalidate and explain. Every fact records which agent wrote it, facts that stop being true are retired rather than deleted, and a middleware puts relevant facts in front of the model each turn.',
+    packageName: 'al-buddy-memory',
+    tags: ['memory', 'local', 'sqlite'],
+    installCommand: {
+      pnpm: 'pnpm add al-buddy-memory',
+      npm: 'npm install al-buddy-memory',
+      yarn: 'yarn add al-buddy-memory',
+      bun: 'bun add al-buddy-memory',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { alBuddyMemoryTools, openAgentMemory } from 'al-buddy-memory/ai-sdk';
+
+const store = openAgentMemory('./brain.db');
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5',
+  prompt: 'Remember that Dana prefers email over phone calls.',
+  tools: alBuddyMemoryTools({ store, agent: 'support-bot' }),
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/flytomoon/al-buddy-memory/blob/main/docs/integrations/ai-sdk.md',
+    websiteUrl: 'https://github.com/flytomoon/al-buddy-memory',
+    npmUrl: 'https://www.npmjs.com/package/al-buddy-memory',
+  },
 ];
