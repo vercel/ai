@@ -241,18 +241,6 @@ describe('createCodex adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('rejects built-in tool filtering controls', async () => {
-    const harness = createCodex();
-    await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: {} as HarnessV1NetworkSandboxSession,
-        sessionWorkDir: '/vercel/sandbox/codex-s1',
-        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
-      }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
-  });
-
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createCodex();
     const sandboxSession = {
@@ -445,6 +433,38 @@ describe('createCodex adapter', () => {
         type: 'start',
         model: 'agent-model',
       });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards built-in tool filtering to the bridge', async () => {
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['bash'],
+    };
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      builtinToolFiltering,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    await vi.waitFor(() => {
+      expect(
+        (sentMessages.at(-1) as { builtinToolFiltering?: unknown })
+          .builtinToolFiltering,
+      ).toEqual(builtinToolFiltering);
     });
     await session.doDestroy();
   });

@@ -11,11 +11,13 @@ import {
 import type { StartMessage } from '../codex-bridge-protocol';
 import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import { createCodexStepTracker } from './codex-step-tracker';
+import { createTrustedApplyPatchHook } from './codex-tool-filtering-hook';
 
 const server = vi.hoisted(() => ({
   clients: [] as Array<{
     calls: Array<{ method: string; params?: unknown }>;
     closed: number;
+    args: string[];
     onRequest: (request: {
       id: number;
       method: string;
@@ -30,12 +32,14 @@ const server = vi.hoisted(() => ({
   nextThread: 0,
   nextTurn: 0,
   autoComplete: true,
+  hookResponse: undefined as unknown,
 }));
 
 vi.mock('./codex-app-server-client', () => ({
   CodexAppServerClient: class {
     calls: Array<{ method: string; params?: unknown }> = [];
     closed = 0;
+    args: string[];
     onRequest: (request: {
       id: number;
       method: string;
@@ -52,9 +56,11 @@ vi.mock('./codex-app-server-client', () => ({
     private exited = new Promise<never>(() => {});
 
     constructor({
+      args,
       onNotification,
       onRequest,
     }: {
+      args: string[];
       onNotification: (notification: {
         method: string;
         params?: unknown;
@@ -65,6 +71,7 @@ vi.mock('./codex-app-server-client', () => ({
         params: unknown;
       }) => Promise<unknown>;
     }) {
+      this.args = args;
       this.onNotification = onNotification;
       this.onRequest = onRequest;
       server.clients.push(this);
@@ -77,6 +84,7 @@ vi.mock('./codex-app-server-client', () => ({
     async request({ method, params }: { method: string; params?: unknown }) {
       this.calls.push({ method, params });
       if (method === 'thread/unsubscribe') return {};
+      if (method === 'hooks/list') return server.hookResponse;
       if (method === 'thread/start' || method === 'thread/resume') {
         return {
           thread: {
@@ -130,6 +138,7 @@ describe('Codex app-server runtime lifecycle', () => {
     server.nextThread = 0;
     server.nextTurn = 0;
     server.autoComplete = true;
+    server.hookResponse = undefined;
   });
 
   function createOptions({
@@ -264,6 +273,121 @@ describe('Codex app-server runtime lifecycle', () => {
       'turn/start',
     ]);
     await runtime.close();
+  });
+
+  it('disables all environment tools and web search without starting a hook', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        start: {
+          webSearch: true,
+          builtinToolFiltering: {
+            mode: 'allow',
+            toolNames: [],
+          },
+        },
+      }),
+    );
+    const client = server.clients[0]!;
+    expect(methods(client)).not.toContain('hooks/list');
+    expect(
+      (
+        client.calls.find(call => call.method === 'thread/start')?.params as
+          | { config: unknown }
+          | undefined
+      )?.config,
+    ).toEqual({
+      environments: [],
+      features: { shell_tool: false, view_image: false },
+      web_search: 'disabled',
+    });
+    await runtime.close();
+  });
+
+  it('disables individual tools without disabling available environment tools', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        start: {
+          builtinToolFiltering: {
+            mode: 'deny',
+            toolNames: ['bash', 'view_image'],
+          },
+        },
+      }),
+    );
+    expect(
+      (
+        server.clients[0]!.calls.find(call => call.method === 'thread/start')
+          ?.params as { config: unknown } | undefined
+      )?.config,
+    ).toEqual({
+      features: { shell_tool: false, view_image: false },
+      web_search: 'disabled',
+    });
+    await runtime.close();
+  });
+
+  it('starts a trusted apply_patch hook, checks it before the turn, and reuses the process', async () => {
+    const hook = createTrustedApplyPatchHook({ codexConfig: {} });
+    server.hookResponse = {
+      data: [
+        {
+          hooks: [
+            {
+              key: hook.key,
+              eventName: 'preToolUse',
+              handlerType: 'command',
+              command: hook.command,
+              matcher: '^apply_patch$',
+              currentHash: hook.hash,
+              enabled: true,
+              trustStatus: 'trusted',
+            },
+          ],
+          errors: [],
+        },
+      ],
+    };
+    const runtime = createCodexAppServerRuntime();
+    const start = {
+      builtinToolFiltering: {
+        mode: 'deny' as const,
+        toolNames: ['apply_patch'],
+      },
+    };
+    await runtime.runTurn(createOptions({ start }));
+    await runtime.runTurn(createOptions({ threadId: 'thread-1', start }));
+    const client = server.clients[0]!;
+    expect(server.clients).toHaveLength(1);
+    expect(client.args).toContain(`hooks=${hook.cliOverrides[0]!.slice(6)}`);
+    expect(methods(client)).toEqual([
+      'initialize',
+      'hooks/list',
+      'thread/start',
+      'turn/start',
+      'hooks/list',
+      'turn/start',
+    ]);
+    await runtime.close();
+  });
+
+  it('refuses to start a turn when the apply_patch hook is not trusted', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await expect(
+      runtime.runTurn(
+        createOptions({
+          start: {
+            builtinToolFiltering: {
+              mode: 'deny',
+              toolNames: ['apply_patch'],
+            },
+          },
+        }),
+      ),
+    ).rejects.toThrow('did not load the trusted apply_patch filtering hook');
+    expect(methods(server.clients[0]!)).toEqual(['initialize', 'hooks/list']);
+    expect(server.clients[0]?.closed).toBe(1);
   });
 
   it('rejects stale tool requests without invoking the current turn tool', async () => {

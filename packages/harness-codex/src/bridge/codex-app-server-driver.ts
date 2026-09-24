@@ -2,6 +2,7 @@ import type { BridgeTurn } from '@ai-sdk/harness/bridge';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import type { StartMessage } from '../codex-bridge-protocol';
+import { resolveCodexBuiltinToolPolicy } from './codex-tool-filtering';
 import {
   CodexAppServerClient,
   type CodexAppServerRequest,
@@ -13,6 +14,10 @@ import {
 import type { CodexStepTracker } from './codex-step-tracker';
 import type { CodexEvent } from './create-emit-stream-event';
 import { isDeepStrictEqual } from 'node:util';
+import {
+  assertTrustedApplyPatchHook,
+  createTrustedApplyPatchHook,
+} from './codex-tool-filtering-hook';
 
 type Emit = (message: Record<string, unknown>) => void;
 
@@ -62,11 +67,32 @@ export function createCodexAppServerRuntime(): {
     const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
       options;
     if (activeTurn != null) throw new Error('A Codex turn is already active.');
+    const toolPolicy = resolveCodexBuiltinToolPolicy({
+      builtinToolFiltering: start.builtinToolFiltering,
+      webSearch: start.webSearch,
+    });
+    const trustedHook = toolPolicy.denyApplyPatchWithHook
+      ? createTrustedApplyPatchHook({ codexConfig })
+      : undefined;
     const nextConfig = {
-      ...codexConfig,
-      web_search: start.webSearch ? 'live' : 'disabled',
+      ...(trustedHook?.threadConfig ?? codexConfig),
+      web_search: toolPolicy.webSearchMode,
+      ...(toolPolicy.disableEnvironments ? { environments: [] } : {}),
+      ...(toolPolicy.disabled.bash || toolPolicy.disabled.view_image
+        ? {
+            features: {
+              ...asRecord(codexConfig.features),
+              ...(toolPolicy.disabled.bash ? { shell_tool: false } : {}),
+              ...(toolPolicy.disabled.view_image ? { view_image: false } : {}),
+            },
+          }
+        : {}),
     };
-    if (client != null && !isDeepStrictEqual(loadedConfig, nextConfig)) {
+    const processConfig = {
+      thread: nextConfig,
+      cliOverrides: trustedHook?.cliOverrides ?? [],
+    };
+    if (client != null && !isDeepStrictEqual(loadedConfig, processConfig)) {
       await close();
     }
     const handler = createAppServerEventHandler({
@@ -93,7 +119,9 @@ export function createCodexAppServerRuntime(): {
     if (client == null) {
       const created = new CodexAppServerClient({
         executable: process.execPath,
-        args: createCodexAppServerArgs(),
+        args: createCodexAppServerArgs({
+          cliOverrides: trustedHook?.cliOverrides,
+        }),
         cwd: workdir,
         env: process.env,
         onNotification: notification => {
@@ -147,7 +175,7 @@ export function createCodexAppServerRuntime(): {
         },
       });
       client = created;
-      loadedConfig = nextConfig;
+      loadedConfig = processConfig;
       initialized = true;
     }
     const runningClient = client;
@@ -211,6 +239,15 @@ export function createCodexAppServerRuntime(): {
         });
         loadedThreadId = undefined;
       }
+      if (trustedHook != null) {
+        const hooks = await raceWithProcess({
+          operation: runningClient.request({
+            method: 'hooks/list',
+            params: {},
+          }),
+        });
+        assertTrustedApplyPatchHook({ response: hooks, hook: trustedHook });
+      }
       const threadMethod = threadId == null ? 'thread/start' : 'thread/resume';
       if (loadedThreadId !== threadId || threadId == null) {
         const threadResponse = await raceWithProcess({
@@ -223,7 +260,7 @@ export function createCodexAppServerRuntime(): {
                       start,
                       workdir,
                       codexModel,
-                      codexConfig,
+                      codexConfig: nextConfig,
                     }),
                     dynamicTools: dynamicTools.specs,
                     experimentalRawEvents: true,
@@ -234,7 +271,7 @@ export function createCodexAppServerRuntime(): {
                       start,
                       workdir,
                       codexModel,
-                      codexConfig,
+                      codexConfig: nextConfig,
                     }),
                     excludeTurns: true,
                   },
@@ -303,13 +340,18 @@ export function createCodexAppServerRuntime(): {
   return { runTurn, close };
 }
 
-export function createCodexAppServerArgs(): string[] {
+export function createCodexAppServerArgs({
+  cliOverrides = [],
+}: {
+  cliOverrides?: string[];
+} = {}): string[] {
   return [
     CODEX_CLI_PATH,
     '--config',
     'sandbox_mode="danger-full-access"',
     '--config',
     'approval_policy="never"',
+    ...cliOverrides.flatMap(override => ['--config', override]),
     'app-server',
     '--stdio',
   ];
@@ -333,7 +375,8 @@ export function createThreadParams({
     sandbox: 'danger-full-access',
     config: {
       ...codexConfig,
-      web_search: start.webSearch ? 'live' : 'disabled',
+      web_search:
+        codexConfig.web_search ?? (start.webSearch ? 'live' : 'disabled'),
     },
   };
 }

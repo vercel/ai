@@ -5,9 +5,9 @@ description: Learn how to use the Codex harness adapter.
 
 # Codex Harness
 
-The Codex harness adapter connects `HarnessAgent` to Codex through
-`@openai/codex-sdk`. The adapter runs a bridge inside the sandbox and streams
-Codex thread events back to the host over a sandbox-exposed WebSocket.
+The Codex harness adapter connects `HarnessAgent` to the Codex app-server.
+The adapter runs a bridge inside the sandbox and streams Codex thread events
+back to the host over a sandbox-exposed WebSocket.
 
 <Note>
   Harness packages are **experimental**. Expect breaking changes between
@@ -118,11 +118,33 @@ Settings:
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 
+## Built-in Tool Filtering
+
+Codex supports `activeTools` and `inactiveTools` for `bash`, `webSearch`,
+`apply_patch`, and `view_image`. Host tools are filtered before they are sent
+to Codex. Native Codex configuration disables `bash`, `view_image`, and
+`webSearch` individually. When `bash`, `apply_patch`, and `view_image` are all
+inactive, the adapter disables Codex environments and explicitly disables
+`bash` and `view_image`. When `apply_patch` is inactive but `bash` or
+`view_image` remains active, the adapter installs a Codex `PreToolUse` hook
+that denies patch execution. Before starting each turn, the adapter checks
+that Codex loaded and trusted the hook and fails the turn if it did not.
+Including `webSearch` in `activeTools` does not enable it on its own; set
+`webSearch: true` on `createCodex()` to allow live search.
+
+```ts
+const agent = new HarnessAgent({
+  harness: createCodex(),
+  sandbox: createVercelSandbox({ runtime: 'node24', ports: [4000] }),
+  inactiveTools: ['apply_patch'],
+});
+```
+
 ## Structured Output
 
 Codex supports schema-backed [`HarnessAgent` structured output](/docs/ai-sdk-harnesses/harness-agent#generate-structured-output).
-The adapter passes the JSON Schema through the Codex SDK's native
-`outputSchema` turn option.
+The adapter passes the JSON Schema through the Codex app-server's `turn/start`
+`outputSchema` parameter.
 
 ## Authentication
 
@@ -204,10 +226,6 @@ some Codex file mutations do not originate from a visible model-callable tool.
 Codex does not currently support built-in tool approval requests. Use
 `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
 approvals still work.
-
-Codex does not currently support built-in tool filtering. You can still use
-`activeTools` and `inactiveTools` to filter host-executed tools, but filtering
-Codex built-ins such as `bash` or `apply_patch` will throw.
 
 ## Related
 

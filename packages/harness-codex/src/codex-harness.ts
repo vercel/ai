@@ -7,6 +7,7 @@ import {
   type HarnessV1,
   type HarnessV1DebugConfig,
   type HarnessV1BuiltinTool,
+  type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
   type HarnessV1MintBridgeTokenCallback,
@@ -224,18 +225,12 @@ export function createCodex(
     specificationVersion: 'harness-v1',
     harnessId: 'codex',
     builtinTools: CODEX_BUILTIN_TOOLS,
+    supportsBuiltinToolFiltering: true,
     supportsBuiltinToolApprovals: false,
     lifecycleStateSchema: codexResumeStateSchema,
     getBootstrap: getCodexBootstrap,
     doStart: async startOpts => {
       const model = DEFAULT_CODEX_MODEL;
-      if (startOpts.builtinToolFiltering != null) {
-        throw new HarnessCapabilityUnsupportedError({
-          message:
-            "Harness 'codex' does not support built-in tool filtering controls.",
-          harnessId: 'codex',
-        });
-      }
       if (
         startOpts.permissionMode != null &&
         startOpts.permissionMode !== 'allow-all'
@@ -410,6 +405,7 @@ export function createCodex(
             model,
             reasoningEffort: settings.reasoningEffort,
             webSearch: settings.webSearch,
+            builtinToolFiltering: startOpts.builtinToolFiltering,
             codexConfig: settings.codexConfig,
             mcpServers: settings.mcpServers,
             headers: startOpts.headers,
@@ -574,6 +570,7 @@ export function createCodex(
         model,
         reasoningEffort: settings.reasoningEffort,
         webSearch: settings.webSearch,
+        builtinToolFiltering: startOpts.builtinToolFiltering,
         codexConfig: settings.codexConfig,
         mcpServers: settings.mcpServers,
         headers: startOpts.headers,
@@ -724,6 +721,7 @@ function createSession({
   model,
   reasoningEffort,
   webSearch,
+  builtinToolFiltering,
   codexConfig,
   mcpServers,
   headers,
@@ -748,6 +746,7 @@ function createSession({
   model: string | undefined;
   reasoningEffort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   webSearch: boolean | undefined;
+  builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
   codexConfig: Record<string, unknown> | undefined;
   mcpServers: Record<string, unknown> | undefined;
   headers: Readonly<Record<string, string>> | undefined;
@@ -1025,6 +1024,7 @@ function createSession({
         model: promptOpts.model ?? model,
         reasoningEffort,
         webSearch,
+        ...(builtinToolFiltering == null ? {} : { builtinToolFiltering }),
         ...(codexConfig == null ? {} : { codexConfig }),
         ...(mcpServers == null ? {} : { mcpServers }),
         ...(headers == null ? {} : { headers }),
@@ -1103,6 +1103,7 @@ function createSession({
             model: continueOpts.model ?? model,
             reasoningEffort,
             webSearch,
+            ...(builtinToolFiltering == null ? {} : { builtinToolFiltering }),
             ...(codexConfig == null ? {} : { codexConfig }),
             ...(mcpServers == null ? {} : { mcpServers }),
             ...(headers == null ? {} : { headers }),
