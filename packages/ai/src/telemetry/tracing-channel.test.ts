@@ -561,7 +561,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('filters text generation context using telemetry allowlists', async () => {
+  it('filters tracing context using telemetry allowlists', async () => {
     const usage = {
       inputTokens: {
         total: 3,
@@ -585,10 +585,16 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         execute: async () => 'sunny',
       }),
     };
-    const contextOptions = {
+    const runtimeContext = {
+      requestId: 'request-1',
+      accessToken: 'secret-token',
+    };
+    const telemetry = {
+      includeRuntimeContext: { requestId: true },
+    } as const;
+    const textContextOptions = {
       runtimeContext: {
-        requestId: 'request-1',
-        accessToken: 'secret-token',
+        ...runtimeContext,
       },
       toolsContext: {
         weather: {
@@ -597,7 +603,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         },
       },
       telemetry: {
-        includeRuntimeContext: { requestId: true },
+        ...telemetry,
         includeToolsContext: { weather: { tenantId: true } },
       },
     } as const;
@@ -621,7 +627,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         }),
         prompt: 'What is the weather?',
         tools,
-        ...contextOptions,
+        ...textContextOptions,
       });
 
       const result = streamText({
@@ -645,17 +651,84 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         }),
         prompt: 'What is the weather?',
         tools,
-        ...contextOptions,
+        ...textContextOptions,
       });
 
       await result.consumeStream();
+
+      const embeddingModel = new MockEmbeddingModelV4({
+        doEmbed: async ({ values }) => ({
+          embeddings: values.map(() => [0.1, 0.2, 0.3]),
+          usage: { tokens: 10 },
+          warnings: [],
+        }),
+      });
+
+      await embed({
+        model: embeddingModel,
+        value: 'sunny day at the beach',
+        runtimeContext,
+        telemetry,
+      });
+
+      await embedMany({
+        model: embeddingModel,
+        values: ['sunny day at the beach', 'rainy day in the city'],
+        runtimeContext,
+        telemetry,
+      });
+
+      await rerank({
+        model: new MockRerankingModelV4({
+          doRerank: async () => ({
+            ranking: [{ index: 0, relevanceScore: 0.9 }],
+            warnings: [],
+          }),
+        }),
+        documents: ['sunny day at the beach'],
+        query: 'weather',
+        runtimeContext,
+        telemetry,
+      });
+
+      await evaluate({
+        model: new EvaluationMockModelV4({
+          doEvaluate: async () => ({
+            answers: {
+              refund: { type: 'boolean', probability: 0.9 },
+            },
+            warnings: [],
+          }),
+        }),
+        state: 'Please refund me',
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        runtimeContext,
+        telemetry,
+      });
     });
+
+    for (const type of [
+      'generateText',
+      'streamText',
+      'embed',
+      'embedMany',
+      'rerank',
+      'experimental_evaluate',
+    ] as const) {
+      const startMessage = messages.find(message => message.type === type);
+      expect(startMessage?.event).toEqual(
+        expect.objectContaining({
+          runtimeContext: { requestId: 'request-1' },
+        }),
+      );
+    }
 
     for (const type of ['generateText', 'streamText'] as const) {
       const startMessage = messages.find(message => message.type === type);
       expect(startMessage?.event).toEqual(
         expect.objectContaining({
-          runtimeContext: { requestId: 'request-1' },
           toolsContext: { weather: { tenantId: 'tenant-1' } },
         }),
       );

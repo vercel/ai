@@ -1,13 +1,11 @@
-import type {
-  Context,
-  InferToolContext,
-  InferToolSetContext,
-  ToolSet,
-} from '@ai-sdk/provider-utils';
-import { filterIncludedContext } from '../telemetry/filter-included-context';
+import type { Context, ToolSet } from '@ai-sdk/provider-utils';
+import {
+  filterIncludedContext,
+  filterToolContext,
+  filterToolsContext,
+} from '../telemetry/filter-included-context';
 import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
 import type { TelemetryDispatcher } from '../telemetry/telemetry';
-import type { TelemetryTracingEventType } from '../telemetry/tracing-channel';
 import type {
   IncludedContext,
   IncludedToolsContext,
@@ -100,57 +98,6 @@ function restrictStepResult<
 }
 
 /**
- * Returns a shallow copy of the tools context with only top-level properties
- * marked for telemetry inclusion for each tool.
- */
-function filterToolsContext<TOOLS extends ToolSet>({
-  toolsContext,
-  includeToolsContext,
-}: {
-  toolsContext: InferToolSetContext<TOOLS>;
-  includeToolsContext: IncludedToolsContext<TOOLS>;
-}): InferToolSetContext<TOOLS> {
-  if (includeToolsContext == null) {
-    return {} as InferToolSetContext<TOOLS>;
-  }
-
-  return Object.fromEntries(
-    Object.entries(toolsContext).map(([toolName, toolContext]) => [
-      toolName,
-      filterToolContext({
-        toolName,
-        toolContext,
-        includeToolsContext,
-      }),
-    ]),
-  ) as InferToolSetContext<TOOLS>;
-}
-
-function filterToolContext<TOOLS extends ToolSet>({
-  toolName,
-  toolContext,
-  includeToolsContext,
-}: {
-  toolName: string;
-  toolContext: unknown;
-  includeToolsContext: IncludedToolsContext<TOOLS>;
-}) {
-  const includeToolContext = (
-    includeToolsContext as
-      | Record<
-          string,
-          IncludedContext<InferToolContext<TOOLS[typeof toolName]>>
-        >
-      | undefined
-  )?.[toolName];
-
-  return filterIncludedContext({
-    context: toolContext as InferToolContext<TOOLS[typeof toolName]>,
-    includeContext: includeToolContext,
-  });
-}
-
-/**
  * Creates a telemetry dispatcher that only includes configured runtime context
  * properties in text-generation lifecycle events before dispatching them.
  */
@@ -168,79 +115,9 @@ export function createRestrictedTelemetryDispatcher<
   includeToolsContext?: IncludedToolsContext<TOOLS>;
 }): RestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
-  const runInTracingChannelSpan = telemetryDispatcher.runInTracingChannelSpan;
-  const startTracingChannelContext =
-    telemetryDispatcher.startTracingChannelContext;
-
-  const filterTracingChannelEvent = ({
-    type,
-    event,
-  }: {
-    type: TelemetryTracingEventType;
-    event: unknown;
-  }): unknown => {
-    if (event == null || typeof event !== 'object') {
-      return event;
-    }
-
-    if (type === 'generateText' || type === 'streamText') {
-      const startEvent = event as {
-        runtimeContext: RUNTIME_CONTEXT;
-        toolsContext: InferToolSetContext<TOOLS>;
-      };
-
-      return {
-        ...event,
-        runtimeContext: filterIncludedContext({
-          context: startEvent.runtimeContext,
-          includeContext: includeRuntimeContext,
-        }),
-        toolsContext: filterToolsContext({
-          toolsContext: startEvent.toolsContext,
-          includeToolsContext,
-        }),
-      };
-    }
-
-    if (type === 'executeTool') {
-      const toolExecutionEvent = event as {
-        toolCall: { toolName: string };
-        toolContext: unknown;
-      };
-
-      return {
-        ...event,
-        toolContext: filterToolContext({
-          toolName: toolExecutionEvent.toolCall.toolName,
-          toolContext: toolExecutionEvent.toolContext,
-          includeToolsContext,
-        }),
-      };
-    }
-
-    return event;
-  };
 
   return {
     ...telemetryDispatcher,
-    runInTracingChannelSpan:
-      runInTracingChannelSpan == null
-        ? undefined
-        : async ({ type, event, execute }) =>
-            await runInTracingChannelSpan({
-              type,
-              event: filterTracingChannelEvent({ type, event }),
-              execute,
-            }),
-    startTracingChannelContext:
-      startTracingChannelContext == null
-        ? undefined
-        : ({ type, event, completion }) =>
-            startTracingChannelContext({
-              type,
-              event: filterTracingChannelEvent({ type, event }),
-              completion,
-            }),
     onStart: event =>
       telemetryDispatcher.onStart?.({
         ...event,
