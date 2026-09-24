@@ -304,6 +304,43 @@ console.log(text);
 
 For more configuration options and customization, see the [You.com AI SDK Plugin documentation](https://github.com/youdotcom-oss/dx-toolkit/tree/main/packages/ai-sdk-plugin#readme).
 
+#### Zenrows
+
+<Note>
+  Get your API key from the [Zenrows
+  dashboard](https://app.zenrows.com/account/settings).
+</Note>
+
+First, install the Zenrows AI SDK tools:
+
+```bash
+pnpm install @zenrows/ai-sdk-tools
+```
+
+Then, you can import and pass the tools into `generateText`, `streamText`, or your agent. Zenrows provides three tools: `scrapeUrl` returns a page as Markdown, `extractData` returns named fields as JSON, and `takeScreenshot` returns the rendered page as an image. All three handle JavaScript rendering and anti-bot protection, so the same call works on pages that block ordinary requests:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+__PROVIDER_IMPORT__;
+import { createZenrowsTools } from '@zenrows/ai-sdk-tools';
+
+const zenrows = createZenrowsTools({
+  apiKey: process.env.ZENROWS_API_KEY!,
+});
+
+const { text } = await generateText({
+  model: __MODEL__,
+  prompt:
+    'Read https://www.scrapingcourse.com/ecommerce/ and name three products.',
+  tools: zenrows,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);
+```
+
+For more configuration options and customization, see the [Zenrows AI SDK tools documentation](https://github.com/ZenRows/vercel-zenrows#readme).
+
 ### Build and use custom tools
 
 For more control over your web search functionality, you can build custom tools using web scraping and crawling APIs. This approach allows you to customize search parameters, handle specific data formats, and integrate with specialized search services.
