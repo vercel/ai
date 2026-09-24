@@ -92,6 +92,7 @@ export function mapProviderName(provider: string): string {
     ['groq', 'groq'],
     ['deepseek', 'deepseek'],
     ['perplexity', 'perplexity'],
+    ['snowflake', 'snowflake'],
     ['xai', 'x_ai'],
   ];
 
