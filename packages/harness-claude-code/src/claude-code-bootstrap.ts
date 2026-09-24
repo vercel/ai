@@ -16,16 +16,14 @@ const readBridgeAsset = createReadBridgeAsset({
 });
 
 /*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
+ * Bootstrap is derived state stored under `$HOME/.ai-sdk-harness`, outside
+ * the agent's working directory. Snapshot-capable providers preserve the
+ * installed CLI, bridge, and recipe marker there.
  *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
- * history is keyed by working directory) and the bridge state files survive
- * both detach -> attach/replay and stop -> snapshot -> resume cycles.
+ * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
+ * default working directory, while the bridge-state dir lives under
+ * `$HOME/.ai-sdk-harness/.agent-runs`. Claude's project history is keyed by
+ * the working directory, so the same work dir is needed across resumes.
  */
 export const CLAUDE_CODE_BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 

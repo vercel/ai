@@ -16,7 +16,7 @@ const bedrockAnthropic = createBedrockAnthropic({
 
 run(async () => {
   const result = await generateText({
-    model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   const result = streamText({
     instructions:
       'You are a helpful assistant. Respond to the user in Markdown format.',
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
   });
 

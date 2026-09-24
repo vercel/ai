@@ -25,7 +25,7 @@ const demandOutputSchema: NonNullable<OpenAIToolOptions['outputSchema']> = {
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5.6'),
+    model: openai('gpt-6-astra'),
     stopWhen: isStepCount(10),
     prompt:
       'Compare inventory with demand for sku_123. Use a hosted JavaScript program to call both tools in parallel, then return whether inventory is sufficient.',

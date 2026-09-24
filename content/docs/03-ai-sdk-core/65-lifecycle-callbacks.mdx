@@ -257,7 +257,7 @@ const { embeddings } = await embedMany({
 });
 
 const { ranking } = await rerank({
-  model: cohere.reranking('rerank-v3.5'),
+  model: cohere.reranking('rerank-v4.0-pro'),
   documents: values,
   query: 'talk about rain',
 

@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   const stream = createUIMessageStream<PreviousResponseIdUIMessage>({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-5-mini'),
+        model: openai('gpt-6-luna'),
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,

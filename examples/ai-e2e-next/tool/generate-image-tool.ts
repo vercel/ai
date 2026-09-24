@@ -7,7 +7,7 @@ export const generateImageTool = tool({
   inputSchema: z.object({}),
   async execute() {
     const result = await generateImage({
-      model: openai.image('gpt-image-2'),
+      model: openai.image('gpt-image-2.5-sunburst'),
       prompt: 'A beautiful image of a sunset over a calm ocean',
     });
 

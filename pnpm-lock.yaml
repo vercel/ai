@@ -3821,6 +3821,9 @@ importers:
 
   packages/quiverai:
     dependencies:
+      '@ai-sdk/open-responses':
+        specifier: workspace:*
+        version: link:../open-responses
       '@ai-sdk/provider':
         specifier: workspace:*
         version: link:../provider

@@ -35,7 +35,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
     string,
     {
       toolName: string;
-      validatedContext: Promise<unknown> | undefined;
+      validatedContexts: Record<string, Promise<unknown> | undefined>;
     }
   > = createIdMap();
 
@@ -48,22 +48,23 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
   }): Promise<unknown> => {
     const ongoingToolCall = ongoingToolCalls[toolCallId];
 
-    if (ongoingToolCall?.validatedContext != null) {
-      return ongoingToolCall.validatedContext;
+    const validatedContext = ongoingToolCall?.validatedContexts[toolName];
+    if (validatedContext != null) {
+      return validatedContext;
     }
 
     const tool = getOwn(tools, toolName);
-    const validatedContext = validateToolContext({
+    const newValidatedContext = validateToolContext({
       toolName,
       context: getOwn(toolsContext, toolName),
       contextSchema: tool?.contextSchema,
     });
 
     if (ongoingToolCall != null) {
-      ongoingToolCall.validatedContext = validatedContext;
+      ongoingToolCall.validatedContexts[toolName] = newValidatedContext;
     }
 
-    return validatedContext;
+    return newValidatedContext;
   };
 
   return stream.pipeThrough(
@@ -80,7 +81,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
           case 'tool-input-start': {
             ongoingToolCalls[chunk.id] = {
               toolName: chunk.toolName,
-              validatedContext: undefined,
+              validatedContexts: createIdMap(),
             };
 
             const tool = getOwn(tools, chunk.toolName);
@@ -120,7 +121,7 @@ export function invokeToolCallbacksFromStream<TOOLS extends ToolSet>({
           }
 
           case 'tool-call': {
-            const toolName = ongoingToolCalls[chunk.toolCallId]?.toolName;
+            const toolName = chunk.toolName;
             const tool = getOwn(tools, toolName);
 
             if (!chunk.invalid && tool?.onInputAvailable != null) {

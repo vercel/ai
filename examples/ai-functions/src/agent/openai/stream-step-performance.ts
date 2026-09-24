@@ -11,7 +11,7 @@ const currentLocation = tool({
   execute: async () => ({ location: 'San Francisco' }),
 });
 
-const model = openai('gpt-5-mini');
+const model = openai('gpt-6-luna');
 
 const agent = new ToolLoopAgent({
   model,
