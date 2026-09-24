@@ -6,16 +6,32 @@ import {
   type CreateUIMessage,
   type UIMessage,
 } from 'ai';
+import { onMount } from 'svelte';
 export type { CreateUIMessage, UIMessage };
+
+export type ChatOptions<UI_MESSAGE extends UIMessage = UIMessage> = Readonly<
+  ChatInit<UI_MESSAGE> & {
+    /**
+     * Whether to resume an ongoing chat generation stream when the component mounts.
+     */
+    resume?: boolean;
+  }
+>;
 
 export class Chat<
   UI_MESSAGE extends UIMessage = UIMessage,
 > extends AbstractChat<UI_MESSAGE> {
-  constructor(init: ChatInit<UI_MESSAGE>) {
+  constructor({ resume = false, ...init }: ChatOptions<UI_MESSAGE>) {
     super({
       ...init,
       state: new SvelteChatState(init.messages),
     });
+
+    if (resume) {
+      onMount(() => {
+        void this.resumeStream();
+      });
+    }
   }
 }
 
