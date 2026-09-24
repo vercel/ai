@@ -54,6 +54,7 @@ import {
   mapProviderName,
 } from './gen-ai-format-messages';
 import { recordErrorOnSpan } from './record-span';
+import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { sanitizeAttributes } from './sanitize-attribute-value';
 import { selectAttributes } from './select-attributes';
 import {
@@ -1221,6 +1222,10 @@ export class OpenTelemetry implements Telemetry {
           outputAudio == null || !('format' in outputAudio)
             ? undefined
             : { output: () => String(outputAudio.format) },
+        ...getProviderUsageAttributes({
+          usage: event.usage,
+          prefix: 'gen_ai.usage',
+        }),
         ...selectSupplementalAttributes(
           state.telemetry,
           this.supplementalAttributes,

@@ -3701,6 +3701,7 @@ describe('LegacyOpenTelemetry speech and transcription operations', () => {
     expect(endAttributes['ai.response.audio.size']).toBeUndefined();
     expect(endAttributes['ai.response.audio.mediaType']).toBeUndefined();
     expect(endAttributes['ai.response.audio.format']).toBeUndefined();
+    expect(endAttributes['ai.usage.characters']).toBe(12);
     expect(endAttributes['ai.response.usage']).toBe(
       JSON.stringify({ characters: 12 }),
     );

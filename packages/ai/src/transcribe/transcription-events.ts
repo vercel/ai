@@ -26,7 +26,11 @@ type TranscriptionStartEventFor<OPERATION_ID extends string> = {
    */
   readonly audio: {
     readonly byteLength: number | undefined;
-    readonly mediaType: string;
+    /**
+     * The media type, when it is known before input preparation completes.
+     * URL downloads and invalid inline inputs can begin without this metadata.
+     */
+    readonly mediaType: string | undefined;
   };
 
   /** The raw input format for streaming transcription. */

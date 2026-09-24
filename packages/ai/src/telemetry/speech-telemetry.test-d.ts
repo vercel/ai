@@ -37,6 +37,9 @@ expectTypeOf<GenerateSpeechEndEvent['audio']>().toEqualTypeOf<{
 expectTypeOf<TranscriptionStartEvent['audio']['byteLength']>().toEqualTypeOf<
   number | undefined
 >();
+expectTypeOf<TranscriptionStartEvent['audio']['mediaType']>().toEqualTypeOf<
+  string | undefined
+>();
 expectTypeOf<TranscriptionEndEvent['text']>().toEqualTypeOf<string>();
 expectTypeOf<TranscriptionEndEvent['usage']>().toEqualTypeOf<
   JSONObject | undefined

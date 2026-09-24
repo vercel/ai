@@ -40,6 +40,9 @@ provider reports it. Because streaming transcription is experimental, custom
 integrations receive its lifecycle through
 `experimental_onStreamTranscriptionStart` and
 `experimental_onStreamTranscriptionEnd`; errors continue to use `onError`.
+Integrations that wrap or delegate to another telemetry integration must
+forward these experimental callbacks explicitly for streaming transcription
+to be observed.
 
 ```ts highlight="5-7"
 const transcript = await transcribe({
@@ -56,6 +59,12 @@ the final byte length is emitted only after the input stream is consumed and
 the transcription finishes. Use `recordInputs: false` or
 `recordOutputs: false` to prevent integrations from recording sensitive input
 or output fields.
+
+For URL audio, the downloaded media type is passed to the provider and reported
+on successful telemetry events. If downloading or decoding input audio fails,
+the start event is still emitted before the correlated error event, but its
+audio byte length and media type can be undefined because preparation did not
+complete.
 
 ## Streaming Transcription
 

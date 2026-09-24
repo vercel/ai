@@ -1463,7 +1463,7 @@ describe('OpenTelemetry', () => {
           mediaType: 'audio/mpeg',
           format: 'mp3',
         },
-        usage: undefined,
+        usage: { characters: 5 },
         warnings: [],
         providerMetadata: undefined,
         response: {
@@ -1486,6 +1486,7 @@ describe('OpenTelemetry', () => {
           'ai.response.audio.size': 1234,
           'ai.response.audio.media_type': 'audio/mpeg',
           'ai.response.audio.format': 'mp3',
+          'gen_ai.usage.characters': 5,
         },
       });
     });
@@ -1513,7 +1514,7 @@ describe('OpenTelemetry', () => {
         segments: [],
         language: 'en',
         durationInSeconds: 1,
-        usage: undefined,
+        usage: { seconds: 1 },
         warnings: [],
         providerMetadata: undefined,
         response: {
@@ -1532,6 +1533,7 @@ describe('OpenTelemetry', () => {
         },
         runtimeAttributes: {
           'ai.response.text': 'Hello',
+          'gen_ai.usage.seconds': 1,
         },
       });
     });
@@ -1578,6 +1580,7 @@ describe('OpenTelemetry', () => {
         runtimeAttributes: {
           'ai.request.audio.size': 2048,
           'ai.response.text': 'Hello',
+          'gen_ai.usage.input_tokens': 3,
         },
       });
     });

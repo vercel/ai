@@ -89,6 +89,19 @@ operations through `onStart` and `onEnd`. To keep the experimental API isolated,
 `experimental_onStreamTranscriptionEnd`; all three operations report failures
 through `onError`.
 
+An integration that wraps or delegates to another integration must explicitly
+forward the experimental streaming transcription callbacks. Forwarding only
+the stable `onStart` and `onEnd` callbacks does not observe
+`experimental_streamTranscribe`.
+
+The built-in OpenTelemetry integrations record numeric provider usage by
+default, preserving each reported unit. The modern integration uses attributes
+such as `gen_ai.usage.characters`, `gen_ai.usage.seconds`, and
+`gen_ai.usage.input_tokens`; `LegacyOpenTelemetry` uses the corresponding
+`ai.usage.*` attributes. The provider-native usage object remains available to
+callbacks, and can also be included as the supplemental `ai.response.usage`
+attribute by enabling `usage: true`.
+
 ### Opting out
 
 Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: false`:

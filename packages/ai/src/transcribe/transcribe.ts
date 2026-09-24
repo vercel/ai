@@ -145,33 +145,35 @@ export async function transcribe({
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
 
-  try {
-    const audioData =
-      audio instanceof URL
-        ? (await downloadFn({ url: audio, abortSignal })).data
-        : convertDataContentToUint8Array(audio);
-    const mediaType =
-      detectMediaType({
-        data: audioData,
-        topLevelType: 'audio',
-      }) ?? 'audio/wav';
+  const createStartEvent = ({
+    byteLength,
+    mediaType,
+  }: {
+    byteLength: number | undefined;
+    mediaType: string | undefined;
+  }): TranscriptionStartEvent => ({
+    callId,
+    operationId: 'ai.transcribe',
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    audio: {
+      byteLength,
+      mediaType,
+    },
+    inputAudioFormat: undefined,
+    maxRetries,
+    headers,
+    providerOptions,
+  });
 
-    const startEvent: TranscriptionStartEvent = {
-      callId,
-      operationId: 'ai.transcribe',
-      provider: resolvedModel.provider,
-      modelId: resolvedModel.modelId,
-      audio: {
-        byteLength: audioData.byteLength,
-        mediaType,
-      },
-      inputAudioFormat: undefined,
-      maxRetries,
-      headers,
-      providerOptions,
-    };
-
-    return await runInTracingChannelSpan({
+  const executeWithStartEvent = async <T>({
+    startEvent,
+    execute,
+  }: {
+    startEvent: TranscriptionStartEvent;
+    execute: () => PromiseLike<T>;
+  }) =>
+    await runInTracingChannelSpan({
       type: 'transcribe',
       event: startEvent,
       execute: async () => {
@@ -180,6 +182,64 @@ export async function transcribe({
           callbacks: [telemetryDispatcher.onStart],
         });
 
+        return await execute();
+      },
+    });
+
+  let preparationError: unknown;
+  let preparationFailed = false;
+  let audioData: Uint8Array;
+  let downloadedMediaType: string | undefined;
+
+  try {
+    if (audio instanceof URL) {
+      const downloadResult = await downloadFn({ url: audio, abortSignal });
+      audioData = downloadResult.data;
+      downloadedMediaType = downloadResult.mediaType;
+    } else {
+      audioData = convertDataContentToUint8Array(audio);
+    }
+  } catch (error) {
+    preparationFailed = true;
+    preparationError = error;
+    audioData = new Uint8Array();
+  }
+
+  if (preparationFailed) {
+    const startEvent = createStartEvent({
+      byteLength: undefined,
+      mediaType: undefined,
+    });
+
+    try {
+      return await executeWithStartEvent({
+        startEvent,
+        execute: () => {
+          throw preparationError;
+        },
+      });
+    } catch (error) {
+      await telemetryDispatcher.onError?.({ callId, error });
+      throw error;
+    }
+  }
+
+  const mediaType =
+    downloadedMediaType ??
+    detectMediaType({
+      data: audioData,
+      topLevelType: 'audio',
+    }) ??
+    'audio/wav';
+  const startEvent = createStartEvent({
+    byteLength: audioData.byteLength,
+    mediaType,
+  });
+
+  try {
+    return await executeWithStartEvent({
+      startEvent,
+      execute: async () => {
         const result = await retry(() =>
           resolvedModel.doGenerate({
             audio: audioData,

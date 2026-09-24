@@ -48,6 +48,7 @@ import type {
 } from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
+import { getProviderUsageAttributes } from './provider-usage-attributes';
 import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 
@@ -956,6 +957,10 @@ export class LegacyOpenTelemetry implements Telemetry {
           isSpeech && 'format' in audio
             ? { output: () => audio.format }
             : undefined,
+        ...getProviderUsageAttributes({
+          usage: event.usage,
+          prefix: 'ai.usage',
+        }),
         'ai.response.usage':
           event.usage == null ? undefined : JSON.stringify(event.usage),
         'ai.response.providerMetadata':
