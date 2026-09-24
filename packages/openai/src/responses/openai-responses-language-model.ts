@@ -1,4 +1,5 @@
 import {
+  UnsupportedFunctionalityError,
   APICallError,
   type JSONValue,
   type LanguageModelV3,
@@ -72,6 +73,7 @@ import {
 import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -106,6 +108,30 @@ function extractApprovalRequestIdToToolCallIdMapping(
     }
   }
   return mapping;
+}
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAILanguageModelResponsesOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (options?.reasoningMode === 'pro' || options?.truncation === 'auto') {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation';
+  }
+
+  return undefined;
 }
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
@@ -246,9 +272,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        configurationUpdateUnsupportedReason,
         toolNameMapping,
         systemMessageMode:
           openaiOptions?.systemMessageMode ??
@@ -276,25 +309,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     warnings.push(...inputWarnings);
 
     const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
-    const configurationUpdateIsSupported =
-      reasoningEffortUpdate == null ||
-      (modelCapabilities.supportsConfigurationUpdate &&
-        openaiOptions?.reasoningMode !== 'pro' &&
-        openaiOptions?.truncation !== 'auto');
-
-    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+    if (
+      reasoningEffortUpdate != null &&
+      configurationUpdateUnsupportedReason != null
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningEffortUpdate',
-        details: !modelCapabilities.supportsConfigurationUpdate
-          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
-          : 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
+        details: configurationUpdateUnsupportedReason,
       });
     } else if (reasoningEffortUpdate != null) {
-      input.unshift({
-        type: 'configuration_update',
-        reasoning: { effort: reasoningEffortUpdate },
-      });
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
     }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
