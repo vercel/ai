@@ -1,0 +1,139 @@
+---
+title: Auxen
+description: Auxen Provider for the AI SDK — dedicated, OpenAI-compatible LLM endpoints
+---
+
+# Auxen Provider
+
+[Auxen](https://auxen.ai) hosts **per-customer dedicated** LLM endpoints. Each provisioned instance is its own GPU running one open-source model (Llama 3.1/3.2, Qwen 2.5, Mistral, Gemma 2, Mixtral, Phi-3, Command R) on a stable HTTPS endpoint with an OpenAI-compatible `/v1/chat/completions` API.
+
+The Auxen provider for the AI SDK is a thin wrapper that gives you Auxen-specific defaults for `baseURL` and `apiKey`:
+
+- **Dedicated tenancy** — your prompts and completions run on hardware exclusively yours for the runtime billed; no shared inference fleet.
+- **Per-minute pricing**, not per-token — predictable cost at any throughput.
+- **Open-source models** — full weight catalog: Llama 3.1/3.2, Qwen 2.5, Mistral, Gemma 2, Mixtral, Phi-3, Command R.
+- **OpenAI-compatible wire format** — works seamlessly with `streamText`, `generateText`, tool calls, and structured outputs.
+
+## Setup
+
+The Auxen provider is available in the `@auxen/ai-sdk-provider` module. Install it with:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @auxen/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @auxen/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @auxen/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @auxen/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+## Provider Instance
+
+Create an Auxen provider instance with the per-instance `baseURL` and `apiKey` issued by the [Auxen dashboard](https://auxen.ai):
+
+```typescript
+import { createAuxen } from "@auxen/ai-sdk-provider";
+
+const auxen = createAuxen({
+  baseURL: "https://api.auxen.ai/v1/inst_xxx/v1",
+  apiKey: "auxk_...",
+});
+```
+
+Or rely on the `AUXEN_API_BASE` / `AUXEN_API_KEY` environment variables and import the default `auxen` instance:
+
+```typescript
+import { auxen } from "@auxen/ai-sdk-provider";
+```
+
+## Language Models
+
+Auxen exposes chat models. Pass any model name your provisioned instance is serving:
+
+```typescript
+import { generateText } from "ai";
+import { createAuxen } from "@auxen/ai-sdk-provider";
+
+const auxen = createAuxen({
+  baseURL: "https://api.auxen.ai/v1/inst_xxx/v1",
+  apiKey: "auxk_...",
+});
+
+const { text } = await generateText({
+  model: auxen("llama-3.1-8b"),
+  prompt: "Write a haiku about dedicated GPUs.",
+});
+```
+
+## Streaming
+
+```typescript
+import { streamText } from "ai";
+import { createAuxen } from "@auxen/ai-sdk-provider";
+
+const auxen = createAuxen({
+  baseURL: "https://api.auxen.ai/v1/inst_xxx/v1",
+  apiKey: "auxk_...",
+});
+
+const result = streamText({
+  model: auxen("llama-3.1-8b"),
+  prompt: "Count from 1 to 10.",
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+## Tool / Function Calling
+
+Tool-capable models (Llama 3.1/3.2, Qwen 2.5, Mistral Nemo, Mixtral, Command R) accept the AI SDK tools schema directly:
+
+```typescript
+import { generateText, tool } from "ai";
+import { z } from "zod";
+import { createAuxen } from "@auxen/ai-sdk-provider";
+
+const auxen = createAuxen({
+  baseURL: "https://api.auxen.ai/v1/inst_xxx/v1",
+  apiKey: "auxk_...",
+});
+
+const { text, toolCalls } = await generateText({
+  model: auxen("llama-3.1-8b"),
+  prompt: "What's the weather in Toronto?",
+  tools: {
+    getWeather: tool({
+      description: "Get the current weather for a city",
+      parameters: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ temperature: 72, condition: "sunny" }),
+    }),
+  },
+});
+```
+
+## Catalog
+
+Auxen-hosted models (recommended values for editor autocomplete — any string is accepted at runtime since each instance is locked to one model at provision time):
+
+- `llama-3.1-8b`, `llama-3.1-70b`, `llama-3.2-3b`
+- `qwen2.5-7b`, `qwen2.5-14b`, `qwen2.5-32b`
+- `mistral-7b`, `mistral-nemo-12b`, `mixtral-8x7b`
+- `gemma2-9b`, `phi-3-mini`, `command-r-7b`
+
+## Pricing model
+
+Auxen bills **per-minute of dedicated GPU runtime, not per token**. See [auxen.ai/pricing](https://auxen.ai/pricing) for hourly rates by model size.
+
+## Links
+
+- Provider source: [github.com/auxen-ai/ai-sdk-provider](https://github.com/auxen-ai/ai-sdk-provider)
+- npm: [`@auxen/ai-sdk-provider`](https://www.npmjs.com/package/@auxen/ai-sdk-provider)
+- Auxen: [auxen.ai](https://auxen.ai)
