@@ -124,6 +124,13 @@ const { audio } = await generateSpeech({
       isOptional: true,
       description: 'Additional HTTP headers for the request.',
     },
+    {
+      name: 'telemetry',
+      type: 'TelemetryOptions',
+      isOptional: true,
+      description:
+        'Telemetry configuration. Supports functionId, recordInputs, recordOutputs, isEnabled, and per-call integrations.',
+    },
   ]}
 />
 

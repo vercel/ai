@@ -23,6 +23,8 @@ import type {
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
+  GenerateSpeechEndEvent,
+  GenerateSpeechStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
   Experimental_EvaluateEndEvent as EvaluateEndEvent,
@@ -33,6 +35,8 @@ import type {
   RerankEndEvent,
   RerankStartEvent,
   RerankingModelCallStartEvent,
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
   InferTelemetryEvent,
   Telemetry,
   TelemetryOptions,
@@ -209,8 +213,27 @@ export class OpenTelemetry implements Telemetry {
       | InferTelemetryEvent<GenerateTextStartEvent>
       | InferTelemetryEvent<GenerateObjectStartEvent>
       | InferTelemetryEvent<EmbedStartEvent>
-      | InferTelemetryEvent<RerankStartEvent>,
+      | InferTelemetryEvent<RerankStartEvent>
+      | InferTelemetryEvent<GenerateSpeechStartEvent>
+      | InferTelemetryEvent<TranscriptionStartEvent>,
   ): void {
+    if (event.operationId === 'ai.generateSpeech') {
+      this.onAudioOperationStart(
+        event as InferTelemetryEvent<GenerateSpeechStartEvent>,
+      );
+      return;
+    }
+
+    if (
+      event.operationId === 'ai.transcribe' ||
+      event.operationId === 'ai.streamTranscribe'
+    ) {
+      this.onAudioOperationStart(
+        event as InferTelemetryEvent<TranscriptionStartEvent>,
+      );
+      return;
+    }
+
     if (
       event.operationId === 'ai.embed' ||
       event.operationId === 'ai.embedMany'
@@ -237,6 +260,79 @@ export class OpenTelemetry implements Telemetry {
     }
 
     this.onGenerateStart(event as InferTelemetryEvent<GenerateTextStartEvent>);
+  }
+
+  private onAudioOperationStart(
+    event: InferTelemetryEvent<
+      GenerateSpeechStartEvent | TranscriptionStartEvent
+    >,
+  ): void {
+    const telemetry: TelemetryOptions = {
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+    };
+    const providerName = mapProviderName(event.provider);
+    const operationName = mapOperationName(event.operationId);
+    const audio = 'audio' in event ? event.audio : undefined;
+    const text = 'text' in event ? event.text : undefined;
+    const baseSupplementalAttributes = selectSupplementalAttributes(
+      telemetry,
+      this.supplementalAttributes,
+      {
+        headers: getHeaderAttributes(event.headers),
+      },
+    );
+
+    const attributes = selectAttributes(telemetry, {
+      'gen_ai.operation.name': operationName,
+      'gen_ai.provider.name': providerName,
+      'gen_ai.request.model': event.modelId,
+      'gen_ai.agent.name': telemetry.functionId,
+      'ai.request.text': text == null ? undefined : { input: () => text },
+      'ai.request.audio.size':
+        audio?.byteLength == null
+          ? undefined
+          : { input: () => audio.byteLength },
+      'ai.request.audio.media_type':
+        audio == null ? undefined : { input: () => audio.mediaType },
+      ...baseSupplementalAttributes,
+    });
+
+    const rootSpan = this.tracer.startSpan(
+      `${operationName} ${event.modelId}`,
+      {
+        attributes: this.getSpanAttributes({
+          attributes,
+          spanType: 'operation',
+          operationId: event.operationId,
+          callId: event.callId,
+          runtimeContext: undefined,
+        }),
+        kind: SpanKind.INTERNAL,
+      },
+    );
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      inferenceSpan: undefined,
+      inferenceContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      evaluationSpan: undefined,
+      toolSpans: new Map(),
+      settings: {},
+      provider: event.provider,
+      modelId: event.modelId,
+      runtimeContext: undefined,
+      baseSupplementalAttributes,
+    });
   }
 
   private onGenerateStart(
@@ -1032,7 +1128,9 @@ export class OpenTelemetry implements Telemetry {
       | GenerateTextEndEvent<ToolSet>
       | GenerateObjectEndEvent<unknown>
       | EmbedEndEvent
-      | RerankEndEvent,
+      | RerankEndEvent
+      | GenerateSpeechEndEvent
+      | TranscriptionEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
@@ -1051,6 +1149,17 @@ export class OpenTelemetry implements Telemetry {
     }
 
     if (
+      state.operationId === 'ai.generateSpeech' ||
+      state.operationId === 'ai.transcribe' ||
+      state.operationId === 'ai.streamTranscribe'
+    ) {
+      this.onAudioOperationEnd(
+        event as GenerateSpeechEndEvent | TranscriptionEndEvent,
+      );
+      return;
+    }
+
+    if (
       state.operationId === 'ai.generateObject' ||
       state.operationId === 'ai.streamObject'
     ) {
@@ -1059,6 +1168,65 @@ export class OpenTelemetry implements Telemetry {
     }
 
     this.onGenerateEnd(event as GenerateTextEndEvent<ToolSet>);
+  }
+
+  private onAudioOperationEnd(
+    event: GenerateSpeechEndEvent | TranscriptionEndEvent,
+  ): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    const outputAudio =
+      event.operationId === 'ai.generateSpeech' ? event.audio : undefined;
+    const inputAudio =
+      event.operationId === 'ai.generateSpeech' ? undefined : event.audio;
+    const transcript = 'segments' in event ? event.text : undefined;
+
+    state.rootSpan.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.request.audio.size':
+          inputAudio == null
+            ? undefined
+            : { input: () => inputAudio.byteLength },
+        'ai.request.audio.media_type':
+          inputAudio == null
+            ? undefined
+            : { input: () => inputAudio.mediaType },
+        'ai.response.text':
+          transcript == null ? undefined : { output: () => transcript },
+        'ai.response.audio.size':
+          outputAudio == null
+            ? undefined
+            : { output: () => outputAudio.byteLength },
+        'ai.response.audio.media_type':
+          outputAudio == null
+            ? undefined
+            : { output: () => outputAudio.mediaType },
+        'ai.response.audio.format':
+          outputAudio == null || !('format' in outputAudio)
+            ? undefined
+            : { output: () => String(outputAudio.format) },
+        ...selectSupplementalAttributes(
+          state.telemetry,
+          this.supplementalAttributes,
+          {
+            usage: {
+              'ai.response.usage':
+                event.usage == null ? undefined : JSON.stringify(event.usage),
+            },
+            providerMetadata: {
+              'ai.response.providerMetadata':
+                event.providerMetadata == null
+                  ? undefined
+                  : JSON.stringify(event.providerMetadata),
+            },
+          },
+        ),
+      }),
+    );
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
   }
 
   private onGenerateEnd(event: GenerateTextEndEvent<ToolSet>): void {

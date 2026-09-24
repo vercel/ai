@@ -88,6 +88,13 @@ console.log(await result.text);
       description:
         'When true, the provider includes raw provider chunks in the stream as `raw` parts.',
     },
+    {
+      name: 'telemetry',
+      type: 'TelemetryOptions',
+      isOptional: true,
+      description:
+        'Telemetry configuration. The end event is emitted after the audio stream is consumed and includes the final input byte length.',
+    },
   ]}
 />
 

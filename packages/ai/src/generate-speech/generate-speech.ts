@@ -1,5 +1,6 @@
 import type { JSONObject } from '@ai-sdk/provider';
 import {
+  createIdGenerator,
   detectMediaType,
   withUserAgentSuffix,
   type ProviderOptions,
@@ -7,16 +8,28 @@ import {
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechModel } from '../model/resolve-model';
+import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { SpeechModel } from '../types/speech-model';
 import type { SpeechModelResponseMetadata } from '../types/speech-model-response-metadata';
 import type { Warning } from '../types/warning';
 import { prepareRetries } from '../util/prepare-retries';
+import { notify } from '../util/notify';
 import { VERSION } from '../version';
 import type { SpeechResult } from './generate-speech-result';
 import {
   DefaultGeneratedAudioFile,
   type GeneratedAudioFile,
 } from './generated-audio-file';
+import type {
+  GenerateSpeechEndEvent,
+  GenerateSpeechStartEvent,
+} from './speech-events';
+
+const originalGenerateCallId = createIdGenerator({
+  prefix: 'call',
+  size: 24,
+});
 /**
  * Generates speech audio using a speech model.
  *
@@ -32,6 +45,7 @@ import {
  * @param maxRetries - Maximum number of retries. Set to 0 to disable retries. Default: 2.
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
+ * @param telemetry - Optional telemetry configuration.
  *
  * @returns A result object that contains the generated audio data.
  */
@@ -47,6 +61,8 @@ export async function generateSpeech({
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
+  telemetry,
+  _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /**
    * The speech model to use.
@@ -115,6 +131,18 @@ export async function generateSpeech({
    * Only applicable for HTTP-based providers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Optional telemetry configuration.
+   */
+  telemetry?: TelemetryOptions;
+
+  /**
+   * Internal. For test use only. May change without notice.
+   */
+  _internal?: {
+    generateCallId?: () => string;
+  };
 }): Promise<SpeechResult> {
   const resolvedModel = resolveSpeechModel(model);
   if (!resolvedModel) {
@@ -126,53 +154,134 @@ export async function generateSpeech({
     `ai/${VERSION}`,
   );
 
-  const { retry } = prepareRetries({
+  const { maxRetries, retry } = prepareRetries({
     maxRetries: maxRetriesArg,
     abortSignal,
   });
 
-  const result = await retry(() =>
-    resolvedModel.doGenerate({
-      text,
-      voice,
-      outputFormat,
-      instructions,
-      speed,
-      language,
-      abortSignal,
-      headers: headersWithUserAgent,
-      providerOptions,
-    }),
-  );
+  const callId = generateCallId();
+  const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const runInTracingChannelSpan =
+    telemetryDispatcher.runInTracingChannelSpan ??
+    (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
+      await execute());
 
-  if (!result.audio || result.audio.length === 0) {
-    throw new NoSpeechGeneratedError({ responses: [result.response] });
+  const startEvent: GenerateSpeechStartEvent = {
+    callId,
+    operationId: 'ai.generateSpeech',
+    provider: resolvedModel.provider,
+    modelId: resolvedModel.modelId,
+    text,
+    voice,
+    outputFormat,
+    instructions,
+    speed,
+    language,
+    maxRetries,
+    headers,
+    providerOptions,
+  };
+
+  return await runInTracingChannelSpan({
+    type: 'generateSpeech',
+    event: startEvent,
+    execute: async () => {
+      await notify({
+        event: startEvent,
+        callbacks: [telemetryDispatcher.onStart],
+      });
+
+      try {
+        const result = await retry(() =>
+          resolvedModel.doGenerate({
+            text,
+            voice,
+            outputFormat,
+            instructions,
+            speed,
+            language,
+            abortSignal,
+            headers: headersWithUserAgent,
+            providerOptions,
+          }),
+        );
+
+        if (!result.audio || result.audio.length === 0) {
+          throw new NoSpeechGeneratedError({ responses: [result.response] });
+        }
+
+        logWarnings({
+          warnings: result.warnings,
+          provider: resolvedModel.provider,
+          model: resolvedModel.modelId,
+        });
+
+        const detectedMediaType = detectMediaType({
+          data: result.audio,
+          topLevelType: 'audio',
+        });
+
+        const audio = new DefaultGeneratedAudioFile({
+          data: result.audio,
+          mediaType:
+            detectedMediaType ??
+            getResponseAudioMediaType(result.response.headers) ??
+            getOutputFormatMediaType(outputFormat) ??
+            'audio/mp3',
+        });
+
+        const endEvent: GenerateSpeechEndEvent = {
+          callId,
+          operationId: 'ai.generateSpeech',
+          provider: resolvedModel.provider,
+          modelId: resolvedModel.modelId,
+          text,
+          audio: {
+            byteLength: getAudioByteLength(result.audio),
+            mediaType: audio.mediaType,
+            format: audio.format,
+          },
+          usage: (
+            result as typeof result & {
+              usage?: JSONObject;
+            }
+          ).usage,
+          warnings: result.warnings,
+          providerMetadata: result.providerMetadata,
+          response: result.response,
+        };
+
+        await notify({
+          event: endEvent,
+          callbacks: [telemetryDispatcher.onEnd],
+        });
+
+        return new DefaultSpeechResult({
+          audio,
+          warnings: result.warnings,
+          responses: [result.response],
+          providerMetadata: result.providerMetadata,
+        });
+      } catch (error) {
+        await telemetryDispatcher.onError?.({ callId, error });
+        throw error;
+      }
+    },
+  });
+}
+
+function getAudioByteLength(audio: string | Uint8Array): number {
+  if (audio instanceof Uint8Array) {
+    return audio.byteLength;
   }
 
-  logWarnings({
-    warnings: result.warnings,
-    provider: resolvedModel.provider,
-    model: resolvedModel.modelId,
-  });
-
-  const detectedMediaType = detectMediaType({
-    data: result.audio,
-    topLevelType: 'audio',
-  });
-
-  return new DefaultSpeechResult({
-    audio: new DefaultGeneratedAudioFile({
-      data: result.audio,
-      mediaType:
-        detectedMediaType ??
-        getResponseAudioMediaType(result.response.headers) ??
-        getOutputFormatMediaType(outputFormat) ??
-        'audio/mp3',
-    }),
-    warnings: result.warnings,
-    responses: [result.response],
-    providerMetadata: result.providerMetadata,
-  });
+  const normalized = audio.replace(/\s/g, '');
+  const padding = normalized.endsWith('==')
+    ? 2
+    : normalized.endsWith('=')
+      ? 1
+      : 0;
+  return Math.floor((normalized.length * 3) / 4) - padding;
 }
 
 function getResponseAudioMediaType(

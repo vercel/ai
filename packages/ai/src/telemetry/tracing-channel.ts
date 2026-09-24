@@ -9,6 +9,9 @@ export type TelemetryTracingEventType =
   | 'embed'
   | 'embedMany'
   | 'rerank'
+  | 'generateSpeech'
+  | 'transcribe'
+  | 'streamTranscribe'
   | 'experimental_evaluate';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {

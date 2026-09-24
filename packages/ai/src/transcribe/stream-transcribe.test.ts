@@ -19,6 +19,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { streamTranscribe } from './stream-transcribe';
+import type { TranscriptionEndEvent } from './transcription-events';
 
 vi.mock('../version', () => {
   return {
@@ -85,9 +86,12 @@ describe('experimental_streamTranscribe', () => {
 
     await convertAsyncIterableToArray(result.fullStream);
 
-    const { abortSignal: capturedSignal, ...capturedRest } = capturedArgs;
+    const {
+      abortSignal: capturedSignal,
+      audio: capturedAudio,
+      ...capturedRest
+    } = capturedArgs;
     expect(capturedRest).toStrictEqual({
-      audio,
       inputAudioFormat,
       providerOptions: { mock: { option: 'value' } },
       headers: {
@@ -96,6 +100,7 @@ describe('experimental_streamTranscribe', () => {
       },
       includeRawChunks: true,
     });
+    expect(capturedAudio).toBeInstanceOf(ReadableStream);
     // the model receives a merged signal that follows the caller's signal
     expect(capturedSignal?.aborted).toBe(false);
     abortController.abort();
@@ -501,5 +506,74 @@ describe('experimental_streamTranscribe', () => {
     );
     await fullStream.cancel();
     await textAssertion;
+  });
+
+  it('should emit telemetry events with the consumed audio byte count', async () => {
+    const events: Array<{ type: string; event: unknown }> = [];
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio }) => {
+          const reader = audio.getReader();
+          while (!(await reader.read()).done) {
+            // consume the complete input
+          }
+          return createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'finish',
+              text: 'Hello',
+              segments: [],
+              providerMetadata: { mock: { traceId: 'trace-1' } },
+              usage: { inputTokens: 3 },
+            } as TranscriptionModelV4StreamPart,
+          ]);
+        },
+      }),
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3]), 'BAU=']),
+      inputAudioFormat,
+      telemetry: {
+        functionId: 'stream-audio',
+        integrations: {
+          onStart: event => {
+            if (event.operationId === 'ai.streamTranscribe') {
+              events.push({ type: 'start', event });
+            }
+          },
+          onEnd: event => {
+            const transcriptionEvent = event as TranscriptionEndEvent;
+            if (transcriptionEvent.operationId === 'ai.streamTranscribe') {
+              events.push({ type: 'end', event: transcriptionEvent });
+            }
+          },
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
+    });
+
+    await convertAsyncIterableToArray(result.fullStream);
+
+    expect(events).toMatchObject([
+      {
+        type: 'start',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.streamTranscribe',
+          audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+          functionId: 'stream-audio',
+        },
+      },
+      {
+        type: 'end',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.streamTranscribe',
+          audio: { byteLength: 5, mediaType: 'audio/pcm' },
+          text: 'Hello',
+          usage: { inputTokens: 3 },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          functionId: 'stream-audio',
+        },
+      },
+    ]);
   });
 });

@@ -16,6 +16,7 @@ import {
   DefaultGeneratedAudioFile,
   type GeneratedAudioFile,
 } from './generated-audio-file';
+import type { GenerateSpeechEndEvent } from './speech-events';
 const audio = new Uint8Array([1, 2, 3, 4]); // Sample audio data
 const testDate = new Date(2024, 0, 1);
 const mockFile = new DefaultGeneratedAudioFile({
@@ -428,5 +429,98 @@ describe('generateSpeech', () => {
         headers: testHeaders,
       },
     ]);
+  });
+
+  it('should emit telemetry start and end events without raw audio', async () => {
+    const events: Array<{ type: string; event: unknown }> = [];
+
+    await generateSpeech({
+      model: new MockSpeechModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            audio: mockFile,
+            timestamp: testDate,
+            providerMetadata: { mock: { traceId: 'trace-1' } },
+          }),
+          usage: { characters: sampleText.length },
+        }),
+      }),
+      text: sampleText,
+      voice: 'alloy',
+      telemetry: {
+        functionId: 'speak-text',
+        recordOutputs: false,
+        integrations: {
+          onStart: event => {
+            if (event.operationId === 'ai.generateSpeech') {
+              events.push({ type: 'start', event });
+            }
+          },
+          onEnd: event => {
+            const speechEvent = event as GenerateSpeechEndEvent;
+            if (speechEvent.operationId === 'ai.generateSpeech') {
+              events.push({ type: 'end', event: speechEvent });
+            }
+          },
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
+    });
+
+    expect(events).toMatchObject([
+      {
+        type: 'start',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.generateSpeech',
+          text: sampleText,
+          voice: 'alloy',
+          functionId: 'speak-text',
+          recordOutputs: false,
+        },
+      },
+      {
+        type: 'end',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.generateSpeech',
+          text: sampleText,
+          audio: {
+            byteLength: 4,
+            mediaType: 'audio/mp3',
+            format: 'mp3',
+          },
+          usage: { characters: sampleText.length },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          functionId: 'speak-text',
+          recordOutputs: false,
+        },
+      },
+    ]);
+    expect(events[1]).not.toHaveProperty('event.audio.data');
+  });
+
+  it('should emit a telemetry error event when speech generation fails', async () => {
+    const error = new Error('speech failed');
+    const onError = vi.fn();
+
+    await expect(
+      generateSpeech({
+        model: new MockSpeechModelV4({
+          doGenerate: async () => {
+            throw error;
+          },
+        }),
+        text: sampleText,
+        maxRetries: 0,
+        telemetry: { integrations: { onError } },
+        _internal: { generateCallId: () => 'call-1' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith({
+      callId: 'call-1',
+      error,
+    });
   });
 });

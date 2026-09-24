@@ -8,6 +8,10 @@ export type {
   TranscriptionStreamPart,
 } from './stream-transcribe-result';
 export type { TranscriptionResult } from './transcribe-result';
+export type {
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from './transcription-events';
 
 // deprecated exports
 

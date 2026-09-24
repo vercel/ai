@@ -40,6 +40,14 @@ import type {
   RerankingModelCallEndEvent,
   RerankingModelCallStartEvent,
 } from '../rerank/rerank-events';
+import type {
+  GenerateSpeechEndEvent,
+  GenerateSpeechStartEvent,
+} from '../generate-speech/speech-events';
+import type {
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from '../transcribe/transcription-events';
 import type { Callback } from '../util/callback';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { TelemetryTracingEventType } from './tracing-channel';
@@ -55,13 +63,17 @@ type OperationStartEvent =
   | GenerateTextStartEvent
   | GenerateObjectStartEvent
   | EmbedStartEvent
-  | RerankStartEvent;
+  | RerankStartEvent
+  | GenerateSpeechStartEvent
+  | TranscriptionStartEvent;
 
 type OperationEndEvent =
   | GenerateTextEndEvent<ToolSet>
   | GenerateObjectEndEvent<unknown>
   | EmbedEndEvent
-  | RerankEndEvent;
+  | RerankEndEvent
+  | GenerateSpeechEndEvent
+  | TranscriptionEndEvent;
 
 export interface TelemetryDispatcher {
   /**
@@ -117,7 +129,8 @@ export interface Telemetry {
   /**
    * Called when an operation begins. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), and reranking operations.
+   * embedding (embed/embedMany), reranking, speech generation, and
+   * transcription operations.
    *
    * Use the `operationId` field to distinguish between operation types.
    */
@@ -251,7 +264,8 @@ export interface Telemetry {
   /**
    * Called when an operation completes. Fired for text generation
    * (generateText/streamText), object generation (generateObject/streamObject),
-   * embedding (embed/embedMany), and reranking operations.
+   * embedding (embed/embedMany), reranking, speech generation, and
+   * transcription operations.
    *
    * Use the event shape or `operationId` to distinguish between operation types.
    */

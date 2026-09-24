@@ -30,6 +30,30 @@ const language = transcript.language; // language of the transcript e.g. "en", i
 const durationInSeconds = transcript.durationInSeconds; // duration of the transcript in seconds, if available
 ```
 
+## Telemetry
+
+`transcribe` and `experimental_streamTranscribe` accept the standard
+`telemetry` option. Registered integrations receive start, end, and error
+events with the provider and model, audio byte length and media type, final
+transcript, warnings, response metadata, provider metadata, and usage when the
+provider reports it.
+
+```ts highlight="5-7"
+const transcript = await transcribe({
+  model: openai.transcription('gpt-4o-transcribe'),
+  audio: await readFile('audio.mp3'),
+  telemetry: {
+    functionId: 'transcribe-customer-call',
+  },
+});
+```
+
+Raw audio is not included in telemetry events. For streaming transcription,
+the final byte length is emitted only after the input stream is consumed and
+the transcription finishes. Use `recordInputs: false` or
+`recordOutputs: false` to prevent integrations from recording sensitive input
+or output fields.
+
 ## Streaming Transcription
 
 <Note type="warning">Streaming transcription is an experimental feature.</Note>
