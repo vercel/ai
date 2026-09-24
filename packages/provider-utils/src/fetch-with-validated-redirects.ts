@@ -14,18 +14,35 @@ const MAX_DOWNLOAD_REDIRECTS = 10;
 // even when a server attaches a Location header.
 const REDIRECT_STATUS_CODES = new Set([301, 302, 303, 307, 308]);
 
-// Providers use several non-standard names for credentials. Treat a header as
-// credential-like when one of its delimiter-separated name segments identifies
-// authentication material. This blocks common forms such as `x-key`,
-// `x-api-key`, `x-access-token`, and `x-client-secret` without breaking
-// unrelated custom headers such as tracing or protocol-version headers.
-const CREDENTIAL_HEADER_NAME_PATTERN =
-  /(?:^|[-_])(?:api[-_]?key|auth(?:entication|orization)?|credential|key|secret|signature|token)(?:$|[-_])/;
+// Unknown custom header names cannot be classified reliably: providers may use
+// arbitrary names for credentials. When the first hop is not explicitly
+// credentialed, retain only request metadata with established non-credential
+// semantics and withhold every other caller header.
+const SAFE_UNTRUSTED_FIRST_HOP_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'baggage',
+  'cache-control',
+  'idempotency-key',
+  'if-match',
+  'if-modified-since',
+  'if-none-match',
+  'if-range',
+  'if-unmodified-since',
+  'mcp-protocol-version',
+  'pragma',
+  'range',
+  'traceparent',
+  'tracestate',
+  'user-agent',
+  'x-correlation-id',
+  'x-request-id',
+]);
 
-function retainNonCredentialFirstHopHeaders(headers: Headers): Headers {
+function retainSafeUntrustedFirstHopHeaders(headers: Headers): Headers {
   const retainedHeaders = new Headers();
   for (const [name, value] of headers) {
-    if (!CREDENTIAL_HEADER_NAME_PATTERN.test(name)) {
+    if (SAFE_UNTRUSTED_FIRST_HOP_HEADERS.has(name)) {
       retainedHeaders.set(name, value);
     }
   }
@@ -109,11 +126,11 @@ export async function fetchWithValidatedEndpoint({
  * proxy/metadata/cookie/hop-by-hop headers. Credential-bearing caller headers
  * are sent on the first hop only when it is same-origin with
  * `credentialedOrigin`, or with `trustedOrigin` when no separate
- * `credentialedOrigin` is provided; otherwise headers with credential-like
- * names (such as `Authorization`, `x-key`, and `x-api-key`) are withheld.
- * Unrelated custom headers remain available for backwards compatibility. All
- * caller headers except `User-Agent` are also dropped on a cross-origin
- * redirect.
+ * `credentialedOrigin` is provided. Otherwise only an explicit allowlist of
+ * non-credential request metadata is retained; all other caller headers are
+ * withheld because arbitrary provider credential names cannot be inferred
+ * safely. All caller headers except `User-Agent` are also dropped on a
+ * cross-origin redirect.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -161,12 +178,11 @@ export async function fetchWithValidatedRedirects({
   maxRedirects?: number;
   fetch?: FetchFunction;
   /**
-   * An origin that may receive credential-like caller headers on the first
-   * hop. When omitted, or when `url` is not same-origin with it,
-   * credential-like headers are withheld unless `url` is same-origin with
-   * `trustedOrigin`; unrelated custom headers are preserved. Set this
-   * separately when the origin allowed to receive credentials is narrower
-   * than `trustedOrigin`.
+   * An origin that may receive arbitrary caller headers on the first hop. When
+   * omitted, or when `url` is not same-origin with it, only explicitly
+   * allowlisted non-credential request metadata is retained unless `url` is
+   * same-origin with `trustedOrigin`. Set this separately when the origin
+   * allowed to receive credentials is narrower than `trustedOrigin`.
    */
   credentialedOrigin?: string;
   /**
@@ -182,8 +198,8 @@ export async function fetchWithValidatedRedirects({
   const firstHopCredentialedOrigin = credentialedOrigin ?? trustedOrigin;
 
   // Left undefined when no headers are provided (bare request); otherwise
-  // sanitized once and stripped of credential-like headers unless the first
-  // hop is explicitly allowed to receive arbitrary caller headers.
+  // sanitized once and reduced to explicitly safe request metadata unless the
+  // first hop is explicitly allowed to receive arbitrary caller headers.
   let currentHeaders: Headers | undefined;
   if (headers !== undefined) {
     const sanitizedHeaders = sanitizeRequestHeaders(headers);
@@ -191,7 +207,7 @@ export async function fetchWithValidatedRedirects({
       firstHopCredentialedOrigin !== undefined &&
       isSameOrigin(url, firstHopCredentialedOrigin)
         ? sanitizedHeaders
-        : retainNonCredentialFirstHopHeaders(sanitizedHeaders);
+        : retainSafeUntrustedFirstHopHeaders(sanitizedHeaders);
   }
 
   const perHopInit = (redirect: RequestRedirect): RequestInit => {

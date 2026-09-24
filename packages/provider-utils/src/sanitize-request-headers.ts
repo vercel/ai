@@ -5,9 +5,9 @@
  *
  * `Authorization` and other credential-bearing caller headers (e.g. `x-key`)
  * are intentionally not listed because trusted provider requests may need
- * them. `fetchWithValidatedRedirects` separately withholds credential-like
- * headers from an untrusted first hop and drops all caller headers except the
- * user-agent on a cross-origin redirect.
+ * them. `fetchWithValidatedRedirects` separately restricts an untrusted first
+ * hop to an explicit allowlist of non-credential request metadata and drops
+ * all caller headers except the user-agent on a cross-origin redirect.
  */
 const BLOCKED_REQUEST_HEADERS: readonly string[] = [
   // Hop-by-hop / transport (RFC 7230 §6.1)

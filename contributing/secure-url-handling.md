@@ -76,12 +76,13 @@ await getFromApi({
 
 Direct `fetchWithValidatedRedirects` callers follow the same rule. Without a
 matching `credentialedOrigin` or, when that option is omitted, a matching
-`trustedOrigin`, headers whose names identify likely credentials (for example
-`Authorization`, `x-key`, `x-api-key`, token, secret, or signature headers) are
-withheld from the first hop. Unrelated custom headers remain available for
-backwards compatibility. Set `credentialedOrigin` separately when the origin
-allowed to receive credentials should be narrower than the origin exempted from
-URL validation.
+`trustedOrigin`, the first hop receives only an explicit allowlist of
+non-credential request metadata such as content negotiation, range,
+idempotency, tracing, request-id, protocol-version, and user-agent headers.
+Every other caller header is withheld because arbitrary provider credential
+names cannot be identified safely. Set `credentialedOrigin` separately when the
+origin allowed to receive arbitrary caller headers should be narrower than the
+origin exempted from URL validation.
 
 ## DNS validation and deployment hardening
 
