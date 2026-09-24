@@ -488,4 +488,68 @@ describe('doStreamStep', () => {
 
     expect(result).toMatchObject({ toolInputLifecycleEvents: [] });
   });
+
+  it('does not emit input-available lifecycle events for invalid tool calls', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-input-start' as const,
+            id: 'call-1',
+            toolName: 'search',
+          },
+          {
+            type: 'tool-input-delta' as const,
+            id: 'call-1',
+            delta: '{"query":42}',
+          },
+          { type: 'tool-input-end' as const, id: 'call-1' },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'call-1',
+            toolName: 'search',
+            input: '{"query":42}',
+          },
+          {
+            type: 'finish' as const,
+            finishReason: {
+              unified: 'tool-calls' as const,
+              raw: 'tool-calls',
+            },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model, undefined, {
+      search: {
+        hasOnInputAvailable: true,
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
+        },
+      },
+    });
+
+    // 'start' is still emitted (input streaming began); 'available' must be
+    // skipped because the completed tool input fails schema validation.
+    expect(result).toMatchObject({
+      toolInputLifecycleEvents: [['start', 'call-1', 'search']],
+    });
+  });
 });
