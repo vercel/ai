@@ -7,6 +7,7 @@ import { createGateway } from './gateway-provider';
 import {
   gateway,
   type GatewayAsyncJobMetadata,
+  type GatewayModelAttemptMetadata,
   type GatewayModelId,
   type GatewayProviderMetadata,
   type GatewayProviderOptions,
@@ -35,6 +36,62 @@ const asyncJob = {
 
 const providerMetadata = { asyncJob } satisfies GatewayProviderMetadata;
 void providerMetadata;
+
+const evaluationFallbackMetadata = {
+  generationId: 'gen_fallback',
+  routing: {
+    originalModelId: 'typesafe-ai/jev',
+    modelAttempts: [
+      {
+        canonicalSlug: 'typesafe-ai/jev',
+        success: true,
+        providerAttemptCount: 1,
+        providerAttempts: [],
+        generationId: 'gen_primary',
+        usage: { inputTokens: 10, outputTokens: 2 },
+        cost: '0.001',
+        marketCost: '0.001',
+      },
+      {
+        canonicalSlug: 'openai/gpt-5.6-sol',
+        success: true,
+        providerAttemptCount: 1,
+        providerAttempts: [],
+        generationId: 'gen_fallback',
+        usage: { inputTokens: 12, outputTokens: 3 },
+        triggeredBy: [{ question: 'department', reason: 'confidence_below' }],
+        cost: '0.002',
+      },
+    ],
+  },
+} satisfies GatewayProviderMetadata;
+void evaluationFallbackMetadata;
+
+it('types evaluation fallback model attempts', () => {
+  type ModelAttempt = NonNullable<
+    NonNullable<GatewayProviderMetadata['routing']>['modelAttempts']
+  >[number];
+  expectTypeOf<ModelAttempt>().toEqualTypeOf<GatewayModelAttemptMetadata>();
+  expectTypeOf<ModelAttempt['generationId']>().toEqualTypeOf<
+    string | undefined
+  >();
+  expectTypeOf<ModelAttempt['usage']>().toEqualTypeOf<
+    { readonly inputTokens: number; readonly outputTokens: number } | undefined
+  >();
+  expectTypeOf<
+    NonNullable<ModelAttempt['triggeredBy']>[number]['question']
+  >().toEqualTypeOf<string>();
+  expectTypeOf<ModelAttempt['cost']>().toEqualTypeOf<string | undefined>();
+
+  const invalidAttempt: GatewayModelAttemptMetadata = {
+    canonicalSlug: 'typesafe-ai/jev',
+    success: true,
+    providerAttemptCount: 1,
+    // @ts-expect-error Usage token counts are numbers.
+    usage: { inputTokens: '10', outputTokens: 2 },
+  };
+  void invalidAttempt;
+});
 
 createGateway({ apiKey: 'vck_test-key' });
 createGateway({ apiKey: 'vca_test-token' });
