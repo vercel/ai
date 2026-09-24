@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.80
+
+### Patch Changes
+
+- 8beac3e: fix(google): serialize JSON Schema references in function responses
+
 ## 4.0.79
 
 ### Patch Changes
