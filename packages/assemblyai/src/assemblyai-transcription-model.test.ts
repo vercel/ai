@@ -514,6 +514,23 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass languageCodes for code switching', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: { languageCodes: ['en', 'es', 'fr'] },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      language_codes: ['en', 'es', 'fr'],
+    });
+  });
+
   it('should warn when deprecated wordBoost/boostParam options are used', async () => {
     prepareJsonResponse();
 
