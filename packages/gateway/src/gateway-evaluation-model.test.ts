@@ -203,6 +203,36 @@ describe('GatewayEvaluationModel', () => {
       });
     });
 
+    it('should pass service-owned gateway options through with conditional fallbacks', async () => {
+      prepareJsonResponse();
+
+      const providerOptions = {
+        gateway: {
+          models: [
+            {
+              model: 'openai/gpt-5.6-sol',
+              when: { question: 'tone', confidenceBelow: 0.6 },
+            },
+          ],
+          order: ['openai'],
+          serviceOwnedOption: { nested: ['value', 1, true] },
+        },
+        typesafe: { effort: 'high' },
+      } as const;
+
+      await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+    });
+
     it('should reject invalid conditional model fallbacks', async () => {
       prepareJsonResponse();
 
