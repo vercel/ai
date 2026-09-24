@@ -117,6 +117,7 @@ const gatewayProviderOptions = lazySchema(() =>
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
        * - `'reasoning'`: models that support reasoning
+       * - `'structured-output'`: models that support schema-constrained output
        * - `'tool-use'`: models that support tool calling
        * - `'vision'`: models that accept image input
        * - `'quantization:<value>'`: providers serving that weight format
@@ -130,7 +131,13 @@ const gatewayProviderOptions = lazySchema(() =>
       has: z
         .array(
           z.union([
-            z.enum(['implicit-caching', 'reasoning', 'tool-use', 'vision']),
+            z.enum([
+              'implicit-caching',
+              'reasoning',
+              'structured-output',
+              'tool-use',
+              'vision',
+            ]),
             z.templateLiteral(['quantization:', z.string()]),
             z.templateLiteral(['!quantization:', z.string()]),
           ]),
@@ -140,76 +147,4 @@ const gatewayProviderOptions = lazySchema(() =>
   ),
 );
 
-<<<<<<< HEAD
 export type GatewayProviderOptions = InferSchema<typeof gatewayProviderOptions>;
-=======
-  /** Request-scoped BYOK credentials to use instead of cached credentials. */
-  byok?: Record<string, Array<Record<string, unknown>>>;
-
-  /** Enables automatic caching behavior when supported by the Gateway. */
-  caching?: 'auto';
-
-  /** Filter to providers that do not train on prompt data. */
-  disallowPromptTraining?: boolean;
-
-  /**
-   * Restrict routing to provider models that satisfy every given entry.
-   *
-   * Entries are capability tags (`'implicit-caching'`, `'reasoning'`,
-   * `'tool-use'`, `'vision'` (image input), `'structured-output'`
-   * (schema-constrained output)) or weight-format conditions:
-   * `'quantization:fp8'` requires the serving provider to report that weight
-   * format, `'!quantization:fp8'` excludes it (providers with no recorded
-   * format still pass an exclusion). Format values are an open space but must
-   * match `[a-zA-Z0-9._-]{1,32}` and compare case-insensitively. Unknown
-   * capability names are rejected by the Gateway with a 400.
-   */
-  has?: Array<
-    | 'implicit-caching'
-    | 'reasoning'
-    | 'structured-output'
-    | 'tool-use'
-    | 'vision'
-    | `quantization:${string}`
-    | `!quantization:${string}`
-  >;
-
-  /**
-   * Idempotency key for `experimental_startBatch`: retries with the same
-   * key replay the original batch instead of creating a duplicate.
-   */
-  idempotencyKey?: string;
-
-  /** Array of model slugs specifying fallback models to use in order. */
-  models?: string[];
-
-  /** Array of provider slugs that are the only ones allowed to be used. */
-  only?: string[];
-
-  /** Array of provider slugs specifying the provider attempt order. */
-  order?: string[];
-
-  /** Per-provider timeouts for BYOK credentials in milliseconds. */
-  providerTimeouts?: {
-    byok?: Record<string, number>;
-  };
-
-  /** Entity identifier against which quota is tracked. */
-  quotaEntityId?: string;
-
-  /** Unified service tier intent. */
-  serviceTier?: 'flex' | 'priority';
-
-  /** Sort providers by a performance or cost metric before routing. */
-  sort?: 'cost' | 'tps' | 'ttft';
-
-  /** User-specified tags for reporting and filtering usage. */
-  tags?: string[];
-
-  /** End-user identifier for spend tracking and attribution. */
-  user?: string;
-
-  /** Filter to providers with zero data retention agreements. */
-  zeroDataRetention?: boolean;
-};
->>>>>>> d3cc6ae28d (feat(provider/gateway): accept structured-output in the has provider option (#21467))
