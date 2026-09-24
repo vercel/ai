@@ -101,6 +101,7 @@ const gatewayProviderOptions = lazyValidator(() =>
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
        * - `'reasoning'`: models that support reasoning
+       * - `'structured-output'`: models that support schema-constrained output
        * - `'tool-use'`: models that support tool calling
        * - `'vision'`: models that accept image input
        * - `'quantization:<value>'`: providers serving that weight format
@@ -114,7 +115,13 @@ const gatewayProviderOptions = lazyValidator(() =>
       has: z
         .array(
           z.union([
-            z.enum(['implicit-caching', 'reasoning', 'tool-use', 'vision']),
+            z.enum([
+              'implicit-caching',
+              'reasoning',
+              'structured-output',
+              'tool-use',
+              'vision',
+            ]),
             z.templateLiteral(['quantization:', z.string()]),
             z.templateLiteral(['!quantization:', z.string()]),
           ]),
