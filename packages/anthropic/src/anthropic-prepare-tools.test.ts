@@ -106,6 +106,40 @@ describe('prepareTools', () => {
     });
   });
 
+  it.each(['oneOf', 'anyOf', 'allOf'] as const)(
+    'should reject object-root function tools with top-level %s',
+    async combinator => {
+      await expect(
+        prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'lookup',
+              description: 'Look up an item',
+              inputSchema: {
+                type: 'object',
+                properties: {},
+                [combinator]: [
+                  {
+                    type: 'object',
+                    properties: { id: { type: 'string' } },
+                  },
+                ],
+              },
+            },
+          ],
+          toolChoice: undefined,
+          supportsStructuredOutput: true,
+          supportsStrictTools: true,
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        message:
+          "Tool 'lookup' has an unsupported input schema for Anthropic. Anthropic tool input schemas must have type 'object' and must not use oneOf, anyOf, or allOf at the top level. Wrap the union in an object property instead.",
+      });
+    },
+  );
+
   it('should allow unions nested in object properties', async () => {
     const inputSchema: JSONSchema7 = {
       type: 'object',
