@@ -1,28 +1,19 @@
-import type { LanguageModelV3Usage } from '@ai-sdk/provider';
 import type { ModelMessage } from '@ai-sdk/provider-utils';
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { describe, expect, it } from 'vitest';
-import { MockLanguageModelV3 } from '../test/mock-language-model-v3';
+import { MockLanguageModelV2 } from '../test/mock-language-model-v2';
 import { generateText } from './generate-text';
 import { streamText } from './stream-text';
 
-const testUsage: LanguageModelV3Usage = {
-  inputTokens: {
-    total: 3,
-    noCache: 3,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: {
-    total: 10,
-    text: 10,
-    reasoning: undefined,
-  },
-};
-
 const dummyResponseValues = {
-  finishReason: { unified: 'stop', raw: 'stop' } as const,
-  usage: testUsage,
+  finishReason: 'stop' as const,
+  usage: {
+    inputTokens: 3,
+    outputTokens: 10,
+    totalTokens: 13,
+    reasoningTokens: undefined,
+    cachedInputTokens: undefined,
+  },
   warnings: [],
 };
 
@@ -47,7 +38,7 @@ describe.each(['generate', 'stream'] as const)(
         },
         { role: 'user', content: 'Third' },
       ];
-      const model = new MockLanguageModelV3({
+      const model = new MockLanguageModelV2({
         doGenerate: { content: [], ...dummyResponseValues },
         doStream: {
           stream: convertArrayToReadableStream([

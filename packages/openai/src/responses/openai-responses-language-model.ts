@@ -1,5 +1,5 @@
 import {
-<<<<<<< HEAD
+  UnsupportedFunctionalityError,
   type LanguageModelV2,
   type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
@@ -8,9 +8,6 @@ import {
   type LanguageModelV2StreamPart,
   type LanguageModelV2Usage,
   type SharedV2ProviderMetadata,
-=======
-  UnsupportedFunctionalityError,
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   APICallError,
 } from '@ai-sdk/provider';
 import {
@@ -45,15 +42,10 @@ import {
   openaiResponsesResponseSchema,
 } from './openai-responses-api';
 import {
-<<<<<<< HEAD
-=======
-  openaiLanguageModelResponsesOptionsSchema,
-  TOP_LOGPROBS_MAX,
-  type OpenAILanguageModelResponsesOptions,
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   type OpenAIResponsesModelId,
   openaiResponsesProviderOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAIResponsesProviderOptions,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
@@ -61,35 +53,6 @@ import type {
   ResponsesToolCallProviderMetadata,
   ResponsesUsageProviderMetadata,
 } from './openai-responses-provider-metadata';
-
-<<<<<<< HEAD
-export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2';
-=======
-/**
- * Extracts a mapping from MCP approval request IDs to their corresponding tool call IDs
- * from the prompt. When an MCP tool requires approval, we generate a tool call ID to track
- * the pending approval in our system. When the user responds to the approval (and we
- * continue the conversation), we need to map the approval request ID back to our tool call ID
- * so that tool results reference the correct tool call.
- */
-function extractApprovalRequestIdToToolCallIdMapping(
-  prompt: LanguageModelV3Prompt,
-): Record<string, string> {
-  const mapping: Record<string, string> = {};
-  for (const message of prompt) {
-    if (message.role !== 'assistant') continue;
-    for (const part of message.content) {
-      if (part.type !== 'tool-call') continue;
-      const approvalRequestId = part.providerOptions?.openai
-        ?.approvalRequestId as string | undefined;
-      if (approvalRequestId != null) {
-        mapping[approvalRequestId] = part.toolCallId;
-      }
-    }
-  }
-  return mapping;
-}
 
 /**
  * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
@@ -102,7 +65,7 @@ function getConfigurationUpdateUnsupportedReason({
   options,
 }: {
   modelCapabilities: { supportsConfigurationUpdate: boolean };
-  options: OpenAILanguageModelResponsesOptions | undefined;
+  options: OpenAIResponsesProviderOptions | undefined;
 }): string | undefined {
   if (!modelCapabilities.supportsConfigurationUpdate) {
     return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
@@ -115,9 +78,8 @@ function getConfigurationUpdateUnsupportedReason({
   return undefined;
 }
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
+export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
+  readonly specificationVersion = 'v2';
 
   readonly modelId: OpenAIResponsesModelId;
 
@@ -195,9 +157,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
     }
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        configurationUpdateUnsupportedReason,
+        providerOptionsName: this.config.provider.includes('azure')
+          ? 'azure'
+          : 'openai',
         systemMessageMode: modelCapabilities.systemMessageMode,
         explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
@@ -224,104 +196,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       resolvedReasoningEffort = undefined;
     }
 
-<<<<<<< HEAD
-=======
-    if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'conversation',
-        details: 'conversation and previousResponseId cannot be used together',
-      });
-    }
-
-    const toolNameMapping = createToolNameMapping({
-      tools,
-      providerToolNames: {
-        'openai.code_interpreter': 'code_interpreter',
-        'openai.file_search': 'file_search',
-        'openai.image_generation': 'image_generation',
-        'openai.local_shell': 'local_shell',
-        'openai.shell': 'shell',
-        'openai.web_search': 'web_search',
-        'openai.web_search_preview': 'web_search_preview',
-        'openai.mcp': 'mcp',
-        'openai.apply_patch': 'apply_patch',
-        'openai.tool_search': 'tool_search',
-      },
-      resolveProviderToolName: tool =>
-        tool.id === 'openai.custom'
-          ? (tool.args as { name?: string }).name
-          : undefined,
-    });
-
-    const customProviderToolNames = new Set<string>();
-    const {
-      tools: openaiTools,
-      toolChoice: openaiToolChoice,
-      toolWarnings,
-    } = await prepareResponsesTools({
-      tools,
-      toolChoice,
-      allowedTools: openaiOptions?.allowedTools ?? undefined,
-      toolNameMapping,
-      customProviderToolNames,
-      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
-    });
-
-    const configurationUpdateUnsupportedReason =
-      getConfigurationUpdateUnsupportedReason({
-        modelCapabilities,
-        options: openaiOptions,
-      });
-
-    const { input, warnings: inputWarnings } =
-      await convertToOpenAIResponsesInput({
-        prompt,
-        configurationUpdateUnsupportedReason,
-        toolNameMapping,
-        systemMessageMode:
-          openaiOptions?.systemMessageMode ??
-          (isReasoningModel
-            ? 'developer'
-            : modelCapabilities.systemMessageMode),
-        providerOptionsName,
-        explicitMessageItemType: this.config.explicitMessageItemType,
-        fileIdPrefixes: this.config.fileIdPrefixes,
-        passThroughUnsupportedFiles:
-          openaiOptions?.passThroughUnsupportedFiles ?? false,
-        store: openaiOptions?.store ?? true,
-        hasConversation: openaiOptions?.conversation != null,
-        hasPreviousResponseId: openaiOptions?.previousResponseId != null,
-        hasLocalShellTool: hasOpenAITool('openai.local_shell'),
-        hasShellTool: hasOpenAITool('openai.shell'),
-        hasApplyPatchTool: hasOpenAITool('openai.apply_patch'),
-        toolSearchToolName: getOpenAIToolName('openai.tool_search'),
-        customProviderToolNames:
-          customProviderToolNames.size > 0
-            ? customProviderToolNames
-            : undefined,
-      });
-
-    warnings.push(...inputWarnings);
-
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
     const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
     if (
       reasoningEffortUpdate != null &&
       configurationUpdateUnsupportedReason != null
     ) {
       warnings.push({
-<<<<<<< HEAD
         type: 'unsupported-setting',
         setting: 'reasoningEffortUpdate',
-        details: !modelCapabilities.supportsConfigurationUpdate
-          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
-          : 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation',
-=======
-        type: 'unsupported',
-        feature: 'reasoningEffortUpdate',
         details: configurationUpdateUnsupportedReason,
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
       });
     } else if (reasoningEffortUpdate != null) {
       const firstItem = input[0];

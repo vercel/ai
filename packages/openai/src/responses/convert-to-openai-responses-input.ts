@@ -45,28 +45,20 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
+  providerOptionsName = 'openai',
   explicitMessageItemType = false,
   fileIdPrefixes,
   store,
-<<<<<<< HEAD
-=======
-  hasConversation = false,
-  hasPreviousResponseId = false,
   configurationUpdateUnsupportedReason,
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  providerOptionsName?: string;
   explicitMessageItemType?: boolean;
   fileIdPrefixes?: readonly string[];
   store: boolean;
-<<<<<<< HEAD
-=======
-  hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
-  hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
   configurationUpdateUnsupportedReason?: string;
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
   hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;

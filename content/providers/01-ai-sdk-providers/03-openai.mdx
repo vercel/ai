@@ -294,40 +294,6 @@ The following OpenAI-specific metadata is returned:
 You can increase reasoning effort for difficult work or reduce it for routine
 follow-ups while preserving the conversation prefix for prompt caching:
 
-<<<<<<< HEAD
-```ts highlight="8-10,26,32"
-import { openai, type OpenAIResponsesProviderOptions } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-
-const first = await generateText({
-  model: openai.responses('gpt-6-astra'),
-  prompt: 'Draft a database migration plan.',
-  providerOptions: {
-    openai: {
-      reasoningEffort: 'low',
-    } satisfies OpenAIResponsesProviderOptions,
-  },
-});
-
-const previousResponseId = first.providerMetadata?.openai.responseId as
-  | string
-  | undefined;
-
-if (!previousResponseId) {
-  throw new Error('OpenAI did not return a response ID.');
-}
-
-const second = await generateText({
-  model: openai.responses('gpt-6-astra'),
-  prompt: 'Analyze the failure modes and propose rollback steps.',
-  providerOptions: {
-    openai: {
-      previousResponseId,
-      reasoningEffort: 'low',
-      reasoningEffortUpdate: 'high',
-    } satisfies OpenAIResponsesProviderOptions,
-  },
-=======
 - Set the initial effort with request-level `providerOptions.openai.reasoningEffort` and keep that setting
   unchanged throughout the conversation.
 - For later changes, add a message-level `reasoningEffortUpdate` before the next
@@ -382,7 +348,6 @@ const second = await generateText({
   providerOptions: { openai: { reasoningEffort: 'low' } },
   allowSystemInMessages: true,
   messages,
->>>>>>> 0fb3a22413 (Backport: feat(openai): support message-level reasoning effort updates (#21421))
 });
 
 messages.push(...second.response.messages);
@@ -410,11 +375,6 @@ Effort updates are supported on GPT-6-family models with these settings:
   conversation.
 
 Requests that violate these restrictions are rejected.
-
-<Note>
-  Effort update messages are sent even if `systemMessageMode` is set to
-  `remove`.
-</Note>
 
 ##### Request-Level Update Option
 

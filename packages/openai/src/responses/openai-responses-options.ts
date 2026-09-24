@@ -287,7 +287,7 @@ export type OpenAIResponsesProviderOptions = InferValidator<
   typeof openaiResponsesProviderOptionsSchema
 >;
 
-export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
+export const openaiResponsesSystemMessageOptionsSchema = lazyValidator(() =>
   zodSchema(
     z.object({
       /**
@@ -305,6 +305,6 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
   ),
 );
 
-export type OpenAIResponsesSystemMessageOptions = InferSchema<
+export type OpenAIResponsesSystemMessageOptions = InferValidator<
   typeof openaiResponsesSystemMessageOptionsSchema
 >;

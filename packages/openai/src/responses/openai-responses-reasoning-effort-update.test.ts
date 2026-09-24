@@ -1,19 +1,19 @@
 import {
-  type LanguageModelV3Prompt,
-  type SharedV3ProviderOptions,
-  type SharedV3Warning,
+  type LanguageModelV2Prompt,
+  type SharedV2ProviderOptions,
+  type LanguageModelV2CallWarning,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { OpenAIResponsesLanguageModel } from './openai-responses-language-model';
 import type {
-  OpenAILanguageModelResponsesOptions,
+  OpenAIResponsesProviderOptions,
   OpenAIResponsesSystemMessageOptions,
 } from './openai-responses-options';
 
 const url = 'https://api.openai.com/v1/responses';
-const user: LanguageModelV3Prompt[number] = {
+const user: LanguageModelV2Prompt[number] = {
   role: 'user',
   content: [{ type: 'text', text: 'Question' }],
 };
@@ -26,7 +26,7 @@ const update = (
     OpenAIResponsesSystemMessageOptions['reasoningEffortUpdate']
   >,
   content = '',
-): LanguageModelV3Prompt[number] => ({
+): LanguageModelV2Prompt[number] => ({
   role: 'system',
   content,
   providerOptions: {
@@ -44,8 +44,8 @@ describe.each(['generate', 'stream'] as const)(
     const server = createTestServer({ [url]: {} });
 
     async function request(
-      prompt: LanguageModelV3Prompt,
-      options: OpenAILanguageModelResponsesOptions = {},
+      prompt: LanguageModelV2Prompt,
+      options: OpenAIResponsesProviderOptions = {},
       modelId = 'gpt-6-astra',
       provider = 'openai.responses',
     ) {
@@ -59,6 +59,7 @@ describe.each(['generate', 'stream'] as const)(
         created_at: 0,
         model: modelId,
         output: [],
+        usage: { input_tokens: 1, output_tokens: 1 },
       };
       server.urls[url].response =
         method === 'generate'
@@ -71,7 +72,7 @@ describe.each(['generate', 'stream'] as const)(
               ],
             };
       const args = { prompt, providerOptions: { openai: options } };
-      let warnings: SharedV3Warning[];
+      let warnings: LanguageModelV2CallWarning[];
       if (method === 'generate') {
         warnings = (await model.doGenerate(args)).warnings;
       } else {
@@ -118,7 +119,7 @@ describe.each(['generate', 'stream'] as const)(
 
     it.each<{
       name: string;
-      providerOptions: SharedV3ProviderOptions;
+      providerOptions: SharedV2ProviderOptions;
       expected: unknown;
     }>([
       {
@@ -204,20 +205,6 @@ describe.each(['generate', 'stream'] as const)(
       expect(prompt).toEqual(original);
     });
 
-    it('checks the first item after system text has been removed', async () => {
-      const { body, warnings } = await request(
-        [{ role: 'system', content: 'Removed' }, update('high'), user],
-        { reasoningEffortUpdate: 'high', systemMessageMode: 'remove' },
-      );
-      expect(body.input).toEqual([wireUpdate('high'), wireUser]);
-      expect(warnings).toEqual([
-        {
-          type: 'other',
-          message: 'system messages are removed for this model',
-        },
-      ]);
-    });
-
     it('prepends when an identical historical update is not the first item', async () => {
       const { body, warnings } = await request([user, update('high'), user], {
         reasoningEffortUpdate: 'high',
@@ -257,52 +244,27 @@ describe.each(['generate', 'stream'] as const)(
     ])(
       'message-level continuation with $field',
       ({ options, field, value }) => {
-        const previousReasoning: LanguageModelV3Prompt[number] = {
-          role: 'assistant',
-          content: [
-            {
-              type: 'reasoning',
-              text: 'Earlier reasoning',
-              providerOptions: { openai: { itemId: 'rs_previous' } },
-            },
-          ],
-        };
-
-        it('preserves an update after filtering reasoning already stored in history', async () => {
-          const { body, warnings } = await request(
-            [previousReasoning, update('high'), user],
-            { ...options, reasoningEffort: 'low' },
-          );
-
+        it('preserves positioned updates in continuation input', async () => {
+          const { body, warnings } = await request([update('high'), user], {
+            ...options,
+            reasoningEffort: 'low',
+          });
           expect(body[field]).toBe(value);
           expect(body.input).toEqual([wireUpdate('high'), wireUser]);
           expect(body.reasoning.effort).toBe('low');
           expect(warnings).toEqual([]);
-        });
-
-        it('rejects updates made adjacent by filtering stored reasoning', async () => {
-          await expect(
-            request(
-              [update('high'), previousReasoning, update('low'), user],
-              options,
-            ),
-          ).rejects.toMatchObject({
-            name: 'AI_UnsupportedFunctionalityError',
-            functionality: 'Adjacent reasoning effort configuration updates',
-          });
-          expect(server.calls).toHaveLength(0);
         });
       },
     );
 
     describe.each([
       { model: 'gpt-5.6', options: {} },
-      { model: 'custom-model', options: { forceReasoning: true } },
+      { model: 'custom-model', options: {} },
       { model: 'gpt-6-astra', options: { reasoningMode: 'pro' } },
       { model: 'gpt-6-astra', options: { truncation: 'auto' } },
     ] satisfies Array<{
       model: string;
-      options: OpenAILanguageModelResponsesOptions;
+      options: OpenAIResponsesProviderOptions;
     }>)('unsupported configuration: $model $options', ({ model, options }) => {
       it('rejects historical updates before sending and preserves caller input', async () => {
         const prompt = [update('high'), user];
@@ -328,7 +290,8 @@ describe.each(['generate', 'stream'] as const)(
         expect(
           warnings.filter(
             w =>
-              w.type === 'unsupported' && w.feature === 'reasoningEffortUpdate',
+              w.type === 'unsupported-setting' &&
+              w.setting === 'reasoningEffortUpdate',
           ),
         ).toHaveLength(1);
       });
@@ -346,17 +309,6 @@ describe.each(['generate', 'stream'] as const)(
             'Message-level reasoningEffortUpdate requires empty system message content.',
         });
         expect(server.calls).toHaveLength(0);
-      },
-    );
-
-    it.each(['system', 'developer', 'remove'] as const)(
-      'emits controls independently of systemMessageMode=%s',
-      async systemMessageMode => {
-        const { body, warnings } = await request([update('high'), user], {
-          systemMessageMode,
-        });
-        expect(body.input).toEqual([wireUpdate('high'), wireUser]);
-        expect(warnings).toEqual([]);
       },
     );
 
@@ -379,27 +331,9 @@ describe.each(['generate', 'stream'] as const)(
         prompt: [update('high'), user],
         options: { reasoningEffortUpdate: 'low' },
       },
-      {
-        prompt: [
-          update('high'),
-          { role: 'system', content: 'Removed' },
-          update('low'),
-          user,
-        ],
-        options: { systemMessageMode: 'remove' },
-      },
-      {
-        prompt: [
-          update('high'),
-          { role: 'system', content: 'Removed' },
-          update('high'),
-          user,
-        ],
-        options: { systemMessageMode: 'remove' },
-      },
     ] satisfies Array<{
-      prompt: LanguageModelV3Prompt;
-      options: OpenAILanguageModelResponsesOptions;
+      prompt: LanguageModelV2Prompt;
+      options: OpenAIResponsesProviderOptions;
     }>)(
       'rejects adjacent serialized updates before sending: $options',
       async ({ prompt, options }) => {

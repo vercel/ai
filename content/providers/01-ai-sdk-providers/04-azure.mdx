@@ -420,7 +420,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   // Use the name of your GPT-6 deployment.
   model: azure.responses('gpt-6-astra'),
-  providerOptions: { azure: { reasoningEffort: 'low' } },
+  providerOptions: { openai: { reasoningEffort: 'low' } },
   allowSystemInMessages: true,
   messages: [
     {
@@ -437,7 +437,7 @@ const result = await generateText({
 });
 ```
 
-Keep the request-level `providerOptions.azure.reasoningEffort` unchanged throughout the conversation and
+Keep the request-level `providerOptions.openai.reasoningEffort` unchanged throughout the conversation and
 retain earlier effort updates when resending message history. These updates
 also work with `streamText`. See the [OpenAI reasoning effort
 guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversation)
@@ -449,8 +449,7 @@ for continuation and configuration restrictions.
   family, such as `gpt-6-astra`. A custom name such as `production` is not
   recognized, even when the underlying deployment runs GPT-6. In that case,
   message-level updates throw, and request-level updates are omitted with a
-  warning. Setting `forceReasoning: true` does not override this capability
-  check.
+  warning.
 </Note>
 
 #### Web Search Tool
