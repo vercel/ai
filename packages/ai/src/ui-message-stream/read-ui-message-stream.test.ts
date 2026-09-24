@@ -12,6 +12,51 @@ function createUIMessageStream(parts: UIMessageChunk[]) {
 }
 
 describe('readUIMessageStream', () => {
+  it('should continue a hydrated partial static tool call', async () => {
+    const message = {
+      id: 'msg-123',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-createDocument',
+          toolCallId: 'tool-1',
+          state: 'input-streaming',
+          input: { title: 'Hel' },
+          rawInput: '{"title":"Hel',
+        },
+      ],
+    } as unknown as UIMessage;
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: 'lo"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-1',
+            toolName: 'createDocument',
+            input: { title: 'Hello' },
+          },
+        ]),
+        terminateOnError: true,
+      }),
+    );
+
+    expect(messages.at(-1)?.parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+  });
+
   it('should return a ui message object stream for a basic input stream', async () => {
     const stream = createUIMessageStream([
       { type: 'start', messageId: 'msg-123' },

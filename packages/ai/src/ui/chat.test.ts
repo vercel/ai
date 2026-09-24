@@ -2065,6 +2065,66 @@ describe('Chat', () => {
     `);
   });
 
+  it('should continue a hydrated partial static tool call when resuming a stream', async () => {
+    const state = new TestChatState<UIMessage>([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-createDocument',
+            toolCallId: 'tool-1',
+            state: 'input-streaming',
+            input: { title: 'Hel' },
+            rawInput: '{"title":"Hel',
+          },
+        ],
+      } as unknown as UIMessage,
+    ]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'tool-input-delta',
+                toolCallId: 'tool-1',
+                inputTextDelta: 'lo"}',
+              });
+              controller.enqueue({
+                type: 'tool-input-available',
+                toolCallId: 'tool-1',
+                toolName: 'createDocument',
+                input: { title: 'Hello' },
+              });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.messages).toHaveLength(1);
+    expect(chat.messages[0].parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+  });
+
   it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
     let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
     const resumeStream = new ReadableStream<UIMessageChunk>({
