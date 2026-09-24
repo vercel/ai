@@ -1,0 +1,143 @@
+---
+title: Preflight x402 Endpoints
+description: Learn how to check x402 endpoint risk before a tool signs a payment
+tags: ['node', 'tool use', 'agent']
+---
+
+# Preflight x402 Endpoints
+
+x402 lets an agent pay an HTTP endpoint directly. That makes the tool boundary important: before a wallet signs `PAYMENT-SIGNATURE`, the tool should check whether the endpoint is dead, a decoy, a zombie, or otherwise outside the user's payment policy.
+
+This recipe adds an x402 preflight tool to an AI SDK agent. The example uses x402station's free trial endpoint by default, so it can run without signing a payment.
+
+## Define the preflight tool
+
+```ts file='index.ts'
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const PREFLIGHT_URL =
+  process.env.X402STATION_PREFLIGHT_URL ??
+  'https://x402station.io/api/v1/preflight-trial';
+
+const hardBlockWarnings = new Set([
+  'dead',
+  'zombie',
+  'decoy_price_extreme',
+  'never_paid_zombie',
+  'dead_7d',
+  'mostly_dead',
+]);
+
+type PreflightResponse = {
+  ok?: boolean;
+  warnings?: string[];
+  risk_score?: number;
+  recommended_action?: string;
+  [key: string]: unknown;
+};
+
+async function runPreflight(url: string) {
+  const response = await fetch(PREFLIGHT_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ url }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`x402 preflight failed with HTTP ${response.status}`);
+  }
+
+  const preflight = (await response.json()) as PreflightResponse;
+  const warnings = preflight.warnings ?? [];
+  const hardBlocks = warnings.filter(warning => hardBlockWarnings.has(warning));
+  const blocked = preflight.ok === false || hardBlocks.length > 0;
+
+  return {
+    url,
+    blocked,
+    hardBlocks,
+    warnings,
+    riskScore: preflight.risk_score ?? null,
+    recommendedAction:
+      preflight.recommended_action ?? (blocked ? 'do_not_pay' : 'policy_check'),
+    preflight,
+  };
+}
+
+const preflightX402Endpoint = tool({
+  description:
+    'Check an x402 endpoint before any wallet signs PAYMENT-SIGNATURE.',
+  inputSchema: z.object({
+    url: z.string().url().describe('The x402 endpoint URL to check.'),
+  }),
+  execute: async ({ url }: { url: string }) => runPreflight(url),
+});
+```
+
+## Use preflight before a payment tool
+
+Your payment tool should call `runPreflight` inside `execute` before invoking your x402 payment client. Hard failures return structured JSON to the model instead of signing the request.
+
+```ts file='index.ts'
+const payX402Endpoint = tool({
+  description:
+    'Pay an x402 endpoint only after the endpoint passes preflight checks.',
+  inputSchema: z.object({
+    url: z.string().url(),
+    body: z.record(z.string(), z.unknown()).optional(),
+  }),
+  execute: async ({ url, body }: { url: string; body?: unknown }) => {
+    const decision = await runPreflight(url);
+
+    if (decision.blocked) {
+      return {
+        paid: false,
+        blocked: true,
+        blockedBy: 'x402station.io preflight',
+        hardBlocks: decision.hardBlocks,
+        warnings: decision.warnings,
+        recommendedAction: decision.recommendedAction,
+      };
+    }
+
+    // Replace this with your x402 payment client, for example a fetch wrapper
+    // that signs PAYMENT-SIGNATURE from a wallet controlled by the agent.
+    return {
+      paid: false,
+      readyToPay: true,
+      url,
+      body,
+      preflight: decision,
+    };
+  },
+});
+```
+
+## Add the tools to `generateText`
+
+Use a system message that makes the preflight result binding for the payment URL. If the payment tool returns `blocked: true`, the model should choose another endpoint or ask the user for confirmation instead of retrying the same URL.
+
+```ts file='index.ts'
+const result = await generateText({
+  model: 'openai/gpt-4o',
+  stopWhen: isStepCount(5),
+  tools: {
+    preflightX402Endpoint,
+    payX402Endpoint,
+  },
+  system: [
+    'Before paying any x402 endpoint, inspect the exact URL with preflightX402Endpoint.',
+    'If payX402Endpoint returns blocked=true, do not retry that URL.',
+    'Warnings such as proxy_markup are policy inputs; they are not automatic blocks unless the user policy says so.',
+  ].join(' '),
+  prompt:
+    'Check https://x402.quicknode.com/base-mainnet/ and tell me whether it is safe to pay.',
+});
+
+console.log(result.text);
+```
+
+For production agents, set `X402STATION_PREFLIGHT_URL=https://x402station.io/api/v1/preflight` and use your paid x402 request client inside `payX402Endpoint`. The free trial endpoint is rate-limited and intended for demos and setup checks.
