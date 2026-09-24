@@ -425,11 +425,18 @@ export async function convertToOpenAIResponsesInput({
       case 'system': {
         // Keep effort updates at their original positions so they apply to
         // the same parts of the conversation when the history is sent again.
-        const options = await parseProviderOptions({
+        let options = await parseProviderOptions({
           provider: providerOptionsName,
           providerOptions,
           schema: openaiResponsesSystemMessageOptionsSchema,
         });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
         const effort = options?.reasoningEffortUpdate;
         if (effort != null) {
           const unsupportedReason =

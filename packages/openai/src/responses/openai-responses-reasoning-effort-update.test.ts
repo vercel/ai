@@ -1,5 +1,6 @@
 import {
   type LanguageModelV4Prompt,
+  type SharedV4ProviderOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -44,9 +45,10 @@ describe.each(['generate', 'stream'] as const)(
       prompt: LanguageModelV4Prompt,
       options: OpenAILanguageModelResponsesOptions = {},
       modelId = 'gpt-6-astra',
+      provider = 'openai.responses',
     ) {
       const model = new OpenAIResponsesLanguageModel(modelId, {
-        provider: 'openai.responses',
+        provider,
         url: () => url,
         headers: () => ({}),
       });
@@ -111,6 +113,65 @@ describe.each(['generate', 'stream'] as const)(
         expect(warnings).toEqual([]);
       },
     );
+
+    it.each<{
+      name: string;
+      providerOptions: SharedV4ProviderOptions;
+      expected: unknown;
+    }>([
+      {
+        name: 'Azure options',
+        providerOptions: { azure: { reasoningEffortUpdate: 'high' } },
+        expected: wireUpdate('high'),
+      },
+      {
+        name: 'OpenAI options fallback',
+        providerOptions: { openai: { reasoningEffortUpdate: 'high' } },
+        expected: wireUpdate('high'),
+      },
+      {
+        name: 'Azure options taking precedence',
+        providerOptions: {
+          azure: { reasoningEffortUpdate: 'low' },
+          openai: { reasoningEffortUpdate: 'high' },
+        },
+        expected: wireUpdate('low'),
+      },
+      {
+        name: 'explicit empty Azure options',
+        providerOptions: {
+          azure: {},
+          openai: { reasoningEffortUpdate: 'high' },
+        },
+        expected: { role: 'developer', content: '' },
+      },
+    ])(
+      'supports $name on Azure messages',
+      async ({ providerOptions, expected }) => {
+        const { body } = await request(
+          [user, { role: 'system', content: '', providerOptions }, user],
+          {},
+          'gpt-6-astra',
+          'azure.responses',
+        );
+        expect(body.input).toEqual([wireUser, expected, wireUser]);
+      },
+    );
+
+    it('rejects unsupported Azure configurations when using OpenAI message options', async () => {
+      await expect(
+        request(
+          [user, update('high'), user],
+          { truncation: 'auto' },
+          'gpt-6-astra',
+          'azure.responses',
+        ),
+      ).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        functionality: 'Message-level reasoningEffortUpdate',
+      });
+      expect(server.calls).toHaveLength(0);
+    });
 
     it('keeps the request-level update prepended and historical updates positioned', async () => {
       const { body, warnings } = await request([user, update('high'), user], {
