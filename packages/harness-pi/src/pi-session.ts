@@ -97,9 +97,10 @@ type PiMcpAdapterModule = {
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
  * During a tool approval pause the Pi turn is still alive and blocked on the
- * custom tool promise, so detach must park that live session for the next
- * same-process resume instead of stopping it and resolving the promise as an
- * error. Cross-process resume still falls back to the persisted session file.
+ * custom tool promise, so in-process reattachment parks that live session for
+ * the next same-process resume instead of stopping it and resolving the
+ * promise as an error. Cross-process resume still falls back to the persisted
+ * session file.
  */
 const parkedPiSessions = new Map<
   string,
@@ -1570,7 +1571,10 @@ export async function createPiSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
-      if (activeTurn != null || pendingToolResults.size > 0) {
+      if (
+        input.settings.reattachInProcess !== false &&
+        (activeTurn != null || pendingToolResults.size > 0)
+      ) {
         parkedPiSessions.set(input.sessionId, {
           session: sessionImpl,
           input,
@@ -1602,6 +1606,7 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
       if (
+        input.settings.reattachInProcess !== false &&
         activeTurn != null &&
         (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
       ) {
@@ -1640,8 +1645,11 @@ export async function createPiSession(
        */
       suspending = true;
       const turnToSuspend = activeTurn;
-      await turnToSuspend?.abort();
+      const abortingTurn = turnToSuspend?.abort();
       deferredRerun?.cancel();
+      settlePendingToolResults('Pi session suspended');
+      settlePendingToolApprovals('Pi session suspended');
+      await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
       /*
@@ -1668,8 +1676,6 @@ export async function createPiSession(
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      settlePendingToolResults('Pi session suspended');
-      settlePendingToolApprovals('Pi session suspended');
       await disposePiSession();
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
