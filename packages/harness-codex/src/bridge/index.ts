@@ -11,7 +11,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import type { StartMessage } from '../codex-bridge-protocol';
-import { runCodexAppServerTurn } from './codex-app-server-driver';
+import { createCodexAppServerRuntime } from './codex-app-server-driver';
 import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
 import { argv, env as procEnv, stdout } from 'node:process';
@@ -25,12 +25,18 @@ const bridgeStateDir = requireArg({
 const HARNESS_CLIENT_APP = procEnv.AI_SDK_HARNESS_CLIENT_APP;
 
 const threadState: { id: string | undefined } = { id: undefined };
+const appServer = createCodexAppServerRuntime();
 
 await runBridge<StartMessage>({
   bridgeType: 'codex',
   bridgeStateDir,
   onStart: runTurn,
-  onStop: () => (threadState.id ? { threadId: threadState.id } : {}),
+  onStop: async () => {
+    const data = threadState.id ? { threadId: threadState.id } : {};
+    await appServer.close();
+    return data;
+  },
+  onDestroy: () => appServer.close(),
 });
 
 type Emit = (msg: Record<string, unknown>) => void;
@@ -60,7 +66,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
   });
 
   try {
-    await runCodexAppServerTurn({
+    await appServer.runTurn({
       start,
       turn,
       emit,

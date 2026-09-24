@@ -46,6 +46,9 @@ const state = vi.hoisted(() => ({
   ] as Array<Record<string, unknown>>,
   appServerOptions: [] as AppServerOptions[],
   appServerError: undefined as Error | undefined,
+  appServerClosed: 0,
+  runSecondTurn: false,
+  stoppedData: undefined as unknown,
   emittedErrors: [] as unknown[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
@@ -57,53 +60,66 @@ const state = vi.hoisted(() => ({
 vi.mock('@ai-sdk/harness/bridge', () => ({
   runBridge: async ({
     onStart,
+    onStop,
+    onDestroy,
   }: {
     onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop: () => Promise<unknown>;
+    onDestroy: () => Promise<void>;
   }) => {
-    await onStart(
-      {
-        prompt: 'Use the weather tool.',
-        responseFormat: state.startResponseFormat,
-        ...(state.startInstructions
-          ? { instructions: state.startInstructions }
-          : {}),
-        ...(state.startReasoningEffort
-          ? { reasoningEffort: state.startReasoningEffort }
-          : {}),
-        ...(state.startResumeThreadId
-          ? { resumeThreadId: state.startResumeThreadId }
-          : {}),
-        ...(state.startRestartThread ? { restartThread: true } : {}),
-        model: state.startModel,
-        codexConfig: state.startCodexConfig,
-        mcpServers: state.startMcpServers,
-        headers: state.startHeaders,
-        tools: state.startTools,
+    const start = {
+      prompt: 'Use the weather tool.',
+      responseFormat: state.startResponseFormat,
+      ...(state.startInstructions
+        ? { instructions: state.startInstructions }
+        : {}),
+      ...(state.startReasoningEffort
+        ? { reasoningEffort: state.startReasoningEffort }
+        : {}),
+      ...(state.startResumeThreadId
+        ? { resumeThreadId: state.startResumeThreadId }
+        : {}),
+      ...(state.startRestartThread ? { restartThread: true } : {}),
+      model: state.startModel,
+      codexConfig: state.startCodexConfig,
+      mcpServers: state.startMcpServers,
+      headers: state.startHeaders,
+      tools: state.startTools,
+    };
+    const turn = {
+      emit: () => {},
+      emitError: (error: unknown) => state.emittedErrors.push(error),
+      requestToolResult: async () => ({ output: {} }),
+      abortSignal: new AbortController().signal,
+      experimental_userMessages: {
+        pendingCount: 0,
+        close: () => {},
+        [Symbol.asyncIterator]: async function* () {},
       },
-      {
-        emit: () => {},
-        emitError: (error: unknown) => state.emittedErrors.push(error),
-        requestToolResult: async () => ({ output: {} }),
-        abortSignal: new AbortController().signal,
-        experimental_userMessages: {
-          pendingCount: 0,
-          close: () => {},
-          [Symbol.asyncIterator]: async function* () {},
-        },
-      },
-    );
+    };
+    await onStart(start, turn);
+    if (state.runSecondTurn) {
+      await onStart({ ...start, resumeThreadId: undefined }, turn);
+      state.stoppedData = await onStop();
+      await onDestroy();
+    }
   },
 }));
 
 vi.mock('./codex-app-server-driver', () => ({
-  runCodexAppServerTurn: async (options: AppServerOptions) => {
-    state.appServerOptions.push(options);
-    if (state.appServerError != null) throw state.appServerError;
-    options.emitStreamEvent({
-      type: 'thread.started',
-      thread_id: 'app-server-thread',
-    });
-  },
+  createCodexAppServerRuntime: () => ({
+    runTurn: async (options: AppServerOptions) => {
+      state.appServerOptions.push(options);
+      if (state.appServerError != null) throw state.appServerError;
+      options.emitStreamEvent({
+        type: 'thread.started',
+        thread_id: 'app-server-thread',
+      });
+    },
+    close: async () => {
+      state.appServerClosed++;
+    },
+  }),
 }));
 
 describe('Codex bridge config', () => {
@@ -126,6 +142,9 @@ describe('Codex bridge config', () => {
     ];
     state.appServerOptions = [];
     state.appServerError = undefined;
+    state.appServerClosed = 0;
+    state.runSecondTurn = false;
+    state.stoppedData = undefined;
     state.emittedErrors = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
@@ -166,6 +185,17 @@ describe('Codex bridge config', () => {
 
     expect(state.appServerOptions).toHaveLength(1);
     expect(state.appServerOptions[0]?.start.tools).toEqual([]);
+  });
+
+  test('reuses one runtime for turns and closes on stop and destroy', async () => {
+    state.runSecondTurn = true;
+
+    await import('./index');
+
+    expect(state.appServerOptions).toHaveLength(2);
+    expect(state.appServerOptions[1]?.threadId).toBe('app-server-thread');
+    expect(state.stoppedData).toEqual({ threadId: 'app-server-thread' });
+    expect(state.appServerClosed).toBe(2);
   });
 
   test('passes host tools to app-server without registering them as MCP servers', async () => {

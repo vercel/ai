@@ -12,6 +12,7 @@ import {
 } from './create-app-server-event-handler';
 import type { CodexStepTracker } from './codex-step-tracker';
 import type { CodexEvent } from './create-emit-stream-event';
+import { isDeepStrictEqual } from 'node:util';
 
 type Emit = (message: Record<string, unknown>) => void;
 
@@ -19,17 +20,7 @@ const CODEX_CLI_PATH = fileURLToPath(
   new URL('./node_modules/@openai/codex/bin/codex.js', import.meta.url),
 );
 
-export async function runCodexAppServerTurn({
-  start,
-  turn,
-  emit,
-  workdir,
-  threadId,
-  codexModel,
-  codexConfig,
-  stepTracker,
-  emitStreamEvent,
-}: {
+type RunTurnOptions = {
   start: StartMessage;
   turn: BridgeTurn;
   emit: Emit;
@@ -39,156 +30,276 @@ export async function runCodexAppServerTurn({
   codexConfig: Record<string, unknown>;
   stepTracker: CodexStepTracker;
   emitStreamEvent: (event: CodexEvent) => void;
-}): Promise<void> {
-  const dynamicTools = createDynamicTools(start.tools ?? []);
-  const eventHandler = createAppServerEventHandler({
-    stepTracker,
-    emitStreamEvent,
-    emitWarning: turn.emitWarning,
-    emitError: turn.emitError,
-  });
-  let activeThreadId = threadId;
-  let activeTurnId: string | undefined;
-  let rejectProtocolFailure: (error: unknown) => void = () => {};
-  const protocolFailure = new Promise<never>((_, reject) => {
-    rejectProtocolFailure = reject;
-  });
-  const client = new CodexAppServerClient({
-    executable: process.execPath,
-    args: createCodexAppServerArgs(),
-    cwd: workdir,
-    env: process.env,
-    onNotification: eventHandler.handle,
-    onRequest: request =>
-      handleAppServerRequest({
-        request,
-        dynamicTools,
-        emit,
-        requestToolResult: turn.requestToolResult,
-      }).catch(error => {
-        rejectProtocolFailure(error);
-        throw error;
-      }),
-    onStderr: text => {
-      const message = text.trim();
-      if (message.length > 0) {
-        turn.bridgeLog({
-          level: 'debug',
-          subsystem: 'codex.app-server.stderr',
-          message,
+};
+
+type ActiveTurn = {
+  threadId: string | undefined;
+  turnId: string | undefined;
+  handler: ReturnType<typeof createAppServerEventHandler>;
+  dynamicTools: ReturnType<typeof createDynamicTools>;
+  options: RunTurnOptions;
+  fail(error: unknown): void;
+};
+
+export function createCodexAppServerRuntime(): {
+  runTurn(options: RunTurnOptions): Promise<void>;
+  close(): Promise<void>;
+} {
+  let client: CodexAppServerClient | undefined;
+  let loadedThreadId: string | undefined;
+  let loadedConfig: Record<string, unknown> | undefined;
+  let activeTurn: ActiveTurn | undefined;
+
+  const close = async (): Promise<void> => {
+    const previous = client;
+    client = undefined;
+    loadedThreadId = undefined;
+    loadedConfig = undefined;
+    await previous?.close();
+  };
+
+  const runTurn = async (options: RunTurnOptions): Promise<void> => {
+    const { start, turn, emit, workdir, threadId, codexModel, codexConfig } =
+      options;
+    if (activeTurn != null) throw new Error('A Codex turn is already active.');
+    const nextConfig = {
+      ...codexConfig,
+      web_search: start.webSearch ? 'live' : 'disabled',
+    };
+    if (client != null && !isDeepStrictEqual(loadedConfig, nextConfig)) {
+      await close();
+    }
+    const handler = createAppServerEventHandler({
+      stepTracker: options.stepTracker,
+      emitStreamEvent: options.emitStreamEvent,
+      emitWarning: turn.emitWarning,
+      emitError: turn.emitError,
+    });
+    const dynamicTools = createDynamicTools(start.tools ?? []);
+    let rejectProtocolFailure: (error: unknown) => void = () => {};
+    const protocolFailure = new Promise<never>((_, reject) => {
+      rejectProtocolFailure = reject;
+    });
+    const currentTurn: ActiveTurn = {
+      threadId,
+      turnId: undefined,
+      handler,
+      dynamicTools,
+      options,
+      fail: rejectProtocolFailure,
+    };
+    activeTurn = currentTurn;
+    let initialized = false;
+    if (client == null) {
+      const created = new CodexAppServerClient({
+        executable: process.execPath,
+        args: createCodexAppServerArgs(),
+        cwd: workdir,
+        env: process.env,
+        onNotification: notification => {
+          if (client !== created || activeTurn == null) return;
+          const params = asRecord(notification.params);
+          if (
+            notification.method === 'turn/started' &&
+            params?.threadId === activeTurn.threadId &&
+            activeTurn.turnId == null
+          ) {
+            const turnId = asRecord(params?.turn)?.id;
+            if (typeof turnId === 'string') activeTurn.turnId = turnId;
+          }
+          activeTurn.handler.handle(notification);
+        },
+        onRequest: request => {
+          const active = activeTurn;
+          const params = asRecord(request.params);
+          if (
+            client !== created ||
+            active == null ||
+            params?.threadId !== active.threadId ||
+            params?.turnId !== active.turnId ||
+            active.turnId == null
+          ) {
+            return Promise.reject(
+              new Error(
+                'Codex app-server requested a tool for an inactive turn.',
+              ),
+            );
+          }
+          return handleAppServerRequest({
+            request,
+            dynamicTools: active.dynamicTools,
+            emit: active.options.emit,
+            requestToolResult: active.options.turn.requestToolResult,
+          }).catch(error => {
+            active.fail(error);
+            throw error;
+          });
+        },
+        onStderr: text => {
+          const message = text.trim();
+          if (message.length > 0) {
+            activeTurn?.options.turn.bridgeLog({
+              level: 'debug',
+              subsystem: 'codex.app-server.stderr',
+              message,
+            });
+          }
+        },
+      });
+      client = created;
+      loadedConfig = nextConfig;
+      initialized = true;
+    }
+    const runningClient = client;
+    const clientFailure = runningClient.waitUntilFailure();
+    const exitFailure = runningClient
+      .waitUntilExit()
+      .then(({ code, signal }) => {
+        throw new Error(
+          `Codex app-server exited before the turn completed (code ${code ?? 'null'}, signal ${signal ?? 'null'}).`,
+        );
+      });
+    let removeAbortListener = () => {};
+    const abortFailure = new Promise<never>((_, reject) => {
+      const onAbort = () => {
+        if (currentTurn.threadId != null && currentTurn.turnId != null) {
+          void runningClient
+            .request({
+              method: 'turn/interrupt',
+              params: {
+                threadId: currentTurn.threadId,
+                turnId: currentTurn.turnId,
+              },
+            })
+            .catch(() => {});
+        }
+        reject(
+          turn.abortSignal.reason ?? new DOMException('Aborted', 'AbortError'),
+        );
+      };
+      if (turn.abortSignal.aborted) onAbort();
+      else {
+        turn.abortSignal.addEventListener('abort', onAbort, { once: true });
+        removeAbortListener = () =>
+          turn.abortSignal.removeEventListener('abort', onAbort);
+      }
+    });
+    const raceWithProcess = <T>({ operation }: { operation: Promise<T> }) =>
+      Promise.race([
+        operation,
+        abortFailure,
+        protocolFailure,
+        clientFailure,
+        exitFailure,
+      ]);
+    let keepClient = false;
+    try {
+      if (initialized) {
+        await raceWithProcess({
+          operation: runningClient.initialize({
+            clientName: 'ai-sdk-harness-codex',
+            clientVersion: '1',
+          }),
         });
       }
-    },
-  });
-  let removeAbortListener = () => {};
-  const abortFailure = new Promise<never>((_, reject) => {
-    const onAbort = () => {
-      if (activeThreadId != null && activeTurnId != null) {
-        void client
-          .request({
-            method: 'turn/interrupt',
-            params: { threadId: activeThreadId, turnId: activeTurnId },
-          })
-          .catch(() => {});
+      if (start.restartThread && loadedThreadId != null) {
+        await raceWithProcess({
+          operation: runningClient.request({
+            method: 'thread/unsubscribe',
+            params: { threadId: loadedThreadId },
+          }),
+        });
+        loadedThreadId = undefined;
       }
-      reject(
-        turn.abortSignal.reason ?? new DOMException('Aborted', 'AbortError'),
-      );
-    };
-    if (turn.abortSignal.aborted) onAbort();
-    else {
-      turn.abortSignal.addEventListener('abort', onAbort, { once: true });
-      removeAbortListener = () =>
-        turn.abortSignal.removeEventListener('abort', onAbort);
-    }
-  });
-  const clientFailure = client.waitUntilFailure();
-  const exitFailure = client.waitUntilExit().then(({ code, signal }) => {
-    throw new Error(
-      `Codex app-server exited before the turn completed (code ${code ?? 'null'}, signal ${signal ?? 'null'}).`,
-    );
-  });
-  const raceWithProcess = <T>({ operation }: { operation: Promise<T> }) =>
-    Promise.race([
-      operation,
-      abortFailure,
-      protocolFailure,
-      clientFailure,
-      exitFailure,
-    ]);
-
-  try {
-    await raceWithProcess({
-      operation: client.initialize({
-        clientName: 'ai-sdk-harness-codex',
-        clientVersion: '1',
-      }),
-    });
-    const threadMethod =
-      activeThreadId == null ? 'thread/start' : 'thread/resume';
-    const threadResponse = await raceWithProcess({
-      operation: client.request({
-        method: threadMethod,
-        params:
-          activeThreadId == null
-            ? {
-                ...createThreadParams({
-                  start,
-                  workdir,
-                  codexModel,
-                  codexConfig,
-                }),
-                dynamicTools: dynamicTools.specs,
-              }
-            : {
-                threadId: activeThreadId,
-                ...createThreadParams({
-                  start,
-                  workdir,
-                  codexModel,
-                  codexConfig,
-                }),
-                excludeTurns: true,
-              },
-      }),
-    });
-    assertCodexThreadPermissions({
-      response: threadResponse,
-      method: threadMethod,
-    });
-    activeThreadId = readNestedString({
-      value: threadResponse,
-      path: ['thread', 'id'],
-      method: threadMethod,
-    });
-    eventHandler.announceThread(activeThreadId);
-    emit({ type: 'stream-start' });
-
-    const turnResponse = await raceWithProcess({
-      operation: client.request({
-        method: 'turn/start',
-        params: createTurnParams({
-          threadId: activeThreadId,
-          start,
-          codexModel,
+      const threadMethod = threadId == null ? 'thread/start' : 'thread/resume';
+      if (loadedThreadId !== threadId || threadId == null) {
+        const threadResponse = await raceWithProcess({
+          operation: runningClient.request({
+            method: threadMethod,
+            params:
+              threadId == null
+                ? {
+                    ...createThreadParams({
+                      start,
+                      workdir,
+                      codexModel,
+                      codexConfig,
+                    }),
+                    dynamicTools: dynamicTools.specs,
+                  }
+                : {
+                    threadId,
+                    ...createThreadParams({
+                      start,
+                      workdir,
+                      codexModel,
+                      codexConfig,
+                    }),
+                    excludeTurns: true,
+                  },
+          }),
+        });
+        assertCodexThreadPermissions({
+          response: threadResponse,
+          method: threadMethod,
+        });
+        currentTurn.threadId = readNestedString({
+          value: threadResponse,
+          path: ['thread', 'id'],
+          method: threadMethod,
+        });
+        loadedThreadId = currentTurn.threadId;
+      }
+      handler.announceThread(currentTurn.threadId!);
+      emit({ type: 'stream-start' });
+      const turnResponse = await raceWithProcess({
+        operation: runningClient.request({
+          method: 'turn/start',
+          params: createTurnParams({
+            threadId: currentTurn.threadId!,
+            start,
+            codexModel,
+          }),
         }),
-      }),
-    });
-    activeTurnId = readNestedString({
-      value: turnResponse,
-      path: ['turn', 'id'],
-      method: 'turn/start',
-    });
-    eventHandler.setTurnId(activeTurnId);
+      });
+      currentTurn.turnId = readNestedString({
+        value: turnResponse,
+        path: ['turn', 'id'],
+        method: 'turn/start',
+      });
+      handler.setTurnId(currentTurn.turnId);
+      const result = await raceWithProcess({
+        operation: handler.waitForCompletion(),
+      });
+      keepClient = true;
+      assertSuccessfulTurn(result);
+    } catch (error) {
+      if (turn.abortSignal.aborted && currentTurn.turnId != null) {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          keepClient = await Promise.race([
+            handler.waitForCompletion().then(() => true),
+            new Promise<boolean>(resolve => {
+              timer = setTimeout(() => resolve(false), 5_000);
+            }),
+            clientFailure.then(
+              () => false,
+              () => false,
+            ),
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      throw error;
+    } finally {
+      removeAbortListener();
+      if (activeTurn === currentTurn) activeTurn = undefined;
+      if (!keepClient) await close();
+    }
+  };
 
-    const result = await raceWithProcess({
-      operation: eventHandler.waitForCompletion(),
-    });
-    assertSuccessfulTurn(result);
-  } finally {
-    removeAbortListener();
-    await client.close();
-  }
+  return { runTurn, close };
 }
 
 export function createCodexAppServerArgs(): string[] {
