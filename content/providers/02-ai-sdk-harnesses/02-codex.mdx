@@ -227,6 +227,10 @@ Codex does not currently support built-in tool approval requests. Use
 `permissionMode: 'allow-all'` with this adapter. Host-executed AI SDK tool
 approvals still work.
 
+When the app-server must cold-resume a thread, Codex does not provide raw
+events for `apply_patch` and `view_image`, so those tool calls and results
+cannot be surfaced for that resumed thread.
+
 ## Related
 
 - [HarnessAgent](/docs/ai-sdk-harnesses/harness-agent)

@@ -335,6 +335,10 @@ describe('Codex app-server runtime lifecycle', () => {
       server.clients[1]!.calls.find(call => call.method === 'thread/resume')
         ?.params,
     ).not.toHaveProperty('experimentalRawEvents');
+    expect(
+      server.clients[1]!.calls.find(call => call.method === 'turn/start')
+        ?.params,
+    ).not.toHaveProperty('environments');
     expect(methods(server.clients[2]!)).toEqual([
       'initialize',
       'thread/resume',
@@ -358,17 +362,86 @@ describe('Codex app-server runtime lifecycle', () => {
     );
     const client = server.clients[0]!;
     expect(methods(client)).not.toContain('hooks/list');
-    expect(
-      (
-        client.calls.find(call => call.method === 'thread/start')?.params as
-          | { config: unknown }
-          | undefined
-      )?.config,
-    ).toEqual({
-      environments: [],
+    const threadParams = client.calls.find(
+      call => call.method === 'thread/start',
+    )?.params as { config: Record<string, unknown> };
+    expect(threadParams.config).toEqual({
       features: { shell_tool: false, view_image: false },
       web_search: 'disabled',
     });
+    expect(threadParams).not.toHaveProperty('environments');
+    expect(
+      client.calls.find(call => call.method === 'turn/start')?.params,
+    ).toHaveProperty('environments', []);
+    await runtime.close();
+  });
+
+  it('passes disabled environments on a cold-resumed turn, not on thread/resume', async () => {
+    const runtime = createCodexAppServerRuntime();
+    const start = {
+      builtinToolFiltering: { mode: 'allow' as const, toolNames: [] },
+    };
+    await runtime.runTurn(createOptions({ start }));
+    await runtime.runTurn(
+      createOptions({
+        threadId: 'thread-1',
+        start,
+        codexConfig: { model_verbosity: 'low' },
+      }),
+    );
+
+    expect(server.clients).toHaveLength(2);
+    const resumed = server.clients[1]!;
+    expect(methods(resumed)).toEqual([
+      'initialize',
+      'thread/resume',
+      'turn/start',
+    ]);
+    const resumeParams = resumed.calls.find(
+      call => call.method === 'thread/resume',
+    )?.params as { config: Record<string, unknown> };
+    expect(resumeParams).not.toHaveProperty('environments');
+    expect(resumeParams.config).not.toHaveProperty('environments');
+    expect(
+      resumed.calls.find(call => call.method === 'turn/start')?.params,
+    ).toHaveProperty('environments', []);
+    await runtime.close();
+  });
+
+  it('does not carry disabled environments into a turn with apply_patch enabled', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(
+      createOptions({
+        start: {
+          builtinToolFiltering: { mode: 'allow', toolNames: [] },
+        },
+      }),
+    );
+    await runtime.runTurn(
+      createOptions({
+        threadId: 'thread-1',
+        start: {
+          builtinToolFiltering: {
+            mode: 'allow',
+            toolNames: ['apply_patch'],
+          },
+        },
+      }),
+    );
+
+    expect(server.clients).toHaveLength(1);
+    const client = server.clients[0]!;
+    expect(methods(client)).toEqual([
+      'initialize',
+      'thread/start',
+      'turn/start',
+      'turn/start',
+    ]);
+    const turnParams = client.calls
+      .filter(call => call.method === 'turn/start')
+      .map(call => call.params);
+    expect(turnParams[0]).toHaveProperty('environments', []);
+    expect(turnParams[1]).not.toHaveProperty('environments');
     await runtime.close();
   });
 
@@ -393,6 +466,10 @@ describe('Codex app-server runtime lifecycle', () => {
       features: { shell_tool: false, view_image: false },
       web_search: 'disabled',
     });
+    expect(
+      server.clients[0]!.calls.find(call => call.method === 'turn/start')
+        ?.params,
+    ).not.toHaveProperty('environments');
     await runtime.close();
   });
 

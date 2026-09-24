@@ -233,6 +233,23 @@ describe('createAppServerEventHandler', () => {
     expect(emitted[4]?.type).toBe('finish-step');
   });
 
+  it('does not fabricate native tool calls or results from typed-only events', () => {
+    const { emitted, item, complete } = createNativeToolHarness();
+
+    item({
+      type: 'fileChange',
+      id: 'patch-1',
+      status: 'completed',
+      changes: [{ path: 'notes.md', kind: { type: 'update' } }],
+    });
+    item({ type: 'imageView', id: 'image-1', path: 'image.png' });
+    complete();
+
+    expect(emitted.filter(event => event.type === 'tool-call')).toEqual([]);
+    expect(emitted.filter(event => event.type === 'tool-result')).toEqual([]);
+    expect(emitted.some(event => event.type === 'file-change')).toBe(true);
+  });
+
   it('passes through real image content and identifies native image errors', () => {
     const { emitted, raw, item, complete } = createNativeToolHarness();
     const args = JSON.stringify({ path: 'image.png', detail: 'high' });

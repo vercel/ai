@@ -77,7 +77,6 @@ export function createCodexAppServerRuntime(): {
     const nextConfig = {
       ...(trustedHook?.threadConfig ?? codexConfig),
       web_search: toolPolicy.webSearchMode,
-      ...(toolPolicy.disableEnvironments ? { environments: [] } : {}),
       ...(toolPolicy.disabled.bash || toolPolicy.disabled.view_image
         ? {
             features: {
@@ -335,6 +334,7 @@ export function createCodexAppServerRuntime(): {
             threadId: currentTurn.threadId!,
             start,
             codexModel,
+            disableEnvironments: toolPolicy.disableEnvironments,
           }),
         }),
       });
@@ -426,13 +426,16 @@ export function createTurnParams({
   threadId,
   start,
   codexModel,
+  disableEnvironments = false,
 }: {
   threadId: string;
   start: StartMessage;
   codexModel: string | undefined;
+  disableEnvironments?: boolean;
 }): Record<string, unknown> {
   return {
     threadId,
+    ...(disableEnvironments ? { environments: [] } : {}),
     input: [{ type: 'text', text: start.prompt, text_elements: [] }],
     approvalPolicy: 'never',
     sandboxPolicy: {
