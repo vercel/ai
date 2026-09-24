@@ -3,6 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
+  defineCommand,
   InMemoryFs,
   MountableFs,
   ReadWriteFs,
@@ -103,6 +104,36 @@ describe('JustBashSandboxProvider', () => {
       ).resolves.toMatchObject({
         exitCode: 0,
         stdout: 'custom\n',
+      });
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('preserves a registered realpath command without a filesystem stub', async () => {
+    const sandbox = await Sandbox.create({
+      fs: new MountableFs({
+        base: new InMemoryFs(),
+        mounts: [{ mountPoint: '/data', filesystem: new InMemoryFs() }],
+      }),
+    });
+    sandbox.bashEnvInstance.registerCommand(
+      defineCommand('realpath', async () => ({
+        exitCode: 0,
+        stdout: 'custom\n',
+        stderr: '',
+      })),
+    );
+
+    const session = await createJustBashSandbox({ sandbox }).createSession();
+
+    try {
+      await expect(
+        session.run({ command: 'realpath /tmp && echo ok' }),
+      ).resolves.toMatchObject({
+        exitCode: 0,
+        stdout: 'custom\nok\n',
+        stderr: '',
       });
     } finally {
       await session.destroy();

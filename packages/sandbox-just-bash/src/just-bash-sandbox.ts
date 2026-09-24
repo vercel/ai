@@ -32,17 +32,11 @@ export type JustBashSandboxSettings =
   | (JustBashSandboxCreateParams & { sandbox?: never });
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
-const REALPATH_PATH = '/usr/bin/realpath';
 
 async function ensureRealpath(sandbox: Sandbox): Promise<void> {
-  const fs = sandbox.bashEnvInstance.fs;
-  try {
-    await fs.lstat(REALPATH_PATH);
+  const realpathType = await sandbox.bashEnvInstance.exec('type realpath');
+  if (realpathType.exitCode === 0) {
     return;
-  } catch (error) {
-    if (!isFileNotFoundError(error)) {
-      throw error;
-    }
   }
 
   sandbox.bashEnvInstance.registerCommand(
