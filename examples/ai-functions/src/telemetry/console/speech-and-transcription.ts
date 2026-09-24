@@ -18,7 +18,7 @@ const speechModel: SpeechModelV4 = {
   specificationVersion: 'v4',
   provider: 'example',
   modelId: 'example-speech',
-  async doGenerate() {
+  async doGenerate({ text }) {
     return {
       audio: new Uint8Array([1, 2, 3, 4]),
       warnings: [],
@@ -26,6 +26,7 @@ const speechModel: SpeechModelV4 = {
         timestamp: new Date(),
         modelId: 'example-speech',
       },
+      usage: { characters: text.length },
       providerMetadata: {
         example: { requestId: 'speech-request' },
       },
@@ -48,6 +49,7 @@ const transcriptionModel: TranscriptionModelV4 = {
         timestamp: new Date(),
         modelId: 'example-transcription',
       },
+      usage: { inputAudioSeconds: 1 },
       providerMetadata: {
         example: { requestId: 'transcription-request' },
       },
@@ -71,6 +73,7 @@ const transcriptionModel: TranscriptionModelV4 = {
         segments: [],
         language: 'en',
         durationInSeconds: 1,
+        usage: { inputAudioSeconds: 1 },
       },
     ];
 

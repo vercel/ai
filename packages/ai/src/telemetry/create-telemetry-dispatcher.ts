@@ -175,6 +175,12 @@ export function createTelemetryDispatcher({
     experimental_onEvaluateEnd: mergeTelemetryCallback(
       'experimental_onEvaluateEnd',
     ),
+    experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionStart',
+    ),
+    experimental_onStreamTranscriptionEnd: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionEnd',
+    ),
     onEnd: mergeTelemetryCallback('onEnd'),
     onAbort: mergeTelemetryCallback('onAbort'),
     onError: mergeTelemetryCallback('onError'),

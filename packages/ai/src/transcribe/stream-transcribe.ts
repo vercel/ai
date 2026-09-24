@@ -5,7 +5,6 @@ import {
   type SharedV4AudioFormat,
 } from '@ai-sdk/provider';
 import {
-  convertBase64ToUint8Array,
   createIdGenerator,
   DelayedPromise,
   withUserAgentSuffix,
@@ -28,8 +27,8 @@ import type {
   TranscriptionStreamPart,
 } from './stream-transcribe-result';
 import type {
-  TranscriptionEndEvent,
-  TranscriptionStartEvent,
+  StreamTranscriptionEndEvent,
+  StreamTranscriptionStartEvent,
 } from './transcription-events';
 
 type TranscriptSegment = {
@@ -145,35 +144,21 @@ export function streamTranscribe({
 
   const callId = generateCallId();
   const telemetryDispatcher = createTelemetryDispatcher({ telemetry });
+  const telemetryEnabled =
+    telemetryDispatcher.runInTracingChannelSpan != null ||
+    telemetryDispatcher.experimental_onStreamTranscriptionStart != null ||
+    telemetryDispatcher.experimental_onStreamTranscriptionEnd != null;
   const runInTracingChannelSpan =
     telemetryDispatcher.runInTracingChannelSpan ??
     (async <T>({ execute }: { execute: () => PromiseLike<T> }) =>
       await execute());
   let audioByteLength = 0;
-  let audioReader: ReadableStreamDefaultReader<Uint8Array | string> | undefined;
-  const countedAudio = new ReadableStream<Uint8Array | string>({
-    async pull(controller) {
-      audioReader ??= audio.getReader();
-      const { done, value } = await audioReader.read();
-      if (done) {
-        controller.close();
-      } else {
-        audioByteLength +=
-          typeof value === 'string'
-            ? convertBase64ToUint8Array(value).byteLength
-            : value.byteLength;
-        controller.enqueue(value);
-      }
-    },
-    async cancel(reason) {
-      if (audioReader != null) {
-        await audioReader.cancel(reason);
-      } else {
-        await audio.cancel(reason);
-      }
-    },
-  });
-  const startEvent: TranscriptionStartEvent = {
+  const countedAudio = telemetryEnabled
+    ? createByteCountingStream(audio, byteLength => {
+        audioByteLength += byteLength;
+      })
+    : audio;
+  const startEvent: StreamTranscriptionStartEvent = {
     callId,
     operationId: 'ai.streamTranscribe',
     provider: resolvedModel.provider,
@@ -200,6 +185,7 @@ export function streamTranscribe({
     Record<string, JSONObject>
   >();
   let warnings: Array<Warning> = [];
+  let telemetrySettled = false;
 
   const rejectPendingPromises = (error: unknown) => {
     for (const promise of [
@@ -287,7 +273,7 @@ export function streamTranscribe({
           responsesPromise.resolve([currentResponseMetadata()]);
           providerMetadataPromise.resolve(value.providerMetadata ?? {});
 
-          const endEvent: TranscriptionEndEvent = {
+          const endEvent: StreamTranscriptionEndEvent = {
             callId,
             operationId: 'ai.streamTranscribe',
             provider: resolvedModel.provider,
@@ -300,19 +286,18 @@ export function streamTranscribe({
             segments: value.segments,
             language: value.language,
             durationInSeconds: value.durationInSeconds,
-            usage: (
-              value as typeof value & {
-                usage?: JSONObject;
-              }
-            ).usage,
+            usage: value.usage,
             warnings,
             providerMetadata: value.providerMetadata,
             response: currentResponseMetadata(),
           };
 
+          telemetrySettled = true;
           await notify({
             event: endEvent,
-            callbacks: [telemetryDispatcher.onEnd],
+            callbacks: [
+              telemetryDispatcher.experimental_onStreamTranscriptionEnd,
+            ],
           });
           break;
         }
@@ -347,7 +332,9 @@ export function streamTranscribe({
     execute: async () => {
       await notify({
         event: startEvent,
-        callbacks: [telemetryDispatcher.onStart],
+        callbacks: [
+          telemetryDispatcher.experimental_onStreamTranscriptionStart,
+        ],
       });
 
       const result = await doStream({
@@ -374,7 +361,10 @@ export function streamTranscribe({
     const reason =
       error ?? new Error('Transcription stream was cancelled or errored.');
     rejectPendingPromises(reason);
-    await telemetryDispatcher.onError?.({ callId, error: reason });
+    if (!telemetrySettled) {
+      telemetrySettled = true;
+      await telemetryDispatcher.onError?.({ callId, error: reason });
+    }
     // When `doStream` rejects before the model stream exists (e.g. auth or
     // header resolution failure), nothing has taken ownership of `countedAudio`
     // yet, so cancel it directly. When the model did take a reader, the cancel
@@ -454,4 +444,55 @@ export function streamTranscribe({
       return getFullStream();
     },
   };
+}
+
+function createByteCountingStream(
+  audio: ReadableStream<Uint8Array | string>,
+  onChunk: (byteLength: number) => void,
+): ReadableStream<Uint8Array | string> {
+  let audioReader: ReadableStreamDefaultReader<Uint8Array | string> | undefined;
+
+  return new ReadableStream<Uint8Array | string>({
+    async pull(controller) {
+      audioReader ??= audio.getReader();
+      const { done, value } = await audioReader.read();
+      if (done) {
+        controller.close();
+        return;
+      }
+
+      onChunk(
+        typeof value === 'string'
+          ? getBase64ByteLength(value)
+          : value.byteLength,
+      );
+      controller.enqueue(value);
+    },
+    async cancel(reason) {
+      if (audioReader != null) {
+        await audioReader.cancel(reason);
+      } else {
+        await audio.cancel(reason);
+      }
+    },
+  });
+}
+
+function getBase64ByteLength(value: string): number {
+  let characterCount = 0;
+  let lastCharacter = '';
+  let secondLastCharacter = '';
+
+  for (const character of value) {
+    if (/\s/.test(character)) {
+      continue;
+    }
+    characterCount++;
+    secondLastCharacter = lastCharacter;
+    lastCharacter = character;
+  }
+
+  const padding =
+    lastCharacter === '=' ? (secondLastCharacter === '=' ? 2 : 1) : 0;
+  return Math.floor((characterCount * 3) / 4) - padding;
 }

@@ -39,6 +39,8 @@ import type {
   RerankingModelCallStartEvent,
   TranscriptionEndEvent,
   TranscriptionStartEvent,
+  Experimental_StreamTranscriptionEndEvent as StreamTranscriptionEndEvent,
+  Experimental_StreamTranscriptionStartEvent as StreamTranscriptionStartEvent,
   InferTelemetryEvent,
   Telemetry,
   TelemetryOptions,
@@ -228,10 +230,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       return;
     }
 
-    if (
-      event.operationId === 'ai.transcribe' ||
-      event.operationId === 'ai.streamTranscribe'
-    ) {
+    if (event.operationId === 'ai.transcribe') {
       this.onAudioOperationStart(
         event as InferTelemetryEvent<TranscriptionStartEvent>,
       );
@@ -266,9 +265,17 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.onGenerateStart(event as InferTelemetryEvent<GenerateTextStartEvent>);
   }
 
+  experimental_onStreamTranscriptionStart(
+    event: InferTelemetryEvent<StreamTranscriptionStartEvent>,
+  ): void {
+    this.onAudioOperationStart(event);
+  }
+
   private onAudioOperationStart(
     event: InferTelemetryEvent<
-      GenerateSpeechStartEvent | TranscriptionStartEvent
+      | GenerateSpeechStartEvent
+      | TranscriptionStartEvent
+      | StreamTranscriptionStartEvent
     >,
   ): void {
     const telemetry: TelemetryOptions = {
@@ -893,8 +900,7 @@ export class LegacyOpenTelemetry implements Telemetry {
 
     if (
       state.operationId === 'ai.generateSpeech' ||
-      state.operationId === 'ai.transcribe' ||
-      state.operationId === 'ai.streamTranscribe'
+      state.operationId === 'ai.transcribe'
     ) {
       this.onAudioOperationEnd(
         event as GenerateSpeechEndEvent | TranscriptionEndEvent,
@@ -913,8 +919,17 @@ export class LegacyOpenTelemetry implements Telemetry {
     this.onGenerateEnd(event as GenerateTextEndEvent<ToolSet>);
   }
 
+  experimental_onStreamTranscriptionEnd(
+    event: InferTelemetryEvent<StreamTranscriptionEndEvent>,
+  ): void {
+    this.onAudioOperationEnd(event);
+  }
+
   private onAudioOperationEnd(
-    event: GenerateSpeechEndEvent | TranscriptionEndEvent,
+    event:
+      | GenerateSpeechEndEvent
+      | TranscriptionEndEvent
+      | StreamTranscriptionEndEvent,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;

@@ -19,7 +19,7 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { streamTranscribe } from './stream-transcribe';
-import type { TranscriptionEndEvent } from './transcription-events';
+import type { StreamTranscriptionEndEvent } from './transcription-events';
 
 vi.mock('../version', () => {
   return {
@@ -105,6 +105,32 @@ describe('experimental_streamTranscribe', () => {
     expect(capturedSignal?.aborted).toBe(false);
     abortController.abort();
     expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('should pass the original audio stream through when telemetry is disabled', async () => {
+    const audioStream = convertArrayToReadableStream([
+      new Uint8Array([1, 2, 3]),
+    ]);
+    let capturedAudio: ReadableStream<Uint8Array | string> | undefined;
+
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async ({ audio }) => {
+          capturedAudio = audio;
+          return createStreamResponse([
+            { type: 'stream-start', warnings: [] },
+            { type: 'finish', text: 'Hello', segments: [] },
+          ]);
+        },
+      }),
+      audio: audioStream,
+      inputAudioFormat,
+      telemetry: { isEnabled: false },
+    });
+
+    await convertAsyncIterableToArray(result.fullStream);
+
+    expect(capturedAudio).toBe(audioStream);
   });
 
   it('should stream transcript parts and resolve final metadata', async () => {
@@ -302,8 +328,52 @@ describe('experimental_streamTranscribe', () => {
     await expect(result.text).rejects.toThrow('connection lost');
   });
 
+  it('should emit one correlated telemetry error for a provider stream failure', async () => {
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const onError = vi.fn();
+    const error = new Error('connection lost');
+    const result = streamTranscribe({
+      model: new MockTranscriptionModelV4({
+        doStream: async () => ({
+          stream: new ReadableStream<TranscriptionModelV4StreamPart>({
+            start(controller) {
+              controller.enqueue({ type: 'stream-start', warnings: [] });
+              controller.error(error);
+            },
+          }),
+          response: { timestamp: testDate, modelId: 'test-model-id' },
+        }),
+      }),
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat,
+      telemetry: {
+        integrations: {
+          experimental_onStreamTranscriptionStart: onStart,
+          experimental_onStreamTranscriptionEnd: onEnd,
+          onError,
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
+    });
+
+    await expect(convertAsyncIterableToArray(result.fullStream)).rejects.toBe(
+      error,
+    );
+    await vi.waitFor(() => {
+      expect(onStart).toHaveBeenCalledOnce();
+      expect(onEnd).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledExactlyOnceWith({
+        callId: 'call-1',
+        error,
+      });
+    });
+  });
+
   it('should cancel the model stream when fullStream is cancelled early', async () => {
     let modelStreamCancelled = false;
+    const onEnd = vi.fn();
+    const onError = vi.fn();
 
     const result = streamTranscribe({
       model: new MockTranscriptionModelV4({
@@ -331,6 +401,13 @@ describe('experimental_streamTranscribe', () => {
       }),
       audio,
       inputAudioFormat,
+      telemetry: {
+        integrations: {
+          experimental_onStreamTranscriptionEnd: onEnd,
+          onError,
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
     });
 
     for await (const part of result.fullStream) {
@@ -340,6 +417,12 @@ describe('experimental_streamTranscribe', () => {
 
     await vi.waitFor(() => {
       expect(modelStreamCancelled).toBe(true);
+      expect(onEnd).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledOnce();
+      expect(onError).toHaveBeenCalledWith({
+        callId: 'call-1',
+        error: expect.anything(),
+      });
     });
     await expect(result.text).rejects.toThrow();
   });
@@ -525,7 +608,7 @@ describe('experimental_streamTranscribe', () => {
               segments: [],
               providerMetadata: { mock: { traceId: 'trace-1' } },
               usage: { inputTokens: 3 },
-            } as TranscriptionModelV4StreamPart,
+            },
           ]);
         },
       }),
@@ -534,16 +617,12 @@ describe('experimental_streamTranscribe', () => {
       telemetry: {
         functionId: 'stream-audio',
         integrations: {
-          onStart: event => {
-            if (event.operationId === 'ai.streamTranscribe') {
-              events.push({ type: 'start', event });
-            }
+          experimental_onStreamTranscriptionStart: event => {
+            events.push({ type: 'start', event });
           },
-          onEnd: event => {
-            const transcriptionEvent = event as TranscriptionEndEvent;
-            if (transcriptionEvent.operationId === 'ai.streamTranscribe') {
-              events.push({ type: 'end', event: transcriptionEvent });
-            }
+          experimental_onStreamTranscriptionEnd: event => {
+            const transcriptionEvent = event as StreamTranscriptionEndEvent;
+            events.push({ type: 'end', event: transcriptionEvent });
           },
         },
       },

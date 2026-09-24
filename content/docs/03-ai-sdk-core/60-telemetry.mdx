@@ -82,6 +82,13 @@ never included in telemetry events. Streaming transcription reports its final
 byte length when the audio stream has been consumed and the transcription
 finishes.
 
+Custom integrations receive stable `generateSpeech` and `transcribe`
+operations through `onStart` and `onEnd`. To keep the experimental API isolated,
+`experimental_streamTranscribe` uses
+`experimental_onStreamTranscriptionStart` and
+`experimental_onStreamTranscriptionEnd`; all three operations report failures
+through `onError`.
+
 ### Opting out
 
 Telemetry is opt-out. To disable telemetry for a specific call, set `isEnabled: false`:

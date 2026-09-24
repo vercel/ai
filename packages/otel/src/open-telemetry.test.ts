@@ -1535,6 +1535,52 @@ describe('OpenTelemetry', () => {
         },
       });
     });
+
+    it('records experimental streaming transcription through isolated callbacks', () => {
+      integration.experimental_onStreamTranscriptionStart!({
+        callId,
+        operationId: 'ai.streamTranscribe',
+        provider: 'openai.transcription',
+        modelId: 'gpt-realtime-whisper',
+        audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+        maxRetries: undefined,
+        headers: undefined,
+        providerOptions: {},
+        ...telemetryFields(),
+      });
+      integration.experimental_onStreamTranscriptionEnd!({
+        callId,
+        operationId: 'ai.streamTranscribe',
+        provider: 'openai.transcription',
+        modelId: 'gpt-realtime-whisper',
+        audio: { byteLength: 2048, mediaType: 'audio/pcm' },
+        text: 'Hello',
+        segments: [],
+        language: 'en',
+        durationInSeconds: 1,
+        usage: { inputTokens: 3 },
+        warnings: [],
+        providerMetadata: undefined,
+        response: {
+          timestamp: new Date(0),
+          modelId: 'gpt-realtime-whisper',
+        },
+        ...telemetryFields(),
+      });
+
+      expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+        name: 'ai.streamTranscribe gpt-realtime-whisper',
+        ended: true,
+        initAttributes: {
+          'ai.request.audio.media_type': 'audio/pcm',
+        },
+        runtimeAttributes: {
+          'ai.request.audio.size': 2048,
+          'ai.response.text': 'Hello',
+        },
+      });
+    });
   });
 
   describe('enrichSpan', () => {

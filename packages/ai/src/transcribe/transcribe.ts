@@ -215,11 +215,7 @@ export async function transcribe({
           segments: result.segments,
           language: result.language,
           durationInSeconds: result.durationInSeconds,
-          usage: (
-            result as typeof result & {
-              usage?: JSONObject;
-            }
-          ).usage,
+          usage: result.usage,
           warnings: result.warnings,
           providerMetadata: result.providerMetadata,
           response: result.response,

@@ -36,6 +36,8 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.experimental_onEvaluationModelCallStart).toBeDefined();
     expect(telemetry.experimental_onEvaluationModelCallEnd).toBeDefined();
     expect(telemetry.experimental_onEvaluateEnd).toBeDefined();
+    expect(telemetry.experimental_onStreamTranscriptionStart).toBeDefined();
+    expect(telemetry.experimental_onStreamTranscriptionEnd).toBeDefined();
     expect(telemetry.onEnd).toBeDefined();
     expect(telemetry.onAbort).toBeDefined();
     expect(telemetry.onError).toBeDefined();
@@ -190,6 +192,8 @@ describe('createTelemetryDispatcher', () => {
       experimental_onEvaluationModelCallStart: vi.fn(),
       experimental_onEvaluationModelCallEnd: vi.fn(),
       experimental_onEvaluateEnd: vi.fn(),
+      experimental_onStreamTranscriptionStart: vi.fn(),
+      experimental_onStreamTranscriptionEnd: vi.fn(),
       onEnd: vi.fn(),
       onAbort: vi.fn(),
       onError: vi.fn(),
@@ -216,6 +220,8 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.experimental_onEvaluationModelCallStart!(dummyEvent);
     await telemetry.experimental_onEvaluationModelCallEnd!(dummyEvent);
     await telemetry.experimental_onEvaluateEnd!(dummyEvent);
+    await telemetry.experimental_onStreamTranscriptionStart!(dummyEvent);
+    await telemetry.experimental_onStreamTranscriptionEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
     await telemetry.onAbort!(dummyEvent);
     await telemetry.onError!(dummyEvent);
@@ -241,6 +247,12 @@ describe('createTelemetryDispatcher', () => {
       integration.experimental_onEvaluationModelCallEnd,
     ).toHaveBeenCalledOnce();
     expect(integration.experimental_onEvaluateEnd).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onStreamTranscriptionStart,
+    ).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onStreamTranscriptionEnd,
+    ).toHaveBeenCalledOnce();
     expect(integration.onEnd).toHaveBeenCalledOnce();
     expect(integration.onAbort).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
@@ -275,6 +287,8 @@ describe('createTelemetryDispatcher', () => {
         experimental_onEvaluationModelCallStart: vi.fn(),
         experimental_onEvaluationModelCallEnd: vi.fn(),
         experimental_onEvaluateEnd: vi.fn(),
+        experimental_onStreamTranscriptionStart: vi.fn(),
+        experimental_onStreamTranscriptionEnd: vi.fn(),
         onEnd: vi.fn(),
         onAbort: vi.fn(),
         onError: vi.fn(),
@@ -301,6 +315,8 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
       expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
       expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
+      expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
+      expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
       expect(telemetry.onAbort).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();

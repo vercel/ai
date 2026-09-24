@@ -36,7 +36,10 @@ const durationInSeconds = transcript.durationInSeconds; // duration of the trans
 `telemetry` option. Registered integrations receive start, end, and error
 events with the provider and model, audio byte length and media type, final
 transcript, warnings, response metadata, provider metadata, and usage when the
-provider reports it.
+provider reports it. Because streaming transcription is experimental, custom
+integrations receive its lifecycle through
+`experimental_onStreamTranscriptionStart` and
+`experimental_onStreamTranscriptionEnd`; errors continue to use `onError`.
 
 ```ts highlight="5-7"
 const transcript = await transcribe({

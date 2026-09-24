@@ -237,15 +237,14 @@ export async function generateSpeech({
           modelId: resolvedModel.modelId,
           text,
           audio: {
-            byteLength: getAudioByteLength(result.audio),
+            byteLength:
+              telemetryDispatcher.onEnd == null
+                ? 0
+                : getBase64OrBinaryByteLength(result.audio),
             mediaType: audio.mediaType,
             format: audio.format,
           },
-          usage: (
-            result as typeof result & {
-              usage?: JSONObject;
-            }
-          ).usage,
+          usage: result.usage,
           warnings: result.warnings,
           providerMetadata: result.providerMetadata,
           response: result.response,
@@ -270,18 +269,26 @@ export async function generateSpeech({
   });
 }
 
-function getAudioByteLength(audio: string | Uint8Array): number {
+function getBase64OrBinaryByteLength(audio: string | Uint8Array): number {
   if (audio instanceof Uint8Array) {
     return audio.byteLength;
   }
 
-  const normalized = audio.replace(/\s/g, '');
-  const padding = normalized.endsWith('==')
-    ? 2
-    : normalized.endsWith('=')
-      ? 1
-      : 0;
-  return Math.floor((normalized.length * 3) / 4) - padding;
+  let characterCount = 0;
+  let lastCharacter = '';
+  let secondLastCharacter = '';
+  for (const character of audio) {
+    if (/\s/.test(character)) {
+      continue;
+    }
+    characterCount++;
+    secondLastCharacter = lastCharacter;
+    lastCharacter = character;
+  }
+
+  const padding =
+    lastCharacter === '=' ? (secondLastCharacter === '=' ? 2 : 1) : 0;
+  return Math.floor((characterCount * 3) / 4) - padding;
 }
 
 function getResponseAudioMediaType(

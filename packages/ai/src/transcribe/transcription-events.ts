@@ -7,12 +7,12 @@ import type { Warning } from '../types/warning';
 /**
  * Event passed to telemetry integrations when transcription begins.
  */
-export type TranscriptionStartEvent = {
+type TranscriptionStartEventFor<OPERATION_ID extends string> = {
   /** Unique identifier for this transcription call. */
   readonly callId: string;
 
   /** Identifies the operation type (`ai.transcribe` or `ai.streamTranscribe`). */
-  readonly operationId: string;
+  readonly operationId: OPERATION_ID;
 
   /** The provider identifier. */
   readonly provider: string;
@@ -42,17 +42,23 @@ export type TranscriptionStartEvent = {
   readonly providerOptions: ProviderOptions;
 };
 
+export type TranscriptionStartEvent =
+  TranscriptionStartEventFor<'ai.transcribe'>;
+
+export type StreamTranscriptionStartEvent =
+  TranscriptionStartEventFor<'ai.streamTranscribe'>;
+
 /**
  * Event passed to telemetry integrations when transcription completes.
  *
  * Raw audio is intentionally not included.
  */
-export type TranscriptionEndEvent = {
+type TranscriptionEndEventFor<OPERATION_ID extends string> = {
   /** Unique identifier for this transcription call. */
   readonly callId: string;
 
   /** Identifies the operation type (`ai.transcribe` or `ai.streamTranscribe`). */
-  readonly operationId: string;
+  readonly operationId: OPERATION_ID;
 
   /** The provider identifier. */
   readonly provider: string;
@@ -94,3 +100,8 @@ export type TranscriptionEndEvent = {
   /** Response metadata from the provider. */
   readonly response: TranscriptionModelResponseMetadata;
 };
+
+export type TranscriptionEndEvent = TranscriptionEndEventFor<'ai.transcribe'>;
+
+export type StreamTranscriptionEndEvent =
+  TranscriptionEndEventFor<'ai.streamTranscribe'>;

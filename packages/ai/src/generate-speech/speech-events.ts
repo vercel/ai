@@ -12,7 +12,7 @@ export type GenerateSpeechStartEvent = {
   readonly callId: string;
 
   /** Identifies the operation type (`ai.generateSpeech`). */
-  readonly operationId: string;
+  readonly operationId: 'ai.generateSpeech';
 
   /** The provider identifier. */
   readonly provider: string;
@@ -59,7 +59,7 @@ export type GenerateSpeechEndEvent = {
   readonly callId: string;
 
   /** Identifies the operation type (`ai.generateSpeech`). */
-  readonly operationId: string;
+  readonly operationId: 'ai.generateSpeech';
 
   /** The provider identifier. */
   readonly provider: string;

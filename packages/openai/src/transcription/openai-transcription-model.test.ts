@@ -162,6 +162,20 @@ describe('doGenerate', () => {
     );
   });
 
+  it('should extract usage', async () => {
+    prepareJsonFixtureResponse('openai-transcription');
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    expect(result.usage).toStrictEqual({
+      type: 'duration',
+      seconds: 37,
+    });
+  });
+
   it('should include response data with timestamp, modelId and headers', async () => {
     prepareJsonFixtureResponse('openai-transcription', {
       'x-request-id': 'test-request-id',

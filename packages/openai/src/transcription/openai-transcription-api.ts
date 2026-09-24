@@ -42,6 +42,7 @@ export const openaiTranscriptionResponseSchema = lazySchema(() =>
           ]),
         )
         .nullish(),
+      usage: z.record(z.string(), z.json()).nullish(),
     }),
   ),
 );
