@@ -84,7 +84,7 @@ export class AnthropicSkills implements SkillsV4 {
     const formData = new FormData();
 
     if (params.displayTitle != null) {
-      formData.append('display_title', params.displayTitle);
+      formData.append('display_name', params.displayTitle);
     }
 
     for (const file of params.files) {
@@ -106,26 +106,26 @@ export class AnthropicSkills implements SkillsV4 {
     });
 
     const versionMetadata =
-      response.latest_version != null
+      response.display_name != null
         ? await this.fetchVersionMetadata({
             skillId: response.id,
-            version: response.latest_version,
+            version: response.latest_version_id!,
             headers,
           })
         : {};
 
-    const name = versionMetadata.name ?? response.name;
-    const description = versionMetadata.description ?? response.description;
+    const name = versionMetadata.name ?? response.display_name;
+    const description = versionMetadata.description;
 
     return {
       providerReference: { anthropic: response.id },
-      ...(response.display_title != null
-        ? { displayTitle: response.display_title }
+      ...(response.display_name != null
+        ? { displayTitle: response.display_name }
         : {}),
       ...(name != null ? { name } : {}),
       ...(description != null ? { description } : {}),
-      ...(response.latest_version != null
-        ? { latestVersion: response.latest_version }
+      ...(response.latest_version_id != null
+        ? { latestVersion: response.latest_version_id }
         : {}),
       providerMetadata: {
         anthropic: {
