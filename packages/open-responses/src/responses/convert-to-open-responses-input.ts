@@ -32,12 +32,14 @@ export async function convertToOpenResponsesInput({
   extensionRegistry,
   providerToolsByName = new Map(),
   strictResponseInput = false,
+  customToolId,
 }: {
   prompt: LanguageModelV4Prompt;
   providerOptionsName?: string;
   extensionRegistry?: OpenResponsesExtensionRegistry;
   providerToolsByName?: Map<string, LanguageModelV4ProviderTool>;
   strictResponseInput?: boolean;
+  customToolId?: `${string}.${string}`;
 }): Promise<{
   input: OpenResponsesRequestBody['input'];
   instructions: string | undefined;
@@ -312,13 +314,24 @@ export async function convertToOpenResponsesInput({
                   ? providerData.itemId
                   : undefined;
 
-              input.push({
-                type: 'function_call',
-                ...(itemId != null && { id: itemId }),
-                call_id: part.toolCallId,
-                name: part.toolName,
-                arguments: argumentsValue,
-              });
+              const providerTool = providerToolsByName.get(part.toolName);
+              if (customToolId != null && providerTool?.id === customToolId) {
+                input.push({
+                  type: 'custom_tool_call',
+                  ...(itemId != null && { id: itemId }),
+                  call_id: part.toolCallId,
+                  name: part.toolName,
+                  input: argumentsValue,
+                });
+              } else {
+                input.push({
+                  type: 'function_call',
+                  ...(itemId != null && { id: itemId }),
+                  call_id: part.toolCallId,
+                  name: part.toolName,
+                  arguments: argumentsValue,
+                });
+              }
               break;
             }
           }
@@ -460,7 +473,10 @@ export async function convertToOpenResponsesInput({
             }
 
             input.push({
-              type: 'function_call_output',
+              type:
+                customToolId != null && providerTool?.id === customToolId
+                  ? 'custom_tool_call_output'
+                  : 'function_call_output',
               call_id: part.toolCallId,
               output: contentValue,
             });

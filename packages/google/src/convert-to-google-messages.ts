@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
@@ -49,6 +50,52 @@ function parseBase64DataUrl(
   };
 }
 
+<<<<<<< HEAD
+=======
+function convertUrlToolResultPart(
+  url: string,
+): GoogleFunctionResponsePart | undefined {
+  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
+  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
+  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
+  const parsedDataUrl = parseBase64DataUrl(url);
+  if (parsedDataUrl == null) {
+    return undefined;
+  }
+
+  return {
+    inlineData: {
+      mimeType: parsedDataUrl.mediaType,
+      data: parsedDataUrl.data,
+    },
+  };
+}
+
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
+}
+
+>>>>>>> origin/main
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -659,7 +706,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });
