@@ -37,6 +37,8 @@ interface ModelCardData {
   logo?: ModelLogo;
   /** Inline logo component (used when no static asset exists). */
   logoIcon?: (props: { size?: number }) => ReactNode;
+  /** Multiple static logos rendered side by side (e.g. provider + host). */
+  logos?: ModelLogo[];
   title: string;
   /** Provider paths that differ in specific documentation versions. */
   versionedHrefs?: Record<string, string>;
@@ -107,11 +109,38 @@ const CloudflareIcon = ({ size = 78 }: { size?: number }) => (
   </svg>
 );
 
+/** Plus mark (mirrors Geist's `Plus` icon used by production). */
+const PlusIcon = ({ className }: { className?: string }) => (
+  <svg
+    aria-hidden
+    className={className}
+    fill="none"
+    viewBox="0 0 16 16"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <path
+      clipRule="evenodd"
+      d="M8.75 1V0.25H7.25V1V7.25H1H0.25V8.75H1H7.25V15V15.75H8.75V15V8.75H15H15.75V7.25H15H8.75V1Z"
+      fill="currentColor"
+      fillRule="evenodd"
+    />
+  </svg>
+);
+
+/** "Write your own" mark: a plus inside a bordered box, as in production. */
+const WriteYourOwnIcon = () => (
+  <div className="flex rounded-lg border border-gray-alpha-400 p-5 text-gray-900 shadow-sm">
+    <PlusIcon className="size-7" />
+  </div>
+);
+
 const ModelLogoImage = ({
   logo,
+  size = 78,
   title,
 }: {
   logo: ModelLogo;
+  size?: number;
   title: string;
 }) => (
   // Static brand SVGs skip the Next image optimizer deliberately.
@@ -119,9 +148,9 @@ const ModelLogoImage = ({
   <img
     alt={`${title} logo`}
     className={logo.invert ? 'dark:invert' : undefined}
-    height={78}
+    height={size}
     src={logo.src}
-    width={78}
+    width={size}
   />
 );
 
@@ -131,6 +160,7 @@ export const ModelCard = ({
   href,
   logo,
   logoIcon: LogoIcon,
+  logos,
   title,
 }: ModelCardData) => (
   <Link
@@ -161,6 +191,17 @@ export const ModelCard = ({
     <div className="flex min-h-36 flex-1 items-center justify-center py-4">
       {LogoIcon ? (
         <LogoIcon size={78} />
+      ) : logos ? (
+        <div className="flex gap-4">
+          {logos.map(entry => (
+            <ModelLogoImage
+              key={entry.src}
+              logo={entry}
+              size={58}
+              title={title}
+            />
+          ))}
+        </div>
       ) : logo ? (
         <ModelLogoImage logo={logo} title={title} />
       ) : (
@@ -345,7 +386,7 @@ const OFFICIAL_MODELS: ModelCardData[] = [
     logo: { src: '/images/icons/baseten.svg' },
     href: '/providers/ai-sdk-providers/baseten',
     color: '16D767',
-    features: { object: true, tool: true, stream: true },
+    features: { object: true, tool: true },
   },
 ];
 
@@ -359,7 +400,11 @@ const COMMUNITY_MODELS: ModelCardData[] = [
   },
   {
     title: 'Anthropic Vertex',
-    logo: { src: '/images/icons/anthropic.svg', invert: true },
+    // No Google Cloud mark ships in public/images/icons; reuse the Google mark.
+    logos: [
+      { src: '/images/icons/anthropic.svg', invert: true },
+      { src: '/images/icons/google.svg' },
+    ],
     href: '/providers/community-providers/anthropic-vertex-ai',
     color: 'F3801F',
     features: {},
@@ -380,7 +425,7 @@ const COMMUNITY_MODELS: ModelCardData[] = [
   },
   {
     title: 'Write your own',
-    logo: { src: '/images/icons/custom.svg', invert: true },
+    logoIcon: WriteYourOwnIcon,
     href: '/providers/community-providers/custom-providers',
     color: '000000',
     features: {},

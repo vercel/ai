@@ -59,7 +59,10 @@ search canonicalize on `/cookbook`.
 
 `public/images/icons/` contains third-party provider logos used nominatively
 on the provider index pages, `public/images/showcase/` contains product
-screenshots and logos for the showcase page, and
-`components/docs/upsell.tsx` inlines customer logos (all ported from the
-previous ai-sdk.dev app). The marks belong to their respective owners and
-are not covered by this repository's license.
+screenshots and logos for the showcase page,
+`components/docs/framework-icons.tsx` inlines framework marks for the
+getting-started cards, and `components/docs/upsell.tsx` inlines customer
+logos (all ported from the previous ai-sdk.dev app). The marks belong to
+their respective owners and are not covered by this repository's license.
+The public-domain paintings in `public/images/*.jpg` illustrate the
+generative UI demos.
