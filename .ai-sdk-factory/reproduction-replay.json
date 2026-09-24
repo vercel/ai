@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 14027,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14027.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-14027.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE 14027 REPRODUCED: resumeStream failed to continue the hydrated static tool call"
+  }
+}
