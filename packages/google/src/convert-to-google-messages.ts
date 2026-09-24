@@ -50,8 +50,6 @@ function parseBase64DataUrl(
   };
 }
 
-<<<<<<< HEAD
-=======
 function convertUrlToolResultPart(
   url: string,
 ): GoogleFunctionResponsePart | undefined {
@@ -95,7 +93,6 @@ function serializeFunctionResponseContent(
   return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
 }
 
->>>>>>> origin/main
 /*
  * Appends tool result content parts to the message using the functionResponse
  * format with support for multimodal parts (e.g. inline images/files alongside
@@ -131,19 +128,19 @@ function appendToolResultParts(
           });
         } else if (contentPart.data.type === 'url') {
           const url = contentPart.data.url.toString();
-          const parsedDataUrl = parseBase64DataUrl(url);
+          const convertedUrlPart = convertUrlToolResultPart(url);
+          const supportedUrl =
+            contentPart.data.url.protocol === 'gs:' &&
+            contentPart.data.originalUrl != null
+              ? contentPart.data.originalUrl
+              : url;
 
-          if (parsedDataUrl != null) {
-            functionResponseParts.push({
-              inlineData: {
-                mimeType: parsedDataUrl.mediaType,
-                data: parsedDataUrl.data,
-              },
-            });
+          if (convertedUrlPart != null) {
+            functionResponseParts.push(convertedUrlPart);
           } else if (
             isFullMediaType(contentPart.mediaType) &&
             isUrlSupported({
-              url,
+              url: supportedUrl,
               mediaType: contentPart.mediaType,
               supportedUrls,
             })
@@ -151,7 +148,7 @@ function appendToolResultParts(
             functionResponseParts.push({
               fileData: {
                 mimeType: contentPart.mediaType,
-                fileUri: url,
+                fileUri: supportedUrl,
               },
             });
           } else {
