@@ -3,6 +3,7 @@ export type {
   PerplexityProvider,
   PerplexityProviderSettings,
 } from './perplexity-provider';
+export type { PerplexityLanguageModelId } from './perplexity-options';
 export type { PerplexityLanguageModelOptions } from './perplexity-language-model-options';
 export type {
   PerplexityEmbeddingModelId,
