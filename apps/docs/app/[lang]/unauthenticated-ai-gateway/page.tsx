@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { VercelIcon } from '@/components/brand-icons';
+import { LogoIconVercel } from '@vercel/geistdocs/assets/logos';
 import { Snippet } from '@/components/docs/snippet';
 
 export const metadata: Metadata = {
@@ -43,7 +43,7 @@ export default function UnauthenticatedAiGatewayPage() {
             className="not-prose inline-flex items-center gap-2 rounded-md border border-gray-400 bg-background-100 px-4 py-2 text-sm font-medium no-underline hover:bg-background-200"
             href="https://vercel.com/d?to=%2F%5Bteam%5D%2F%7E%2Fai%2Fapi-keys%3Futm_source%3Dgateway-models-page%26showCreateKeyModal%3Dtrue&title=Get+Started+with+Vercel+AI+Gateway"
           >
-            <VercelIcon />
+            <LogoIconVercel />
             Get an API key
           </a>
         </p>

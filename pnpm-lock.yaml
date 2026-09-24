@@ -89,8 +89,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(0d375562f4be990900636f213aef13ac)
       '@vercel/geistdocs':
-        specifier: 2.6.1
-        version: 2.6.1(aff8287cfeaf7ca6ee27cf7bcf618115)
+        specifier: 2.7.0
+        version: 2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -14697,8 +14697,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.6.1':
-    resolution: {integrity: sha512-yYOOoChV1/tzmGxOU3QoY13HJz//17rRIFBw54o4AOKiGv5FQA3Zz/wTwYufSa/Lq5+0wJrCZpcX2/mNCN+qNA==}
+  '@vercel/geistdocs@2.7.0':
+    resolution: {integrity: sha512-somnTc4whWOjcz7DKpWbLObUq4FE+BWZNjqV8mH/szv6FaKZVeYBvm4seG07evEjxwbaMc6E/CpAJn2b+lfkvg==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -37684,7 +37684,7 @@ snapshots:
       '@aws-sdk/credential-provider-web-identity': 3.972.77
       ws: 8.21.3
 
-  '@vercel/geistdocs@2.6.1(aff8287cfeaf7ca6ee27cf7bcf618115)':
+  '@vercel/geistdocs@2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0

@@ -1,12 +1,12 @@
 import { Badge } from '@vercel/geistdocs/components/badge';
 import {
-  Box as IconSandbox,
-  Braces as IconApi,
-  Monitor as IconDisplay,
-  ScrollText as IconLogs,
-  Sparkles as IconSparkles,
-  Wrench as IconWrench,
-} from 'lucide-react';
+  IconApi,
+  IconDisplay,
+  IconLogs,
+  IconSandbox,
+  IconSparkles,
+  IconWrench,
+} from '@vercel/geistdocs/assets/icons';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
