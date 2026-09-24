@@ -70,6 +70,30 @@ describe('fetchWithValidatedEndpoint', () => {
 });
 
 describe('fetchWithValidatedRedirects', () => {
+  it.each([undefined, 'https://example.com', 'https://provider.example.com'])(
+    'preserves legacy first-hop credentials and custom headers with trustedOrigin %s',
+    async trustedOrigin => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(okResponse());
+
+      await fetchWithValidatedRedirects({
+        url: 'https://example.com/file',
+        trustedOrigin,
+        headers: {
+          authorization: 'Bearer secret',
+          'x-jfrog-art-api': 'vendor-secret',
+          'x-custom-metadata': 'custom-value',
+        },
+        fetch: fetchMock,
+      });
+
+      expect(Object.fromEntries(fetchMock.mock.calls[0][1].headers)).toEqual({
+        authorization: 'Bearer secret',
+        'x-jfrog-art-api': 'vendor-secret',
+        'x-custom-metadata': 'custom-value',
+      });
+    },
+  );
+
   it('validates the initial URL before requesting it', async () => {
     const fetchMock = vi.fn();
 
