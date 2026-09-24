@@ -1,0 +1,69 @@
+---
+title: Hubris
+description: Use Hubris OpenAI compatible API with the AI SDK.
+---
+
+# Hubris Provider
+
+[Hubris](https://hubris.pw) is a ruble-billed LLM gateway giving access to 400+ models (OpenAI, Anthropic, Google, and more) behind a single API key. It offers an OpenAI-compatible API that you can use with the AI SDK.
+
+## Setup
+
+The Hubris provider is available via the `@ai-sdk/openai-compatible` module as it is compatible with the OpenAI API.
+You can install it with:
+
+<InstallPackages packages="@ai-sdk/openai-compatible" />
+
+## Provider Instance
+
+To use Hubris, you can create a custom provider instance with the `createOpenAICompatible` function from `@ai-sdk/openai-compatible`:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const hubris = createOpenAICompatible({
+  name: 'hubris',
+  baseURL: 'https://api.hubris.pw/v1',
+  apiKey: process.env.HUBRIS_API_KEY,
+});
+```
+
+<Note>
+  You can obtain an API key by creating an account at
+  [hubris.pw](https://hubris.pw) and generating a key on the
+  [keys page](https://hubris.pw/keys).
+</Note>
+
+## Language Models
+
+You can interact with Hubris models using a provider instance. For example, to use a Claude model through Hubris:
+
+```ts
+const model = hubris.chatModel('claude-sonnet-5');
+```
+
+See the full model catalog at [hubris.pw/models](https://hubris.pw/models).
+
+### Example - Generate Text
+
+You can use Hubris language models to generate text with the `generateText` function:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+
+const hubris = createOpenAICompatible({
+  name: 'hubris',
+  baseURL: 'https://api.hubris.pw/v1',
+  apiKey: process.env.HUBRIS_API_KEY,
+});
+
+const { text, usage, finishReason } = await generateText({
+  model: hubris.chatModel('claude-sonnet-5'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+});
+
+console.log(text);
+console.log('Token usage:', usage);
+console.log('Finish reason:', finishReason);
+```
