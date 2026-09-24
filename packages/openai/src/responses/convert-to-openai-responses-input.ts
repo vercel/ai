@@ -16,7 +16,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
+import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -331,16 +331,12 @@ export async function convertToOpenAIResponsesInput({
   store,
   hasConversation = false,
   hasPreviousResponseId = false,
+  configurationUpdateUnsupportedReason,
   hasLocalShellTool = false,
   hasShellTool = false,
   hasApplyPatchTool = false,
   toolSearchToolName,
   customProviderToolNames,
-<<<<<<< HEAD
-=======
-  outputSchemaToolNames,
-  configurationUpdateUnsupportedReason,
->>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 }: {
   prompt: LanguageModelV3Prompt;
   toolNameMapping: ToolNameMapping;
@@ -352,16 +348,12 @@ export async function convertToOpenAIResponsesInput({
   store: boolean;
   hasConversation?: boolean; // when true, skip assistant messages that already have item IDs
   hasPreviousResponseId?: boolean; // when true, skip reasoning and function-call items that already exist in the previous response chain
+  configurationUpdateUnsupportedReason?: string;
   hasLocalShellTool?: boolean;
   hasShellTool?: boolean;
   hasApplyPatchTool?: boolean;
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
-<<<<<<< HEAD
-=======
-  outputSchemaToolNames?: Set<string>;
-  configurationUpdateUnsupportedReason?: string;
->>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV3Warning>;

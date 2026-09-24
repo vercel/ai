@@ -450,7 +450,7 @@ import { generateText } from 'ai';
 const result = await generateText({
   // Use the name of your GPT-6 deployment.
   model: azure.responses('gpt-6-astra'),
-  reasoning: 'low',
+  providerOptions: { azure: { reasoningEffort: 'low' } },
   allowSystemInMessages: true,
   messages: [
     {
@@ -467,11 +467,11 @@ const result = await generateText({
 });
 ```
 
-Keep the request-level `reasoning` unchanged throughout the conversation and
+Keep the request-level `providerOptions.azure.reasoningEffort` unchanged throughout the conversation and
 retain earlier effort updates when resending message history. These updates
 also work with `streamText`. See the [OpenAI reasoning effort
 guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversation)
-for continuation, compaction, and configuration restrictions.
+for continuation and configuration restrictions.
 
 <Note>
   The SDK infers support for effort updates from the deployment name passed to

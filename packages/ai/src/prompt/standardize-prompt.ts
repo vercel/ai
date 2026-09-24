@@ -82,7 +82,6 @@ export async function standardizePrompt({
     });
   }
 
-<<<<<<< HEAD
   if (messages.some(message => message.role === 'system')) {
     if (allowSystemInMessages === false) {
       throw new InvalidPromptError({
@@ -101,19 +100,6 @@ export async function standardizePrompt({
           'to throw an error.',
       );
     }
-=======
-  // Require explicit trust in supplied system messages to reduce prompt-injection
-  // risk. The opt-in permits all system messages, including instruction text.
-  if (
-    !allowSystemInMessages &&
-    messages.some(message => message.role === 'system')
-  ) {
-    throw new InvalidPromptError({
-      prompt,
-      message:
-        'System messages are not allowed in the prompt or messages fields. Use the instructions option instead.',
-    });
->>>>>>> ca31b890a6 (feat(openai): support message-level reasoning effort updates (#21418))
   }
 
   const validationResult = await safeValidateTypes({

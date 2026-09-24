@@ -1,7 +1,7 @@
 import {
-  type LanguageModelV4Prompt,
-  type SharedV4ProviderOptions,
-  type SharedV4Warning,
+  type LanguageModelV3Prompt,
+  type SharedV3ProviderOptions,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -10,10 +10,10 @@ import { OpenAIResponsesLanguageModel } from './openai-responses-language-model'
 import type {
   OpenAILanguageModelResponsesOptions,
   OpenAIResponsesSystemMessageOptions,
-} from './openai-responses-language-model-options';
+} from './openai-responses-options';
 
 const url = 'https://api.openai.com/v1/responses';
-const user: LanguageModelV4Prompt[number] = {
+const user: LanguageModelV3Prompt[number] = {
   role: 'user',
   content: [{ type: 'text', text: 'Question' }],
 };
@@ -22,9 +22,11 @@ const wireUser = {
   content: [{ type: 'input_text', text: 'Question' }],
 };
 const update = (
-  effort: OpenAIResponsesSystemMessageOptions['reasoningEffortUpdate'],
+  effort: NonNullable<
+    OpenAIResponsesSystemMessageOptions['reasoningEffortUpdate']
+  >,
   content = '',
-): LanguageModelV4Prompt[number] => ({
+): LanguageModelV3Prompt[number] => ({
   role: 'system',
   content,
   providerOptions: {
@@ -42,7 +44,7 @@ describe.each(['generate', 'stream'] as const)(
     const server = createTestServer({ [url]: {} });
 
     async function request(
-      prompt: LanguageModelV4Prompt,
+      prompt: LanguageModelV3Prompt,
       options: OpenAILanguageModelResponsesOptions = {},
       modelId = 'gpt-6-astra',
       provider = 'openai.responses',
@@ -69,7 +71,7 @@ describe.each(['generate', 'stream'] as const)(
               ],
             };
       const args = { prompt, providerOptions: { openai: options } };
-      let warnings: SharedV4Warning[];
+      let warnings: SharedV3Warning[];
       if (method === 'generate') {
         warnings = (await model.doGenerate(args)).warnings;
       } else {
@@ -102,7 +104,7 @@ describe.each(['generate', 'stream'] as const)(
           wireUser,
           {
             role: 'assistant',
-            content: 'Answer',
+            content: [{ type: 'output_text', text: 'Answer' }],
           },
           wireUpdate('high'),
           wireUser,
@@ -116,7 +118,7 @@ describe.each(['generate', 'stream'] as const)(
 
     it.each<{
       name: string;
-      providerOptions: SharedV4ProviderOptions;
+      providerOptions: SharedV3ProviderOptions;
       expected: unknown;
     }>([
       {
@@ -255,7 +257,7 @@ describe.each(['generate', 'stream'] as const)(
     ])(
       'message-level continuation with $field',
       ({ options, field, value }) => {
-        const previousReasoning: LanguageModelV4Prompt[number] = {
+        const previousReasoning: LanguageModelV3Prompt[number] = {
           role: 'assistant',
           content: [
             {
@@ -298,13 +300,6 @@ describe.each(['generate', 'stream'] as const)(
       { model: 'custom-model', options: { forceReasoning: true } },
       { model: 'gpt-6-astra', options: { reasoningMode: 'pro' } },
       { model: 'gpt-6-astra', options: { truncation: 'auto' } },
-      {
-        model: 'gpt-6-astra',
-        options: {
-          contextManagement: [{ type: 'compaction', compactThreshold: 1000 }],
-        },
-      },
-      { model: 'gpt-6-astra', options: { contextManagement: [] } },
     ] satisfies Array<{
       model: string;
       options: OpenAILanguageModelResponsesOptions;
@@ -373,20 +368,6 @@ describe.each(['generate', 'stream'] as const)(
       ]);
     });
 
-    it('allows explicit compaction with standard mode and disabled truncation', async () => {
-      const { body, warnings } = await request([update('high'), user], {
-        reasoningMode: 'standard',
-        truncation: 'disabled',
-        compactionTrigger: true,
-      });
-      expect(body.input).toEqual([
-        wireUpdate('high'),
-        wireUser,
-        { type: 'compaction_trigger' },
-      ]);
-      expect(warnings).toEqual([]);
-    });
-
     it.each([
       { prompt: [update('high'), update('low'), user], options: {} },
       { prompt: [update('high'), update('high'), user], options: {} },
@@ -417,7 +398,7 @@ describe.each(['generate', 'stream'] as const)(
         options: { systemMessageMode: 'remove' },
       },
     ] satisfies Array<{
-      prompt: LanguageModelV4Prompt;
+      prompt: LanguageModelV3Prompt;
       options: OpenAILanguageModelResponsesOptions;
     }>)(
       'rejects adjacent serialized updates before sending: $options',

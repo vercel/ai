@@ -36,10 +36,9 @@ run(async () => {
     const result = streamText({
       model: openai.responses('gpt-6-luna'),
       // Keep the initial effort unchanged; later changes stay in messages.
-      reasoning: 'low',
       allowSystemInMessages: true,
       messages,
-      providerOptions: { openai: { store: false } },
+      providerOptions: { openai: { store: false, reasoningEffort: 'low' } },
       maxOutputTokens: 2048,
       maxRetries: 0,
     });
@@ -49,6 +48,6 @@ run(async () => {
     }
     console.log();
     console.log('Finish reason:', await result.finishReason);
-    messages.push(...(await result.responseMessages));
+    messages.push(...(await result.response).messages);
   }
 });

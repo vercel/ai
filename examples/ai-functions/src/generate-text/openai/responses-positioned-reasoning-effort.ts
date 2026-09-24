@@ -36,16 +36,15 @@ run(async () => {
     const result = await generateText({
       model: openai.responses('gpt-6-luna'),
       // Keep the initial effort unchanged; later changes stay in messages.
-      reasoning: 'low',
       allowSystemInMessages: true,
       messages,
-      providerOptions: { openai: { store: false } },
+      providerOptions: { openai: { store: false, reasoningEffort: 'low' } },
       maxOutputTokens: 2048,
       maxRetries: 0,
     });
 
     console.log(result.text);
     console.log('Finish reason:', result.finishReason);
-    messages.push(...result.responseMessages);
+    messages.push(...result.response.messages);
   }
 });
