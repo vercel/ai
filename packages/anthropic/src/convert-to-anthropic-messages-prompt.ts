@@ -247,14 +247,28 @@ export async function convertToAnthropicMessagesPrompt({
                 'The tool changes have been ignored.',
             });
           }
-          if (hasMidConversationOptions) {
-            warnings.push({
-              type: 'other',
-              message:
-                'clearAt and effort on the initial system message are not supported by Anthropic. ' +
-                'Configure these options on a mid-conversation system message instead. ' +
-                'The options have been ignored.',
-            });
+          // Initial instruction text goes in the top-level system field.
+          // Effort-only messages stay in the messages array.
+          for (const message of systemMessages) {
+            if (
+              message.content.length === 0 &&
+              message.clear_at == null &&
+              message.output_config != null
+            ) {
+              messages.push(message);
+              betas.add('mid-conversation-output-config-2026-07-01');
+            } else if (
+              message.clear_at != null ||
+              message.output_config != null
+            ) {
+              warnings.push({
+                type: 'other',
+                message:
+                  'clearAt and effort on this initial system message are not supported by Anthropic. ' +
+                  'Use a separate effort-only system message with empty content to set effort. ' +
+                  'These options have been ignored.',
+              });
+            }
           }
           system = systemMessages.flatMap(message =>
             message.content.filter(
