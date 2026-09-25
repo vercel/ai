@@ -1,5 +1,14 @@
 # @ai-sdk/sandbox-just-bash
 
+## 1.0.125
+
+### Patch Changes
+
+- 5482b08: fix(sandbox-just-bash): preserve command resolution when providing realpath on non-synchronous filesystems
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
 ## 1.0.124
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/harness-fx
 
+## 1.0.38
+
+### Patch Changes
+
+- a36b1ef: fix(harness-fx): fix obsolete built-in `shell` tool name and schema
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+  - @ai-sdk/harness-acp@1.0.63
+
 ## 1.0.37
 
 ### Patch Changes
