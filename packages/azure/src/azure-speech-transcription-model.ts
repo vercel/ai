@@ -81,14 +81,18 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
     });
 
     const phrases = value.phrases ?? [];
+    // Consider every reported locale so mixed results (e.g. en + fil) are not
+    // collapsed to one language; only ISO-639-1 codes are reported.
     const languages = new Set(
-      phrases.flatMap(phrase => {
-        const language = phrase.locale?.split('-')[0]?.toLowerCase();
-        return language != null && /^[a-z]{2}$/.test(language)
-          ? [language]
-          : [];
-      }),
+      phrases.flatMap(phrase =>
+        phrase.locale ? [phrase.locale.split('-')[0].toLowerCase()] : [],
+      ),
     );
+    const [language] = languages;
+    const reportedLanguage =
+      languages.size === 1 && /^[a-z]{2}$/.test(language)
+        ? language
+        : undefined;
 
     return {
       text: value.combinedPhrases.map(phrase => phrase.text).join(' '),
@@ -105,7 +109,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
             ]
           : [],
       ),
-      language: languages.size === 1 ? [...languages][0] : undefined,
+      language: reportedLanguage,
       durationInSeconds:
         value.durationMilliseconds != null
           ? value.durationMilliseconds / 1000

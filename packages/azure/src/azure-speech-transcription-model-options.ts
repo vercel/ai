@@ -5,6 +5,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+// Strict objects reject unknown keys (e.g. `diarization.maxSpeakers`, which
+// MAI-Transcribe-2 does not support) instead of silently dropping them.
 export const azureSpeechTranscriptionModelOptionsShape = () => ({
   /**
    * Timing granularity. Defaults to `segment` so that transcription results
@@ -27,16 +29,16 @@ export const azureSpeechTranscriptionModelOptionsShape = () => ({
   /**
    * Speaker diarization. Speaker IDs are available in provider metadata.
    */
-  diarization: z.object({ enabled: z.boolean() }).optional(),
+  diarization: z.strictObject({ enabled: z.boolean() }).optional(),
 
   /**
    * Keyword biasing for names and domain terminology.
    */
-  phraseList: z.object({ phrases: z.array(z.string()) }).optional(),
+  phraseList: z.strictObject({ phrases: z.array(z.string()) }).optional(),
 });
 
 export const azureSpeechTranscriptionModelOptions = lazySchema(() =>
-  zodSchema(z.object(azureSpeechTranscriptionModelOptionsShape())),
+  zodSchema(z.strictObject(azureSpeechTranscriptionModelOptionsShape())),
 );
 
 export type AzureTranscriptionModelSpeechOptions = InferSchema<

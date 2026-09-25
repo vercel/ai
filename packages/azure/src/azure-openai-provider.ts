@@ -171,6 +171,14 @@ export interface AzureOpenAIProviderSettings {
    * `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
+
+  /**
+   * URL prefix for Azure Speech transcription (MAI-Transcribe-2), e.g. a
+   * regional endpoint like `https://eastus.api.cognitive.microsoft.com`.
+   * Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
+   * Speech requests do not use `baseURL` or `apiVersion`.
+   */
+  speechBaseURL?: string;
 }
 
 function getAzureOpenAIBaseURLInfo(baseURL: string | undefined) {
@@ -360,20 +368,11 @@ export function createAzure(
         fetch,
       }),
       new AzureSpeechTranscriptionModel(modelId, {
-        url: () => {
-          const baseURL = withoutTrailingSlash(
-            options.baseURL ??
-              `https://${getResourceName()}.cognitiveservices.azure.com`,
-          );
-          const speechURL = new URL(
-            `${baseURL}/speechtotext/transcriptions:transcribe`,
-          );
-          speechURL.searchParams.set(
-            'api-version',
-            options.apiVersion ?? '2025-10-15',
-          );
-          return speechURL.toString();
-        },
+        url: () =>
+          `${
+            withoutTrailingSlash(options.speechBaseURL) ??
+            `https://${getResourceName()}.cognitiveservices.azure.com`
+          }/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
         headers: () => getHeaders('speech'),
         fetch,
       }),

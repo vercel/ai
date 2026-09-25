@@ -8,7 +8,7 @@ import { azureSpeechTranscriptionModelOptionsShape } from './azure-speech-transc
 
 export const azureTranscriptionModelOptions = lazySchema(() =>
   zodSchema(
-    z.object({
+    z.strictObject({
       /**
        * API to use. Defaults to Speech for MAI-Transcribe-2, OpenAI otherwise.
        */

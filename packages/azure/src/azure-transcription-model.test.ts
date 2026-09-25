@@ -154,6 +154,10 @@ describe('API routing', () => {
     { locales: ['en', 'de'] },
     { transcribeStyle: 'invalid' },
     { diarization: { enabled: 'yes' } },
+    { diarization: { enabled: true, maxSpeakers: 2 } },
+    { phraseList: { phrases: ['Vercel'], biasingWeight: 1.5 } },
+    { profanityFilterMode: 'Masked' },
+    { timestamp: 'word' },
   ])('rejects invalid options %j before fetching', async azure => {
     const { provider, fetch } = setup();
     await expect(
@@ -238,11 +242,9 @@ describe('Speech requests', () => {
     );
   });
 
-  it('honors endpoint, API version, headers, and abort overrides', async () => {
+  it('honors speechBaseURL, headers, and abort overrides', async () => {
     const { provider, request } = setup({
-      baseURL: 'https://proxy.example/speech/',
-      apiVersion: 'custom',
-      useDeploymentBasedUrls: true,
+      speechBaseURL: 'https://eastus.api.cognitive.microsoft.com/',
       headers: { 'x-custom': 'provider' },
     });
     const controller = new AbortController();
@@ -252,10 +254,33 @@ describe('Speech requests', () => {
       abortSignal: controller.signal,
     });
     expect(request().url).toBe(
-      'https://proxy.example/speech/speechtotext/transcriptions:transcribe?api-version=custom',
+      'https://eastus.api.cognitive.microsoft.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15',
     );
     expect(request().headers.get('x-custom')).toBe('call');
     expect(request().signal).toBe(controller.signal);
+  });
+
+  it('does not require resourceName when speechBaseURL is set', async () => {
+    const { provider, request } = setup({
+      resourceName: undefined,
+      speechBaseURL: 'https://eastus.api.cognitive.microsoft.com',
+    });
+    await provider.transcription('mai-transcribe-2').doGenerate(input);
+    expect(request().url).toContain(
+      'https://eastus.api.cognitive.microsoft.com/speechtotext/',
+    );
+  });
+
+  it('does not apply Azure OpenAI baseURL or apiVersion to Speech requests', async () => {
+    const { provider, request } = setup({
+      baseURL: 'https://test-resource.openai.azure.com/openai',
+      apiVersion: '2025-04-01-preview',
+      useDeploymentBasedUrls: true,
+    });
+    await provider.transcription('mai-transcribe-2').doGenerate(input);
+    expect(request().url).toBe(
+      'https://test-resource.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe?api-version=2025-10-15',
+    );
   });
 
   it('gets a fresh bearer token for each request', async () => {
@@ -344,6 +369,8 @@ describe('Speech responses', () => {
     [['en-US', 'en-GB'], 'en'],
     [['en-US', 'de-DE'], undefined],
     [['fil'], undefined],
+    [['en', 'fil'], undefined],
+    [['en-US', 'yue'], undefined],
   ])('handles phrase locales %j', async (locales, expected) => {
     const { provider } = setup(
       {},
@@ -453,7 +480,7 @@ describe('streaming and serialization', () => {
   it('restores request-time routing after a workflow serialization round trip', async () => {
     const { provider, fetch, request } = setup({
       baseURL: 'https://proxy.example',
-      apiVersion: 'custom',
+      speechBaseURL: 'https://speech.example',
     });
     const model = provider.transcription('mai-transcribe-2');
     const constructor = model.constructor as unknown as {
@@ -474,7 +501,7 @@ describe('streaming and serialization', () => {
     });
     await restored.doGenerate(input);
     expect(request().url).toBe(
-      'https://proxy.example/speechtotext/transcriptions:transcribe?api-version=custom',
+      'https://speech.example/speechtotext/transcriptions:transcribe?api-version=2025-10-15',
     );
     await restored.doGenerate({
       ...input,

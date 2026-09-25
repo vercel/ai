@@ -131,6 +131,13 @@ You can use the following optional settings to customize the OpenAI provider ins
   This option is useful for compatibility with certain Azure OpenAI models or deployments
   that require the legacy endpoint format.
 
+- **speechBaseURL** _string_
+
+  URL prefix for Azure Speech transcription requests (MAI-Transcribe-2), for example
+  a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
+  Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
+  Speech requests do not use `baseURL` or `apiVersion`.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -1133,16 +1140,20 @@ or pass `resourceName` and `apiKey` to `createAzure`. `tokenProvider`, custom he
 and custom fetch are also supported. Keys are sent as `Ocp-Apim-Subscription-Key`.
 
 Speech requests use `https://{resourceName}.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe`
-with API version `2025-10-15`. An explicit `baseURL` supplies the Speech URL prefix
-(without `/speechtotext/transcriptions:transcribe`), for example a regional endpoint
-such as `https://eastus.api.cognitive.microsoft.com`.
+with API version `2025-10-15`. Use `speechBaseURL` to supply a different Speech URL prefix
+(without `/speechtotext/transcriptions:transcribe`), for example a regional endpoint:
 
-<Note>
-  `baseURL` and `apiVersion` are shared by all models of a provider instance. If
-  you set them for Azure OpenAI (for example a URL ending in `/openai/v1` or
-  `2025-04-01-preview`), create a separate provider instance for
-  MAI-Transcribe-2. `useDeploymentBasedUrls` only affects OpenAI requests.
-</Note>
+```ts
+import { createAzure } from '@ai-sdk/azure';
+
+const azure = createAzure({
+  speechBaseURL: 'https://eastus.api.cognitive.microsoft.com',
+  apiKey: process.env.AZURE_SPEECH_API_KEY,
+});
+```
+
+Speech requests do not use `baseURL`, `apiVersion`, or `useDeploymentBasedUrls`;
+those settings only apply to Azure OpenAI models.
 
 The following options are available through `providerOptions.azure`:
 
@@ -1173,7 +1184,8 @@ The following options are available through `providerOptions.azure`:
 
 Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
 options remain under `providerOptions.openai`. Speech-only Azure options produce
-warnings when used with the OpenAI API.
+warnings when used with the OpenAI API. Unknown or unsupported `providerOptions.azure`
+keys (for example `diarization.maxSpeakers`) are rejected before the request is sent.
 
 Results include transcript text, timed segments, duration, and an ISO-639-1
 language code when the reported phrase locales identify one language. Mixed-language

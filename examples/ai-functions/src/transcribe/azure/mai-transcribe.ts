@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 // Requires a Foundry (Speech) resource in a MAI-Transcribe region, e.g. eastus.
 // Uses AZURE_RESOURCE_NAME, or AZURE_SPEECH_BASE_URL for a regional endpoint.
 const azure = createAzure({
-  baseURL: process.env.AZURE_SPEECH_BASE_URL,
+  speechBaseURL: process.env.AZURE_SPEECH_BASE_URL,
   apiKey: process.env.AZURE_SPEECH_API_KEY ?? process.env.AZURE_API_KEY,
 });
 
