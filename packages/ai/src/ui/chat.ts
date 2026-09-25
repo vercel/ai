@@ -668,6 +668,14 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.activeResponse?.abortController.abort();
   };
 
+  /**
+   * Stops active work and releases resources owned by the chat transport.
+   */
+  dispose = async (): Promise<void> => {
+    await this.stop();
+    this.transport.close?.();
+  };
+
   private async shouldSendAutomatically(): Promise<boolean> {
     if (!this.sendAutomaticallyWhen) return false;
 
