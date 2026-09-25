@@ -78,7 +78,10 @@ export const perplexityLanguageModelOptions = z.looseObject({
   /** Continue a conversation from an earlier Agent API response. */
   previous_response_id: z.string().optional(),
 
-  /** Whether Perplexity should store the response. */
+  /**
+   * Whether the response can be retrieved later. Setting this to false does
+   * not disable persistence or prevent previous_response_id continuations.
+   */
   store: z.boolean().optional(),
 
   /** Preferred response language as an ISO 639-1 language code. */

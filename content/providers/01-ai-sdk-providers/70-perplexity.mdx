@@ -134,6 +134,12 @@ Supported native tools are `web_search`, `fetch_url`, `people_search`,
 preconfigured tools that remain enabled; the `tools` option can add explicit
 tools or supply tools when using a direct model ID.
 
+Search and fetch results are exposed as AI SDK sources. Other native tool traces,
+including finance, sandbox, and MCP results, are available in `response.body`
+and raw stream chunks (`include: { rawChunks: true }`). They are not exposed as
+AI SDK client tool calls. Accounts with zero data retention may reject
+file-capable tools such as `finance_search` and `sandbox`.
+
 AI SDK function tools can be passed through the top-level `tools` option:
 
 ```ts
@@ -221,7 +227,11 @@ The following Agent API options are available:
 
 - **store** _boolean_
 
-  Whether Perplexity should store the response.
+  Whether the response can be retrieved later. Setting `store: false` hides it
+  from retrieval; it does not disable persistence, and the response can still
+  be used as a `previous_response_id` continuation source. See Perplexity's
+  [conversation state documentation](https://docs.perplexity.ai/docs/agent-api/conversation-state)
+  for retention behavior and account-specific zero data retention restrictions.
 
 - **language_preference** _string_
 
@@ -271,6 +281,12 @@ parts are not supported.
   options, or emit migration warnings at runtime.
 </Note>
 
+<Warning>
+  Perplexity supports Sonar Chat Completions only until September 27, 2026.
+  Upgrade language-generation applications to the Agent API before that date;
+  staying on version 4 does not preserve service after the Sonar shutdown.
+</Warning>
+
 Replace each Sonar model ID with an Agent API preset or direct Agent API model
 ID. These presets are suggested starting points, not equivalent aliases: a
 preset can select different models and tools, so cost, latency, and output can
@@ -318,8 +334,11 @@ path. Raw responses and streams use the Agent API's typed output and SSE event
 formats, and Perplexity provider metadata, usage, cost, and source identifiers
 can differ. The embeddings API is unchanged.
 
-Applications that require Sonar-only behavior should remain on version 4. See
-Perplexity's [migration
+For PDF inputs, extract the document text before sending it to the Agent API,
+or choose another provider that supports PDF input. Move image/video retrieval
+and language-filtered search to a separate service if your application requires
+those features. Rework consumers of raw Sonar stream events for typed Agent
+events. See Perplexity's [migration
 guide](https://docs.perplexity.ai/docs/agent-api/migrate-from-sonar/how-to)
 for the full API-level comparison.
 

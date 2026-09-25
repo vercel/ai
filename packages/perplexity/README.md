@@ -54,6 +54,10 @@ Legacy Sonar model IDs and provider options are not mapped. Review the
 [migration notes](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#migrating-from-v4-sonar-to-v5-agent-api)
 before upgrading an existing application.
 
+Perplexity supports Sonar Chat Completions only until September 27, 2026.
+Remaining on version 4 will not preserve language generation after that date.
+Migrate unsupported Sonar features using the alternatives in the migration notes.
+
 ## Documentation
 
 Please check out the **[Perplexity provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity)** for more information.
