@@ -25,7 +25,6 @@ export default defineConfig([
     // node_modules, never bundled here.
     entry: { 'bridge/index': 'bridge/index.ts' },
     format: ['esm'],
-    target: 'es2022',
     platform: 'node',
     dts: true,
     sourcemap: true,

@@ -1,21 +1,15 @@
 {
+  "extends": "./node_modules/@vercel/ai-tsconfig/react-library.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "esModuleInterop": true,
-    "strict": true,
     "composite": true,
-    "skipLibCheck": true,
-    "declaration": true,
     "outDir": "./dist",
     "rootDir": "./src",
+    "lib": ["dom", "dom.iterable", "ES2022"],
     "paths": {
       "@/*": [
         "./src/viewer/client/*"
       ]
-    },
-    "jsx": "react-jsx"
+    }
   },
   "include": [
     "src/**/*"

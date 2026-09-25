@@ -7,6 +7,5 @@ export default defineConfig({
   outDir: 'dist',
   sourcemap: true,
   clean: true,
-  target: 'es2022',
   // external: [/node_modules/] // you can list external deps here if needed
 });
