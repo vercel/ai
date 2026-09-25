@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 17930,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mistral-reasoning-history.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/mistral-reasoning-history.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "MISTRAL_REASONING_HISTORY_FLATTENED: expected the second request to preserve the thinking and text chunks"
+  }
+}
