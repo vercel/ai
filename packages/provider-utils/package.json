@@ -33,8 +33,13 @@
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+      "workerd": "./dist/index.portable.js",
+      "edge-light": "./dist/index.portable.js",
+      "browser": "./dist/index.portable.js",
+      "bun": "./dist/index.portable.js",
+      "deno": "./dist/index.portable.js",
+      "node": "./dist/index.js",
+      "default": "./dist/index.portable.js"
     },
     "./test": {
       "types": "./dist/test/index.d.ts",
@@ -84,5 +89,6 @@
   },
   "keywords": [
     "ai"
-  ]
+  ],
+  "browser": "./dist/index.portable.js"
 }

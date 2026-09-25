@@ -1,12 +1,8 @@
 import type * as nodeDnsModule from 'node:dns';
-import type * as nodeModule from 'node:module';
-import type * as undiciModule from 'undici';
 import type { FetchFunction } from './fetch-function';
 import { validateDownloadAddress } from './validate-download-url';
 
 type NodeDns = typeof nodeDnsModule;
-type NodeModule = typeof nodeModule;
-type Undici = typeof undiciModule;
 
 type LookupAddress = {
   address: string;
@@ -133,17 +129,11 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
   return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
 }
 
-function createSafeNodeFetch(): FetchFunction {
-  // @vercel/nft (node file trace) only recognizes an indirectly loaded createRequire when its receiver
-  // is named `module` and the returned require function is assigned.
-  // eslint-disable-next-line @next/next/no-assign-module-variable
-  const module = loadBuiltinModule<NodeModule>('node:module');
+async function createSafeNodeFetch(): Promise<FetchFunction> {
   const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-
-  // Assign the created require function so deployment tracers can recognize
-  // the static dependency without bundlers inlining undici.
-  const nodeRequire = module.createRequire(getCurrentModulePath());
-  const { Agent, fetch } = nodeRequire('undici') as Undici;
+  // Only the Node build includes this dependency. A literal import lets
+  // bundlers and deployment tracers include it while keeping loading lazy.
+  const { Agent, fetch } = (await import('undici')).default;
 
   const dispatcher = new Agent({
     connect: {
@@ -174,28 +164,4 @@ function loadBuiltinModule<T>(id: string): T {
   }
 
   return builtinModule as T;
-}
-
-function getCurrentModulePath(): string {
-  // `import.meta.url` breaks when provider-utils is rebundled as CommonJS.
-  // The caller frame points at this package when loaded directly and at the
-  // consuming bundle when inlined, giving createRequire the correct base path.
-  const originalPrepareStackTrace = Error.prepareStackTrace;
-
-  try {
-    Error.prepareStackTrace = (_error, callSites) => callSites as never;
-
-    const error = new Error('Capture current module path');
-    Error.captureStackTrace(error, getCurrentModulePath);
-    const [caller] = error.stack as unknown as NodeJS.CallSite[];
-    const fileName = caller?.getFileName();
-
-    if (fileName == null) {
-      throw new Error('Unable to determine the current module path');
-    }
-
-    return fileName;
-  } finally {
-    Error.prepareStackTrace = originalPrepareStackTrace;
-  }
 }
