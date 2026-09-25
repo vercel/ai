@@ -1,5 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -7,11 +7,6 @@ import { run } from '../../lib/run';
 import { createCodex } from './_create';
 
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-    timeout: 10 * 60 * 1000,
-  });
   let executions = 0;
   const weather = tool({
     description: 'Get the current temperature for a city.',
@@ -29,12 +24,18 @@ run(async () => {
   });
   const agent = new HarnessAgent({
     harness: createCodex(),
-    sandbox,
     tools: { weather },
   });
 
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt:
@@ -47,6 +48,7 @@ run(async () => {
       );
     }
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });
