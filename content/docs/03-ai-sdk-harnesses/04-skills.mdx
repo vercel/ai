@@ -18,10 +18,6 @@ Pass skills to `HarnessAgent` with the `skills` setting:
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   skills: [
     {
       name: 'careful-refactors',

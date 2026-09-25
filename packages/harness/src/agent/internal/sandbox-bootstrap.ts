@@ -6,6 +6,10 @@ import { resolveSandboxDefaultWorkingDirectory } from '../../utils/resolve-sandb
 import { resolveSandboxHomeDir } from '../../utils/sandbox-home-dir';
 import type { HarnessAgentSandboxConfig } from '../harness-agent-settings';
 import { applyBootstrapRecipe, hashHarnessBootstrap } from './bootstrap-recipe';
+import {
+  hasOnBootstrapMarker,
+  writeOnBootstrapMarker,
+} from './on-bootstrap-marker';
 
 const SANDBOX_BOOTSTRAP_IDENTITY_VERSION = 1;
 
@@ -125,6 +129,7 @@ export async function createSandboxBootstrapPlan({
               recipeIdentity,
               workDir,
               onBootstrap: settings.onBootstrap,
+              bootstrapHash: settings.bootstrapHash,
               abortSignal: opts.abortSignal,
             }),
         }
@@ -138,6 +143,8 @@ export async function runSandboxBootstrap({
   recipeIdentity,
   workDir,
   onBootstrap,
+  bootstrapHash,
+  skipOnBootstrapIfMarked = false,
   defaultWorkingDirectory,
   abortSignal,
 }: {
@@ -146,6 +153,8 @@ export async function runSandboxBootstrap({
   readonly recipeIdentity?: string;
   readonly workDir?: string;
   readonly onBootstrap?: SandboxBootstrapSettings['onBootstrap'];
+  readonly bootstrapHash?: string;
+  readonly skipOnBootstrapIfMarked?: boolean;
   readonly defaultWorkingDirectory?: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
@@ -173,6 +182,13 @@ export async function runSandboxBootstrap({
 
   if (onBootstrap == null) return;
 
+  if (
+    skipOnBootstrapIfMarked &&
+    bootstrapHash != null &&
+    (await hasOnBootstrapMarker({ session, bootstrapHash, abortSignal }))
+  )
+    return;
+
   const resolvedDefaultWorkingDirectory =
     defaultWorkingDirectory ??
     (await resolveSandboxDefaultWorkingDirectory({
@@ -194,6 +210,9 @@ export async function runSandboxBootstrap({
     abortSignal,
   });
   await onBootstrap({ session, workDir: bootstrapWorkDir, abortSignal });
+  if (bootstrapHash != null) {
+    await writeOnBootstrapMarker({ session, bootstrapHash, abortSignal });
+  }
 }
 
 export async function ensureSandboxDirectory({

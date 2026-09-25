@@ -27,7 +27,11 @@ export async function POST(request: Request) {
   return createUIMessageStreamResponse({
     stream: createUIMessageStream({
       execute: async ({ writer }) => {
-        const session = await resumeOrCreateSession(fxHarnessAgent, chatId);
+        const { session } = await resumeOrCreateSession({
+          agent: fxHarnessAgent,
+          chatId,
+          ports: [4000],
+        });
         const result = await fxHarnessAgent.stream({
           session,
           messages,
@@ -37,7 +41,7 @@ export async function POST(request: Request) {
             stream: result.stream,
             onError: getHarnessE2EErrorMessage,
             originalMessages: body.messages,
-            onFinish: () => detachAndPersist(chatId, session),
+            onFinish: () => detachAndPersist({ chatId, session }),
           }),
         );
       },
