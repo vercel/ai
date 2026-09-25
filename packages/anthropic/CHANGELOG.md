@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.63
+
+### Patch Changes
+
+- 154221f: feat(anthropic): support on-demand compaction and preserve signed compaction blocks
+
 ## 4.0.62
 
 ### Patch Changes

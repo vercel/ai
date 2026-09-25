@@ -74,6 +74,46 @@ await getFromApi({
 });
 ```
 
+## Direct fetch helpers
+
+Use `fetchUntrustedUrl` from `@ai-sdk/provider-utils` for direct fetches of
+response-supplied or otherwise untrusted URLs. It shares URL validation, DNS
+pinning, and redirect handling with `fetchWithValidatedRedirects`, but adds
+first-hop credential isolation. Without a matching `credentialedOrigin` or,
+when that option is omitted, a matching `trustedOrigin`, it sends only an
+allowlist of non-credential request metadata such as content negotiation, range,
+idempotency, tracing, request-id, and user-agent headers. Unknown headers are
+withheld because arbitrary provider credential names cannot be identified
+safely.
+
+Set `credentialedOrigin` to a developer-configured endpoint when credentials
+are needed. It takes precedence over `trustedOrigin`, which also exempts matching
+hops from URL validation for self-hosted deployments. Never derive either origin
+from response data. Sanitization still strips proxy, cloud-metadata, and cookie
+headers, and a cross-origin redirect retains only `User-Agent`.
+
+`fetchWithValidatedRedirects` retains its existing behavior for compatibility:
+it sanitizes caller headers but forwards credentials and arbitrary custom
+headers on the first hop. `trustedOrigin` in that helper controls URL validation,
+not credential forwarding. Its callers remain responsible for deciding whether
+the initial URL may receive those headers. Switching to `fetchUntrustedUrl` is
+an explicit opt-in; existing calls are not automatically protected on the first
+hop. `getFromApi` also retains its existing optional `credentialedOrigin` policy,
+so provider call sites must continue passing the configured origin when sending
+credentials to response-supplied URLs.
+
+If a direct caller needs to send additional protocol metadata to an untrusted
+first hop, list only those sanitized header names in
+`untrustedFirstHopHeaders`. Do not use this option for credentials:
+
+```ts
+await fetchUntrustedUrl({
+  url: discoveryUrl,
+  headers: { 'x-protocol-version': protocolVersion },
+  untrustedFirstHopHeaders: ['x-protocol-version'],
+});
+```
+
 ## DNS validation and deployment hardening
 
 On Node.js, the default validated download fetch resolves all DNS records

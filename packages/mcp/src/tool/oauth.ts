@@ -29,7 +29,7 @@ import {
 import { LATEST_PROTOCOL_VERSION } from './types';
 import {
   fetchWithValidatedEndpoint,
-  fetchWithValidatedRedirects,
+  fetchUntrustedUrl,
   parseJSON,
   validateDownloadUrl,
   type FetchFunction,
@@ -449,7 +449,7 @@ async function fetchWithCorsRetry(
   trustedOrigin?: string,
 ): Promise<Response | undefined> {
   try {
-    return await fetchWithValidatedRedirects({
+    return await fetchUntrustedUrl({
       url: url.href,
       fetch: async (input, init) =>
         fetchWithValidatedEndpoint({
@@ -466,6 +466,7 @@ async function fetchWithCorsRetry(
         }),
       headers,
       trustedOrigin,
+      untrustedFirstHopHeaders: ['mcp-protocol-version'],
     });
   } catch (error) {
     if (error instanceof TypeError) {
