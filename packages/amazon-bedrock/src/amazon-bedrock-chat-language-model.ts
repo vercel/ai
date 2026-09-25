@@ -279,6 +279,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       amazonBedrockOptions,
       warnings,
       isAnthropicModel,
+      isOpenAIModel,
       modelId: this.modelId,
     });
 
@@ -1607,12 +1608,14 @@ function resolveAmazonBedrockReasoningConfig({
   amazonBedrockOptions,
   warnings,
   isAnthropicModel,
+  isOpenAIModel,
   modelId,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   amazonBedrockOptions: AmazonBedrockLanguageModelChatOptions;
   warnings: SharedV4Warning[];
   isAnthropicModel: boolean;
+  isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
   if (!isCustomReasoning(reasoning)) {
@@ -1652,7 +1655,10 @@ function resolveAmazonBedrockReasoningConfig({
         };
       }
     }
-  } else if (reasoning !== 'none') {
+  } else if (
+    reasoning !== 'none' &&
+    (isOpenAIModel || amazonBedrockOptions.reasoningConfig != null)
+  ) {
     const effort = mapReasoningToProviderEffort({
       reasoning,
       effortMap: amazonBedrockReasoningEffortMap,
@@ -1662,6 +1668,13 @@ function resolveAmazonBedrockReasoningConfig({
       maxReasoningEffort: effort,
       ...amazonBedrockOptions.reasoningConfig,
     };
+  } else if (reasoning !== 'none') {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'reasoning',
+      details:
+        'Portable reasoning is not supported for this model and will be ignored. Use providerOptions.amazonBedrock.reasoningConfig to configure model-specific reasoning.',
+    });
   }
 
   /*
