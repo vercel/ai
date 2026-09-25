@@ -9,7 +9,6 @@ import {
   object,
   record,
   string,
-  tuple,
   union,
   unknown,
 } from 'zod/v4';
@@ -27,7 +26,6 @@ export const z = {
   object,
   record,
   string,
-  tuple,
   union,
   unknown,
 };

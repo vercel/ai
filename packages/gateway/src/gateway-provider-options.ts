@@ -189,7 +189,8 @@ const directConditionSchema = z.union([
     .object({
       question: questionSchema,
       probabilityBetween: z
-        .tuple([probabilitySchema, probabilitySchema])
+        .array(probabilitySchema)
+        .length(2)
         .refine(([minimum, maximum]) => minimum <= maximum, {
           message:
             'probabilityBetween minimum must be less than or equal to maximum',
