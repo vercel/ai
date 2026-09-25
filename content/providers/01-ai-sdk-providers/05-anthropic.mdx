@@ -1085,13 +1085,16 @@ for await (const part of result.textStream) {
 
 ### Mid-Conversation System Controls
 
-With `claude-opus-5-5` and `claude-fable-5-1`, a mid-conversation system message
-can be cleared before the next user message with `clearAt: 'next_user_message'`,
-or set the effort for the next turn without invalidating the prompt cache. The provider adds the required
+With `claude-opus-5-5` and `claude-fable-5-1`, use an empty system message to
+change effort from the next user turn. A separate system message containing text
+can provide a turn-scoped reminder with `clearAt: 'next_user_message'`: its text
+applies until the next user message. Keep the reminder after a user turn and
+before an assistant turn, or at the end of the messages array.
+The provider adds the required
 `mid-conversation-system-clear-at-2026-08-21` and
 `mid-conversation-output-config-2026-07-01` beta headers automatically.
 
-```ts highlight="17-25"
+```ts highlight="16-24,29-37"
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 
@@ -1109,10 +1112,9 @@ const result = await generateText({
     },
     {
       role: 'system',
-      content: 'For the next turn, verify every compatibility claim.',
+      content: '',
       providerOptions: {
         anthropic: {
-          clearAt: 'next_user_message',
           effort: 'high',
         },
       },
@@ -1121,19 +1123,39 @@ const result = await generateText({
       role: 'user',
       content: 'Complete the plan.',
     },
+    {
+      role: 'system',
+      content: 'For this turn, verify every compatibility claim.',
+      providerOptions: {
+        anthropic: {
+          clearAt: 'next_user_message',
+        },
+      },
+    },
   ],
 });
 ```
 
 An effort-only system message can use an empty content array at the API level;
 in an AI SDK prompt, set `content: ''`. The provider serializes it as
-`content: []`.
+`content: []`. These effort-only messages can appear first or later in the
+conversation, including consecutively. The provider preserves their order. The new
+level applies from the next user turn until a later message changes it.
+Initial instruction text is sent in the top-level `system` field.
+
+Consecutive inline system messages are evaluated as a group. If an effort-only
+message is adjacent to a system message containing text, the whole group must
+follow Anthropic's [content placement rules](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages#limitations).
+
+Turn-scoped messages with `clearAt` support text only. Put effort updates in a
+separate message, as in the example above.
 
 <Note>
-  `clearAt` and per-message `effort` apply only to mid-conversation system
-  messages. When used on the initial system message, the provider ignores them
-  and emits a warning. Use the top-level `effort` provider option to configure
-  effort for the full request.
+  `clearAt` applies only to mid-conversation system messages. On initial system
+  messages, the provider ignores `clearAt` and effort attached to non-empty
+  content and emits a warning. Use an empty system message for an initial
+  per-message effort setting, or the top-level `effort` provider option to
+  configure effort for the full request.
 </Note>
 
 ### Mid-Conversation Tool Changes

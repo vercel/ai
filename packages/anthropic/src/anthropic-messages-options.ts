@@ -79,9 +79,10 @@ export const anthropicSystemMessageProviderOptions = z.object({
   clearAt: z.literal('next_user_message').optional(),
 
   /**
-   * Overrides the effort for the turn following this mid-conversation system
-   * message. The required `mid-conversation-output-config-2026-07-01` beta is added
-   * automatically.
+   * Sets the model effort from the next user turn until a later message
+   * changes it. An effort-only system message with empty content can appear
+   * first. The required `mid-conversation-output-config-2026-07-01` beta is
+   * added automatically.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
