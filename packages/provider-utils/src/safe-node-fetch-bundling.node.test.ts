@@ -98,9 +98,15 @@ it.each(['cjs', 'esm'] as const)(
 );
 
 describe.each([
-  { runtime: 'browser', conditions: ['browser'], globals: {} },
+  {
+    runtime: 'browser',
+    platform: 'browser' as const,
+    conditions: ['browser'],
+    globals: {},
+  },
   {
     runtime: 'framework edge',
+    platform: 'neutral' as const,
     conditions: ['edge-light'],
     globals: {
       EdgeRuntime: 'edge-runtime',
@@ -109,6 +115,7 @@ describe.each([
   },
   {
     runtime: 'Workers with Node compatibility',
+    platform: 'neutral' as const,
     conditions: ['workerd', 'node'],
     globals: {
       process: {
@@ -118,13 +125,35 @@ describe.each([
       },
     },
   },
-])('$runtime bundle', ({ conditions, globals }) => {
+  {
+    runtime: 'Bun',
+    platform: 'neutral' as const,
+    conditions: ['bun', 'node'],
+    globals: {
+      process: { release: { name: 'node' }, versions: { bun: '1.3.0' } },
+    },
+  },
+  {
+    runtime: 'Deno',
+    platform: 'neutral' as const,
+    conditions: ['deno', 'node'],
+    globals: {
+      process: { release: { name: 'node' }, versions: { deno: '2.4.0' } },
+    },
+  },
+  {
+    runtime: 'unknown runtime',
+    platform: 'neutral' as const,
+    conditions: [],
+    globals: {},
+  },
+])('$runtime bundle', ({ platform, conditions, globals }) => {
   it('neither resolves Node dependencies nor loads them when downloading', async () => {
     const result = await build({
       stdin: { contents: publicEntry, resolveDir: packageDirectory },
       bundle: true,
       minify: true,
-      platform: 'browser',
+      platform,
       conditions,
       format: 'cjs',
       write: false,
