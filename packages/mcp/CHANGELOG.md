@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 1.0.86
+
+### Patch Changes
+
+- 86fcba3: fix(mcp): preserve explicit stdio transport environment values
+
 ## 1.0.85
 
 ### Patch Changes
