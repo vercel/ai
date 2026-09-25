@@ -1280,6 +1280,72 @@ describe('convertToLanguageModelPrompt', () => {
       ]);
     });
 
+    it('should pass through supported file URLs in tool results', async () => {
+      const mockDownload = vi.fn().mockResolvedValue([null]);
+
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          messages: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file-url',
+                        url: 'gs://example-bucket/image.png',
+                        mediaType: 'image/png',
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: { '*': [/^gs:\/\/.*$/] },
+        download: mockDownload,
+      });
+
+      expect(mockDownload).toHaveBeenCalledOnce();
+      expect(mockDownload).toHaveBeenCalledWith([
+        {
+          url: new URL('gs://example-bucket/image.png'),
+          isUrlSupportedByModel: true,
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolCallId',
+              toolName: 'toolName',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'gs://example-bucket/image.png',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+              providerOptions: undefined,
+            },
+          ],
+          providerOptions: undefined,
+        },
+      ]);
+    });
+
     it('should download URL content in assistant tool results', async () => {
       const mockDownload = vi.fn().mockResolvedValue([
         {

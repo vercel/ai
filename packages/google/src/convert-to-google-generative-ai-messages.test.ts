@@ -730,6 +730,55 @@ describe('tool messages', () => {
     });
   });
 
+  it('should convert GCS file-url tool result parts into functionResponse file data', async () => {
+    const result = convertToGoogleGenerativeAIMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageViewer',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file-url',
+                    url: 'gs://example-bucket/renditions/hero.png',
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportsGoogleCloudStorageFunctionResponseUrls: true,
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageViewer',
+        response: {
+          name: 'imageViewer',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/hero.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should forward non-data image-url tool result parts as text content', async () => {
     const result = convertToGoogleGenerativeAIMessages([
       {
