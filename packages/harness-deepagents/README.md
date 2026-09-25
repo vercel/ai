@@ -32,11 +32,25 @@ bootstrap directory via `pnpm` at startup.
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: deepAgents,
-  // ...sandbox provider configuration
 });
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
+try {
+  console.log(
+    (await agent.generate({ session, prompt: 'Inspect this project.' })).text,
+  );
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+}
 ```
 
 ## Auth

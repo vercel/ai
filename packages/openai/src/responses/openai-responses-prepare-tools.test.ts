@@ -38,6 +38,7 @@ describe('prepareResponsesTools', () => {
               },
             },
           },
+          strict: false,
         },
       ],
       toolChoice: undefined,
@@ -96,6 +97,7 @@ describe('prepareResponsesTools', () => {
               },
             },
           },
+          strict: false,
         },
       ],
       toolChoice: undefined,
@@ -144,6 +146,7 @@ describe('prepareResponsesTools', () => {
             additionalProperties: false,
           },
           async: true,
+          strict: false,
         },
       ]);
     });
@@ -206,6 +209,7 @@ describe('prepareResponsesTools', () => {
           name: 'get_weather',
           description: undefined,
           parameters: { type: 'object', properties: {} },
+          strict: false,
         },
         {
           type: 'custom',
@@ -300,7 +304,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', async () => {
+    it('should default strict mode to false when strict is undefined', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -325,6 +329,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -391,6 +396,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -642,6 +648,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1117,6 +1124,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1823,6 +1831,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1996,6 +2005,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -2085,6 +2095,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2185,6 +2196,7 @@ describe('prepareResponsesTools', () => {
                     ],
                     "type": "object",
                   },
+                  "strict": false,
                   "type": "function",
                 },
                 {
@@ -2224,6 +2236,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2850,6 +2863,7 @@ describe('prepareResponsesTools', () => {
             required: ['sku'],
             additionalProperties: false,
           },
+          strict: false,
           allowed_callers: ['programmatic'],
           output_schema: {
             type: 'object',

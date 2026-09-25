@@ -1,5 +1,21 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- 056dab8: fix(harness-deepagents): fix bug where tool errors were not properly forwarded
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
 ## 1.0.123
 
 ### Patch Changes

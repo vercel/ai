@@ -48,6 +48,7 @@ import type {
   HarnessAgentResumeSessionState,
   HarnessAgentSkill,
   HarnessAgentToolSpec,
+  HarnessSandboxTemplate,
 } from './harness-agent-types';
 import { collectHarnessAgentToolApprovalContinuations } from './harness-agent-tool-approval-continuation';
 import { collectHarnessAgentToolResultContinuations } from './harness-agent-tool-result-continuation';
@@ -59,6 +60,7 @@ import {
   createSandboxBootstrapPlan,
   ensureSandboxDirectory,
   resolveSessionWorkDir,
+  runSandboxBootstrap,
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
 import { buildObservability } from './internal/resolve-observability';
@@ -72,6 +74,7 @@ import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-
 import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import { getRestrictedSandboxSession } from '../utils/get-restricted-sandbox-session';
 import type { HarnessAgentLifecycleCallbacks } from './internal/turn-telemetry';
+import { createHarnessSandboxTemplate } from './create-harness-sandbox-template';
 
 export type { HarnessAllTools } from './harness-agent-tool-types';
 
@@ -222,6 +225,11 @@ export class HarnessAgent<
       CALL_OPTIONS
     >,
   ) {
+    if (settings.sandbox != null) {
+      console.warn(
+        'HarnessAgent: `sandbox` is deprecated. Supply `sandboxSession` to createSession() instead.',
+      );
+    }
     const sandboxConfig = resolveSandboxConfig(settings);
     validateSandboxBootstrapSettings(sandboxConfig);
     this.settings = settings;
@@ -288,6 +296,13 @@ export class HarnessAgent<
   /** Whether this agent parses completed turns with its configured output. */
   get hasOutput(): boolean {
     return this.settings.output != null;
+  }
+
+  getSandboxTemplate(): Promise<HarnessSandboxTemplate | undefined> {
+    return createHarnessSandboxTemplate({
+      harnesses: [this.settings.harness],
+      sandboxConfig: this.sandboxConfig,
+    });
   }
 
   /**
@@ -540,6 +555,14 @@ export class HarnessAgent<
     }
 
     try {
+      await runSandboxBootstrap({
+        session: getRestrictedSandboxSession(sandboxSession),
+        workDir: this.sandboxConfig.workDir,
+        onBootstrap: this.sandboxConfig.onBootstrap,
+        bootstrapHash: this.sandboxConfig.bootstrapHash,
+        skipOnBootstrapIfMarked: true,
+        abortSignal,
+      });
       await ensureSandboxDirectory({
         session: sandboxSession,
         workDir: sessionWorkDir,

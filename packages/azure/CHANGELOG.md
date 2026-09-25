@@ -1,5 +1,22 @@
 # @ai-sdk/azure
 
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/deepseek@3.0.53
+  - @ai-sdk/openai@4.0.76
+
+## 4.0.79
+
+### Patch Changes
+
+- ca31b89: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [ca31b89]
+  - @ai-sdk/openai@4.0.75
+
 ## 4.0.78
 
 ### Patch Changes

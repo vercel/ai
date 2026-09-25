@@ -101,6 +101,8 @@ describe('prepareSandboxForHarness', () => {
       'echo beta',
       'pwd',
       'mkdir -p "$WORK_DIR"',
+      'printf "%s" "$HOME"',
+      'mkdir -p "$MARKER_DIR"',
     ]);
     expect(onBootstrap).toHaveBeenCalledWith({
       session,

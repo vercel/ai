@@ -10,13 +10,14 @@ import {
   parseJSON,
   type Experimental_SandboxSession,
 } from '@ai-sdk/provider-utils';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 type HandoffPhase = 'start' | 'resume';
 
 type HandoffState<TState> = {
   sessionId: string;
   state: TState;
+  sandboxName: string;
 };
 
 export function getACPHandoffArguments({
@@ -48,8 +49,9 @@ export function getACPHandoffArguments({
   return { phase, statePath };
 }
 
-export function createACPHandoffSandbox() {
-  return createVercelSandbox({
+export function createACPHandoffSandbox({ sandboxId }: { sandboxId: string }) {
+  return createVercelNetworkSandboxSession({
+    sandboxId,
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
@@ -60,14 +62,16 @@ export async function writeACPHandoffState({
   statePath,
   sessionId,
   state,
+  sandboxName,
 }: {
   statePath: string;
   sessionId: string;
   state: HarnessAgentResumeSessionState | HarnessAgentContinueTurnState;
+  sandboxName: string;
 }): Promise<void> {
   await writeFile(
     statePath,
-    `${JSON.stringify({ sessionId, state }, null, 2)}\n`,
+    `${JSON.stringify({ sessionId, state, sandboxName }, null, 2)}\n`,
     {
       encoding: 'utf8',
       flag: 'wx',
@@ -90,6 +94,7 @@ export async function readACPResumeHandoffState({
   return {
     sessionId: handoff.sessionId,
     state: handoff.state,
+    sandboxName: handoff.sandboxName,
   };
 }
 
@@ -107,6 +112,7 @@ export async function readACPContinueHandoffState({
   return {
     sessionId: handoff.sessionId,
     state: handoff.state,
+    sandboxName: handoff.sandboxName,
   };
 }
 
@@ -246,6 +252,7 @@ async function readACPHandoffState({
   if (
     !isRecord(value) ||
     typeof value.sessionId !== 'string' ||
+    typeof value.sandboxName !== 'string' ||
     !isRecord(value.state) ||
     (value.state.type !== 'resume-session' &&
       value.state.type !== 'continue-turn')

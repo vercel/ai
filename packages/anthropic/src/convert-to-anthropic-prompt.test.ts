@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SharedV4Warning } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt, SharedV4Warning } from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -51,6 +51,153 @@ describe('system messages', () => {
     });
   });
 
+  describe('effort-only system messages', () => {
+    const lowEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'low' } },
+    } as const;
+    const highEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'high' } },
+    } as const;
+    const instruction = { role: 'system', content: 'initial' } as const;
+    const user = {
+      role: 'user',
+      content: [{ type: 'text', text: 'hi' }],
+    } satisfies LanguageModelV4Prompt[number];
+
+    it.each([
+      { name: 'alone', initial: [lowEffort], text: [], efforts: ['low'] },
+      {
+        name: 'after initial instructions',
+        initial: [instruction, lowEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'before initial instructions',
+        initial: [lowEffort, instruction],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'consecutively',
+        initial: [lowEffort, highEffort],
+        text: [],
+        efforts: ['low', 'high'],
+      },
+      {
+        name: 'around initial instructions',
+        initial: [lowEffort, instruction, highEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low', 'high'],
+      },
+    ])(
+      'should preserve initial effort messages $name',
+      async ({ initial, text, efforts }) => {
+        const warnings: SharedV4Warning[] = [];
+        const result = await convertToAnthropicPrompt({
+          prompt: [...initial, user],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result).toEqual({
+          prompt: {
+            system: text,
+            messages: [
+              ...efforts.map(effort => ({
+                role: 'system',
+                content: [],
+                output_config: { effort },
+              })),
+              user,
+            ],
+          },
+          betas: new Set(['mid-conversation-output-config-2026-07-01']),
+        });
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([false, true])(
+      'should preserve later consecutive effort messages with initial instructions: %s',
+      async hasInitial => {
+        const warnings: SharedV4Warning[] = [];
+        const result = await convertToAnthropicPrompt({
+          prompt: [
+            ...(hasInitial ? [instruction] : []),
+            user,
+            lowEffort,
+            highEffort,
+            { role: 'system', content: 'later instructions' },
+          ],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result.prompt.system).toEqual(
+          hasInitial ? [{ type: 'text', text: 'initial' }] : undefined,
+        );
+        expect(result.prompt.messages).toEqual([
+          user,
+          { role: 'system', content: [], output_config: { effort: 'low' } },
+          { role: 'system', content: [], output_config: { effort: 'high' } },
+          {
+            role: 'system',
+            content: [{ type: 'text', text: 'later instructions' }],
+          },
+        ]);
+        expect(result.betas).toEqual(
+          new Set([
+            'mid-conversation-system-2026-04-07',
+            'mid-conversation-output-config-2026-07-01',
+          ]),
+        );
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([
+      { content: 'initial', options: { effort: 'low' } },
+      { content: '', options: { clearAt: 'next_user_message' } },
+      { content: '', options: { clearAt: 'next_user_message', effort: 'low' } },
+    ])(
+      'should warn and ignore unsupported initial system options: $options',
+      async ({ content, options }) => {
+        const warnings: SharedV4Warning[] = [];
+        const result = await convertToAnthropicPrompt({
+          prompt: [
+            {
+              role: 'system',
+              content,
+              providerOptions: { anthropic: options },
+            },
+            user,
+          ],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result.prompt.messages).toEqual([user]);
+        expect(result.betas).toEqual(new Set());
+        expect(warnings).toEqual([
+          {
+            type: 'other',
+            message: expect.stringContaining(
+              'These options have been ignored.',
+            ),
+          },
+        ]);
+      },
+    );
+  });
+
   it('should emit a mid-conversation system message inline and add the beta', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -73,7 +220,7 @@ describe('system messages', () => {
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
 
-  it('should serialize clearAt and effort on individual mid-conversation system messages', async () => {
+  it('should serialize effort updates and turn-scoped reminders on separate system messages', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
         { role: 'system', content: 'initial' },
@@ -84,32 +231,48 @@ describe('system messages', () => {
           content: '',
           providerOptions: {
             anthropic: {
-              clearAt: 'next_user_message',
               effort: 'high',
             },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+        {
+          role: 'system',
+          content: 'this instruction applies to the current turn',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
           },
         },
         {
           role: 'system',
           content: 'this instruction persists',
         },
-        { role: 'user', content: [{ type: 'text', text: 'go' }] },
       ],
       sendReasoning: true,
       warnings: [],
       toolNameMapping: defaultToolNameMapping,
     });
 
-    expect(result.prompt.messages).toContainEqual({
-      role: 'system',
-      content: [],
-      clear_at: 'next_user_message',
-      output_config: { effort: 'high' },
-    });
-    expect(result.prompt.messages).toContainEqual({
-      role: 'system',
-      content: [{ type: 'text', text: 'this instruction persists' }],
-    });
+    expect(result.prompt.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+      { role: 'system', content: [], output_config: { effort: 'high' } },
+      { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'this instruction applies to the current turn',
+          },
+        ],
+        clear_at: 'next_user_message',
+      },
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'this instruction persists' }],
+      },
+    ]);
     expect(
       result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
     ).toBe(true);

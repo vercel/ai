@@ -73,9 +73,13 @@ export type GoogleContentPart =
       };
     };
 
-export type GoogleFunctionResponsePart = {
-  inlineData: { mimeType: string; data: string };
-};
+export type GoogleFunctionResponsePart =
+  | {
+      inlineData: { mimeType: string; data: string };
+    }
+  | {
+      fileData: { mimeType: string; fileUri: string };
+    };
 
 export type GoogleGroundingMetadata = GroundingMetadataSchema;
 

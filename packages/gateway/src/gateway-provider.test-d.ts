@@ -81,6 +81,7 @@ it('types weight-format conditions in has', () => {
     | (
         | 'implicit-caching'
         | 'reasoning'
+        | 'structured-output'
         | 'tool-use'
         | 'vision'
         | `quantization:${string}`
@@ -104,6 +105,20 @@ it('types weight-format conditions in has', () => {
     NonNullable<GatewayProviderOptions['has']>[number]
   >();
   expectTypeOf<'fp8'>().not.toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+});
+
+it('types structured-output in has', () => {
+  const options = {
+    has: ['structured-output', 'tool-use'],
+  } satisfies GatewayProviderOptions;
+  void options;
+
+  expectTypeOf<'structured-output'>().toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['has']>[number]
+  >();
+  expectTypeOf<'structured-outputs'>().not.toMatchTypeOf<
     NonNullable<GatewayProviderOptions['has']>[number]
   >();
 });

@@ -1,5 +1,26 @@
 # ai
 
+## 7.0.115
+
+### Patch Changes
+
+- be877ff: Use the new `fetchUntrustedUrl` helper for SDK downloads, preserving the existing
+  user-agent header and URL validation while enforcing first-hop credential isolation.
+- Updated dependencies [80b9100]
+- Updated dependencies [d3cc6ae]
+- Updated dependencies [be877ff]
+  - @ai-sdk/gateway@4.0.93
+  - @ai-sdk/provider-utils@5.0.48
+
+## 7.0.114
+
+### Patch Changes
+
+- b5679a7: fix(ai): filter tracing-channel context with telemetry allowlists
+- ca31b89: Clarify in the prompt validation code that `allowSystemInMessages` permits all system messages, including instruction text.
+- Updated dependencies [124b6ef]
+  - @ai-sdk/gateway@4.0.92
+
 ## 7.0.113
 
 ### Patch Changes

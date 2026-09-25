@@ -356,6 +356,7 @@ export type HarnessAgentSettings<
    * sessions. When omitted, every `createSession()` call must provide an
    * existing network sandbox session.
    */
+  /** @deprecated Supply `sandboxSession` to `HarnessAgent.createSession()` instead. */
   readonly sandbox?: HarnessV1SandboxProvider;
 
   /**

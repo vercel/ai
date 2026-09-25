@@ -1,5 +1,22 @@
 # @ai-sdk/harness-pi
 
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- e9c5e0f: fix(harness-pi): release suspended sessions when in-process reattachment is disabled
+- 85f3ff6: fix(harness-pi): bound model-facing tool results and support paged file reads
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
 ## 1.0.125
 
 ### Patch Changes

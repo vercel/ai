@@ -1,5 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import type { ToolApprovalRequestOutput } from 'ai';
 import { createCodexACP } from './_create';
 import { createToolApprovalResponseMessages } from '../../lib/harness-tool-approval';
@@ -9,15 +9,17 @@ import { run } from '../../lib/run';
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCodexACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
     permissionMode: 'allow-reads',
   });
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const first = await agent.stream({
       session,
       prompt: 'Run `pwd` with Bash and tell me the working directory.',
@@ -46,6 +48,7 @@ run(async () => {
     });
     await printFullStream({ result: second });
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

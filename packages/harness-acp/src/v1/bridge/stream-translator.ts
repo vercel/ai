@@ -787,14 +787,14 @@ function mergeToolUpdate({
       state.values[property] = parsed[property];
     }
   }
-  const programmaticName = getStringProperty({
-    value: rawUpdate,
-    property: 'name',
-  });
+  const programmaticName =
+    getStringProperty({ value: update, property: 'name' }) ??
+    getStringProperty({ value: rawUpdate, property: 'name' });
   if (programmaticName != null) state.values.name = programmaticName;
 }
 
 function createACPToolCall({ state }: { state: ToolState }): ACPToolCall {
+  const name = getStringProperty({ value: state.values, property: 'name' });
   const title = getStringProperty({
     value: state.values,
     property: 'title',
@@ -803,6 +803,7 @@ function createACPToolCall({ state }: { state: ToolState }): ACPToolCall {
   const status = state.values.status;
   return {
     toolCallId: state.toolCallId,
+    ...(name == null ? {} : { name }),
     title: title ?? state.toolName ?? `Tool ${state.toolCallId}`,
     ...(isACPToolKind(kind) ? { kind } : {}),
     ...(isACPToolCallStatus(status) ? { status } : {}),

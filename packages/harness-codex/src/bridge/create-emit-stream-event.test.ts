@@ -246,6 +246,61 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('emits native tool calls and real results with a distinct step tracker id', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const observed: unknown[] = [];
+    const stepTracker = {
+      observeEvent: input => observed.push(input),
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'native_tool',
+        id: 'patch-1',
+        tool: 'apply_patch',
+        input: JSON.stringify('*** Begin Patch\n*** End Patch'),
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'native_tool',
+        id: 'patch-1',
+        tool: 'apply_patch',
+        result: 'Success. Updated notes.md',
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'patch-1',
+        toolName: 'apply_patch',
+        input: JSON.stringify('*** Begin Patch\n*** End Patch'),
+        providerExecuted: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'patch-1',
+        toolName: 'apply_patch',
+        result: 'Success. Updated notes.md',
+      },
+    ]);
+    expect(observed.map(value => (value as { itemId: string }).itemId)).toEqual(
+      ['native-tool:patch-1', 'native-tool:patch-1'],
+    );
+  });
+
   it('preserves web search action metadata', () => {
     const emitted: Record<string, unknown>[] = [];
     const stepTracker = {

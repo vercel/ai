@@ -11,7 +11,6 @@ export default defineConfig([
     format: ['esm'],
     dts: false,
     sourcemap: true,
-    target: 'es2022',
     platform: 'node',
     bundle: false,
   },
@@ -21,7 +20,6 @@ export default defineConfig([
     dts: {
       only: true,
     },
-    target: 'es2022',
     platform: 'node',
   },
 ]);

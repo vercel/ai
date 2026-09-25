@@ -15,6 +15,20 @@ describe('isUrlSupported', () => {
   });
 
   describe('when the model supports specific media types and URLs', () => {
+    it.each([
+      'image/png-not-supported',
+      'image/png+invalid',
+      'image/png;invalid',
+    ])('should not match image/png against %s', mediaType => {
+      expect(
+        isUrlSupported({
+          mediaType,
+          url: 'gs://example-bucket/image',
+          supportedUrls: { 'image/png': [/^gs:\/\//] },
+        }),
+      ).toBe(false);
+    });
+
     it('should return true for exact media type and exact URL match', async () => {
       expect(
         isUrlSupported({

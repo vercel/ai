@@ -1,5 +1,21 @@
 # @ai-sdk/harness-codex
 
+## 1.0.127
+
+### Patch Changes
+
+- d17ead7: feat(harness-codex): migrate adapter to use Codex app server, unlocking more granular tool call emissions, built-in tool filtering, and mid-turn steering
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
 ## 1.0.125
 
 ### Patch Changes

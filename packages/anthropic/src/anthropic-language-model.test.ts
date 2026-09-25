@@ -61,6 +61,64 @@ describe('AnthropicLanguageModel', () => {
     };
   }
 
+  describe('initial per-message effort', () => {
+    it.each([
+      { method: 'generate', requestEffort: undefined },
+      { method: 'generate', requestEffort: 'high' },
+      { method: 'stream', requestEffort: undefined },
+      { method: 'stream', requestEffort: 'high' },
+    ])(
+      'should send initial effort via $method with request effort $requestEffort',
+      async ({ method, requestEffort }) => {
+        const options = {
+          prompt: [
+            { role: 'system', content: 'initial instructions' },
+            {
+              role: 'system',
+              content: '',
+              providerOptions: { anthropic: { effort: 'low' } },
+            },
+            {
+              role: 'system',
+              content: '',
+              providerOptions: { anthropic: { effort: 'medium' } },
+            },
+            ...TEST_PROMPT,
+          ] satisfies LanguageModelV4Prompt,
+          ...(requestEffort != null && {
+            providerOptions: { anthropic: { effort: requestEffort } },
+          }),
+        };
+
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-text');
+          const result = await provider('claude-fable-5-1').doGenerate(options);
+          expect(result.warnings).toEqual([]);
+        } else {
+          prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
+          const result = await provider('claude-fable-5-1').doStream(options);
+          const chunks = await convertReadableStreamToArray(result.stream);
+          expect(chunks[0]).toEqual({ type: 'stream-start', warnings: [] });
+          expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+        }
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.system).toEqual([
+          { type: 'text', text: 'initial instructions' },
+        ]);
+        expect(body.messages).toEqual([
+          { role: 'system', content: [], output_config: { effort: 'low' } },
+          { role: 'system', content: [], output_config: { effort: 'medium' } },
+          ...TEST_PROMPT,
+        ]);
+        expect(body.output_config?.effort).toBe(requestEffort);
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'mid-conversation-output-config-2026-07-01',
+        );
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
@@ -12191,10 +12249,10 @@ describe('mid-conversation tool changes', () => {
     );
   });
 
-  it('should send clearAt and per-turn effort with their beta headers', async () => {
+  it('should send separate effort updates and turn-scoped reminders with their beta headers', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
-    await provider('claude-fable-5').doGenerate({
+    await provider('claude-fable-5-1').doGenerate({
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
@@ -12203,22 +12261,33 @@ describe('mid-conversation tool changes', () => {
           content: '',
           providerOptions: {
             anthropic: {
-              clearAt: 'next_user_message',
               effort: 'xhigh',
             },
           },
         },
         { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+        {
+          role: 'system',
+          content: 'Verify every claim in this answer.',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
       ],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.messages).toContainEqual({
-      role: 'system',
-      content: [],
-      clear_at: 'next_user_message',
-      output_config: { effort: 'xhigh' },
-    });
+    expect(requestBody.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
+      { role: 'system', content: [], output_config: { effort: 'xhigh' } },
+      { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'Verify every claim in this answer.' }],
+        clear_at: 'next_user_message',
+      },
+    ]);
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'mid-conversation-system-clear-at-2026-08-21',
     );

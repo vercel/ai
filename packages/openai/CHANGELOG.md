@@ -1,5 +1,18 @@
 # @ai-sdk/openai
 
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.75
+
+### Patch Changes
+
+- ca31b89: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
 ## 4.0.74
 
 ### Patch Changes
