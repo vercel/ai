@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21487,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/amazon-bedrock-portable-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/amazon-bedrock-portable-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21487 REPRODUCED: portable reasoning makes Nova Micro fail, while the same request succeeds after removing additionalModelRequestFields.reasoningConfig."
+  }
+}
