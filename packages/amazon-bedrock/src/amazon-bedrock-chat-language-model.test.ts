@@ -8345,23 +8345,20 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should ignore portable reasoning for Nova 2 without explicit reasoningConfig', async () => {
+    it('should map portable reasoning for Nova 2', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
-      const result = await novaModel.doGenerate({
+      await novaModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'high',
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
-      expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig,
-      ).toBeUndefined();
-      expect(result.warnings).toContainEqual(
-        expect.objectContaining({
-          type: 'unsupported',
-          feature: 'reasoning',
-        }),
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
       );
     });
 
@@ -8405,7 +8402,7 @@ describe('doGenerate', () => {
         type: 'unsupported',
         feature: 'reasoning',
         details:
-          'Portable reasoning is not supported for this model and will be ignored. Use providerOptions.amazonBedrock.reasoningConfig to configure model-specific reasoning.',
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
       });
     });
 
