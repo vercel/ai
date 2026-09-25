@@ -5,7 +5,7 @@ import type {
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { Sandbox } from 'just-bash';
 import { JustBashNetworkSandboxSession } from './just-bash-network-sandbox-session';
-import { ensureRealpath } from './just-bash-sandbox';
+import { ensureRealpath } from './utils';
 
 type JustBashSandboxCreateParams = NonNullable<
   Parameters<typeof Sandbox.create>[0]

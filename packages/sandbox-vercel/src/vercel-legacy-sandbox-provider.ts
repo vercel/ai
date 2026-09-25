@@ -7,16 +7,17 @@ import { Sandbox } from '@vercel/sandbox';
 import { VercelNetworkSandboxSession } from './vercel-network-sandbox-session';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 import {
-  DEFAULT_SANDBOX_RUNTIME,
-  DEFAULT_SANDBOX_TIMEOUT_MS,
   TEMPLATE_NAME_PREFIX,
   VERCEL_PROVIDER_ID,
   getSandboxLookupParams,
-  hasExplicitSandboxEnvironment,
-  pollForTemplateSnapshot,
   withVercelSandboxAuthenticationError,
   type BaseCreateSandboxParams,
 } from './vercel-sandbox';
+import {
+  createLiveSandboxFromSnapshot,
+  ensureTemplateSnapshot,
+  withDefaultSandboxSettings,
+} from './utils';
 
 type VercelSandboxCreateParams = NonNullable<
   Parameters<typeof Sandbox.create>[0]
@@ -116,13 +117,9 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     // Sandbox v3 changed its implicit default from the Node 24 runtime to the
     // Universal managed image. Keep this adapter's existing default stable while
     // allowing callers to opt into managed images explicitly.
-    const baseParams = {
-      ...(hasExplicitSandboxEnvironment(createParams)
-        ? {}
-        : { runtime: DEFAULT_SANDBOX_RUNTIME }),
-      ...createParams,
-      timeout: createParams.timeout ?? DEFAULT_SANDBOX_TIMEOUT_MS,
-    } as BaseCreateSandboxParams;
+    const baseParams = withDefaultSandboxSettings(
+      createParams as BaseCreateSandboxParams,
+    );
 
     const identity = options?.identity;
     const onFirstCreate = options?.onFirstCreate;
@@ -149,72 +146,31 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
     }
 
     const templateName = explicitName ?? `${TEMPLATE_NAME_PREFIX}-${identity}`;
-    const cache = getSnapshotCache();
-    let snapshotId = cache.get(templateName);
-
-    if (snapshotId == null) {
-      const template = await withVercelSandboxAuthenticationError({
-        settings: this.settings,
-        operation: () =>
-          Sandbox.getOrCreate({
-            ...baseParams,
-            name: templateName,
-            persistent: true,
-            snapshotExpiration: baseParams.snapshotExpiration ?? 0,
-            onCreate: async sbx => {
-              await onFirstCreate(new VercelSandboxSession(sbx), {
-                abortSignal: options?.abortSignal,
-              });
-            },
-            ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
-          }),
-      });
-
-      let resolvedId: string | undefined = template.currentSnapshotId;
-      if (resolvedId == null) {
-        const stopResult = await withVercelSandboxAuthenticationError({
-          settings: this.settings,
-          operation: () =>
-            template.stop(
-              options?.abortSignal
-                ? { signal: options.abortSignal }
-                : undefined,
-            ),
-        });
-        resolvedId = stopResult.snapshot?.id;
-        if (resolvedId == null) {
-          resolvedId = await withVercelSandboxAuthenticationError({
-            settings: this.settings,
-            operation: () =>
-              pollForTemplateSnapshot({
-                name: templateName,
-                lookupParams: getSandboxLookupParams(baseParams),
-                abortSignal: options?.abortSignal,
-              }),
-          });
-        }
-      }
-
-      cache.set(templateName, resolvedId);
-      snapshotId = resolvedId;
-    }
-
-    const {
-      runtime: _ignoredRuntime,
-      image: _ignoredImage,
-      source: _ignoredSource,
-      persistent: _ignoredPersistent,
-      ...forkParams
-    } = baseParams;
+    const snapshotId = await withVercelSandboxAuthenticationError({
+      settings: this.settings,
+      operation: () =>
+        ensureTemplateSnapshot({
+          baseParams,
+          templateName,
+          lookupParams: getSandboxLookupParams(baseParams),
+          abortSignal: options?.abortSignal,
+          snapshotCache: getSnapshotCache(),
+          onCreate: async sbx => {
+            await onFirstCreate(new VercelSandboxSession(sbx), {
+              abortSignal: options?.abortSignal,
+            });
+          },
+        }),
+    });
 
     const fork = await withVercelSandboxAuthenticationError({
       settings: this.settings,
       operation: () =>
-        Sandbox.create({
-          ...forkParams,
-          source: { type: 'snapshot', snapshotId },
-          ...sessionNameOverride,
-          ...(options?.abortSignal ? { signal: options.abortSignal } : {}),
+        createLiveSandboxFromSnapshot({
+          baseParams,
+          snapshotId,
+          liveName: sessionNameOverride.name,
+          abortSignal: options?.abortSignal,
         }),
     });
     return new VercelNetworkSandboxSession({

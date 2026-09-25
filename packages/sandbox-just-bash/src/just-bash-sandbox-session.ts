@@ -5,6 +5,7 @@ import {
   type Experimental_SandboxProcess as SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, SandboxCommand } from 'just-bash';
+import { ensureRealpath } from './utils';
 
 /**
  * `Experimental_SandboxSession` implementation backed by a `just-bash`
@@ -45,6 +46,8 @@ export class JustBashSandboxSession implements SandboxSession {
     abortSignal?: AbortSignal;
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     abortSignal?.throwIfAborted();
+    await ensureRealpath(this.sandbox);
+    abortSignal?.throwIfAborted();
 
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
@@ -76,6 +79,8 @@ export class JustBashSandboxSession implements SandboxSession {
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
   }): Promise<SandboxProcess> {
+    abortSignal?.throwIfAborted();
+    await ensureRealpath(this.sandbox);
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({

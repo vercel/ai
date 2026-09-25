@@ -1,5 +1,5 @@
 import { HarnessCapabilityUnsupportedError } from '@ai-sdk/harness';
-import { Sandbox } from 'just-bash';
+import { defineCommand, Sandbox } from 'just-bash';
 import { describe, expect, it, vi } from 'vitest';
 import {
   createJustBashNetworkSandboxSession,
@@ -34,6 +34,55 @@ describe('new just-bash sandbox sessions', () => {
     await adapted.stop();
     await adapted.destroy();
     expect(stop).toHaveBeenCalledTimes(2);
+  });
+
+  it('installs realpath on first use of a native basic or network adaptation', async () => {
+    const sandbox = await Sandbox.create();
+    const exec = vi.spyOn(sandbox.bashEnvInstance, 'exec');
+    const registerCommand = vi.spyOn(
+      sandbox.bashEnvInstance,
+      'registerCommand',
+    );
+    const basic = createJustBashSandboxSessionFromNativeSandbox(sandbox);
+    const network =
+      createJustBashNetworkSandboxSessionFromNativeSandbox(sandbox);
+
+    expect(exec).not.toHaveBeenCalled();
+    expect(registerCommand).not.toHaveBeenCalled();
+    expect(await basic.run({ command: 'realpath /tmp' })).toMatchObject({
+      exitCode: 0,
+      stdout: '/tmp\n',
+    });
+    expect(
+      await network.restricted().run({ command: 'realpath /tmp' }),
+    ).toMatchObject({ exitCode: 0, stdout: '/tmp\n' });
+    expect(
+      exec.mock.calls.filter(([command]) => command === 'type realpath'),
+    ).toHaveLength(1);
+    expect(registerCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not replace a native realpath command', async () => {
+    const sandbox = await Sandbox.create();
+    sandbox.bashEnvInstance.registerCommand(
+      defineCommand('realpath', async () => ({
+        exitCode: 0,
+        stdout: 'custom\n',
+        stderr: '',
+      })),
+    );
+    const registerCommand = vi.spyOn(
+      sandbox.bashEnvInstance,
+      'registerCommand',
+    );
+    const adapted =
+      createJustBashNetworkSandboxSessionFromNativeSandbox(sandbox);
+
+    expect(await adapted.run({ command: 'realpath /tmp' })).toMatchObject({
+      exitCode: 0,
+      stdout: 'custom\n',
+    });
+    expect(registerCommand).not.toHaveBeenCalled();
   });
 
   it('rejects a supplied native sandbox in the async creator', async () => {

@@ -8,6 +8,11 @@ import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/prov
 import { Sandbox } from '@vercel/sandbox';
 import { VercelNetworkSandboxSession } from './vercel-network-sandbox-session';
 import { VercelSandboxSession } from './vercel-sandbox-session';
+import {
+  createLiveSandboxFromSnapshot,
+  ensureTemplateSnapshot,
+  withDefaultSandboxSettings,
+} from './utils';
 
 /**
  * Flattens an intersection of object types into a single object type so the
@@ -69,29 +74,15 @@ export type VercelNetworkSandboxSessionResumeOptions = Prettify<
   HarnessV1SandboxSessionResumeOptions<VercelLookupSettings>
 >;
 
-/**
- * 30 minutes. The `@vercel/sandbox` SDK defaults to 5 minutes which is
- * too short for multi-step workflows — the VM expires between steps.
- */
-export const DEFAULT_SANDBOX_TIMEOUT_MS = 30 * 60 * 1_000;
-export const DEFAULT_SANDBOX_RUNTIME = 'node24';
+export {
+  DEFAULT_SANDBOX_TIMEOUT_MS,
+  DEFAULT_SANDBOX_RUNTIME,
+  hasExplicitSandboxEnvironment,
+  pollForTemplateSnapshot,
+} from './utils';
 
 export const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 export const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness';
-const SNAPSHOT_POLL_INTERVAL_MS = 500;
-const SNAPSHOT_POLL_TIMEOUT_MS = 30_000;
-
-export function hasExplicitSandboxEnvironment(params: object): boolean {
-  return (
-    ('runtime' in params && params.runtime != null) ||
-    ('image' in params && params.image != null) ||
-    ('source' in params &&
-      typeof params.source === 'object' &&
-      params.source != null &&
-      'type' in params.source &&
-      params.source.type === 'snapshot')
-  );
-}
 
 export async function createVercelNetworkSandboxSession(
   options: VercelNetworkSandboxSessionCreateOptions = {},
@@ -117,14 +108,10 @@ export async function createVercelNetworkSandboxSession(
     );
   }
   const liveName = sandboxId ?? name;
-  const baseParams = {
-    ...(hasExplicitSandboxEnvironment(creationOptions)
-      ? {}
-      : { runtime: DEFAULT_SANDBOX_RUNTIME }),
+  const baseParams = withDefaultSandboxSettings({
     ...creationOptions,
-    timeout: creationOptions.timeout ?? DEFAULT_SANDBOX_TIMEOUT_MS,
     ...(effectiveSignal ? { signal: effectiveSignal } : {}),
-  } as BaseCreateSandboxParams;
+  } as BaseCreateSandboxParams);
   const settings = options;
   if (template == null) {
     const sandbox = await withVercelSandboxAuthenticationError({
@@ -149,14 +136,14 @@ export async function createVercelNetworkSandboxSession(
     await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material)),
   );
   const templateName = `${TEMPLATE_NAME_PREFIX}-v2-${Array.from(digest.slice(0, 12), byte => byte.toString(16).padStart(2, '0')).join('')}`;
-  const prepared = await withVercelSandboxAuthenticationError({
+  const snapshotId = await withVercelSandboxAuthenticationError({
     settings,
     operation: () =>
-      Sandbox.getOrCreate({
-        ...baseParams,
-        name: templateName,
-        persistent: true,
-        snapshotExpiration: baseParams.snapshotExpiration ?? 0,
+      ensureTemplateSnapshot({
+        baseParams,
+        templateName,
+        lookupParams: getSandboxLookupParams(baseParams),
+        abortSignal: effectiveSignal,
         onCreate: async sandbox => {
           await template.prepare({
             session: createVercelSandboxSessionFromNativeSandbox(sandbox),
@@ -165,41 +152,13 @@ export async function createVercelNetworkSandboxSession(
         },
       }),
   });
-  let snapshotId = prepared.currentSnapshotId;
-  if (snapshotId == null) {
-    const stopped = await withVercelSandboxAuthenticationError({
-      settings,
-      operation: () =>
-        prepared.stop(
-          effectiveSignal ? { signal: effectiveSignal } : undefined,
-        ),
-    });
-    snapshotId =
-      stopped.snapshot?.id ??
-      (await withVercelSandboxAuthenticationError({
-        settings,
-        operation: () =>
-          pollForTemplateSnapshot({
-            name: templateName,
-            lookupParams: getSandboxLookupParams(baseParams),
-            abortSignal: effectiveSignal,
-          }),
-      }));
-  }
-  const {
-    runtime: _runtime,
-    image: _image,
-    source: _source,
-    persistent: _persistent,
-    ...forkParams
-  } = baseParams;
   const liveSandbox = await withVercelSandboxAuthenticationError({
     settings,
     operation: () =>
-      Sandbox.create({
-        ...forkParams,
-        source: { type: 'snapshot', snapshotId },
-        ...(liveName != null ? { name: liveName } : {}),
+      createLiveSandboxFromSnapshot({
+        baseParams,
+        snapshotId,
+        liveName,
       }),
   });
   return createVercelNetworkSandboxSessionFromNativeSandbox(liveSandbox);
@@ -388,33 +347,3 @@ const VERCEL_AUTHENTICATION_ERROR_NAMES = new Set([
 
 const VERCEL_AUTHENTICATION_ERROR_MESSAGE =
   /Could not get credentials from OIDC context|No authentication found|Failed to (?:retrieve|refresh) authentication token|Missing credentials parameters to access the Vercel API|Authentication failed/i;
-
-export async function pollForTemplateSnapshot({
-  name,
-  lookupParams,
-  abortSignal,
-}: {
-  name: string;
-  lookupParams: ReturnType<typeof getSandboxLookupParams>;
-  abortSignal: AbortSignal | undefined;
-}): Promise<string> {
-  const deadline = Date.now() + SNAPSHOT_POLL_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    abortSignal?.throwIfAborted();
-    const refreshed = await Sandbox.get({
-      ...lookupParams,
-      name,
-      resume: false,
-      ...(abortSignal ? { signal: abortSignal } : {}),
-    });
-    if (refreshed.currentSnapshotId) {
-      return refreshed.currentSnapshotId;
-    }
-    await new Promise<void>(resolve =>
-      setTimeout(resolve, SNAPSHOT_POLL_INTERVAL_MS),
-    );
-  }
-  throw new Error(
-    `Timed out waiting for snapshot of template "${name}" to publish.`,
-  );
-}

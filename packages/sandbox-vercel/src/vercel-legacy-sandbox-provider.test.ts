@@ -562,6 +562,40 @@ describe('createVercelSandbox (create from scratch)', () => {
     expect(createMock.mock.calls[0][0]).not.toHaveProperty('runtime');
   });
 
+  it('preserves the explicit template name and caches its snapshot across sessions', async () => {
+    const { sandbox: template } = makeMockSandbox();
+    const { sandbox: fork } = makeMockSandbox();
+    Object.assign(template, { currentSnapshotId: 'snap_123' });
+    getOrCreateMock.mockResolvedValue(template);
+    createMock.mockResolvedValue(fork);
+    const provider = createVercelSandbox({ name: 'explicit-template' });
+    const onFirstCreate = vi.fn(async () => {});
+
+    await provider.createSession({
+      sessionId: 'first',
+      identity: 'recipe',
+      onFirstCreate,
+    });
+    await provider.createSession({
+      sessionId: 'second',
+      identity: 'recipe',
+      onFirstCreate,
+    });
+
+    expect(getOrCreateMock).toHaveBeenCalledOnce();
+    expect(getOrCreateMock.mock.calls[0][0].name).toBe('explicit-template');
+    expect(createMock.mock.calls.map(([options]) => options)).toEqual([
+      expect.objectContaining({
+        name: 'ai-sdk-harness-session-first',
+        source: { type: 'snapshot', snapshotId: 'snap_123' },
+      }),
+      expect.objectContaining({
+        name: 'ai-sdk-harness-session-second',
+        source: { type: 'snapshot', snapshotId: 'snap_123' },
+      }),
+    ]);
+  });
+
   it('does not add the legacy runtime when restoring a snapshot', async () => {
     const { sandbox } = makeMockSandbox();
     createMock.mockResolvedValueOnce(sandbox);
