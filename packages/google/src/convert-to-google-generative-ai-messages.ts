@@ -3,7 +3,11 @@ import {
   type LanguageModelV3Prompt,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { convertToBase64, secureJsonParse } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isUrlSupported,
+  secureJsonParse,
+} from '@ai-sdk/provider-utils';
 import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -71,21 +75,32 @@ function parseBase64DataUrl(
 
 function convertUrlToolResultPart(
   url: string,
+  mediaType: string | undefined,
+  supportedFunctionResponseUrls: Record<string, RegExp[]>,
 ): GoogleGenerativeAIFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
   const parsedDataUrl = parseBase64DataUrl(url);
-  if (parsedDataUrl == null) {
-    return undefined;
+  if (parsedDataUrl != null) {
+    return {
+      inlineData: {
+        mimeType: parsedDataUrl.mediaType,
+        data: parsedDataUrl.data,
+      },
+    };
   }
 
-  return {
-    inlineData: {
-      mimeType: parsedDataUrl.mediaType,
-      data: parsedDataUrl.data,
-    },
-  };
+  return mediaType != null &&
+    isUrlSupported({
+      url,
+      mediaType,
+      supportedUrls: supportedFunctionResponseUrls,
+    })
+    ? {
+        fileData: {
+          mimeType: mediaType,
+          fileUri: url,
+        },
+      }
+    : undefined;
 }
 
 /*
@@ -102,6 +117,7 @@ function appendToolResultParts(
   }>,
   toolCallId?: string,
   includeFunctionCallIds = true,
+  supportedFunctionResponseUrls: Record<string, RegExp[]> = {},
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -126,6 +142,8 @@ function appendToolResultParts(
       case 'file-url': {
         const functionResponsePart = convertUrlToolResultPart(
           contentPart.url as string,
+          contentPart.mediaType as string | undefined,
+          supportedFunctionResponseUrls,
         );
 
         if (functionResponsePart != null) {
@@ -241,6 +259,7 @@ export function convertToGoogleGenerativeAIMessages(
      */
     onWarning?: (warning: SharedV3Warning) => void;
     includeFunctionCallIds?: boolean;
+    supportedFunctionResponseUrls?: Record<string, RegExp[]>;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -253,6 +272,8 @@ export function convertToGoogleGenerativeAIMessages(
     options?.supportsFunctionResponseParts ?? true;
   const onWarning = options?.onWarning;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
+  const supportedFunctionResponseUrls =
+    options?.supportedFunctionResponseUrls ?? {};
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -523,6 +544,7 @@ export function convertToGoogleGenerativeAIMessages(
                 output.value,
                 part.toolCallId,
                 includeFunctionCallIds,
+                supportedFunctionResponseUrls,
               );
             } else {
               appendLegacyToolResultParts(
