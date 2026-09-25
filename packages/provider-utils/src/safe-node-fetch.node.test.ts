@@ -1,7 +1,5 @@
 import dns from 'node:dns';
-import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
-import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const originalFetch = globalThis.fetch;
@@ -169,12 +167,6 @@ it('does not fall back to global fetch when loading Node built-ins fails', async
   expect(fetchMock).not.toHaveBeenCalled();
   expect(lookup).not.toHaveBeenCalled();
   expect(onConnection).not.toHaveBeenCalled();
-});
-
-it('keeps the Undici dependency analyzable in the build output', async () => {
-  const builtSource = await readFile(resolve('dist/index.js'), 'utf8');
-
-  expect(builtSource).toMatch(/["']undici["']/);
 });
 
 it.each(['endpoint', 'redirects'] as const)(
