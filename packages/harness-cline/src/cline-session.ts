@@ -7,13 +7,18 @@ import {
   type HarnessV1PermissionMode,
   type HarnessV1PromptControl,
   type HarnessV1PromptTurnOptions,
+  type HarnessV1QuestionsToolOutput,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
 } from '@ai-sdk/harness';
-import { resolveSandboxHomeDir } from '@ai-sdk/harness/utils';
+import {
+  getRestrictedSandboxSession,
+  resolveSandboxHomeDir,
+} from '@ai-sdk/harness/utils';
+import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
   Agent,
   createTool,
@@ -31,15 +36,22 @@ import {
   resolveClinePrivateSessionDirectory,
   safeClineHistoryFileName,
 } from './cline-resume-state';
-import { renderSkillsPromptSection, writeClineSkills } from './cline-skills';
+import {
+  createClineSkillsRuntime,
+  type ClineSkillsRuntime,
+} from './cline-skills';
 import {
   buildBuiltinAgentTools,
   buildUserAgentTools,
   CLINE_NATIVE_TOOL_KINDS,
   createClineToolResult,
   isClineBuiltinToolName,
+  clineQuestionKey,
   resolveActiveClineBuiltinNames,
   type PendingToolResult,
+  type PendingClineQuestion,
+  type PendingClineQuestionResult,
+  toClineQuestionResult,
   unwrapClineToolResult,
 } from './cline-tools';
 import {
@@ -78,21 +90,21 @@ const parkedClineSessions = new Map<string, HarnessV1Session>();
 
 export interface ClineSessionSettings {
   readonly authEnv: Record<string, string>;
+  readonly isAuthenticationEnvironmentOverride: boolean;
   readonly mcpServers?: Record<string, unknown>;
   readonly providerId?: string;
-  readonly modelId?: string;
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly headers?: Record<string, string>;
+  readonly agentHeaders?: Readonly<Record<string, string>>;
   readonly reasoningEffort?: ClineReasoningEffort;
   readonly maxIterations?: number;
 }
 
 export interface CreateClineSessionInput {
   readonly sessionId: string;
-  readonly sandboxSession: HarnessV1NetworkSandboxSession;
+  readonly sandboxSession: HarnessV1NetworkSandboxSession | SandboxSession;
   readonly sessionWorkDir: string;
-  readonly skills: ReadonlyArray<HarnessV1Skill>;
   readonly settings: ClineSessionSettings;
   readonly clientApp: string;
   readonly isResume: boolean;
@@ -109,6 +121,12 @@ interface PendingToolApproval {
 interface ActiveClineTurn {
   readonly token: object;
   readonly done: Promise<void>;
+}
+
+interface PendingUserMessage {
+  readonly text: string;
+  resolve(): void;
+  reject(error: unknown): void;
 }
 
 /**
@@ -143,17 +161,12 @@ function clineBuiltinToolRequiresApproval(input: {
 function buildSystemPrompt(input: {
   sessionWorkDir: string;
   sandboxDescription: string;
-  skillsSection?: string;
 }): string {
-  const sections = [
+  return [
     'You are Cline, an autonomous coding agent operating inside a sandboxed workspace.',
     `## Workspace\n\nThe workspace root is \`${input.sessionWorkDir}\`. All relative file paths and shell commands resolve against it. Use the provided tools (read, write, edit, bash, grep, glob, ls) to inspect and modify the workspace.`,
     `## Sandbox\n\n${input.sandboxDescription}`,
-  ];
-  if (input.skillsSection) {
-    sections.push(input.skillsSection);
-  }
-  return sections.join('\n\n');
+  ].join('\n\n');
 }
 
 function toClineBackendProviderBaseUrl(baseUrl: string): string {
@@ -168,9 +181,11 @@ function toAiGatewayProviderBaseUrl(baseUrl: string): string {
 function createClineAgentModel({
   settings,
   clientApp,
+  modelId,
 }: {
   settings: ClineSessionSettings;
   clientApp: string;
+  modelId: string | undefined;
 }): { model: AgentModel; providerId: string } {
   const gatewayBaseUrl = settings.authEnv.AI_GATEWAY_BASE_URL;
   const isAiGateway = gatewayBaseUrl != null;
@@ -188,10 +203,16 @@ function createClineAgentModel({
   const headers = isAiGateway
     ? {
         ...settings.headers,
+        ...settings.agentHeaders,
         'User-Agent': clientApp,
         'x-client-app': clientApp,
       }
-    : settings.headers;
+    : settings.headers != null || settings.agentHeaders != null
+      ? {
+          ...settings.headers,
+          ...settings.agentHeaders,
+        }
+      : undefined;
   const gateway = Llms.createGateway({
     providerConfigs: [
       {
@@ -199,13 +220,15 @@ function createClineAgentModel({
         ...(apiKey ? { apiKey } : {}),
         ...(baseUrl ? { baseUrl } : {}),
         ...(headers ? { headers } : {}),
-        ...(isAiGateway ? { apiKeyEnv: [] } : {}),
+        ...(isAiGateway || settings.isAuthenticationEnvironmentOverride
+          ? { apiKeyEnv: [] }
+          : {}),
       },
     ],
   });
   const modelSelection = {
     providerId,
-    ...(settings.modelId ? { modelId: settings.modelId } : {}),
+    ...(modelId ? { modelId } : {}),
   };
   const modelOptions =
     settings.reasoningEffort === 'none'
@@ -241,9 +264,11 @@ export async function createClineSession(
     }
   }
 
-  const sandbox = input.sandboxSession.restricted();
+  const toolSafeSandboxSession = getRestrictedSandboxSession(
+    input.sandboxSession,
+  );
   const sandboxHomeDir = await resolveSandboxHomeDir({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
   });
   const privateSessionDir = resolveClinePrivateSessionDirectory({
@@ -257,29 +282,8 @@ export async function createClineSession(
   );
 
   const ops = createClineRemoteOps({
-    sandbox,
+    sandbox: toolSafeSandboxSession,
     workDir: input.sessionWorkDir,
-  });
-
-  // Materialize harness-provided skills into sandbox HOME (not the workspace)
-  // and advertise them via a system prompt section.
-  let skillsSection: string | undefined;
-  if (input.skills.length > 0) {
-    const skillRootDir = await writeClineSkills({
-      sandbox,
-      sandboxHomeDir,
-      skills: input.skills,
-      ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
-    });
-    if (skillRootDir) {
-      skillsSection = renderSkillsPromptSection(input.skills, skillRootDir);
-    }
-  }
-
-  const baseSystemPrompt = buildSystemPrompt({
-    sessionWorkDir: input.sessionWorkDir,
-    sandboxDescription: sandbox.description,
-    ...(skillsSection ? { skillsSection } : {}),
   });
 
   // On resume: pull the persisted conversation history from the sandbox so
@@ -287,7 +291,7 @@ export async function createClineSession(
   let currentMessages: readonly AgentMessage[] = [];
   if (input.isResume && input.resumeHistoryFileName) {
     const restored = await pullHistoryFromSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: safeClineHistoryFileName(input.resumeHistoryFileName),
       ...(input.abortSignal ? { abortSignal: input.abortSignal } : {}),
@@ -299,15 +303,17 @@ export async function createClineSession(
   const mcpRuntime = await createClineMcpRuntime({
     mcpServers: input.settings.mcpServers,
   });
-  const { model, providerId } = createClineAgentModel({
+  let activeModelId: string | undefined;
+  let agentModel = createClineAgentModel({
     settings: input.settings,
     clientApp: input.clientApp,
+    modelId: activeModelId,
   });
 
   // Per-session mutable state we hold across prompts.
   let agent: Agent | undefined;
   let unsubscribe: (() => void) | undefined;
-  let lastToolsSignature: string | undefined;
+  let lastAgentConfigurationSignature: string | undefined;
   let agentHasRun = false;
   let stopped = false;
   /*
@@ -319,11 +325,14 @@ export async function createClineSession(
   let suspending = false;
   const pendingToolResults = new Map<string, PendingToolResult>();
   const pendingToolApprovals = new Map<string, PendingToolApproval>();
-  const pendingUserMessages: string[] = [];
+  const pendingUserMessages: PendingUserMessage[] = [];
+  let acceptingUserMessages = false;
 
   // Emit channel set at the start of every turn and cleared on end.
   let currentEmit: ((part: HarnessV1StreamPart) => void) | undefined;
   let translatorState: ClineTranslatorState | undefined;
+  const pendingQuestions = new Map<string, PendingClineQuestion>();
+  const pendingQuestionResults = new Map<string, PendingClineQuestionResult>();
   let activeTurn: ActiveClineTurn | undefined;
 
   function settlePendingToolResults(reason: string): void {
@@ -345,10 +354,32 @@ export async function createClineSession(
     pendingToolApprovals.clear();
   }
 
+  function consumePendingUserMessage(): string | undefined {
+    const pending = pendingUserMessages.shift();
+    if (pending == null) return undefined;
+    pending.resolve();
+    return pending.text;
+  }
+
+  function rejectPendingUserMessages(error: unknown): void {
+    for (const pending of pendingUserMessages) {
+      pending.reject(error);
+    }
+    pendingUserMessages.length = 0;
+  }
+
+  function settlePendingQuestions(reason: string): void {
+    for (const pending of pendingQuestions.values()) {
+      pending.resolve(reason);
+    }
+    pendingQuestions.clear();
+    pendingQuestionResults.clear();
+  }
+
   async function persistHistory(): Promise<void> {
     const messages = agent?.snapshot().messages ?? currentMessages;
     await persistHistoryToSandbox({
-      sandbox,
+      sandbox: toolSafeSandboxSession,
       privateSessionDir,
       historyFileName: CLINE_DEFAULT_HISTORY_FILE_NAME,
       messages,
@@ -372,32 +403,48 @@ export async function createClineSession(
 
   function rebuildAgent(rebuildInput: {
     userTools: ReadonlyArray<HarnessV1ToolSpec>;
+    skillsRuntime: ClineSkillsRuntime;
     instructions?: string;
     responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
   }): void {
     unsubscribe?.();
     unsubscribe = undefined;
     agent = new Agent({
-      model,
-      ...(input.settings.modelId
+      model: agentModel.model,
+      ...(activeModelId
         ? {
             messageModelInfo: {
-              id: input.settings.modelId,
-              provider: providerId,
+              id: activeModelId,
+              provider: agentModel.providerId,
             },
           }
         : {}),
       sessionId: input.sessionId,
-      systemPrompt: rebuildInput.instructions
-        ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
-        : baseSystemPrompt,
+      systemPrompt: (() => {
+        const baseSystemPrompt = buildSystemPrompt({
+          sessionWorkDir: input.sessionWorkDir,
+          sandboxDescription: toolSafeSandboxSession.description,
+        });
+        return rebuildInput.instructions
+          ? `${baseSystemPrompt}\n\n${rebuildInput.instructions}`
+          : baseSystemPrompt;
+      })(),
       initialMessages: currentMessages,
       toolExecution: 'parallel',
       ...(input.settings.maxIterations !== undefined
         ? { maxIterations: input.settings.maxIterations }
         : {}),
       tools: [
-        ...buildBuiltinAgentTools({ ops, activeNames: activeBuiltinNames }),
+        ...buildBuiltinAgentTools({
+          ops,
+          activeNames: activeBuiltinNames,
+          pendingQuestions,
+          pendingQuestionResults,
+        }),
+        ...(rebuildInput.skillsRuntime.tool &&
+        activeBuiltinNames.includes('skills')
+          ? [rebuildInput.skillsRuntime.tool]
+          : []),
         ...mcpRuntime.tools,
         ...buildUserAgentTools({
           specs: rebuildInput.userTools,
@@ -463,7 +510,7 @@ export async function createClineSession(
       },
       // Mid-turn user messages injected via `submitUserMessage` are consumed
       // by the runtime between loop iterations, before the next model call.
-      consumePendingUserMessage: () => pendingUserMessages.shift(),
+      consumePendingUserMessage,
     });
     agentHasRun = false;
 
@@ -484,6 +531,7 @@ export async function createClineSession(
       // executions do not dangle, then abort the loop itself.
       settlePendingToolResults('Turn aborted');
       settlePendingToolApprovals('Turn aborted');
+      settlePendingQuestions('The question was cancelled.');
       agent?.abort('Turn aborted by caller');
     };
     if (controlInput.abortSignal) {
@@ -502,6 +550,26 @@ export async function createClineSession(
 
     return {
       async submitToolResult(args) {
+        const pendingQuestion = pendingQuestions.get(args.toolCallId);
+        if (pendingQuestion != null) {
+          pendingQuestions.delete(args.toolCallId);
+          pendingQuestion.resolve(
+            toClineQuestionResult({
+              nativeInput: pendingQuestion.input,
+              output: args.output as HarnessV1QuestionsToolOutput,
+            }),
+          );
+          return;
+        }
+        if (args.toolResult?.toolName === 'askUserQuestions') {
+          const nativeRequest = args.toolResult.providerOptions?.cline
+            ?.nativeRequest as PendingClineQuestion['input'] | undefined;
+          if (nativeRequest == null) return;
+          pendingQuestionResults.set(clineQuestionKey(nativeRequest), {
+            output: args.output as HarnessV1QuestionsToolOutput,
+          });
+          return;
+        }
         const pending = pendingToolResults.get(args.toolCallId);
         if (!pending) return;
         pendingToolResults.delete(args.toolCallId);
@@ -521,8 +589,15 @@ export async function createClineSession(
           ...(args.reason !== undefined ? { reason: args.reason } : {}),
         });
       },
-      async submitUserMessage(text) {
-        pendingUserMessages.push(text);
+      submitUserMessage(text) {
+        if (!acceptingUserMessages) {
+          return Promise.reject(
+            new Error('Cline has no running turn to steer.'),
+          );
+        }
+        return new Promise<void>((resolve, reject) => {
+          pendingUserMessages.push({ text, resolve, reject });
+        });
       },
       done: controlInput.done,
     };
@@ -533,19 +608,24 @@ export async function createClineSession(
    * Shared by `doPromptTurn` (a fresh user prompt) and `doContinueTurn`
    * (no prompt — the runtime continues its own thread after a rerun resume).
    */
-  function runTurn(turnOpts: {
+  async function runTurn(turnOpts: {
     text: string | undefined;
+    model?: string;
+    skills: ReadonlyArray<HarnessV1Skill>;
     tools: ReadonlyArray<HarnessV1ToolSpec>;
     instructions?: string;
     emit: (part: HarnessV1StreamPart) => void;
     abortSignal?: AbortSignal;
     responseFormat?: HarnessV1PromptTurnOptions['responseFormat'];
-  }): HarnessV1PromptControl {
+  }): Promise<HarnessV1PromptControl> {
     if (stopped) {
       throw new Error('Cline session has been stopped.');
     }
 
     const userTools = turnOpts.tools;
+    const skillsRuntime = createClineSkillsRuntime({
+      skills: turnOpts.skills,
+    });
     if (
       turnOpts.responseFormat?.type === 'json' &&
       turnOpts.responseFormat.schema == null
@@ -558,7 +638,7 @@ export async function createClineSession(
     }
     if (
       turnOpts.responseFormat?.type === 'json' &&
-      providerId === 'openai-codex-cli'
+      agentModel.providerId === 'openai-codex-cli'
     ) {
       throw new HarnessCapabilityUnsupportedError({
         message:
@@ -567,26 +647,42 @@ export async function createClineSession(
       });
     }
 
+    if (turnOpts.model != null && turnOpts.model !== activeModelId) {
+      activeModelId = turnOpts.model;
+      agentModel = createClineAgentModel({
+        settings: input.settings,
+        clientApp: input.clientApp,
+        modelId: activeModelId,
+      });
+    }
+
     const signature = JSON.stringify({
-      tools: userTools.map(t => t.name).sort(),
+      modelId: activeModelId,
+      tools: userTools,
       responseFormat: turnOpts.responseFormat,
+      instructions: turnOpts.instructions,
+      skills: skillsRuntime.signature,
     });
-    if (agent == null || signature !== lastToolsSignature) {
+    if (agent == null || signature !== lastAgentConfigurationSignature) {
       currentMessages = agent?.snapshot().messages ?? currentMessages;
       rebuildAgent({
         userTools,
+        skillsRuntime,
         responseFormat: turnOpts.responseFormat,
         ...(turnOpts.instructions
           ? { instructions: turnOpts.instructions }
           : {}),
       });
-      lastToolsSignature = signature;
+      lastAgentConfigurationSignature = signature;
     }
 
     currentEmit = turnOpts.emit;
+    const userToolNames = new Set(userTools.map(tool => tool.name));
     translatorState = createClineTranslatorState({
-      builtinToolNames: activeBuiltinNames,
-      hostToolNames: userTools.map(tool => tool.name),
+      builtinToolNames: activeBuiltinNames.filter(
+        name => !userToolNames.has(name),
+      ),
+      hostToolNames: userToolNames,
       ignoredToolNames:
         turnOpts.responseFormat?.type === 'json' ? ['structured_output'] : [],
       mcpToolNames: mcpRuntime.toolNames,
@@ -594,100 +690,112 @@ export async function createClineSession(
 
     turnOpts.emit({
       type: 'stream-start',
-      ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
+      ...(activeModelId ? { modelId: activeModelId } : {}),
     });
 
+    acceptingUserMessages = true;
     const turnPromise = (async () => {
       const runtime = agent!;
-      let result: AgentRunResult;
       try {
-        // `text` is undefined only on rerun-continue: `continue()` without
-        // input re-drives the loop from the restored transcript instead of
-        // pushing an empty user message.
-        result =
-          turnOpts.text === undefined
-            ? await runtime.continue()
-            : agentHasRun
-              ? await runtime.continue(turnOpts.text)
-              : await runtime.run(turnOpts.text);
-        agentHasRun = true;
+        let nextText = turnOpts.text;
+        let result: AgentRunResult;
+        for (;;) {
+          // `text` is undefined only on rerun-continue: `continue()` without
+          // input re-drives the loop from the restored transcript instead of
+          // pushing an empty user message.
+          result =
+            nextText === undefined
+              ? await runtime.continue()
+              : agentHasRun
+                ? await runtime.continue(nextText)
+                : await runtime.run(nextText);
+          agentHasRun = true;
+          currentMessages = result.messages;
+
+          if (translatorState) {
+            for (const part of finishClineTranslation(translatorState)) {
+              currentEmit?.(part);
+            }
+          }
+
+          if (result.status !== 'completed') break;
+          const pendingUserMessage = consumePendingUserMessage();
+          if (pendingUserMessage == null) break;
+          nextText = pendingUserMessage;
+        }
+
+        if (
+          turnOpts.responseFormat?.type === 'json' &&
+          result.status === 'completed'
+        ) {
+          const id = `structured-output-${input.sessionId}`;
+          currentEmit?.({ type: 'text-start', id });
+          currentEmit?.({
+            type: 'text-delta',
+            id,
+            delta: result.outputText,
+          });
+          currentEmit?.({ type: 'text-end', id });
+          currentEmit?.({
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'structured-output' },
+            usage: {
+              inputTokens: {
+                total: 0,
+                noCache: undefined,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 0,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+          });
+        }
+
+        if (result.status === 'aborted') {
+          /*
+           * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
+           * silently so the stream closes cleanly; the next slice
+           * rerun-continues from the persisted history. Caller-driven aborts
+           * finish the turn with an `other`/aborted reason.
+           */
+          if (suspending) return;
+          currentEmit?.({
+            type: 'finish',
+            finishReason: mapRunFinishReason(result.status),
+            totalUsage: usageFromAgentUsage(result.usage),
+          });
+          return;
+        }
+
+        if (result.status === 'failed') {
+          currentEmit?.({
+            type: 'error',
+            error: result.error ?? new Error('Cline agent run failed'),
+          });
+          return;
+        }
+
+        currentEmit?.({
+          type: 'finish',
+          finishReason: mapRunFinishReason(result.status),
+          totalUsage: usageFromAgentUsage(result.usage),
+        });
       } catch (error) {
         // `run` resolves for aborted/failed statuses; a throw here is
         // unanticipated (e.g. config error). Swallow only the abort our own
         // suspend caused; surface anything else.
         if (suspending && isAbortError(error)) return;
         currentEmit?.({ type: 'error', error });
-        return;
+      } finally {
+        acceptingUserMessages = false;
+        rejectPendingUserMessages(
+          new Error('Cline turn ended before accepting the user message.'),
+        );
       }
-
-      currentMessages = result.messages;
-
-      if (translatorState) {
-        for (const part of finishClineTranslation(translatorState)) {
-          currentEmit?.(part);
-        }
-      }
-
-      if (
-        turnOpts.responseFormat?.type === 'json' &&
-        result.status === 'completed'
-      ) {
-        const id = `structured-output-${input.sessionId}`;
-        currentEmit?.({ type: 'text-start', id });
-        currentEmit?.({
-          type: 'text-delta',
-          id,
-          delta: result.outputText,
-        });
-        currentEmit?.({ type: 'text-end', id });
-        currentEmit?.({
-          type: 'finish-step',
-          finishReason: { unified: 'stop', raw: 'structured-output' },
-          usage: {
-            inputTokens: {
-              total: 0,
-              noCache: undefined,
-              cacheRead: undefined,
-              cacheWrite: undefined,
-            },
-            outputTokens: {
-              total: 0,
-              text: undefined,
-              reasoning: undefined,
-            },
-          },
-        });
-      }
-
-      if (result.status === 'aborted') {
-        /*
-         * A `doSuspendTurn` aborts the in-flight turn on purpose — settle
-         * silently so the stream closes cleanly; the next slice
-         * rerun-continues from the persisted history. Caller-driven aborts
-         * finish the turn with an `other`/aborted reason.
-         */
-        if (suspending) return;
-        currentEmit?.({
-          type: 'finish',
-          finishReason: mapRunFinishReason(result.status),
-          totalUsage: usageFromAgentUsage(result.usage),
-        });
-        return;
-      }
-
-      if (result.status === 'failed') {
-        currentEmit?.({
-          type: 'error',
-          error: result.error ?? new Error('Cline agent run failed'),
-        });
-        return;
-      }
-
-      currentEmit?.({
-        type: 'finish',
-        finishReason: mapRunFinishReason(result.status),
-        totalUsage: usageFromAgentUsage(result.usage),
-      });
     })();
 
     const activeTurnToken = {};
@@ -723,6 +831,7 @@ export async function createClineSession(
     parkedClineSessions.delete(input.sessionId);
     settlePendingToolResults('Cline session stopped');
     settlePendingToolApprovals('Cline session stopped');
+    settlePendingQuestions('The question was cancelled.');
 
     // Persist the conversation into the sandbox so a future process can pick
     // it up after the sandbox provider reattaches.
@@ -747,7 +856,6 @@ export async function createClineSession(
   const sessionImpl: HarnessV1Session = {
     sessionId: input.sessionId,
     isResume: input.isResume,
-    ...(input.settings.modelId ? { modelId: input.settings.modelId } : {}),
 
     // The Cline runtime has no bridge to attach to and no in-sandbox event
     // log to replay; its only cross-process resume path is restoring the
@@ -758,6 +866,8 @@ export async function createClineSession(
     ): Promise<HarnessV1PromptControl> => {
       return runTurn({
         text: extractUserText(promptOpts.prompt),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
+        skills: promptOpts.skills,
         tools: promptOpts.tools ?? [],
         ...(promptOpts.instructions
           ? { instructions: promptOpts.instructions }
@@ -792,6 +902,8 @@ export async function createClineSession(
        */
       return runTurn({
         text: undefined,
+        ...(continueOpts.model ? { model: continueOpts.model } : {}),
+        skills: continueOpts.skills,
         tools: continueOpts.tools ?? [],
         ...(continueOpts.instructions
           ? { instructions: continueOpts.instructions }
@@ -825,7 +937,11 @@ export async function createClineSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
-      if (activeTurn != null || pendingToolResults.size > 0) {
+      if (
+        activeTurn != null ||
+        pendingToolResults.size > 0 ||
+        pendingQuestions.size > 0
+      ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {
           await persistHistory();
@@ -852,7 +968,9 @@ export async function createClineSession(
       }
       if (
         activeTurn != null &&
-        (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
+        (pendingToolResults.size > 0 ||
+          pendingToolApprovals.size > 0 ||
+          pendingQuestions.size > 0)
       ) {
         parkedClineSessions.set(input.sessionId, sessionImpl);
         try {

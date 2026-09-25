@@ -1,5 +1,17 @@
 # @ai-sdk/codemod
 
+## 4.0.2
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+
+## 4.0.1
+
+### Patch Changes
+
+- e493ed7: Fix codemod scaffolding when target directories are missing.
+
 ## 4.0.0
 
 ### Major Changes

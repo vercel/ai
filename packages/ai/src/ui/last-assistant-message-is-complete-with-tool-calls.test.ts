@@ -117,6 +117,59 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(true);
   });
 
+  it('should return false when a tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'checking weather station',
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when a dynamic tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  location: 'San Francisco',
+                },
+                output: 'checking weather station',
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('should return false when dynamic tool call is still streaming input', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({

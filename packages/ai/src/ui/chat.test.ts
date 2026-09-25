@@ -1,9 +1,11 @@
+import { APICallError } from '@ai-sdk/provider';
 import { mockId } from '@ai-sdk/provider-utils/test';
 import {
   createTestServer,
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { createResolvablePromise } from '../util/create-resolvable-promise';
 import {
@@ -451,6 +453,29 @@ describe('Chat', () => {
   });
 
   describe('regenerate', () => {
+    it('throws InvalidArgumentError when the message is not found', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .regenerate({ messageId: 'missing-message' })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'messageId',
+        value: 'missing-message',
+        message:
+          'Invalid argument for parameter messageId: message missing-message not found',
+      });
+    });
+
     it('preserves a preceding assistant message', async () => {
       server.urls['http://localhost:3000/api/chat'].response = {
         type: 'stream-chunks',
@@ -514,6 +539,66 @@ describe('Chat', () => {
           parts: [{ type: 'text', text: 'regenerated target' }],
         },
       ]);
+    });
+  });
+
+  describe('replace message', () => {
+    it('throws InvalidArgumentError when the message is not found', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .sendMessage({
+          text: 'updated prompt',
+          messageId: 'missing-message',
+        })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'message.messageId',
+        value: 'missing-message',
+        message:
+          'Invalid argument for parameter message.messageId: message with id missing-message not found',
+      });
+    });
+
+    it('throws InvalidArgumentError when the message is not a user message', async () => {
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'assistant-message',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'response' }],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      const error = await chat
+        .sendMessage({
+          text: 'updated prompt',
+          messageId: 'assistant-message',
+        })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        parameter: 'message.messageId',
+        value: 'assistant-message',
+        message:
+          'Invalid argument for parameter message.messageId: message with id assistant-message is not a user message',
+      });
     });
   });
 
@@ -1717,6 +1802,54 @@ describe('Chat', () => {
     `);
   });
 
+  it('should use an explicitly provided ID when replacing a user message', async () => {
+    server.urls['http://localhost:3000/api/chat'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        formatChunk({ type: 'start' }),
+        formatChunk({ type: 'start-step' }),
+        formatChunk({ type: 'finish-step' }),
+        formatChunk({ type: 'finish' }),
+      ],
+    };
+
+    const finishPromise = createResolvablePromise<void>();
+    const chat = new TestChat({
+      id: '123',
+      transport: new DefaultChatTransport({
+        api: 'http://localhost:3000/api/chat',
+      }),
+      onFinish: () => finishPromise.resolve(),
+      messages: [
+        {
+          id: 'id-0',
+          role: 'user',
+          parts: [{ text: 'Hi!', type: 'text' }],
+        },
+      ],
+    });
+
+    chat.sendMessage({
+      id: 'replacement-id',
+      parts: [{ text: 'Hello, world!', type: 'text' }],
+      messageId: 'id-0',
+    });
+
+    await finishPromise.promise;
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messageId: 'id-0',
+      messages: [
+        {
+          id: 'replacement-id',
+          role: 'user',
+          parts: [{ text: 'Hello, world!', type: 'text' }],
+        },
+      ],
+    });
+    expect(chat.messages[0].id).toBe('replacement-id');
+  });
+
   it('should reject when onFinish throws', async () => {
     const onFinishError = new Error('onFinish failed');
     const chat = new TestChat({
@@ -2841,8 +2974,9 @@ describe('Chat', () => {
 
       // UI should be in error state
       expect(chat.status).toBe('error');
+      expect(APICallError.isInstance(chat.error)).toBe(true);
       expect(chat.error).toMatchInlineSnapshot(
-        `[Error: Internal Server Error]`,
+        `[AI_APICallError: Internal Server Error]`,
       );
     });
 
@@ -3133,6 +3267,334 @@ describe('Chat', () => {
   });
 
   describe('addToolApprovalResponse', () => {
+    it.each([true, false])(
+      'should update an earlier approval response when approved is %s',
+      async approved => {
+        const laterMessages = [
+          {
+            id: 'id-2',
+            role: 'user' as const,
+            parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+          },
+          {
+            id: 'id-3',
+            role: 'assistant' as const,
+            parts: [{ type: 'text' as const, text: '4.' }],
+          },
+        ];
+        const chat = new TestChat({
+          id: '123',
+          messages: [
+            {
+              id: 'id-0',
+              role: 'user',
+              parts: [{ type: 'text', text: 'What is the weather?' }],
+            },
+            {
+              id: 'id-1',
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-weather',
+                  toolCallId: 'call-1',
+                  state: 'approval-requested',
+                  input: { city: 'Tokyo' },
+                  approval: { id: 'approval-1' },
+                },
+              ],
+            },
+            ...laterMessages,
+          ],
+        });
+
+        await chat.addToolApprovalResponse({
+          id: 'approval-1',
+          approved,
+        });
+
+        expect(chat.messages[1].parts[0]).toMatchObject({
+          state: 'approval-responded',
+          approval: { id: 'approval-1', approved },
+        });
+        expect(chat.messages.slice(2)).toEqual(laterMessages);
+      },
+    );
+
+    it('should process results for an approved invocation in an earlier message', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+          formatChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { temperature: 72, weather: 'sunny' },
+          }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [{ type: 'text' as const, text: '4.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages[1]).toMatchObject({
+        id: 'resumed-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+    });
+
+    it('should retry an earlier approval after a partial response changes its message ID', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = [
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start', messageId: 'partial-reply' }),
+            formatChunk({ type: 'error', errorText: 'retryable error' }),
+          ],
+        },
+        {
+          type: 'stream-chunks',
+          chunks: [
+            formatChunk({ type: 'start', messageId: 'retried-reply' }),
+            formatChunk({
+              type: 'tool-output-available',
+              toolCallId: 'call-1',
+              output: { temperature: 72, weather: 'sunny' },
+            }),
+            formatChunk({ type: 'finish', finishReason: 'stop' }),
+          ],
+        },
+      ];
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What is 2 + 2?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [{ type: 'text' as const, text: '4.' }],
+        },
+      ];
+      const errorPromise = createResolvablePromise<void>();
+      let automaticallySend = true;
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: () => {
+          const result = automaticallySend;
+          automaticallySend = false;
+          return result;
+        },
+        onError: () => errorPromise.resolve(),
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await errorPromise.promise;
+
+      expect(chat.status).toBe('error');
+      expect(chat.messages[1].id).toBe('partial-reply');
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(4);
+      expect(chat.messages[1]).toMatchObject({
+        id: 'retried-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+      expect(await server.calls[1].requestBodyJson).toMatchObject({
+        messageId: 'partial-reply',
+      });
+    });
+
+    it('should resume the approval that was just answered when a later approval has already been answered', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start', messageId: 'resumed-reply' }),
+          formatChunk({
+            type: 'tool-output-available',
+            toolCallId: 'call-1',
+            output: { temperature: 72, weather: 'sunny' },
+          }),
+          formatChunk({ type: 'finish', finishReason: 'stop' }),
+        ],
+      };
+
+      const laterMessages = [
+        {
+          id: 'id-2',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'What time is it?' }],
+        },
+        {
+          id: 'id-3',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'tool-clock' as const,
+              toolCallId: 'call-2',
+              state: 'approval-responded' as const,
+              input: { timezone: 'UTC' },
+              approval: {
+                id: 'approval-2',
+                approved: true,
+              },
+            },
+          ],
+        },
+        {
+          id: 'id-4',
+          role: 'user' as const,
+          parts: [{ type: 'text' as const, text: 'Thanks.' }],
+        },
+      ];
+      const chat = new TestChat({
+        id: '123',
+        messages: [
+          {
+            id: 'id-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'What is the weather?' }],
+          },
+          {
+            id: 'id-1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-weather',
+                toolCallId: 'call-1',
+                state: 'approval-requested',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval-1' },
+              },
+            ],
+          },
+          ...laterMessages,
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+      });
+
+      await chat.addToolApprovalResponse({
+        id: 'approval-1',
+        approved: true,
+      });
+      await chat.sendMessage();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.messages[1]).toMatchObject({
+        id: 'resumed-reply',
+        parts: [
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            state: 'output-available',
+            output: { temperature: 72, weather: 'sunny' },
+          },
+        ],
+      });
+      expect(chat.messages.slice(2)).toEqual(laterMessages);
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        messageId: 'id-1',
+      });
+    });
+
     it('should preserve signed approval metadata when recording the response', async () => {
       const chat = new TestChat({
         id: '123',
@@ -3159,6 +3621,7 @@ describe('Chat', () => {
                 approval: {
                   id: 'approval-1',
                   isAutomatic: false,
+                  requestReason: 'requires operator review',
                   signature: 'signed-approval-envelope',
                 },
               },
@@ -3178,6 +3641,7 @@ describe('Chat', () => {
         approval: {
           id: 'approval-1',
           approved: true,
+          requestReason: 'requires operator review',
           reason: 'looks good',
           isAutomatic: false,
           signature: 'signed-approval-envelope',

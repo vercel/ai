@@ -367,11 +367,15 @@ Format: Server-Sent Event with JSON object
 Example:
 
 ```
-data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","isAutomatic":true}
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","approvalDescriptor":{"scope":"account:delete"},"reason":"Requires operator review"}
 
 ```
 
-When `isAutomatic` is omitted, the request expects an explicit approval response from the client.
+When `isAutomatic` is omitted, the request expects an explicit approval response
+from the client. `reason` is optional and explains why the tool call requires
+approval. `approvalDescriptor` is optional opaque metadata for the approval.
+When the stream is processed into UI messages, it is available as
+`part.approval.descriptor` and is retained through subsequent approval states.
 
 ### Tool Approval Response Part
 
@@ -439,6 +443,22 @@ Example:
 
 ```
 data: {"type":"finish-step"}
+
+```
+
+### Reset Step Part
+
+Removes all message parts received since the most recent `start-step` part. If
+there is no step boundary, it removes all parts from the current message. This
+is useful when a streamed step is retried and partial output from the failed
+attempt must be invalidated before replacement output is sent.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"reset-step"}
 
 ```
 

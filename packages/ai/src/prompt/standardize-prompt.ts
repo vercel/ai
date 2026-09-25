@@ -82,6 +82,8 @@ export async function standardizePrompt({
     });
   }
 
+  // Require explicit trust in supplied system messages to reduce prompt-injection
+  // risk. The opt-in permits all system messages, including instruction text.
   if (
     !allowSystemInMessages &&
     messages.some(message => message.role === 'system')

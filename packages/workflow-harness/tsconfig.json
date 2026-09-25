@@ -6,5 +6,5 @@
     "outDir": "dist"
   },
   "exclude": ["dist", "build", "node_modules", "tsup.config.ts"],
-  "references": [{ "path": "../harness" }]
+  "references": [{ "path": "../ai" }, { "path": "../harness" }]
 }

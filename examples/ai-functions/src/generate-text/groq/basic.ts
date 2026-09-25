@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: groq('gemma2-9b-it'),
+    model: groq('llama-3.1-8b-instant'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

@@ -15,8 +15,14 @@ export {
   createToolNameMapping,
   type ToolNameMapping,
 } from './create-tool-name-mapping';
+export {
+  createProviderStreamError,
+  isProviderStreamError,
+  type ProviderStreamError,
+} from './create-provider-stream-error';
 export * from './delay';
 export { DelayedPromise } from './delayed-promise';
+export * from './delete-from-api';
 export {
   detectMediaType,
   getTopLevelMediaType,
@@ -24,10 +30,19 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+export {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { fetchUntrustedUrl } from './fetch-untrusted-url';
 export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -54,9 +69,11 @@ export {
 export { type MaybePromiseLike } from './maybe-promise-like';
 export { mediaTypeToExtension } from './media-type-to-extension';
 export { normalizeHeaders } from './normalize-headers';
+export { normalizeBatchRequestCounts } from './normalize-batch-request-counts';
 export * from './parse-json';
 export { parseJsonEventStream } from './parse-json-event-stream';
 export { parseProviderOptions } from './parse-provider-options';
+export * from './post-multipart-stream-to-api';
 export * from './post-to-api';
 export {
   createProviderDefinedToolFactory,

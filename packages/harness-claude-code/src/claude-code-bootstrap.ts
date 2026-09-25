@@ -1,18 +1,29 @@
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
+import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
 
 /*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers can preserve the installed CLI,
- * bridge, and recipe marker without requiring root filesystem access.
+ * Keep every asset URL literal so bundlers can emit each file separately.
+ * Dynamic new URL() paths can collapse multiple assets into one resolution.
+ */
+const readBridgeAsset = createReadBridgeAsset({
+  'package.json': new URL('./bridge/package.json', import.meta.url),
+  'pnpm-lock.yaml': new URL('./bridge/pnpm-lock.yaml', import.meta.url),
+  'pnpm-workspace.yaml': new URL(
+    './bridge/pnpm-workspace.yaml',
+    import.meta.url,
+  ),
+  'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
+});
+
+/*
+ * Bootstrap is derived state stored under `$HOME/.ai-sdk-harness`, outside
+ * the agent's working directory. Snapshot-capable providers preserve the
+ * installed CLI, bridge, and recipe marker there.
  *
- * The session work dir (`startOpts.sessionWorkDir`) and the bridge-state dir
- * derived from `sandboxSession.defaultWorkingDirectory` both live under the sandbox's
- * default working directory — the provider's persistent mount — so the
- * workdir's CLI state (Claude's `~/.claude/projects/<dir>/*.jsonl` thread
- * history is keyed by working directory) and the bridge state files survive
- * both detach -> attach/replay and stop -> snapshot -> resume cycles.
+ * The session work dir (`startOpts.sessionWorkDir`) lives under the sandbox's
+ * default working directory, while the bridge-state dir lives under
+ * `$HOME/.ai-sdk-harness/.agent-runs`. Claude's project history is keyed by
+ * the working directory, so the same work dir is needed across resumes.
  */
 export const CLAUDE_CODE_BOOTSTRAP_DIR = '.harness-bootstrap/claude-code';
 
@@ -20,9 +31,10 @@ let cachedBootstrap: HarnessV1Bootstrap | undefined;
 
 export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
   if (cachedBootstrap != null) return cachedBootstrap;
-  const [pkg, lock, bridge] = await Promise.all([
+  const [pkg, lock, workspace, bridge] = await Promise.all([
     readBridgeAsset('package.json'),
     readBridgeAsset('pnpm-lock.yaml'),
+    readBridgeAsset('pnpm-workspace.yaml'),
     readBridgeAsset('index.mjs'),
   ]);
   cachedBootstrap = {
@@ -31,6 +43,10 @@ export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
     files: [
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/package.json`, content: pkg },
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/pnpm-lock.yaml`, content: lock },
+      {
+        path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/pnpm-workspace.yaml`,
+        content: workspace,
+      },
       { path: `${CLAUDE_CODE_BOOTSTRAP_DIR}/bridge.mjs`, content: bridge },
     ],
     commands: [
@@ -38,28 +54,9 @@ export async function getClaudeCodeBootstrap(): Promise<HarnessV1Bootstrap> {
         command: 'pnpm install --frozen-lockfile --store-dir .pnpm-store',
       },
       {
-        command:
-          'if [ -f node_modules/@anthropic-ai/claude-code/install.cjs ]; then node node_modules/@anthropic-ai/claude-code/install.cjs; fi && ./node_modules/.bin/claude --version',
+        command: './node_modules/.bin/claude --version',
       },
     ],
   };
   return cachedBootstrap;
-}
-
-async function readBridgeAsset(name: string): Promise<string> {
-  const candidates = [
-    new URL(`./bridge/${name}`, import.meta.url),
-    new URL(`../bridge/${name}`, import.meta.url),
-  ];
-  let lastErr: unknown;
-  for (const url of candidates) {
-    try {
-      return await readFile(fileURLToPath(url), 'utf8');
-    } catch (err) {
-      const code = (err as NodeJS.ErrnoException).code;
-      if (code !== 'ENOENT') throw err;
-      lastErr = err;
-    }
-  }
-  throw lastErr ?? new Error(`bridge asset not found: ${name}`);
 }

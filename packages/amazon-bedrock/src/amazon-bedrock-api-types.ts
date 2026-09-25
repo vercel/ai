@@ -183,8 +183,16 @@ export interface AmazonBedrockDocumentBlock {
   };
 }
 
+export interface AmazonBedrockGuardrailTextBlock extends AmazonBedrockTextBlock {
+  qualifiers?: Array<'grounding_source' | 'query' | 'guard_content'>;
+}
+
 export interface AmazonBedrockGuardrailConverseContentBlock {
-  guardContent: unknown;
+  guardContent:
+    | {
+        text: AmazonBedrockGuardrailTextBlock;
+      }
+    | AmazonBedrockImageBlock;
 }
 
 export interface AmazonBedrockImageBlock {
@@ -258,6 +266,12 @@ export interface AmazonBedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface AmazonBedrockRedactedContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type AmazonBedrockContentBlock =
   | AmazonBedrockDocumentBlock
   | AmazonBedrockGuardrailConverseContentBlock
@@ -268,4 +282,5 @@ export type AmazonBedrockContentBlock =
   | AmazonBedrockToolUseBlock
   | AmazonBedrockReasoningContentBlock
   | AmazonBedrockRedactedReasoningContentBlock
+  | AmazonBedrockRedactedContentBlock
   | AmazonBedrockCachePoint;

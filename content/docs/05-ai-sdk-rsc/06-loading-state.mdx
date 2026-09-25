@@ -214,7 +214,7 @@ import { streamUI } from '@ai-sdk/rsc';
 
 export async function generateResponse(prompt: string) {
   const result = await streamUI({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt,
     text: async function* ({ content }) {
       yield <div>loading...</div>;

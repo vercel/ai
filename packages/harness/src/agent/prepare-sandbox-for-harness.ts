@@ -1,19 +1,21 @@
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
+import { harnessStateDirectoryPath } from '../v1';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import type { HarnessAgentAdapter } from './harness-agent-types';
+import { resolveSandboxDefaultWorkingDirectory } from '../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import {
   applyBootstrapRecipe,
   hashHarnessBootstrap,
 } from './internal/bootstrap-recipe';
 import {
   normalizeSandboxWorkDir,
-  resolveDefaultWorkingDirectory,
   runSandboxBootstrap,
   validateSandboxBootstrapSettings,
 } from './internal/sandbox-bootstrap';
+import { resolvePreparedSandboxIdentity } from './internal/prepared-sandbox-identity';
 
-const PREPARED_SANDBOX_IDENTITY_VERSION = 1;
-
+/** @deprecated Use `createHarnessSandboxTemplate` and `template.prepare` instead. */
 export type PrepareSandboxForHarnessResult = {
   readonly identity?: string;
   readonly recipeIdentities: Record<string, string>;
@@ -39,6 +41,7 @@ export type PrepareSandboxForHarnessResult = {
  *
  * Repeated harness IDs are prepared once. When multiple adapters use the same
  * ID, the last adapter in `harnesses` is used.
+ * @deprecated Use `createHarnessSandboxTemplate` and `template.prepare` instead.
  */
 export async function prepareSandboxForHarness(options: {
   readonly session: SandboxSession;
@@ -46,6 +49,9 @@ export async function prepareSandboxForHarness(options: {
   readonly sandboxConfig?: HarnessAgentSandboxConfig;
   readonly abortSignal?: AbortSignal;
 }): Promise<PrepareSandboxForHarnessResult> {
+  console.warn(
+    'prepareSandboxForHarness is deprecated. Use createHarnessSandboxTemplate and template.prepare instead.',
+  );
   const sandboxConfig = options.sandboxConfig ?? {};
   validateSandboxBootstrapSettings(sandboxConfig);
 
@@ -67,7 +73,7 @@ export async function prepareSandboxForHarness(options: {
       : normalizeSandboxWorkDir(sandboxConfig.workDir);
   const recipeIdentities: Record<string, string> = {};
   const skippedHarnessIds: string[] = [];
-  let defaultWorkingDirectory: string | undefined;
+  let stateDirectory: string | undefined;
 
   for (const harness of harnesses) {
     const recipe = await harness.getBootstrap?.({
@@ -80,24 +86,32 @@ export async function prepareSandboxForHarness(options: {
 
     const recipeIdentity = await hashHarnessBootstrap(recipe);
     recipeIdentities[harness.harnessId] = recipeIdentity;
-    defaultWorkingDirectory ??= await resolveDefaultWorkingDirectory({
-      session: options.session,
-      abortSignal: options.abortSignal,
+    // Harness infrastructure always lives under the sandbox's own HOME,
+    // never the working directory.
+    stateDirectory ??= harnessStateDirectoryPath({
+      sandboxHomeDir: await resolveSandboxHomeDir({
+        sandbox: options.session,
+        abortSignal: options.abortSignal,
+      }),
     });
     await applyBootstrapRecipe({
       session: options.session,
       recipe,
       identity: recipeIdentity,
-      defaultWorkingDirectory,
+      stateDirectory,
       abortSignal: options.abortSignal,
     });
   }
 
   if (sandboxConfig.onBootstrap != null) {
+    const defaultWorkingDirectory = await resolveSandboxDefaultWorkingDirectory(
+      { sandboxSession: options.session, abortSignal: options.abortSignal },
+    );
     await runSandboxBootstrap({
       session: options.session,
       workDir,
       onBootstrap: sandboxConfig.onBootstrap,
+      bootstrapHash: sandboxConfig.bootstrapHash,
       defaultWorkingDirectory,
       abortSignal: options.abortSignal,
     });
@@ -114,53 +128,4 @@ export async function prepareSandboxForHarness(options: {
     recipeIdentities,
     skippedHarnessIds,
   };
-}
-
-async function resolvePreparedSandboxIdentity({
-  recipeIdentities,
-  bootstrapHash,
-  workDir,
-}: {
-  readonly recipeIdentities: Record<string, string>;
-  readonly bootstrapHash?: string;
-  readonly workDir?: string;
-}): Promise<string | undefined> {
-  const entries = Object.entries(recipeIdentities).sort(([a], [b]) =>
-    a.localeCompare(b),
-  );
-  if (entries.length === 0 && bootstrapHash == null) {
-    return undefined;
-  }
-
-  const encoder = new TextEncoder();
-  const chunks: Uint8Array[] = [];
-  const pushString = (value: string) => {
-    chunks.push(encoder.encode(value));
-    chunks.push(encoder.encode('\0'));
-  };
-
-  pushString(String(PREPARED_SANDBOX_IDENTITY_VERSION));
-  pushString(workDir ?? '');
-  pushString(bootstrapHash ?? '');
-
-  for (const [harnessId, identity] of entries) {
-    pushString(harnessId);
-    pushString(identity);
-  }
-
-  const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-  const buffer = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    buffer.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  const digest = await crypto.subtle.digest('SHA-256', buffer);
-  const bytes = new Uint8Array(digest);
-  let hex = '';
-  for (let i = 0; i < 8; i++) {
-    hex += bytes[i].toString(16).padStart(2, '0');
-  }
-  return hex;
 }

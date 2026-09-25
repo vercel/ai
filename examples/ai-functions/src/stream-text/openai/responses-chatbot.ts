@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: openai.responses('gpt-4o-mini'),
+      model: openai.responses('gpt-6-luna'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

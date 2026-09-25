@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',

@@ -5,7 +5,7 @@ import { anthropicLocalFsMemoryTool } from '../../lib/anthropic-local-fs-memory-
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     prompt: `Please remember these [MEM] facts for future turns.
 Acknowledge by saying "stored".
 [MEM] Name: Alex Rivera

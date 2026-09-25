@@ -90,7 +90,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Tell me a joke about AI',
   experimental_telemetry: { isEnabled: true },
 });
@@ -112,7 +112,7 @@ const provider = createOpenAI({
 });
 
 const result = await generateText({
-  model: provider('gpt-4.1-nano'),
+  model: provider('gpt-5.4-nano'),
   prompt: 'Tell me a joke about AI',
   experimental_telemetry: { isEnabled: true },
 });

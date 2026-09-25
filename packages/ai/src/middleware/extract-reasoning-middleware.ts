@@ -24,7 +24,7 @@ export function extractReasoningMiddleware({
   startWithReasoning?: boolean;
 }): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
-  const closingTag = `<\/${tagName}>`;
+  const closingTag = `</${tagName}>`;
 
   return {
     specificationVersion: 'v4',
@@ -90,12 +90,17 @@ export function extractReasoningMiddleware({
           afterSwitch: boolean;
           isReasoning: boolean;
           buffer: string;
-          idCounter: number;
+          reasoningId: string | undefined;
           textId: string;
         }
       > = createIdMap();
 
-      let delayedTextStart: LanguageModelV4StreamPart | undefined;
+      let reasoningIdCounter = 0;
+
+      const delayedTextStarts: Record<
+        string,
+        Extract<LanguageModelV4StreamPart, { type: 'text-start' }>
+      > = createIdMap();
 
       return {
         stream: stream.pipeThrough(
@@ -107,13 +112,16 @@ export function extractReasoningMiddleware({
               // do not send `text-start` before `reasoning-start`
               // https://github.com/vercel/ai/issues/7774
               if (chunk.type === 'text-start') {
-                delayedTextStart = chunk;
+                delayedTextStarts[chunk.id] = chunk;
                 return;
               }
 
-              if (chunk.type === 'text-end' && delayedTextStart) {
-                controller.enqueue(delayedTextStart);
-                delayedTextStart = undefined;
+              if (
+                chunk.type === 'text-end' &&
+                delayedTextStarts[chunk.id] != null
+              ) {
+                controller.enqueue(delayedTextStarts[chunk.id]);
+                delete delayedTextStarts[chunk.id];
               }
 
               if (chunk.type !== 'text-delta') {
@@ -128,7 +136,7 @@ export function extractReasoningMiddleware({
                   afterSwitch: false,
                   isReasoning: startWithReasoning,
                   buffer: '',
-                  idCounter: 0,
+                  reasoningId: undefined,
                   textId: chunk.id,
                 };
               }
@@ -136,6 +144,10 @@ export function extractReasoningMiddleware({
               const activeExtraction = reasoningExtractions[chunk.id];
 
               activeExtraction.buffer += chunk.delta;
+
+              function getReasoningId() {
+                return (activeExtraction.reasoningId ??= `reasoning-${reasoningIdCounter++}`);
+              }
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -154,7 +166,7 @@ export function extractReasoningMiddleware({
                   ) {
                     controller.enqueue({
                       type: 'reasoning-start',
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   }
 
@@ -162,12 +174,14 @@ export function extractReasoningMiddleware({
                     controller.enqueue({
                       type: 'reasoning-delta',
                       delta: prefix + text,
-                      id: `reasoning-${activeExtraction.idCounter}`,
+                      id: getReasoningId(),
                     });
                   } else {
-                    if (delayedTextStart) {
-                      controller.enqueue(delayedTextStart);
-                      delayedTextStart = undefined;
+                    if (delayedTextStarts[activeExtraction.textId] != null) {
+                      controller.enqueue(
+                        delayedTextStarts[activeExtraction.textId],
+                      );
+                      delete delayedTextStarts[activeExtraction.textId];
                     }
                     controller.enqueue({
                       type: 'text-delta',
@@ -221,15 +235,16 @@ export function extractReasoningMiddleware({
                     if (activeExtraction.isFirstReasoning) {
                       controller.enqueue({
                         type: 'reasoning-start',
-                        id: `reasoning-${activeExtraction.idCounter}`,
+                        id: getReasoningId(),
                       });
                     }
 
                     // reasoning part finished:
                     controller.enqueue({
                       type: 'reasoning-end',
-                      id: `reasoning-${activeExtraction.idCounter++}`,
+                      id: getReasoningId(),
                     });
+                    activeExtraction.reasoningId = undefined;
                   }
 
                   activeExtraction.isReasoning = !activeExtraction.isReasoning;

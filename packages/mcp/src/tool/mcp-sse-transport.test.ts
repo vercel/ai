@@ -5,7 +5,17 @@ import {
 import { MCPClientError } from '../error/mcp-client-error';
 import { deserializeMessage, SseMCPTransport } from './mcp-sse-transport';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { LATEST_PROTOCOL_VERSION } from './types';
+import { LATEST_LEGACY_PROTOCOL_VERSION } from './types';
+import type { OAuthClientProvider } from './oauth';
+import type { OAuthTokens } from './oauth-types';
+
+function deferred(): { promise: Promise<void>; resolve: () => void } {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>(resolvePromise => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
 
 describe('SseMCPTransport', () => {
   const server = createTestServer({
@@ -60,7 +70,7 @@ describe('SseMCPTransport', () => {
     expect(server.calls[0].requestMethod).toBe('GET');
     expect(server.calls[0].requestUrl).toBe('http://localhost:3000/sse');
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
     });
   });
@@ -247,6 +257,153 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
+  it.each(['simultaneous', 'after-save'] as const)(
+    'should share one OAuth refresh for %s stale 401 responses',
+    async timing => {
+      const serverUrl = 'https://mcp.test/';
+      const endpointUrl = `${serverUrl}messages`;
+      const authorizationServerUrl = 'https://auth.test/';
+      const tokenEndpoint = `${authorizationServerUrl}token`;
+      const firstRefreshSaved = deferred();
+      const bothOldTokenRequestsStarted = deferred();
+      let streamController:
+        | ReadableStreamDefaultController<Uint8Array>
+        | undefined;
+      let tokens: OAuthTokens = {
+        access_token: 'access-old',
+        refresh_token: 'refresh-stable',
+        token_type: 'Bearer',
+        issuer: authorizationServerUrl,
+        authorization_server: authorizationServerUrl,
+        token_endpoint: tokenEndpoint,
+      };
+      let validAccessToken = tokens.access_token;
+      let refreshes = 0;
+      let oldTokenRequests = 0;
+
+      const authProvider: OAuthClientProvider = {
+        tokens: () => tokens,
+        saveTokens: nextTokens => {
+          tokens = nextTokens;
+          firstRefreshSaved.resolve();
+        },
+        redirectToAuthorization: vi.fn(),
+        saveCodeVerifier: vi.fn(),
+        codeVerifier: () => 'verifier',
+        redirectUrl: 'https://app.test/oauth/callback',
+        clientMetadata: {
+          redirect_uris: ['https://app.test/oauth/callback'],
+        },
+        clientInformation: () => ({ client_id: 'client' }),
+      };
+
+      const fetch = vi.fn(
+        async (
+          input: RequestInfo | URL,
+          init?: RequestInit,
+        ): Promise<Response> => {
+          const request = new Request(input, init);
+
+          if (request.url === serverUrl && request.method === 'GET') {
+            return new Response(
+              new ReadableStream<Uint8Array>({
+                start(controller) {
+                  streamController = controller;
+                  controller.enqueue(
+                    new TextEncoder().encode(
+                      `event: endpoint\ndata: ${endpointUrl}\n\n`,
+                    ),
+                  );
+                },
+              }),
+              { headers: { 'content-type': 'text/event-stream' } },
+            );
+          }
+
+          if (request.url.endsWith('/.well-known/oauth-protected-resource')) {
+            return Response.json({
+              resource: serverUrl,
+              authorization_servers: [authorizationServerUrl],
+            });
+          }
+
+          if (
+            request.url ===
+            `${authorizationServerUrl}.well-known/oauth-authorization-server`
+          ) {
+            return Response.json({
+              issuer: authorizationServerUrl,
+              authorization_endpoint: `${authorizationServerUrl}authorize`,
+              token_endpoint: tokenEndpoint,
+              response_types_supported: ['code'],
+              grant_types_supported: ['refresh_token'],
+              token_endpoint_auth_methods_supported: ['none'],
+            });
+          }
+
+          if (request.url === tokenEndpoint && request.method === 'POST') {
+            if (timing === 'simultaneous') {
+              await bothOldTokenRequestsStarted.promise;
+            }
+            refreshes += 1;
+            validAccessToken = `access-${refreshes}`;
+            return Response.json({
+              access_token: validAccessToken,
+              refresh_token: 'refresh-stable',
+              token_type: 'Bearer',
+            });
+          }
+
+          if (request.url === endpointUrl && request.method === 'POST') {
+            if (
+              request.headers.get('authorization') !==
+              `Bearer ${validAccessToken}`
+            ) {
+              oldTokenRequests += 1;
+              if (oldTokenRequests === 2) {
+                bothOldTokenRequestsStarted.resolve();
+              }
+              if (timing === 'after-save' && oldTokenRequests === 2) {
+                await firstRefreshSaved.promise;
+              }
+              return new Response(null, { status: 401 });
+            }
+
+            return new Response(null, { status: 202 });
+          }
+
+          return new Response(null, { status: 404 });
+        },
+      );
+
+      transport = new SseMCPTransport({
+        url: serverUrl,
+        authProvider,
+        fetch,
+      });
+      await transport.start();
+      validAccessToken = 'access-invalidated';
+
+      await Promise.all([
+        transport.send({
+          jsonrpc: '2.0',
+          method: 'resources/list',
+          id: 1,
+        }),
+        transport.send({
+          jsonrpc: '2.0',
+          method: 'resources/list',
+          id: 2,
+        }),
+      ]);
+
+      expect(refreshes).toBe(1);
+      expect(oldTokenRequests).toBe(2);
+      expect(streamController).toBeDefined();
+      await transport.close();
+    },
+  );
+
   it('should abort a hanging POST with the request signal', async () => {
     let resolveSseController: (
       controller: ReadableStreamDefaultController<Uint8Array>,
@@ -395,7 +552,7 @@ describe('SseMCPTransport', () => {
     await transport.close();
   });
 
-  it('should handle POST request errors', async () => {
+  it('should reject non-2xx POST responses with HTTP details', async () => {
     const controller = new TestResponseController();
 
     server.urls['http://localhost:3000/sse'].response = {
@@ -409,9 +566,10 @@ describe('SseMCPTransport', () => {
       body: 'Internal Server Error',
     };
 
-    const errorPromise = new Promise<unknown>(resolve => {
-      transport.onerror = err => resolve(err);
-    });
+    let reportedError: unknown;
+    transport.onerror = error => {
+      reportedError = error;
+    };
 
     const connectPromise = transport.start();
     controller.write(
@@ -426,11 +584,19 @@ describe('SseMCPTransport', () => {
       id: '1',
     };
 
-    await transport.send(message);
-
-    const error = await errorPromise;
-    expect(error).toBeInstanceOf(MCPClientError);
-    expect((error as Error).message).toContain('Error: POSTing to endpoint');
+    await expect(transport.send(message)).rejects.toMatchObject({
+      message:
+        'MCP SSE Transport Error: POSTing to endpoint (HTTP 500): Internal Server Error',
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
+    expect(reportedError).toBeInstanceOf(MCPClientError);
+    expect(reportedError).toMatchObject({
+      statusCode: 500,
+      url: 'http://localhost:3000/messages',
+      responseBody: 'Internal Server Error',
+    });
     expect(transport['connected']).toBe(true);
 
     await transport.close();
@@ -498,7 +664,7 @@ describe('SseMCPTransport', () => {
 
     // Verify SSE connection headers
     expect(server.calls[0].requestHeaders).toEqual({
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       accept: 'text/event-stream',
       ...customHeaders,
     });
@@ -507,7 +673,7 @@ describe('SseMCPTransport', () => {
     // Verify POST request headers
     expect(server.calls[1].requestHeaders).toEqual({
       'content-type': 'application/json',
-      'mcp-protocol-version': LATEST_PROTOCOL_VERSION,
+      'mcp-protocol-version': LATEST_LEGACY_PROTOCOL_VERSION,
       ...customHeaders,
     });
     expect(server.calls[1].requestUserAgent).toContain('ai-sdk/');

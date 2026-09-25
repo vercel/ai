@@ -1,6 +1,11 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
-import { tool } from '@ai-sdk/provider-utils';
+import type { HarnessAllTools } from './harness-agent-tool-types';
+import {
+  tool,
+  type SystemModelMessage,
+  type Tool,
+} from '@ai-sdk/provider-utils';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
@@ -23,11 +28,256 @@ const userTools = {
   }),
 };
 
+const contextualTools = {
+  lookupAccount: tool({
+    inputSchema: z.object({}),
+    contextSchema: z.object({ userId: z.string() }),
+  }),
+};
+
+type OptionalContextTools = {
+  lookupAccount: Tool<
+    Record<string, never>,
+    never,
+    { userId: string } | undefined
+  >;
+};
+
+const optionalContextTools = {} as OptionalContextTools;
+
 const sandbox = undefined as never as HarnessV1SandboxProvider;
 
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+  test('rejects toolsContext when no tool declares context', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+      // @ts-expect-error toolsContext is not accepted when no tool requires it
+      toolsContext: {},
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('requires context for contextual tools', () => {
+    // @ts-expect-error toolsContext is required when a tool has contextSchema
+    const settings: HarnessAgentSettings<
+      typeof harness,
+      typeof contextualTools
+    > = {
+      harness,
+      tools: contextualTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof contextualTools>
+    >();
+  });
+
+  test('allows optional context objects to omit toolsContext', () => {
+    const withoutContext: HarnessAgentSettings<
+      typeof harness,
+      typeof optionalContextTools
+    > = {
+      harness,
+      tools: optionalContextTools,
+    };
+    const withUndefinedContext: HarnessAgentSettings<
+      typeof harness,
+      typeof optionalContextTools
+    > = {
+      harness,
+      tools: optionalContextTools,
+      toolsContext: { lookupAccount: undefined },
+    };
+
+    expectTypeOf(withoutContext).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof optionalContextTools>
+    >();
+    expectTypeOf(withUndefinedContext).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof optionalContextTools>
+    >();
+  });
+
+  test('lifecycle callbacks use merged tools and runtime context', () => {
+    type RuntimeContext = { tenantId: string };
+    type LifecycleSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const settings: LifecycleSettings = {
+      harness,
+      tools: userTools,
+      onStart: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+        expectTypeOf(event.tools).toMatchTypeOf<
+          HarnessAllTools<typeof harness, typeof userTools> | undefined
+        >();
+      },
+      onStepStart: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      },
+      onLanguageModelCallStart: event => {
+        expectTypeOf(event.modelId).toEqualTypeOf<string>();
+      },
+      onLanguageModelCallEnd: event => {
+        expectTypeOf(event.content).toMatchTypeOf<readonly unknown[]>();
+      },
+      onToolExecutionStart: event => {
+        if (event.toolCall.toolName === 'echo') {
+          expectTypeOf(event.toolCall.input).not.toBeAny();
+        }
+      },
+      onToolExecutionEnd: event => {
+        expectTypeOf(event.toolCall.toolName).toEqualTypeOf<string>();
+      },
+      onStepEnd: event => {
+        expectTypeOf(event.runtimeContext).toEqualTypeOf<RuntimeContext>();
+      },
+      onEnd: event => {
+        expectTypeOf(
+          event.finalStep.runtimeContext,
+        ).toEqualTypeOf<RuntimeContext>();
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
+  });
+
+  test('deprecated lifecycle aliases are not settings', () => {
+    const settings: Settings = {
+      harness,
+      // @ts-expect-error deprecated lifecycle aliases are call-only
+      onFinish: () => {},
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('call options are typed by the appended generic', () => {
+    type CallOptions = { tenant: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: userTools,
+      callOptionsSchema: z.object({ tenant: z.string() }),
+      prepareCall: ({ options, ...rest }) => {
+        expectTypeOf(options).toEqualTypeOf<CallOptions>();
+        return {
+          ...rest,
+          instructions: {
+            role: 'system',
+            content: `Serve ${options.tenant}`,
+          },
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('prepareCall can derive typed tool context from call options', () => {
+    type CallOptions = { userId: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof contextualTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: contextualTools,
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, toolsContext, ...rest }) => {
+        expectTypeOf(toolsContext).toEqualTypeOf<{
+          lookupAccount: { userId: string };
+        }>();
+        return {
+          ...rest,
+          toolsContext: {
+            lookupAccount: { userId: options.userId },
+          },
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('sandbox provider is optional', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('model accepts any string', () => {
+    const settings: Settings = {
+      harness,
+      model: 'harness-specific-model',
+    };
+
+    expectTypeOf(settings.model).toEqualTypeOf<string | undefined>();
+  });
+
+  test('instructions accept a SystemModelMessage', () => {
+    const settings: Settings = {
+      harness,
+      instructions: {
+        role: 'system',
+        content: 'Serve the user.',
+        providerOptions: { test: { cache: true } },
+      },
+    };
+
+    expectTypeOf(settings.instructions).toEqualTypeOf<
+      string | SystemModelMessage | undefined
+    >();
+  });
+
+  test('headers accept undefined values', () => {
+    const settings: Settings = {
+      harness,
+      headers: {
+        'x-tenant': 'acme',
+        'x-optional': undefined,
+      },
+    };
+
+    expectTypeOf(settings.headers).toEqualTypeOf<
+      Record<string, string | undefined> | undefined
+    >();
+  });
+
+  test('prepareCall cannot modify headers', () => {
+    const settings: Settings = {
+      harness,
+      headers: { 'x-tenant': 'acme' },
+      prepareCall: call => {
+        // @ts-expect-error headers are stable construction-time settings
+        call.headers;
+        return call;
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
   test('activeTools accepts builtin and user tool names', () => {
     const settings: Settings = {
       harness,

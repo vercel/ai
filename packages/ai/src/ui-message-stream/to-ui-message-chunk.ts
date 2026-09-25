@@ -1,10 +1,12 @@
 import type { ToolSet } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from '../generate-text/stream-text-result';
+import { getToolCallInputSchemaInput } from '../generate-text/tool-call';
 import type {
   InferUIMessageData,
   InferUIMessageMetadata,
   UIMessage,
 } from '../ui/ui-messages';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { InferUIMessageChunk, UIMessageChunk } from './ui-message-chunks';
 
 export type ToUIMessageChunkOptions<
@@ -250,10 +252,16 @@ export function toUIMessageChunk<
     }
 
     case 'tool-approval-request': {
+      const inputSchemaInput = getToolCallInputSchemaInput(part.toolCall);
       return {
         type: 'tool-approval-request',
         approvalId: part.approvalId,
         toolCallId: part.toolCall.toolCallId,
+        ...(inputSchemaInput != null &&
+        !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+          ? { inputSchemaInput: inputSchemaInput.value }
+          : {}),
+        ...(part.reason != null ? { reason: part.reason } : {}),
         ...(part.isAutomatic != null ? { isAutomatic: part.isAutomatic } : {}),
         ...(part.signature != null ? { signature: part.signature } : {}),
       };

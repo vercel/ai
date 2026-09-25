@@ -1,4 +1,5 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
+import { prepareTools as prepareAnthropicTools } from '@ai-sdk/anthropic/internal';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { prepareTools } from './amazon-bedrock-prepare-tools';
 
@@ -174,6 +175,33 @@ describe('prepareTools', () => {
       ]);
     });
 
+    it.each([
+      'anthropic.web_search_20260318' as const,
+      'anthropic.web_fetch_20260318' as const,
+    ])('should warn and filter out unsupported %s tool', async toolId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'provider',
+            id: toolId,
+            name: toolId.includes('search') ? 'web_search' : 'web_fetch',
+            args: {},
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      const toolType = toolId.slice('anthropic.'.length);
+      expect(result.toolConfig).toEqual({});
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: `${toolType} tool`,
+          details: `The ${toolType} tool is not supported on Amazon Bedrock.`,
+        },
+      ]);
+    });
+
     it('should return empty toolConfig when all tools are filtered out', async () => {
       const result = await prepareTools({
         tools: [
@@ -192,6 +220,31 @@ describe('prepareTools', () => {
   });
 
   describe('tool choice', () => {
+    it('should use Anthropic tool choice fields for a declared Anthropic application inference profile', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'Test',
+            inputSchema: {},
+          },
+        ],
+        modelId:
+          'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile',
+        modelFamily: 'anthropic',
+        disableParallelToolUse: true,
+      });
+
+      expect(result.additionalTools).toEqual({
+        tool_choice: {
+          type: 'auto',
+          disable_parallel_tool_use: true,
+        },
+      });
+      expect(result.toolConfig.toolChoice).toBeUndefined();
+    });
+
     it('should handle tool choice "auto"', async () => {
       const result = await prepareTools({
         tools: [
@@ -262,6 +315,54 @@ describe('prepareTools', () => {
       });
     });
 
+    it.each([
+      {
+        toolChoice: undefined,
+        expected: { type: 'auto', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: { type: 'auto' } as const,
+        expected: { type: 'auto', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: { type: 'required' } as const,
+        expected: { type: 'any', disable_parallel_tool_use: true },
+      },
+      {
+        toolChoice: {
+          type: 'tool',
+          toolName: 'testFunction',
+        } as const,
+        expected: {
+          type: 'tool',
+          name: 'testFunction',
+          disable_parallel_tool_use: true,
+        },
+      },
+    ])(
+      'should use Anthropic tool choice fields when parallel tool use is disabled',
+      async ({ toolChoice, expected }) => {
+        const result = await prepareTools({
+          tools: [
+            {
+              type: 'function',
+              name: 'testFunction',
+              description: 'Test',
+              inputSchema: {},
+            },
+          ],
+          toolChoice,
+          modelId: ANTHROPIC_MODEL,
+          disableParallelToolUse: true,
+        });
+
+        expect(result.additionalTools).toEqual({
+          tool_choice: expected,
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      },
+    );
+
     it('should filter function tools to only the named tool when tool choice is "tool"', async () => {
       const result = await prepareTools({
         tools: [
@@ -287,6 +388,144 @@ describe('prepareTools', () => {
         'getWeather',
       );
     });
+
+    describe('models that reject forced tool use', () => {
+      const weatherTool = {
+        type: 'function' as const,
+        name: 'getWeather',
+        description: 'Get weather',
+        inputSchema: { type: 'object' as const },
+      };
+      const timeTool = {
+        type: 'function' as const,
+        name: 'getTime',
+        description: 'Get time',
+        inputSchema: { type: 'object' as const },
+      };
+
+      it.each([
+        'anthropic.claude-opus-5-5',
+        'us.anthropic.claude-opus-5-5',
+        'global.anthropic.claude-opus-5-5',
+      ])(
+        'should fall back to auto for tool choice "required" on %s',
+        async modelId => {
+          const result = await prepareTools({
+            tools: [weatherTool],
+            toolChoice: { type: 'required' },
+            modelId,
+            rejectsForcedToolUse: true,
+          });
+
+          expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+          expect(result.toolWarnings).toEqual([
+            {
+              type: 'unsupported',
+              feature: 'toolChoice',
+              details:
+                "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+                "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+            },
+          ]);
+        },
+      );
+
+      it('should fall back to auto and send only the named function tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool, timeTool],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.toolWarnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+              "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+              'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+          },
+        ]);
+      });
+
+      it('should drop provider tools that are not the named tool for tool choice "tool"', async () => {
+        const result = await prepareTools({
+          tools: [
+            weatherTool,
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'getWeather' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(
+          result.toolConfig.tools?.map(tool => (tool as any).toolSpec.name),
+        ).toEqual(['getWeather']);
+        expect(result.additionalTools).toBeUndefined();
+      });
+
+      it('should pass the forced-tool capability to Anthropic provider tool preparation', async () => {
+        await prepareTools({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.bash_20250124',
+              name: 'bash',
+              args: {},
+            },
+          ],
+          toolChoice: { type: 'tool', toolName: 'bash' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          rejectsForcedToolUse: true,
+        });
+
+        expect(prepareAnthropicTools).toHaveBeenCalledWith(
+          expect.objectContaining({
+            toolChoice: { type: 'tool', toolName: 'bash' },
+            rejectsForcedToolUse: true,
+          }),
+        );
+      });
+
+      it('should preserve disabled parallel tool use in the auto fallback', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5-5',
+          disableParallelToolUse: true,
+          rejectsForcedToolUse: true,
+        });
+
+        expect(result.additionalTools).toEqual({
+          tool_choice: { type: 'auto', disable_parallel_tool_use: true },
+        });
+        expect(result.toolConfig.toolChoice).toBeUndefined();
+      });
+
+      it('should keep forced tool choice for models that support it', async () => {
+        const result = await prepareTools({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          modelId: 'us.anthropic.claude-opus-5',
+        });
+
+        expect(result.toolConfig.toolChoice).toEqual({ any: {} });
+        expect(result.toolWarnings).toEqual([]);
+      });
+    });
   });
 
   describe('strict mode for function tools', () => {
@@ -297,7 +536,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'testFunction',
             description: 'A test function',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
         ],
@@ -311,11 +554,186 @@ describe('prepareTools', () => {
             description: 'A test function',
             strict: true,
             inputSchema: {
-              json: { type: 'object', properties: {} },
+              json: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+              },
             },
           },
         },
       ]);
+    });
+
+    it.each([
+      'anthropic.claude-sonnet-4-6-v1',
+      'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    ])('should keep strict mode enabled for %s', async modelId => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
+            strict: true,
+          },
+        ],
+        modelId,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec.strict).toBe(true);
+      expect(result.toolWarnings).toEqual([]);
+    });
+
+    it('should omit strict mode when the top-level object schema is open', async () => {
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'testFunction',
+            description: 'A test function',
+            inputSchema: { type: 'object', properties: {} },
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).not.toHaveProperty(
+        'strict',
+      );
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'testFunction' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should omit strict mode when a nested object schema is open', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should omit strict mode when a referenced object schema in $defs is open', async () => {
+      const inputSchema = {
+        $ref: '#/$defs/location',
+        $defs: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+          },
+        },
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'strict',
+          details:
+            "Tool 'getWeather' has strict: true, but Amazon Bedrock requires every object in a strict tool schema to set additionalProperties: false. The strict property will be ignored.",
+        },
+      ]);
+    });
+
+    it('should pass through strict mode when all nested object schemas are closed', async () => {
+      const inputSchema = {
+        type: 'object' as const,
+        properties: {
+          location: {
+            type: 'object' as const,
+            properties: {
+              city: { type: 'string' as const },
+            },
+            required: ['city'],
+            additionalProperties: false,
+          },
+        },
+        required: ['location'],
+        additionalProperties: false,
+      };
+
+      const result = await prepareTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'getWeather',
+            inputSchema,
+            strict: true,
+          },
+        ],
+        modelId: ANTHROPIC_MODEL,
+      });
+
+      expect((result.toolConfig.tools![0] as any).toolSpec).toEqual({
+        name: 'getWeather',
+        strict: true,
+        inputSchema: { json: inputSchema },
+      });
+      expect(result.toolWarnings).toEqual([]);
     });
 
     it('should pass through strict mode when strict is false', async () => {
@@ -370,7 +788,11 @@ describe('prepareTools', () => {
             type: 'function',
             name: 'strictTool',
             description: 'A strict tool',
-            inputSchema: { type: 'object', properties: {} },
+            inputSchema: {
+              type: 'object',
+              properties: {},
+              additionalProperties: false,
+            },
             strict: true,
           },
           {
@@ -402,6 +824,9 @@ describe('prepareTools', () => {
       'us.anthropic.claude-opus-5',
       'anthropic.claude-sonnet-5',
       'eu.anthropic.claude-fable-5',
+      'anthropic.claude-fable-5-1',
+      'us.anthropic.claude-fable-5-1',
+      'global.anthropic.claude-fable-5-1',
     ])('should warn when strict is omitted for %s', async modelId => {
       const result = await prepareTools({
         tools: [

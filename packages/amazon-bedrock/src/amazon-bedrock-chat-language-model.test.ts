@@ -1,5 +1,9 @@
 import type * as AnthropicInternal from '@ai-sdk/anthropic/internal';
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4Prompt,
+  SharedV4ProviderOptions,
+} from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
@@ -88,14 +92,45 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const novaMicroModelId = 'us.amazon.nova-micro-v1:0';
+const novaMicroGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaMicroModelId,
+)}/converse`;
+
 const openaiModelId = 'openai.gpt-oss-120b-1:0';
 const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
 )}/converse`;
 
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
+const customOpenaiSubstringModelId = 'custom-openai.gpt-5.6-luna';
+const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  customOpenaiSubstringModelId,
+)}/converse`;
+
 const newerAnthropicModelId = 'anthropic.claude-sonnet-4-6-v1';
 const newerAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   newerAnthropicModelId,
+)}/converse`;
+
+const haiku45AnthropicModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+const haiku45AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku45AnthropicModelId,
+)}/converse`;
+
+const nativeStructuredOutputAnthropicModelId =
+  'anthropic.claude-sonnet-4-5-20250929-v1:0';
+const nativeStructuredOutputAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  nativeStructuredOutputAnthropicModelId,
 )}/converse`;
 
 const opusAnthropicModelId = 'us.anthropic.claude-opus-4-8';
@@ -106,6 +141,11 @@ const opusAnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
 const opus5AnthropicModelId = 'us.anthropic.claude-opus-5';
 const opus5AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   opus5AnthropicModelId,
+)}/converse`;
+
+const opus55AnthropicModelId = 'us.anthropic.claude-opus-5-5';
+const opus55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus55AnthropicModelId,
 )}/converse`;
 
 const sonnet5AnthropicModelId = 'us.anthropic.claude-sonnet-5';
@@ -125,10 +165,17 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [novaMicroGenerateUrl]: {},
   [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
+  [customOpenaiSubstringGenerateUrl]: {},
   [newerAnthropicGenerateUrl]: {},
+  [haiku45AnthropicGenerateUrl]: {},
+  [nativeStructuredOutputAnthropicGenerateUrl]: {},
   [opusAnthropicGenerateUrl]: {},
   [opus5AnthropicGenerateUrl]: {},
+  [opus55AnthropicGenerateUrl]: {},
   [sonnet5AnthropicGenerateUrl]: {},
 });
 
@@ -209,6 +256,13 @@ const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
   generateId: () => 'test-id',
 });
 
+const novaMicroModel = new AmazonBedrockChatLanguageModel(novaMicroModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
 const openaiModel = new AmazonBedrockChatLanguageModel(openaiModelId, {
   baseUrl: () => baseUrl,
   headers: {},
@@ -246,6 +300,26 @@ const newerAnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
+const haiku45AnthropicModel = new AmazonBedrockChatLanguageModel(
+  haiku45AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const nativeStructuredOutputAnthropicModel = new AmazonBedrockChatLanguageModel(
+  nativeStructuredOutputAnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
 const opusAnthropicModel = new AmazonBedrockChatLanguageModel(
   opusAnthropicModelId,
   {
@@ -266,7 +340,191 @@ const opus5AnthropicModel = new AmazonBedrockChatLanguageModel(
   },
 );
 
-let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+const opus55AnthropicModel = new AmazonBedrockChatLanguageModel(
+  opus55AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+describe('application inference profile reasoning', () => {
+  it('returns reasoning for an Anthropic application inference profile ARN when budgetTokens is configured', async () => {
+    const applicationProfileArn =
+      'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+    let requestBody:
+      | {
+          additionalModelRequestFields?: {
+            thinking?: unknown;
+          };
+        }
+      | undefined;
+    const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+      applicationProfileArn,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          requestBody = JSON.parse(String(init?.body));
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content:
+                    requestBody?.additionalModelRequestFields?.thinking == null
+                      ? [{ text: 'OK' }]
+                      : [
+                          {
+                            reasoningContent: {
+                              reasoningText: {
+                                text: 'The response should be OK.',
+                                signature: 'test-signature',
+                              },
+                            },
+                          },
+                          { text: 'OK' },
+                        ],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: {
+                inputTokens: 1,
+                outputTokens: 1,
+                totalTokens: 2,
+              },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      },
+    );
+
+    const result = await applicationProfileModel.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 1100,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'reasoning',
+        text: 'The response should be OK.',
+        providerMetadata: expect.objectContaining({
+          amazonBedrock: {
+            signature: 'test-signature',
+          },
+        }),
+      }),
+    );
+    expect(requestBody?.additionalModelRequestFields?.thinking).toEqual({
+      type: 'enabled',
+      budget_tokens: 1024,
+    });
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported',
+        feature: 'budgetTokens',
+      }),
+    );
+  });
+});
+
+describe('application inference profile structured output', () => {
+  it.each(['outputFormat', 'auto'] as const)(
+    'uses native structured output in %s mode when the Anthropic family is declared',
+    async structuredOutputMode => {
+      const applicationProfileArn =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+      let requestBody: any;
+      const applicationProfileModel = new AmazonBedrockChatLanguageModel(
+        applicationProfileArn,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          modelFamily: 'anthropic',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: '{"name":"Test"}' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await applicationProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+        providerOptions: {
+          amazonBedrock: {
+            structuredOutputMode,
+          },
+        },
+      });
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      });
+    },
+  );
+});
+
+let mockOptions: {
+  success: boolean;
+  errorValue?: any;
+  validateSchema?: boolean;
+} = { success: true };
 
 describe('doGenerate request metadata', () => {
   it('should return the request body', async () => {
@@ -458,26 +716,37 @@ describe('request URL', () => {
 
 describe('doStream', () => {
   beforeEach(() => {
-    mockOptions = { success: true, errorValue: undefined };
+    mockOptions = {
+      success: true,
+      errorValue: undefined,
+      validateSchema: false,
+    };
   });
 
   vi.mock('./amazon-bedrock-event-stream-response-handler', () => ({
     createAmazonBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
-        let chunks: { success: boolean; value: any }[] = [];
+        let chunks: Array<{
+          success: boolean;
+          value?: any;
+          error?: unknown;
+          rawValue?: unknown;
+        }> = [];
         if (mockOptions.success) {
           const text = await response.text();
-          chunks = text
+          const values = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => {
-              const parsedChunk = JSON.parse(chunk);
-              return {
+            .map(chunk => JSON.parse(chunk));
+          chunks = mockOptions.validateSchema
+            ? await Promise.all(
+                values.map(value => safeValidateTypes({ value, schema })),
+              )
+            : values.map(value => ({
                 success: true,
-                value: parsedChunk,
-                rawValue: parsedChunk,
-              };
-            });
+                value,
+                rawValue: value,
+              }));
         }
         const headers = Object.fromEntries<string>([...response.headers]);
 
@@ -502,7 +771,11 @@ describe('doStream', () => {
   }));
 
   function setupMockEventStreamHandler(
-    options: { success?: boolean; errorValue?: any } = { success: true },
+    options: {
+      success?: boolean;
+      errorValue?: any;
+      validateSchema?: boolean;
+    } = { success: true },
   ) {
     mockOptions = { ...mockOptions, ...options };
   }
@@ -572,6 +845,42 @@ describe('doStream', () => {
         }
       `);
     });
+  });
+
+  it('should accept citation deltas', async () => {
+    setupMockEventStreamHandler({ validateSchema: true });
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              citation: {
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 1,
+                    end: 2,
+                  },
+                },
+                sourceContent: [{ text: 'Source content' }],
+                title: 'document',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
   });
 
   describe('reasoning', () => {
@@ -1028,10 +1337,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "internalServerException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Internal Server Error",
+                "name": "InternalServerException",
+              },
+            },
+            "isRetryable": true,
             "message": "Internal Server Error",
-            "name": "InternalServerException",
+            "statusCode": 500,
+            "type": "internalServerException",
           },
           "type": "error",
         },
@@ -1095,10 +1413,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "modelStreamErrorException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Model Stream Error",
+                "name": "ModelStreamErrorException",
+              },
+            },
+            "isRetryable": true,
             "message": "Model Stream Error",
-            "name": "ModelStreamErrorException",
+            "statusCode": 424,
+            "type": "modelStreamErrorException",
           },
           "type": "error",
         },
@@ -1162,10 +1489,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "throttlingException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Throttling Error",
+                "name": "ThrottlingException",
+              },
+            },
+            "isRetryable": true,
             "message": "Throttling Error",
-            "name": "ThrottlingException",
+            "statusCode": 429,
+            "type": "throttlingException",
           },
           "type": "error",
         },
@@ -1229,10 +1565,19 @@ describe('doStream', () => {
         },
         {
           "error": {
-            "$fault": "server",
-            "$metadata": {},
+            "code": undefined,
+            "data": {
+              "validationException": {
+                "$fault": "server",
+                "$metadata": {},
+                "message": "Validation Error",
+                "name": "ValidationException",
+              },
+            },
+            "isRetryable": false,
             "message": "Validation Error",
-            "name": "ValidationException",
+            "statusCode": 400,
+            "type": "validationException",
           },
           "type": "error",
         },
@@ -1449,6 +1794,158 @@ describe('doStream', () => {
         guardrailVersion: '2',
       },
     });
+  });
+
+  it('should send text parts as guardContent blocks in streaming requests', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [],
+    };
+
+    await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'What is the capital of Japan?',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                text: {
+                  text: 'What is the capital of Japan?',
+                  qualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    });
+  });
+
+  it('should map guardrail_intervened messageStop to a content-filter finish reason in streaming', async () => {
+    setupMockEventStreamHandler();
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 0,
+            delta: { text: 'Sorry, the model cannot answer this question.' },
+          },
+        }) + '\n',
+        JSON.stringify({
+          metadata: {
+            usage: { inputTokens: 18, outputTokens: 12, totalTokens: 30 },
+            metrics: { latencyMs: 412 },
+            trace: {
+              guardrail: {
+                inputAssessment: {
+                  '1abcd2ef34gh': {
+                    topicPolicy: {
+                      topics: [
+                        {
+                          action: 'BLOCKED' as const,
+                          name: 'Restricted topic',
+                          type: 'DENY' as const,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }) + '\n',
+        JSON.stringify({
+          messageStop: { stopReason: 'guardrail_intervened' },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Tell me something restricted.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      includeRawChunks: false,
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+    const finish = chunks.find(c => c.type === 'finish');
+
+    expect(finish?.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "guardrail_intervened",
+        "unified": "content-filter",
+      }
+    `);
+    expect(finish?.providerMetadata?.bedrock.trace).toMatchInlineSnapshot(`
+      {
+        "guardrail": {
+          "inputAssessment": {
+            "1abcd2ef34gh": {
+              "topicPolicy": {
+                "topics": [
+                  {
+                    "action": "BLOCKED",
+                    "name": "Restricted topic",
+                    "type": "DENY",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }
+    `);
   });
 
   it('should include trace information in providerMetadata', async () => {
@@ -3514,6 +4011,40 @@ describe('doStream', () => {
 });
 
 describe('doGenerate', () => {
+  it('should generate an ID when toolUseId is empty', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: '',
+                  name: 'test-tool',
+                  input: { value: 'test' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'test-id',
+      toolName: 'test-tool',
+      input: '{"value":"test"}',
+      providerMetadata: undefined,
+    });
+  });
+
   describe('text', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('amazon-bedrock-text');
@@ -3525,6 +4056,131 @@ describe('doGenerate', () => {
       });
 
       expect(result).toMatchSnapshot();
+    });
+
+    it('should extract text from citation content', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{ text: 'Citation ' }, { text: 'response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Citation ' },
+        { type: 'text', text: 'response' },
+      ]);
+    });
+
+    it.each([undefined, null])(
+      'should ignore citation content when generated content is %s',
+      async generatedContent => {
+        server.urls[generateUrl].response = {
+          type: 'json-value',
+          body: {
+            output: {
+              message: {
+                role: 'assistant',
+                content: [
+                  {
+                    citationsContent: {
+                      content: generatedContent,
+                      citations: [],
+                    },
+                  },
+                ],
+              },
+            },
+            stopReason: 'end_turn',
+            usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([]);
+      },
+    );
+
+    it('should ignore citation generated content without text', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  citationsContent: {
+                    content: [{}, { text: null }, { text: 'Response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([{ type: 'text', text: 'Response' }]);
+    });
+
+    it('should prefer regular text when citation content is also present', async () => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  text: 'Canonical response',
+                  citationsContent: {
+                    content: [{ text: 'Duplicate response' }],
+                    citations: [],
+                  },
+                },
+              ],
+            },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 2, totalTokens: 3 },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([
+        { type: 'text', text: 'Canonical response' },
+      ]);
     });
 
     it('should extract usage', async () => {
@@ -3546,10 +4202,13 @@ describe('doGenerate', () => {
             "total": 57,
           },
           "raw": {
+            "cacheReadInputTokenCount": 0,
             "cacheReadInputTokens": 0,
+            "cacheWriteInputTokenCount": 0,
             "cacheWriteInputTokens": 0,
             "inputTokens": 22,
             "outputTokens": 57,
+            "serverToolUsage": {},
             "totalTokens": 79,
           },
         }
@@ -3713,6 +4372,77 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'global.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-5',
+  ])(
+    'should omit unsupported sampling parameters for %s',
+    async samplingModelId => {
+      let requestBody: any;
+      const samplingModel = new AmazonBedrockChatLanguageModel(
+        samplingModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: 'OK' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      const result = await samplingModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        topK: 10,
+      });
+
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${samplingModelId} and will be ignored`,
+        },
+      ]);
+    },
+  );
+
   it('should support guardrails', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
@@ -3736,6 +4466,193 @@ describe('doGenerate', () => {
         trace: 'enabled',
       },
     });
+  });
+
+  it('should send text parts as guardContent blocks when providerOptions.bedrock.guardContent is set', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'London is the capital of UK. Tokyo is the capital of Japan.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['grounding_source'],
+                },
+              },
+            },
+            { type: 'text', text: 'Some additional background information.' },
+            {
+              type: 'text',
+              text: 'What is the capital of Japan?',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '-1',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                text: {
+                  text: 'London is the capital of UK. Tokyo is the capital of Japan.',
+                  qualifiers: ['grounding_source'],
+                },
+              },
+            },
+            { text: 'Some additional background information.' },
+            {
+              guardContent: {
+                text: {
+                  text: 'What is the capital of Japan?',
+                  qualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      guardrailConfig: {
+        guardrailIdentifier: '-1',
+        guardrailVersion: '1',
+        trace: 'enabled',
+      },
+    });
+  });
+
+  it('should send image parts as guardContent blocks when providerOptions.bedrock.guardContent is set', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data' as const, data: 'AAECAw==' },
+              mediaType: 'image/png',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                },
+              },
+            },
+            { type: 'text', text: 'Describe this image.' },
+          ],
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              guardContent: {
+                image: {
+                  format: 'png',
+                  source: { bytes: 'AAECAw==' },
+                },
+              },
+            },
+            { text: 'Describe this image.' },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('should surface guardrail intervention as a content-filter finish reason with trace metadata', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-guard-content-intervened');
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Tell me something restricted.',
+              providerOptions: {
+                bedrock: {
+                  guardContent: true,
+                  guardContentQualifiers: ['query'],
+                },
+              },
+            },
+          ],
+        },
+      ],
+      providerOptions: {
+        bedrock: {
+          guardrailConfig: {
+            guardrailIdentifier: '1abcd2ef34gh',
+            guardrailVersion: '1',
+            trace: 'enabled',
+          },
+        },
+      },
+    });
+
+    expect(result.finishReason).toMatchInlineSnapshot(`
+      {
+        "raw": "guardrail_intervened",
+        "unified": "content-filter",
+      }
+    `);
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "Sorry, the model cannot answer this question.",
+          "type": "text",
+        },
+      ]
+    `);
+    expect(result.providerMetadata?.bedrock.trace).toMatchInlineSnapshot(`
+      {
+        "guardrail": {
+          "inputAssessment": {
+            "1abcd2ef34gh": {
+              "topicPolicy": {
+                "topics": [
+                  {
+                    "action": "BLOCKED",
+                    "name": "Restricted topic",
+                    "type": "DENY",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      }
+    `);
   });
 
   it('should include trace information in providerMetadata', async () => {
@@ -4033,6 +4950,41 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should disable parallel tool use without sending conflicting tool choices', async () => {
+    prepareJsonFixtureResponse('amazon-bedrock-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          disableParallelToolUse: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields).toMatchObject({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(requestBody.toolConfig.toolChoice).toBeUndefined();
+  });
+
   it('should only send the forced tool when toolChoice specifies a specific tool', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
@@ -4086,6 +5038,159 @@ describe('doGenerate', () => {
     );
     expect(requestBody.toolConfig.toolChoice).toEqual({
       tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  describe('models that reject forced tool use', () => {
+    type RequestCapture = {
+      body: {
+        toolConfig: {
+          toolChoice?: unknown;
+          tools: Array<{ toolSpec: { name: string } }>;
+        };
+        additionalModelRequestFields?: { tool_choice?: unknown };
+      };
+    };
+
+    const weatherTool = {
+      type: 'function' as const,
+      name: 'getWeather',
+      description: 'Get weather',
+      inputSchema: { type: 'object' as const },
+    };
+    const timeTool = {
+      type: 'function' as const,
+      name: 'getTime',
+      description: 'Get time',
+      inputSchema: { type: 'object' as const },
+    };
+
+    function createModelThatCapturesRequest(
+      modelId: string,
+      capture: RequestCapture,
+    ) {
+      return new AmazonBedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          capture.body = JSON.parse(String(init?.body));
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [{ text: 'Done' }],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      });
+    }
+
+    it.each([
+      'anthropic.claude-opus-5-5',
+      'us.anthropic.claude-opus-5-5',
+      'global.anthropic.claude-opus-5-5',
+    ])(
+      'should build an auto tool choice for required choice on %s',
+      async modelId => {
+        const capture = {} as RequestCapture;
+        const testModel = createModelThatCapturesRequest(modelId, capture);
+
+        const result = await testModel.doGenerate({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+              "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          },
+        ]);
+      },
+    );
+
+    it('should build an auto choice containing only the named tool', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool, timeTool],
+        toolChoice: { type: 'tool', toolName: 'getWeather' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+      expect(
+        capture.body.toolConfig.tools.map(tool => tool.toolSpec.name),
+      ).toEqual(['getWeather']);
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+            "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+            'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+        },
+      ]);
+    });
+
+    it('should build an Anthropic auto choice when parallel tool use is disabled', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: { disableParallelToolUse: true },
+        },
+      });
+
+      expect(capture.body.additionalModelRequestFields?.tool_choice).toEqual({
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      });
+      expect(capture.body.toolConfig.toolChoice).toBeUndefined();
+    });
+
+    it('should keep building forced tool choices for models that support them', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus5AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -4879,7 +5984,7 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
-  it('maps maxReasoningEffort to reasoning_effort for OpenAI models (generate)', async () => {
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',
       body: {
@@ -4912,6 +6017,232 @@ describe('doGenerate', () => {
       requestBody.additionalModelRequestFields?.reasoningConfig,
     ).toBeUndefined();
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to nested reasoning.effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
+    server.urls[customOpenaiSubstringGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const customModel = new AmazonBedrockChatLanguageModel(
+      customOpenaiSubstringModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: { maxReasoningEffort: 'medium' },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.reasoning).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoning_effort,
+    ).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'strips unsupported sampling settings for OpenAI model %s',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0,
+        topP: 0.5,
+        topK: 5,
+        stopSequences: [],
+        maxOutputTokens: 100,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig).toStrictEqual({
+        maxTokens: 100,
+        topK: 5,
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details:
+            'temperature is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details:
+            'topP is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'stopSequences is not supported by this OpenAI model on the Converse API',
+        },
+      ]);
+    },
+  );
+
+  it('does not warn about clamping an unsupported OpenAI temperature', async () => {
+    server.urls[usOpenaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const usOpenaiModel = new AmazonBedrockChatLanguageModel(usOpenaiModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+
+    const result = await usOpenaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 2,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toBeUndefined();
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          'temperature is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
+  });
+
+  it('keeps supported sampling settings for OpenAI gpt-oss models', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.2,
+      topP: 0.5,
+      stopSequences: ['END'],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toStrictEqual({
+      temperature: 0.2,
+      topP: 0.5,
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'stopSequences is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
@@ -5169,8 +6500,365 @@ describe('doGenerate', () => {
     ).toBeUndefined();
   });
 
-  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+  it.each([undefined, 'jsonTool'] as const)(
+    'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
+    async structuredOutputMode => {
+      server.urls[opus55AnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [{ text: '{"answer":"OK"}' }],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+          stopReason: 'end_turn',
+        },
+      };
+
+      const result = await opus55AnthropicModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Return an answer of OK.' }],
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+        ...(structuredOutputMode != null && {
+          providerOptions: {
+            amazonBedrock: { structuredOutputMode },
+          },
+        }),
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+      expect(requestBody.system).toEqual([
+        {
+          text:
+            'JSON schema:\n' +
+            '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}\n' +
+            'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+        },
+      ]);
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"OK"}' },
+      ]);
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        undefined,
+      );
+    },
+  );
+
+  it.each([
+    {
+      modelId: newerAnthropicModelId,
+      model: newerAnthropicModel,
+      generateUrl: newerAnthropicGenerateUrl,
+    },
+    {
+      modelId: haiku45AnthropicModelId,
+      model: haiku45AnthropicModel,
+      generateUrl: haiku45AnthropicGenerateUrl,
+    },
+  ])(
+    'should default to the json tool for $modelId',
+    async ({ model, generateUrl }) => {
+      server.urls[generateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { name: { type: 'string' } },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    {
+      providerOptionsName: 'amazonBedrock',
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'legacy bedrock',
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+    {
+      providerOptionsName: 'anthropic',
+      providerOptions: {
+        anthropic: { structuredOutputMode: 'jsonTool' },
+      } as SharedV4ProviderOptions,
+    },
+  ] satisfies Array<{
+    providerOptionsName: string;
+    providerOptions: SharedV4ProviderOptions;
+  }>)(
+    'should force the json tool wire format with $providerOptionsName provider options',
+    async ({ providerOptions }) => {
+      server.urls[newerAnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [
+                {
+                  toolUse: {
+                    toolUseId: 'json-tool-id',
+                    name: 'json',
+                    input: { name: 'Test' },
+                  },
+                },
+              ],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+          stopReason: 'tool_use',
+        },
+      };
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(requestBody.structuredOutputMode).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"name":"Test"}' },
+      ]);
+      expect(result.finishReason.unified).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it('should remove a manually supplied output_config.format in jsonTool mode while preserving sibling fields', async () => {
     server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: {
+          structuredOutputMode: 'jsonTool',
+          additionalModelRequestFields: {
+            output_config: {
+              effort: 'medium',
+              format: { type: 'manually-supplied-format' },
+            },
+          },
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+    });
+  });
+
+  it('should force output_config.format for models that auto mode routes to the json tool', async () => {
+    server.urls[opus5AnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [{ text: '{"name":"Test"}' }],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'end_turn',
+      },
+    };
+
+    await opus5AnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { name: { type: 'string' } },
+        required: ['name'],
+      },
+    });
+  });
+
+  it('should prefer amazonBedrock structuredOutputMode over anthropic structuredOutputMode', async () => {
+    server.urls[newerAnthropicGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { name: 'Test' },
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 10, totalTokens: 14 },
+        stopReason: 'tool_use',
+      },
+    };
+
+    await newerAnthropicModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        amazonBedrock: { structuredOutputMode: 'jsonTool' },
+        anthropic: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+  });
+
+  it('should use native output_config.format for models with structured output support even without thinking enabled', async () => {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -5184,7 +6872,7 @@ describe('doGenerate', () => {
       },
     };
 
-    await newerAnthropicModel.doGenerate({
+    await nativeStructuredOutputAnthropicModel.doGenerate({
       prompt: [
         {
           role: 'user',
@@ -5230,7 +6918,7 @@ describe('doGenerate', () => {
   });
 
   it('should sanitize unsupported JSON schema keywords for native structured output', async () => {
-    server.urls[newerAnthropicGenerateUrl].response = {
+    server.urls[nativeStructuredOutputAnthropicGenerateUrl].response = {
       type: 'json-value',
       body: {
         output: {
@@ -5244,7 +6932,7 @@ describe('doGenerate', () => {
       },
     };
 
-    await newerAnthropicModel.doGenerate({
+    await nativeStructuredOutputAnthropicModel.doGenerate({
       prompt: TEST_PROMPT,
       responseFormat: {
         type: 'json',
@@ -5590,6 +7278,58 @@ describe('doGenerate', () => {
             },
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should expose reasoning redacted as `redactedContent` for replay', async () => {
+    // `redactedContent` is a member of the ReasoningContentBlock union
+    // in the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)
+    // return their encrypted reasoning in this shape. It is surfaced as provider
+    // metadata so that it can be replayed on subsequent turns.
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedContent: 'encrypted-reasoning-payload',
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "amazonBedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
+            },
+            "bedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
             },
           },
           "text": "",
@@ -6585,7 +8325,7 @@ describe('doGenerate', () => {
       ).toBe(1024);
     });
 
-    it('should map reasoning directly to reasoning_effort for OpenAI models', async () => {
+    it('should map reasoning directly to reasoning_effort for OpenAI gpt-oss models', async () => {
       server.urls[openaiGenerateUrl].response = simpleResponse;
 
       await openaiModel.doGenerate({
@@ -6605,7 +8345,7 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+    it('should map portable reasoning for Nova 2', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
       await novaModel.doGenerate({
@@ -6614,10 +8354,80 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should map reasoning to reasoningConfig when explicitly enabled for Nova 2', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should ignore portable reasoning for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('high');
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
+      });
+    });
+
+    it('should forward explicit reasoningConfig for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
     });
 
     it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {

@@ -1,6 +1,44 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "pnpm build:site",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "v5.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/v5",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "v5.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/v5/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "v6.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/v6",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "v6.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/v6/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "v7.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/docs/introduction",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "v7.ai-sdk.dev" }],
+      "destination": "https://ai-sdk.dev/:path*",
+      "permanent": true
+    }
+  ],
   "git": {
     "deploymentEnabled": {
       "release-v*": false,

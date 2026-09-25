@@ -245,6 +245,17 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
               mime_type: entry.mimeType ?? undefined,
             }),
           );
+        } else if (entry.type === 'video') {
+          responseFormatEntries.push(
+            pruneUndefined({
+              type: 'video' as const,
+              aspect_ratio: entry.aspectRatio ?? undefined,
+              resolution: entry.resolution ?? undefined,
+              duration: entry.duration ?? undefined,
+              delivery: entry.delivery ?? undefined,
+              gcs_uri: entry.gcsUri ?? undefined,
+            }),
+          );
         }
       }
     }

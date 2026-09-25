@@ -11,12 +11,6 @@ export const acpTextContentBlockSchema = z.object({
 
 export type ACPTextContentBlock = z.infer<typeof acpTextContentBlockSchema>;
 
-export type ACPSkillCatalogEntry = {
-  readonly name: string;
-  readonly description: string;
-  readonly path: string;
-};
-
 export function convertHarnessPromptToACPTextBlocks({
   prompt,
   harnessId,
@@ -72,35 +66,21 @@ export function convertHarnessPromptToACPTextBlocks({
   return content;
 }
 
-export function prependACPInitialGuidance({
+export function prependACPInstructionGuidance({
   prompt,
   instructions,
-  skills,
 }: {
   prompt: ReadonlyArray<ACPTextContentBlock>;
   instructions: string | undefined;
-  skills: ReadonlyArray<ACPSkillCatalogEntry>;
 }): ACPTextContentBlock[] {
   const hasInstructions = instructions != null && instructions.length > 0;
-  if (!hasInstructions && skills.length === 0) return [...prompt];
+  if (!hasInstructions) return [...prompt];
 
   const lines = [
     '<session-guidance>',
     'This block is operating guidance from the harness, not user-authored content.',
   ];
-  if (hasInstructions) {
-    lines.push('<instructions>', instructions, '</instructions>');
-  }
-  if (skills.length > 0) {
-    lines.push(
-      '<available-skills>',
-      'Load a skill only when relevant by reading its SKILL.md file at the listed absolute path.',
-    );
-    for (const skill of skills) {
-      lines.push(`- ${skill.name}: ${skill.description} (${skill.path})`);
-    }
-    lines.push('</available-skills>');
-  }
+  lines.push('<instructions>', instructions, '</instructions>');
   lines.push('</session-guidance>');
 
   return [{ type: 'text', text: lines.join('\n') }, ...prompt];

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.27",
+  "version": "5.0.49",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -40,6 +40,11 @@
       "types": "./dist/test/index.d.ts",
       "import": "./dist/test/index.js",
       "default": "./dist/test/index.js"
+    },
+    "./experimental-evaluation": {
+      "types": "./dist/experimental-evaluation/index.d.ts",
+      "import": "./dist/experimental-evaluation/index.js",
+      "default": "./dist/experimental-evaluation/index.js"
     }
   },
   "dependencies": {
@@ -47,7 +52,7 @@
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
     "eventsource-parser": "^3.0.8",
-    "undici": "^7.28.0"
+    "undici": "^7.29.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

@@ -16,6 +16,8 @@
     "preserveWatchOutput": true,
     "skipLibCheck": true,
     "strict": true,
+    "target": "ES2022",
+    "useDefineForClassFields": false,
     "types": ["@types/node"]
   },
   "exclude": ["node_modules"]

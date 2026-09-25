@@ -3,7 +3,7 @@ import { GatewayImageModel } from './gateway-image-model';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import type { GatewayConfig } from './gateway-config';
 
-const TEST_MODEL_ID = 'google/imagen-4.0-generate';
+const TEST_MODEL_ID = 'openai/gpt-image-1';
 
 const createTestModel = (
   config: Partial<
@@ -66,10 +66,12 @@ describe('GatewayImageModel', () => {
   describe('doGenerate', () => {
     function prepareJsonResponse({
       images = ['base64-image-1'],
+      isRetryable,
       warnings,
       providerMetadata,
     }: {
       images?: string[];
+      isRetryable?: boolean;
       warnings?: Array<
         | { type: 'unsupported'; feature: string; details?: string }
         | { type: 'compatibility'; feature: string; details?: string }
@@ -82,6 +84,7 @@ describe('GatewayImageModel', () => {
         type: 'json-value',
         body: {
           images,
+          ...(isRetryable != null && { isRetryable }),
           ...(warnings && { warnings }),
           ...(providerMetadata && { providerMetadata }),
         },
@@ -180,6 +183,23 @@ describe('GatewayImageModel', () => {
       });
 
       expect(result.images).toEqual(mockImages);
+    });
+
+    it('should preserve response retryability', async () => {
+      prepareJsonResponse({ images: [], isRetryable: false });
+
+      const result = await createTestModel().doGenerate({
+        prompt: 'Test prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.isRetryable).toBe(false);
     });
 
     it('should return provider metadata correctly', async () => {

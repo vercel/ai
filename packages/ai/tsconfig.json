@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
-    "target": "ES2018",
     "stripInternal": true,
     "lib": [
       "dom",
@@ -25,7 +24,28 @@
   ],
   "references": [
     {
+      "path": "../amazon-bedrock"
+    },
+    {
+      "path": "../deepseek"
+    },
+    {
       "path": "../gateway"
+    },
+    {
+      "path": "../google"
+    },
+    {
+      "path": "../groq"
+    },
+    {
+      "path": "../huggingface"
+    },
+    {
+      "path": "../moonshotai"
+    },
+    {
+      "path": "../openai"
     },
     {
       "path": "../provider"
@@ -35,6 +55,9 @@
     },
     {
       "path": "../test-server"
+    },
+    {
+      "path": "../xai"
     }
   ]
 }

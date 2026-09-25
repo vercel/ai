@@ -1,0 +1,63 @@
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput } from '@ai-sdk/provider-utils';
+import { expectTypeOf, test } from 'vitest';
+import {
+  createGitHubCopilot,
+  type GitHubCopilotBuiltinTools,
+  type GitHubCopilotHarnessSettings,
+} from './github-copilot-harness';
+
+test('accepts sandbox bridge reconnect settings', () => {
+  const settings: GitHubCopilotHarnessSettings = {
+    reconnect: {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    },
+  };
+  createGitHubCopilot(settings);
+  expectTypeOf(settings.reconnect).toEqualTypeOf<
+    SandboxChannelReconnectOptions | undefined
+  >();
+});
+
+test('preserves GitHub Copilot built-in tool types', () => {
+  const harness = createGitHubCopilot({
+    credentialForwarding: async ({ credential, environmentVariableName }) =>
+      `${environmentVariableName}:${credential}`,
+    mintBridgeToken: sandboxId => sandboxId,
+  });
+
+  expectTypeOf<keyof typeof harness.builtinTools>().toEqualTypeOf<
+    | 'bash'
+    | 'read_bash'
+    | 'stop_bash'
+    | 'list_bash'
+    | 'view'
+    | 'create'
+    | 'edit'
+    | 'web_fetch'
+    | 'skill'
+    | 'sql'
+    | 'read_agent'
+    | 'list_agents'
+    | 'write_agent'
+    | 'grep'
+    | 'glob'
+    | 'task'
+  >();
+
+  // @ts-expect-error unsupported reasoning effort
+  createGitHubCopilot({ reasoningEffort: 'extreme' });
+
+  // @ts-expect-error model is configured on HarnessAgent
+  createGitHubCopilot({ model: 'gpt-5.5' });
+});
+
+test('narrows built-in tool call inputs', () => {
+  type ReadAgentInput = InferToolInput<GitHubCopilotBuiltinTools['read_agent']>;
+  expectTypeOf<ReadAgentInput['agent_id']>().toEqualTypeOf<string>();
+  expectTypeOf<ReadAgentInput['since_turn']>().toEqualTypeOf<
+    number | undefined
+  >();
+});
