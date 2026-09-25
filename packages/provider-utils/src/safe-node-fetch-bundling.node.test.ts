@@ -97,6 +97,64 @@ it.each(['cjs', 'esm'] as const)(
   },
 );
 
+it.each(['cjs', 'esm'] as const)(
+  'rejects a portable bundle running on Node before loading a transport or requesting (%s)',
+  async format => {
+    const entry = join(
+      directory,
+      format === 'cjs' ? 'portable.cjs' : 'portable.mjs',
+    );
+    await build({
+      stdin: { contents: publicEntry, resolveDir: packageDirectory },
+      outfile: entry,
+      bundle: true,
+      minify: true,
+      platform: 'neutral',
+      format,
+    });
+    const runner = join(directory, 'portable-runner.mjs');
+    await writeFile(
+      runner,
+      `
+import assert from 'node:assert/strict';
+import dns from 'node:dns';
+import { pathToFileURL } from 'node:url';
+
+let requests = 0;
+let lookups = 0;
+let builtinLoads = 0;
+globalThis.fetch = async () => {
+  requests++;
+  return new Response('unguarded download');
+};
+dns.lookup = () => { lookups++; throw new Error('Unexpected DNS lookup'); };
+process.getBuiltinModule = () => {
+  builtinLoads++;
+  throw new Error('Unexpected Node transport initialization');
+};
+
+// Importing remains safe; only attempting a protected download should fail.
+const loaded = await import(pathToFileURL(process.argv[2]));
+const { fetchWithValidatedEndpoint } = loaded.default ?? loaded;
+await assert.rejects(
+  fetchWithValidatedEndpoint({ url: 'https://download.example.com/file' }),
+  /portable build cannot perform protected downloads in Node\\.js.*configure your bundler.*node.*export condition/,
+);
+assert.equal(requests, 0);
+assert.equal(lookups, 0);
+assert.equal(builtinLoads, 0);
+`,
+    );
+    const env = { ...process.env };
+    delete env.NODE_PATH;
+    await execFileAsync(process.execPath, [runner, entry], {
+      cwd: directory,
+      env,
+      timeout: 10_000,
+    });
+  },
+);
+
 describe.each([
   {
     runtime: 'browser',
