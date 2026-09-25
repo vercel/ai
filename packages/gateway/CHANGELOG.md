@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 3.0.202
+
+### Patch Changes
+
+- 2cf7cb4: feat (provider/gateway): add Browserbase Search and Fetch tool support
+- af4a3e4: feat(provider/gateway): accept structured-output in the has provider option
+
 ## 3.0.201
 
 ### Patch Changes

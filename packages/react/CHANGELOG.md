@@ -1,5 +1,11 @@
 # @ai-sdk/react
 
+## 3.0.295
+
+### Patch Changes
+
+- ai@6.0.292
+
 ## 3.0.294
 
 ### Patch Changes
