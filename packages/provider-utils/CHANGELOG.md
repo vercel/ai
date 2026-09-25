@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 4.0.55
+
+### Patch Changes
+
+- 3983fea: fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+
 ## 4.0.54
 
 ### Patch Changes
