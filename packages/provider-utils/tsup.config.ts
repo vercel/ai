@@ -6,6 +6,10 @@ const packageVersion = (
 ).default.version;
 
 export default defineConfig([
+  // tsup bundles our internal modules together, so package export conditions
+  // cannot swap out the transport inside a single shared bundle. Publish both
+  // implementations: package.json selects index.js for Node and index.portable.js
+  // for portable runtimes. Consumers use the same import.
   ...(['node', 'portable'] as const).map(
     (runtime): Options => ({
       entry: {
@@ -15,6 +19,9 @@ export default defineConfig([
       dts: runtime === 'node',
       sourcemap: true,
       platform: runtime === 'node' ? 'node' : 'browser',
+      // Replace the transport before bundling so the portable output has no
+      // Undici dependency. A runtime guard around import('undici') would prevent
+      // execution, but browser/edge bundlers would still try to resolve it.
       esbuildPlugins:
         runtime === 'portable'
           ? [
