@@ -114,6 +114,82 @@ describe.each(['generate', 'stream'] as const)(
       },
     );
 
+    describe.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'non-reasoning updates for %s',
+      modelId => {
+        it('preserves positioned none updates and the initial reasoning effort', async () => {
+          const prompt = [user, update('none'), user, update('low'), user];
+          const original = structuredClone(prompt);
+          const { body, warnings } = await request(
+            prompt,
+            { reasoningEffort: 'low', reasoningSummary: null },
+            modelId,
+          );
+          expect(body.input).toEqual([
+            wireUser,
+            wireUpdate('none'),
+            wireUser,
+            wireUpdate('low'),
+            wireUser,
+          ]);
+          expect(body.reasoning).toEqual({ effort: 'low' });
+          expect(warnings).toEqual([]);
+          expect(prompt).toEqual(original);
+        });
+
+        it('prepends a request-level none update', async () => {
+          const { body, warnings } = await request(
+            [user],
+            { reasoningEffort: 'low', reasoningEffortUpdate: 'none' },
+            modelId,
+          );
+          expect(body.input).toEqual([wireUpdate('none'), wireUser]);
+          expect(body.reasoning.effort).toBe('low');
+          expect(warnings).toEqual([]);
+        });
+
+        it('deduplicates matching request-level and first positioned none updates', async () => {
+          const { body, warnings } = await request(
+            [update('none'), user],
+            { reasoningEffortUpdate: 'none' },
+            modelId,
+          );
+          expect(body.input).toEqual([wireUpdate('none'), wireUser]);
+          expect(warnings).toEqual([]);
+        });
+      },
+    );
+
+    it('rejects historical none updates for Astra before sending', async () => {
+      const prompt = [user, update('none'), user];
+      const original = structuredClone(prompt);
+      await expect(request(prompt)).rejects.toMatchObject({
+        name: 'AI_UnsupportedFunctionalityError',
+        functionality: 'Message-level reasoningEffortUpdate',
+        message:
+          'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+      });
+      expect(server.calls).toHaveLength(0);
+      expect(prompt).toEqual(original);
+    });
+
+    it('warns and omits request-level none updates for Astra while retaining valid history', async () => {
+      const { body, warnings } = await request([user, update('low'), user], {
+        reasoningEffort: 'medium',
+        reasoningEffortUpdate: 'none',
+      });
+      expect(body.input).toEqual([wireUser, wireUpdate('low'), wireUser]);
+      expect(body.reasoning.effort).toBe('medium');
+      expect(warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'reasoningEffortUpdate',
+          details:
+            'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+        },
+      ]);
+    });
+
     it.each<{
       name: string;
       providerOptions: SharedV4ProviderOptions;
@@ -430,16 +506,34 @@ describe.each(['generate', 'stream'] as const)(
       },
     );
 
-    it('validates message-level effort values', async () => {
+    it('rejects minimal message-level updates even on Luna', async () => {
       await expect(
-        request([
+        request(
+          [
+            {
+              role: 'system',
+              content: '',
+              providerOptions: { openai: { reasoningEffortUpdate: 'minimal' } },
+            },
+            user,
+          ],
+          {},
+          'gpt-6-luna',
+        ),
+      ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('rejects minimal request-level updates even on Luna', async () => {
+      await expect(
+        request(
+          [user],
           {
-            role: 'system',
-            content: '',
-            providerOptions: { openai: { reasoningEffortUpdate: 'none' } },
+            // @ts-expect-error minimal is not a supported update effort.
+            reasoningEffortUpdate: 'minimal',
           },
-          user,
-        ]),
+          'gpt-6-luna',
+        ),
       ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
       expect(server.calls).toHaveLength(0);
     });

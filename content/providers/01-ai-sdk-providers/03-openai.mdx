@@ -203,12 +203,16 @@ The following provider options are available:
   and returns a warning. Use the Responses API for GPT-6 tool calling.
 </Note>
 
-- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+- **reasoningEffortUpdate** _'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
   Updates the reasoning effort for GPT-6 and later models starting with the
   current response without changing the request-level effort. Use this with
   `previousResponseId` to preserve the original prompt prefix for caching.
   Configuration updates require standard, single-agent mode and cannot be
   combined with automatic compaction or automatic truncation.
+
+  The SDK checks effort values against the selected model for both request-level
+  and message-level updates. For example, GPT-6 Sol and Luna support `none`,
+  while GPT-6 Astra does not.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
