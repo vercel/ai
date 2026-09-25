@@ -184,6 +184,11 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
 
     expect(validResult.success).toBe(true);
     expect(invalidResult.success).toBe(false);
+    expect(
+      invalidResult.success ? undefined : invalidResult.error.message,
+    ).toContain(
+      `conditions can be nested at most ${EVALUATION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+    );
   });
 
   it.each([

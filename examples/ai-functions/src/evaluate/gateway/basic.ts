@@ -1,7 +1,4 @@
-import {
-  gateway,
-  type GatewayEvaluationProviderOptions,
-} from '@ai-sdk/gateway';
+import type { GatewayEvaluationProviderOptions } from '@ai-sdk/gateway';
 import { experimental_evaluate } from 'ai';
 import { run } from '../../lib/run';
 
@@ -28,7 +25,7 @@ const questions = {
 
 run(async () => {
   const result = await experimental_evaluate({
-    model: gateway.evaluationModel('typesafe-ai/jev'),
+    model: 'typesafe-ai/jev',
     state: 'I was charged twice. Please refund the duplicate.',
     questions,
     providerOptions: {

@@ -44,10 +44,7 @@ export type {
 } from './gateway-provider';
 export type {
   GatewayAsyncJobMetadata,
-  GatewayEvaluationFallbackTrigger,
-  GatewayModelAttemptMetadata,
   GatewayProviderMetadata,
-  GatewayRoutingMetadata,
 } from './gateway-provider-metadata';
 export type {
   EvaluationFallbackCondition,

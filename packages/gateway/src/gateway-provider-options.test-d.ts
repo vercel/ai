@@ -147,29 +147,6 @@ it('types conditional evaluation model fallbacks', () => {
     question: 'missing',
     confidenceBelow: 0.6,
   };
-  const tooDeep: EvaluationFallbackCondition = {
-    any: [
-      {
-        all: [
-          {
-            atLeast: {
-              count: 1,
-              conditions: [
-                {
-                  any: [
-                    {
-                      // @ts-expect-error Conditions cannot exceed five levels.
-                      all: [confidence],
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-        ],
-      },
-    ],
-  };
   const conditional = {
     model: 'openai/gpt-5.6-sol',
     when: confidence,
@@ -193,7 +170,6 @@ it('types conditional evaluation model fallbacks', () => {
   void mixedCombinators;
   void mixedDirectAndCombinator;
   void unknownQuestion;
-  void tooDeep;
   void conditionalAfterString;
   void multipleConditionals;
 });

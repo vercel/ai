@@ -18,8 +18,25 @@ export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
   ),
 );
 
+/**
+ * A condition on the primary model's answers. `QUESTION_ID` narrows
+ * `question` to your question IDs. Groups nest at most five levels deep,
+ * which the SDK checks at runtime.
+ */
 export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
-  EvaluationFallbackConditionAtDepth1<QUESTION_ID>;
+  | ExclusiveCondition<{ question: QUESTION_ID; confidenceBelow: number }>
+  | ExclusiveCondition<{
+      question: QUESTION_ID;
+      probabilityBetween: [number, number];
+    }>
+  | ExclusiveCondition<{ any: EvaluationFallbackConditionList<QUESTION_ID> }>
+  | ExclusiveCondition<{ all: EvaluationFallbackConditionList<QUESTION_ID> }>
+  | ExclusiveCondition<{
+      atLeast: {
+        count: number;
+        conditions: EvaluationFallbackConditionList<QUESTION_ID>;
+      };
+    }>;
 
 export type GatewayModelFallback<QUESTION_ID extends string = string> =
   | string
@@ -121,84 +138,23 @@ export type GatewayEvaluationProviderOptions<
   models?: GatewayModelFallbackList<QUESTION_ID>;
 };
 
-type EvaluationFallbackDirectCondition<QUESTION_ID extends string> =
-  | {
-      question: QUESTION_ID;
-      confidenceBelow: number;
-      probabilityBetween?: never;
-      all?: never;
-      any?: never;
-      atLeast?: never;
-    }
-  | {
-      question: QUESTION_ID;
-      confidenceBelow?: never;
-      probabilityBetween: readonly [number, number];
-      all?: never;
-      any?: never;
-      atLeast?: never;
-    };
-
-type EvaluationFallbackConditionGroup<CHILD_CONDITION> =
-  | {
-      question?: never;
-      confidenceBelow?: never;
-      probabilityBetween?: never;
-      all: EvaluationFallbackConditionList<CHILD_CONDITION>;
-      any?: never;
-      atLeast?: never;
-    }
-  | {
-      question?: never;
-      confidenceBelow?: never;
-      probabilityBetween?: never;
-      all?: never;
-      any: EvaluationFallbackConditionList<CHILD_CONDITION>;
-      atLeast?: never;
-    }
-  | {
-      question?: never;
-      confidenceBelow?: never;
-      probabilityBetween?: never;
-      all?: never;
-      any?: never;
-      atLeast: {
-        count: number;
-        conditions: EvaluationFallbackConditionList<CHILD_CONDITION>;
-      };
-    };
-
-type EvaluationFallbackConditionList<CONDITION> = readonly [
-  CONDITION,
-  ...CONDITION[],
+type EvaluationFallbackConditionList<QUESTION_ID extends string> = [
+  EvaluationFallbackCondition<QUESTION_ID>,
+  ...EvaluationFallbackCondition<QUESTION_ID>[],
 ];
 
-type EvaluationFallbackConditionAtDepth5<QUESTION_ID extends string> =
-  EvaluationFallbackDirectCondition<QUESTION_ID>;
+type ConditionKey =
+  | 'question'
+  | 'confidenceBelow'
+  | 'probabilityBetween'
+  | 'any'
+  | 'all'
+  | 'atLeast';
 
-type EvaluationFallbackConditionAtDepth4<QUESTION_ID extends string> =
-  | EvaluationFallbackDirectCondition<QUESTION_ID>
-  | EvaluationFallbackConditionGroup<
-      EvaluationFallbackConditionAtDepth5<QUESTION_ID>
-    >;
-
-type EvaluationFallbackConditionAtDepth3<QUESTION_ID extends string> =
-  | EvaluationFallbackDirectCondition<QUESTION_ID>
-  | EvaluationFallbackConditionGroup<
-      EvaluationFallbackConditionAtDepth4<QUESTION_ID>
-    >;
-
-type EvaluationFallbackConditionAtDepth2<QUESTION_ID extends string> =
-  | EvaluationFallbackDirectCondition<QUESTION_ID>
-  | EvaluationFallbackConditionGroup<
-      EvaluationFallbackConditionAtDepth3<QUESTION_ID>
-    >;
-
-type EvaluationFallbackConditionAtDepth1<QUESTION_ID extends string> =
-  | EvaluationFallbackDirectCondition<QUESTION_ID>
-  | EvaluationFallbackConditionGroup<
-      EvaluationFallbackConditionAtDepth2<QUESTION_ID>
-    >;
+// Rules out the other shapes' keys, so a condition can't mix two shapes.
+type ExclusiveCondition<CONDITION> = CONDITION & {
+  [KEY in Exclude<ConditionKey, keyof CONDITION>]?: never;
+};
 
 type GatewayProviderOptionsWithoutModels = {
   [KEY in keyof GatewayProviderOptions as KEY extends 'models'
@@ -240,6 +196,19 @@ const directConditionSchema = z.union([
     .strict(),
 ]) as ZodType<EvaluationFallbackCondition>;
 
+const groupBeyondMaxDepthSchema = z
+  .union([
+    z.object({ any: z.unknown() }),
+    z.object({ all: z.unknown() }),
+    z.object({ atLeast: z.unknown() }),
+  ])
+  .superRefine((_, context) => {
+    context.addIssue({
+      code: 'custom',
+      message: `conditions can be nested at most ${EVALUATION_FALLBACK_MAX_CONDITION_DEPTH} levels deep`,
+    });
+  });
+
 const conditionalModelFallbackSchema = z
   .object({
     model: z.string().min(1).max(EVALUATION_FALLBACK_MAX_MODEL_LENGTH),
@@ -271,7 +240,10 @@ const gatewayModelFallbacksSchema = z
 
 function conditionSchema(depth: number): ZodType<EvaluationFallbackCondition> {
   if (depth === EVALUATION_FALLBACK_MAX_CONDITION_DEPTH) {
-    return directConditionSchema;
+    return z.union([
+      directConditionSchema,
+      groupBeyondMaxDepthSchema,
+    ]) as ZodType<EvaluationFallbackCondition>;
   }
 
   const childConditionSchema = conditionSchema(depth + 1);
