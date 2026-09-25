@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 13160,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-13160-resume-text-delta.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-13160-resume-text-delta.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_13160_REPRODUCED: resumeStream failed to append a resumed text-delta to the existing assistant text part"
+  }
+}
