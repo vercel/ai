@@ -1108,6 +1108,7 @@ const model = azure.transcription('whisper-1');
 
 ### MAI-Transcribe-2
 
+MAI-Transcribe-2 is a multilingual speech-to-text model from Microsoft AI, served through Azure.
 `azure.transcription('mai-transcribe-2')` uses the Azure Speech API.
 The model ID is matched case-insensitively and sent to Azure as `MAI-Transcribe-2`.
 All other IDs use the OpenAI API by default, including custom deployment names.
@@ -1130,8 +1131,7 @@ const result = await transcribe({
 });
 ```
 
-MAI-Transcribe-2 is a Microsoft Speech model, not an Azure OpenAI deployment. It requires
-a Microsoft Foundry (Speech) resource in a region where MAI-Transcribe is available:
+MAI-Transcribe-2 requires a Microsoft Foundry (Speech) resource in a region where it is available:
 `centralindia`, `eastus`, `northeurope`, `southeastasia`, `westus`, or `westus2`
 (see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions?tabs=llmspeech)).
 Resources in other regions reject the request.
