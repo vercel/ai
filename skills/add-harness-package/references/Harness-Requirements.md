@@ -13,7 +13,6 @@ If the adapter cannot support any one of these, the underlying SDK or CLI is not
 - Emit observable bash/shell tool calls.
 - Emit an event indicating when a file is created, modified, or deleted.
 - Support custom tools.
-- Support custom tool approvals.
 - Support custom instructions.
 - Allow model selection.
 - Support skills.
@@ -26,6 +25,7 @@ Implement these where possible, and document each unsupported capability as a no
 - Emit observable tool calls for all native tools.
 - Support built-in tool filtering.
 - Support built-in tool approvals via `permissionMode`.
+- Support native custom tool approvals.
 - Support structured output.
 - Re-apply `prepareCall`-derived settings when they change between turns.
 

@@ -172,8 +172,7 @@ Link to the main harness docs for broader concepts.
 
 Add relevant examples for the new harness.
 
-- Add API/function examples under `examples/ai-functions` when the harness package needs a scriptable provider-behavior example.
-- Add interactive examples mirroring the existing harness examples in `examples/harness-e2e-next` (Next.js) and `examples/harness-e2e-tui` (TUI).
+- Add required API/function examples under `examples/ai-functions/src/harness-agent` and interactive examples under `examples/harness-e2e-next`.
 
 ### 9. Add Documentation
 
