@@ -2,6 +2,7 @@ import { createGeistdocs } from '@vercel/geistdocs/next';
 import type { NextConfig } from 'next';
 import { exampleRedirects } from './lib/example-redirects';
 import { legacyRedirects } from './lib/legacy-redirects';
+import { versionHostRedirects } from './lib/version-host-redirects';
 
 // createGeistdocs composes Fumadocs MDX and discovers App Router pages and
 // route handlers so createProxy can recover unknown agent/Markdown requests.
@@ -36,6 +37,7 @@ const config: NextConfig = {
     },
   ],
   redirects: () => [
+    ...versionHostRedirects,
     // AI SDK 4 is archived separately so it remains available without adding
     // its content families to this app's already memory-intensive build.
     {
