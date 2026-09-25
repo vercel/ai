@@ -10,6 +10,7 @@
     "type-check": "tsc --build"
   },
   "devDependencies": {
+    "@ai-sdk/google-vertex": "workspace:*",
     "@ai-sdk/open-responses": "workspace:*",
     "@ai-sdk/test-server": "workspace:*",
     "@edge-runtime/vm": "^5.0.0",

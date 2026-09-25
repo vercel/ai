@@ -9,6 +9,7 @@ import {
   convertToBase64,
   getTopLevelMediaType,
   isFullMediaType,
+  isUrlSupported,
   resolveFullMediaType,
   resolveProviderReference,
   secureJsonParse,
@@ -52,9 +53,6 @@ function parseBase64DataUrl(
 function convertUrlToolResultPart(
   url: string,
 ): GoogleFunctionResponsePart | undefined {
-  // Per https://ai.google.dev/api/caching#FunctionResponsePart, only inline data is supported.
-  // https://docs.cloud.google.com/vertex-ai/generative-ai/docs/model-reference/function-calling#functionresponsepart suggests that this
-  // may be different for Vertex, but this needs to be confirmed and further tested for both APIs.
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl == null) {
     return undefined;
@@ -106,6 +104,7 @@ function appendToolResultParts(
   >['value'],
   toolCallId?: string,
   includeFunctionCallIds = true,
+  supportedUrls: Record<string, RegExp[]> = {},
 ): void {
   const functionResponseParts: GoogleFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -125,12 +124,30 @@ function appendToolResultParts(
             },
           });
         } else if (contentPart.data.type === 'url') {
-          const functionResponsePart = convertUrlToolResultPart(
-            contentPart.data.url.toString(),
-          );
+          const url = contentPart.data.url.toString();
+          const convertedUrlPart = convertUrlToolResultPart(url);
+          const supportedUrl =
+            contentPart.data.url.protocol === 'gs:' &&
+            contentPart.data.originalUrl != null
+              ? contentPart.data.originalUrl
+              : url;
 
-          if (functionResponsePart != null) {
-            functionResponseParts.push(functionResponsePart);
+          if (convertedUrlPart != null) {
+            functionResponseParts.push(convertedUrlPart);
+          } else if (
+            isFullMediaType(contentPart.mediaType) &&
+            isUrlSupported({
+              url: supportedUrl,
+              mediaType: contentPart.mediaType,
+              supportedUrls,
+            })
+          ) {
+            functionResponseParts.push({
+              fileData: {
+                mimeType: contentPart.mediaType,
+                fileUri: supportedUrl,
+              },
+            });
           } else {
             responseTextParts.push(JSON.stringify(contentPart));
           }
@@ -242,6 +259,7 @@ export function convertToGoogleMessages(
     providerOptionsNames?: readonly string[];
     supportsFunctionResponseParts?: boolean;
     includeFunctionCallIds?: boolean;
+    supportedFunctionResponseUrls?: Record<string, RegExp[]>;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -255,6 +273,8 @@ export function convertToGoogleMessages(
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
+  const supportedFunctionResponseUrls =
+    options?.supportedFunctionResponseUrls ?? {};
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -657,6 +677,7 @@ export function convertToGoogleMessages(
                 output.value,
                 part.toolCallId,
                 includeFunctionCallIds,
+                supportedFunctionResponseUrls,
               );
             } else {
               appendLegacyToolResultParts(
