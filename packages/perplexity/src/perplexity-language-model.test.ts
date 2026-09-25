@@ -8,6 +8,7 @@ import {
   mockId,
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 
@@ -181,6 +182,29 @@ function createStreamChunks(responseOverrides: Record<string, unknown> = {}) {
 }
 
 describe('doGenerate', () => {
+  it('parses a captured Agent API web search response', async () => {
+    const response = JSON.parse(
+      readFileSync('src/__fixtures__/agent-web-search.json', 'utf8'),
+    );
+    prepareJsonResponse(response);
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://www.typescriptlang.org/',
+      }),
+    );
+    expect(
+      result.content.some(
+        part => part.type === 'text' && part.text.includes('TypeScript'),
+      ),
+    ).toBe(true);
+    expect(result.usage.raw).toEqual(response.usage);
+    expect(result.finishReason.unified).toBe('stop');
+  });
+
   it('accepts native tool results without treating them as web search results', async () => {
     const response = createResponse({
       output: [financeOutput, ...createResponse().output],
@@ -602,6 +626,49 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('parses captured Agent API web search events', async () => {
+    const events = readFileSync(
+      'src/__fixtures__/agent-web-search.chunks.txt',
+      'utf8',
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line));
+    prepareStream(events);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    const text = chunks
+      .filter(chunk => chunk.type === 'text-delta')
+      .map(chunk => chunk.delta)
+      .join('');
+    const response = events.find(
+      event => event.type === 'response.completed',
+    ).response;
+    expect(text).toBe(
+      response.output
+        .filter((item: any) => item.type === 'message')
+        .flatMap((item: any) => item.content)
+        .filter((part: any) => part.type === 'output_text')
+        .map((part: any) => part.text)
+        .join(''),
+    );
+    const sources = chunks.filter(
+      chunk => chunk.type === 'source' && chunk.sourceType === 'url',
+    );
+    expect(sources.length).toBeGreaterThan(0);
+    expect(new Set(sources.map(source => source.url)).size).toBe(
+      sources.length,
+    );
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'completed' },
+      }),
+    );
+  });
+
   it.each(['response.completed', 'response.incomplete'])(
     'preserves citation annotations from output items and %s',
     async terminalType => {
