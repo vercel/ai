@@ -3,7 +3,11 @@ import {
   type LanguageModelV3Prompt,
   type SharedV3Warning,
 } from '@ai-sdk/provider';
-import { convertToBase64, secureJsonParse } from '@ai-sdk/provider-utils';
+import {
+  convertToBase64,
+  isUrlSupported,
+  secureJsonParse,
+} from '@ai-sdk/provider-utils';
 import type {
   GoogleGenerativeAIContent,
   GoogleGenerativeAIContentPart,
@@ -72,7 +76,7 @@ function parseBase64DataUrl(
 function convertUrlToolResultPart(
   url: string,
   mediaType: string | undefined,
-  supportsGoogleCloudStorageFunctionResponseUrls: boolean,
+  supportedFunctionResponseUrls: Record<string, RegExp[]>,
 ): GoogleGenerativeAIFunctionResponsePart | undefined {
   const parsedDataUrl = parseBase64DataUrl(url);
   if (parsedDataUrl != null) {
@@ -84,9 +88,12 @@ function convertUrlToolResultPart(
     };
   }
 
-  return supportsGoogleCloudStorageFunctionResponseUrls &&
-    /^gs:\/\//i.test(url) &&
-    mediaType != null
+  return mediaType != null &&
+    isUrlSupported({
+      url,
+      mediaType,
+      supportedUrls: supportedFunctionResponseUrls,
+    })
     ? {
         fileData: {
           mimeType: mediaType,
@@ -110,7 +117,7 @@ function appendToolResultParts(
   }>,
   toolCallId?: string,
   includeFunctionCallIds = true,
-  supportsGoogleCloudStorageFunctionResponseUrls = false,
+  supportedFunctionResponseUrls: Record<string, RegExp[]> = {},
 ): void {
   const functionResponseParts: GoogleGenerativeAIFunctionResponsePart[] = [];
   const responseTextParts: string[] = [];
@@ -136,7 +143,7 @@ function appendToolResultParts(
         const functionResponsePart = convertUrlToolResultPart(
           contentPart.url as string,
           contentPart.mediaType as string | undefined,
-          supportsGoogleCloudStorageFunctionResponseUrls,
+          supportedFunctionResponseUrls,
         );
 
         if (functionResponsePart != null) {
@@ -252,7 +259,7 @@ export function convertToGoogleGenerativeAIMessages(
      */
     onWarning?: (warning: SharedV3Warning) => void;
     includeFunctionCallIds?: boolean;
-    supportsGoogleCloudStorageFunctionResponseUrls?: boolean;
+    supportedFunctionResponseUrls?: Record<string, RegExp[]>;
   },
 ): GoogleGenerativeAIPrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -265,8 +272,8 @@ export function convertToGoogleGenerativeAIMessages(
     options?.supportsFunctionResponseParts ?? true;
   const onWarning = options?.onWarning;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
-  const supportsGoogleCloudStorageFunctionResponseUrls =
-    options?.supportsGoogleCloudStorageFunctionResponseUrls ?? false;
+  const supportedFunctionResponseUrls =
+    options?.supportedFunctionResponseUrls ?? {};
 
   let sentinelInjected = false;
   const missingSignatureToolNames: string[] = [];
@@ -537,7 +544,7 @@ export function convertToGoogleGenerativeAIMessages(
                 output.value,
                 part.toolCallId,
                 includeFunctionCallIds,
-                supportsGoogleCloudStorageFunctionResponseUrls,
+                supportedFunctionResponseUrls,
               );
             } else {
               appendLegacyToolResultParts(

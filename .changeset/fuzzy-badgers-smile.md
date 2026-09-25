@@ -4,4 +4,4 @@
 '@ai-sdk/provider-utils': patch
 ---
 
-fix(provider): preserve media types on tool result file URLs
+fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.

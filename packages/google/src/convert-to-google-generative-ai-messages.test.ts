@@ -755,7 +755,7 @@ describe('tool messages', () => {
         },
       ],
       {
-        supportsGoogleCloudStorageFunctionResponseUrls: true,
+        supportedFunctionResponseUrls: { 'image/png': [/^gs:\/\/.*$/] },
       },
     );
 

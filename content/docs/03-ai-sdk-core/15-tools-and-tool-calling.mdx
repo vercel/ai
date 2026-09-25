@@ -1065,8 +1065,11 @@ const { text } = await generateText({
 </Note>
 
 For Google, use base64 media parts (`image-data` / `file-data`) or base64
-`data:` URLs in URL-style parts. Remote HTTP(S) URLs in tool-result URL parts
-are not supported.
+`data:` URLs in URL-style parts. HTTP(S) tool-result files are downloaded and
+sent as inline data. With Google Vertex and Gemini 3 or later, `file-url` parts
+can also reference `gs://` URLs directly when a supported full `mediaType` is
+provided. See [Google Vertex tool result files](/providers/ai-sdk-providers/google-vertex#tool-result-files)
+for supported MIME types and an example.
 
 In order to send multi-modal tool results, e.g. screenshots, back to the model,
 they need to be converted into a specific format.

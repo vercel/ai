@@ -33,6 +33,7 @@ import {
 } from './convert-google-generative-ai-usage';
 import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleGenerativeAIMessages } from './convert-to-google-generative-ai-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
 import {
@@ -59,6 +60,14 @@ const configurableSafetySettingCategories = [
 ] as const;
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
+
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -113,6 +122,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
       tools,
       toolChoice,
       providerOptions,
+      abortSignal,
     }: LanguageModelV3CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
@@ -249,9 +259,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
+    const supportedFunctionResponseUrls =
+      usesGemini3Features && isVertexProvider
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
+    const promptWithDownloadedToolResultFiles = isVertexProvider
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          supportedUrls: supportedFunctionResponseUrls,
+        })
+      : prompt;
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
-      prompt,
+      promptWithDownloadedToolResultFiles,
       {
         isGemmaModel,
         isGemini3Model: usesGemini3Features,
@@ -259,8 +279,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         supportsFunctionResponseParts: usesGemini3Features,
         onWarning: warning => warnings.push(warning),
         includeFunctionCallIds: !isVertexProvider,
-        supportsGoogleCloudStorageFunctionResponseUrls:
-          usesGemini3Features && isVertexProvider,
+        supportedFunctionResponseUrls,
       },
     );
 
