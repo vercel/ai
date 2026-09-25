@@ -538,7 +538,6 @@ describe('StreamingToolCallTracker', () => {
           if (metadata?.thoughtSignature) {
             return { google: { thoughtSignature: metadata.thoughtSignature } };
           }
-          return undefined;
         },
       });
 

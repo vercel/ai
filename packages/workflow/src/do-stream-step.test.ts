@@ -106,6 +106,72 @@ describe('doStreamStep', () => {
     });
   });
 
+  it('preserves provider metadata on provider-executed tool results', async () => {
+    const model = new MockLanguageModelV4({
+      doStream: async () => ({
+        stream: convertArrayToReadableStream([
+          { type: 'stream-start' as const, warnings: [] },
+          {
+            type: 'tool-call' as const,
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            input: '{}',
+            providerExecuted: true,
+            dynamic: true,
+          },
+          {
+            type: 'tool-result' as const,
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            result: { value: 'result' },
+            providerExecuted: true,
+            dynamic: true,
+            providerMetadata: {
+              openai: { itemId: 'provider-result-item' },
+            },
+          },
+          {
+            type: 'finish' as const,
+            finishReason: { unified: 'tool-calls' as const, raw: undefined },
+            usage: {
+              inputTokens: {
+                total: 1,
+                noCache: 1,
+                cacheRead: undefined,
+                cacheWrite: undefined,
+              },
+              outputTokens: {
+                total: 1,
+                text: 1,
+                reasoning: undefined,
+              },
+            },
+          },
+        ]),
+      }),
+    });
+
+    const result = await doStreamStep(prompt, model);
+
+    expect(result).toMatchObject({
+      providerExecutedToolResults: new Map([
+        [
+          'provider-call',
+          {
+            toolCallId: 'provider-call',
+            toolName: 'providerTool',
+            result: { value: 'result' },
+            isError: false,
+            dynamic: true,
+            providerMetadata: {
+              openai: { itemId: 'provider-result-item' },
+            },
+          },
+        ],
+      ]),
+    });
+  });
+
   it.each([
     { setting: 'zero retries', maxRetries: 0, expectedAttempts: 1 },
     { setting: 'two retries', maxRetries: 2, expectedAttempts: 3 },

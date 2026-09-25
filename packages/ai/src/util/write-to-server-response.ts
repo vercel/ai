@@ -17,14 +17,18 @@ export function writeToServerResponse({
   response: ServerResponse;
   status?: number;
   statusText?: string;
-  headers?: Record<string, string | number | string[]>;
+  headers?: Headers;
   stream: ReadableStream<Uint8Array>;
 }): Promise<void> {
   const statusCode = status ?? 200;
+  if (headers != null) {
+    response.setHeaders(headers);
+  }
+
   if (statusText !== undefined) {
-    response.writeHead(statusCode, statusText, headers);
+    response.writeHead(statusCode, statusText);
   } else {
-    response.writeHead(statusCode, headers);
+    response.writeHead(statusCode);
   }
 
   const reader = stream.getReader();
@@ -47,8 +51,6 @@ export function writeToServerResponse({
           });
         }
       }
-    } catch (error) {
-      throw error;
     } finally {
       response.end();
     }

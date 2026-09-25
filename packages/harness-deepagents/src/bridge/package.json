@@ -4,12 +4,12 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@langchain/anthropic": "^1.5.8",
-    "@langchain/core": "^1.2.9",
-    "@langchain/langgraph": "^1.4.12",
+    "@langchain/anthropic": "^1.5.10",
+    "@langchain/core": "^1.2.11",
+    "@langchain/langgraph": "^1.4.15",
     "@langchain/mcp-adapters": "1.1.3",
-    "deepagents": "1.13.1",
-    "langchain": "^1.5.10",
+    "deepagents": "1.13.5",
+    "langchain": "^1.5.11",
     "langsmith": "^0.9.0",
     "ws": "8.21.0",
     "zod": "^4.3.6"

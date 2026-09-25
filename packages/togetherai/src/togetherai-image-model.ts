@@ -25,6 +25,8 @@ interface TogetherAIImageModelConfig {
   };
 }
 
+const nonDiffusionImageModels = new Set<string>(['google/gemini-3-pro-image']);
+
 export class TogetherAIImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
@@ -92,6 +94,24 @@ export class TogetherAIImageModel implements ImageModelV4 {
       schema: togetheraiImageModelOptionsSchema,
     });
 
+    const isNonDiffusionModel = nonDiffusionImageModels.has(this.modelId);
+
+    const modelOptions = { ...togetheraiOptions };
+    if (isNonDiffusionModel) {
+      delete modelOptions.steps;
+      delete modelOptions.guidance;
+      delete modelOptions.negative_prompt;
+      delete modelOptions.disable_safety_checker;
+
+      if (seed != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'seed',
+          details: `The ${this.modelId} model does not support the \`seed\` option.`,
+        });
+      }
+    }
+
     // Handle image input from files
     let imageUrl: string | undefined;
     if (files != null && files.length > 0) {
@@ -114,7 +134,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
       body: {
         model: this.modelId,
         prompt,
-        ...(seed != null ? { seed } : {}),
+        ...(seed != null && !isNonDiffusionModel ? { seed } : {}),
         ...(n > 1 ? { n } : {}),
         ...(splitSize && {
           width: parseInt(splitSize[0]),
@@ -122,7 +142,7 @@ export class TogetherAIImageModel implements ImageModelV4 {
         }),
         ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(togetheraiOptions ?? {}),
+        ...modelOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

@@ -1,5 +1,234 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+  - @ai-sdk/harness-acp@1.0.62
+
+## 1.0.60
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+  - @ai-sdk/harness-acp@1.0.61
+
+## 1.0.59
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+- @ai-sdk/harness-acp@1.0.60
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness-acp@1.0.59
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.57
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+- @ai-sdk/harness-acp@1.0.58
+
+## 1.0.56
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [2adbb77]
+- Updated dependencies [125f493]
+  - @ai-sdk/harness-acp@1.0.57
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.55
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+- Updated dependencies [c0e5d1d]
+  - @ai-sdk/harness-acp@1.0.56
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.54
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+  - @ai-sdk/harness-acp@1.0.55
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+  - @ai-sdk/harness-acp@1.0.54
+
+## 1.0.52
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+- @ai-sdk/harness-acp@1.0.53
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+  - @ai-sdk/harness-acp@1.0.52
+
+## 1.0.50
+
+### Patch Changes
+
+- d82eac2: fix(harness-grok-build): refresh expiring native subscription credentials
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+  - @ai-sdk/harness-acp@1.0.51
+
+## 1.0.49
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+- @ai-sdk/harness-acp@1.0.50
+
+## 1.0.48
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+- @ai-sdk/harness-acp@1.0.49
+
+## 1.0.47
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+- @ai-sdk/harness-acp@1.0.48
+
+## 1.0.46
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+- @ai-sdk/harness-acp@1.0.47
+
+## 1.0.45
+
+### Patch Changes
+
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/harness-acp@1.0.46
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.44
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+- @ai-sdk/harness-acp@1.0.45
+
+## 1.0.43
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+- @ai-sdk/harness-acp@1.0.44
+
+## 1.0.42
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+- @ai-sdk/harness-acp@1.0.43
+
+## 1.0.41
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness-acp@1.0.42
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.40
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+  - @ai-sdk/harness-acp@1.0.41
+
+## 1.0.39
+
+### Patch Changes
+
+- 255cccf: feat(harness): add `writeInstructions` helper and support filesystem based `instructionsMapping` in ACP backed harness adapters
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- Updated dependencies [fe86f8f]
+- Updated dependencies [ceb601c]
+- Updated dependencies [255cccf]
+- Updated dependencies [668b51d]
+- Updated dependencies [eeed977]
+- Updated dependencies [1291df7]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+  - @ai-sdk/harness-acp@1.0.40
+
+## 1.0.38
+
+### Patch Changes
+
+- 951c54d: feat(harness): support `askUserQuestions` tool including support for normalization across harness adapters
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness-acp@1.0.39
+  - @ai-sdk/harness@1.0.101
+
 ## 1.0.37
 
 ### Patch Changes

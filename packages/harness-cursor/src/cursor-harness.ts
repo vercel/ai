@@ -3,14 +3,19 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import { resolveCursorSubscriptionEnvironment } from './cursor-subscription';
 
 const CURSOR_CLIENT_APP = `ai-sdk/harness-cursor/${VERSION}`;
+
+export type CursorAuthenticationMode = ACPAuthenticationMode;
 
 export type CursorHarnessSettings = {
   /**
@@ -18,19 +23,13 @@ export type CursorHarnessSettings = {
    * isolated environment for Cursor CLI authentication. The adapter cannot
    * change provider routing and warns for explicit routing modes.
    */
-  readonly auth?: ACPAuthenticationMode;
+  readonly auth?: CursorAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
-  /**
-   * Cursor model id selected through ACP. Unset preserves Cursor's default.
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -45,6 +44,13 @@ export type CursorHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
    */
@@ -53,7 +59,7 @@ export type CursorHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
@@ -223,28 +229,6 @@ const CURSOR_BUILTIN_TOOLS = {
     nativeName: 'applyAgentDiffToolCall',
     toolUseKind: 'edit',
   },
-  askQuestion: {
-    ...tool({
-      inputSchema: z.looseObject({
-        _toolName: z.literal('askQuestion'),
-        title: z.string().optional(),
-        questions: z
-          .array(
-            z.looseObject({
-              id: z.string(),
-              prompt: z.string(),
-              options: z.array(
-                z.looseObject({ id: z.string(), label: z.string() }),
-              ),
-              allowMultiple: z.boolean().optional(),
-            }),
-          )
-          .optional(),
-      }),
-    }),
-    nativeName: 'askQuestionToolCall',
-    toolUseKind: 'readonly',
-  },
   fetch: {
     ...tool({
       title: 'Fetch',
@@ -372,12 +356,13 @@ export function createCursor(
   }
 
   return createACP({
-    auth: typeof settings.auth === 'string' ? undefined : settings.auth,
+    auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveCursorSubscriptionEnvironment,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall => {
       const rawInput = toolCall.rawInput;
@@ -410,10 +395,10 @@ export function createCursor(
       _meta: { parameterizedModelPicker: true },
     },
     credentialEnv: ['CURSOR_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
-      if (!env.CURSOR_API_KEY || !sandboxEnv?.CURSOR_API_KEY) return [];
-      return [
-        {
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const transformations = [];
+      if (env.CURSOR_API_KEY && sandboxEnv?.CURSOR_API_KEY) {
+        transformations.push({
           match: {
             host: 'api2.cursor.sh',
             path: { exact: '/auth/exchange_user_api_key' },
@@ -432,8 +417,21 @@ export function createCursor(
               Authorization: `Bearer ${env.CURSOR_API_KEY}`,
             },
           },
-        },
-      ];
+        });
+      }
+      if (headers != null) {
+        transformations.push({
+          match:
+            settings.auth === 'ai-gateway'
+              ? {
+                  host: 'ai-gateway.vercel.sh',
+                  path: { startsWith: '/cursor/v1' },
+                }
+              : { host: 'api2.cursor.sh' },
+          transform: { headers },
+        });
+      }
+      return transformations;
     },
   });
 }
@@ -441,7 +439,7 @@ export function createCursor(
 function warnCursorAuthenticationConfiguration({
   auth,
 }: {
-  auth: Exclude<ACPAuthenticationMode, 'auto'>;
+  auth: Exclude<CursorAuthenticationMode, 'auto'>;
 }): void {
   const detail =
     auth === 'ai-gateway'

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: googleVertex('gemini-2.5-pro'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     tools: { code_execution: googleVertex.tools.codeExecution({}) },
     maxOutputTokens: 2048,
     prompt:

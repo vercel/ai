@@ -51,7 +51,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: tool({
@@ -74,11 +74,11 @@ The `model` parameter accepts two forms:
 
 ```ts
 // String — AI Gateway model ID
-new WorkflowAgent({ model: 'anthropic/claude-sonnet-4-6' });
+new WorkflowAgent({ model: 'anthropic/claude-sonnet-5' });
 
 // Provider instance
 import { openai } from '@ai-sdk/openai';
-new WorkflowAgent({ model: openai('gpt-4o') });
+new WorkflowAgent({ model: openai('gpt-6-astra') });
 ```
 
 ## Using the Agent in a Workflow
@@ -103,7 +103,7 @@ export async function chat(messages: UIMessage[]) {
   const modelMessages = await convertToModelMessages(messages);
 
   const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
+    model: 'anthropic/claude-sonnet-5',
     instructions: 'You are a flight booking assistant.',
     tools: {
       searchFlights: tool({
@@ -198,7 +198,7 @@ Workflow functions can time out or be interrupted by network failures. `Workflow
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo } from 'react';
 
 export default function Chat() {
@@ -328,7 +328,7 @@ the writable stream. The workflow suspends until the user approves or denies:
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
   tools: {
     bookFlight: tool({
       description: 'Book a flight',
@@ -362,7 +362,7 @@ workflow. For tools that perform sensitive operations, configure
 
 ```ts highlight="4"
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
   experimental_toolApprovalSecret: {
     environmentVariable: 'TOOL_APPROVAL_SECRET',
   },
@@ -399,6 +399,16 @@ The stream-level value overrides the constructor default.
 
 ## Loop Control
 
+Unlike `ToolLoopAgent`, `WorkflowAgent` does not apply a default step limit.
+When `stopWhen` is omitted, it continues until the model stops calling tools or
+another natural termination condition is met.
+
+<Note>
+  A model that repeatedly calls tools can make an unlimited number of model
+  calls. Configure an explicit stop condition when you need to bound execution
+  time and cost.
+</Note>
+
 Control how many steps the agent can take:
 
 ```ts
@@ -410,7 +420,8 @@ const result = await agent.stream({
 });
 ```
 
-If you want the agent to keep running until it has finished calling tools, you can also use `isLoopFinished()`:
+Omitting `stopWhen` already lets `WorkflowAgent` continue until it has finished
+calling tools. You can make that intent explicit with `isLoopFinished()`:
 
 ```ts
 import { isLoopFinished } from 'ai';
@@ -421,9 +432,10 @@ const result = await agent.stream({
 });
 ```
 
-`isLoopFinished()` lets the agent run until all tool calls have completed, but you should still pair it with `maxSteps` to avoid runaway loops. See https://ai-sdk.dev/v7/docs/reference/ai-sdk-core/loop-finished#isloopfinished.
-
-By default, the agent loops until the model stops calling tools (no maximum).
+`isLoopFinished()` is equivalent to omitting `stopWhen` for `WorkflowAgent`.
+Use it with caution because a model that keeps calling tools can run
+indefinitely and incur significant costs. See
+[`isLoopFinished()`](/docs/reference/ai-sdk-core/loop-finished).
 
 ## Structured Output
 
@@ -514,7 +526,7 @@ current step:
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
   tools: {
     shell: tool({
       description: 'Run a shell command in the sandbox.',
@@ -549,7 +561,7 @@ Called once before the agent loop starts. Use it to transform model, instruction
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
   prepareCall: async ({ model, tools, messages }) => {
     return {
       instructions: `Current time: ${new Date().toISOString()}`,
@@ -585,7 +597,7 @@ Agents provide lifecycle callbacks for logging, observability, and custom teleme
 
 ```ts
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5',
 
   onStart({ messages }) {
     console.log(`Agent started with ${messages.length} messages`);
@@ -599,8 +611,11 @@ const agent = new WorkflowAgent({
     console.log(`Calling tool: ${toolCall.toolName}`);
   },
 
-  onToolExecutionEnd({ toolCall, toolOutput }) {
-    console.log(`Tool finished: ${toolCall.toolName}`);
+  onToolExecutionEnd({ toolCall, success, durationMs }) {
+    console.log(`Tool finished: ${toolCall.toolName}`, {
+      success,
+      durationMs,
+    });
   },
 
   onStepEnd({ usage, finishReason }) {
@@ -612,6 +627,12 @@ const agent = new WorkflowAgent({
   },
 });
 ```
+
+For concrete tool sets, `WorkflowAgentToolExecutionStartEvent` and
+`WorkflowAgentToolExecutionEndEvent` preserve the relationship between each
+tool name and its input, context, and output types. TypeScript narrows the
+nested `toolCall` directly, but use `Extract` or a user-defined type guard when
+you need to narrow the correlated `toolContext` or `output` fields by tool name.
 
 Tool input callbacks (`onInputStart`, `onInputDelta`, and
 `onInputAvailable`) are also preserved by `WorkflowAgent`. The model call runs
@@ -661,7 +682,7 @@ export type MyAgentUIMessage = InferWorkflowAgentUIMessage<typeof myAgent>;
 
 - const agent = new DurableAgent({
 + const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
+    model: 'anthropic/claude-sonnet-5',
     instructions: 'You are a helpful assistant.',
     tools: { /* ... */ },
   });
@@ -774,7 +795,7 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 
 ```diff
   const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
+    model: 'anthropic/claude-sonnet-5',
     tools: { weather: weatherTool },
 -   experimental_context: { tenantId: 'tenant_123', apiKey: 'sk-...' },
 +   runtimeContext: { tenantId: 'tenant_123' },

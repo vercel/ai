@@ -1,6 +1,7 @@
 import type { HarnessV1BuiltinTool } from '@ai-sdk/harness';
 import type { ACPHarnessSettings } from '@ai-sdk/harness-acp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 import { createFx } from './fx-harness';
 import { VERSION } from './version';
 
@@ -31,6 +32,7 @@ describe('createFx', () => {
       args: settings.args,
       credentialEnv: settings.credentialEnv,
       providerAuthentication: settings.providerAuthentication,
+      instructionMapping: settings.instructionMapping,
       permissionModeMapping: settings.permissionModeMapping,
       builtinTools: Object.fromEntries(
         Object.entries(
@@ -54,6 +56,11 @@ describe('createFx', () => {
             "commonName": undefined,
             "nativeName": undefined,
             "toolUseKind": undefined,
+          },
+          "capability_search": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "readonly",
           },
           "copy_file": {
             "commonName": undefined,
@@ -145,6 +152,11 @@ describe('createFx', () => {
             "nativeName": undefined,
             "toolUseKind": "readonly",
           },
+          "shell": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "bash",
+          },
           "skill": {
             "commonName": undefined,
             "nativeName": undefined,
@@ -188,9 +200,17 @@ describe('createFx', () => {
         "credentialEnv": [
           "VERCEL_OIDC_TOKEN",
           "AI_GATEWAY_API_KEY",
+          "AI_SDK_FX_CHATGPT_ACCESS_TOKEN",
+          "AI_SDK_FX_CHATGPT_ACCOUNT_ID",
+          "AI_SDK_FX_GROK_ACCESS_TOKEN",
+          "AI_SDK_FX_GROK_ACCOUNT_ID",
         ],
         "executable": "fx",
         "harnessId": "fx",
+        "instructionMapping": {
+          "path": ".fx/AGENTS.md",
+          "type": "filesystem",
+        },
         "permissionModeMapping": {
           "allow-all": {
             "modeId": "code",
@@ -226,6 +246,95 @@ describe('createFx', () => {
     `);
   });
 
+  it('accepts fx v0.0.10 ACP shell and capability search inputs', () => {
+    createFx();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const builtinTools = settings.builtinTools as Record<
+      string,
+      HarnessV1BuiltinTool
+    >;
+    const shellInputSchema = builtinTools.shell.inputSchema as z.ZodType;
+    const capabilitySearchInputSchema = builtinTools.capability_search
+      .inputSchema as z.ZodType;
+
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: '.',
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        tty: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: null,
+        profile: null,
+        tty: false,
+        yield_time_ms: null,
+        timeout_ms: null,
+        future_shell_option: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        profile: 'clean',
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        shell: { kind: 'executable', path: '/bin/bash' },
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'interact',
+        session_id: 'session-1',
+        chars: null,
+        yield_time_ms: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'stop',
+        session_id: 'session-1',
+        force: null,
+      }).success,
+    ).toBe(true);
+    expect(shellInputSchema.safeParse({ action: 'exec' }).success).toBe(false);
+    expect(
+      shellInputSchema.safeParse({
+        request: { action: 'run', command: 'printf "hello"' },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      capabilitySearchInputSchema.safeParse({ query: 'Find a file tool' })
+        .success,
+    ).toBe(true);
+    expect(
+      capabilitySearchInputSchema.safeParse({
+        query: 'Find a file tool',
+        server: 'filesystem',
+      }).success,
+    ).toBe(true);
+    expect(capabilitySearchInputSchema.safeParse({}).success).toBe(false);
+  });
+
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
     const credentialForwarding = async ({
@@ -234,13 +343,18 @@ describe('createFx', () => {
       credential: string;
     }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     createFx({
       auth: 'direct',
       credentialForwarding,
-      model: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -250,19 +364,19 @@ describe('createFx', () => {
     expect({
       auth: settings.auth,
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
       credentialForwarding,
-      modelId: 'openai/gpt-5.4',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -330,6 +444,7 @@ describe('createFx', () => {
           VERCEL_OIDC_TOKEN: 'sandbox-oidc-secret',
           AI_GATEWAY_API_KEY: 'sandbox-gateway-secret',
         },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
@@ -344,6 +459,7 @@ describe('createFx', () => {
         },
         transform: {
           headers: {
+            'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
             'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
           },
@@ -412,6 +528,70 @@ describe('createFx', () => {
     );
   });
 
+  it('brokers native subscription access tokens to their provider route', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+    const sandboxAccessToken = createChatGptAccessToken({
+      accountId: 'account-1',
+      signature: 'sandbox-access',
+    });
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
+        },
+        sandboxEnv: {
+          AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+          AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'chatgpt.com',
+          path: { startsWith: '/backend-api/codex' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${sandboxAccessToken}` },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
+          },
+        },
+      },
+    ]);
+  });
+
+  it('materializes native subscription records through the ACP home hook', () => {
+    createFx();
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const accessToken = createChatGptAccessToken({ accountId: 'account-1' });
+
+    const files = settings.authenticationFiles?.({
+      env: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: accessToken,
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'account-1',
+      },
+      sandboxEnv: {
+        AI_SDK_FX_CHATGPT_ACCESS_TOKEN: 'sandbox-access',
+        AI_SDK_FX_CHATGPT_ACCOUNT_ID: 'sandbox-account',
+      },
+      credentialBrokeringAvailable: true,
+    });
+
+    expect(files?.map(file => file.path)).toEqual(['.fx/chatgpt-auth.json']);
+    expect(files?.[0].content).not.toContain(accessToken);
+    expect(files?.[0].content).toContain('sandbox-access');
+  });
+
   it('brokers the Gateway key selected from a supplied authentication environment', () => {
     createFx({
       auth: {
@@ -460,3 +640,21 @@ describe('createFx', () => {
     expect(VERSION).toBe('0.0.0-test');
   });
 });
+
+function createChatGptAccessToken({
+  accountId,
+  signature = 'signature',
+}: {
+  accountId: string;
+  signature?: string;
+}): string {
+  const header = Buffer.from(
+    JSON.stringify({ alg: 'none', typ: 'JWT' }),
+  ).toString('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      'https://api.openai.com/auth': { chatgpt_account_id: accountId },
+    }),
+  ).toString('base64url');
+  return `${header}.${payload}.${signature}`;
+}

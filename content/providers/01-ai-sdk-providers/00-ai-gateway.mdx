@@ -29,7 +29,7 @@ For most use cases, you can use the AI Gateway directly with a model string:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Hello world',
 });
 ```
@@ -39,7 +39,7 @@ const { text } = await generateText({
 import { generateText, gateway } from 'ai';
 
 const { text } = await generateText({
-  model: gateway('openai/gpt-5.4'),
+  model: gateway('openai/gpt-6-astra'),
   prompt: 'Hello world',
 });
 ```
@@ -200,7 +200,7 @@ You can create language models using a provider instance. The first argument is 
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Explain quantum computing in simple terms',
 });
 ```
@@ -213,21 +213,25 @@ started, AI SDK Core exposes it as a
 Use its `type`, `code`, `statusCode`, and `isRetryable` metadata to classify
 the failure without inspecting the Gateway's serialized error payload.
 
-## Text Batches
+## Batch
 
 <Note type="warning">
-  Text batch support is experimental and the API may change in patch releases.
+  Batch support is experimental and the API may change in patch releases.
 </Note>
 
-AI Gateway supports durable text batches through `experimental_startTextBatch`, `experimental_getBatchStatus`, and `experimental_getBatchResults`. See the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing) for supported models, limits, and the complete lifecycle.
+AI Gateway supports durable text batches through `experimental_startBatch`,
+`experimental_getBatchStatus`, `experimental_getBatchResults`, and `experimental_cancelBatch`. See
+[Batch](/docs/ai-sdk-core/batch) for the provider-agnostic workflow,
+and the [AI Gateway batch processing guide](https://vercel.com/docs/ai-gateway/models-and-providers/batch-processing)
+for supported models, limits, and Gateway-specific behavior.
 
 Pass a publicly reachable HTTPS `webhookUrl` when starting a batch to receive a terminal notification instead of polling. AI Gateway sends `batch.completed`, `batch.failed`, or `batch.cancelled`. The event contains terminal status information but not batch results. Completion webhooks are an AI Gateway capability; direct Anthropic and OpenAI batch providers return an unsupported warning when this option is provided.
 
 ```ts filename="start-batch.ts"
 import { randomUUID } from 'node:crypto';
 import {
-  experimental_startTextBatch as startTextBatch,
-  type Experimental_TextBatchReference as TextBatchReference,
+  experimental_startBatch as startBatch,
+  type Experimental_BatchReference as BatchReference,
   type GatewayProviderMetadata,
 } from 'ai';
 
@@ -240,11 +244,20 @@ const model = 'anthropic/claude-haiku-4.5' as const;
 // pending record rather than an unknown callback.
 await reserveBatchWebhook(token);
 
-const batch = await startTextBatch({
-  model,
+const batch = await startBatch({
   requests: [
-    { id: 'france', prompt: 'What is the capital of France?' },
-    { id: 'germany', prompt: 'What is the capital of Germany?' },
+    {
+      id: 'france',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of France?',
+    },
+    {
+      id: 'germany',
+      type: 'text',
+      model,
+      prompt: 'What is the capital of Germany?',
+    },
   ],
   providerOptions: {
     gateway: { idempotencyKey: token },
@@ -264,20 +277,17 @@ if (typeof signingSecret !== 'string') {
 // Keep sensitive provider metadata out of the receiver queue and logs.
 const batchReference = {
   version: batch.version,
-  type: batch.type,
   id: batch.id,
   provider: batch.provider,
-  modelId: batch.modelId,
-} satisfies TextBatchReference;
+} satisfies BatchReference;
 
 await completeBatchWebhookReservation(token, {
   batch: batchReference,
-  model,
   signingSecret,
 });
 ```
 
-The signing secret is returned only in the start response. Reserve the callback token before submitting the batch, then persist the secret, model, and minimal `batch` reference before the process exits. The stable `providerOptions.gateway.idempotencyKey` makes retrying an ambiguous start safe. Reuse the reserved token when retrying; do not generate a new one. Delete the reservation after a definitive start failure. While the reservation is still pending, the receiver should return a retryable response so an early delivery is sent again after setup completes.
+The signing secret is returned only in the start response. Reserve the callback token before submitting the batch, then persist the secret and minimal `batch` reference before the process exits. The stable `providerOptions.gateway.idempotencyKey` makes retrying an ambiguous start safe. Reuse the reserved token when retrying; do not generate a new one. Delete the reservation after a definitive start failure. While the reservation is still pending, the receiver should return a retryable response so an early delivery is sent again after setup completes.
 
 The receiver must verify the `x-ai-gateway-signature` header against a bounded raw request body before trusting the event:
 
@@ -340,7 +350,6 @@ export async function POST(request: Request) {
   await enqueueBatchResultFetch({
     batch: record.batch,
     deliveryId,
-    model: record.model,
   });
 
   return new Response(null, { status: 204 });
@@ -399,7 +408,24 @@ function verifySignature({
 
 The signature header has the form `t=<unix seconds>,v1=<hex digest>`, where `v1` is the HMAC-SHA256 digest of `"<t>.<raw body>"`. Verify a size-limited raw request body rather than a re-serialized object, use a timing-safe comparison, reject stale timestamps, and reject events whose `data.jobId` does not match the persisted `batch.id`.
 
-AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted model and `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+AI Gateway expects a 2xx response within 10 seconds and retries failed deliveries. It does not follow redirects, so the callback endpoint itself must return the 2xx response. Retries carry the same `x-ai-gateway-idempotency-key` value (`<jobId>-<status>`), which receivers can use for deduplication. After verification, pass the persisted `batch` reference to `experimental_getBatchStatus` and `experimental_getBatchResults`. Delivery is best-effort, so periodically reconcile persisted batches by status as a fallback for a notification that exhausts its retries.
+
+Each request specifies its `type` and `model`. AI Gateway currently requires
+every text request in a batch to use the same model and throws before submission
+when the models differ.
+
+### Cancelling a batch
+
+Pass the batch reference returned by `experimental_startBatch` to request cancellation:
+
+```ts
+import { gateway } from '@ai-sdk/gateway';
+import { experimental_cancelBatch as cancelBatch } from 'ai';
+
+await cancelBatch({ provider: gateway, batch });
+```
+
+Cancellation is asynchronous. Continue checking `experimental_getBatchStatus` until the batch is terminal, then read `experimental_getBatchResults` for any partial results. A batch may finish before cancellation takes effect, and successful requests remain billable. Cancellation returns acknowledgement metadata, not confirmation that provider execution has stopped.
 
 ## Reranking Models
 
@@ -560,7 +586,7 @@ availableModels.models.forEach(model => {
 
 // Use any discovered model with plain string
 const { text } = await generateText({
-  model: availableModels.models[0].id, // e.g., 'openai/gpt-5.4'
+  model: availableModels.models[0].id, // e.g., 'openai/gpt-6-astra'
   prompt: 'Hello world',
 });
 ```
@@ -594,7 +620,7 @@ import { gateway, generateText } from 'ai';
 
 // Make a request
 const result = await generateText({
-  model: gateway('anthropic/claude-sonnet-4'),
+  model: gateway('anthropic/claude-sonnet-5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -617,7 +643,7 @@ With `streamText`, you can capture the generation ID from the first chunk via `s
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: gateway('anthropic/claude-sonnet-4'),
+  model: gateway('anthropic/claude-sonnet-5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -647,7 +673,7 @@ a tool is running:
 import { gateway, generateText } from 'ai';
 
 await generateText({
-  model: gateway('anthropic/claude-sonnet-4'),
+  model: gateway('anthropic/claude-sonnet-5'),
   prompt: 'Explain quantum entanglement briefly',
   onLanguageModelCallEnd({ providerMetadata }) {
     const generationId = providerMetadata?.gateway?.generationId as
@@ -694,7 +720,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Write a haiku about programming',
 });
 
@@ -707,7 +733,7 @@ console.log(text);
 import { streamText } from 'ai';
 
 const { textStream } = await streamText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Explain the benefits of serverless architecture',
 });
 
@@ -723,7 +749,7 @@ import { generateText, tool } from 'ai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: 'xai/grok-4.6',
+  model: 'spacexai/grok-4.7',
   prompt: 'What is the weather like in San Francisco?',
   tools: {
     getWeather: tool({
@@ -749,7 +775,7 @@ import { generateText, isStepCount } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const result = await generateText({
-  model: 'openai/gpt-5.4-mini',
+  model: 'openai/gpt-6-luna',
   prompt: 'What is the Vercel AI Gateway?',
   stopWhen: isStepCount(10),
   tools: {
@@ -1307,7 +1333,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Summarize this document...',
   providerOptions: {
     gateway: {
@@ -1349,7 +1375,7 @@ The `getSpendReport()` method accepts the following parameters:
 - **groupBy** _string_ - Aggregation dimension: `'day'` (default), `'user'`, `'model'`, `'tag'`, `'provider'`, or `'credential_type'`
 - **datePart** _string_ - Time granularity when `groupBy` is `'day'`: `'day'` or `'hour'`
 - **userId** _string_ - Filter to a specific user
-- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-4.5'`)
+- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5'`)
 - **provider** _string_ - Filter to a specific provider (e.g. `'anthropic'`)
 - **credentialType** _string_ - Filter by `'byok'` or `'system'` credentials
 - **tags** _string[]_ - Filter to requests matching these tags
@@ -1408,7 +1434,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
@@ -1450,7 +1476,7 @@ The following gateway provider options are available:
 
   Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
 
-  Example: `models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview']` will try the fallback models in order if the primary model fails.
+  Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
 
 - **user** _string_
 
@@ -1490,15 +1516,20 @@ The following gateway provider options are available:
 
   The unique identifier for the entity against which quota is tracked. Used for quota management and enforcement purposes.
 
-- **has** _Array&lt;'implicit-caching' | 'vision'&gt;_
+- **has** _Array&lt;'implicit-caching' | 'reasoning' | 'structured-output' | 'tool-use' | 'vision' | `quantization:${string}` | `!quantization:${string}`&gt;_
 
   Restricts routing to provider models that have all of the specified capabilities. Applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. If no provider model for the requested model satisfies the capabilities, the request fails. Unsupported values are rejected.
 
   Supported capabilities:
   - `'implicit-caching'` — models that perform automatic (implicit) prompt caching.
+  - `'reasoning'` — models that support reasoning.
+  - `'structured-output'` — models that support schema-constrained output.
+  - `'tool-use'` — models that support tool calling.
   - `'vision'` — models that accept image input.
 
-  Example: `has: ['implicit-caching']` will only route to models that support implicit caching. Example: `has: ['vision']` will only route to models that accept image input.
+  Weight-format conditions route on the serving provider's recorded weight format: `'quantization:fp8'` requires a provider serving fp8 weights, while `'!quantization:fp8'` excludes fp8 providers. A negated condition also matches providers whose weight format is not recorded, so exclusions remain usable while the catalog is populated.
+
+  Example: `has: ['implicit-caching']` will only route to models that support implicit caching. Example: `has: ['vision']` will only route to models that accept image input. Example: `has: ['tool-use']` will only route to models that support tool calling. Example: `has: ['!quantization:fp8']` will only route to providers that do not serve fp8 weights.
 
 - **providerTimeouts** _object_
 
@@ -1524,7 +1555,7 @@ The following gateway provider options are available:
   import { generateText } from 'ai';
 
   const { text } = await generateText({
-    model: 'openai/gpt-5-mini',
+    model: 'openai/gpt-6-luna',
     prompt: 'Hello',
     providerOptions: {
       gateway: {
@@ -1541,7 +1572,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
@@ -1561,11 +1592,11 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.4', // Primary model
+  model: 'openai/gpt-6-astra', // Primary model
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'gemini-3-flash-preview'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'gemini-3.8-flash'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
@@ -1586,7 +1617,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
@@ -1605,7 +1636,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Analyze this proprietary business data...',
   providerOptions: {
     gateway: {
@@ -1624,7 +1655,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
@@ -1636,14 +1667,14 @@ const { text } = await generateText({
 
 #### Filtering by Model Capability
 
-Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, and `'vision'` limits routing to models that accept image input. If no provider model for the requested model satisfies the capabilities, the request fails.
+Set `has` to restrict routing to provider models that have the specified capabilities. This applies to both BYOK and system credentials, since the capability is a property of the model rather than the credential. `'implicit-caching'` limits routing to models that perform automatic prompt caching, `'vision'` limits routing to models that accept image input, `'reasoning'` limits routing to models that support reasoning, `'structured-output'` limits routing to models that support schema-constrained output, and `'tool-use'` limits routing to models that support tool calling. Weight-format conditions (`'quantization:fp8'` to require, `'!quantization:fp8'` to exclude) limit routing by the serving provider's recorded weight format. If no provider model for the requested model satisfies the capabilities, the request fails.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.5',
+  model: 'openai/gpt-6-astra',
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
@@ -1662,7 +1693,7 @@ import { generateText } from 'ai';
 import fs from 'node:fs';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.6',
+  model: 'anthropic/claude-sonnet-5',
   messages: [
     {
       role: 'user',

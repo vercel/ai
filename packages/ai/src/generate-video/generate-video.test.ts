@@ -1471,6 +1471,126 @@ describe('experimental_generateVideo', () => {
       ).rejects.toThrow('Video generation timed out after 50ms.');
     });
 
+    it('should abort an in-flight status request when polling times out', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-stalled-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+
+              return new Promise((_resolve, reject) => {
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => reject(abortSignal.reason),
+                  { once: true },
+                );
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+        expect(statusSignal?.reason).toHaveProperty(
+          'message',
+          'Video generation timed out after 50ms.',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should reject a completed status result returned after the polling timeout', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-late-completed-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+              await new Promise(resolve => setTimeout(resolve, 300));
+
+              return {
+                status: 'completed' as const,
+                videos: [
+                  { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                ],
+                warnings: [],
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(250);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should merge warnings from doStart and doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -1636,6 +1756,199 @@ describe('experimental_generateVideo', () => {
 
       expect(webhookUrlCapture).toBe('https://example.com/webhook');
       expect(result.videos.length).toBe(1);
+    });
+
+    describe('webhook receiver rejection', () => {
+      let unhandledRejections: unknown[];
+      const onUnhandledRejection = (reason: unknown) => {
+        unhandledRejections.push(reason);
+      };
+
+      beforeEach(() => {
+        unhandledRejections = [];
+        process.on('unhandledRejection', onUnhandledRejection);
+      });
+
+      afterEach(async () => {
+        try {
+          await new Promise(resolve => setTimeout(resolve, 0));
+          expect(unhandledRejections).toStrictEqual([]);
+        } finally {
+          process.off('unhandledRejection', onUnhandledRejection);
+        }
+      });
+
+      it.each([
+        { timing: 'during start', startFails: false },
+        { timing: 'at factory handoff', startFails: false },
+        { timing: 'during start', startFails: true },
+        { timing: 'at factory handoff', startFails: true },
+      ])(
+        'should observe rejection $timing while preserving start precedence (startFails: $startFails)',
+        async ({ timing, startFails }) => {
+          const webhookError = new Error('webhook delivery failed');
+          const startError = new Error('start failed');
+          let rejectWebhook!: (reason: unknown) => void;
+          const received = new Promise<VideoModelV4OperationWebhook>(
+            (_, reject) => {
+              rejectWebhook = reject;
+            },
+          );
+          let signalStarted!: () => void;
+          const started = new Promise<void>(resolve => {
+            signalStarted = resolve;
+          });
+          let releaseStart!: () => void;
+          const startGate = new Promise<void>(resolve => {
+            releaseStart = resolve;
+          });
+          const doStatus = vi.fn(async () => {
+            throw new Error('doStatus should not be called');
+          });
+          const settled = vi.fn();
+          const result = experimental_generateVideo({
+            model: new MockVideoModelV4({
+              doGenerate: undefined,
+              handleWebhookOption: async ({ webhook }) => {
+                const { url, received } = await webhook();
+                return { webhookUrl: url, received };
+              },
+              doStart: async () => {
+                signalStarted();
+                await startGate;
+                if (startFails) {
+                  throw startError;
+                }
+                return {
+                  operation: 'op-webhook',
+                  warnings: [],
+                  response: {
+                    timestamp: testDate,
+                    modelId: 'test-model-id',
+                    headers: {},
+                  },
+                };
+              },
+              doStatus,
+            }),
+            prompt,
+            maxRetries: 0,
+            webhook: async () => {
+              if (timing === 'at factory handoff') {
+                rejectWebhook(webhookError);
+              }
+              return { url: 'https://example.com/webhook', received };
+            },
+          });
+          void result.then(settled, settled);
+
+          try {
+            await started;
+            if (timing === 'during start') {
+              rejectWebhook(webhookError);
+            }
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(settled).not.toHaveBeenCalled();
+          } finally {
+            releaseStart();
+          }
+
+          await expect(result).rejects.toBe(
+            startFails ? startError : webhookError,
+          );
+          expect(doStatus).not.toHaveBeenCalled();
+        },
+      );
+
+      it('should observe late webhook rejection after start fails', async () => {
+        const startError = new Error('start failed');
+        let rejectWebhook!: (reason: unknown) => void;
+        const received = new Promise<VideoModelV4OperationWebhook>(
+          (_, reject) => {
+            rejectWebhook = reject;
+          },
+        );
+        const doStatus = vi.fn(async () => {
+          throw new Error('doStatus should not be called');
+        });
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            handleWebhookOption: async ({ webhook }) => {
+              const { url, received } = await webhook();
+              return { webhookUrl: url, received };
+            },
+            doStart: async () => {
+              throw startError;
+            },
+            doStatus,
+          }),
+          prompt,
+          maxRetries: 0,
+          webhook: async () => ({
+            url: 'https://example.com/webhook',
+            received,
+          }),
+        });
+
+        await expect(result).rejects.toBe(startError);
+        rejectWebhook(new Error('late webhook delivery failure'));
+        await new Promise(resolve => setTimeout(resolve, 0));
+        await expect(result).rejects.toBe(startError);
+        expect(doStatus).not.toHaveBeenCalled();
+      });
+    });
+
+    it('should assimilate a then-only webhook receiver once before start completes', async () => {
+      const notification = Promise.resolve<VideoModelV4OperationWebhook>({
+        headers: {},
+        body: {},
+      });
+      const received: PromiseLike<VideoModelV4OperationWebhook> = {
+        // oxlint-disable-next-line unicorn/no-thenable -- Test a PromiseLike receiver.
+        then: notification.then.bind(notification),
+      };
+      const then = vi.spyOn(received, 'then');
+      const doStatus = vi.fn(async () => ({
+        status: 'completed' as const,
+        ...createMockResponse({
+          videos: [{ type: 'base64', data: mp4Base64, mediaType: 'video/mp4' }],
+        }),
+      }));
+
+      const result = await experimental_generateVideo({
+        model: new MockVideoModelV4({
+          doGenerate: undefined,
+          handleWebhookOption: async ({ webhook }) => {
+            const { url, received } = await webhook();
+            return { webhookUrl: url, received };
+          },
+          doStart: async () => {
+            await new Promise(resolve => setTimeout(resolve, 0));
+            expect(then).toHaveBeenCalledTimes(1);
+            return {
+              operation: 'op-webhook',
+              warnings: [],
+              response: {
+                timestamp: testDate,
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            };
+          },
+          doStatus,
+        }),
+        prompt,
+        maxRetries: 0,
+        webhook: async () => ({
+          url: 'https://example.com/webhook',
+          received,
+        }),
+      });
+
+      expect(then).toHaveBeenCalledTimes(1);
+      expect(doStatus).toHaveBeenCalledTimes(1);
+      expect(result.video.base64).toBe(mp4Base64);
     });
 
     it('should use a custom delay for the webhook timeout', async () => {
@@ -2045,7 +2358,12 @@ describe('experimental_generateVideo', () => {
       });
 
       expect(capturedStatusOptions.operation).toBe('op-1');
-      expect(capturedStatusOptions.abortSignal).toBe(abortController.signal);
+      expect(capturedStatusOptions.abortSignal).not.toBe(
+        abortController.signal,
+      );
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(false);
+      abortController.abort();
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(true);
       expect(capturedStatusOptions.headers).toStrictEqual({
         'x-custom': 'value',
         'user-agent': 'ai/0.0.0-test',

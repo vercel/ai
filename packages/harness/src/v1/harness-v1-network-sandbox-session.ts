@@ -1,3 +1,4 @@
+import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 
 /**
@@ -8,6 +9,29 @@ export type HarnessV1PortEndpoint = {
   readonly url: string;
   readonly headers?: Readonly<Record<string, string>>;
 };
+
+/**
+ * Fixed directory, relative to the sandbox's own HOME, that holds every
+ * piece of state the harness machinery generates.
+ */
+const HARNESS_V1_STATE_DIRECTORY_NAME = '.ai-sdk-harness';
+
+/**
+ * Fixed, non-configurable path for harness-generated state (bootstrap files,
+ * markers, and `.agent-runs`) under the sandbox's own HOME, never under
+ * {@link HarnessV1NetworkSandboxSession.defaultWorkingDirectory}. Resolve HOME
+ * with `resolveSandboxHomeDir` when it is not already known. This works from
+ * provider creation hooks that only have a plain sandbox session. The
+ * framework also calls this with a symbolic `$HOME` when hashing bootstrap
+ * recipes, so changes to the state path invalidate existing templates.
+ */
+export function harnessStateDirectoryPath({
+  sandboxHomeDir,
+}: {
+  sandboxHomeDir: string;
+}): string {
+  return posix.join(sandboxHomeDir, HARNESS_V1_STATE_DIRECTORY_NAME);
+}
 
 /**
  * Network sandbox session returned by `HarnessV1SandboxProvider.createSession()`. The

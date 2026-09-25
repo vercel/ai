@@ -8,6 +8,7 @@ import {
   type HarnessV1BuiltinToolFiltering,
   type HarnessV1ContinueTurnState,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PermissionMode,
   type HarnessV1Prompt,
@@ -15,8 +16,9 @@ import {
   type HarnessV1PortEndpoint,
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
-  type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -28,15 +30,14 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
   warnCredentialBrokeringUnavailable,
   waitForBridgeReady,
   withBridgeToken,
-  writeSkills as writeHarnessSkills,
-  type WriteSkillsResult,
+  writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   tool,
@@ -96,13 +97,6 @@ export type DeepAgentsHarnessSettings = {
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
   /**
-   * Model id for the DeepAgents runtime, e.g. `claude-sonnet-4` (converted to
-   * `provider:model`).
-   *
-   * @deprecated Use `model` on `HarnessAgent` instead.
-   */
-  readonly model?: string;
-  /**
    * Controls Anthropic extended thinking for the Deep Agents model. Unset
    * preserves the Deep Agents runtime default.
    */
@@ -122,10 +116,17 @@ export type DeepAgentsHarnessSettings = {
   /** Maximum milliseconds to wait for the bridge to advertise its port. Defaults to 120000. */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
   /**
    * Maximum LangGraph super-steps per turn before it errors.
    * When omitted, the Deep Agents default applies.
@@ -240,11 +241,6 @@ export function createDeepAgents(
             'The deepagents harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -293,10 +289,15 @@ export function createDeepAgents(
         }
         credentialsBrokered = true;
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const homeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir: homeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
       /*
@@ -304,13 +305,12 @@ export function createDeepAgents(
        * Harness-provided skills use an absolute home-directory path listed
        * last, so they take precedence when names collide.
        */
-      const homeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
-      });
       const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
       const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -342,18 +342,19 @@ export function createDeepAgents(
             token: coords.token,
           });
           const attachChannel: DeepAgentsChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachEndpoint),
+            connect: ({ abortSignal }) =>
+              openWebSocket({ ...attachEndpoint, abortSignal }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
             onBridgeError,
+            reconnect: settings.reconnect,
           });
           await attachChannel.open(isContinue ? { resume: true } : undefined);
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
             proc: undefined,
-            model: settings.model,
             thinking: settings.thinking,
             effort: settings.effort,
             bridgePort: coords.port,
@@ -362,12 +363,13 @@ export function createDeepAgents(
             sandboxCredentialEnvironment,
             isResume: true,
             sandbox: toolSafeSandboxSession,
-            homeSkillsRoot,
+            homeDir,
             skillsPaths,
             permissionMode,
             builtinToolFiltering: startOpts.builtinToolFiltering,
             recursionLimit: settings.recursionLimit,
             mcpServers: settings.mcpServers,
+            headers: startOpts.headers,
           });
         } catch {
           // Bridge no longer reachable — recover by respawning below.
@@ -465,10 +467,12 @@ export function createDeepAgents(
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: DeepAgentsChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
+        reconnect: settings.reconnect,
       });
       await channel.open();
 
@@ -476,7 +480,6 @@ export function createDeepAgents(
         sessionId: startOpts.sessionId,
         channel,
         proc,
-        model: settings.model,
         thinking: settings.thinking,
         effort: settings.effort,
         bridgePort: boundPort,
@@ -485,12 +488,13 @@ export function createDeepAgents(
         sandboxCredentialEnvironment,
         isResume,
         sandbox: toolSafeSandboxSession,
-        homeSkillsRoot,
+        homeDir,
         skillsPaths,
         permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         recursionLimit: settings.recursionLimit,
         mcpServers: settings.mcpServers,
+        headers: startOpts.headers,
       });
     },
   };
@@ -561,54 +565,60 @@ async function resolveBridgeEndpoint({
   });
 }
 
-// Materialize each skill as a native deepagents `<name>/SKILL.md` folder (+ attached files) under the given root, so skills load on demand and file references resolve.
-async function writeSkills({
-  sandbox,
-  root,
-  skills,
-  abortSignal,
-}: {
-  sandbox: SandboxSession;
-  root: string;
-  skills: ReadonlyArray<HarnessV1Skill>;
-  abortSignal?: AbortSignal;
-}): Promise<WriteSkillsResult> {
-  /*
-   * DeepAgents requires each `SKILL.md` frontmatter name to match the parent
-   * directory name, so keep the stricter lowercase skill-name policy here.
-   */
-  return writeHarnessSkills({
-    sandbox,
-    rootDir: root,
-    skills,
-    abortSignal,
-    skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
-    invalidSkillNameMessage: ({ name }) =>
-      `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
-    filePathMode: 'strip-leading-slashes',
-    invalidSkillFilePathMessage: ({ skillName, filePath }) =>
-      `Invalid skill file path for '${skillName}': ${filePath}`,
-  });
-}
-
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (err: Error) => {
-      ws.off('open', onOpen);
-      reject(err);
+      rejectWithCleanup(err);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -616,7 +626,6 @@ function createSession({
   sessionId,
   channel,
   proc,
-  model,
   thinking,
   effort,
   bridgePort,
@@ -625,18 +634,18 @@ function createSession({
   sandboxCredentialEnvironment,
   isResume,
   sandbox,
-  homeSkillsRoot,
+  homeDir,
   skillsPaths,
   permissionMode,
   builtinToolFiltering,
   recursionLimit,
   mcpServers,
+  headers,
 }: {
   sessionId: string;
   channel: DeepAgentsChannel;
   // Undefined on attach — the live bridge was spawned by another process.
   proc: Experimental_SandboxProcess | undefined;
-  model: string | undefined;
   thinking: DeepAgentsThinkingConfig | undefined;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
   bridgePort: number;
@@ -645,12 +654,13 @@ function createSession({
   sandboxCredentialEnvironment: Record<string, string> | undefined;
   isResume: boolean;
   sandbox: SandboxSession;
-  homeSkillsRoot: string;
+  homeDir: string;
   skillsPaths?: string[];
   permissionMode?: HarnessV1PermissionMode;
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   recursionLimit?: number;
   mcpServers?: Record<string, unknown>;
+  headers?: Readonly<Record<string, string>>;
 }): HarnessV1Session {
   let stopped = false;
 
@@ -792,9 +802,16 @@ function createSession({
       }
       const skillWriteResult = await writeSkills({
         sandbox,
-        root: homeSkillsRoot,
+        homePath: homeDir,
+        skillsDir: '.agents/skills',
         skills: promptOpts.skills,
         abortSignal: promptOpts.abortSignal,
+        skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
+        invalidSkillNameMessage: ({ name }) =>
+          `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
+        filePathMode: 'strip-leading-slashes',
+        invalidSkillFilePathMessage: ({ skillName, filePath }) =>
+          `Invalid skill file path for '${skillName}': ${filePath}`,
       });
       const control = wireTurn({
         emit: promptOpts.emit,
@@ -815,9 +832,7 @@ function createSession({
         ...(promptOpts.responseFormat == null
           ? {}
           : { responseFormat: promptOpts.responseFormat }),
-        ...((promptOpts.model ?? model)
-          ? { model: promptOpts.model ?? model }
-          : {}),
+        ...(promptOpts.model ? { model: promptOpts.model } : {}),
         ...(thinking ? { thinking } : {}),
         ...(effort ? { effort } : {}),
         ...(skillsPaths?.length ? { skillsPaths } : {}),
@@ -826,6 +841,7 @@ function createSession({
         ...(builtinToolFiltering ? { builtinToolFiltering } : {}),
         ...(recursionLimit != null ? { recursionLimit } : {}),
         ...(mcpServers == null ? {} : { mcpServers }),
+        ...(headers == null ? {} : { headers }),
       });
 
       return control;

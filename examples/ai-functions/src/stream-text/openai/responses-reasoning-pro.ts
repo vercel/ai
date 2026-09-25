@@ -9,7 +9,7 @@ import { run } from '../../lib/run';
 run(async () => {
   const start = performance.now();
   const result = streamText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-astra'),
     reasoning: 'medium',
     prompt: `Review this deployment plan for failure modes:
 1. Apply the database migration.

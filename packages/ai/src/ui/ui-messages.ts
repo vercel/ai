@@ -324,6 +324,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -340,6 +341,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -358,12 +360,17 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
-      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      state: 'output-error';
       input: asUITool<TOOL>['input'] | undefined;
-      rawInput?: unknown; // TODO AI SDK 6: remove this field, input should be unknown
+      /**
+       * @deprecated Use `input` instead. This field will be removed in the next
+       * major version.
+       */
+      rawInput?: unknown;
       output?: never;
       errorText: string;
       callProviderMetadata?: ProviderMetadata;
@@ -376,6 +383,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -392,6 +400,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -452,6 +461,7 @@ export type DynamicToolUIPart = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -468,6 +478,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -486,10 +497,11 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
-      state: 'output-error'; // TODO AI SDK 6: change to 'error' state
+      state: 'output-error';
       input: unknown;
       output?: never;
       errorText: string;
@@ -503,6 +515,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -519,9 +532,21 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
+
+/**
+ * A static or dynamic tool UI part whose execution failed.
+ *
+ * Use `isToolOutputErrorUIPart` to identify tool output errors without
+ * depending on the underlying tool state discriminator.
+ */
+export type ToolOutputErrorUIPart<TOOLS extends UITools = UITools> = Extract<
+  ToolUIPart<TOOLS> | DynamicToolUIPart,
+  { state: 'output-error' }
+>;
 
 /**
  * Type guard to check if a message part is a text part.
@@ -601,6 +626,17 @@ export function isToolUIPart<TOOLS extends UITools>(
   part: UIMessagePart<UIDataTypes, TOOLS>,
 ): part is ToolUIPart<TOOLS> | DynamicToolUIPart {
   return isStaticToolUIPart(part) || isDynamicToolUIPart(part);
+}
+
+/**
+ * Check if a message part is a tool output error part.
+ *
+ * This works for both static and dynamic tools.
+ */
+export function isToolOutputErrorUIPart<TOOLS extends UITools>(
+  part: UIMessagePart<UIDataTypes, TOOLS>,
+): part is ToolOutputErrorUIPart<TOOLS> {
+  return isToolUIPart(part) && part.state === 'output-error';
 }
 
 /**

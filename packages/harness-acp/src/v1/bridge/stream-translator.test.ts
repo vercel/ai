@@ -239,7 +239,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "call-claude",
@@ -293,7 +293,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "call-streaming",
@@ -354,7 +354,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"file_path\":\"app/page.tsx\",\"content\":\"export default function Page() {}\"}",
+          "input": "{"file_path":"app/page.tsx","content":"export default function Page() {}"}",
           "nativeName": "Write",
           "providerExecuted": true,
           "toolCallId": "call-write",
@@ -385,7 +385,7 @@ describe('createACPStreamTranslator', () => {
 
     expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
       {
-        "input": "{\"command\":\"pwd\"}",
+        "input": "{"command":"pwd"}",
         "nativeName": "Bash",
         "providerExecuted": true,
         "toolCallId": "call-permission",
@@ -432,7 +432,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"command\":\"pwd\",\"cwd\":\"/workspace\"}",
+          "input": "{"command":"pwd","cwd":"/workspace"}",
           "nativeName": "shell",
           "providerExecuted": true,
           "toolCallId": "call-codex",
@@ -484,7 +484,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"paths\":[\"src/index.ts\"]}",
+          "input": "{"paths":["src/index.ts"]}",
           "providerExecuted": true,
           "toolCallId": "call-cursor-lints",
           "toolName": "readLints",
@@ -573,7 +573,7 @@ describe('createACPStreamTranslator', () => {
     expect(toolEvents({ events })).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"query\":\"package.json\"}",
+          "input": "{"query":"package.json"}",
           "providerExecuted": true,
           "toolCallId": "call-fuzzy-search",
           "toolName": "acp_tool_call-fuzzy-search",
@@ -586,7 +586,7 @@ describe('createACPStreamTranslator', () => {
           "type": "tool-result",
         },
         {
-          "input": "{\"type\":\"webSearch\",\"id\":\"search-1\",\"query\":\"AI SDK\",\"action\":null}",
+          "input": "{"type":"webSearch","id":"search-1","query":"AI SDK","action":null}",
           "nativeName": "web_search",
           "providerExecuted": true,
           "toolCallId": "call-web-search",
@@ -628,13 +628,97 @@ describe('createACPStreamTranslator', () => {
 
     expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
       {
-        "input": "{\"id\":\"task-1\"}",
+        "input": "{"id":"task-1"}",
         "providerExecuted": true,
         "toolCallId": "call-ambiguous",
         "toolName": "acp_tool_call-ambiguous",
         "type": "tool-call",
       }
     `);
+  });
+
+  it('prefers the schema that declares the most of an ambiguous rawInput', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'bash',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              command: { type: 'string' },
+              shellId: { type: 'string' },
+              mode: { type: 'string', enum: ['sync', 'async'] },
+            },
+            required: ['command'],
+          },
+        },
+        {
+          toolName: 'stop_bash',
+          inputSchema: {
+            type: 'object',
+            properties: { shellId: { type: 'string' } },
+            required: ['shellId'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-async-bash',
+      title: 'Print READY after delay',
+      status: 'completed',
+      rawInput: {
+        command: 'sleep 2; echo READY',
+        shellId: 'ready-check',
+        mode: 'async',
+      },
+    });
+
+    expect(toolEvents({ events })[0]).toMatchObject({
+      type: 'tool-call',
+      toolName: 'bash',
+    });
+  });
+
+  it('keeps equally specific schema matches dynamic', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      builtinTools: [
+        {
+          toolName: 'first',
+          inputSchema: {
+            type: 'object',
+            properties: { id: { type: 'string' }, extra: { type: 'string' } },
+            required: ['id'],
+          },
+        },
+        {
+          toolName: 'second',
+          inputSchema: {
+            type: 'object',
+            properties: { id: { type: 'string' }, other: { type: 'string' } },
+            required: ['id'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      sessionUpdate: 'tool_call',
+      toolCallId: 'call-tied',
+      title: 'Operation',
+      status: 'completed',
+      rawInput: { id: 'task-1' },
+    });
+
+    expect(toolEvents({ events })[0]).toMatchObject({
+      type: 'tool-call',
+      toolName: 'acp_tool_call-tied',
+    });
   });
 
   it('does not override an unknown programmatic metadata name by schema', () => {
@@ -665,7 +749,7 @@ describe('createACPStreamTranslator', () => {
 
     expect(toolEvents({ events })[0]).toMatchInlineSnapshot(`
       {
-        "input": "{\"command\":\"pwd\"}",
+        "input": "{"command":"pwd"}",
         "providerExecuted": true,
         "toolCallId": "call-custom",
         "toolName": "acp_tool_call-custom",

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropicAws('claude-sonnet-4-6'),
+    model: anthropicAws('claude-sonnet-5'),
     maxOutputTokens: 512,
     tools: {
       weather: weatherTool,

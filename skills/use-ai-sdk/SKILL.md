@@ -20,9 +20,9 @@ Whatever you remember about the AI SDK is likely outdated. The SDK changes frequ
 
 The `ai` package ships its full documentation and source code inside `node_modules`. These always match the installed version, so trust them over anything you remember.
 
-1. Ensure `ai` is installed. If `node_modules/ai/` does not exist, install **only** the `ai` package using the project's package manager (e.g. `pnpm add ai`). Install provider packages (e.g. `@ai-sdk/openai`) and framework packages (e.g. `@ai-sdk/react`) later, when the task requires them.
-2. Read and grep the bundled docs at `node_modules/ai/docs/` and the source at `node_modules/ai/src/`.
-3. Provider and framework packages bundle their own docs at `node_modules/@ai-sdk/<name>/docs/`.
+1. Ensure `ai` is installed. Check `node_modules/ai/` or locate the workspace package in a monorepo that depends on `ai` (e.g. `apps/<name>/node_modules/ai/`). If `ai` is not installed anywhere in the project, install **only** the `ai` package into the target package using the project's package manager (e.g. `pnpm add ai --filter <pkg>` or `npm install ai`). Install provider packages (e.g. `@ai-sdk/openai`) and framework packages (e.g. `@ai-sdk/react`) later, when the task requires them.
+2. Read and grep the bundled docs at `node_modules/ai/docs/` (or `<package>/node_modules/ai/docs/`) and the source at `node_modules/ai/src/`.
+3. Provider and framework packages bundle their own docs at `node_modules/@ai-sdk/<name>/docs/` (or `<package>/node_modules/@ai-sdk/<name>/docs/`).
 4. If something isn't in the bundled docs, search https://ai-sdk.dev/docs. You can append `.md` to any docs page URL to get its markdown, and search via `https://ai-sdk.dev/api/search-docs?q=your_query`.
 5. If you cannot find support for an answer in the docs or source, say so explicitly — do not guess.
 

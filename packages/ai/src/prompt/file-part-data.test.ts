@@ -40,6 +40,21 @@ describe('convertToLanguageModelV4FilePart', () => {
       expect(result.mediaType).toBeUndefined();
     });
 
+    it('preserves the original string when URL parsing changes a non-HTTP URI', () => {
+      const result = convertToLanguageModelV4FilePart(
+        'gs://my-bucket/folder/My File.pdf',
+      );
+
+      expect(result).toEqual({
+        data: {
+          type: 'url',
+          url: new URL('gs://my-bucket/folder/My File.pdf'),
+          originalUrl: 'gs://my-bucket/folder/My File.pdf',
+        },
+        mediaType: undefined,
+      });
+    });
+
     it('passes through a URL instance as { type: "url", url }', () => {
       const url = new URL('https://example.com/file.pdf');
       expect(convertToLanguageModelV4FilePart(url)).toEqual({

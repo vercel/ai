@@ -177,7 +177,9 @@ const { output } = await generateText({
 
 ### `Output.array()`
 
-Use `Output.array({ element })` to specify that you expect an array of typed objects from the model, where each element should conform to a schema (defined in the `element` property).
+Use `Output.array({ element, minItems, maxItems })` to specify that you expect
+an array of typed objects from the model. Each element must conform to the
+`element` schema, and the optional bounds constrain the number of elements.
 
 ```ts
 import { generateText, Output } from 'ai';
@@ -191,6 +193,8 @@ const { output } = await generateText({
       temperature: z.number(),
       condition: z.string(),
     }),
+    minItems: 2,
+    maxItems: 2,
   }),
   prompt: 'List the weather for San Francisco and Paris.',
 });
@@ -200,6 +204,11 @@ const { output } = await generateText({
 //   { location: 'Paris', temperature: 65, condition: 'Cloudy' },
 // ]
 ```
+
+`minItems` and `maxItems` must be non-negative integers, and `minItems` cannot
+be greater than `maxItems`. Use the same value for both options to require an
+exact length. The bounds are sent to providers as part of the structured output
+schema when supported, and the AI SDK independently validates the final output.
 
 When streaming arrays with `streamText`, you can use `elementStream` to receive each completed element as it is generated:
 
@@ -227,7 +236,10 @@ for await (const hero of elementStream) {
 <Note>
   Each element emitted by `elementStream` is complete and validated against your
   element schema. This differs from `partialOutputStream`, which streams the
-  entire partial array including incomplete elements.
+  entire partial array including incomplete elements. If the model generates
+  more than `maxItems`, `elementStream` errors before emitting the first excess
+  element. This does not automatically abort provider generation, and the final
+  `output` promise rejects.
 </Note>
 
 ### `Output.choice()`
@@ -378,7 +390,7 @@ const { output } = await generateText({
 This works with all output types that support structured generation:
 
 - `Output.object({ name, description, schema })`
-- `Output.array({ name, description, element })`
+- `Output.array({ name, description, element, minItems, maxItems })`
 - `Output.choice({ name, description, options })`
 - `Output.json({ name, description })`
 

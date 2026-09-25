@@ -52,14 +52,52 @@ You can use the following optional settings to customize the Open Responses prov
 
   API key that is sent as a bearer token in the `Authorization` header.
 
-- **headers** _Record&lt;string,string&gt;_
+- **headers** _Record&lt;string,string&gt; | () => Record&lt;string,string&gt;_
 
-  Custom headers to include in the requests.
+  Custom headers to include in requests. Pass a function when headers must be
+  resolved lazily for each request.
 
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   Defaults to the global `fetch` function.
+
+- **failedResponseHandler** _ResponseHandler&lt;APICallError&gt;_
+
+  Custom handler for non-successful HTTP responses. Use this when an endpoint
+  returns an error envelope that differs from the default OpenAI-compatible
+  `{ error: { message, type, param, code } }` shape.
+
+- **getResponseErrorMetadata** _function_
+
+  Extracts optional `statusCode` and `isRetryable` metadata from a response error
+  object, including endpoint-specific fields. Applies to generation failures and
+  streaming `response.failed` and `error` events. The standard Open Responses
+  error fields are `code` and `message`; endpoint-specific status fields require
+  this callback. When only a status code is supplied, the SDK derives retryability
+  from it. HTTP failures are handled separately by `failedResponseHandler`.
+
+- **strictResponseInput** _boolean_
+
+  Serializes assistant history using strict OpenAI Responses input schemas.
+  Assistant messages without an item ID are sent as easy input messages, while
+  messages with a genuine provider item ID are sent as complete output items.
+  Defaults to `false`.
+
+- **customToolId** _`${string}.${string}`_
+
+  Provider-tool ID used by `provider.tools.customTool`. Defaults to
+  `open-responses.custom`.
+
+- **structuredOutputs** _boolean_
+
+  Whether JSON response formats are sent to the endpoint. When `false`,
+  structured-output requests are omitted with an unsupported warning.
+  Defaults to `true`.
+
+- **userAgentSuffix** _string_
+
+  Overrides the default `ai-sdk/open-responses/<version>` user-agent suffix.
 
 ### Endpoint Examples
 
@@ -191,6 +229,39 @@ set, `providerOptions` `reasoningEffort` takes precedence over the top-level
 combined with either reasoning effort setting. Reasoning support and accepted
 effort values depend on the endpoint and model; unsupported values may be
 rejected or ignored by the endpoint.
+
+## Custom Tools
+
+Endpoints with OpenAI-compatible custom-tool support can call tools with raw
+string inputs, optionally constrained by a regex or Lark grammar. These tools
+execute in your application:
+
+```ts
+import { generateText, isStepCount } from 'ai';
+
+const result = await generateText({
+  model: openResponses('your-model-id'),
+  prompt: 'Write a SQL query that lists active users.',
+  tools: {
+    write_sql: openResponses.tools.customTool({
+      description: 'Return a SQL SELECT query.',
+      format: {
+        type: 'grammar',
+        syntax: 'regex',
+        definition: 'SELECT .+',
+      },
+      execute: async sql => runReadOnlyQuery(sql),
+    }),
+  },
+  stopWhen: isStepCount(3),
+});
+```
+
+The endpoint must support the OpenAI-compatible `custom` tool,
+`custom_tool_call`, and `custom_tool_call_output` wire types, as OpenAI and
+QuiverAI do. These are compatibility extensions, not part of the Open Responses
+2026-04-24 specification. Custom-tool results can include text, images, and files
+when supported by the endpoint.
 
 ## File Inputs
 

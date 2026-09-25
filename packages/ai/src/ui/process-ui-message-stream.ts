@@ -31,6 +31,8 @@ import {
   type UIMessage,
   type UIMessagePart,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
@@ -737,6 +739,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata: chunk.providerMetadata,
                   toolMetadata: chunk.toolMetadata,
                 });
+
+                warnIfUIMessageHasDeprecatedRawInput([state.message]);
               }
 
               write();
@@ -750,6 +754,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 id: chunk.approvalId,
                 ...(chunk.approvalDescriptor != null
                   ? { descriptor: chunk.approvalDescriptor }
+                  : {}),
+                ...(Object.prototype.hasOwnProperty.call(
+                  chunk,
+                  'inputSchemaInput',
+                )
+                  ? { inputSchemaInput: chunk.inputSchemaInput }
                   : {}),
                 ...(chunk.reason != null
                   ? { requestReason: chunk.reason }

@@ -3,7 +3,10 @@ import {
   type HarnessV1NetworkSandboxSession,
 } from '@ai-sdk/harness';
 import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import type * as NodeFsPromises from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createOpenCode } from './opencode-harness';
 
@@ -81,27 +84,56 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: () => Promise<unknown>;
+    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+    reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     emit(type: string, event: ChannelEvent): void;
   }> = [];
 
   class MockSandboxChannel {
     sent: unknown[] = [];
     closed = false;
+    readonly reconnect:
+      | {
+          readonly maxElapsedMs?: number;
+          readonly initialDelayMs?: number;
+          readonly maxDelayMs?: number;
+        }
+      | undefined;
     private readonly listeners = new Map<
       string,
       Set<(event: ChannelEvent) => void>
     >();
 
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
+    }) {
       this.connect = connect;
+      this.reconnect = reconnect;
       channels.push(this);
     }
 
-    readonly connect: () => Promise<unknown>;
+    readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
     async open() {
-      if (harnessUtilsMocks.connectOnOpen) await this.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.connect({ abortSignal: new AbortController().signal });
+      }
     }
 
     send(message: unknown) {
@@ -187,6 +219,7 @@ function getBuiltinToolMetadata(tool: unknown): {
 
 describe('createOpenCode adapter', () => {
   beforeEach(() => {
+    harnessUtilsMocks.channels.length = 0;
     harnessUtilsMocks.connectOnOpen = false;
     webSocketMocks.supportsUserMessageResponses = true;
     webSocketMocks.calls.length = 0;
@@ -199,6 +232,7 @@ describe('createOpenCode adapter', () => {
     expect(harness.supportsBuiltinToolApprovals).toBe(true);
     expect(harness.supportsBuiltinToolFiltering).toBeUndefined();
     expect(Object.keys(harness.builtinTools)).toEqual([
+      'askUserQuestions',
       'read',
       'write',
       'edit',
@@ -255,7 +289,7 @@ describe('createOpenCode adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('reuses a caller-minted token and passes endpoint headers when attaching', async () => {
+  it('passes connection settings to spawned and attached bridge channels', async () => {
     harnessUtilsMocks.connectOnOpen = true;
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
@@ -304,7 +338,16 @@ describe('createOpenCode adapter', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createOpenCode({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createOpenCode({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+    });
     const session = await harness.doStart({
       sessionId: 's1',
       sandboxSession,
@@ -338,6 +381,9 @@ describe('createOpenCode adapter', () => {
         headers: portEndpoint.headers,
       },
     ]);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.reconnect),
+    ).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 
@@ -433,6 +479,137 @@ describe('createOpenCode adapter', () => {
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
     await session.doDetach();
+  });
+
+  it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'opencode-data-'));
+    const authDirectory = join(dataDirectory, 'opencode');
+    await mkdir(authDirectory, { recursive: true });
+    await writeFile(
+      join(authDirectory, 'auth.json'),
+      JSON.stringify({
+        gitlab: {
+          type: 'oauth',
+          access: 'gitlab-oauth-access-token',
+          refresh: 'gitlab-oauth-refresh-token',
+          expires: Date.now() + 60 * 60 * 1000,
+        },
+      }),
+    );
+    const environmentNames = [
+      'AI_GATEWAY_API_KEY',
+      'VERCEL_OIDC_TOKEN',
+      'GITLAB_TOKEN',
+      'XDG_DATA_HOME',
+    ] as const;
+    const originalEnvironment = Object.fromEntries(
+      environmentNames.map(name => [name, process.env[name]]),
+    );
+    delete process.env.AI_GATEWAY_API_KEY;
+    delete process.env.VERCEL_OIDC_TOKEN;
+    delete process.env.GITLAB_TOKEN;
+    process.env.XDG_DATA_HOME = dataDirectory;
+    const originalFetch = globalThis.fetch;
+    const fetch = vi.fn(async () =>
+      Response.json({
+        token: 'gitlab-ai-access-token',
+        headers: { 'x-gitlab-routing-token': 'routing-token' },
+      }),
+    );
+    globalThis.fetch = fetch;
+
+    const spawnEnvironments: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const emptyStream = () =>
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? { exitCode: 0, stdout: '/home/vercel-sandbox', stderr: '' }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn({ env }: { env: Record<string, string | undefined> }) {
+        spawnEnvironments.push(env);
+        return {
+          stdout: emptyStream(),
+          stderr: emptyStream(),
+          async wait() {},
+          async kill() {},
+        };
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      addRequestTransformations,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+
+    try {
+      const session = await createOpenCode({ provider: 'gitlab' }).doStart({
+        sessionId: 's1',
+        sandboxSession,
+        sessionWorkDir: '/workspace/project',
+      });
+      const control = await session.doPromptTurn({
+        model: 'gitlab/duo-chat-sonnet-4-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: () => {},
+      });
+      const channel = harnessUtilsMocks.channels.at(-1)!;
+      const start = channel.sent.at(-1) as Record<string, unknown>;
+      const serializedStart = JSON.stringify(start);
+      const serializedEnvironment = JSON.stringify(spawnEnvironments.at(0));
+
+      expect(fetch).toHaveBeenCalledExactlyOnceWith(
+        'https://gitlab.com/api/v4/ai/third_party_agents/direct_access',
+        expect.objectContaining({
+          headers: {
+            Authorization: 'Bearer gitlab-oauth-access-token',
+            'Content-Type': 'application/json',
+          },
+        }),
+      );
+      expect(addRequestTransformations).toHaveBeenCalledTimes(1);
+      expect(start.model).toBe('ai-sdk-gitlab-anthropic/duo-chat-sonnet-4-5');
+      expect(serializedStart).not.toContain('gitlab-oauth-access-token');
+      expect(serializedStart).not.toContain('gitlab-oauth-refresh-token');
+      expect(serializedStart).not.toContain('gitlab-ai-access-token');
+      expect(serializedEnvironment).not.toContain('gitlab-oauth-access-token');
+      expect(serializedEnvironment).not.toContain('gitlab-oauth-refresh-token');
+      expect(serializedEnvironment).not.toContain('gitlab-ai-access-token');
+      expect(spawnEnvironments.at(0)?.OPENCODE_AUTH_CONTENT).toBeUndefined();
+
+      channel.emit('finish', { type: 'finish' });
+      await control.done;
+      await session.doDetach();
+    } finally {
+      globalThis.fetch = originalFetch;
+      for (const name of environmentNames) {
+        const value = originalEnvironment[name];
+        if (value == null) delete process.env[name];
+        else process.env[name] = value;
+      }
+    }
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
@@ -643,10 +820,10 @@ describe('createOpenCode adapter', () => {
     );
     expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
-      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode/bridge.mjs'",
     );
     expect(spawns.at(-1)?.command).toContain(
-      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode'",
     );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",
@@ -711,13 +888,14 @@ describe('createOpenCode adapter', () => {
       agent: { general: { model: 'openai/gpt-5.4-mini' } },
     };
     const harness = createOpenCode({
-      model: 'legacy-model',
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
       openCodeConfig,
       reasoningVariant: 'high',
       mcpServers,
     });
     const session = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
     });
@@ -733,6 +911,7 @@ describe('createOpenCode adapter', () => {
       operation: 'compact',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -756,6 +935,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     channel.emit('finish', { type: 'finish' });
@@ -764,6 +944,7 @@ describe('createOpenCode adapter', () => {
     const resumeFrom = await session.doDetach();
     const resumedSession = await harness.doStart({
       sessionId: 's1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession,
       sessionWorkDir: '/workspace/project',
       resumeFrom,
@@ -785,6 +966,7 @@ describe('createOpenCode adapter', () => {
       variant: 'high',
       openCodeConfig,
       mcpServers,
+      headers: { 'x-tenant': 'acme' },
       resumeSessionId: 'opencode-session',
     });
     resumedChannel.emit('finish', { type: 'finish' });
@@ -927,8 +1109,8 @@ describe('createOpenCode adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createOpenCode({ model: 'first-model' });
-      const second = createOpenCode({ model: 'second-model' });
+      const first = createOpenCode({ reasoningVariant: 'low' });
+      const second = createOpenCode({ reasoningVariant: 'high' });
 
       expect(first.getBootstrap).toBe(second.getBootstrap);
     });

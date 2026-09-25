@@ -33,7 +33,7 @@ export async function POST(request: Request) {
   const systemInstruction: string | undefined = body.systemInstruction;
 
   const agent = new ToolLoopAgent({
-    model: anthropic('claude-sonnet-4-6'),
+    model: anthropic('claude-sonnet-5'),
     instructions: systemInstruction ?? defaultInstructions,
     tools: { weather: weatherTool },
   });

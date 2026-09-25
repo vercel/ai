@@ -1,5 +1,6 @@
 import {
   UnsupportedFunctionalityError,
+  type JSONValue,
   type LanguageModelV4Prompt,
   type LanguageModelV4ToolResultOutput,
   type SharedV4Warning,
@@ -18,6 +19,10 @@ import type {
   GoogleFunctionResponsePart,
   GooglePrompt,
 } from './google-prompt';
+import {
+  codeExecutionInputSchema,
+  codeExecutionOutputSchema,
+} from './tool/code-execution';
 
 /**
  * Sentinel value Google documents for replaying functionCall parts whose
@@ -61,6 +66,30 @@ function convertUrlToolResultPart(
       data: parsedDataUrl.data,
     },
   };
+}
+
+function containsJSONSchemaReference(value: JSONValue | undefined): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsJSONSchemaReference);
+  }
+
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      key === '$ref' || containsJSONSchemaReference(nestedValue),
+  );
+}
+
+function serializeFunctionResponseContent(
+  value: JSONValue,
+): JSONValue | string {
+  // Google reserves { $ref: displayName } in structured function responses for
+  // multimodal parts. This conflicts with JSON Schema $ref, so serialize the
+  // result to preserve it without triggering Google's reference handling.
+  return containsJSONSchemaReference(value) ? JSON.stringify(value) : value;
 }
 
 /*
@@ -286,7 +315,11 @@ export function convertToGoogleMessages(
                   parts.push({
                     fileData: {
                       mimeType: resolveFullMediaType({ part }),
-                      fileUri: part.data.url.toString(),
+                      fileUri:
+                        part.data.url.protocol === 'gs:' &&
+                        part.data.originalUrl != null
+                          ? part.data.originalUrl
+                          : part.data.url.toString(),
                     },
                   });
                   break;
@@ -461,6 +494,19 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-call': {
+                  if (
+                    part.providerExecuted === true &&
+                    part.toolName === 'code_execution'
+                  ) {
+                    return {
+                      executableCode: codeExecutionInputSchema.parse(
+                        typeof part.input === 'string'
+                          ? secureJsonParse(part.input)
+                          : part.input,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -516,6 +562,17 @@ export function convertToGoogleMessages(
                 }
 
                 case 'tool-result': {
+                  if (
+                    part.toolName === 'code_execution' &&
+                    part.output.type === 'json'
+                  ) {
+                    return {
+                      codeExecutionResult: codeExecutionOutputSchema.parse(
+                        part.output.value,
+                      ),
+                    };
+                  }
+
                   const serverToolCallId =
                     providerOpts?.serverToolCallId != null
                       ? String(providerOpts.serverToolCallId)
@@ -622,7 +679,7 @@ export function convertToGoogleMessages(
                   content:
                     output.type === 'execution-denied'
                       ? (output.reason ?? 'Tool call execution denied.')
-                      : output.value,
+                      : serializeFunctionResponseContent(output.value),
                 },
               },
             });

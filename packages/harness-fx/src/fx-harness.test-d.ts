@@ -1,5 +1,20 @@
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import { expectTypeOf, test } from 'vitest';
-import { createFx } from './fx-harness';
+import { createFx, type FxHarnessSettings } from './fx-harness';
+
+test('accepts sandbox bridge reconnect settings', () => {
+  const settings: FxHarnessSettings = {
+    reconnect: {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    },
+  };
+  createFx(settings);
+  expectTypeOf(settings.reconnect).toEqualTypeOf<
+    SandboxChannelReconnectOptions | undefined
+  >();
+});
 
 test('preserves fx built-in tool types', () => {
   const harness = createFx({
@@ -29,8 +44,10 @@ test('preserves fx built-in tool types', () => {
     | 'install_skill'
     | 'subagent'
     | 'mcp_search_tools'
+    | 'capability_search'
     | 'mcp_select_tool'
     | 'mcp_features'
+    | 'shell'
     | 'ask_user_question'
     | 'vision'
     | 'read_tool_result'

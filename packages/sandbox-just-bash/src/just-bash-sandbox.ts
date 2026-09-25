@@ -3,7 +3,7 @@ import type {
   HarnessV1SandboxProvider,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import { Sandbox } from 'just-bash';
+import { defineCommand, Sandbox, type CommandContext } from 'just-bash';
 import { JustBashNetworkSandboxSession } from './just-bash-network-sandbox-session';
 
 /**
@@ -32,6 +32,104 @@ export type JustBashSandboxSettings =
   | (JustBashSandboxCreateParams & { sandbox?: never });
 
 const JUST_BASH_PROVIDER_ID = 'just-bash-sandbox';
+
+async function ensureRealpath(sandbox: Sandbox): Promise<void> {
+  const realpathType = await sandbox.bashEnvInstance.exec('type realpath');
+  if (realpathType.exitCode === 0) {
+    return;
+  }
+
+  sandbox.bashEnvInstance.registerCommand(
+    defineCommand('realpath', executeRealpath),
+  );
+}
+
+async function executeRealpath(
+  args: string[],
+  context: CommandContext,
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  if (args.length === 0 || args[0] === '') {
+    return {
+      stdout: '',
+      stderr: 'realpath: missing operand\n',
+      exitCode: 1,
+    };
+  }
+
+  let pending = args[0].startsWith('/') ? args[0] : `${context.cwd}/${args[0]}`;
+  let resolved = '';
+  let linkCount = 0;
+
+  while (pending.length > 0) {
+    pending = pending.replace(/^\//, '');
+    if (pending.length === 0) {
+      break;
+    }
+
+    const separatorIndex = pending.indexOf('/');
+    const component =
+      separatorIndex === -1 ? pending : pending.slice(0, separatorIndex);
+    pending = separatorIndex === -1 ? '' : pending.slice(separatorIndex + 1);
+
+    if (component === '' || component === '.') {
+      continue;
+    }
+    if (component === '..') {
+      resolved = resolved.slice(0, resolved.lastIndexOf('/'));
+      continue;
+    }
+
+    const candidate = `${resolved}/${component}`;
+    let isSymbolicLink = false;
+    try {
+      isSymbolicLink = (await context.fs.lstat(candidate)).isSymbolicLink;
+    } catch (error) {
+      if (!isFileNotFoundError(error)) {
+        throw error;
+      }
+    }
+
+    if (!isSymbolicLink) {
+      resolved = candidate;
+      continue;
+    }
+
+    linkCount += 1;
+    if (linkCount > 64) {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+
+    let target: string;
+    try {
+      target = await context.fs.readlink(candidate);
+    } catch {
+      return { stdout: '', stderr: '', exitCode: 1 };
+    }
+
+    const remainder = pending.length > 0 ? `/${pending}` : '';
+    pending = target.startsWith('/')
+      ? `${target}${remainder}`
+      : `${candidate.slice(0, candidate.lastIndexOf('/'))}/${target}${remainder}`;
+    resolved = '';
+  }
+
+  return {
+    stdout: `${resolved || '/'}\n`,
+    stderr: '',
+    exitCode: 0,
+  };
+}
+
+function isFileNotFoundError(error: unknown): boolean {
+  if (error == null || typeof error !== 'object') return false;
+  const code = (error as { code?: unknown }).code;
+  if (code === 'ENOENT') return true;
+  const message = (error as { message?: unknown }).message;
+  return (
+    typeof message === 'string' &&
+    /no such file|not found|ENOENT/i.test(message)
+  );
+}
 
 export function createJustBashSandbox(
   settings: JustBashSandboxSettings = {} as JustBashSandboxSettings,
@@ -65,19 +163,15 @@ export class JustBashSandboxProvider implements HarnessV1SandboxProvider {
   }): Promise<HarnessV1NetworkSandboxSession> => {
     options?.abortSignal?.throwIfAborted();
 
-    if ('sandbox' in this.settings && this.settings.sandbox) {
-      return new JustBashNetworkSandboxSession({
-        sandbox: this.settings.sandbox,
-        ownsLifecycle: false,
-      });
-    }
-
-    const createParams = this.settings as JustBashSandboxCreateParams;
-
-    const sandbox = await Sandbox.create(createParams);
+    const ownsLifecycle = !(
+      'sandbox' in this.settings && this.settings.sandbox
+    );
+    const sandbox = ownsLifecycle
+      ? await Sandbox.create(this.settings as JustBashSandboxCreateParams)
+      : this.settings.sandbox;
+    await ensureRealpath(sandbox);
     const sandboxSession = new JustBashNetworkSandboxSession({
       sandbox,
-      ownsLifecycle: true,
     });
 
     if (options?.onFirstCreate != null) {

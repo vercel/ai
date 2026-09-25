@@ -65,7 +65,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     };
     openOptions: { resume?: boolean } | undefined;
     private readonly listeners = new Map<
@@ -83,7 +88,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     }) {
       this.options = options;
       channels.push(this);
@@ -93,7 +103,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
-      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.options.connect({
+          abortSignal: new AbortController().signal,
+        });
+      }
     }
     on(
       type: string,
@@ -442,6 +456,119 @@ describe('createACP', () => {
     webSocketMocks.calls.length = 0;
   });
 
+  it('translates ACP question requests and client results', async () => {
+    const fromNativeRequest = vi.fn(
+      ({ nativeRequest }: { nativeRequest: unknown }) => ({
+        type: 'tool-call' as const,
+        toolCallId: 'question-1',
+        toolName: 'askUserQuestions',
+        input: JSON.stringify({
+          allowPartialAnswers: false,
+          questions: [{ id: 'q1', question: 'Framework?' }],
+        }),
+        providerExecuted: false,
+        providerMetadata: {
+          test: { preserved: true },
+        },
+      }),
+    );
+    const toNativeResponse = vi.fn(
+      ({ toolResult }: { toolResult: unknown }) => ({
+        native: toolResult,
+      }),
+    );
+    const harness = createACP({
+      harnessId: 'test-acp',
+      ...agentSettings,
+      askUserQuestions: {
+        requestMethod: 'test/ask',
+        fromNativeRequest,
+        toNativeResponse,
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const events: unknown[] = [];
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Ask.',
+      emit: event => events.push(event),
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+    const nativeRequest = {
+      sessionId: 'native-session',
+      toolCallId: 'native-question-1',
+    };
+
+    channel.emit({
+      type: 'acp-question-request',
+      requestId: 'request-1',
+      nativeRequest,
+    });
+
+    expect(fromNativeRequest).toHaveBeenCalledWith({
+      nativeRequest,
+      nativeToolCall: undefined,
+    });
+    expect(events).toContainEqual({
+      type: 'tool-call',
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      input: JSON.stringify({
+        allowPartialAnswers: false,
+        questions: [{ id: 'q1', question: 'Framework?' }],
+      }),
+      providerExecuted: false,
+      providerMetadata: {
+        test: { preserved: true },
+        'test-acp': { nativeRequest },
+      },
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'request-1',
+      output: { type: 'handled', toolCallId: 'question-1' },
+    });
+
+    const toolResult = {
+      type: 'tool-result' as const,
+      toolCallId: 'question-1',
+      toolName: 'askUserQuestions',
+      output: {
+        type: 'json' as const,
+        value: {
+          action: 'answered',
+          answers: { q1: { optionIds: [] } },
+        },
+      },
+    };
+    await control.submitToolResult({
+      toolCallId: 'question-1',
+      output: toolResult.output.value,
+      toolResult,
+    });
+
+    expect(toNativeResponse).toHaveBeenCalledWith({
+      nativeRequest,
+      toolResult,
+    });
+    expect(channel.sent).toContainEqual({
+      type: 'tool-result',
+      toolCallId: 'question-1',
+      output: { native: toolResult },
+      isError: undefined,
+      toolResult,
+    });
+  });
+
   afterEach(() => {
     vi.unstubAllEnvs();
   });
@@ -517,46 +644,6 @@ describe('createACP', () => {
     await session.doDestroy();
   });
 
-  it('uses the deprecated ACP modelId as a model fallback', async () => {
-    const harness = createACP({
-      harnessId: 'legacy-model-mapping-acp',
-      ...agentSettings,
-      modelId: 'legacy-model',
-    });
-
-    const session = await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: fakeSandbox({
-        runs: [],
-        spawns: [],
-        stop: async () => {},
-      }),
-      sessionWorkDir: '/workspace/user-project',
-    });
-    const control = await session.doPromptTurn({
-      skills: [],
-      tools: [],
-      prompt: 'Hello',
-      emit: () => {},
-    });
-
-    expect(harnessUtilsMocks.channels[0]!.sent[0]).toMatchObject({
-      type: 'start',
-      model: 'legacy-model',
-      modelMapping: {
-        type: 'session-config-option',
-        path: 'model',
-      },
-    });
-    harnessUtilsMocks.channels[0]!.emit({
-      type: 'finish',
-      finishReason: { unified: 'stop', raw: 'end_turn' },
-      totalUsage: unknownUsage(),
-    });
-    await control.done;
-    await session.doDestroy();
-  });
-
   it('requires credential environment and brokering settings together', () => {
     expect(() =>
       createACP({
@@ -578,9 +665,8 @@ describe('createACP', () => {
     );
   });
 
-  it('brokers direct credentials before launching the sandbox bridge', async () => {
-    vi.stubEnv('PROVIDER_API_KEY', 'direct-secret');
-    vi.stubEnv('PROVIDER_BASE_URL', 'https://provider.example/v1');
+  it('brokers host-resolved direct credentials before launching the sandbox bridge', async () => {
+    vi.stubEnv('HOST_PROVIDER_BASE_URL', 'https://host-provider.example/v1');
     const addRequestTransformations = vi.fn(async () => {});
     const credentialBrokering = vi.fn(
       ({
@@ -626,10 +712,14 @@ describe('createACP', () => {
     const harness = createACP({
       harnessId: 'direct-brokered-acp',
       ...agentSettings,
-      forwardEnv: ['PROVIDER_BASE_URL'],
+      forwardEnv: ['PROVIDER_BASE_URL', 'HOST_PROVIDER_BASE_URL'],
       credentialEnv: ['PROVIDER_API_KEY'],
       credentialBrokering,
       credentialForwarding,
+      resolveAuthenticationEnvironment: async () => ({
+        PROVIDER_API_KEY: 'direct-secret',
+        PROVIDER_BASE_URL: 'https://provider.example/v1',
+      }),
       env: { STATIC_SETTING: 'literal-value' },
     });
 
@@ -648,11 +738,13 @@ describe('createACP', () => {
       env: {
         PROVIDER_API_KEY: 'direct-secret',
         PROVIDER_BASE_URL: 'https://provider.example/v1',
+        HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
         STATIC_SETTING: 'literal-value',
       },
       sandboxEnv: {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://provider.example/v1',
+        HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
         STATIC_SETTING: 'literal-value',
       },
     });
@@ -676,6 +768,7 @@ describe('createACP', () => {
     expect(spawns[0]!.env).toMatchObject({
       PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
       PROVIDER_BASE_URL: 'https://provider.example/v1',
+      HOST_PROVIDER_BASE_URL: 'https://host-provider.example/v1',
       STATIC_SETTING: 'literal-value',
     });
     expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
@@ -683,6 +776,70 @@ describe('createACP', () => {
       environmentVariableName: 'PROVIDER_API_KEY',
     });
     expect(JSON.stringify(spawns[0]!.env)).not.toContain('direct-secret');
+
+    await session.doDestroy();
+  });
+
+  it('materializes private authentication files with brokered credentials', async () => {
+    vi.stubEnv('PROVIDER_API_KEY', 'host-secret');
+    const writes: Array<{ path: string; content: string }> = [];
+    const runs: string[] = [];
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const authenticationFiles = vi.fn(
+      ({
+        env,
+        sandboxEnv,
+        credentialBrokeringAvailable,
+      }: {
+        env: Readonly<Record<string, string>>;
+        sandboxEnv: Readonly<Record<string, string>>;
+        credentialBrokeringAvailable: boolean;
+      }) => [
+        {
+          path: '.config/provider/auth.json',
+          content: JSON.stringify({ token: sandboxEnv.PROVIDER_API_KEY }),
+        },
+      ],
+    );
+    const harness = createACP({
+      harnessId: 'authentication-file-acp',
+      ...agentSettings,
+      credentialEnv: ['PROVIDER_API_KEY'],
+      credentialBrokering: () => [],
+      credentialForwarding: async () => 'sandbox-secret',
+      authenticationFiles,
+    });
+
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs,
+        spawns,
+        writes,
+        stop: async () => {},
+        addRequestTransformations: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+
+    expect(authenticationFiles).toHaveBeenCalledExactlyOnceWith({
+      env: expect.objectContaining({ PROVIDER_API_KEY: 'host-secret' }),
+      sandboxEnv: expect.objectContaining({
+        PROVIDER_API_KEY: 'sandbox-secret',
+      }),
+      credentialBrokeringAvailable: true,
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.config/provider/auth.json',
+      content: '{"token":"sandbox-secret"}',
+    });
+    expect(runs).toContain(
+      "chmod 600 -- '/home/agent/.config/provider/auth.json'",
+    );
+    expect(JSON.stringify(writes)).not.toContain('host-secret');
 
     await session.doDestroy();
   });
@@ -756,6 +913,7 @@ describe('createACP', () => {
 
     const session = await harness.doStart({
       sessionId: 'session-1',
+      headers: { 'x-tenant': 'acme' },
       sandboxSession: fakeSandbox({
         runs: [],
         spawns,
@@ -774,6 +932,7 @@ describe('createACP', () => {
         PROVIDER_API_KEY: 'ephemeral-PROVIDER_API_KEY',
         PROVIDER_BASE_URL: 'https://gateway.example/v1',
       },
+      headers: { 'x-tenant': 'acme' },
     });
     expect(addRequestTransformations).toHaveBeenCalledWith([
       {
@@ -1267,6 +1426,7 @@ describe('createACP', () => {
     });
     channel.emit({
       type: 'acp-tool-call-candidate',
+      requestId: 'candidate-1',
       toolCall: {
         toolCallId: 'call-1',
         title: 'External tool',
@@ -1749,16 +1909,16 @@ describe('createACP', () => {
     });
 
     expect(runs[0]).toBe('printf "%s" "$HOME"');
-    expect(runs[1]).toMatch(
-      /^mkdir -p '\/workspace\/user-project' '\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/bridge'$/,
+    expect(runs[1]).toBe(
+      "mkdir -p '/workspace/user-project' '/home/agent/.ai-sdk-harness/.agent-runs/session-1/bridge'",
     );
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
     expect(spawns[0].command).toContain(
-      "node '/workspace/.harness-bootstrap/codex-acp/bridge.mjs'",
+      "node '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
     expect(spawns[0].command).toContain(
-      "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",
+      "--implementation-dir '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/implementation'",
     );
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
@@ -1823,7 +1983,7 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(runs[0]).toBe('pwd');
+    expect(runs[0]).toBe('printf "%s" "$HOME"');
     const resumeFrom = await session.doDetach();
     expect(resumeFrom.data).toMatchObject({
       bridge: {
@@ -1872,11 +2032,17 @@ describe('createACP', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
       portEndpoint,
+      reconnect,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
@@ -1905,6 +2071,9 @@ describe('createACP', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
+    ).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
@@ -2207,7 +2376,7 @@ describe('createACP', () => {
     });
 
     expect(writes).toContainEqual({
-      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
       content:
         '---\n' +
         'name: release-notes\n' +
@@ -2316,6 +2485,90 @@ describe('createACP', () => {
     expect(secondStart.prompt[0]?.text).toContain(
       'Answer every question in French.',
     );
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await second.done;
+    await session.doDestroy();
+  });
+
+  it('materializes instructions into the filesystem and never prepends prompt guidance', async () => {
+    const writes: Array<{ path: string; content: string }> = [];
+    const harness = createACP({
+      harnessId: 'cursor-acp',
+      ...agentSettings,
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+    });
+    const session = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession: fakeSandbox({
+        runs: [],
+        spawns: [],
+        writes,
+        stop: async () => {},
+      }),
+      sessionWorkDir: '/workspace/user-project',
+    });
+    const channel = harnessUtilsMocks.channels[0]!;
+
+    const first = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Draft release notes.',
+      instructions: 'Always run tests.',
+      emit: () => {},
+    });
+    expect(channel.sent[0]).toMatchObject({
+      type: 'start',
+      instructions: 'Always run tests.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Draft release notes.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Always run tests.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[0]!, 'prompt')),
+    ).not.toContain('Always run tests.');
+    channel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await first.done;
+
+    const second = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Revise them.',
+      instructions: 'Answer every question in French.',
+      emit: () => {},
+    });
+    expect(channel.sent[1]).toMatchObject({
+      type: 'start',
+      instructions: 'Answer every question in French.',
+      instructionMapping: {
+        type: 'filesystem',
+        path: '.cursor/rules/AGENTS.md',
+      },
+      prompt: [{ type: 'text', text: 'Revise them.' }],
+    });
+    expect(writes).toContainEqual({
+      path: '/home/agent/.cursor/rules/AGENTS.md',
+      content: 'Answer every question in French.\n',
+    });
+    expect(
+      JSON.stringify(Reflect.get(channel.sent[1]!, 'prompt')),
+    ).not.toContain('Answer every question in French.');
     channel.emit({
       type: 'finish',
       finishReason: { unified: 'stop', raw: 'end_turn' },
@@ -2529,7 +2782,6 @@ describe('createACP', () => {
       auth: 'ai-gateway',
       ...agentSettings,
       forwardEnv: [],
-      modelId: 'gpt-5.1-codex',
       session: {
         meta: {
           profile: 'restored',
@@ -3457,8 +3709,10 @@ describe('createACP', () => {
       session: secondSession,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { value: 42 },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
         },
       ],
     });
@@ -3471,6 +3725,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { value: 42 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { value: 42 } },
+        },
       });
     });
     secondChannel.emit({
@@ -3563,18 +3823,9 @@ describe('createACP', () => {
       session: secondSession,
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'native-approval',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'native-call',
-            toolName: 'bash',
-            input: { command: 'pwd' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'native-approval',
+          approved: true,
         },
       ],
     });
@@ -4052,8 +4303,10 @@ describe('createACP', () => {
       session,
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'client-call',
-          output: { answer: 'Ada' },
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
         },
       ],
     });
@@ -4066,6 +4319,12 @@ describe('createACP', () => {
         toolCallId: 'client-call',
         output: { answer: 'Ada' },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { answer: 'Ada' } },
+        },
       });
     });
     channel.emit({
