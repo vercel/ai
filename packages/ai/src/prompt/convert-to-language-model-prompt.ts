@@ -409,7 +409,9 @@ async function downloadAssets(
             downloadableFiles.push({
               data: new URL(contentPart.url),
               mediaType:
-                contentPart.type === 'image-url' ? 'image/*' : undefined,
+                contentPart.type === 'image-url'
+                  ? 'image/*'
+                  : contentPart.mediaType,
             });
           }
         }

@@ -333,6 +333,12 @@ export type LanguageModelV3ToolResultOutput =
             url: string;
 
             /**
+             * IANA media type.
+             * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+             */
+            mediaType?: string;
+
+            /**
              * Provider-specific options.
              */
             providerOptions?: SharedV3ProviderOptions;

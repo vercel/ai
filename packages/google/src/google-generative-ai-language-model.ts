@@ -259,6 +259,8 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
         supportsFunctionResponseParts: usesGemini3Features,
         onWarning: warning => warnings.push(warning),
         includeFunctionCallIds: !isVertexProvider,
+        supportsGoogleCloudStorageFunctionResponseUrls:
+          usesGemini3Features && isVertexProvider,
       },
     );
 
