@@ -1148,9 +1148,9 @@ const { video } = await generateVideo({
 ```
 
 <Note>
-  xAI does not support first-last-frame interpolation. A `last_frame` entry in
-  `frameImages` is ignored with a warning — use the `extend-video` mode to
-  continue from a video's last frame instead.
+  `grok-imagine-video-1.5` supports first-last-frame interpolation. Earlier
+  models ignore a `last_frame` entry with a warning. Use `extend-video` when you
+  want to continue an existing video rather than pin its final frame.
 </Note>
 
 ### Video Editing
@@ -1336,17 +1336,17 @@ const { video } = await generateVideo({
 });
 ```
 
-`inputReferences` accepts image references only. A reference with a non-image
-media type (for example a video or audio clip) is ignored with a warning, and a
-reference with no media type is treated as an image. If no image reference
-remains, reference-to-video is not selected and no reference images are sent.
+`inputReferences` accepts image and audio references. Audio references must
+declare an audio media type and can be supplied alone or together with images;
+they are sent through `reference_audios`. A reference with no media type is
+treated as an image. Video references are ignored with a warning.
 
 #### Reference Audio
 
-Reference-to-video can also give the subject a voice. `referenceVoiceIds` takes
-up to 3 xAI **preset** voice ids — you cannot upload your own audio clips.
-Reference the voices from the prompt with `<AUDIO_0>`, `<AUDIO_1>`, and
-`<AUDIO_2>`, in the order the voices are passed.
+Reference-to-video can also give the subject a voice. Use `inputReferences` for
+caller-supplied audio clips, or `referenceVoiceIds` for up to 3 xAI preset voice
+ids. Reference them from the prompt with `<AUDIO_0>`, `<AUDIO_1>`, and
+`<AUDIO_2>`, in the order they are passed.
 
 ```ts
 import { xai, type XaiVideoModelOptions } from '@ai-sdk/xai';
@@ -1381,19 +1381,18 @@ available voices. `referenceVoiceIds` is ignored with a warning when the
 resolved operation is not reference-to-video.
 
 <Note>
-  xAI documents reference audio as available in the United States only, for
-  trusted partners. Requests from accounts without access are rejected by the
-  xAI API.
+  Preset voices are generally available. Caller-supplied voice clips are
+  available to trusted partners on request. xAI accepts at most three audio
+  references per request.
 </Note>
 
 <Note>
   Reference-to-video supports `duration`, `aspectRatio`, and `resolution`. Use
-  `mode` to select the operation — each mode is mutually exclusive. When both
-  are provided, `frameImages` takes precedence over `inputReferences`, and
+  `mode` to select the operation — each mode is mutually exclusive.
   `inputReferences` takes precedence over the legacy `referenceImageUrls`
-  provider option. Reference-to-video is supported by the `grok-imagine-video`
-  and `grok-imagine-video-1.5` models; native 1080p requires
-  `grok-imagine-video-1.5`.
+  provider option and can be combined with pinned frames. Reference-to-video is
+  supported by the `grok-imagine-video` and `grok-imagine-video-1.5` models;
+  native 1080p requires `grok-imagine-video-1.5`.
 </Note>
 
 ### Video Provider Options
@@ -1458,6 +1457,42 @@ You can validate the provider options using the `XaiVideoModelOptions` type.
   `<AUDIO_1>`, and `<AUDIO_2>` tags in the prompt to reference the voices.
   Ignored with a warning outside reference-to-video. Reference audio is
   documented as US-only and limited to trusted partners.
+
+- **storageOptions** _object_
+
+  Stores the generated video in the xAI Files API. Set `filename` and
+  optionally `expiresAfter` (up to 30 days) and `publicUrl`. Stored-file
+  details and storage errors are returned in `providerMetadata.xai.fileOutput`
+  and `providerMetadata.xai.storageError`.
+
+- **keyframes** _Array\<\{ imageUrl: string; timestampSeconds: number \}\>_
+
+  Up to four mid-video image anchors. Each timestamp must fall strictly inside
+  the video duration. Keyframes are supported by `grok-imagine-video-1.5` and
+  are ignored with a warning for editing and extension operations.
+
+### Audio and Frame Controls
+
+Use the provider-neutral `generateAudio` option to request or disable generated
+audio. Use `frameImages` for exact endpoint frames:
+
+```ts
+const { video } = await generateVideo({
+  model: xai.video('grok-imagine-video-1.5'),
+  prompt: 'A paper boat drifting down a rain-soaked street',
+  generateAudio: false,
+  frameImages: [
+    {
+      frameType: 'last_frame',
+      image: 'https://example.com/final-frame.png',
+    },
+  ],
+});
+```
+
+`last_frame` is supported only by `grok-imagine-video-1.5`. The provider emits
+an unsupported-feature warning and omits the field for other model IDs. A
+`first_frame` is sent as xAI's standard `image` input.
 
 <Note>
   Video generation is an asynchronous process that can take several minutes.

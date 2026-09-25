@@ -1,5 +1,14 @@
 # @ai-sdk/harness
 
+## 1.0.124
+
+### Patch Changes
+
+- 40231b6: fix(harness): enforce tool input schemas at execution and consistently reject invalid inputs
+- Updated dependencies [b5679a7]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+
 ## 1.0.123
 
 ### Patch Changes

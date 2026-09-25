@@ -74,9 +74,12 @@ const PI_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
-    description: 'Read file contents.',
+    description:
+      'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
     inputSchema: z.object({
       file_path: z.string(),
+      offset: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
     }),
   }),
   write: commonTool('write', {

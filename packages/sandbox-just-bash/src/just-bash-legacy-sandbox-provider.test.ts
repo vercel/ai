@@ -1,5 +1,15 @@
-import { Sandbox } from 'just-bash';
 import { shellQuote } from '@ai-sdk/harness/utils';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import {
+  defineCommand,
+  InMemoryFs,
+  MountableFs,
+  ReadWriteFs,
+  Sandbox,
+  type IFileSystem,
+} from 'just-bash';
 import { describe, expect, it } from 'vitest';
 import { createJustBashSandbox } from './just-bash-legacy-sandbox-provider';
 
@@ -30,6 +40,55 @@ describe('JustBashSandboxProvider', () => {
     }
   });
 
+  it.each([
+    {
+      name: 'MountableFs',
+      createFilesystem: async () => ({
+        fs: new MountableFs({
+          base: new InMemoryFs(),
+          mounts: [{ mountPoint: '/data', filesystem: new InMemoryFs() }],
+        }),
+      }),
+    },
+    {
+      name: 'ReadWriteFs',
+      createFilesystem: async () => {
+        const root = await mkdtemp(path.join(tmpdir(), 'sandbox-just-bash-'));
+        return {
+          fs: new ReadWriteFs({ root }),
+          cleanup: () => rm(root, { recursive: true, force: true }),
+        };
+      },
+    },
+  ])(
+    'keeps commands available while providing realpath on $name',
+    async ({ createFilesystem }) => {
+      const {
+        fs,
+        cleanup = async () => {},
+      }: { fs: IFileSystem; cleanup?: () => Promise<void> } =
+        await createFilesystem();
+      await fs.mkdir('/work/target', { recursive: true });
+      await fs.writeFile('/work/target/read.txt', 'content\n');
+      const session = await createJustBashSandbox({ fs }).createSession();
+
+      try {
+        await expect(
+          session.run({
+            command: 'echo ok && realpath /work/target/read.txt',
+          }),
+        ).resolves.toMatchObject({
+          exitCode: 0,
+          stdout: 'ok\n/work/target/read.txt\n',
+          stderr: '',
+        });
+      } finally {
+        await session.destroy();
+        await cleanup();
+      }
+    },
+  );
+
   it('bootstraps caller-provided sandboxes without replacing realpath', async () => {
     const sandbox = await Sandbox.create({ cwd: '/work' });
     await sandbox.writeFiles({
@@ -45,6 +104,36 @@ describe('JustBashSandboxProvider', () => {
       ).resolves.toMatchObject({
         exitCode: 0,
         stdout: 'custom\n',
+      });
+    } finally {
+      await session.destroy();
+    }
+  });
+
+  it('preserves a registered realpath command without a filesystem stub', async () => {
+    const sandbox = await Sandbox.create({
+      fs: new MountableFs({
+        base: new InMemoryFs(),
+        mounts: [{ mountPoint: '/data', filesystem: new InMemoryFs() }],
+      }),
+    });
+    sandbox.bashEnvInstance.registerCommand(
+      defineCommand('realpath', async () => ({
+        exitCode: 0,
+        stdout: 'custom\n',
+        stderr: '',
+      })),
+    );
+
+    const session = await createJustBashSandbox({ sandbox }).createSession();
+
+    try {
+      await expect(
+        session.run({ command: 'realpath /tmp && echo ok' }),
+      ).resolves.toMatchObject({
+        exitCode: 0,
+        stdout: 'custom\nok\n',
+        stderr: '',
       });
     } finally {
       await session.destroy();
