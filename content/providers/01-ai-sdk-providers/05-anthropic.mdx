@@ -205,6 +205,50 @@ emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
 
+### Checking Tool Schemas Before Deployment
+
+Anthropic requires tool input schemas with `type: 'object'` at the root and no
+root-level `anyOf`, `oneOf`, or `allOf`. Unions nested inside object properties
+are allowed. The provider checks these restrictions before sending tools.
+
+To check tools in a build script or CI, use
+`experimental_validateAnthropicToolSchemas`. It throws an
+`UnsupportedFunctionalityError` naming the first incompatible tool and suggesting
+a fix. No API key or model request is needed; tool executors are not called.
+
+```ts
+import { experimental_validateAnthropicToolSchemas as validateToolSchemas } from '@ai-sdk/anthropic';
+import { tool } from 'ai';
+import { z } from 'zod/v4';
+
+const request = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('lookup'), id: z.string() }),
+  z.object({ action: z.literal('search'), query: z.string() }),
+]);
+
+const tools = {
+  lookup: tool({
+    // Using request directly as inputSchema would fail this check.
+    inputSchema: z.object({ request }),
+  }),
+};
+
+await validateToolSchemas({ tools });
+```
+
+Run the check against your application's tool definitions before deployment.
+This also works when those tools will be sent to Anthropic through AI Gateway.
+Applications that do not target Anthropic can omit the check.
+
+The helper accepts the same schemas as `tool()`, including Zod, `jsonSchema()`,
+Standard Schema, and lazy schemas. It checks custom and dynamic tools and skips
+provider-defined tools. Tools discovered at runtime, such as MCP tools, need to
+be checked after discovery.
+
+This is an executable build check, not a TypeScript constraint. It only checks
+the root restrictions above, not every model-specific or strict-mode restriction.
+`strict: true` controls argument generation and does not enable this build check.
+
 ### Effort
 
 Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.

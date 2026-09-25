@@ -15,4 +15,5 @@ export type {
   AnthropicProviderSettings,
 } from './anthropic-provider';
 export { forwardAnthropicContainerIdFromLastStep } from './forward-anthropic-container-id-from-last-step';
+export { validateAnthropicToolSchemas as experimental_validateAnthropicToolSchemas } from './validate-anthropic-tool-schemas';
 export { VERSION } from './version';

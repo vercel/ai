@@ -15,6 +15,7 @@ import { webFetch_20260318ArgsSchema } from './tool/web-fetch-20260318';
 import { webFetch_20260209ArgsSchema } from './tool/web-fetch-20260209';
 import { webFetch_20250910ArgsSchema } from './tool/web-fetch-20250910';
 import { validateTypes } from '@ai-sdk/provider-utils';
+import { validateAnthropicToolSchema } from './validate-anthropic-tool-schemas';
 
 export interface AnthropicToolOptions {
   deferLoading?: boolean;
@@ -83,6 +84,19 @@ export async function prepareTools({
   for (const tool of tools) {
     switch (tool.type) {
       case 'function': {
+        // Only check schemas that will be sent to Anthropic.
+        if (
+          toolChoice?.type !== 'none' &&
+          (!rejectsForcedToolUse ||
+            toolChoice?.type !== 'tool' ||
+            toolChoice.toolName === tool.name)
+        ) {
+          validateAnthropicToolSchema({
+            toolName: tool.name,
+            inputSchema: tool.inputSchema,
+          });
+        }
+
         const cacheControl = validator.getCacheControl(tool.providerOptions, {
           type: 'tool definition',
           canCache: true,
