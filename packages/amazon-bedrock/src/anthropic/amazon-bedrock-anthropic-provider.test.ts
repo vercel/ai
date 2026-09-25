@@ -5,15 +5,14 @@ import {
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
-import type * as ProviderUtils from '@ai-sdk/provider-utils';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
 vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual<typeof ProviderUtils>(
-    '@ai-sdk/provider-utils',
-  );
+  const actual = await vi.importActual('@ai-sdk/provider-utils');
   return {
-    ...actual,
+    WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
+    WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
+    serializeModelOptions: (actual as any).serializeModelOptions,
     loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
       // Return undefined for API key to test SigV4 flow
       if (settingValue === undefined) return undefined;

@@ -16,7 +16,6 @@ const XaiTranscriptionModelMock = XaiTranscriptionModel as unknown as Mock;
 
 vi.mock('./responses/xai-responses-language-model', () => ({
   XaiResponsesLanguageModel: vi.fn(),
-  xaiResponsesSupportedUrls: {},
 }));
 
 vi.mock('./xai-image-model', () => ({
