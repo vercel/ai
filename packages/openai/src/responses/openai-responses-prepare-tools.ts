@@ -655,7 +655,7 @@ function prepareFunctionTool({
     description: tool.description,
     parameters: normalizedInputSchema.schema,
     ...(async != null ? { async } : {}),
-    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    strict: tool.strict ?? false,
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
