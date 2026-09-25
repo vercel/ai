@@ -1025,6 +1025,11 @@ describe('doStream', () => {
     const result = await model.doStream({ prompt: TEST_PROMPT });
     const chunks = await convertReadableStreamToArray(result.stream);
 
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello from Perplexity.' },
+      { type: 'text-end', id: 'msg-123' },
+    ]);
     expect(chunks).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -1040,6 +1045,82 @@ describe('doStream', () => {
         }),
       ]),
     );
+  });
+
+  it.each([
+    'response.output_text.done',
+    'response.output_item.done',
+    'response.completed',
+  ])('recovers text from %s without deltas', async type => {
+    const response = createResponse({ output: [createResponse().output[1]] });
+    prepareStream([
+      {
+        type,
+        item_id: 'msg-123',
+        output_index: 0,
+        content_index: 0,
+        text: 'Hello from Perplexity.',
+        item: response.output[0],
+        response,
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello from Perplexity.' },
+      { type: 'text-end', id: 'msg-123' },
+    ]);
+  });
+
+  it('appends only missing text and does not repeat completed content parts', async () => {
+    const message = {
+      type: 'message',
+      id: 'msg-123',
+      content: [
+        { type: 'output_text', text: 'Hello world.' },
+        { type: 'output_text', text: 'Second part.' },
+      ],
+    };
+    prepareStream([
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-123',
+        content_index: 0,
+        delta: 'Hello ',
+      },
+      {
+        type: 'response.output_text.done',
+        item_id: 'msg-123',
+        content_index: 0,
+        text: 'Hello world.',
+      },
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-123',
+        content_index: 1,
+        delta: 'Second ',
+      },
+      { type: 'response.output_item.done', item: message, output_index: 0 },
+      {
+        type: 'response.completed',
+        response: createResponse({ output: [message] }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello ' },
+      { type: 'text-delta', id: 'msg-123', delta: 'world.' },
+      { type: 'text-end', id: 'msg-123' },
+      { type: 'text-start', id: 'msg-123:1' },
+      { type: 'text-delta', id: 'msg-123:1', delta: 'Second ' },
+      { type: 'text-delta', id: 'msg-123:1', delta: 'part.' },
+      { type: 'text-end', id: 'msg-123:1' },
+    ]);
   });
 
   it('emits stream failures as errors', async () => {

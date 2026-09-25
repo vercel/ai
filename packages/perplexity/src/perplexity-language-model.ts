@@ -473,7 +473,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     let hasFunctionCall = false;
     let hasResponseMetadata = false;
     let activeReasoningId: string | undefined;
-    const activeTextIds = new Set<string>();
+    const textStates = new Map<string, { text: string; ended: boolean }>();
     const emittedSourceUrls = new Set<string>();
     const pendingSourcesByUrl = new Map<string, PerplexityUrlSource>();
     const seenFunctionCalls = new Set<string>();
@@ -501,6 +501,69 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             }
 
             const value = chunk.value;
+
+            const getTextId = (
+              itemId: string | null | undefined,
+              outputIndex: number | undefined,
+              contentIndex = 0,
+            ) => {
+              const id = itemId ?? String(outputIndex ?? 'text');
+              return contentIndex === 0 ? id : `${id}:${contentIndex}`;
+            };
+
+            const emitTextDelta = (id: string, delta: string) => {
+              let state = textStates.get(id);
+              if (state?.ended) {
+                return;
+              }
+              if (state == null) {
+                state = { text: '', ended: false };
+                textStates.set(id, state);
+                controller.enqueue({ type: 'text-start', id });
+              }
+              state.text += delta;
+              controller.enqueue({ type: 'text-delta', id, delta });
+            };
+
+            const finishText = (id: string, text: string | undefined) => {
+              const state = textStates.get(id);
+              if (state?.ended) {
+                return;
+              }
+              // Terminal output can contain text for which no delta arrived,
+              // or the remainder of a partially streamed content part.
+              const emittedText = state?.text ?? '';
+              if (
+                text != null &&
+                text.startsWith(emittedText) &&
+                text.length > emittedText.length
+              ) {
+                emitTextDelta(id, text.slice(emittedText.length));
+              }
+              const finalState = textStates.get(id);
+              if (finalState != null) {
+                finalState.ended = true;
+                controller.enqueue({ type: 'text-end', id });
+              }
+            };
+
+            const finishOutputText = (
+              item: PerplexityOutputItem,
+              outputIndex?: number,
+            ) => {
+              if (item.type === 'message') {
+                for (const [contentIndex, part] of (
+                  item.content ?? []
+                ).entries()) {
+                  if (part.type === 'output_text') {
+                    finishText(
+                      getTextId(item.id, outputIndex, contentIndex),
+                      part.text,
+                    );
+                  }
+                }
+              }
+            };
 
             const emitSource = (source: PerplexityUrlSource) => {
               if (emittedSourceUrls.has(source.url)) {
@@ -614,28 +677,28 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
 
               case 'response.output_text.delta': {
-                const textId =
-                  value.item_id ?? String(value.output_index ?? 'text');
-                if (!activeTextIds.has(textId)) {
-                  activeTextIds.add(textId);
-                  controller.enqueue({ type: 'text-start', id: textId });
-                }
                 if (value.delta != null) {
-                  controller.enqueue({
-                    type: 'text-delta',
-                    id: textId,
-                    delta: value.delta,
-                  });
+                  emitTextDelta(
+                    getTextId(
+                      value.item_id,
+                      value.output_index,
+                      value.content_index,
+                    ),
+                    value.delta,
+                  );
                 }
                 break;
               }
 
               case 'response.output_text.done': {
-                const textId =
-                  value.item_id ?? String(value.output_index ?? 'text');
-                if (activeTextIds.delete(textId)) {
-                  controller.enqueue({ type: 'text-end', id: textId });
-                }
+                finishText(
+                  getTextId(
+                    value.item_id,
+                    value.output_index,
+                    value.content_index,
+                  ),
+                  value.text,
+                );
                 break;
               }
 
@@ -702,6 +765,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
               case 'response.output_item.done': {
                 if (value.item != null) {
+                  finishOutputText(value.item, value.output_index);
                   emitOutputSources(value.item);
                   emitFunctionCall(value.item);
                 }
@@ -718,7 +782,11 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                     });
                     hasResponseMetadata = true;
                   }
-                  for (const item of value.response.output) {
+                  for (const [
+                    outputIndex,
+                    item,
+                  ] of value.response.output.entries()) {
+                    finishOutputText(item, outputIndex);
                     emitOutputSources(item);
                     emitFunctionCall(item);
                   }
@@ -760,8 +828,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
                 id: activeReasoningId,
               });
             }
-            for (const id of activeTextIds) {
-              controller.enqueue({ type: 'text-end', id });
+            for (const [id, state] of textStates) {
+              if (!state.ended) {
+                controller.enqueue({ type: 'text-end', id });
+              }
             }
             controller.enqueue({
               type: 'finish',
