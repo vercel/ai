@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 14027,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14027-partial-static-tool-resume.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-14027-partial-static-tool-resume.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14027_REPRODUCED: both readUIMessageStream and Chat.resumeStream rejected a delta for the hydrated input-streaming static tool call"
+  }
+}
