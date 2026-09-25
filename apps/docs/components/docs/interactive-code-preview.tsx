@@ -27,6 +27,10 @@ import {
   useState,
 } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
+import {
+  DEFAULT_MODEL_IDS,
+  MODEL_KIND_PLACEHOLDERS,
+} from '@/lib/code-template.mjs';
 
 /**
  * Faithful port of production ai-sdk.dev's InteractiveCodePreview
@@ -47,18 +51,6 @@ const cx = (...classes: (string | false | null | undefined)[]): string =>
 const identityHref: ResolveHref = href => href;
 
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
-
-const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
-  text: 'anthropic/claude-sonnet-5',
-  image: 'openai/gpt-image-2.5-sunburst',
-  video: 'google/veo-3.1-generate-001',
-};
-
-const MODEL_KIND_PLACEHOLDERS: Record<ModelKind, string[]> = {
-  text: ['__TEXT_MODEL__', '__MODEL__'],
-  image: ['__IMAGE_MODEL__'],
-  video: ['__VIDEO_MODEL__'],
-};
 
 const MODEL_KIND_GATEWAY_TYPES: Record<ModelKind, string> = {
   text: 'language',
@@ -521,6 +513,7 @@ type InteractiveCodePreviewProps = {
   /** Code template with __MODEL__, __TEXT_MODEL__, __IMAGE_MODEL__, __VIDEO_MODEL__, and __PROVIDER_IMPORT__ placeholders */
   code: string;
   language?: string;
+  title?: string;
   /** Lines to highlight for Gateway tab (no import line) */
   highlightedLines?: number[];
   /** Lines to highlight for Provider/Custom tabs (with import line). Falls back to highlightedLines if not specified. */
@@ -543,6 +536,7 @@ type InteractiveCodePreviewProps = {
 export const InteractiveCodePreview = ({
   code,
   language = 'typescript',
+  title,
   highlightedLines,
   highlightedLinesWithImport,
   className,
@@ -936,7 +930,10 @@ export const InteractiveCodePreview = ({
         id={`${id}-panel`}
         role="tabpanel"
       >
-        <CodeBlock className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4">
+        <CodeBlock
+          className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4"
+          title={title}
+        >
           {highlightedTokens
             ? highlightedTokens.map((line, lineIndex) => (
                 <span
