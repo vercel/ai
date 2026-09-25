@@ -167,6 +167,7 @@ describe('new Vercel sandbox sessions', () => {
     await create('base', 'recipe-two');
     const calls = getOrCreateMock.mock.calls.map(([opts]) => opts);
     expect(calls[0].source).toEqual({ type: 'snapshot', snapshotId: 'base' });
+    expect(calls[0].name).toMatch(/^ai-sdk-harness-v2-[a-f0-9]{24}$/);
     expect(calls[0].name).toBe(calls[1].name);
     expect(calls[0].name).not.toBe(calls[2].name);
     expect(calls[0].name).not.toBe(calls[3].name);

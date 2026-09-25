@@ -1,5 +1,48 @@
+import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
 import { Sandbox } from '@vercel/sandbox';
-import type { BaseCreateSandboxParams } from './vercel-sandbox';
+
+/**
+ * Flattens an intersection of object types into a single object type so the
+ * resolved shape displays as its named properties rather than a chain of
+ * `A & B & C`.
+ */
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+/**
+ * Distributes `Omit` across each member of a union instead of collapsing the
+ * union to its common keys. `Sandbox.create`'s parameter is a union (a
+ * git/tarball/no-source create variant and a snapshot-source create variant),
+ * so a plain `Omit` would discard keys absent from any one member (e.g.
+ * `runtime`, which the snapshot variant lacks) and merge the `source` shapes.
+ * Applying `Omit` per-member preserves every variant intact; the `Prettify`
+ * wrapper collapses each member's intersections into a readable object shape.
+ */
+export type DistributiveOmit<T, K extends keyof any> = T extends unknown
+  ? Prettify<Omit<T, K>>
+  : never;
+
+/**
+ * Parameters forwarded to `@vercel/sandbox`'s `Sandbox.create` when creating
+ * a sandbox from scratch. Aliased directly from the underlying SDK so the
+ * full surface — every option Vercel supports, including its native
+ * `NetworkPolicy` — is available without us re-declaring it.
+ */
+export type VercelSandboxCreateParams = DistributiveOmit<
+  NonNullable<Parameters<typeof Sandbox.create>[0]>,
+  'onResume'
+>;
+
+/**
+ * Base shape of `Sandbox.create` params extracted from the union (excludes
+ * the `source: { type: 'snapshot' }` variant) so all create-time fields
+ * are typed as present.
+ */
+export type BaseCreateSandboxParams = Exclude<
+  VercelSandboxCreateParams,
+  { source: { type: 'snapshot'; snapshotId: string } }
+>;
+
+export const VERCEL_PROVIDER_ID = 'vercel-sandbox';
 
 /**
  * 30 minutes. The `@vercel/sandbox` SDK defaults to 5 minutes which is
@@ -17,6 +60,132 @@ type SandboxLookupParams = {
   teamId?: string;
   token?: string;
 };
+
+type VercelSandboxAuthenticationSettings = SandboxLookupParams & {
+  sandbox?: Sandbox;
+};
+
+export function getSandboxLookupParams(
+  settings: VercelSandboxAuthenticationSettings,
+): SandboxLookupParams {
+  if ('sandbox' in settings && settings.sandbox != null) {
+    return {};
+  }
+
+  const { fetch, projectId, teamId, token } = settings as SandboxLookupParams;
+  return {
+    ...(fetch ? { fetch } : {}),
+    ...(projectId ? { projectId } : {}),
+    ...(teamId ? { teamId } : {}),
+    ...(token ? { token } : {}),
+  };
+}
+
+const VERCEL_SANDBOX_AUTHENTICATION_MESSAGE =
+  'Vercel Sandbox authentication failed. Set VERCEL_OIDC_TOKEN, or pass token, teamId, and projectId to createVercelSandbox(), then verify that they can access Vercel Sandbox.';
+
+export async function withVercelSandboxAuthenticationError<T>({
+  settings,
+  operation,
+}: {
+  settings: VercelSandboxAuthenticationSettings;
+  operation: () => Promise<T>;
+}): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      !isVercelSandboxAuthenticationFailure({
+        error,
+        hasConfiguredCredentials: hasConfiguredCredentials(settings),
+      })
+    ) {
+      throw error;
+    }
+    throw new HarnessSandboxAuthenticationError({
+      message: VERCEL_SANDBOX_AUTHENTICATION_MESSAGE,
+      sandboxProviderId: VERCEL_PROVIDER_ID,
+      cause: error,
+    });
+  }
+}
+
+function hasConfiguredCredentials(
+  settings: VercelSandboxAuthenticationSettings,
+): boolean {
+  if (process.env.VERCEL_OIDC_TOKEN) return true;
+  if ('sandbox' in settings && settings.sandbox != null) return true;
+  const { token, teamId, projectId } = getSandboxLookupParams(settings);
+  return Boolean(token && teamId && projectId);
+}
+
+function isVercelSandboxAuthenticationFailure({
+  error,
+  hasConfiguredCredentials,
+}: {
+  error: unknown;
+  hasConfiguredCredentials: boolean;
+}): boolean {
+  const seen = new Set<unknown>();
+  let current = error;
+  while (current != null && !seen.has(current)) {
+    seen.add(current);
+    if (typeof current === 'object') {
+      const candidate = current as {
+        name?: unknown;
+        message?: unknown;
+        code?: unknown;
+        cause?: unknown;
+        response?: { status?: unknown; statusCode?: unknown };
+      };
+      if (
+        candidate.response?.status === 401 ||
+        candidate.response?.status === 403 ||
+        candidate.response?.statusCode === 401 ||
+        candidate.response?.statusCode === 403
+      ) {
+        return true;
+      }
+      if (
+        typeof candidate.name === 'string' &&
+        VERCEL_AUTHENTICATION_ERROR_NAMES.has(candidate.name)
+      ) {
+        return true;
+      }
+      if (
+        typeof candidate.message === 'string' &&
+        VERCEL_AUTHENTICATION_ERROR_MESSAGE.test(candidate.message)
+      ) {
+        return true;
+      }
+      if (
+        !hasConfiguredCredentials &&
+        candidate.code === 'ERR_INVALID_ARG_TYPE' &&
+        typeof candidate.message === 'string' &&
+        candidate.message.includes('"path" argument') &&
+        candidate.message.includes('Received undefined')
+      ) {
+        return true;
+      }
+      current = candidate.cause;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
+const VERCEL_AUTHENTICATION_ERROR_NAMES = new Set([
+  'AccessTokenMissingError',
+  'LocalOidcContextError',
+  'OAuthError',
+  'RefreshAccessTokenFailedError',
+  'VercelOidcContextError',
+  'VercelOidcTokenError',
+]);
+
+const VERCEL_AUTHENTICATION_ERROR_MESSAGE =
+  /Could not get credentials from OIDC context|No authentication found|Failed to (?:retrieve|refresh) authentication token|Missing credentials parameters to access the Vercel API|Authentication failed/i;
 
 export function hasExplicitSandboxEnvironment(params: object): boolean {
   return (

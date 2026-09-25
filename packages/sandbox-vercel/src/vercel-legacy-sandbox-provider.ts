@@ -7,16 +7,13 @@ import { Sandbox } from '@vercel/sandbox';
 import { VercelNetworkSandboxSession } from './vercel-network-sandbox-session';
 import { VercelSandboxSession } from './vercel-sandbox-session';
 import {
-  TEMPLATE_NAME_PREFIX,
   VERCEL_PROVIDER_ID,
-  getSandboxLookupParams,
-  withVercelSandboxAuthenticationError,
-  type BaseCreateSandboxParams,
-} from './vercel-sandbox';
-import {
   createLiveSandboxFromSnapshot,
   ensureTemplateSnapshot,
+  getSandboxLookupParams,
+  withVercelSandboxAuthenticationError,
   withDefaultSandboxSettings,
+  type BaseCreateSandboxParams,
 } from './utils';
 
 type VercelSandboxCreateParams = NonNullable<
@@ -145,7 +142,7 @@ export class VercelSandboxProvider implements HarnessV1SandboxProvider {
       return new VercelNetworkSandboxSession({ sandbox, ownsLifecycle: true });
     }
 
-    const templateName = explicitName ?? `${TEMPLATE_NAME_PREFIX}-${identity}`;
+    const templateName = explicitName ?? `ai-sdk-harness-${identity}`;
     const snapshotId = await withVercelSandboxAuthenticationError({
       settings: this.settings,
       operation: () =>
