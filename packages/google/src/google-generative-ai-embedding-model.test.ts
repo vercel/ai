@@ -1,6 +1,7 @@
 import type { EmbeddingModelV3Embedding } from '@ai-sdk/provider';
 import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { GoogleGenerativeAIEmbeddingModel } from './google-generative-ai-embedding-model';
 import { createGoogleGenerativeAI } from './google-provider';
 import { describe, it, expect, vi } from 'vitest';
@@ -20,15 +21,19 @@ const model = provider.embeddingModel(
   'gemini-embedding-001',
 ) as GoogleGenerativeAIEmbeddingModel;
 const multimodalModel = provider.embeddingModel('gemini-embedding-2-preview');
+const currentMultimodalModel = provider.embeddingModel('gemini-embedding-2');
 
 const URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:something';
 const MULTIMODAL_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:something';
+const CURRENT_MULTIMODAL_URL =
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:something';
 
 const server = createTestServer({
   [URL]: {},
   [MULTIMODAL_URL]: {},
+  [CURRENT_MULTIMODAL_URL]: {},
 });
 
 describe('GoogleGenerativeAIEmbeddingModel', () => {
@@ -39,7 +44,7 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
   }: {
     embeddings?: EmbeddingModelV3Embedding[];
     headers?: Record<string, string>;
-    url?: typeof URL | typeof MULTIMODAL_URL;
+    url?: typeof URL | typeof MULTIMODAL_URL | typeof CURRENT_MULTIMODAL_URL;
   } = {}) {
     server.urls[url].response = {
       type: 'json-value',
@@ -392,6 +397,53 @@ describe('GoogleGenerativeAIEmbeddingModel', () => {
         ],
       }
     `);
+  });
+
+  it('should parse a recorded gemini-embedding-2 multimodal batch response', async () => {
+    server.urls[CURRENT_MULTIMODAL_URL].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/google-embedding-2-multimodal-batch.json',
+          'utf8',
+        ),
+      ),
+    };
+
+    const result = await currentMultimodalModel.doEmbed({
+      values: ['Document 0', 'Document 1'],
+      providerOptions: {
+        google: {
+          outputDimensionality: 2,
+          content: [[{ text: 'Context 0' }], [{ text: 'Context 1' }]],
+        },
+      },
+    });
+
+    expect(result.embeddings).toStrictEqual([
+      [0.5138951, 0.857853],
+      [-0.5045317, -0.8633931],
+    ]);
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      requests: [
+        {
+          content: {
+            parts: [{ text: 'Document 0' }, { text: 'Context 0' }],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2',
+          outputDimensionality: 2,
+        },
+        {
+          content: {
+            parts: [{ text: 'Document 1' }, { text: 'Context 1' }],
+            role: 'user',
+          },
+          model: 'models/gemini-embedding-2',
+          outputDimensionality: 2,
+        },
+      ],
+    });
   });
 
   it('should handle null entries as text-only in batch embedding', async () => {
