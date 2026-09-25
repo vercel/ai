@@ -1,5 +1,18 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.39
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [be13602]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/harness-acp@1.0.64
+  - @ai-sdk/provider-utils@5.0.49
+
 ## 1.0.38
 
 ### Patch Changes
