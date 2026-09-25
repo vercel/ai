@@ -1,5 +1,16 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.128
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
 ## 1.0.127
 
 ### Patch Changes

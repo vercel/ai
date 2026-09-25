@@ -1,5 +1,17 @@
 # @ai-sdk/harness-acp
 
+## 1.0.64
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- be13602: feat(harness-acp): update to latest ACP SDK and use new `tool.name` field when present to determine tool identity
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
 ## 1.0.63
 
 ### Patch Changes

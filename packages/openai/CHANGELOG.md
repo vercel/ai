@@ -1,5 +1,14 @@
 # @ai-sdk/openai
 
+## 4.0.77
+
+### Patch Changes
+
+- 2abd503: Default OpenAI Responses function tools to `strict: false` when tool strict mode is omitted.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
 ## 4.0.76
 
 ### Patch Changes

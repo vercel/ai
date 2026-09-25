@@ -1,5 +1,14 @@
 # @ai-sdk/code-mode
 
+## 1.0.73
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+
 ## 1.0.72
 
 ### Patch Changes

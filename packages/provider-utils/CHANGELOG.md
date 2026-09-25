@@ -1,5 +1,12 @@
 # @ai-sdk/provider-utils
 
+## 5.0.49
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+
 ## 5.0.48
 
 ### Patch Changes
