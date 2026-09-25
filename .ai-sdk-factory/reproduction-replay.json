@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "issueId": 9775,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9775-socket-other-side-closed.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9775-socket-other-side-closed.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_9775_REPRODUCED: long OpenAI and Anthropic tool streams terminate with UND_ERR_SOCKET, while OpenAI and Gateway generateText do not retry the transient closure"
+  }
+}
