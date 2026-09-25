@@ -1626,7 +1626,7 @@ These parts are informational and do not require a tool response. They are
 available from both `generateText` and `streamText`.
 
 For static processing, use `'static'` or provide clipping and frame-rate
-options:
+options. `startOffset` and `endOffset` are measured in seconds:
 
 ```ts
 const video = {
@@ -1637,8 +1637,8 @@ const video = {
     google: {
       processing: {
         type: 'static',
-        startOffset: 1200,
-        endOffset: 1500,
+        startOffset: 0,
+        endOffset: 10.5,
         fps: 0.5,
       },
     } satisfies GoogleInteractionsVideoOptions,
