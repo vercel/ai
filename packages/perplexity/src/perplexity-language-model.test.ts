@@ -51,6 +51,20 @@ function createUsage() {
   };
 }
 
+const financeOutput = {
+  type: 'finance_results',
+  categories: ['quote'],
+  tickers: ['AAPL'],
+  results: [
+    {
+      category: 'quote',
+      content: 'AAPL: $230.00',
+      sources: ['https://example.com/quote'],
+      tickers: ['AAPL'],
+    },
+  ],
+};
+
 function createResponse(overrides: Record<string, unknown> = {}) {
   return {
     id: 'resp-123',
@@ -167,6 +181,34 @@ function createStreamChunks(responseOverrides: Record<string, unknown> = {}) {
 }
 
 describe('doGenerate', () => {
+  it('accepts native tool results without treating them as web search results', async () => {
+    const response = createResponse({
+      output: [financeOutput, ...createResponse().output],
+    });
+    prepareJsonResponse(response);
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: 'Hello from Perplexity.',
+    });
+    expect(result.response?.body).toEqual(response);
+    expect(result.finishReason.unified).toBe('stop');
+  });
+
+  it('still rejects malformed handled output items', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          { type: 'search_results', results: [{ title: 'Missing URL' }] },
+        ],
+      }),
+    );
+
+    await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow();
+  });
+
   it('extracts text, sources, usage, cost, and response metadata', async () => {
     prepareJsonResponse();
 
@@ -560,6 +602,35 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it('preserves native tool traces in raw chunks without rejecting the response', async () => {
+    const events = [
+      {
+        type: 'response.output_item.done',
+        output_index: 0,
+        item: financeOutput,
+      },
+      ...createStreamChunks({
+        output: [financeOutput, ...createResponse().output],
+      }),
+    ];
+    prepareStream(events);
+
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toContainEqual({ type: 'raw', rawValue: events[0] });
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'completed' },
+      }),
+    );
+  });
+
   it('streams typed Agent API events as text, sources, usage, and metadata', async () => {
     prepareStream(createStreamChunks());
 

@@ -41,20 +41,44 @@ const perplexityContentPartSchema = z.looseObject({
     .nullish(),
 });
 
-export const perplexityOutputItemSchema = z.looseObject({
-  type: z.string(),
-  id: z.string().optional(),
-  status: z.string().optional(),
-  role: z.string().optional(),
-  content: z.array(perplexityContentPartSchema).optional(),
-  queries: z.array(z.string()).optional(),
-  results: z.array(perplexitySearchResultSchema).optional(),
-  contents: z.array(perplexityFetchedContentSchema).optional(),
-  call_id: z.string().nullish(),
-  name: z.string().optional(),
-  arguments: z.string().optional(),
-  thought_signature: z.string().optional(),
-});
+const handledOutputTypes = [
+  'message',
+  'search_results',
+  'fetch_url_results',
+  'function_call',
+];
+
+export const perplexityOutputItemSchema = z.union([
+  z.looseObject({
+    type: z.literal('message'),
+    id: z.string().nullish(),
+    content: z.array(perplexityContentPartSchema).nullish(),
+  }),
+  z.looseObject({
+    type: z.literal('search_results'),
+    results: z.array(perplexitySearchResultSchema).nullish(),
+  }),
+  z.looseObject({
+    type: z.literal('fetch_url_results'),
+    contents: z.array(perplexityFetchedContentSchema).nullish(),
+  }),
+  z.looseObject({
+    type: z.literal('function_call'),
+    id: z.string().nullish(),
+    call_id: z.string().nullish(),
+    name: z.string().nullish(),
+    arguments: z.string().nullish(),
+    thought_signature: z.string().nullish(),
+  }),
+  // Native tool traces remain available in raw responses and raw stream chunks.
+  // Their fields (e.g. finance_results.results) have different shapes. Do not
+  // validate them as search results, or let malformed handled items fall back.
+  z
+    .object({
+      type: z.string().refine(type => !handledOutputTypes.includes(type)),
+    })
+    .transform(() => ({ type: 'unhandled' as const })),
+]);
 
 const perplexityCostSchema = z.looseObject({
   currency: z.string().optional(),
