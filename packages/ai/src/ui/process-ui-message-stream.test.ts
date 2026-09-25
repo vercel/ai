@@ -8,7 +8,7 @@ import {
   processUIMessageStream,
 } from './process-ui-message-stream';
 import type { InferUIMessageData, UIMessage } from './ui-messages';
-import { beforeEach, describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -36,6 +36,11 @@ describe('processUIMessageStream', () => {
   beforeEach(() => {
     writeCalls = [];
     state = undefined;
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   const runUpdateMessageJob = async (
@@ -5729,7 +5734,12 @@ describe('processUIMessageStream', () => {
   });
 
   describe('tool input error', () => {
+    const warningLogger = vi.fn();
+
     beforeEach(async () => {
+      warningLogger.mockClear();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const stream = createUIMessageStream([
         {
           type: 'start',
@@ -5781,6 +5791,18 @@ describe('processUIMessageStream', () => {
           },
         }),
       });
+    });
+
+    it('should warn when creating a static output-error part with rawInput', () => {
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith([
+        {
+          type: 'deprecated',
+          setting: 'rawInput in output-error UI message parts',
+          message:
+            'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+        },
+      ]);
     });
 
     it('should call the update function with the correct arguments', async () => {

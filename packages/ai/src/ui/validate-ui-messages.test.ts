@@ -4,9 +4,25 @@ import {
   safeValidateUIMessages,
   validateUIMessages,
 } from './validate-ui-messages';
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  it,
+  expect,
+  expectTypeOf,
+  vi,
+} from 'vitest';
 
 describe('validateUIMessages', () => {
+  beforeEach(() => {
+    globalThis.AI_SDK_LOG_WARNINGS = false;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
+  });
+
   describe('parameter validation', () => {
     it('should throw InvalidArgumentError when messages parameter is null', async () => {
       await expect(
@@ -790,6 +806,58 @@ describe('validateUIMessages', () => {
         ]
       `);
     });
+
+    it('should validate a dynamic tool part in output-error state when input key is absent', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
+      const messages = [
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'output-error',
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages({ messages });
+
+      expectTypeOf(result).toEqualTypeOf<Array<UIMessage>>();
+      expect(result).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'dynamic-tool',
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'output-error',
+              input: undefined,
+              rawInput: { foo: 'bar' },
+              errorText: 'Tool execution failed',
+            },
+          ],
+        },
+      ]);
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith([
+        {
+          type: 'deprecated',
+          setting: 'rawInput in output-error UI message parts',
+          message:
+            'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+        },
+      ]);
+    });
   });
 
   describe('tool parts', () => {
@@ -1198,6 +1266,9 @@ describe('validateUIMessages', () => {
     });
 
     it('should preserve output-error history when parsed input is absent', async () => {
+      const warningLogger = vi.fn();
+      globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
       const messages = await validateUIMessages<TestMessage>({
         messages: [
           {
@@ -1227,6 +1298,15 @@ describe('validateUIMessages', () => {
         rawInput: { foo: 'bar' },
         errorText: 'AI_InvalidToolInputError',
       });
+      expect(warningLogger).toHaveBeenCalledOnce();
+      expect(warningLogger).toHaveBeenCalledWith([
+        {
+          type: 'deprecated',
+          setting: 'rawInput in output-error UI message parts',
+          message:
+            'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
+        },
+      ]);
     });
 
     it('should normalize absent output-error input without tool schemas', async () => {

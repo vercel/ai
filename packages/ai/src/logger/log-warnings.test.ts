@@ -175,6 +175,23 @@ describe('logWarnings', () => {
       );
     });
 
+    it('should emit deprecated warnings as deprecation warnings', () => {
+      logWarnings([
+        {
+          type: 'deprecated',
+          setting: 'legacy setting',
+          message: 'Use the replacement setting instead.',
+        },
+      ]);
+
+      expect(mockProcessEmitWarning).toHaveBeenCalledTimes(2);
+      expect(mockProcessEmitWarning).toHaveBeenNthCalledWith(
+        2,
+        'AI SDK Warning: Deprecated: "legacy setting". Use the replacement setting instead.',
+        { type: 'DeprecationWarning' },
+      );
+    });
+
     it('should use console.warn for the information note and warnings when process.emitWarning is unavailable', () => {
       const originalProcess = globalThis.process;
       vi.stubGlobal('process', undefined);
