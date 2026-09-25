@@ -1,8 +1,8 @@
 import { isAbsolute, posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_SandboxSession,
-  type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
+  type Experimental_SandboxProcess as SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, SandboxCommand } from 'just-bash';
 
@@ -16,7 +16,7 @@ import type { Sandbox, SandboxCommand } from 'just-bash';
  * `JustBashNetworkSandboxSession.restricted()` — not constructed directly by
  * consumers.
  */
-export class JustBashSandboxSession implements Experimental_SandboxSession {
+export class JustBashSandboxSession implements SandboxSession {
   constructor(protected readonly sandbox: Sandbox) {}
 
   get description(): string {
@@ -75,7 +75,7 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     workingDirectory?: string;
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+  }): Promise<SandboxProcess> {
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
@@ -217,7 +217,7 @@ function createBashArgs(
 function createSandboxProcess(
   command: SandboxCommand,
   abortSignal: AbortSignal | undefined,
-): Experimental_SandboxProcess {
+): SandboxProcess {
   const encoder = new TextEncoder();
   const controllers: {
     stdout?: ReadableStreamDefaultController<Uint8Array>;
