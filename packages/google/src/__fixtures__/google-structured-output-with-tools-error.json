@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": 400,
+    "message": "Forced function calling (ANY mode) with a response mime type: 'application/json' is unsupported",
+    "status": "INVALID_ARGUMENT"
+  }
+}
