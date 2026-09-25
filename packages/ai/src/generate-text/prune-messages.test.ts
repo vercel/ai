@@ -829,6 +829,93 @@ describe('pruneMessages', () => {
       });
     });
 
+    describe('before-last-5-messages', () => {
+      it('should retain source tool calls referenced by Anthropic callers', async () => {
+        const convertedMessages = await convertToModelMessages([
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Look up AAPL.' }],
+          },
+          {
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-code_execution',
+                toolCallId: 'source-call',
+                state: 'output-available',
+                input: { code: 'await lookup({ ticker: "AAPL" })' },
+                output: { result: 'complete' },
+                providerExecuted: true,
+              },
+              { type: 'step-start' },
+              {
+                type: 'tool-lookup',
+                toolCallId: 'dependent-call',
+                state: 'output-available',
+                input: { ticker: 'AAPL' },
+                output: { price: 185.42 },
+                callProviderMetadata: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: 'source-call',
+                    },
+                  },
+                },
+              },
+              { type: 'step-start' },
+              { type: 'text', text: 'The price is $185.42.' },
+              { type: 'step-start' },
+              { type: 'text', text: '100 shares cost $18,542.' },
+              { type: 'step-start' },
+              { type: 'text', text: 'Calculation complete.' },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Now look up MSFT.' }],
+          },
+        ]);
+
+        const unrelatedMessages: ModelMessage[] = [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'unrelated-call',
+                toolName: 'unrelated',
+                input: {},
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'unrelated-call',
+                toolName: 'unrelated',
+                output: { type: 'text', value: 'done' },
+              },
+            ],
+          },
+        ];
+
+        expect(
+          pruneMessages({
+            messages: [
+              convertedMessages[0],
+              ...unrelatedMessages,
+              ...convertedMessages.slice(1),
+            ],
+            toolCalls: 'before-last-5-messages',
+          }),
+        ).toEqual(convertedMessages);
+      });
+    });
+
     describe('two tool settings', () => {
       it('should prune all tool calls, results, errors, and approvals', () => {
         const result = pruneMessages({
