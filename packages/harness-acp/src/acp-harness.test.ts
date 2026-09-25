@@ -65,7 +65,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -88,7 +88,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -103,7 +103,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
-      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.options.connect({
+          abortSignal: new AbortController().signal,
+        });
+      }
     }
     on(
       type: string,
@@ -1905,16 +1909,16 @@ describe('createACP', () => {
     });
 
     expect(runs[0]).toBe('printf "%s" "$HOME"');
-    expect(runs[1]).toMatch(
-      /^mkdir -p '\/workspace\/user-project' '\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/bridge'$/,
+    expect(runs[1]).toBe(
+      "mkdir -p '/workspace/user-project' '/home/agent/.ai-sdk-harness/.agent-runs/session-1/bridge'",
     );
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
     expect(spawns[0].command).toContain(
-      "node '/workspace/.harness-bootstrap/codex-acp/bridge.mjs'",
+      "node '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
     expect(spawns[0].command).toContain(
-      "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",
+      "--implementation-dir '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/implementation'",
     );
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
@@ -1979,7 +1983,7 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(runs[0]).toBe('pwd');
+    expect(runs[0]).toBe('printf "%s" "$HOME"');
     const resumeFrom = await session.doDetach();
     expect(resumeFrom.data).toMatchObject({
       bridge: {
@@ -2372,7 +2376,7 @@ describe('createACP', () => {
     });
 
     expect(writes).toContainEqual({
-      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
       content:
         '---\n' +
         'name: release-notes\n' +

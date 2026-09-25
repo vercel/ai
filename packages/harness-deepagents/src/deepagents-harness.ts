@@ -17,6 +17,8 @@ import {
   type HarnessV1ResumeSessionState,
   type HarnessV1Session,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
@@ -28,7 +30,6 @@ import {
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -116,8 +117,9 @@ export type DeepAgentsHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
-   * drops. Defaults to a 30 second reconnect window with exponential backoff
-   * from 50 milliseconds up to 2 seconds.
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   /**
@@ -239,11 +241,6 @@ export function createDeepAgents(
             'The deepagents harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -292,10 +289,15 @@ export function createDeepAgents(
         }
         credentialsBrokered = true;
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const homeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir: homeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
 
       const workDir = startOpts.sessionWorkDir;
       /*
@@ -303,13 +305,12 @@ export function createDeepAgents(
        * Harness-provided skills use an absolute home-directory path listed
        * last, so they take precedence when names collide.
        */
-      const homeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
-      });
       const homeSkillsRoot = `${homeDir}${SKILLS_SOURCE_PATH}`;
       const skillsPaths = [`${workDir}${SKILLS_SOURCE_PATH}`, homeSkillsRoot];
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
+      });
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -341,7 +342,8 @@ export function createDeepAgents(
             token: coords.token,
           });
           const attachChannel: DeepAgentsChannel = new SandboxChannel({
-            connect: () => openWebSocket(attachEndpoint),
+            connect: ({ abortSignal }) =>
+              openWebSocket({ ...attachEndpoint, abortSignal }),
             outboundSchema: outboundMessageSchema,
             initialLastSeenEventId: coords.lastSeenEventId,
             onDiagnostic,
@@ -465,7 +467,8 @@ export function createDeepAgents(
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
 
       const channel: DeepAgentsChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         onDiagnostic,
         onBridgeError,
@@ -565,21 +568,57 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (err: Error) => {
-      ws.off('open', onOpen);
-      reject(err);
+      rejectWithCleanup(err);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 

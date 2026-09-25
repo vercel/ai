@@ -17,7 +17,7 @@ run(async () => {
       {
         id: 'red-panda',
         type: 'image',
-        model: 'gemini-2.5-flash-image',
+        model: 'gemini-3.1-flash-image-preview',
         prompt: 'A red panda reading beside a cabin window',
         aspectRatio: '16:9',
       },

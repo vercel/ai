@@ -1,5 +1,33 @@
 # @ai-sdk/deepinfra
 
+## 3.0.56
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/openai-compatible@3.0.56
+
+## 3.0.55
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai-compatible@3.0.55
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/openai-compatible@3.0.54
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 3.0.53
 
 ### Patch Changes

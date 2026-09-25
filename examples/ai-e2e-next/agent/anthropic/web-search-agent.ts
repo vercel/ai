@@ -22,7 +22,7 @@ const saveNote = tool({
 });
 
 export const anthropicWebSearchAgent = new ToolLoopAgent({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   instructions:
     'You are a research assistant. When the user asks you to search and save something, call both saveNote and webSearch in the same assistant response before writing the final answer. Prefer calling saveNote first, then webSearch, so the repro can capture a regular tool call followed by a provider-executed web search.',
   tools: {

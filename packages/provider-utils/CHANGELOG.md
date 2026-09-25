@@ -1,5 +1,39 @@
 # @ai-sdk/provider-utils
 
+## 5.0.48
+
+### Patch Changes
+
+- be877ff: Add `fetchUntrustedUrl`, an opt-in fetch helper that withholds credentials and
+  unknown custom headers from untrusted first-hop URLs. A matching configured
+  `credentialedOrigin` (or `trustedOrigin` when omitted) allows sanitized caller
+  headers. Otherwise only allowlisted metadata is sent; callers can explicitly
+  allow additional non-credential metadata with `untrustedFirstHopHeaders`.
+
+  The helper shares URL validation, DNS pinning, and redirect protection with
+  `fetchWithValidatedRedirects`, and is now used by `downloadBlob`.
+  `fetchWithValidatedRedirects` and `getFromApi` retain their existing behavior.
+  Direct callers must opt into the new helper for first-hop credential isolation;
+  existing authenticated and custom-header requests are not silently changed.
+
+## 5.0.47
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 771e74b: chore: enable dead code lint rules
+
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
 ## 5.0.45
 
 ### Patch Changes

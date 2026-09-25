@@ -174,7 +174,7 @@ function createPermissionOptions(input: {
     inactiveNativeTools,
   });
 
-  return {
+  const baseOptions = {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
@@ -183,6 +183,23 @@ function createPermissionOptions(input: {
           : 'default',
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
+  };
+
+  if (permissionMode === 'allow-all') {
+    return {
+      ...baseOptions,
+      /*
+       * Claude Code exposes AskUserQuestion in headless SDK sessions only
+       * when a permission prompt tool is configured. The stdio prompt tool
+       * preserves that tool surface without supplying the canUseTool callback
+       * that bypassPermissions guarantees it will never invoke.
+       */
+      permissionPromptToolName: 'stdio',
+    };
+  }
+
+  return {
+    ...baseOptions,
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
@@ -373,7 +390,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const streamEventState = createClaudeStreamEventState();
 
-  const mcpServers: Record<string, unknown> = { ...(start.mcpServers ?? {}) };
+  const mcpServers: Record<string, unknown> = { ...start.mcpServers };
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
       name: 'harness-tools',

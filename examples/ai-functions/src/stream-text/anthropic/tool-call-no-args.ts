@@ -6,7 +6,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     tools: {
       updateIssueList: tool({
         inputSchema: z.object({}), // empty input schema

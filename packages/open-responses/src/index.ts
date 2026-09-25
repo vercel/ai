@@ -4,6 +4,7 @@ export type {
   OpenResponsesProvider,
   OpenResponsesProviderSettings,
 } from './open-responses-provider';
+export type { OpenResponsesCustomToolOptions } from './open-responses-tools';
 export type {
   OpenResponsesExtension as Experimental_OpenResponsesExtension,
   OpenResponsesExtensionContentPart as Experimental_OpenResponsesExtensionContentPart,

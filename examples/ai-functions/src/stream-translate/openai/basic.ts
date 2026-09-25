@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 run(async () => {
   // generate raw PCM audio (24kHz, 16-bit, mono) to translate:
   const speech = await generateSpeech({
-    model: openai.speech('tts-1'),
+    model: openai.speech('gpt-4o-mini-tts'),
     text: 'Hello from the AI SDK! Streaming translation is experimental.',
     outputFormat: 'pcm',
   });

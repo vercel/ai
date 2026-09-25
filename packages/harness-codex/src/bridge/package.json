@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@openai/codex-sdk": "0.149.1",
+    "@openai/codex": "0.155.0",
     "ws": "8.21.0"
   }
 }

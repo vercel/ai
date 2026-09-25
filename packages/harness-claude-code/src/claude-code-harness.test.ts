@@ -9,7 +9,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
 const reconnects: Array<unknown> = [];
+const subscribedEventTypes: string[] = [];
+const channelListeners = new Map<
+  string,
+  Set<(event: Record<string, unknown>) => void>
+>();
 let connectOnOpen = false;
+
+function dispatchChannelEvent(event: Record<string, unknown>): void {
+  for (const listener of channelListeners.get(String(event.type)) ?? []) {
+    listener(event);
+  }
+}
 
 const wsMock = vi.hoisted(() => {
   type Handler = (...args: unknown[]) => void;
@@ -92,13 +103,15 @@ const wsMock = vi.hoisted(() => {
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    private readonly connect: () => Promise<unknown>;
+    private readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
     constructor({
       connect,
       reconnect,
     }: {
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: unknown;
     }) {
       this.connect = connect;
@@ -108,11 +121,25 @@ vi.mock('@ai-sdk/harness/utils', async importOriginal => {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
       if (connectOnOpen) {
-        await this.connect();
+        await this.connect({ abortSignal: new AbortController().signal });
       }
     }
-    on(): () => void {
+    beginListenerAttachment(): () => void {
       return () => {};
+    }
+    on(
+      type: string,
+      listener: (event: Record<string, unknown>) => void,
+    ): () => void {
+      subscribedEventTypes.push(type);
+      const listeners =
+        channelListeners.get(type) ??
+        new Set<(event: Record<string, unknown>) => void>();
+      listeners.add(listener);
+      channelListeners.set(type, listeners);
+      return () => {
+        listeners.delete(listener);
+      };
     }
     onReconnect(): () => void {
       return () => {};
@@ -299,6 +326,8 @@ describe('createClaudeCode adapter', () => {
     sentMessages.length = 0;
     openCalls.length = 0;
     reconnects.length = 0;
+    subscribedEventTypes.length = 0;
+    channelListeners.clear();
     connectOnOpen = false;
     wsMock.reset();
   });
@@ -432,11 +461,13 @@ describe('createClaudeCode adapter', () => {
         '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #',
     });
 
+    const sessionStateDir =
+      '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1%3B%20env%20%3E%20%2Ftmp%2Fleak%20%23';
     expect(runs).toContain(
-      "mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      `mkdir -p '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' '${sessionStateDir}/bridge'`,
     );
     expect(spawns).toEqual([
-      "node '/vercel/sandbox/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/claude-code/bridge.mjs' --workdir '/vercel/sandbox/claude-code-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge'`,
     ]);
     await session.doDestroy();
   });
@@ -1182,7 +1213,7 @@ describe('createClaudeCode adapter', () => {
     );
     expect(runs).toContain("mkdir -p '/home/vercel-sandbox/.claude/skills'");
     expect(bridgeMetaWrite).toEqual({
-      path: '/vercel/sandbox/.agent-runs/s1/bridge/bridge-meta.json',
+      path: '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1/bridge/bridge-meta.json',
       content: JSON.stringify({ type: 'claude-code', state: 'starting' }),
     });
     expect(skillWrites.map(write => write.path)).toEqual(
@@ -1373,6 +1404,43 @@ describe('createClaudeCode adapter', () => {
         type: 'user-message',
         text: '/compact keep the error trace',
       });
+      await session.doDestroy();
+    });
+
+    it('forwards compaction events without blocking turn completion', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const events: Array<Record<string, unknown>> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Continue',
+        emit: event => events.push(event),
+      });
+
+      expect(subscribedEventTypes).toContain('compaction');
+      dispatchChannelEvent({
+        type: 'compaction',
+        trigger: 'auto',
+        summary: 'Compacted context',
+      });
+      dispatchChannelEvent({ type: 'finish' });
+
+      await expect(control.done).resolves.toBeUndefined();
+      expect(events).toEqual([
+        {
+          type: 'compaction',
+          trigger: 'auto',
+          summary: 'Compacted context',
+        },
+        { type: 'finish' },
+      ]);
       await session.doDestroy();
     });
 

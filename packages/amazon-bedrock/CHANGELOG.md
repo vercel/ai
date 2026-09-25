@@ -1,5 +1,79 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.95
+
+### Patch Changes
+
+- 2bff9cc: fix(bedrock): prevent duplicate Mistral tool-call IDs in Amazon Bedrock conversations
+- 4e6a98c: fix(amazon-bedrock): fall back to automatic tool choice for models that reject forced tool use
+- b134d74: fix(amazon-bedrock): ignore portable reasoning for models without known reasoning support
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/openai@4.0.76
+
+## 5.0.94
+
+### Patch Changes
+
+- Updated dependencies [154221f]
+- Updated dependencies [ca31b89]
+  - @ai-sdk/anthropic@4.0.63
+  - @ai-sdk/openai@4.0.75
+
+## 5.0.93
+
+### Patch Changes
+
+- b7bc639: fix(amazon-bedrock): route supported Mantle models through the OpenAI endpoint
+- 31fb009: fix(amazon-bedrock): omit unsupported sampling parameters for newer Claude models
+- fbdda09: fix(amazon-bedrock): omit unsupported OpenAI sampling settings from Converse requests
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [4cf5a99]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai@4.0.74
+  - @ai-sdk/anthropic@4.0.62
+
+## 5.0.92
+
+### Patch Changes
+
+- 4b75a77: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [6d1f881]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+- Updated dependencies [618dc11]
+  - @ai-sdk/openai@4.0.73
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.91
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/anthropic@4.0.60
+
+## 5.0.90
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 5.0.89
+
+### Patch Changes
+
+- Updated dependencies [411b3f2]
+- Updated dependencies [e13c32f]
+  - @ai-sdk/openai@4.0.72
+
 ## 5.0.88
 
 ### Patch Changes

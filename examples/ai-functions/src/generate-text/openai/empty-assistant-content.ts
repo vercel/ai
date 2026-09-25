@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.chat('gpt-4o-mini'),
+    model: openai.chat('gpt-6-luna'),
     messages: [
       { role: 'user', content: 'say hi' },
       { role: 'assistant', content: '' },

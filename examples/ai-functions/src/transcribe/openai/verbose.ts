@@ -5,6 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await transcribe({
+    // Whisper supports segment and word timestamps.
     model: openai.transcription('whisper-1'),
     audio: await readFile('data/galileo.mp3'),
     providerOptions: {

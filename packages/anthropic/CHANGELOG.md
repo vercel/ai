@@ -1,5 +1,56 @@
 # @ai-sdk/anthropic
 
+## 4.0.64
+
+### Patch Changes
+
+- 67f8000: Preserve effort updates on empty system messages at the beginning of a conversation, including consecutive updates.
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.63
+
+### Patch Changes
+
+- 154221f: feat(anthropic): support on-demand compaction and preserve signed compaction blocks
+
+## 4.0.62
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.61
+
+### Patch Changes
+
+- 3733d6e: fix(anthropic): omit empty compaction blocks from replay
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.60
+
+### Patch Changes
+
+- 49295bb: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting, maps `reasoning: 'none'` to `effort: 'low'`, and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 4.0.59
+
+### Patch Changes
+
+- f7b7b2a: feat(provider/anthropic): add `safeguards` provider option and `safeguardResults` provider metadata (dangerous tool use classifier)
+
 ## 4.0.58
 
 ### Patch Changes

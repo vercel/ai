@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
@@ -213,7 +214,54 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     }
   }
 
-  private getBatchUrl(path: 'results' | 'start' | 'status') {
+  /** Requests cancellation; status and partial results remain separate reads. */
+  async doCancelBatch({
+    batchId,
+    headers,
+    abortSignal,
+  }: BatchV4OperationOptions): Promise<BatchV4CancelResult> {
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
+    try {
+      const { value: responseBody } = await postJsonToApi({
+        url: this.getBatchUrl('cancel'),
+        headers: combineHeaders(
+          resolvedHeaders,
+          headers,
+          await resolve(this.config.o11yHeaders),
+        ),
+        body: { batchId },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayBatchStatusResponseSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
+        }),
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
+
+      return {
+        ...(responseBody.providerMetadata != null && {
+          providerMetadata:
+            responseBody.providerMetadata as SharedV4ProviderMetadata,
+        }),
+      };
+    } catch (error) {
+      if (isAbortOrTimeoutError(error)) {
+        throw error;
+      }
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
+    }
+  }
+
+  private getBatchUrl(path: 'cancel' | 'results' | 'start' | 'status') {
     return `${this.config.baseURL}/batch/${path}`;
   }
 }

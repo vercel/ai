@@ -242,7 +242,6 @@ describe('amazon-bedrock-anthropic-provider', () => {
         if (environmentVariableName === 'AWS_ENDPOINT_URL') {
           return 'https://global.example.com';
         }
-        return undefined;
       },
     );
 

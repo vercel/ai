@@ -1,13 +1,14 @@
 import {
   APICallError,
+  UnsupportedFunctionalityError,
   type JSONValue,
   type LanguageModelV4,
-  type LanguageModelV4Prompt,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
   type LanguageModelV4FinishReason,
   type LanguageModelV4FunctionTool,
   type LanguageModelV4GenerateResult,
+  type LanguageModelV4Prompt,
   type LanguageModelV4ProviderTool,
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
@@ -30,6 +31,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   prepareOpenAIConfigForWorkflowDeserialize,
   type OpenAIConfig,
@@ -50,15 +52,15 @@ import type { fileSearchOutputSchema } from '../tool/file-search';
 import type { imageGenerationOutputSchema } from '../tool/image-generation';
 import type { localShellInputSchema } from '../tool/local-shell';
 import type { mcpOutputSchema } from '../tool/mcp';
+import type {
+  programmaticToolCallingInputSchema,
+  programmaticToolCallingOutputSchema,
+} from '../tool/programmatic-tool-calling';
 import type { shellInputSchema, shellOutputSchema } from '../tool/shell';
 import type {
   toolSearchInputSchema,
   toolSearchOutputSchema,
 } from '../tool/tool-search';
-import type {
-  programmaticToolCallingInputSchema,
-  programmaticToolCallingOutputSchema,
-} from '../tool/programmatic-tool-calling';
 import type { webSearchOutputSchema } from '../tool/web-search';
 import {
   convertOpenAIResponsesUsage,
@@ -70,22 +72,22 @@ import {
   isUndeclaredParallelToolCall,
 } from './expand-parallel-tool-call';
 import { mapOpenAIResponseFinishReason } from './map-openai-responses-finish-reason';
-import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   openaiResponsesChunkSchema,
   openaiResponsesResponseSchema,
+  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
+  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
   type OpenAIResponsesChunk,
+  type OpenAIResponsesComputerAction,
   type OpenAIResponsesIncludeOptions,
   type OpenAIResponsesIncludeValue,
   type OpenAIResponsesLogprobs,
   type OpenAIResponsesWebSearchAction,
-  type OpenAIResponsesApplyPatchOperationDiffDeltaChunk,
-  type OpenAIResponsesApplyPatchOperationDiffDoneChunk,
-  type OpenAIResponsesComputerAction,
 } from './openai-responses-api';
 import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-language-model-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -208,6 +210,34 @@ export const openaiResponsesSupportedUrls: Record<string, RegExp[]> = {
   'image/*': [/^https?:\/\/.*$/],
   'application/pdf': [/^https?:\/\/.*$/],
 };
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAILanguageModelResponsesOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (
+    options?.reasoningMode === 'pro' ||
+    options?.contextManagement != null ||
+    options?.truncation === 'auto'
+  ) {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation';
+  }
+
+  return undefined;
+}
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
@@ -382,6 +412,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
@@ -392,6 +428,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
+        configurationUpdateUnsupportedReason,
         explicitMessageItemType: config.explicitMessageItemType,
         fileIdPrefixes: config.fileIdPrefixes,
         passThroughUnsupportedFiles:
@@ -415,26 +452,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
     warnings.push(...inputWarnings);
 
     const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
-    const configurationUpdateIsSupported =
-      reasoningEffortUpdate == null ||
-      (modelCapabilities.supportsConfigurationUpdate &&
-        openaiOptions?.reasoningMode !== 'pro' &&
-        openaiOptions?.contextManagement == null &&
-        openaiOptions?.truncation !== 'auto');
-
-    if (reasoningEffortUpdate != null && !configurationUpdateIsSupported) {
+    if (
+      reasoningEffortUpdate != null &&
+      configurationUpdateUnsupportedReason != null
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningEffortUpdate',
-        details: !modelCapabilities.supportsConfigurationUpdate
-          ? 'reasoningEffortUpdate is only supported by GPT-6 and later models'
-          : 'reasoningEffortUpdate requires standard reasoning mode without automatic compaction or automatic truncation',
+        details: configurationUpdateUnsupportedReason,
       });
     } else if (reasoningEffortUpdate != null) {
-      input.unshift({
-        type: 'configuration_update',
-        reasoning: { effort: reasoningEffortUpdate },
-      });
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
     }
 
     // A compaction trigger is a request control, not conversation history.
@@ -1806,7 +1858,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
                 activeOutputItemIds[value.output_index] = value.item.id;
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations.splice(0);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',

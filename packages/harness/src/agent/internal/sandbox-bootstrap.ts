@@ -1,7 +1,9 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type { HarnessV1Bootstrap } from '../../v1';
+import { harnessStateDirectoryPath, type HarnessV1Bootstrap } from '../../v1';
+import { encodeHarnessPathSegment } from '../../v1/harness-session-data-directory-path';
 import { resolveSandboxDefaultWorkingDirectory } from '../../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../../utils/sandbox-home-dir';
 import type { HarnessAgentSandboxConfig } from '../harness-agent-settings';
 import { applyBootstrapRecipe, hashHarnessBootstrap } from './bootstrap-recipe';
 
@@ -78,7 +80,9 @@ export function resolveSessionWorkDir({
 }): string {
   return joinSandboxPath({
     base: defaultWorkingDirectory,
-    path: workDir ?? `${harnessId}-${sessionId}`,
+    path:
+      workDir ??
+      `${encodeHarnessPathSegment(harnessId)}-${encodeHarnessPathSegment(sessionId)}`,
   });
 }
 
@@ -147,24 +151,34 @@ export async function runSandboxBootstrap({
 }): Promise<void> {
   if (recipe == null && onBootstrap == null) return;
 
+  if (recipe != null && recipeIdentity != null) {
+    await applyBootstrapRecipe({
+      session,
+      recipe,
+      identity: recipeIdentity,
+      // Harness infrastructure always lives under the sandbox's own HOME,
+      // never the working directory resolved below for the caller's own
+      // `onBootstrap` hook. Resolved directly from `session` — this runs
+      // from a provider's `onFirstCreate`, before a
+      // `HarnessV1NetworkSandboxSession` even exists.
+      stateDirectory: harnessStateDirectoryPath({
+        sandboxHomeDir: await resolveSandboxHomeDir({
+          sandbox: session,
+          abortSignal,
+        }),
+      }),
+      abortSignal,
+    });
+  }
+
+  if (onBootstrap == null) return;
+
   const resolvedDefaultWorkingDirectory =
     defaultWorkingDirectory ??
     (await resolveSandboxDefaultWorkingDirectory({
       sandboxSession: session,
       abortSignal,
     }));
-
-  if (recipe != null && recipeIdentity != null) {
-    await applyBootstrapRecipe({
-      session,
-      recipe,
-      identity: recipeIdentity,
-      defaultWorkingDirectory: resolvedDefaultWorkingDirectory,
-      abortSignal,
-    });
-  }
-
-  if (onBootstrap == null) return;
 
   const bootstrapWorkDir =
     workDir == null

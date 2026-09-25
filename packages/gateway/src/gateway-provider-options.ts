@@ -16,11 +16,26 @@ export type GatewayProviderOptions = {
   disallowPromptTraining?: boolean;
 
   /**
-   * Restrict routing to models that have all of the given capabilities.
-   * Currently supports `'implicit-caching'`, `'reasoning'`, `'tool-use'`, and
-   * `'vision'` (image input).
+   * Restrict routing to provider models that satisfy every given entry.
+   *
+   * Entries are capability tags (`'implicit-caching'`, `'reasoning'`,
+   * `'tool-use'`, `'vision'` (image input), `'structured-output'`
+   * (schema-constrained output)) or weight-format conditions:
+   * `'quantization:fp8'` requires the serving provider to report that weight
+   * format, `'!quantization:fp8'` excludes it (providers with no recorded
+   * format still pass an exclusion). Format values are an open space but must
+   * match `[a-zA-Z0-9._-]{1,32}` and compare case-insensitively. Unknown
+   * capability names are rejected by the Gateway with a 400.
    */
-  has?: Array<'implicit-caching' | 'reasoning' | 'tool-use' | 'vision'>;
+  has?: Array<
+    | 'implicit-caching'
+    | 'reasoning'
+    | 'structured-output'
+    | 'tool-use'
+    | 'vision'
+    | `quantization:${string}`
+    | `!quantization:${string}`
+  >;
 
   /**
    * Idempotency key for `experimental_startBatch`: retries with the same

@@ -84,7 +84,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
   const channels: Array<{
     sent: unknown[];
     closed: boolean;
-    connect: () => Promise<unknown>;
+    connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
     reconnect:
       | {
           readonly maxElapsedMs?: number;
@@ -114,7 +114,7 @@ const harnessUtilsMocks = vi.hoisted(() => {
       connect,
       reconnect,
     }: {
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
       reconnect?: {
         readonly maxElapsedMs?: number;
         readonly initialDelayMs?: number;
@@ -126,10 +126,14 @@ const harnessUtilsMocks = vi.hoisted(() => {
       channels.push(this);
     }
 
-    readonly connect: () => Promise<unknown>;
+    readonly connect: (options: {
+      abortSignal: AbortSignal;
+    }) => Promise<unknown>;
 
     async open() {
-      if (harnessUtilsMocks.connectOnOpen) await this.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.connect({ abortSignal: new AbortController().signal });
+      }
     }
 
     send(message: unknown) {
@@ -816,10 +820,10 @@ describe('createOpenCode adapter', () => {
     );
     expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
-      "node '/workspace/.harness-bootstrap/opencode/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode/bridge.mjs'",
     );
     expect(spawns.at(-1)?.command).toContain(
-      "--bootstrap-dir '/workspace/.harness-bootstrap/opencode'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/opencode'",
     );
     expect(spawns.at(-1)?.command).toContain(
       "--skills-dir '/home/vercel-sandbox/.agents/skills'",

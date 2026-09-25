@@ -670,7 +670,7 @@ describe('convertToGoogleInteractionsInput', () => {
       ]);
     });
 
-    it('maps camel-case static processing options onto the wire format', () => {
+    it('maps static processing offsets to Google duration strings', () => {
       const prompt: LanguageModelV4Prompt = [
         {
           role: 'user',
@@ -683,8 +683,8 @@ describe('convertToGoogleInteractionsInput', () => {
                 google: {
                   processing: {
                     type: 'static',
-                    startOffset: 1200,
-                    endOffset: 1500,
+                    startOffset: 0,
+                    endOffset: 10.5,
                     fps: 0.5,
                   },
                 },
@@ -706,8 +706,8 @@ describe('convertToGoogleInteractionsInput', () => {
               mime_type: 'video/mp4',
               processing: {
                 type: 'static',
-                start_offset: 1200,
-                end_offset: 1500,
+                start_offset: '0s',
+                end_offset: '10.5s',
                 fps: 0.5,
               },
             },

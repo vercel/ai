@@ -44,7 +44,7 @@ Once registered, AI SDK calls emit telemetry events by default:
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   telemetry: {
     functionId: 'recipe-generator',
@@ -56,7 +56,7 @@ You can opt out for an individual call with `telemetry.isEnabled`:
 
 ```ts
 const result = await generateText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   telemetry: {
     isEnabled: false,

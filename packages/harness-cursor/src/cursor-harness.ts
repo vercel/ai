@@ -45,8 +45,9 @@ export type CursorHarnessSettings = {
   readonly startupTimeoutMs?: number;
   /**
    * Configures reconnection attempts after an established bridge connection
-   * drops. Defaults to a 30 second reconnect window with exponential backoff
-   * from 50 milliseconds up to 2 seconds.
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
   /**

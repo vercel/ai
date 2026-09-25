@@ -1,5 +1,50 @@
 # @ai-sdk/google
 
+## 4.0.81
+
+### Patch Changes
+
+- b126c4b: fix(google): serialize Interactions video offsets as Google duration strings
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.80
+
+### Patch Changes
+
+- 8beac3e: fix(google): serialize JSON Schema references in function responses
+
+## 4.0.79
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 2db5621: fix(google): preserve code execution parts when replaying messages
+- 2693319: Add Gemini 3.8 TTS support with structured speech metadata and per-turn speaker and style controls for prebuilt voices. Preserve native WAV responses without adding a second header, support explicit raw PCM, mu-law, and A-law output, and identify headerless audio formats correctly. Add the Gemini 3.8 speech model IDs to Google and Gateway types.
+
+  Share transcript and custom-voice inspection through the Google provider internal export, and reject empty speech transcripts before sending a request. Default newer and custom model IDs to structured speech while preserving the legacy format for Gemini 2.5 and 3.1.
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.78
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.77
+
+### Patch Changes
+
+- 8dbe0be: fix(google): preserve image candidate finish reasons in provider metadata
+
 ## 4.0.76
 
 ### Patch Changes
