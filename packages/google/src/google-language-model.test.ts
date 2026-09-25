@@ -863,50 +863,57 @@ describe('doGenerate', () => {
     },
   );
 
-  it('should not forward unsupported Vertex tool result media types as function response file data', async () => {
-    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
-      provider: 'google.vertex.chat',
-      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-      headers: { 'x-goog-api-key': 'test-api-key' },
-      generateId: () => 'test-id',
-      downloadToolResultFiles: {
-        maxBytes: 7 * 1024 * 1024,
-        supportsGoogleCloudStorageUrls: true,
-      },
-    });
+  it.each([
+    'video/mp4',
+    'image/png-not-supported',
+    'application/pdf-not-supported',
+  ])(
+    'should not forward unsupported Vertex %s tool result URLs',
+    async mediaType => {
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
 
-    await expect(
-      vertexModel.doGenerate({
-        prompt: [
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'testCallId',
-                toolName: 'viewFiles',
-                output: {
-                  type: 'content',
-                  value: [
-                    {
-                      type: 'file',
-                      data: {
-                        type: 'url',
-                        url: new URL('gs://example-bucket/video.mp4'),
+      await expect(
+        vertexModel.doGenerate({
+          prompt: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'testCallId',
+                  toolName: 'viewFiles',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        data: {
+                          type: 'url',
+                          url: new URL('gs://example-bucket/result'),
+                        },
+                        mediaType,
                       },
-                      mediaType: 'video/mp4',
-                    },
-                  ],
+                    ],
+                  },
                 },
-              },
-            ],
-          },
-        ],
-      }),
-    ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
 
-    expect(server.calls).toHaveLength(0);
-  });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
 
   it('should preserve Vertex tool result URL handling across workflow serialization', async () => {
     server.urls[TEST_TOOL_RESULT_FILE_URL].response = {
