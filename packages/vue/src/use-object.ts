@@ -193,7 +193,7 @@ export function useObject<
                 schema: asSchema(schema),
               });
 
-              onFinish(
+              await onFinish(
                 validationResult.success
                   ? {
                       object: validationResult.value as RESULT,
