@@ -918,7 +918,26 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'start': {
               if (chunk.messageId != null) {
-                state.message.id = chunk.messageId;
+                if (
+                  state.message.id !== chunk.messageId &&
+                  state.message.parts.length > 0 &&
+                  !state.message.parts.some(isToolUIPart)
+                ) {
+                  state.message = {
+                    id: chunk.messageId,
+                    metadata: undefined,
+                    role: 'assistant',
+                    parts: [] as UIMessagePart<
+                      InferUIMessageData<UI_MESSAGE>,
+                      InferUIMessageTools<UI_MESSAGE>
+                    >[],
+                  } as UI_MESSAGE;
+                  state.activeTextParts = createIdMap();
+                  state.activeReasoningParts = createIdMap();
+                  state.partialToolCalls = createIdMap();
+                } else {
+                  state.message.id = chunk.messageId;
+                }
               }
 
               await updateMessageMetadata(chunk.messageMetadata);
