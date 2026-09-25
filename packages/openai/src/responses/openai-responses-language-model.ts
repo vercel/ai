@@ -451,15 +451,41 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
 
     warnings.push(...inputWarnings);
 
+    // The schema accepts update efforts supported by any supported model. Check
+    // whether this specific model supports the requested effort.
+    const getUpdateEffortUnsupportedReason = (effort: string | undefined) =>
+      effort != null &&
+      modelCapabilities.supportedReasoningEfforts?.includes(effort) === false
+        ? `${modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`
+        : undefined;
+
+    // Reject configuration updates whose effort value is unsupported by the selected model.
+    for (const item of input) {
+      if (item.type === 'configuration_update') {
+        const unsupportedReason = getUpdateEffortUnsupportedReason(
+          item.reasoning.effort,
+        );
+        if (unsupportedReason != null) {
+          throw new UnsupportedFunctionalityError({
+            functionality: 'Message-level reasoningEffortUpdate',
+            message: unsupportedReason,
+          });
+        }
+      }
+    }
+
     const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    const requestUpdateUnsupportedReason =
+      configurationUpdateUnsupportedReason ??
+      getUpdateEffortUnsupportedReason(reasoningEffortUpdate);
     if (
       reasoningEffortUpdate != null &&
-      configurationUpdateUnsupportedReason != null
+      requestUpdateUnsupportedReason != null
     ) {
       warnings.push({
         type: 'unsupported',
         feature: 'reasoningEffortUpdate',
-        details: configurationUpdateUnsupportedReason,
+        details: requestUpdateUnsupportedReason,
       });
     } else if (reasoningEffortUpdate != null) {
       const firstItem = input[0];
