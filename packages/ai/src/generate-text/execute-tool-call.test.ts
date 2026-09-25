@@ -118,6 +118,66 @@ describe('executeToolCall', () => {
       expect(receivedSandbox).toBe(sandbox);
     });
 
+    it('should pass the approval decision to tool execution', async () => {
+      const execute = vi.fn(
+        async ({ value }: { value: string }, _options: unknown) =>
+          `${value}-result`,
+      );
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        approval: {
+          approvalId: 'approval-1',
+          approved: true,
+          reason: 'use corrected value',
+        },
+        toolsContext: {},
+      });
+
+      expect(execute).toHaveBeenCalledWith(
+        { value: 'test' },
+        expect.objectContaining({
+          approval: {
+            approvalId: 'approval-1',
+            approved: true,
+            reason: 'use corrected value',
+          },
+        }),
+      );
+    });
+
+    it('should omit approval metadata for direct execution', async () => {
+      const execute = vi.fn(
+        async ({ value }: { value: string }, _options: unknown) =>
+          `${value}-result`,
+      );
+
+      await executeToolCall({
+        toolCall: createToolCall(),
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+        callId: 'test-telemetry-call-id',
+        messages: [],
+        abortSignal: undefined,
+        toolsContext: {},
+      });
+
+      expect(execute.mock.calls[0][1]).not.toHaveProperty('approval');
+    });
+
     it('should preserve providerMetadata from toolCall', async () => {
       const result = await executeToolCall({
         toolCall: createToolCall({
