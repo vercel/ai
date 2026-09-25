@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod/v4';
 import { lazySchema, zodSchema } from '@ai-sdk/provider-utils';
 
 export const anthropicUploadFileResponseSchema = lazySchema(() =>
