@@ -16,34 +16,34 @@ beforeEach(() => {
 });
 
 describe('createTelemetryDispatcher', () => {
-  it('returns no-op listeners when no integrations are configured', async () => {
+  it('omits listeners when no integrations are configured', async () => {
     const telemetry = createTelemetryDispatcher({});
 
-    expect(telemetry.onStart).toBeDefined();
-    expect(telemetry.onStepStart).toBeDefined();
-    expect(telemetry.onLanguageModelCallStart).toBeDefined();
-    expect(telemetry.onLanguageModelCallEnd).toBeDefined();
-    expect(telemetry.onToolExecutionStart).toBeDefined();
-    expect(telemetry.onToolExecutionEnd).toBeDefined();
-    expect(telemetry.onStepEnd).toBeDefined();
-    expect(telemetry.onObjectStepStart).toBeDefined();
-    expect(telemetry.onObjectStepEnd).toBeDefined();
-    expect(telemetry.onEmbedStart).toBeDefined();
-    expect(telemetry.onEmbedEnd).toBeDefined();
-    expect(telemetry.onRerankStart).toBeDefined();
-    expect(telemetry.onRerankEnd).toBeDefined();
-    expect(telemetry.experimental_onEvaluateStart).toBeDefined();
-    expect(telemetry.experimental_onEvaluationModelCallStart).toBeDefined();
-    expect(telemetry.experimental_onEvaluationModelCallEnd).toBeDefined();
-    expect(telemetry.experimental_onEvaluateEnd).toBeDefined();
-    expect(telemetry.onEnd).toBeDefined();
-    expect(telemetry.onAbort).toBeDefined();
-    expect(telemetry.onError).toBeDefined();
+    expect(telemetry.onStart).toBeUndefined();
+    expect(telemetry.onStepStart).toBeUndefined();
+    expect(telemetry.onLanguageModelCallStart).toBeUndefined();
+    expect(telemetry.onLanguageModelCallEnd).toBeUndefined();
+    expect(telemetry.onToolExecutionStart).toBeUndefined();
+    expect(telemetry.onToolExecutionEnd).toBeUndefined();
+    expect(telemetry.onStepEnd).toBeUndefined();
+    expect(telemetry.onObjectStepStart).toBeUndefined();
+    expect(telemetry.onObjectStepEnd).toBeUndefined();
+    expect(telemetry.onEmbedStart).toBeUndefined();
+    expect(telemetry.onEmbedEnd).toBeUndefined();
+    expect(telemetry.onRerankStart).toBeUndefined();
+    expect(telemetry.onRerankEnd).toBeUndefined();
+    expect(telemetry.experimental_onEvaluateStart).toBeUndefined();
+    expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
+    expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
+    expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
+    expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
+    expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
+    expect(telemetry.onEnd).toBeUndefined();
+    expect(telemetry.onAbort).toBeUndefined();
+    expect(telemetry.onError).toBeUndefined();
     expect(telemetry.executeLanguageModelCall).toBeDefined();
     expect(telemetry.executeTool).toBeDefined();
 
-    await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
-    await expect(telemetry.onError!(dummyEvent)).resolves.toBeUndefined();
     await expect(
       telemetry.executeLanguageModelCall!({
         callId: 'call-1',
@@ -84,15 +84,13 @@ describe('createTelemetryDispatcher', () => {
     expect(telemetry.onEnd).toBeDefined();
   });
 
-  it('returns no-op listeners for methods that no integration implements', async () => {
+  it('omits listeners for methods that no integration implements', () => {
     const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: [{ onStart: vi.fn() }] },
     });
 
-    await expect(
-      telemetry.onToolExecutionStart!(dummyEvent),
-    ).resolves.toBeUndefined();
-    await expect(telemetry.onEmbedEnd!(dummyEvent)).resolves.toBeUndefined();
+    expect(telemetry.onToolExecutionStart).toBeUndefined();
+    expect(telemetry.onEmbedEnd).toBeUndefined();
   });
 
   it('broadcasts an event to all integrations that implement the method', async () => {
@@ -190,6 +188,8 @@ describe('createTelemetryDispatcher', () => {
       experimental_onEvaluationModelCallStart: vi.fn(),
       experimental_onEvaluationModelCallEnd: vi.fn(),
       experimental_onEvaluateEnd: vi.fn(),
+      experimental_onStreamTranscriptionStart: vi.fn(),
+      experimental_onStreamTranscriptionEnd: vi.fn(),
       onEnd: vi.fn(),
       onAbort: vi.fn(),
       onError: vi.fn(),
@@ -216,6 +216,8 @@ describe('createTelemetryDispatcher', () => {
     await telemetry.experimental_onEvaluationModelCallStart!(dummyEvent);
     await telemetry.experimental_onEvaluationModelCallEnd!(dummyEvent);
     await telemetry.experimental_onEvaluateEnd!(dummyEvent);
+    await telemetry.experimental_onStreamTranscriptionStart!(dummyEvent);
+    await telemetry.experimental_onStreamTranscriptionEnd!(dummyEvent);
     await telemetry.onEnd!(dummyEvent);
     await telemetry.onAbort!(dummyEvent);
     await telemetry.onError!(dummyEvent);
@@ -241,20 +243,24 @@ describe('createTelemetryDispatcher', () => {
       integration.experimental_onEvaluationModelCallEnd,
     ).toHaveBeenCalledOnce();
     expect(integration.experimental_onEvaluateEnd).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onStreamTranscriptionStart,
+    ).toHaveBeenCalledOnce();
+    expect(
+      integration.experimental_onStreamTranscriptionEnd,
+    ).toHaveBeenCalledOnce();
     expect(integration.onEnd).toHaveBeenCalledOnce();
     expect(integration.onAbort).toHaveBeenCalledOnce();
     expect(integration.onError).toHaveBeenCalledOnce();
   });
 
-  it('handles an empty array of integrations', async () => {
+  it('handles an empty array of integrations', () => {
     const telemetry = createTelemetryDispatcher({
       telemetry: { integrations: [] },
     });
 
-    expect(telemetry.onStart).toBeDefined();
-    expect(telemetry.onEnd).toBeDefined();
-
-    await expect(telemetry.onStart!(dummyEvent)).resolves.toBeUndefined();
+    expect(telemetry.onStart).toBeUndefined();
+    expect(telemetry.onEnd).toBeUndefined();
   });
 
   describe('isEnabled filter', () => {
@@ -275,6 +281,8 @@ describe('createTelemetryDispatcher', () => {
         experimental_onEvaluationModelCallStart: vi.fn(),
         experimental_onEvaluationModelCallEnd: vi.fn(),
         experimental_onEvaluateEnd: vi.fn(),
+        experimental_onStreamTranscriptionStart: vi.fn(),
+        experimental_onStreamTranscriptionEnd: vi.fn(),
         onEnd: vi.fn(),
         onAbort: vi.fn(),
         onError: vi.fn(),
@@ -301,6 +309,8 @@ describe('createTelemetryDispatcher', () => {
       expect(telemetry.experimental_onEvaluationModelCallStart).toBeUndefined();
       expect(telemetry.experimental_onEvaluationModelCallEnd).toBeUndefined();
       expect(telemetry.experimental_onEvaluateEnd).toBeUndefined();
+      expect(telemetry.experimental_onStreamTranscriptionStart).toBeUndefined();
+      expect(telemetry.experimental_onStreamTranscriptionEnd).toBeUndefined();
       expect(telemetry.onEnd).toBeUndefined();
       expect(telemetry.onAbort).toBeUndefined();
       expect(telemetry.onError).toBeUndefined();

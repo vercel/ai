@@ -28,6 +28,12 @@ export const consoleTelemetry = {
     'experimental_onEvaluationModelCallEnd',
   ),
   experimental_onEvaluateEnd: logCallback('experimental_onEvaluateEnd'),
+  experimental_onStreamTranscriptionStart: logCallback(
+    'experimental_onStreamTranscriptionStart',
+  ),
+  experimental_onStreamTranscriptionEnd: logCallback(
+    'experimental_onStreamTranscriptionEnd',
+  ),
   onEnd: logCallback('onEnd'),
   onError: logCallback('onError'),
   executeTool: async ({ callId, toolCallId, execute }) => {

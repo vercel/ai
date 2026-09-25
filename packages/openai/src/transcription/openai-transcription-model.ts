@@ -333,6 +333,7 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
       language,
       durationInSeconds: response.duration ?? undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,

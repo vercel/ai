@@ -19,6 +19,27 @@ const audio = await generateSpeech({
 });
 ```
 
+## Telemetry
+
+`generateSpeech` accepts the standard `telemetry` option. Registered
+integrations receive start, end, and error events with the provider and model,
+source text, generated audio byte length, media type and format, warnings,
+response metadata, provider metadata, and usage when the provider reports it.
+Raw generated audio is not included in telemetry events.
+
+```ts highlight="5-7"
+const result = await generateSpeech({
+  model: openai.speech('gpt-4o-mini-tts'),
+  text: 'Hello from the AI SDK!',
+  telemetry: {
+    functionId: 'speak-greeting',
+  },
+});
+```
+
+Use `recordInputs: false` or `recordOutputs: false` when the text or output
+metadata should not be recorded by telemetry integrations.
+
 To access the generated audio:
 
 ```ts

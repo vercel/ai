@@ -11,6 +11,10 @@ import {
 import * as logWarningsModule from '../logger/log-warnings';
 import { MockTranscriptionModelV4 } from '../test/mock-transcription-model-v4';
 import { transcribe } from './transcribe';
+import type {
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from './transcription-events';
 import type { Warning } from '../types/warning';
 
 vi.mock('../version', () => {
@@ -166,6 +170,61 @@ describe('transcribe', () => {
     expect(capturedArgs.mediaType).toBe('audio/aac');
   });
 
+  it('should preserve downloaded media type in provider arguments and telemetry', async () => {
+    let capturedArgs!: Parameters<TranscriptionModelV4['doGenerate']>[0];
+    const events: Array<{ type: string; event: unknown }> = [];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async args => {
+          capturedArgs = args;
+          return createMockResponse({
+            ...sampleTranscript,
+          });
+        },
+      }),
+      audio: new URL('https://example.com/audio'),
+      download: async () => ({
+        data: audioData,
+        mediaType: 'audio/mpeg',
+      }),
+      telemetry: {
+        integrations: {
+          onStart: event => {
+            if (event.operationId === 'ai.transcribe') {
+              events.push({ type: 'start', event });
+            }
+          },
+          onEnd: event => {
+            const transcriptionEvent = event as TranscriptionEndEvent;
+            if (transcriptionEvent.operationId === 'ai.transcribe') {
+              events.push({ type: 'end', event: transcriptionEvent });
+            }
+          },
+        },
+      },
+      _internal: { generateCallId: () => 'call-url' },
+    });
+
+    expect(capturedArgs.mediaType).toBe('audio/mpeg');
+    expect(events).toMatchObject([
+      {
+        type: 'start',
+        event: {
+          callId: 'call-url',
+          audio: { byteLength: 4, mediaType: 'audio/mpeg' },
+        },
+      },
+      {
+        type: 'end',
+        event: {
+          callId: 'call-url',
+          audio: { byteLength: 4, mediaType: 'audio/mpeg' },
+        },
+      },
+    ]);
+  });
+
   it('should return warnings', async () => {
     const result = await transcribe({
       model: new MockTranscriptionModelV4({
@@ -274,6 +333,104 @@ describe('transcribe', () => {
   });
 
   describe('error handling', () => {
+    it('should emit a correlated start and error when downloading URL audio fails', async () => {
+      const error = new Error('download failed');
+      const events: unknown[] = [];
+
+      await expect(
+        transcribe({
+          model: new MockTranscriptionModelV4(),
+          audio: new URL('https://example.com/audio'),
+          download: async () => {
+            throw error;
+          },
+          telemetry: {
+            integrations: {
+              onStart: event => {
+                const transcriptionEvent = event as TranscriptionStartEvent;
+                if (transcriptionEvent.operationId === 'ai.transcribe') {
+                  events.push({
+                    type: 'start',
+                    callId: transcriptionEvent.callId,
+                    audio: transcriptionEvent.audio,
+                  });
+                }
+              },
+              onError: event => {
+                const errorEvent = event as {
+                  callId: string;
+                  error: unknown;
+                };
+                events.push({ type: 'error', ...errorEvent });
+              },
+            },
+          },
+          _internal: { generateCallId: () => 'call-download-error' },
+        }),
+      ).rejects.toBe(error);
+
+      expect(events).toEqual([
+        {
+          type: 'start',
+          callId: 'call-download-error',
+          audio: { byteLength: undefined, mediaType: undefined },
+        },
+        {
+          type: 'error',
+          callId: 'call-download-error',
+          error,
+        },
+      ]);
+    });
+
+    it('should emit a correlated start and error when inline audio conversion fails', async () => {
+      const events: unknown[] = [];
+
+      await expect(
+        transcribe({
+          model: new MockTranscriptionModelV4(),
+          audio: 'not-valid-base64!',
+          telemetry: {
+            integrations: {
+              onStart: event => {
+                const transcriptionEvent = event as TranscriptionStartEvent;
+                if (transcriptionEvent.operationId === 'ai.transcribe') {
+                  events.push({
+                    type: 'start',
+                    callId: transcriptionEvent.callId,
+                    audio: transcriptionEvent.audio,
+                  });
+                }
+              },
+              onError: event => {
+                const errorEvent = event as {
+                  callId: string;
+                  error: unknown;
+                };
+                events.push({ type: 'error', ...errorEvent });
+              },
+            },
+          },
+          _internal: { generateCallId: () => 'call-conversion-error' },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidDataContentError',
+      });
+
+      expect(events).toMatchObject([
+        {
+          type: 'start',
+          callId: 'call-conversion-error',
+          audio: { byteLength: undefined, mediaType: undefined },
+        },
+        {
+          type: 'error',
+          callId: 'call-conversion-error',
+          error: { name: 'AI_InvalidDataContentError' },
+        },
+      ]);
+    });
+
     it('should throw NoTranscriptGeneratedError when no transcript is returned', async () => {
       await expect(
         transcribe({
@@ -360,5 +517,92 @@ describe('transcribe', () => {
         headers: testHeaders,
       },
     ]);
+  });
+
+  it('should emit telemetry start and end events with audio metadata', async () => {
+    const events: Array<{ type: string; event: unknown }> = [];
+
+    await transcribe({
+      model: new MockTranscriptionModelV4({
+        doGenerate: async () => ({
+          ...createMockResponse({
+            ...sampleTranscript,
+            timestamp: testDate,
+            providerMetadata: { mock: { traceId: 'trace-1' } },
+          }),
+          usage: { inputTokens: 12 },
+        }),
+      }),
+      audio: audioData,
+      telemetry: {
+        functionId: 'transcribe-audio',
+        recordInputs: false,
+        integrations: {
+          onStart: event => {
+            if (event.operationId === 'ai.transcribe') {
+              events.push({ type: 'start', event });
+            }
+          },
+          onEnd: event => {
+            const transcriptionEvent = event as TranscriptionEndEvent;
+            if (transcriptionEvent.operationId === 'ai.transcribe') {
+              events.push({ type: 'end', event: transcriptionEvent });
+            }
+          },
+        },
+      },
+      _internal: { generateCallId: () => 'call-1' },
+    });
+
+    expect(events).toMatchObject([
+      {
+        type: 'start',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.transcribe',
+          provider: 'mock-provider',
+          modelId: 'mock-model-id',
+          audio: { byteLength: 4, mediaType: 'audio/wav' },
+          functionId: 'transcribe-audio',
+          recordInputs: false,
+        },
+      },
+      {
+        type: 'end',
+        event: {
+          callId: 'call-1',
+          operationId: 'ai.transcribe',
+          text: sampleTranscript.text,
+          audio: { byteLength: 4, mediaType: 'audio/wav' },
+          usage: { inputTokens: 12 },
+          providerMetadata: { mock: { traceId: 'trace-1' } },
+          functionId: 'transcribe-audio',
+        },
+      },
+    ]);
+  });
+
+  it('should emit a telemetry error event when transcription fails', async () => {
+    const error = new Error('transcription failed');
+    const onError = vi.fn();
+
+    await expect(
+      transcribe({
+        model: new MockTranscriptionModelV4({
+          doGenerate: async () => {
+            throw error;
+          },
+        }),
+        audio: audioData,
+        maxRetries: 0,
+        telemetry: { integrations: { onError } },
+        _internal: { generateCallId: () => 'call-1' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledExactlyOnceWith({
+      callId: 'call-1',
+      error,
+    });
   });
 });

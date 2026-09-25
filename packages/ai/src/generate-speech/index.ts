@@ -4,6 +4,10 @@ import { generateSpeech } from './generate-speech';
 export { generateSpeech } from './generate-speech';
 export type { SpeechResult } from './generate-speech-result';
 export type { GeneratedAudioFile } from './generated-audio-file';
+export type {
+  GenerateSpeechEndEvent,
+  GenerateSpeechStartEvent,
+} from './speech-events';
 
 // deprecated exports
 

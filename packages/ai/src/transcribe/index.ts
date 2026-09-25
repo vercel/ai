@@ -8,6 +8,12 @@ export type {
   TranscriptionStreamPart,
 } from './stream-transcribe-result';
 export type { TranscriptionResult } from './transcribe-result';
+export type {
+  StreamTranscriptionEndEvent as Experimental_StreamTranscriptionEndEvent,
+  StreamTranscriptionStartEvent as Experimental_StreamTranscriptionStartEvent,
+  TranscriptionEndEvent,
+  TranscriptionStartEvent,
+} from './transcription-events';
 
 // deprecated exports
 

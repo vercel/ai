@@ -53,7 +53,10 @@ For Node.js applications (without Next.js), register the integration at the top 
 
 ### Step 2: Enabling Telemetry
 
-Once a telemetry integration is registered, all AI SDK calls emit telemetry events by default.
+Once a telemetry integration is registered, supported AI SDK calls emit
+telemetry events by default. This includes text and object generation,
+embeddings, reranking, speech generation, and both non-streaming and streaming
+transcription.
 You can still pass `telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
 ```ts highlight="4-6"
@@ -70,6 +73,34 @@ By default, both inputs and outputs are recorded. You can disable them by settin
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
+
+For `generateSpeech`, input telemetry contains the source text and output
+telemetry contains the generated audio byte length, media type, and format.
+For `transcribe` and `experimental_streamTranscribe`, telemetry contains the
+input audio byte length and media type plus the output transcript. Raw audio is
+never included in telemetry events. Streaming transcription reports its final
+byte length when the audio stream has been consumed and the transcription
+finishes.
+
+Custom integrations receive stable `generateSpeech` and `transcribe`
+operations through `onStart` and `onEnd`. To keep the experimental API isolated,
+`experimental_streamTranscribe` uses
+`experimental_onStreamTranscriptionStart` and
+`experimental_onStreamTranscriptionEnd`; all three operations report failures
+through `onError`.
+
+An integration that wraps or delegates to another integration must explicitly
+forward the experimental streaming transcription callbacks. Forwarding only
+the stable `onStart` and `onEnd` callbacks does not observe
+`experimental_streamTranscribe`.
+
+The built-in OpenTelemetry integrations record numeric provider usage by
+default, preserving each reported unit. The modern integration uses attributes
+such as `gen_ai.usage.characters`, `gen_ai.usage.seconds`, and
+`gen_ai.usage.input_tokens`; `LegacyOpenTelemetry` uses the corresponding
+`ai.usage.*` attributes. The provider-native usage object remains available to
+callbacks, and can also be included as the supplemental `ai.response.usage`
+attribute by enabling `usage: true`.
 
 ### Opting out
 
