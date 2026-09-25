@@ -9,6 +9,8 @@ metadata:
 
 This guide covers creating a new `@ai-sdk/harness-<name>` package for an agent harness.
 
+Before evaluating a runtime, read [Harness Requirements](references/Harness-Requirements.md) for feasibility criteria and capability gaps to document. Follow the requirements while implementing the harness package.
+
 A harness can be **host-driven**, where the runtime runs in the host process and uses the sandbox remotely, or **bridge-backed**, where a small bridge runs inside the sandbox because the runtime needs local access to the sandbox filesystem or process environment.
 Prefer host-driven when the runtime supports it.
 
