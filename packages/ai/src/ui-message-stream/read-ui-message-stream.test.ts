@@ -439,4 +439,45 @@ describe('readUIMessageStream', () => {
       expect(cancel).toHaveBeenCalledOnce();
     });
   });
+
+  it('should not adopt parts from a previous turn when stream starts with a different messageId', async () => {
+    const previousReply: UIMessage = {
+      id: 'turn-0:reply',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'text',
+          text: 'FIRST ANSWER',
+          state: 'done',
+          providerMetadata: undefined,
+        },
+      ],
+    };
+
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'turn-1:reply' },
+      { type: 'start-step' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'RESUMED-TEXT' },
+      { type: 'text-end', id: 't1' },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({ message: previousReply, stream }),
+    );
+
+    const finalMessage = messages.at(-1)!;
+    expect(finalMessage.id).toBe('turn-1:reply');
+    expect(finalMessage.parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'RESUMED-TEXT',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
+  });
 });
