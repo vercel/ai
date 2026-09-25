@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "0.0.27",
+  "version": "0.0.28",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
