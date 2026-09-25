@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21301,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21301-untrusted-first-hop-credentials.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-21301-untrusted-first-hop-credentials.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21301: untrusted first hop received credential headers"
+  }
+}
