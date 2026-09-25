@@ -39,7 +39,7 @@
     "tsup": "^8.5.1",
     "tsx": "4.23.12",
     "typescript": "5.8.3",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.11"
   },
   "bin": {
     "codemod": "./dist/bin/codemod.js"
