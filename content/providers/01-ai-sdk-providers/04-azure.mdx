@@ -1123,48 +1123,73 @@ const result = await transcribe({
 });
 ```
 
-Use a Speech resource in a [supported region](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions).
+MAI-Transcribe-2 is a Microsoft Speech model, not an Azure OpenAI deployment. It requires
+a Microsoft Foundry (Speech) resource in a region where MAI-Transcribe is available:
+`centralindia`, `eastus`, `northeurope`, `southeastasia`, `westus`, or `westus2`
+(see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions?tabs=llmspeech)).
+Resources in other regions reject the request.
 Set `AZURE_RESOURCE_NAME` and `AZURE_API_KEY` to that resource's name and key,
 or pass `resourceName` and `apiKey` to `createAzure`. `tokenProvider`, custom headers,
-and custom fetch are also supported.
+and custom fetch are also supported. Keys are sent as `Ocp-Apim-Subscription-Key`.
 
 Speech requests use `https://{resourceName}.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe`
 with API version `2025-10-15`. An explicit `baseURL` supplies the Speech URL prefix
-(without `/speechtotext/transcriptions:transcribe`); an explicit `apiVersion` overrides
-the Speech default. An OpenAI URL ending in `/openai/v1` is not a Speech URL prefix.
-`useDeploymentBasedUrls` only affects OpenAI requests.
+(without `/speechtotext/transcriptions:transcribe`), for example a regional endpoint
+such as `https://eastus.api.cognitive.microsoft.com`.
+
+<Note>
+  `baseURL` and `apiVersion` are shared by all models of a provider instance. If
+  you set them for Azure OpenAI (for example a URL ending in `/openai/v1` or
+  `2025-04-01-preview`), create a separate provider instance for
+  MAI-Transcribe-2. `useDeploymentBasedUrls` only affects OpenAI requests.
+</Note>
 
 The following options are available through `providerOptions.azure`:
 
-- **api** _'openai' | 'speech'_: Overrides model-based API selection for this request.
+- **api** _'openai' | 'speech'_
+  Overrides model-based API selection for this request.
   Set `openai` for an OpenAI deployment named `mai-transcribe-2`, or `speech` to
-  send another model ID to Speech. Unknown Speech model IDs are sent unchanged.
-- **timestamps** _'word' | 'segment' | 'none'_: Speech timing granularity. Defaults
-  to `segment`. `word` also includes word timing in provider metadata; `none`
-  allows responses without timed segments.
-- **transcribeStyle** _'verbatim' | 'clean'_: Keeps or removes fillers. Azure defaults to `verbatim`.
-- **locales** _string[]_: Exactly one language code, such as `['en']`. Omit for automatic detection.
-- **diarization** _{ enabled: boolean }_: Enables speaker identification.
-- **phraseList** _{ phrases: string[] }_: Recognition hints for names and terminology.
+  send another model ID to Speech. Other Speech model IDs are sent unchanged.
+
+- **timestamps** _'word' | 'segment' | 'none'_
+  Timing granularity. The AI SDK defaults to `segment` so that results include
+  timed segments (Azure's own default is `none`). `segment` returns one segment
+  per sentence or speaker turn, `word` additionally returns word timing in provider
+  metadata, and `none` returns a single segment that spans the whole audio.
+
+- **transcribeStyle** _'verbatim' | 'clean'_
+  `verbatim` keeps fillers and false starts, `clean` removes them. Defaults to `verbatim`.
+
+- **locales** _string[]_
+  Exactly one language code, such as `['en']`. This is a strong hint; omit it for
+  automatic language detection and code switching.
+
+- **diarization** _object_
+  Set `enabled` to `true` to identify speakers. Speaker IDs are returned in
+  provider metadata. `maxSpeakers` is not supported by MAI-Transcribe-2.
+
+- **phraseList** _object_
+  Set `phrases` to a list of names and domain terms to bias recognition toward them.
 
 Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
 options remain under `providerOptions.openai`. Speech-only Azure options produce
 warnings when used with the OpenAI API.
 
-Results include transcript text, timed phrase segments, duration, and an ISO-639-1
+Results include transcript text, timed segments, duration, and an ISO-639-1
 language code when the reported phrase locales identify one language. Mixed-language
-results leave `language` undefined. Speaker IDs, exact locales, confidence, and words
-are preserved in `providerMetadata.azure.phrases`; use the exported
-`AzureTranscriptionProviderMetadata` type to access them. Phrase timing is in milliseconds
-in metadata and seconds in normalized `segments`.
+results, and languages without an ISO-639-1 code such as Filipino (`fil`) or
+Cantonese (`yue`), leave `language` undefined. Speaker IDs, exact locales, and word
+timing are preserved in `providerMetadata.azure.phrases`; use the exported
+`AzureTranscriptionProviderMetadata` type to access them. Phrase timing is in
+milliseconds in metadata and seconds in normalized `segments`.
 
-MAI-Transcribe-2 uses file transcription; streaming is not supported by this adapter.
-The model is in public preview. See [Azure's MAI guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
-for supported formats, regions, and diarization limits.
+MAI-Transcribe-2 is a file transcription model: it accepts WAV, MP3, or FLAC files
+shorter than 2 hours and smaller than 250 MB, and does not support streaming
+transcription. The model is in public preview. See
+[Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
+for supported languages and diarization limits.
 
-AI Gateway forwards these provider options, including `azure.api`. Using this model
-through Gateway additionally requires support in the hosted Gateway service; the
-Azure provider implementation does not add a Gateway catalog entry.
+AI Gateway forwards these provider options, including `azure.api`.
 
 ### OpenAI transcription
 

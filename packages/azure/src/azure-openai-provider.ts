@@ -103,6 +103,11 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   transcription(deploymentId: string): TranscriptionModelV4;
 
   /**
+   * Creates an Azure transcription model. Alias of `transcription`.
+   */
+  transcriptionModel(deploymentId: string): TranscriptionModelV4;
+
+  /**
    * Creates an Azure OpenAI model for speech generation.
    */
   speech(deploymentId: string): SpeechModelV4;
@@ -218,7 +223,7 @@ export function createAzure(
             loadApiKey({
               apiKey: options.apiKey,
               environmentVariableName: 'AZURE_API_KEY',
-              description: 'Azure OpenAI',
+              description: api === 'speech' ? 'Azure Speech' : 'Azure OpenAI',
             }),
         };
 
@@ -405,6 +410,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;
@@ -415,7 +421,7 @@ export function createAzure(
  */
 export const azure = createAzure();
 
-// Resolve the API per request: providerOptions also reach this model via Gateway.
+// Resolves the API per request: providerOptions also reach this model via Gateway.
 class AzureTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.transcription';
@@ -442,9 +448,11 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
-    const azureOptions = await this.getOptions(options.providerOptions);
-    if (azureOptions.api === 'speech') {
-      return this.speech.doGenerate(options, azureOptions);
+    const { api, ...speechOptions } = await this.getOptions(
+      options.providerOptions,
+    );
+    if (api === 'speech') {
+      return this.speech.doGenerate(options, speechOptions);
     }
 
     const result = await this.openai.doGenerate(options);
@@ -452,13 +460,11 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
       ...result,
       warnings: [
         ...result.warnings,
-        ...Object.keys(azureOptions)
-          .filter(key => key !== 'api')
-          .map(key => ({
-            type: 'unsupported' as const,
-            feature: `providerOptions.azure.${key}`,
-            details: 'This option requires the Azure Speech API.',
-          })),
+        ...Object.keys(speechOptions).map(key => ({
+          type: 'unsupported' as const,
+          feature: `providerOptions.azure.${key}`,
+          details: 'This option requires the Azure Speech API.',
+        })),
       ],
     };
   }
@@ -466,8 +472,8 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   async doStream(
     options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
   ) {
-    const azureOptions = await this.getOptions(options.providerOptions);
-    if (azureOptions.api === 'speech') {
+    const { api } = await this.getOptions(options.providerOptions);
+    if (api === 'speech') {
       throw new UnsupportedFunctionalityError({
         functionality: 'streaming transcription with the Azure Speech API',
       });

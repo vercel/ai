@@ -10,10 +10,8 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
-import {
-  isMAITranscribe2,
-  type AzureTranscriptionModelOptions,
-} from './azure-transcription-model-options';
+import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
+import { isMAITranscribe2 } from './azure-transcription-model-options';
 
 export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   readonly specificationVersion = 'v4';
@@ -30,7 +28,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
 
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-    azureOptions: AzureTranscriptionModelOptions = {},
+    azureOptions: AzureTranscriptionModelSpeechOptions = {},
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
     const timestamp = new Date();
     const formData = new FormData();

@@ -10,12 +10,18 @@ import {
   WORKFLOW_SERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import fs from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createAzure,
   type AzureOpenAIProviderSettings,
 } from './azure-openai-provider';
 import type { AzureTranscriptionModelOptions } from './azure-transcription-model-options';
+import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
+
+function loadFixture(name: string) {
+  return JSON.parse(fs.readFileSync(`src/__fixtures__/${name}.json`, 'utf8'));
+}
 
 const input = { audio: new Uint8Array([1, 2, 3]), mediaType: 'audio/wav' };
 const response = {
@@ -475,5 +481,78 @@ describe('streaming and serialization', () => {
       providerOptions: { azure: { api: 'openai' } },
     });
     expect(request().url).toBe('https://proxy.example/audio/transcriptions');
+  });
+});
+
+describe('recorded MAI-Transcribe-2 responses', () => {
+  it('maps diarized word-level results into segments and metadata', async () => {
+    const body = loadFixture(
+      'azure-speech-mai-transcribe-2-word-diarization.1',
+    );
+    const { provider } = setup({}, body);
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: {
+        azure: { timestamps: 'word', diarization: { enabled: true } },
+      },
+    });
+    expect(result.text).toBe(body.combinedPhrases[0].text);
+    expect(result.language).toBe('en');
+    expect(result.durationInSeconds).toBe(17.579);
+    expect(result.segments).toEqual([
+      {
+        text: 'Um, so, uh, did you finish the quarterly report for Versal yet?',
+        startSecond: 0.12,
+        endSecond: 4.32,
+      },
+      {
+        text: 'Yeah, I, uh, I sent it over this morning. It covers the AI gateway numbers.',
+        startSecond: 4.48,
+        endSecond: 9.439,
+      },
+      {
+        text: 'Great. Uh, can you, like, add the transcription pricing too?',
+        startSecond: 9.68,
+        endSecond: 13.8,
+      },
+      {
+        text: "Sure. I'll, um, update it by Friday.",
+        startSecond: 14.04,
+        endSecond: 17.159,
+      },
+    ]);
+    const phrases = (
+      result.providerMetadata as AzureTranscriptionProviderMetadata
+    ).azure.phrases;
+    expect(phrases.map(phrase => phrase.speaker)).toEqual([0, 1, 0, 1]);
+    expect(phrases[0].words?.[0]).toEqual({
+      text: 'Um,',
+      offsetMilliseconds: 120,
+      durationMilliseconds: 220,
+    });
+  });
+
+  it('maps a timestamps=none result to one segment spanning the audio', async () => {
+    const { provider } = setup(
+      {},
+      loadFixture('azure-speech-mai-transcribe-2-no-timestamps.1'),
+    );
+    const result = await provider.transcription('mai-transcribe-2').doGenerate({
+      ...input,
+      providerOptions: { azure: { timestamps: 'none' } },
+    });
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]).toMatchObject({
+      startSecond: 0,
+      endSecond: 17.579,
+    });
+  });
+});
+
+describe('provider', () => {
+  it('exposes transcriptionModel as an alias of transcription', async () => {
+    const { provider, request } = setup();
+    await provider.transcriptionModel('mai-transcribe-2').doGenerate(input);
+    expect(request().url).toContain('/speechtotext/');
   });
 });
