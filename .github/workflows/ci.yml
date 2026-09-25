@@ -127,8 +127,6 @@ jobs:
 
   docs-site:
     name: 'Docs Site'
-    # Temporarily disabled: versioned docs compilation can exhaust the hosted runner.
-    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
