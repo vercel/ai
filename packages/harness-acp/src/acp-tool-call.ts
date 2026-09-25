@@ -113,6 +113,7 @@ export type ACPToolCallLocation = {
 
 export type ACPToolCall = {
   toolCallId: string;
+  name?: string | null;
   title: string;
   kind?: ACPToolKind;
   status?: ACPToolCallStatus;
