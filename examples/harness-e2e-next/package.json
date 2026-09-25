@@ -29,7 +29,7 @@
     "@ai-sdk/workflow-harness": "workspace:*",
     "@cline/agents": "^0.0.83",
     "@cline/core": "^0.0.83",
-    "@earendil-works/pi-coding-agent": "^0.85.1",
+    "@earendil-works/pi-coding-agent": "^0.87.1",
     "@vercel/sandbox": "^3.0.0",
     "@xai-official/grok": "1.0.36",
     "ai": "workspace:*",
