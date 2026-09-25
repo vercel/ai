@@ -278,7 +278,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         output:
                           part.state === 'output-error'
                             ? part.errorText
-                            : part.output,
+                            : normalizeToolOutput(part.output),
                         tool: getOwn(options?.tools, toolName),
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
@@ -397,7 +397,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           output:
                             toolPart.state === 'output-error'
                               ? toolPart.errorText
-                              : toolPart.output,
+                              : normalizeToolOutput(toolPart.output),
                           tool: getOwn(options?.tools, toolName),
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
@@ -459,4 +459,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
   }
 
   return modelMessages;
+}
+
+function normalizeToolOutput(output: unknown): unknown {
+  return output === undefined ? null : output;
 }
