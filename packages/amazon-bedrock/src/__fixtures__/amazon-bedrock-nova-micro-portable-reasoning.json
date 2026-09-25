@@ -1,0 +1,33 @@
+{
+  "withReasoningConfig": {
+    "status": 400,
+    "body": {
+      "message": "The model returned the following errors: Malformed input request: the provided reasoning config value is invalid, please reformat your input and try again."
+    }
+  },
+  "withoutReasoningConfig": {
+    "status": 200,
+    "body": {
+      "metrics": {
+        "latencyMs": 201
+      },
+      "output": {
+        "message": {
+          "content": [
+            {
+              "text": "ok"
+            }
+          ],
+          "role": "assistant"
+        }
+      },
+      "stopReason": "end_turn",
+      "usage": {
+        "inputTokens": 7,
+        "outputTokens": 2,
+        "serverToolUsage": {},
+        "totalTokens": 9
+      }
+    }
+  }
+}

@@ -8211,6 +8211,39 @@ describe('doGenerate', () => {
       },
     };
 
+    it('should not make Nova Micro fail when portable reasoning is set', async () => {
+      const liveFixture = JSON.parse(
+        fs.readFileSync(
+          'src/__fixtures__/amazon-bedrock-nova-micro-portable-reasoning.json',
+          'utf8',
+        ),
+      );
+      const novaMicroModel = new AmazonBedrockChatLanguageModel(
+        'us.amazon.nova-micro-v1:0',
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          fetch: async (input, init) => {
+            const requestBody = await new Request(input, init).json();
+            const fixture =
+              requestBody.additionalModelRequestFields?.reasoningConfig == null
+                ? liveFixture.withoutReasoningConfig
+                : liveFixture.withReasoningConfig;
+
+            return Response.json(fixture.body, { status: fixture.status });
+          },
+          generateId: () => 'test-id',
+        },
+      );
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.content).toContainEqual({ type: 'text', text: 'ok' });
+    });
+
     it('should not set reasoning config when reasoning is "provider-default" for newer Anthropic models', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
