@@ -41,7 +41,7 @@ async function main() {
           },
           {
             type: 'file',
-            mediaType: 'image',
+            mediaType: 'image/jpeg',
             data: new URL(
               'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/WW2_Spanish_official_passport.jpg/1498px-WW2_Spanish_official_passport.jpg',
             ),
@@ -94,7 +94,7 @@ async function main() {
           },
           {
             type: 'file',
-            mediaType: 'image',
+            mediaType: 'image/png',
             data: fs.readFileSync('./data/passport.png', {
               encoding: 'base64',
             }),

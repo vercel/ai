@@ -301,8 +301,10 @@ This distinction matters when the step includes local tool execution: the step d
 
 ## Runtime and Tool Context
 
-Lifecycle callbacks receive the full `runtimeContext` and `toolsContext` values that flow through the call.
-This makes callbacks useful for attaching application context without changing prompts or tool inputs.
+Generation and step lifecycle callbacks receive the full `runtimeContext` and
+`toolsContext` values that flow through the call. Tool-execution callbacks receive
+the scoped `toolContext` for the tool being executed. This makes callbacks useful
+for attaching application context without changing prompts or tool inputs.
 
 ```tsx highlight="8-24,26-39"
 import { generateText, tool } from 'ai';
@@ -349,8 +351,9 @@ const result = await generateText({
 
 <Note>
   Telemetry integrations can filter `runtimeContext` and `toolsContext` before
-  exporting them. Lifecycle callbacks receive the full context objects. Be
-  careful not to log secrets or sensitive user data from callbacks.
+  exporting them. Generation and step callbacks receive the full context
+  objects; tool-execution callbacks receive scoped tool context. Be careful not
+  to log secrets or sensitive user data from callbacks.
 </Note>
 
 ## Available Callbacks

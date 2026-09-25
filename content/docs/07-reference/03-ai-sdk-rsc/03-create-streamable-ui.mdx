@@ -72,7 +72,7 @@ Create a stream that sends UI from the server to the client. On the client side,
     },
     {
       name: 'error',
-      type: '(Error) => void',
+      type: '(any) => StreamableUIWrapper',
       description:
         'Signals that there is an error in the UI stream. It will be thrown on the client side and caught by the nearest error boundary component.',
     },

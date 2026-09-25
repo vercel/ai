@@ -242,7 +242,7 @@ export default function Chat() {
 }
 ```
 
-`experimental_MCPAppRenderer` renders nothing for ordinary tools. For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
+For ordinary tools, `experimental_MCPAppRenderer` renders the provided `fallback` (or nothing when no fallback is provided). For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
 
 ## Best Practices
 

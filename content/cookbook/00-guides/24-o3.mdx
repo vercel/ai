@@ -159,7 +159,7 @@ AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another po
 
 AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently.
 
-With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
+With three main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
 
 Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o3-mini:
 
@@ -202,20 +202,37 @@ Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { type FormEvent, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
+  const { messages, sendMessage } = useChat();
+  const [input, setInput] = useState('');
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  }
 
   return (
     <>
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
+        <input
+          name="prompt"
+          value={input}
+          onChange={event => setInput(event.currentTarget.value)}
+        />
         <button type="submit">Submit</button>
       </form>
     </>

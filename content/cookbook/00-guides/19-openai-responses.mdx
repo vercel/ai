@@ -211,7 +211,7 @@ const result = await generateText({
 
 ## Migrating from Completions API
 
-Migrating from the OpenAI Completions API (via the AI SDK) to the new Responses API is simple. To migrate, simply change your provider instance from `openai(modelId)` to `openai.responses(modelId)`:
+Migrating from the OpenAI Chat Completions API to the Responses API is simple. To select each API explicitly, change your provider instance from `openai.chat(modelId)` to `openai.responses(modelId)`. The Responses API is also the default for `openai(modelId)`:
 
 ```ts
 import { generateText } from 'ai';

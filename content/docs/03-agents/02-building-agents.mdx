@@ -140,8 +140,8 @@ Context](/docs/ai-sdk-core/runtime-and-tool-context).
 ### Tools That Use Experimental Sandboxes
 
 Pass `experimental_sandbox` when an agent tool needs a command or code execution
-environment. The experimental sandbox is a per-call value, so provide it to `generate()`,
-`stream()`, or the agent UI stream helper that invokes the agent.
+environment. You can configure a default sandbox on the agent or provide one to
+`generate()`, `stream()`, or the agent UI stream helper that invokes the agent.
 
 ```ts highlight="13,19-23,31"
 const agent = new ToolLoopAgent({
