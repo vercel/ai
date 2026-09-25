@@ -1,0 +1,6 @@
+{
+  "error": {
+    "message": "Invalid input at 'input[0].content[0].processing'.",
+    "code": "invalid_request"
+  }
+}

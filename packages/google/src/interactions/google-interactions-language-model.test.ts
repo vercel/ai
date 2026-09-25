@@ -175,6 +175,57 @@ describe('GoogleInteractionsLanguageModel.doGenerate', () => {
     });
   });
 
+  describe('static video processing', () => {
+    beforeEach(() => {
+      prepareJsonFixtureResponse('video-static-processing-success');
+    });
+
+    it('serializes numeric video offsets as google-duration strings', async () => {
+      await model.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'file',
+                mediaType: 'video/mp4',
+                data: {
+                  type: 'data',
+                  data: 'AAAAIGZ0eXBpc29t',
+                },
+                providerOptions: {
+                  google: {
+                    processing: {
+                      type: 'static',
+                      startOffset: 0,
+                      endOffset: 3,
+                      fps: 24,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const body = (await server.calls[0].requestBodyJson) as {
+        input: Array<{
+          content: Array<{
+            processing?: unknown;
+          }>;
+        }>;
+      };
+
+      expect(body.input[0].content[0].processing).toEqual({
+        type: 'static',
+        start_offset: '0s',
+        end_offset: '3s',
+        fps: 24,
+      });
+    });
+  });
+
   describe('text ProviderReference file', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('basic');
