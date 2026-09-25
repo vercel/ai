@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 2.0.106
+
+### Patch Changes
+
+- 214d440: Preserve effort updates on empty system messages at the beginning of a conversation, including consecutive updates.
+
 ## 2.0.105
 
 ### Patch Changes
