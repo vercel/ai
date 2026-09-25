@@ -19,15 +19,11 @@ session for the lifetime of the terminal UI.
 ```ts filename='tui.ts'
 import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { codex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { runAgentTUI, type AgentTUIAgent } from '@ai-sdk/tui';
 
 const agent = new HarnessAgent({
   harness: codex,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
 function createTUIAgent({
@@ -56,7 +52,12 @@ function createTUIAgent({
   } as AgentTUIAgent;
 }
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   await runAgentTUI({
@@ -67,6 +68,7 @@ try {
   });
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 

@@ -1,24 +1,25 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createGitHubCopilot } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const githubCopilot = createGitHubCopilot();
 
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({
+    harness: githubCopilot,
+  });
+
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({
-    harness: githubCopilot,
-    sandbox,
-  });
-
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt: 'Recite the first sentence of "A Tale of Two Cities".',
@@ -29,6 +30,7 @@ run(async () => {
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

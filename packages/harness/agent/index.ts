@@ -1,4 +1,5 @@
 export { HarnessAgent } from '../src/agent/harness-agent';
+export { createHarnessSandboxTemplate } from '../src/agent/create-harness-sandbox-template';
 export type { HarnessAllTools } from '../src/agent/harness-agent-tool-types';
 export type {
   HarnessAgentSandboxConfig,
@@ -26,6 +27,7 @@ export type {
   HarnessAgentStartOptions,
   HarnessAgentStreamPart,
   HarnessAgentToolSpec,
+  HarnessSandboxTemplate,
 } from '../src/agent/harness-agent-types';
 export { HarnessAgentSession } from '../src/agent/harness-agent-session';
 export { collectHarnessAgentToolApprovalContinuations } from '../src/agent/harness-agent-tool-approval-continuation';

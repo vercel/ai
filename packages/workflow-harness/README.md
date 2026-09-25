@@ -17,7 +17,7 @@ those directives in your app).
 Keep the Workflow DevKit entrypoints separate from the agent definition. The
 workflow module should import only workflow-safe code plus step modules. The
 step module should dynamically import the agent inside the `'use step'` body so
-the agent, sandbox provider, and other Node-heavy dependencies stay out of the
+the agent, sandbox adapter, and other Node-heavy dependencies stay out of the
 compiled workflow bundle.
 
 `agent.ts`:
@@ -25,12 +25,8 @@ compiled workflow bundle.
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
-export const agent = new HarnessAgent({
-  harness: claudeCode,
-  sandbox: createVercelSandbox({ runtime: 'node24', ports: [4000] }),
-});
+export const agent = new HarnessAgent({ harness: claudeCode });
 ```
 
 `time-slice-step.ts`:
@@ -47,7 +43,22 @@ export async function timeSliceStep(
   'use step';
 
   const { agent } = await import('./agent');
-  return runHarnessAgentTimeSlice({ agent, state });
+  const {
+    createVercelNetworkSandboxSession,
+    resumeVercelNetworkSandboxSession,
+  } = await import('@ai-sdk/sandbox-vercel');
+  const sandboxId = `harness-${state.sessionId}`;
+  const sandboxSession =
+    state.resumeFrom == null && state.continueFrom == null
+      ? await createVercelNetworkSandboxSession({
+          sandboxId,
+          runtime: 'node24',
+          ports: [4000],
+          template: await agent.getSandboxTemplate(),
+        })
+      : await resumeVercelNetworkSandboxSession({ sandboxId });
+
+  return runHarnessAgentTimeSlice({ agent, state, sandboxSession });
 }
 ```
 
@@ -84,12 +95,10 @@ and continue while the status is `ready_for_next_step`:
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { isStepCount } from 'ai';
 
 export const steppedAgent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({ runtime: 'node24', ports: [4000] }),
   stopWhen: isStepCount(1),
 });
 ```
@@ -108,7 +117,22 @@ export async function agentStep(
   'use step';
 
   const { steppedAgent } = await import('./stepped-agent');
-  return runHarnessAgentStep({ agent: steppedAgent, state });
+  const {
+    createVercelNetworkSandboxSession,
+    resumeVercelNetworkSandboxSession,
+  } = await import('@ai-sdk/sandbox-vercel');
+  const sandboxId = `harness-${state.sessionId}`;
+  const sandboxSession =
+    state.resumeFrom == null && state.continueFrom == null
+      ? await createVercelNetworkSandboxSession({
+          sandboxId,
+          runtime: 'node24',
+          ports: [4000],
+          template: await steppedAgent.getSandboxTemplate(),
+        })
+      : await resumeVercelNetworkSandboxSession({ sandboxId });
+
+  return runHarnessAgentStep({ agent: steppedAgent, state, sandboxSession });
 }
 ```
 

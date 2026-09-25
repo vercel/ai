@@ -13,14 +13,13 @@ npm i @ai-sdk/harness-cline @ai-sdk/harness @ai-sdk/sandbox-vercel
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCline } from '@ai-sdk/harness-cline';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
 const agent = new HarnessAgent({
   harness: createCline({ reasoningEffort: 'medium' }),
   id: 'demo',
-  sandbox: createVercelSandbox({ runtime: 'node24' }),
   skills: [
     {
       name: 'careful-refactors',
@@ -37,7 +36,10 @@ const agent = new HarnessAgent({
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -46,10 +48,12 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider`. Cline has no in-sandbox bridge, so the sandbox does not need to expose any ports. Its built-in tools operate on the session sandbox remotely from the host process.
+The adapter has no in-sandbox bridge, so the supplied session does not need
+exposed ports. Its built-in tools operate on the sandbox from the host process.
 
 ## Authentication
 

@@ -1,4 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { resumeVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import {
   createACPHandoffSandbox,
   getACPHandoffArguments,
@@ -25,56 +26,70 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: createCursorACP(),
-    sandbox: createACPHandoffSandbox(),
   });
 
   if (phase === 'start') {
-    const session = await agent.createSession();
-    const result = await agent.generate({
-      session,
-      prompt:
-        'Remember that the cross-process codename is COLD-ORBIT. Reply with exactly remembered.',
+    const sandboxName = `harness-${crypto.randomUUID()}`;
+    const sandboxSession = await createACPHandoffSandbox({
+      sandboxId: sandboxName,
     });
-    if (!result.text.toLowerCase().includes('remembered')) {
-      throw new Error(`Unexpected first ACP response: ${result.text}`);
-    }
-    const state = await session.stop();
-    const serializedState = JSON.stringify(state);
-    for (const secret of [process.env.CURSOR_API_KEY]) {
-      if (
-        secret != null &&
-        secret.length > 0 &&
-        serializedState.includes(secret)
-      ) {
-        throw new Error(
-          'ACP cold-resume state contains a resolved credential.',
-        );
+    try {
+      const session = await agent.createSession({ sandboxSession });
+      const result = await agent.generate({
+        session,
+        prompt:
+          'Remember that the cross-process codename is COLD-ORBIT. Reply with exactly remembered.',
+      });
+      if (!result.text.toLowerCase().includes('remembered')) {
+        throw new Error(`Unexpected first ACP response: ${result.text}`);
       }
+      const state = await session.stop();
+      const serializedState = JSON.stringify(state);
+      for (const secret of [process.env.CURSOR_API_KEY]) {
+        if (
+          secret != null &&
+          secret.length > 0 &&
+          serializedState.includes(secret)
+        ) {
+          throw new Error(
+            'ACP cold-resume state contains a resolved credential.',
+          );
+        }
+      }
+      if (
+        serializedState.includes('COLD-ORBIT') ||
+        serializedState.includes('Remember that the cross-process codename')
+      ) {
+        throw new Error('ACP cold-resume state contains the previous prompt.');
+      }
+      await writeACPHandoffState({
+        statePath,
+        sessionId: session.sessionId,
+        state,
+        sandboxName,
+      });
+      console.log(`Saved stopped ACP session state to ${statePath}.`);
+      console.log(
+        'Run the resume phase with the current Cursor API key; credentials were not persisted.',
+      );
+    } catch (error) {
+      await sandboxSession.destroy();
+      throw error;
     }
-    if (
-      serializedState.includes('COLD-ORBIT') ||
-      serializedState.includes('Remember that the cross-process codename')
-    ) {
-      throw new Error('ACP cold-resume state contains the previous prompt.');
-    }
-    await writeACPHandoffState({
-      statePath,
-      sessionId: session.sessionId,
-      state,
-    });
-    console.log(`Saved stopped ACP session state to ${statePath}.`);
-    console.log(
-      'Run the resume phase with the current Cursor API key; credentials were not persisted.',
-    );
     process.exit(0);
   }
 
   const saved = await readACPResumeHandoffState({ statePath });
-  const session = await agent.createSession({
-    sessionId: saved.sessionId,
-    resumeFrom: saved.state,
+  const sandboxSession = await resumeVercelNetworkSandboxSession({
+    sandboxId: saved.sandboxName,
   });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({
+      sandboxSession,
+      sessionId: saved.sessionId,
+      resumeFrom: saved.state,
+    });
     const result = await agent.generate({
       session,
       prompt:
@@ -87,7 +102,8 @@ run(async () => {
       );
     }
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
   await removeACPHandoffState({ statePath });
   console.log(
