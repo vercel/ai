@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21044,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21044-duplicate-content-type.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21044-duplicate-content-type.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #21044: 12 configured Content-Type headers reached the HTTP server with duplicate values instead of one configured value."
+  }
+}
