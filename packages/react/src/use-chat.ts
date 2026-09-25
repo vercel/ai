@@ -234,10 +234,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   useEffect(() => {
     if (resume) {
       if (!resumedChats.has(chat)) {
-        resumedChats.set(
-          chat,
-          chat.resumeStream(),
-        );
+        resumedChats.set(chat, chat.resumeStream());
       }
     }
   }, [resume, chat]);
