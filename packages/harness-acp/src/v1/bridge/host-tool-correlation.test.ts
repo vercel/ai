@@ -243,6 +243,7 @@ describe('createHostToolCorrelation', () => {
     const toolCall = {
       toolCallId: 'server-qualified-direct-name',
       name: 'get_weather',
+      title: 'Opaque display',
       status: 'pending',
       rawInput: { city: 'Lima' },
       _meta: { serverName: 'ai-sdk-harness-tools' },
