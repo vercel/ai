@@ -106,6 +106,7 @@ export {
   type LazySchema,
   type Schema,
   type ValidationResult,
+  type ZodSchemaOptions,
 } from './schema';
 export { serializeModelOptions } from './serialize-model-options';
 export { SerializationError } from './serialization-error';

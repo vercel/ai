@@ -139,8 +139,61 @@ function isSchema(value: unknown): value is Schema {
   );
 }
 
+type Zod4ToJSONSchemaParams = Exclude<
+  Parameters<typeof toJSONSchema>[1],
+  undefined
+>;
+
+/**
+ * Options for converting Zod schemas to JSON Schema.
+ *
+ * `useReferences` is the SDK control for `$ref` reuse. Remaining fields are
+ * passed to Zod 4 `toJSONSchema`. `target`, `io`, and `reused` stay under SDK
+ * control (`draft-7`, `input`, and `useReferences`).
+ */
+export type ZodSchemaOptions = {
+  /**
+   * Enables support for references in the schema.
+   * This is required for recursive schemas, e.g. with `z.lazy`.
+   * However, not all language models and providers support such references.
+   *
+   * @default false
+   */
+  useReferences?: boolean;
+} & Omit<Zod4ToJSONSchemaParams, 'target' | 'io' | 'reused'>;
+
+function resolveZod4JSONSchemaParams(
+  options: ZodSchemaOptions | undefined,
+): Zod4ToJSONSchemaParams {
+  const resolved = options;
+  const params: Zod4ToJSONSchemaParams = {
+    target: 'draft-7',
+    io: 'input',
+    reused: resolved?.useReferences ? 'ref' : 'inline',
+  };
+
+  if (resolved?.override != null) {
+    params.override = resolved.override;
+  }
+
+  if (resolved?.unrepresentable != null) {
+    params.unrepresentable = resolved.unrepresentable;
+  }
+
+  if (resolved?.metadata != null) {
+    params.metadata = resolved.metadata;
+  }
+
+  if (resolved?.cycles != null) {
+    params.cycles = resolved.cycles;
+  }
+
+  return params;
+}
+
 export function asSchema<OBJECT>(
   schema: FlexibleSchema<OBJECT> | undefined,
+  options?: ZodSchemaOptions,
 ): Schema<OBJECT> {
   return schema == null
     ? jsonSchema({
@@ -152,7 +205,7 @@ export function asSchema<OBJECT>(
       ? schema
       : '~standard' in schema
         ? schema['~standard'].vendor === 'zod'
-          ? zodSchema(schema as ZodSchema<OBJECT>)
+          ? zodSchema(schema as ZodSchema<OBJECT>, options)
           : standardSchema(schema as StandardSchema<OBJECT>)
         : schema();
 }
@@ -199,25 +252,18 @@ function hasStandardJsonSchema<OBJECT>(
 
 export function zod3Schema<OBJECT>(
   zodSchema: z3.Schema<OBJECT, z3.ZodTypeDef, any>,
-  options?: {
-    /**
-     * Enables support for references in the schema.
-     * This is required for recursive schemas, e.g. with `z.lazy`.
-     * However, not all language models and providers support such references.
-     * Defaults to `false`.
-     */
-    useReferences?: boolean;
-  },
+  options?: ZodSchemaOptions,
 ): Schema<OBJECT> {
-  // default to no references (to support openapi conversion for google)
-  const useReferences = options?.useReferences ?? false;
-
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
-    () =>
-      zod3ToJsonSchema(zodSchema, {
+    () => {
+      // default to no references (to support openapi conversion for google)
+      const useReferences = options?.useReferences ?? false;
+
+      return zod3ToJsonSchema(zodSchema, {
         $refStrategy: useReferences ? 'root' : 'none',
-      }) as JSONSchema7,
+      }) as JSONSchema7;
+    },
     {
       validate: async value => {
         const result = await zodSchema.safeParseAsync(value);
@@ -231,28 +277,16 @@ export function zod3Schema<OBJECT>(
 
 export function zod4Schema<OBJECT>(
   zodSchema: $ZodType<OBJECT, any>,
-  options?: {
-    /**
-     * Enables support for references in the schema.
-     * This is required for recursive schemas, e.g. with `z.lazy`.
-     * However, not all language models and providers support such references.
-     * Defaults to `false`.
-     */
-    useReferences?: boolean;
-  },
+  options?: ZodSchemaOptions,
 ): Schema<OBJECT> {
-  // default to no references (to support openapi conversion for google)
-  const useReferences = options?.useReferences ?? false;
-
   return jsonSchema(
     // defer json schema creation to avoid unnecessary computation when only validation is needed
     () =>
       addAdditionalPropertiesToJsonSchema(
-        toJSONSchema(zodSchema, {
-          target: 'draft-7',
-          io: 'input',
-          reused: useReferences ? 'ref' : 'inline',
-        }) as JSONSchema7,
+        toJSONSchema(
+          zodSchema,
+          resolveZod4JSONSchemaParams(options),
+        ) as JSONSchema7,
       ),
     {
       validate: async value => {
@@ -274,15 +308,7 @@ export function isZod4Schema(
 
 export function zodSchema<OBJECT>(
   zodSchema: $ZodType<OBJECT, any> | z3.Schema<OBJECT, z3.ZodTypeDef, any>,
-  options?: {
-    /**
-     * Enables support for references in the schema.
-     * This is required for recursive schemas, e.g. with `z.lazy`.
-     * However, not all language models and providers support such references.
-     * Defaults to `false`.
-     */
-    useReferences?: boolean;
-  },
+  options?: ZodSchemaOptions,
 ): Schema<OBJECT> {
   if (isZod4Schema(zodSchema)) {
     return zod4Schema(zodSchema, options);
