@@ -92,6 +92,11 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const novaMicroModelId = 'us.amazon.nova-micro-v1:0';
+const novaMicroGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaMicroModelId,
+)}/converse`;
+
 const openaiModelId = 'openai.gpt-oss-120b-1:0';
 const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
@@ -160,6 +165,7 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [novaMicroGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [usOpenaiGenerateUrl]: {},
   [globalOpenaiGenerateUrl]: {},
@@ -244,6 +250,13 @@ const model = new AmazonBedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaMicroModel = new AmazonBedrockChatLanguageModel(novaMicroModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -8332,19 +8345,92 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+    it('should ignore portable reasoning for Nova 2 without explicit reasoningConfig', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
-      await novaModel.doGenerate({
+      const result = await novaModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'high',
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('high');
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
+
+    it('should map reasoning to reasoningConfig when explicitly enabled for Nova 2', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should ignore portable reasoning for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. Use providerOptions.amazonBedrock.reasoningConfig to configure model-specific reasoning.',
+      });
+    });
+
+    it('should forward explicit reasoningConfig for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
     });
 
     it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {
