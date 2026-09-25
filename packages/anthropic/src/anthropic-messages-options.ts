@@ -353,6 +353,25 @@ export const anthropicLanguageModelOptions = z.object({
    */
   anthropicBeta: z.array(z.string()).optional(),
 
+  /**
+   * Server-side safeguards to run as part of the request.
+   *
+   * `dangerous_tool_use` asks the API to classify every `tool_use` block in
+   * the response for dangerous actions (the check Claude Code's auto mode
+   * relies on). The per-call verdicts are returned in
+   * `providerMetadata.anthropic.safeguardResults`, keyed by tool call id.
+   * `classifierContext` is passed through to the API as `classifier_context`.
+   * The `dangerous-tool-use-2026-09-03` beta is added automatically.
+   */
+  safeguards: z
+    .array(
+      z.object({
+        type: z.literal('dangerous_tool_use'),
+        classifierContext: z.record(z.string(), z.unknown()).optional(),
+      }),
+    )
+    .optional(),
+
   contextManagement: z
     .object({
       edits: z.array(
