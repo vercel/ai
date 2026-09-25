@@ -316,14 +316,16 @@ export function createEmitStreamEvent({
           const dynamic = state.externalMcpToolUseIds.delete(block.tool_use_id);
           const isError = !!block.is_error;
           const result =
-            toolUseResult !== undefined
-              ? toolUseResult
-              : resolveToolResult({
+            toolUseResult === undefined
+              ? resolveToolResult({
                   toolName,
                   dynamic,
                   isError,
                   rawContent: block.content,
-                });
+                })
+              : dynamic
+                ? resolveMcpToolUseResult(toolUseResult)
+                : toolUseResult;
           emit({
             type: 'tool-result',
             toolCallId: block.tool_use_id,
@@ -599,11 +601,41 @@ function resolveToolResult({
   if (toolName === 'bash') {
     return { exitCode: isError ? 1 : 0, stdout: stringifyContent(rawContent) };
   }
-  // Must precede the MCP branch: flattening a non-text block to base64 text
-  // is not recoverable by parsing it back.
-  if (hasNonTextContent(rawContent)) return rawContent;
-  const content = stringifyContent(rawContent);
-  return dynamic ? parseMcpToolResult(content) : content;
+  if (dynamic) return resolveMcpContent(rawContent);
+  return hasNonTextContent(rawContent)
+    ? rawContent
+    : stringifyContent(rawContent);
+}
+
+/*
+ * Claude Code reports an MCP call's `tool_use_result` as the processed
+ * CallToolResult content (a block array or string), wrapped as
+ * `{ content, structuredContent?, _meta?, resourceLinks? }` when the result
+ * carries any of those.
+ */
+function resolveMcpToolUseResult(toolUseResult: unknown): unknown {
+  if (
+    toolUseResult === null ||
+    typeof toolUseResult !== 'object' ||
+    Array.isArray(toolUseResult)
+  ) {
+    return resolveMcpContent(toolUseResult);
+  }
+  if (!('content' in toolUseResult)) return toolUseResult;
+  if (
+    'structuredContent' in toolUseResult &&
+    toolUseResult.structuredContent !== undefined
+  ) {
+    return toolUseResult.structuredContent;
+  }
+  return resolveMcpContent(toolUseResult.content);
+}
+
+function resolveMcpContent(content: unknown): unknown {
+  // Flattening a non-text block to base64 text is not recoverable by parsing
+  // it back.
+  if (hasNonTextContent(content)) return content;
+  return parseMcpToolResult(stringifyContent(content));
 }
 
 function parseMcpToolResult(content: string): unknown {

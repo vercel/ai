@@ -1142,6 +1142,179 @@ describe('createEmitStreamEvent', () => {
     ).toEqual([imageContent, imageContent]);
   });
 
+  describe('single tool result from an external MCP tool', () => {
+    function emitToolResults(
+      calls: ReadonlyArray<{
+        id: string;
+        name: string;
+        content: unknown;
+      }>,
+      toolUseResult?: unknown,
+    ) {
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state: createClaudeStreamEventState(),
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => name,
+      });
+
+      emitStreamEvent({
+        type: 'assistant',
+        message: {
+          content: calls.map(({ id, name }) => ({
+            type: 'tool_use',
+            id,
+            name,
+            input: {},
+          })),
+        },
+      });
+      emitStreamEvent({
+        type: 'user',
+        message: {
+          content: calls.map(({ id, content }) => ({
+            type: 'tool_result',
+            tool_use_id: id,
+            content,
+          })),
+        },
+        tool_use_result: toolUseResult,
+      });
+
+      return emitted
+        .filter(event => event.type === 'tool-result')
+        .map(event => event.result);
+    }
+
+    const structuredContent = { library: 'next.js', version: 16 };
+    const textContent = [
+      { type: 'text', text: '{"library":"next.js","version":16}' },
+    ];
+
+    it('uses structuredContent from the envelope', () => {
+      expect(
+        emitToolResults(
+          [
+            {
+              id: 'mcp-tool',
+              name: 'mcp__context7__query-docs',
+              content: textContent,
+            },
+          ],
+          {
+            content: '{"library":"next.js","version":16}',
+            structuredContent,
+          },
+        ),
+      ).toEqual([structuredContent]);
+    });
+
+    it.each([
+      {
+        name: 'JSON text in a bare content array',
+        toolUseResult: textContent,
+        expected: structuredContent,
+      },
+      {
+        name: 'JSON text in an envelope without structuredContent',
+        toolUseResult: {
+          content: textContent,
+          _meta: { 'example.com/trace': 'abc' },
+        },
+        expected: structuredContent,
+      },
+      {
+        name: 'scalar text as the string sent',
+        toolUseResult: [{ type: 'text', text: '42' }],
+        expected: '42',
+      },
+    ])('resolves $name', ({ toolUseResult, expected }) => {
+      expect(
+        emitToolResults(
+          [
+            {
+              id: 'mcp-tool',
+              name: 'mcp__context7__query-docs',
+              content: textContent,
+            },
+          ],
+          toolUseResult,
+        ),
+      ).toEqual([expected]);
+    });
+
+    it('keeps non-text content blocks intact', () => {
+      const imageContent = [
+        { type: 'text', text: 'chart for 2026' },
+        mcpImageBlock,
+      ];
+
+      expect(
+        emitToolResults(
+          [
+            {
+              id: 'mcp-image',
+              name: 'mcp__charts__render',
+              content: imageContent,
+            },
+          ],
+          { content: imageContent, _meta: { 'example.com/trace': 'abc' } },
+        ),
+      ).toEqual([imageContent]);
+    });
+
+    it('passes a result that is not an MCP envelope through unchanged', () => {
+      const toolUseResult = { rows: [{ id: 1 }] };
+
+      expect(
+        emitToolResults(
+          [
+            {
+              id: 'mcp-tool',
+              name: 'mcp__db__query',
+              content: textContent,
+            },
+          ],
+          toolUseResult,
+        ),
+      ).toEqual([toolUseResult]);
+    });
+
+    it('matches the result of the same call batched with another', () => {
+      const call = {
+        id: 'mcp-tool',
+        name: 'mcp__context7__query-docs',
+        content: textContent,
+      };
+
+      const [single] = emitToolResults([call], textContent);
+      const [batched] = emitToolResults(
+        [call, { id: 'native-tool', name: 'Read', content: 'file contents' }],
+        textContent,
+      );
+
+      expect(single).toEqual(structuredContent);
+      expect(batched).toEqual(single);
+    });
+
+    it('leaves a native tool result untouched even when it looks like an envelope', () => {
+      const toolUseResult = {
+        content: '{"library":"next.js"}',
+        structuredContent,
+      };
+
+      expect(
+        emitToolResults(
+          [{ id: 'native-tool', name: 'Read', content: 'file contents' }],
+          toolUseResult,
+        ),
+      ).toEqual([toolUseResult]);
+    });
+  });
+
   it('resolves content when a structured output cannot be paired with parallel MCP results', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
