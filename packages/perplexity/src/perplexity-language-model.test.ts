@@ -602,6 +602,75 @@ describe('doGenerate', () => {
 });
 
 describe('doStream', () => {
+  it.each(['response.completed', 'response.incomplete'])(
+    'preserves citation annotations from output items and %s',
+    async terminalType => {
+      const message = {
+        id: 'msg-123',
+        type: 'message',
+        content: [
+          {
+            type: 'output_text',
+            text: 'A cited answer.',
+            annotations: [
+              {
+                type: 'url_citation',
+                url: 'https://example.com/first',
+                title: 'First',
+              },
+              { type: 'file_citation', file_id: 'file-123' },
+            ],
+          },
+        ],
+      };
+      prepareStream([
+        { type: 'response.output_item.done', item: message, output_index: 0 },
+        {
+          type: terminalType,
+          response: createResponse({
+            status:
+              terminalType === 'response.incomplete'
+                ? 'incomplete'
+                : 'completed',
+            output: [
+              message,
+              {
+                type: 'message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Another citation.',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        url: 'https://example.com/second',
+                        title: 'Second',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
+        },
+      ]);
+
+      const result = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertReadableStreamToArray(result.stream);
+
+      expect(chunks.filter(chunk => chunk.type === 'source')).toEqual([
+        expect.objectContaining({
+          url: 'https://example.com/first',
+          title: 'First',
+        }),
+        expect.objectContaining({
+          url: 'https://example.com/second',
+          title: 'Second',
+        }),
+      ]);
+    },
+  );
+
   it('preserves native tool traces in raw chunks without rejecting the response', async () => {
     const events = [
       {

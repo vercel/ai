@@ -563,6 +563,21 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             };
 
             const emitOutputSources = (item: PerplexityOutputItem) => {
+              if (item.type === 'message') {
+                for (const part of item.content ?? []) {
+                  for (const annotation of part.annotations ?? []) {
+                    if (annotation.url != null) {
+                      emitSource({
+                        type: 'source',
+                        sourceType: 'url',
+                        id: generateId(),
+                        url: annotation.url,
+                        title: annotation.title,
+                      });
+                    }
+                  }
+                }
+              }
               for (const result of getSearchResults(item)) {
                 emitSource(createSource(result, generateId));
               }
