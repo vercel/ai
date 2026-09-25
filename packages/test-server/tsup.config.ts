@@ -6,7 +6,6 @@ export default defineConfig([
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    target: 'es2018',
     platform: 'node',
   },
   {
@@ -14,7 +13,6 @@ export default defineConfig([
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    target: 'es2020',
     platform: 'node',
     external: [
       'chai',
