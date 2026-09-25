@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21202,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21202.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21202.ts",
+    "packages/open-responses/src/responses/__fixtures__/openai-schema-less-json-error.1.json",
+    "packages/open-responses/src/responses/__fixtures__/openai-schema-less-json.1.chunks.txt"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21202_REPRODUCED: schema-less Output.json() was rejected before model execution: Missing required parameter: 'text.format.name'."
+  }
+}
