@@ -474,7 +474,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     let hasResponseMetadata = false;
     let activeReasoningId: string | undefined;
     const activeTextIds = new Set<string>();
-    const emittedSourcesByUrl = new Map<string, boolean>();
+    const emittedSourceUrls = new Set<string>();
+    const pendingSourcesByUrl = new Map<string, PerplexityUrlSource>();
     const seenFunctionCalls = new Set<string>();
     const generateId = this.config.generateId;
 
@@ -502,14 +503,18 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
             const value = chunk.value;
 
             const emitSource = (source: PerplexityUrlSource) => {
-              const hasResultId = hasSearchResultId(source);
-              const previousHasResultId = emittedSourcesByUrl.get(source.url);
-              if (
-                previousHasResultId == null ||
-                (hasResultId && !previousHasResultId)
-              ) {
-                emittedSourcesByUrl.set(source.url, hasResultId);
+              if (emittedSourceUrls.has(source.url)) {
+                return;
+              }
+
+              if (hasSearchResultId(source)) {
+                pendingSourcesByUrl.delete(source.url);
+                emittedSourceUrls.add(source.url);
                 controller.enqueue(source);
+              } else if (!pendingSourcesByUrl.has(source.url)) {
+                // A later search result can supply the citation ID. Delay
+                // sources without one rather than emitting a duplicate update.
+                pendingSourcesByUrl.set(source.url, source);
               }
             };
 
@@ -746,6 +751,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
           },
 
           flush(controller) {
+            for (const source of pendingSourcesByUrl.values()) {
+              controller.enqueue(source);
+            }
             if (activeReasoningId != null) {
               controller.enqueue({
                 type: 'reasoning-end',

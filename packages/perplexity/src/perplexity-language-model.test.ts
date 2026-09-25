@@ -859,7 +859,7 @@ describe('doStream', () => {
     );
   });
 
-  it('emits an enriched search source when a fetched URL was emitted first', async () => {
+  it('emits a fetched URL only once with its later search result ID', async () => {
     prepareStream([
       {
         type: 'response.reasoning.fetch_url_results',
@@ -890,8 +890,8 @@ describe('doStream', () => {
     const chunks = await convertReadableStreamToArray(result.stream);
     const sources = chunks.filter(chunk => chunk.type === 'source');
 
-    expect(sources).toHaveLength(2);
-    expect(sources[1]).toEqual(
+    expect(sources).toHaveLength(1);
+    expect(sources[0]).toEqual(
       expect.objectContaining({
         id: '7',
         providerMetadata: {
@@ -899,6 +899,48 @@ describe('doStream', () => {
         },
       }),
     );
+  });
+
+  it('deduplicates a URL across annotations, search results, and fetched contents', async () => {
+    const searchResult = {
+      id: 7,
+      title: 'Search result',
+      url: 'https://example.com/source',
+      snippet: 'Search result content.',
+    };
+    const message = {
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'Answer',
+          annotations: [{ type: 'url_citation', url: searchResult.url }],
+        },
+      ],
+    };
+    prepareStream([
+      { type: 'response.output_item.done', item: message },
+      { type: 'response.reasoning.search_results', results: [searchResult] },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        contents: [searchResult],
+      },
+      {
+        type: 'response.completed',
+        response: createResponse({
+          output: [
+            { type: 'search_results', results: [searchResult] },
+            message,
+          ],
+        }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type === 'source')).toEqual([
+      expect.objectContaining({ id: '7', url: searchResult.url }),
+    ]);
   });
 
   it('streams Agent API reasoning thoughts', async () => {
