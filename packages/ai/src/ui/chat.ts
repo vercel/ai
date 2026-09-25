@@ -638,22 +638,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     return result as boolean;
   }
 
-  private async makeRequest(
-    options: {
-      trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
-      messageId?: string;
-    } & ChatRequestOptions,
-  ) {
-    const promise = this._makeRequest(options);
-    this.activeRequestPromises.add(promise);
-    try {
-      await promise;
-    } finally {
-      this.activeRequestPromises.delete(promise);
-    }
-  }
-
-  private async _makeRequest({
+  private async makeRequest({
     trigger,
     metadata,
     headers,
@@ -746,158 +731,167 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     let isError = false;
     let activeResponse: ActiveResponse<UI_MESSAGE> | undefined;
 
-    try {
-      const response = {
-        state: createStreamingUIMessageState({
-          lastMessage:
-            trigger === 'resume-stream' || trigger === 'regenerate-message'
-              ? undefined
-              : this.state.snapshot(lastMessage),
-          messageId: this.generateId(),
-        }),
-        abortController,
-      } as ActiveResponse<UI_MESSAGE>;
+    const requestPromise = (async () => {
+      try {
+        const response = {
+          state: createStreamingUIMessageState({
+            lastMessage:
+              trigger === 'resume-stream' || trigger === 'regenerate-message'
+                ? undefined
+                : this.state.snapshot(lastMessage),
+            messageId: this.generateId(),
+          }),
+          abortController,
+        } as ActiveResponse<UI_MESSAGE>;
 
-      activeResponse = response;
+        activeResponse = response;
 
-      response.abortController.signal.addEventListener('abort', () => {
-        isAbort = true;
-      });
-
-      this.activeResponse = response;
-
-      let stream: ReadableStream<UIMessageChunk>;
-
-      if (trigger === 'resume-stream') {
-        stream = resumeStream!;
-      } else {
-        stream = await this.transport.sendMessages({
-          chatId: this.id,
-          messages: this.state.messages,
-          abortSignal: response.abortController.signal,
-          metadata,
-          headers,
-          body,
-          trigger,
-          messageId,
+        response.abortController.signal.addEventListener('abort', () => {
+          isAbort = true;
         });
-      }
 
-      const runUpdateMessageJob = (
-        job: (options: {
-          state: StreamingUIMessageState<UI_MESSAGE>;
-          write: (options?: UIMessageStreamWriteOptions) => void;
-        }) => Promise<void>,
-      ) =>
-        // serialize the job execution to avoid race conditions:
-        this.jobExecutor.run(() => {
-          if (response.abortController.signal.aborted) {
-            return Promise.resolve();
-          }
+        this.activeResponse = response;
 
-          return job({
-            state: response.state,
-            write: ({ updateStatus = true } = {}) => {
-              if (response.abortController.signal.aborted) {
-                return;
-              }
+        let stream: ReadableStream<UIMessageChunk>;
 
-              if (updateStatus) {
-                this.setStatus({ status: 'streaming' });
-              }
-
-              const replaceLastMessage =
-                response.state.message.id === this.lastMessage?.id;
-
-              if (replaceLastMessage) {
-                this.state.replaceMessage(
-                  this.state.messages.length - 1,
-                  response.state.message,
-                );
-              } else {
-                this.state.pushMessage(response.state.message);
-              }
-            },
+        if (trigger === 'resume-stream') {
+          stream = resumeStream!;
+        } else {
+          stream = await this.transport.sendMessages({
+            chatId: this.id,
+            messages: this.state.messages,
+            abortSignal: response.abortController.signal,
+            metadata,
+            headers,
+            body,
+            trigger,
+            messageId,
           });
-        });
+        }
 
-      await consumeStream({
-        stream: processUIMessageStream({
-          stream,
-          onToolCall: this.onToolCall,
-          onData: this.onData,
-          messageMetadataSchema: this.messageMetadataSchema,
-          dataPartSchemas: this.dataPartSchemas,
-          runUpdateMessageJob,
+        const runUpdateMessageJob = (
+          job: (options: {
+            state: StreamingUIMessageState<UI_MESSAGE>;
+            write: (options?: UIMessageStreamWriteOptions) => void;
+          }) => Promise<void>,
+        ) =>
+          // serialize the job execution to avoid race conditions:
+          this.jobExecutor.run(() => {
+            if (response.abortController.signal.aborted) {
+              return Promise.resolve();
+            }
+
+            return job({
+              state: response.state,
+              write: ({ updateStatus = true } = {}) => {
+                if (response.abortController.signal.aborted) {
+                  return;
+                }
+
+                if (updateStatus) {
+                  this.setStatus({ status: 'streaming' });
+                }
+
+                const replaceLastMessage =
+                  response.state.message.id === this.lastMessage?.id;
+
+                if (replaceLastMessage) {
+                  this.state.replaceMessage(
+                    this.state.messages.length - 1,
+                    response.state.message,
+                  );
+                } else {
+                  this.state.pushMessage(response.state.message);
+                }
+              },
+            });
+          });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            onToolCall: this.onToolCall,
+            onData: this.onData,
+            messageMetadataSchema: this.messageMetadataSchema,
+            dataPartSchemas: this.dataPartSchemas,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+          abortSignal: response.abortController.signal,
           onError: error => {
             throw error;
           },
-        }),
-        abortSignal: response.abortController.signal,
-        onError: error => {
-          throw error;
-        },
-      });
+        });
 
-      if (isAbort) {
+        if (isAbort) {
+          if (isCurrentRequest()) {
+            this.setStatus({ status: 'ready' });
+          }
+          return null;
+        }
+
         if (isCurrentRequest()) {
           this.setStatus({ status: 'ready' });
         }
-        return null;
-      }
-
-      if (isCurrentRequest()) {
-        this.setStatus({ status: 'ready' });
-      }
-    } catch (err) {
-      // Ignore abort errors as they are expected.
-      if (isAbort || (err as any).name === 'AbortError') {
-        isAbort = true;
-        if (isCurrentRequest()) {
-          this.setStatus({ status: 'ready' });
+      } catch (err) {
+        // Ignore abort errors as they are expected.
+        if (isAbort || (err as any).name === 'AbortError') {
+          isAbort = true;
+          if (isCurrentRequest()) {
+            this.setStatus({ status: 'ready' });
+          }
+          return null;
         }
-        return null;
-      }
 
-      if (!isCurrentRequest()) {
-        return null;
-      }
-
-      isError = true;
-
-      // Network errors such as disconnected, timeout, etc.
-      if (
-        err instanceof TypeError &&
-        (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
-      ) {
-        isDisconnect = true;
-      }
-
-      if (this.onError && err instanceof Error) {
-        this.onError(err);
-      }
-
-      this.setStatus({ status: 'error', error: err as Error });
-    } finally {
-      try {
-        if (activeResponse) {
-          this.onFinish?.({
-            message: activeResponse.state.message,
-            messages: this.state.messages,
-            isAbort,
-            isDisconnect,
-            isError,
-            finishReason: activeResponse.state.finishReason,
-          });
+        if (!isCurrentRequest()) {
+          return null;
         }
+
+        isError = true;
+
+        // Network errors such as disconnected, timeout, etc.
+        if (
+          err instanceof TypeError &&
+          (err.message.toLowerCase().includes('fetch') ||
+            err.message.toLowerCase().includes('network'))
+        ) {
+          isDisconnect = true;
+        }
+
+        if (this.onError && err instanceof Error) {
+          this.onError(err);
+        }
+
+        this.setStatus({ status: 'error', error: err as Error });
       } finally {
-        if (this.activeResponse === activeResponse) {
-          this.activeResponse = undefined;
-        }
+        try {
+          if (activeResponse) {
+            this.onFinish?.({
+              message: activeResponse.state.message,
+              messages: this.state.messages,
+              isAbort,
+              isDisconnect,
+              isError,
+              finishReason: activeResponse.state.finishReason,
+            });
+          }
+        } finally {
+          if (this.activeResponse === activeResponse) {
+            this.activeResponse = undefined;
+          }
 
-        clearActiveResumeRequest();
+          clearActiveResumeRequest();
+        }
       }
+    })();
+
+    this.activeRequestPromises.add(requestPromise);
+    try {
+      await requestPromise;
+    } finally {
+      this.activeRequestPromises.delete(requestPromise);
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
