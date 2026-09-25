@@ -822,6 +822,75 @@ describe('Chat', () => {
     });
   });
 
+  it('should continue an active text part when resuming after a disconnect', async () => {
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          const chunks: UIMessageChunk[] = [
+            { type: 'start', messageId: 'assistant-1' },
+            { type: 'start-step' },
+            { type: 'text-start', id: 'text-1' },
+            { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+          ];
+          let index = 0;
+
+          return new ReadableStream<UIMessageChunk>({
+            pull(controller) {
+              if (index < chunks.length) {
+                controller.enqueue(chunks[index++]);
+              } else {
+                controller.error(new TypeError('network connection lost'));
+              }
+            },
+          });
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: ' and loved well',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish-step' });
+              controller.enqueue({ type: 'finish', finishReason: 'stop' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.sendMessage({ text: 'Continue the response.' });
+
+    expect(chat.status).toBe('error');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello',
+        state: 'streaming',
+        providerMetadata: undefined,
+      },
+    ]);
+
+    chat.clearError();
+    await chat.resumeStream();
+
+    expect(chat.status).toBe('ready');
+    expect(chat.messages.at(-1)?.parts).toEqual([
+      { type: 'step-start' },
+      {
+        type: 'text',
+        text: 'Hello and loved well',
+        state: 'done',
+        providerMetadata: undefined,
+      },
+    ]);
+  });
+
   describe('send handle a stop and an aborted response stream', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
