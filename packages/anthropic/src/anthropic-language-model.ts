@@ -61,6 +61,7 @@ import {
   anthropicLanguageModelOptions,
   type AnthropicModelId,
   type AnthropicLanguageModelOptions,
+  type AnthropicHeaders,
 } from './anthropic-language-model-options';
 import { prepareTools } from './anthropic-prepare-tools';
 import {
@@ -71,6 +72,7 @@ import { convertToAnthropicPrompt } from './convert-to-anthropic-prompt';
 import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
+import { fromAnthropicHeaders } from './util/from-anthropic-headers';
 
 function createAnthropicStreamError(error: {
   message: string;
@@ -246,7 +248,7 @@ function getProviderOptionsName(provider: string): string {
 export type AnthropicLanguageModelConfig = {
   provider: string;
   baseURL: string;
-  headers?: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<AnthropicHeaders>;
   fetch?: FetchFunction;
   buildRequestUrl?: (baseURL: string, isStreaming: boolean) => string;
   transformRequestBody?: (
@@ -270,7 +272,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   static [WORKFLOW_SERIALIZE](model: AnthropicLanguageModel) {
     return serializeModelOptions({
       modelId: model.modelId,
-      config: model.config,
+      config: {
+        ...model.config,
+        async headers() {
+          return fromAnthropicHeaders(await resolve(model.config.headers));
+        },
+      },
     });
   }
 
@@ -1083,14 +1090,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     headers: Record<string, string | undefined> | undefined;
   }) {
     return combineHeaders(
-      this.config.headers ? await resolve(this.config.headers) : undefined,
+      this.config.headers
+        ? fromAnthropicHeaders(await resolve(this.config.headers))
+        : undefined,
       headers,
       betas.size > 0 ? { 'anthropic-beta': Array.from(betas).join(',') } : {},
     );
   }
 
   private async getBetasFromHeaders(
-    requestHeaders: Record<string, string | undefined> | undefined,
+    requestHeaders: AnthropicHeaders | undefined,
   ) {
     const configHeaders = this.config.headers
       ? await resolve(this.config.headers)
@@ -1101,8 +1110,12 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
 
     return new Set(
       [
-        ...configBetaHeader.toLowerCase().split(','),
-        ...requestBetaHeader.toLowerCase().split(','),
+        ...(typeof configBetaHeader === 'string'
+          ? configBetaHeader.toLowerCase().split(',')
+          : configBetaHeader),
+        ...(typeof requestBetaHeader === 'string'
+          ? requestBetaHeader.toLowerCase().split(',')
+          : requestBetaHeader),
       ]
         .map(beta => beta.trim())
         .filter(beta => beta !== ''),

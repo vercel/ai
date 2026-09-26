@@ -512,7 +512,8 @@ export type AnthropicBeta =
   | 'mid-conversation-system-clear-at-2026-08-21'
   | 'compact-2026-09-04'
   | 'inline-tools-2026-09-15'
-  | 'mcp-client-2026-09-15';
+  | 'mcp-client-2026-09-15'
+  | (string & {});
 
 export interface AnthropicHeaders extends Record<
   string,

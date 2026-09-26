@@ -58,6 +58,7 @@ import type {
 } from './anthropic-message-metadata';
 import { convertAnthropicUsage } from './convert-anthropic-usage';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
+import { fromAnthropicHeaders } from './util/from-anthropic-headers';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -470,7 +471,7 @@ export class AnthropicBatch implements BatchV4<{
   ) {
     return combineHeaders(
       this.options.config.headers
-        ? await resolve(this.options.config.headers)
+        ? fromAnthropicHeaders(await resolve(this.options.config.headers))
         : undefined,
       headers,
     );
