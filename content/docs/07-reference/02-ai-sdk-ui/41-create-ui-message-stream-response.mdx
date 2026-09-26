@@ -33,6 +33,9 @@ const response = createUIMessageStreamResponse({
   },
   stream: createUIMessageStream({
     execute({ writer }) {
+      // The outer stream owns the assistant message lifecycle.
+      writer.write({ type: 'start' });
+
       // Write custom data (type must be 'data-<name>')
       writer.write({
         type: 'data-message',
@@ -68,7 +71,9 @@ const response = createUIMessageStreamResponse({
         prompt: 'Say hello',
       });
 
-      writer.merge(toUIMessageStream({ stream: result.stream }));
+      writer.merge(
+        toUIMessageStream({ stream: result.stream, sendStart: false }),
+      );
     },
   }),
 });

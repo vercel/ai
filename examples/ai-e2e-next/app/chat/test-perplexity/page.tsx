@@ -12,7 +12,7 @@ export default function TestPerplexity() {
   return (
     <div className="flex flex-col w-full max-w-md py-24 mx-auto stretch">
       <h1 className="mb-4 text-xl font-bold">
-        Perplexity Block-Based Streaming Test
+        Perplexity Agent API Streaming Test
       </h1>
 
       {messages.map(m => (

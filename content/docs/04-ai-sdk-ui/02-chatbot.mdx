@@ -323,17 +323,32 @@ When the user clicks the "Regenerate" button, the AI provider will regenerate th
 
 ### Throttling UI Updates
 
-<Note>This feature is currently only available for React.</Note>
-
 By default, the `useChat` hook will trigger a render every time a new chunk is received.
-You can throttle the UI updates with the `throttle` option.
+React and Vue applications can throttle reactive message updates with the `throttle` option.
+Stream processing and event callbacks remain immediate, and the latest messages are published before the chat enters a terminal `ready` or `error` status.
 
-```tsx filename="page.tsx" highlight="2-3"
-const { messages, ... } = useChat({
-  // Throttle the messages and data updates to 50ms:
-  throttle: 50
-})
-```
+<Tabs items={['React', 'Vue']}>
+  <Tab>
+    ```tsx filename="page.tsx" highlight="2-3"
+    const { messages, ... } = useChat({
+      // Throttle reactive message updates to 50ms:
+      throttle: 50,
+    });
+    ```
+  </Tab>
+  <Tab>
+    ```vue filename="pages/index.vue" highlight="4-6"
+    <script setup lang="ts">
+    import { useChat } from '@ai-sdk/vue';
+
+    const { messages } = useChat({
+      throttle: 50,
+    });
+    </script>
+    ```
+
+  </Tab>
+</Tabs>
 
 ## Event Callbacks
 
@@ -369,7 +384,7 @@ It's worth noting that you can abort the processing by throwing an error in the 
 
 ### Custom headers, body, and credentials
 
-By default, the `useChat` hook sends a HTTP POST request to the `/api/chat` endpoint with the message list as the request body. You can customize the request in two ways:
+By default, the `useChat` hook sends an HTTP POST request to the `/api/chat` endpoint with the message list as the request body. You can customize the request in two ways:
 
 #### Hook-Level Configuration (Applied to all requests)
 
@@ -528,7 +543,7 @@ return createUIMessageStreamResponse({
       if (part.type === 'start') {
         return {
           createdAt: Date.now(),
-          model: 'gpt-5.1',
+          model: 'gpt-6-astra',
         };
       }
 
@@ -932,7 +947,7 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 ## Reasoning
 
 Some models such as DeepSeek `deepseek-r1`
-and Anthropic `claude-sonnet-4-5-20250929` support reasoning tokens.
+and Anthropic `claude-sonnet-5` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -994,10 +1009,12 @@ These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
 [Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
-Currently sources are limited to web pages that ground the response.
-You can forward them to the client with the `sendSources` option:
+You can forward sources to the client with the `sendSources` option. This example uses the Perplexity Agent API's `fast` preset to search the web. Install `@ai-sdk/perplexity` and set `PERPLEXITY_API_KEY` in your environment:
 
-```ts filename="app/api/chat/route.ts" highlight="20"
+<InstallPackages packages="@ai-sdk/perplexity" />
+
+```ts filename="app/api/chat/route.ts" highlight="21"
+import { perplexity } from '@ai-sdk/perplexity';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -1010,7 +1027,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'perplexity/sonar-pro',
+    model: perplexity('fast'),
     messages: await convertToModelMessages(messages),
   });
 
@@ -1036,7 +1053,7 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-url')
       .map(part => (
-        <span key={`source-${part.id}`}>
+        <span key={`source-${part.sourceId}`}>
           [
           <a href={part.url} target="_blank">
             {part.title ?? new URL(part.url).hostname}
@@ -1049,8 +1066,8 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-document')
       .map(part => (
-        <span key={`source-${part.id}`}>
-          [<span>{part.title ?? `Document ${part.id}`}</span>]
+        <span key={`source-${part.sourceId}`}>
+          [<span>{part.title ?? `Document ${part.sourceId}`}</span>]
         </span>
       ))}
   </div>
@@ -1059,7 +1076,7 @@ messages.map(message => (
 
 ## Image Generation
 
-Some models such as Google `gemini-2.5-flash-image` support image generation.
+Some models such as Google `gemini-3.1-flash-image-preview` support image generation.
 When images are generated, they are exposed as files to the client.
 On the client side, you can access file parts of the message object
 and render them as images.

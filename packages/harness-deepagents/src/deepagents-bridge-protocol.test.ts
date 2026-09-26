@@ -62,7 +62,7 @@ describe('deepagents bridge protocol', () => {
   it('accepts the shared inbound commands', () => {
     for (const msg of [
       { type: 'tool-result', toolCallId: 't1', output: { ok: true } },
-      { type: 'user-message', text: 'more' },
+      { type: 'user-message', messageId: 'message-1', text: 'more' },
       { type: 'abort' },
       { type: 'destroy' },
       { type: 'resume', lastSeenEventId: 3 },

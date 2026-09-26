@@ -27,9 +27,13 @@ describe('createGrokBuild', () => {
       ...settings.source,
       packageJson: JSON.parse(settings.source.packageJson),
       pnpmLockYaml: '<pnpm-lock.yaml>',
+      pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@0.2.111'",
+      "'@xai-official/grok@1.0.36'",
+    );
+    expect(settings.source.pnpmWorkspaceYaml).toBe(
+      "allowBuilds:\n  '@xai-official/grok@1.0.36': true\n",
     );
 
     expect({
@@ -39,6 +43,7 @@ describe('createGrokBuild', () => {
       source,
       executable: settings.executable,
       args: settings.args,
+      authentication: settings.authentication,
       credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
       outputSchemaMapping: settings.outputSchemaMapping,
@@ -50,7 +55,11 @@ describe('createGrokBuild', () => {
           "agent",
           "stdio",
         ],
+        "authentication": {
+          "methodId": "xai.api_key",
+        },
         "builtinToolNames": [
+          "askUserQuestions",
           "bash",
           "edit",
           "grep",
@@ -71,7 +80,6 @@ describe('createGrokBuild', () => {
           "workflow",
           "enter_plan_mode",
           "exit_plan_mode",
-          "ask_user_question",
           "image_gen",
           "image_edit",
           "image_to_video",
@@ -87,10 +95,8 @@ describe('createGrokBuild', () => {
         "executable": "grok",
         "harnessId": "grok-build",
         "instructionMapping": {
-          "path": [
-            "rules",
-          ],
-          "type": "session-meta",
+          "path": ".grok/AGENTS.md",
+          "type": "filesystem",
         },
         "outputSchemaMapping": {
           "path": [
@@ -124,9 +130,9 @@ describe('createGrokBuild', () => {
         "source": {
           "packageJson": {
             "dependencies": {
-              "@agentclientprotocol/sdk": "1.2.1",
-              "@modelcontextprotocol/sdk": "1.29.0",
-              "@xai-official/grok": "0.2.111",
+              "@agentclientprotocol/sdk": "1.4.0",
+              "@modelcontextprotocol/sdk": "1.30.0",
+              "@xai-official/grok": "1.0.36",
               "ws": "8.21.0",
               "zod": "4.4.3",
             },
@@ -136,6 +142,7 @@ describe('createGrokBuild', () => {
             "version": "0.0.0",
           },
           "pnpmLockYaml": "<pnpm-lock.yaml>",
+          "pnpmWorkspaceYaml": "<pnpm-workspace.yaml>",
           "type": "npm-locked",
         },
         "version": "v1",
@@ -148,15 +155,61 @@ describe('createGrokBuild', () => {
           XAI_API_KEY: 'xai-secret',
           GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
         },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-xai-secret',
+          GROK_XAI_API_BASE_URL: 'https://api.x.ai/v1',
+        },
+        headers: { 'x-tenant': 'acme' },
       }),
     ).toEqual([
       {
         match: {
           host: 'api.x.ai',
           path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-xai-secret' },
+            },
+          ],
         },
         transform: {
-          headers: { Authorization: 'Bearer xai-secret' },
+          headers: {
+            'x-tenant': 'acme',
+            Authorization: 'Bearer xai-secret',
+          },
+        },
+      },
+    ]);
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          XAI_API_KEY: 'header.payload.host-signature',
+          GROK_XAI_API_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+          GROK_CLI_CHAT_PROXY_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+        },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-placeholder',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'cli-chat-proxy.grok.com',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-placeholder' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer header.payload.host-signature',
+            'X-XAI-Token-Auth': 'xai-grok-cli',
+          },
         },
       },
     ]);
@@ -164,11 +217,25 @@ describe('createGrokBuild', () => {
 
   it('forwards user-configurable settings', () => {
     const mintBridgeToken = (sandboxId: string) => `token-for-${sandboxId}`;
+    const credentialForwarding = async ({
+      credential,
+    }: {
+      credential: string;
+    }) => `ephemeral-${credential}`;
+    const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     createGrokBuild({
       auth: 'direct',
-      model: 'grok-code-fast-1',
+      credentialForwarding,
+      reasoningEffort: 'high',
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -177,18 +244,58 @@ describe('createGrokBuild', () => {
 
     expect({
       auth: settings.auth,
-      modelId: settings.modelId,
+      credentialForwarding: settings.credentialForwarding,
+      modelMapping: settings.modelMapping,
+      args: settings.args,
       port: settings.port,
+      portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       auth: 'direct',
-      modelId: 'grok-code-fast-1',
+      credentialForwarding,
+      modelMapping: {
+        type: 'session-model',
+        path: 'modelId',
+      },
+      args: ['agent', '--reasoning-effort', 'high', 'stdio'],
       port: 4319,
+      portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
+    });
+  });
+
+  it('configures reasoning effort without a model override', () => {
+    createGrokBuild({ reasoningEffort: 'high' });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.args).toEqual([
+      'agent',
+      '--reasoning-effort',
+      'high',
+      'stdio',
+    ]);
+    expect(settings.modelMapping).toEqual({
+      type: 'session-model',
+      path: 'modelId',
+    });
+  });
+
+  it('delegates default model selection without a reasoning effort override', () => {
+    createGrokBuild();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+
+    expect(settings.args).toEqual(['agent', 'stdio']);
+    expect(settings.modelMapping).toEqual({
+      type: 'session-model',
+      path: 'modelId',
     });
   });
 

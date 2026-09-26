@@ -101,10 +101,19 @@ export function getOpenCodeEventSessionId(
   if (event.type?.startsWith('session.') && typeof props.id === 'string') {
     return props.id;
   }
+  const info = asOpenCodeObject(props.info);
+  if (typeof info?.sessionID === 'string') return info.sessionID;
+  if (
+    (event.type === 'session.created' ||
+      event.type === 'session.updated' ||
+      event.type === 'session.deleted') &&
+    typeof info?.id === 'string'
+  ) {
+    return info.id;
+  }
   const part = props.part;
   const partObject = asOpenCodeObject(part);
   if (typeof partObject?.sessionID === 'string') return partObject.sessionID;
-  return undefined;
 }
 
 export function isStepSettlementEvent(event: OpenCodeEvent): boolean {

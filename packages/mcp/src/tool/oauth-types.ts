@@ -39,6 +39,7 @@ export const OAuthTokensSchema = z
     expires_in: z.number().optional(),
     scope: z.string().optional(),
     refresh_token: z.string().optional(),
+    issuer: SafeUrlSchema.optional(),
     authorization_server: SafeUrlSchema.optional(),
     token_endpoint: SafeUrlSchema.optional(),
   })
@@ -66,6 +67,8 @@ export const OAuthMetadataSchema = z.looseObject({
   authorization_endpoint: SafeUrlSchema,
   token_endpoint: SafeUrlSchema,
   registration_endpoint: SafeUrlSchema.optional(),
+  authorization_response_iss_parameter_supported: z.boolean().optional(),
+  client_id_metadata_document_supported: z.boolean().optional(),
   scopes_supported: z.array(z.string()).optional(),
   response_types_supported: z.array(z.string()),
   grant_types_supported: z.array(z.string()).optional(),
@@ -87,6 +90,8 @@ export const OpenIdProviderMetadataSchema = z.looseObject({
   userinfo_endpoint: SafeUrlSchema.optional(),
   jwks_uri: SafeUrlSchema,
   registration_endpoint: SafeUrlSchema.optional(),
+  authorization_response_iss_parameter_supported: z.boolean().optional(),
+  client_id_metadata_document_supported: z.boolean().optional(),
   scopes_supported: z.array(z.string()).optional(),
   response_types_supported: z.array(z.string()),
   grant_types_supported: z.array(z.string()).optional(),
@@ -114,6 +119,7 @@ export const OAuthClientInformationSchema = z
     client_secret: z.string().optional(),
     client_id_issued_at: z.number().optional(),
     client_secret_expires_at: z.number().optional(),
+    issuer: SafeUrlSchema.optional(),
     authorization_server: SafeUrlSchema.optional(),
     token_endpoint: SafeUrlSchema.optional(),
   })
@@ -122,6 +128,9 @@ export const OAuthClientInformationSchema = z
 export const OAuthClientMetadataSchema = z
   .object({
     redirect_uris: z.array(SafeUrlSchema),
+    application_type: z
+      .union([z.literal('native'), z.literal('web')])
+      .optional(),
     token_endpoint_auth_method: z.string().optional(),
     grant_types: z.array(z.string()).optional(),
     response_types: z.array(z.string()).optional(),

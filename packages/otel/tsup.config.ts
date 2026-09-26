@@ -6,6 +6,5 @@ export default defineConfig([
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    target: 'es2018',
   },
 ]);

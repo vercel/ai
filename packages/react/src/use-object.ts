@@ -117,6 +117,10 @@ export type UseObjectHelpers<RESULT, INPUT> = {
   clear: () => void;
 };
 
+type ObjectState<RESULT> = {
+  object: DeepPartial<RESULT> | undefined;
+};
+
 export function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
@@ -137,10 +141,10 @@ export function useObject<
   const completionId = id ?? hookId;
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate } = useSWR<DeepPartial<RESULT>>(
+  const { data, mutate } = useSWR<ObjectState<RESULT>>(
     [completionId, 'object'],
     null,
-    { fallbackData: initialValue },
+    { fallbackData: { object: initialValue } },
   );
 
   const [error, setError] = useState<undefined | Error>(undefined);
@@ -160,12 +164,13 @@ export function useObject<
   }, []);
 
   const submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       clearObject();
 
       setIsLoading(true);
 
-      const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       // Resolve headers at request time (supports async functions for dynamic auth tokens)
@@ -185,7 +190,7 @@ export function useObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 
@@ -207,13 +212,14 @@ export function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              mutate(currentObject);
+              mutate({ object: currentObject });
             }
           },
 
           async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            if (abortControllerRef.current === abortController) {
+              setIsLoading(false);
+            }
 
             if (onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -221,11 +227,15 @@ export function useObject<
                 schema: asSchema(schema),
               });
 
-              onFinish(
+              await onFinish(
                 validationResult.success
                   ? { object: validationResult.value, error: undefined }
                   : { object: undefined, error: validationResult.error },
               );
+            }
+
+            if (abortControllerRef.current === abortController) {
+              abortControllerRef.current = null;
             }
           },
         }),
@@ -239,8 +249,11 @@ export function useObject<
         onError(error);
       }
 
-      setIsLoading(false);
-      setError(error instanceof Error ? error : new Error(String(error)));
+      if (abortControllerRef.current === abortController) {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        setError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   };
 
@@ -252,12 +265,12 @@ export function useObject<
   const clearObject = () => {
     setError(undefined);
     setIsLoading(false);
-    mutate(undefined);
+    mutate({ object: undefined });
   };
 
   return {
     submit,
-    object: data,
+    object: data?.object,
     error,
     isLoading,
     stop,

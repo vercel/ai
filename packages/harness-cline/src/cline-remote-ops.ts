@@ -48,24 +48,52 @@ export function createClineRemoteOps(
   options: ClineRemoteOpsOptions,
 ): ClineRemoteOps {
   const { sandbox, workDir } = options;
+  const normalizedWorkDir = path.posix.normalize(workDir);
 
-  const resolvePath = (inputPath: string): string => {
-    const normalized = path.posix.isAbsolute(inputPath)
-      ? path.posix.normalize(inputPath)
-      : path.posix.normalize(path.posix.join(workDir, inputPath));
+  const isInsidePath = ({
+    parent,
+    candidate,
+  }: {
+    parent: string;
+    candidate: string;
+  }): boolean => {
+    const relative = path.posix.relative(parent, candidate);
+    return (
+      relative === '' ||
+      (relative !== '..' &&
+        !relative.startsWith('../') &&
+        !path.posix.isAbsolute(relative))
+    );
+  };
+
+  const assertWorkspacePath = (inputPath: string): string => {
+    const normalized = path.posix.normalize(inputPath);
+    if (!isInsidePath({ parent: normalizedWorkDir, candidate: normalized })) {
+      throw new Error(`Cline path escapes the workspace: ${inputPath}`);
+    }
     return normalized;
   };
 
-  const runShell = async (
-    command: string,
-    input?: { signal?: AbortSignal },
-  ): Promise<{ exitCode: number; output: string }> => {
+  const resolvePath = (inputPath: string): string => {
+    const resolved = path.posix.isAbsolute(inputPath)
+      ? path.posix.normalize(inputPath)
+      : path.posix.normalize(path.posix.join(normalizedWorkDir, inputPath));
+    return assertWorkspacePath(resolved);
+  };
+
+  const runShell = async ({
+    command,
+    signal,
+  }: {
+    command: string;
+    signal?: AbortSignal;
+  }): Promise<{ exitCode: number; output: string }> => {
     // `sandbox.run({ command })` already wraps in a shell; interpolated
     // paths/values inside `command` are quoted with `shellQuote` by callers.
     const result = await sandbox.run({
       command,
-      workingDirectory: workDir,
-      ...(input?.signal ? { abortSignal: input.signal } : {}),
+      workingDirectory: normalizedWorkDir,
+      ...(signal ? { abortSignal: signal } : {}),
     });
     return {
       exitCode: result.exitCode,
@@ -73,8 +101,103 @@ export function createClineRemoteOps(
     };
   };
 
+  const lastOutputLine = (output: string): string | undefined =>
+    output.trim().split('\n').filter(Boolean).at(-1);
+
+  const resolveExistingSandboxPath = async ({
+    remotePath,
+    inputPath,
+    missingMessage,
+  }: {
+    remotePath: string;
+    inputPath: string;
+    missingMessage?: string;
+  }): Promise<string> => {
+    const result = await runShell({
+      command: [
+        `target=${shellQuote(remotePath)}`,
+        'if [ ! -e "$target" ]; then echo "__CLINE_REALPATH_NOT_FOUND__"; exit 2; fi',
+        'resolved=$(realpath "$target" 2>/dev/null) || { echo "__CLINE_REALPATH_FAILED__"; exit 3; }',
+        'printf \'%s\\n\' "$resolved"',
+      ].join('; '),
+    });
+
+    if (result.output.includes('__CLINE_REALPATH_NOT_FOUND__')) {
+      throw new Error(missingMessage ?? `Path not found: ${inputPath}`);
+    }
+    if (
+      result.output.includes('__CLINE_REALPATH_FAILED__') ||
+      result.exitCode !== 0
+    ) {
+      throw new Error(`Unable to resolve path: ${inputPath}`);
+    }
+
+    const resolvedPath = lastOutputLine(result.output);
+    if (!resolvedPath) {
+      throw new Error(`Unable to resolve path: ${inputPath}`);
+    }
+    return resolvedPath;
+  };
+
+  const resolveReadableSandboxPath = async ({
+    remotePath,
+    inputPath,
+    missingMessage,
+  }: {
+    remotePath: string;
+    inputPath: string;
+    missingMessage?: string;
+  }): Promise<string> =>
+    assertWorkspacePath(
+      await resolveExistingSandboxPath({
+        remotePath,
+        inputPath,
+        ...(missingMessage ? { missingMessage } : {}),
+      }),
+    );
+
+  const resolveWritableSandboxPath = async ({
+    remotePath,
+    inputPath,
+  }: {
+    remotePath: string;
+    inputPath: string;
+  }): Promise<string> => {
+    const result = await runShell({
+      command: [
+        `target=${shellQuote(remotePath)}`,
+        'if [ -e "$target" ] || [ -L "$target" ]; then resolved=$(realpath "$target" 2>/dev/null) || { echo "__CLINE_REALPATH_FAILED__"; exit 3; }; printf \'%s\\n\' "$resolved"; exit 0; fi',
+        'dir=$(dirname "$target")',
+        'base=$(basename "$target")',
+        'missing="$base"',
+        'while [ ! -e "$dir" ] && [ ! -L "$dir" ]; do parent=$(dirname "$dir"); if [ "$parent" = "$dir" ]; then echo "__CLINE_REALPATH_NOT_FOUND__"; exit 2; fi; missing="$(basename "$dir")/$missing"; dir="$parent"; done',
+        'resolved_dir=$(realpath "$dir" 2>/dev/null) || { echo "__CLINE_REALPATH_FAILED__"; exit 3; }',
+        'printf \'%s/%s\\n\' "$resolved_dir" "$missing"',
+      ].join('; '),
+    });
+
+    if (
+      result.output.includes('__CLINE_REALPATH_NOT_FOUND__') ||
+      result.output.includes('__CLINE_REALPATH_FAILED__') ||
+      result.exitCode !== 0
+    ) {
+      throw new Error(`Unable to resolve path: ${inputPath}`);
+    }
+
+    const resolvedPath = lastOutputLine(result.output);
+    if (!resolvedPath) {
+      throw new Error(`Unable to resolve path: ${inputPath}`);
+    }
+    return assertWorkspacePath(resolvedPath);
+  };
+
   const readFile = async (inputPath: string): Promise<string> => {
-    const resolved = resolvePath(inputPath);
+    const remotePath = resolvePath(inputPath);
+    const resolved = await resolveReadableSandboxPath({
+      remotePath,
+      inputPath,
+      missingMessage: `File not found: ${inputPath}`,
+    });
     const content = await sandbox.readTextFile({ path: resolved });
     if (content == null) {
       throw new Error(`File not found: ${inputPath}`);
@@ -86,7 +209,11 @@ export function createClineRemoteOps(
     inputPath: string,
     content: string,
   ): Promise<void> => {
-    const resolved = resolvePath(inputPath);
+    const remotePath = resolvePath(inputPath);
+    const resolved = await resolveWritableSandboxPath({
+      remotePath,
+      inputPath,
+    });
     // `writeTextFile` creates parent directories recursively per the
     // SandboxSession contract, so no explicit mkdir is needed.
     await sandbox.writeTextFile({ path: resolved, content });
@@ -97,7 +224,18 @@ export function createClineRemoteOps(
     oldText: string,
     newText: string,
   ): Promise<void> => {
-    const current = await readFile(inputPath);
+    const remotePath = resolvePath(inputPath);
+    const resolved = assertWorkspacePath(
+      await resolveExistingSandboxPath({
+        remotePath,
+        inputPath,
+        missingMessage: `File not found: ${inputPath}`,
+      }),
+    );
+    const current = await sandbox.readTextFile({ path: resolved });
+    if (current == null) {
+      throw new Error(`File not found: ${inputPath}`);
+    }
     const index = current.indexOf(oldText);
     if (index === -1) {
       throw new Error(`Text to replace was not found in ${inputPath}`);
@@ -128,7 +266,10 @@ export function createClineRemoteOps(
       forwardedSignal?.addEventListener('abort', onAbort, { once: true });
 
       try {
-        const result = await runShell(command, { signal: controller.signal });
+        const result = await runShell({
+          command,
+          signal: controller.signal,
+        });
         return { output: result.output, exitCode: result.exitCode };
       } finally {
         forwardedSignal?.removeEventListener('abort', onAbort);
@@ -139,9 +280,14 @@ export function createClineRemoteOps(
     },
 
     async grep(pattern, input = {}) {
-      const target = resolvePath(input.path ?? '.');
+      const inputPath = input.path ?? '.';
+      const remotePath = resolvePath(inputPath);
+      const target = await resolveReadableSandboxPath({
+        remotePath,
+        inputPath,
+      });
       const flags = [
-        '-R',
+        '-r',
         '-n',
         '--binary-files=without-match',
         ...(input.ignoreCase ? ['-i'] : []),
@@ -152,8 +298,8 @@ export function createClineRemoteOps(
         ...(input.glob ? ['--include', input.glob] : []),
       ];
       const limit = Math.max(1, input.limit ?? 100);
-      const result = await runShell(
-        [
+      const result = await runShell({
+        command: [
           `if [ ! -e ${shellQuote(
             target,
           )} ]; then echo "__CLINE_GREP_NOT_FOUND__"; exit 2; fi`,
@@ -161,7 +307,7 @@ export function createClineRemoteOps(
             pattern,
           )} ${shellQuote(target)} 2>/dev/null | head -n ${limit}`,
         ].join('; '),
-      );
+      });
 
       const output = result.output.trim();
       if (output.includes('__CLINE_GREP_NOT_FOUND__')) {
@@ -171,9 +317,13 @@ export function createClineRemoteOps(
     },
 
     async glob(pattern, inputPath = '.', limit = 1_000) {
-      const target = resolvePath(inputPath);
-      const result = await runShell(
-        [
+      const remotePath = resolvePath(inputPath);
+      const target = await resolveReadableSandboxPath({
+        remotePath,
+        inputPath,
+      });
+      const result = await runShell({
+        command: [
           `if [ ! -e ${shellQuote(
             target,
           )} ]; then echo "__CLINE_FIND_NOT_FOUND__"; exit 2; fi`,
@@ -181,7 +331,7 @@ export function createClineRemoteOps(
             target,
           )} -type f -print; else printf '%s\\n' ${shellQuote(target)}; fi`,
         ].join('; '),
-      );
+      });
 
       const output = result.output.trim();
       if (output.includes('__CLINE_FIND_NOT_FOUND__')) {
@@ -208,9 +358,13 @@ export function createClineRemoteOps(
     },
 
     async ls(inputPath = '.', limit = 500) {
-      const target = resolvePath(inputPath);
-      const result = await runShell(
-        [
+      const remotePath = resolvePath(inputPath);
+      const target = await resolveReadableSandboxPath({
+        remotePath,
+        inputPath,
+      });
+      const result = await runShell({
+        command: [
           `if [ ! -e ${shellQuote(
             target,
           )} ]; then echo "__CLINE_LS_NOT_FOUND__"; exit 2; fi`,
@@ -220,7 +374,7 @@ export function createClineRemoteOps(
           `cd ${shellQuote(target)}`,
           'ls -1Ap',
         ].join('; '),
-      );
+      });
 
       const output = result.output.trim();
       if (output.includes('__CLINE_LS_NOT_FOUND__')) {

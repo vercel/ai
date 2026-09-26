@@ -13,7 +13,7 @@ const conditions = [
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     stopWhen: isStepCount(5),
     tools: {
       weather: tool({

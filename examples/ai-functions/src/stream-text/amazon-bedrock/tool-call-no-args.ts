@@ -6,7 +6,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     tools: {
       updateIssueList: tool({
         inputSchema: z.object({}),

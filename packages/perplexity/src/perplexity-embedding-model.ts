@@ -19,7 +19,10 @@ import {
   perplexityEmbeddingModelOptions,
   type PerplexityEmbeddingModelId,
 } from './perplexity-embedding-model-options';
-import { perplexityErrorSchema } from './perplexity-language-model';
+import {
+  perplexityErrorSchema,
+  perplexityErrorToMessage,
+} from './perplexity-language-model';
 
 type PerplexityEmbeddingConfig = {
   provider: string;
@@ -105,7 +108,7 @@ export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
-        errorToMessage: data => data.error.message ?? 'Unknown error',
+        errorToMessage: perplexityErrorToMessage,
       }),
       successfulResponseHandler: createJsonResponseHandler(
         perplexityEmbeddingResponseSchema,

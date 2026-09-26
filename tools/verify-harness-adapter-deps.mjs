@@ -37,8 +37,12 @@ const adapterConfigs = [
   {
     name: 'Codex',
     packageDir: 'packages/harness-codex',
-    primarySdk: '@openai/codex-sdk',
-    sdkPackages: ['@openai/codex-sdk'],
+    primarySdk: '@openai/codex',
+    sdkPackages: ['@openai/codex'],
+  },
+  {
+    name: 'Cursor',
+    packageDir: 'packages/harness-cursor',
   },
   {
     name: 'Deep Agents',
@@ -52,6 +56,16 @@ const adapterConfigs = [
       'langchain',
       'langsmith',
     ],
+  },
+  {
+    name: 'fx',
+    packageDir: 'packages/harness-fx',
+  },
+  {
+    name: 'GitHub Copilot',
+    packageDir: 'packages/harness-github-copilot',
+    primarySdk: '@github/copilot',
+    sdkPackages: ['@github/copilot'],
   },
   {
     name: 'Grok Build',
@@ -253,6 +267,10 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    if (adapter.primarySdk == null) {
+      continue;
+    }
+
     const primarySpec = getDependencySpec({
       manifest: rootManifest,
       packageName: adapter.primarySdk,

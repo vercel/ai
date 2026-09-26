@@ -1,10 +1,17 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-type CodexOptions = {
-  config?: Record<string, unknown>;
+type AppServerOptions = {
+  start: {
+    tools?: Array<Record<string, unknown>>;
+    responseFormat?: { type: 'json'; schema: Record<string, unknown> };
+    reasoningEffort?: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
+  threadId: string | undefined;
+  codexModel: string | undefined;
+  codexConfig: Record<string, unknown>;
+  emitStreamEvent(event: { type: 'thread.started'; thread_id: string }): void;
 };
-type ThreadOptions = { model?: string };
-type TurnOptions = { outputSchema?: Record<string, unknown> };
+
 const CODEX_ENV_KEYS = [
   'AI_GATEWAY_API_KEY',
   'AI_GATEWAY_BASE_URL',
@@ -13,16 +20,36 @@ const CODEX_ENV_KEYS = [
 ] as const;
 
 const state = vi.hoisted(() => ({
-  codexOptions: [] as CodexOptions[],
-  threadOptions: [] as ThreadOptions[],
-  turnOptions: [] as TurnOptions[],
   startModel: 'gpt-5.5',
   startResponseFormat: undefined as
     | { type: 'json'; schema: Record<string, unknown> }
     | undefined,
   startInstructions: undefined as string | undefined,
+  startReasoningEffort: undefined as
+    | 'low'
+    | 'medium'
+    | 'high'
+    | 'xhigh'
+    | 'max'
+    | undefined,
+  startResumeThreadId: undefined as string | undefined,
+  startRestartThread: false,
   startCodexConfig: undefined as Record<string, unknown> | undefined,
   startMcpServers: undefined as Record<string, unknown> | undefined,
+  startHeaders: undefined as Record<string, string> | undefined,
+  startTools: [
+    {
+      name: 'get_weather',
+      description: 'Get the weather.',
+      inputSchema: { type: 'object' },
+    },
+  ] as Array<Record<string, unknown>>,
+  appServerOptions: [] as AppServerOptions[],
+  appServerError: undefined as Error | undefined,
+  appServerClosed: 0,
+  runSecondTurn: false,
+  stoppedData: undefined as unknown,
+  emittedErrors: [] as unknown[],
   originalArgv: [] as string[],
   originalEnv: {} as Record<
     (typeof CODEX_ENV_KEYS)[number],
@@ -30,76 +57,95 @@ const state = vi.hoisted(() => ({
   >,
 }));
 
-vi.mock('@openai/codex-sdk', () => ({
-  Codex: class {
-    constructor(options: CodexOptions) {
-      state.codexOptions.push(options);
-    }
-
-    startThread(options: ThreadOptions = {}) {
-      state.threadOptions.push(options);
-      return {
-        runStreamed: async (...[, options]: [string, TurnOptions]) => {
-          state.turnOptions.push(options);
-          return {
-            events: (async function* () {
-              yield { type: 'turn.completed' };
-            })(),
-          };
-        },
-      };
-    }
-
-    resumeThread() {
-      return this.startThread();
+vi.mock('@ai-sdk/harness/bridge', () => ({
+  runBridge: async ({
+    onStart,
+    onStop,
+    onDestroy,
+  }: {
+    onStart: (start: unknown, turn: unknown) => Promise<void>;
+    onStop: () => Promise<unknown>;
+    onDestroy: () => Promise<void>;
+  }) => {
+    const start = {
+      prompt: 'Use the weather tool.',
+      responseFormat: state.startResponseFormat,
+      ...(state.startInstructions
+        ? { instructions: state.startInstructions }
+        : {}),
+      ...(state.startReasoningEffort
+        ? { reasoningEffort: state.startReasoningEffort }
+        : {}),
+      ...(state.startResumeThreadId
+        ? { resumeThreadId: state.startResumeThreadId }
+        : {}),
+      ...(state.startRestartThread ? { restartThread: true } : {}),
+      model: state.startModel,
+      codexConfig: state.startCodexConfig,
+      mcpServers: state.startMcpServers,
+      headers: state.startHeaders,
+      tools: state.startTools,
+    };
+    const turn = {
+      emit: () => {},
+      emitError: (error: unknown) => state.emittedErrors.push(error),
+      requestToolResult: async () => ({ output: {} }),
+      abortSignal: new AbortController().signal,
+      experimental_userMessages: {
+        pendingCount: 0,
+        close: () => {},
+        [Symbol.asyncIterator]: async function* () {},
+      },
+    };
+    await onStart(start, turn);
+    if (state.runSecondTurn) {
+      await onStart({ ...start, resumeThreadId: undefined }, turn);
+      state.stoppedData = await onStop();
+      await onDestroy();
     }
   },
 }));
 
-vi.mock('@ai-sdk/harness/bridge', () => ({
-  runBridge: async ({
-    onStart,
-  }: {
-    onStart: (start: unknown, turn: unknown) => Promise<void>;
-  }) => {
-    await onStart(
-      {
-        prompt: 'Use the weather tool.',
-        responseFormat: state.startResponseFormat,
-        ...(state.startInstructions
-          ? { instructions: state.startInstructions }
-          : {}),
-        model: state.startModel,
-        codexConfig: state.startCodexConfig,
-        mcpServers: state.startMcpServers,
-        tools: [
-          {
-            name: 'get_weather',
-            description: 'Get the weather.',
-            inputSchema: { type: 'object' },
-          },
-        ],
-      },
-      {
-        emit: () => {},
-        requestToolResult: async () => ({ output: {} }),
-        abortSignal: new AbortController().signal,
-        pendingUserMessages: [],
-      },
-    );
-  },
+vi.mock('./codex-app-server-driver', () => ({
+  createCodexAppServerRuntime: () => ({
+    runTurn: async (options: AppServerOptions) => {
+      state.appServerOptions.push(options);
+      if (state.appServerError != null) throw state.appServerError;
+      options.emitStreamEvent({
+        type: 'thread.started',
+        thread_id: 'app-server-thread',
+      });
+    },
+    close: async () => {
+      state.appServerClosed++;
+    },
+  }),
 }));
 
 describe('Codex bridge config', () => {
   beforeEach(() => {
-    state.codexOptions = [];
-    state.threadOptions = [];
-    state.turnOptions = [];
     state.startModel = 'gpt-5.5';
     state.startResponseFormat = undefined;
     state.startInstructions = undefined;
+    state.startReasoningEffort = undefined;
+    state.startResumeThreadId = undefined;
+    state.startRestartThread = false;
     state.startCodexConfig = undefined;
     state.startMcpServers = undefined;
+    state.startHeaders = undefined;
+    state.startTools = [
+      {
+        name: 'get_weather',
+        description: 'Get the weather.',
+        inputSchema: { type: 'object' },
+      },
+    ];
+    state.appServerOptions = [];
+    state.appServerError = undefined;
+    state.appServerClosed = 0;
+    state.runSecondTurn = false;
+    state.stoppedData = undefined;
+    state.emittedErrors = [];
     state.originalArgv = [...process.argv];
     state.originalEnv = Object.fromEntries(
       CODEX_ENV_KEYS.map(key => [key, process.env[key]]),
@@ -116,8 +162,6 @@ describe('Codex bridge config', () => {
       '/tmp/harness-codex-test/work',
       '--bridge-state-dir',
       '/tmp/harness-codex-test/state',
-      '--cli-shim-dir',
-      '/tmp/harness-codex-test/shim',
     );
   });
 
@@ -134,21 +178,41 @@ describe('Codex bridge config', () => {
     vi.resetModules();
   });
 
-  test('does not register host tools as Codex MCP servers', async () => {
+  test('always runs turns through app-server', async () => {
+    state.startTools = [];
+
     await import('./index');
 
-    expect(state.codexOptions).toHaveLength(1);
-    expect(state.codexOptions[0]?.config?.mcp_servers).toBeUndefined();
+    expect(state.appServerOptions).toHaveLength(1);
+    expect(state.appServerOptions[0]?.start.tools).toEqual([]);
   });
 
-  test('passes configured MCP servers to Codex', async () => {
+  test('reuses one runtime for turns and closes on stop and destroy', async () => {
+    state.runSecondTurn = true;
+
+    await import('./index');
+
+    expect(state.appServerOptions).toHaveLength(2);
+    expect(state.appServerOptions[1]?.threadId).toBe('app-server-thread');
+    expect(state.stoppedData).toEqual({ threadId: 'app-server-thread' });
+    expect(state.appServerClosed).toBe(2);
+  });
+
+  test('passes host tools to app-server without registering them as MCP servers', async () => {
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.start.tools).toEqual(state.startTools);
+    expect(state.appServerOptions[0]?.codexConfig.mcp_servers).toBeUndefined();
+  });
+
+  test('passes configured MCP servers to app-server', async () => {
     state.startMcpServers = {
       context7: { url: 'https://mcp.context7.com/mcp' },
     };
 
     await import('./index');
 
-    expect(state.codexOptions[0]?.config?.mcp_servers).toEqual(
+    expect(state.appServerOptions[0]?.codexConfig.mcp_servers).toEqual(
       state.startMcpServers,
     );
   });
@@ -164,8 +228,8 @@ describe('Codex bridge config', () => {
 
     await import('./index');
 
-    expect(state.codexOptions[0]?.config).not.toBe(codexConfig);
-    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
+    expect(state.appServerOptions[0]?.codexConfig).not.toBe(codexConfig);
+    expect(state.appServerOptions[0]?.codexConfig).toMatchInlineSnapshot(`
       {
         "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
         "features": {
@@ -187,41 +251,53 @@ describe('Codex bridge config', () => {
     `);
   });
 
-  test('requests detailed reasoning summaries by default', async () => {
-    await import('./index');
+  test.each(['xhigh', 'max'] as const)(
+    'passes %s reasoning effort to app-server',
+    async reasoningEffort => {
+      state.startReasoningEffort = reasoningEffort;
 
-    expect(state.codexOptions).toHaveLength(1);
-    expect(state.codexOptions[0]?.config).toMatchInlineSnapshot(`
-      {
-        "developer_instructions": "Only respond with your \`final\` message once you have fully addressed the user request.",
-        "model_reasoning_summary": "detailed",
-      }
-    `);
-  });
+      await import('./index');
 
-  test('disables WebSockets for a configured direct OpenAI endpoint', async () => {
+      expect(state.appServerOptions[0]?.start.reasoningEffort).toBe(
+        reasoningEffort,
+      );
+    },
+  );
+
+  test('configures a direct OpenAI endpoint', async () => {
     process.env.CODEX_API_KEY = 'CODEX_API_KEY';
     process.env.OPENAI_BASE_URL = 'https://api.openai.com/v1';
 
     await import('./index');
 
-    expect({
-      modelProvider: state.codexOptions[0]?.config?.model_provider,
-      modelProviders: state.codexOptions[0]?.config?.model_providers,
-      preferredAuthMethod: state.codexOptions[0]?.config?.preferred_auth_method,
-    }).toMatchInlineSnapshot(`
-      {
-        "modelProvider": "agent_bridge_openai",
-        "modelProviders": {
-          "agent_bridge_openai": {
-            "base_url": "https://api.openai.com/v1",
-            "env_key": "CODEX_API_KEY",
-            "name": "Agent Bridge OpenAI",
-            "supports_websockets": false,
-            "wire_api": "responses",
-          },
+    expect(state.appServerOptions[0]?.codexConfig).toMatchObject({
+      model_provider: 'agent_bridge_openai',
+      model_providers: {
+        agent_bridge_openai: {
+          base_url: 'https://api.openai.com/v1',
+          env_key: 'CODEX_API_KEY',
+          supports_websockets: false,
         },
-        "preferredAuthMethod": "apikey",
+      },
+      preferred_auth_method: 'apikey',
+    });
+  });
+
+  test('configures direct API key auth without an explicit base URL', async () => {
+    process.env.CODEX_API_KEY = 'CODEX_API_KEY';
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.codexConfig.model_providers)
+      .toMatchInlineSnapshot(`
+      {
+        "agent_bridge_openai": {
+          "base_url": "https://api.openai.com/v1",
+          "env_key": "CODEX_API_KEY",
+          "name": "Agent Bridge OpenAI",
+          "supports_websockets": false,
+          "wire_api": "responses",
+        },
       }
     `);
   });
@@ -231,11 +307,27 @@ describe('Codex bridge config', () => {
 
     await import('./index');
 
-    expect(state.codexOptions[0]?.config?.base_instructions).toBeUndefined();
-    expect(state.codexOptions[0]?.config?.developer_instructions).toBe(
+    expect(state.appServerOptions[0]?.codexConfig.developer_instructions).toBe(
       'Answer every question in German.\n\n' +
         'Only respond with your `final` message once you have fully addressed the user request.',
     );
+  });
+
+  test('starts a fresh thread when the host requests a configuration restart', async () => {
+    state.startResumeThreadId = 'thread-previous';
+    state.startRestartThread = true;
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.threadId).toBeUndefined();
+  });
+
+  test('resumes an app-server thread by id', async () => {
+    state.startResumeThreadId = 'thread-previous';
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.threadId).toBe('thread-previous');
   });
 
   test('uses the creator-qualified model and forces summaries for AI Gateway', async () => {
@@ -245,15 +337,40 @@ describe('Codex bridge config', () => {
     await import('./index');
 
     expect({
-      model: state.threadOptions[0]?.model,
-      reasoningSummary: state.codexOptions[0]?.config?.model_reasoning_summary,
+      model: state.appServerOptions[0]?.codexModel,
+      reasoningSummary:
+        state.appServerOptions[0]?.codexConfig.model_reasoning_summary,
       supportsReasoningSummaries:
-        state.codexOptions[0]?.config?.model_supports_reasoning_summaries,
+        state.appServerOptions[0]?.codexConfig
+          .model_supports_reasoning_summaries,
     }).toMatchInlineSnapshot(`
       {
         "model": "openai/gpt-5.5",
         "reasoningSummary": "detailed",
         "supportsReasoningSummaries": true,
+      }
+    `);
+  });
+
+  test('passes headers to a direct model provider', async () => {
+    state.startHeaders = { 'x-tenant': 'acme' };
+    process.env.CODEX_API_KEY = 'openai-key';
+
+    await import('./index');
+
+    expect(state.appServerOptions[0]?.codexConfig.model_providers)
+      .toMatchInlineSnapshot(`
+      {
+        "agent_bridge_openai": {
+          "base_url": "https://api.openai.com/v1",
+          "env_key": "CODEX_API_KEY",
+          "http_headers": {
+            "x-tenant": "acme",
+          },
+          "name": "Agent Bridge OpenAI",
+          "supports_websockets": false,
+          "wire_api": "responses",
+        },
       }
     `);
   });
@@ -265,10 +382,10 @@ describe('Codex bridge config', () => {
 
     await import('./index');
 
-    expect(state.threadOptions[0]?.model).toBe('openai/gpt-5.5');
+    expect(state.appServerOptions[0]?.codexModel).toBe('openai/gpt-5.5');
   });
 
-  test('passes the requested JSON schema to Codex', async () => {
+  test('passes the requested JSON schema to app-server', async () => {
     state.startResponseFormat = {
       type: 'json',
       schema: {
@@ -280,8 +397,19 @@ describe('Codex bridge config', () => {
 
     await import('./index');
 
-    expect(state.turnOptions[0]?.outputSchema).toEqual(
+    expect(state.appServerOptions[0]?.start.responseFormat?.schema).toEqual(
       state.startResponseFormat.schema,
     );
+  });
+
+  test('surfaces app-server failures without another execution path', async () => {
+    state.appServerError = new Error(
+      'dynamic tool input schema is not supported',
+    );
+
+    await import('./index');
+
+    expect(state.appServerOptions).toHaveLength(1);
+    expect(state.emittedErrors).toHaveLength(1);
   });
 });

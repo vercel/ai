@@ -1,5 +1,6 @@
 import type { FinishReason } from '../types/language-model';
 import type { UIMessage } from '../ui/ui-messages';
+import type { UIMessageStreamOutcome } from './ui-message-stream-outcome';
 
 export type UIMessageStreamOnEndCallback<UI_MESSAGE extends UIMessage> =
   (event: {
@@ -18,6 +19,20 @@ export type UIMessageStreamOnEndCallback<UI_MESSAGE extends UIMessage> =
      * Indicates whether the stream was aborted.
      */
     isAborted: boolean;
+
+    /**
+     * Indicates that the consumer cancelled the stream before an outcome was
+     * declared, for example because the client disconnected.
+     *
+     * This property is only present when it is `true`.
+     */
+    isCancelled?: true;
+
+    /**
+     * The operation-level outcome of the stream. Fatal stream-processing
+     * failures override outcomes declared by the stream owner.
+     */
+    outcome: UIMessageStreamOutcome;
 
     /**
      * The message that was sent to the client as a response

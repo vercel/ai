@@ -36,16 +36,18 @@ import { cline, createCline } from '@ai-sdk/harness-cline';
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { cline } from '@ai-sdk/harness-cline';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cline,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-  }),
+  model: 'anthropic/claude-opus-5',
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -64,6 +66,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -79,19 +82,17 @@ Use `createCline()` to configure the runtime:
 ```ts
 const harness = createCline({
   auth: 'direct',
-  modelId: 'anthropic/claude-opus-5',
 });
 ```
 
 Settings:
 
-- `auth`: authentication mode: `auto`, `direct`, or `ai-gateway`.
+- `auth`: authentication mode (`auto`, `direct`, or `ai-gateway`) or an
+  isolated authentication environment.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `providerId`: Cline LLM provider id (e.g. `anthropic`, `openai`, `gemini`).
   When omitted, direct authentication uses the Cline backend. Explicit custom
   providers apply only to direct authentication.
-- `modelId`: model id for the configured provider. When omitted, the Cline SDK
-  selects the provider's default model.
 - `apiKey`: provider API key. When omitted, the Cline gateway falls back to
   the configured provider's environment variable.
 - `baseUrl`: custom provider endpoint.
@@ -123,15 +124,34 @@ environment:
 - `ai-gateway`: use `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` and the
   optional `AI_GATEWAY_BASE_URL`.
 
+If no applicable credential environment variable is set, the adapter attempts
+to resolve a native subscription from the host system unless AI Gateway
+authentication is selected.
+
 ```ts
 const harness = createCline({ auth: 'ai-gateway' });
 ```
+
+Pass an authentication environment when the host resolves credentials at
+runtime:
+
+```ts
+const harness = createCline({
+  auth: {
+    AI_GATEWAY_API_KEY: await resolveGatewayToken(),
+    AI_GATEWAY_BASE_URL: 'https://ai-gateway.vercel.sh',
+  },
+});
+```
+
+The supplied record replaces the host environment for authentication
+discovery, so it can also select direct authentication with `CLINE_API_KEY`.
 
 `CLINE_API_BASE_URL` is Cline's backend root URL; the SDK's `/api/v1` provider
 path is appended to it. For AI Gateway, the adapter instead overrides Cline's
 in-process provider configuration with the Gateway credential and its `/v1`
 endpoint. Direct Cline credentials are never used as a fallback in explicit
-Gateway mode.
+Gateway mode or when a supplied authentication environment selects Gateway.
 
 ## Sandbox
 
@@ -139,8 +159,9 @@ The Cline runtime runs on the host and does not need sandbox ports, so any
 network sandbox works — including port-less configurations:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -178,7 +199,7 @@ tool when the task calls for it.
 Conversation state lives in the host-process runtime. On `detach`/`stop` the
 adapter persists the conversation history into the sandbox workspace
 (`.cline-harness/history.json` in the session working directory), so a future
-process can resume the session after the sandbox provider reattaches. Because
+process can resume the session after the caller reattaches the sandbox. Because
 the runtime is host-resident, suspended turns are rerun-continued from the
 persisted history rather than losslessly attached (same trade-off as the
 [Pi adapter](/providers/ai-sdk-harnesses/pi)).

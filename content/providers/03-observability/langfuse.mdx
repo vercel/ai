@@ -153,7 +153,7 @@ const result = await propagateAttributes(
   },
   () =>
     generateText({
-      model: openai('gpt-5.5'),
+      model: openai('gpt-6-astra'),
       prompt: 'Write a short story about a cat.',
       telemetry: {
         functionId: 'story-generation',
@@ -168,7 +168,7 @@ AI SDK v7 excludes `runtimeContext` from telemetry events unless each top-level 
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-5.5'),
+  model: openai('gpt-6-astra'),
   prompt: 'Write a short story about a cat.',
   runtimeContext: {
     route: 'api/story',
@@ -197,7 +197,7 @@ const langfuseClient = new LangfuseClient();
 const langfusePrompt = await langfuseClient.getPrompt('support-chat/default');
 
 const result = await generateText({
-  model: openai('gpt-5.5'),
+  model: openai('gpt-6-astra'),
   prompt: langfusePrompt.compile({ topic: 'RAG' }),
   runtimeContext: {
     route: 'support-chat',
@@ -260,7 +260,7 @@ By default, the exporter captures the input and output of each request. You can 
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-5.5'),
+  model: openai('gpt-6-astra'),
   prompt: 'Write a short story about a cat.',
   telemetry: {
     recordInputs: false,
@@ -275,7 +275,7 @@ Telemetry is enabled by default when a telemetry integration is registered. You 
 
 ```ts
 const result = await generateText({
-  model: openai('gpt-5.5'),
+  model: openai('gpt-6-astra'),
   prompt: 'Write a short story about a cat.',
   telemetry: {
     isEnabled: false,
