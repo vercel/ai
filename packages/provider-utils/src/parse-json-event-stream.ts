@@ -2,6 +2,7 @@ import {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+import { createTextDecoderStream } from './create-text-decoder-stream';
 import { safeParseJSON, type ParseResult } from './parse-json';
 import type { FlexibleSchema } from './schema';
 
@@ -16,7 +17,7 @@ export function parseJsonEventStream<T>({
   schema: FlexibleSchema<T>;
 }): ReadableStream<ParseResult<T>> {
   return stream
-    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(createTextDecoderStream())
     .pipeThrough(new EventSourceParserStream())
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({
