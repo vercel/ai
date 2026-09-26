@@ -252,6 +252,170 @@ describe('GoogleRealtimeEventMapper', () => {
       expect(next).toMatchObject({ responseId: 'google-resp-1' });
     });
 
+    it('gives each user turn a new input item id that matches its response', () => {
+      for (const toWireEvent of [
+        (text: string) => ({ serverContent: { inputTranscription: { text } } }),
+        (text: string) => ({ inputTranscription: { text } }),
+      ]) {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        for (const turn of [0, 1, 2]) {
+          const input = mapper.parseServerEvent(
+            toWireEvent(`question ${turn}`),
+          );
+          const audio = mapper.parseServerEvent({
+            serverContent: {
+              modelTurn: { parts: [{ inlineData: { data: 'audio' } }] },
+            },
+          });
+          mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+          expect(input).toMatchObject({
+            type: 'input-transcription-completed',
+            itemId: `google-input-${turn}`,
+          });
+          expect(audio).toMatchObject({ responseId: `google-resp-${turn}` });
+        }
+      }
+    });
+
+    it('keeps the input item id when the user transcript continues after the response started', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'What time is it?' } },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+      const beforeResponse = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'And the' } },
+      });
+      const response = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio2' } }] },
+        },
+      });
+      const afterResponseStarted = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: ' date?' } },
+      });
+
+      expect(beforeResponse).toMatchObject({ itemId: 'google-input-1' });
+      expect(response).toMatchObject({ responseId: 'google-resp-1' });
+      expect(afterResponseStarted).toMatchObject({ itemId: 'google-input-1' });
+    });
+
+    it('gives speech that interrupts a response the next input item id', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'Tell me a story.' } },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+        },
+      });
+
+      // Google sends `interrupted` and then `turnComplete`; the interrupting
+      // speech can be transcribed in between.
+      mapper.parseServerEvent({ serverContent: { interrupted: true } });
+      const bargeIn = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'Stop.' } },
+      });
+      const done = mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio2' } }] },
+        },
+      });
+
+      expect(bargeIn).toMatchObject({ itemId: 'google-input-1' });
+      expect(done).toContainEqual(
+        expect.objectContaining({
+          type: 'response-done',
+          responseId: 'google-resp-0',
+        }),
+      );
+      expect(next).toMatchObject({ responseId: 'google-resp-1' });
+    });
+
+    it('starts the next turn after an interruption without turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'Tell me a story.' } },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { interrupted: true } });
+
+      const bargeIn = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'Stop.' } },
+      });
+      const next = mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio2' } }] },
+        },
+      });
+
+      expect(bargeIn).toMatchObject({ itemId: 'google-input-1' });
+      expect(next).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('keeps input item ids aligned across tool-call turns', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const firstInput = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'Weather in Paris?' } },
+      });
+      const firstCall = mapper.parseServerEvent({
+        toolCall: {
+          functionCalls: [
+            { id: 'call_1', name: 'getWeather', args: { city: 'Paris' } },
+          ],
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+      const secondInput = mapper.parseServerEvent({
+        serverContent: { inputTranscription: { text: 'And in Rome?' } },
+      });
+      const secondCall = mapper.parseServerEvent({
+        toolCall: {
+          functionCalls: [
+            { id: 'call_2', name: 'getWeather', args: { city: 'Rome' } },
+          ],
+        },
+      });
+
+      expect(firstInput).toMatchObject({ itemId: 'google-input-0' });
+      expect(firstCall).toContainEqual(
+        expect.objectContaining({ responseId: 'google-resp-0' }),
+      );
+      expect(secondInput).toMatchObject({ itemId: 'google-input-1' });
+      expect(secondCall).toContainEqual(
+        expect.objectContaining({ responseId: 'google-resp-1' }),
+      );
+    });
+
     it('maps multi-part serverContent to multiple events', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = {
