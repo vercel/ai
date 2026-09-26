@@ -1,7 +1,10 @@
 import * as diagnosticsChannel from 'node:diagnostics_channel';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AI_SDK_TELEMETRY_TRACING_CHANNEL } from './tracing-channel';
-import { runWithTracingChannelSpan } from './tracing-channel-publisher';
+import {
+  openTelemetryChannelSpanContext,
+  runWithTracingChannelSpan,
+} from './tracing-channel-publisher';
 import { isNodeRuntime } from '../util/is-node-runtime';
 
 // Mock the runtime guard so we can drive both branches deterministically,
@@ -61,6 +64,26 @@ describe.runIf(runningOnNode)(
         expect(start).not.toHaveBeenCalled();
       } finally {
         unsubscribe();
+      }
+    });
+
+    it('handles rejected span completion when not running on Node', async () => {
+      vi.mocked(isNodeRuntime).mockReturnValue(false);
+
+      const completion = Promise.reject(new Error('completion failed'));
+      const catchSpy = vi.spyOn(completion, 'catch');
+
+      try {
+        expect(
+          openTelemetryChannelSpanContext({
+            message,
+            completion,
+          }),
+        ).toBeUndefined();
+
+        expect(catchSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await completion.catch(() => {});
       }
     });
 
