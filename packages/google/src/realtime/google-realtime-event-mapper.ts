@@ -71,12 +71,11 @@ export class GoogleRealtimeEventMapper {
   }
 
   /**
-   * Rolls over to the next turn lazily, only once new model content actually
-   * arrives. `turnComplete` merely marks the current turn closed; the counter
-   * is not advanced until the next response begins. This keeps a transcript
-   * that arrives shortly after `turnComplete` attached to the turn it belongs
-   * to, since Google delivers transcription independently with no guaranteed
-   * ordering relative to `turnComplete`.
+   * Rolls over to the next turn lazily, once input or model content for the
+   * next turn arrives. `turnComplete` merely marks the current turn closed.
+   * This keeps an output transcript that arrives shortly after `turnComplete`
+   * attached to the turn it belongs to, since Google delivers transcription
+   * independently with no guaranteed ordering relative to `turnComplete`.
    */
   private beginTurnIfClosed(): void {
     if (!this.turnClosed) return;
@@ -152,6 +151,7 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.inputTranscription?.text != null) {
+      this.beginTurnIfClosed();
       return {
         type: 'input-transcription-completed',
         itemId: `google-input-${this.turnCounter}`,
@@ -170,6 +170,7 @@ export class GoogleRealtimeEventMapper {
     const events: RealtimeModelV4ServerEvent[] = [];
 
     if (serverContent.interrupted) {
+      this.turnClosed = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -215,6 +216,7 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (serverContent.inputTranscription?.text) {
+      this.beginTurnIfClosed();
       events.push({
         type: 'input-transcription-completed',
         itemId: `google-input-${this.turnCounter}`,

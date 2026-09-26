@@ -109,6 +109,35 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('increments top-level input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        inputTranscription: { text: 'What time is it?' },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        inputTranscription: { text: 'And the date?' },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+    });
+
     it('maps serverContent with interrupted to speech-started', () => {
       const mapper = new GoogleRealtimeEventMapper();
       const raw = {
@@ -212,6 +241,96 @@ describe('GoogleRealtimeEventMapper', () => {
         itemId: 'google-item-1',
         delta: 'audio2',
         raw,
+      });
+    });
+
+    it('increments input transcription IDs after turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw,
+      });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('increments turn IDs when user speech interrupts a response', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const raw = {
+        serverContent: {
+          inputTranscription: { text: 'Stop.' },
+        },
+      };
+
+      expect(mapper.parseServerEvent(raw)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop.',
+        raw,
+      });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
       });
     });
 
