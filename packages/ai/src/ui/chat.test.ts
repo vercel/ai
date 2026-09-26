@@ -1212,7 +1212,7 @@ describe('Chat', () => {
     expect(onFinishCalls).toBe(1);
   });
 
-it('should stop a resumed stream while reconnection is pending', async () => {
+  it('should stop a resumed stream while reconnection is pending', async () => {
     const reconnectResult =
       createResolvablePromise<ReadableStream<UIMessageChunk>>();
     let reconnectAbortSignal: AbortSignal | undefined;
