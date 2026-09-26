@@ -70,8 +70,13 @@ const { text } = await generateText({
 ```
 
 The Agent API provides the `fast`, `low`, `medium`, `high`, and `xhigh`
-presets. You can also pass an Agent API model ID directly, such as
-`perplexity/sonar`.
+presets. To select a model directly, pass its Agent API model ID, for example
+`perplexity('perplexity/sonar')`.
+
+These examples call Perplexity directly using `PERPLEXITY_API_KEY`. Passing a
+plain model string such as `model: 'perplexity/sonar'` to `generateText` or
+`streamText` uses the [AI Gateway](/providers/ai-sdk-providers/ai-gateway),
+which has its own model catalog and authentication.
 
 Version 5 uses the Agent API exclusively. Legacy Sonar model IDs and provider
 options are not mapped; see [Migrating from v4 Sonar to v5 Agent
