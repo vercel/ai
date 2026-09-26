@@ -11,9 +11,10 @@ import {
   registerClient,
   auth,
   type OAuthClientProvider,
+  type OAuthCredentialsInvalidationContext,
   type AuthResult,
 } from './oauth';
-import type { AuthorizationServerMetadata } from './oauth-types';
+import type { AuthorizationServerMetadata, OAuthTokens } from './oauth-types';
 import {
   InvalidClientError,
   ServerError,
@@ -3398,6 +3399,223 @@ describe('auth function', () => {
     expect(customFetch.mock.calls[1][0].toString()).toBe(
       'https://auth.example.com/.well-known/oauth-authorization-server',
     );
+  });
+});
+
+describe('auth invalidation context', () => {
+  /**
+   * A credential record shared by two clients, as with two replicas of one
+   * deployment. `invalidateCredentials` honors `tokens` invalidation with a
+   * compare-and-delete: it removes the record only when the rejected
+   * generation is still the one persisted, so a concurrent refresh winner is
+   * never destroyed.
+   */
+  function createSharedStorageProvider() {
+    let storage: OAuthTokens | undefined;
+    const invalidationCalls: Array<{
+      scope: 'all' | 'client' | 'tokens' | 'verifier';
+      contextTokens: OAuthTokens | undefined;
+      storageAtInvalidation: OAuthTokens | undefined;
+    }> = [];
+
+    const provider: OAuthClientProvider = {
+      get redirectUrl() {
+        return 'http://localhost:3000/callback';
+      },
+      get clientMetadata() {
+        return {
+          redirect_uris: ['http://localhost:3000/callback'],
+          client_name: 'Test Client',
+        };
+      },
+      clientInformation: vi.fn().mockResolvedValue({
+        client_id: 'test-client',
+        client_secret: 'test-secret',
+        authorization_server: 'https://auth.example.com/',
+        token_endpoint: 'https://auth.example.com/token',
+      }),
+      tokens: vi.fn(() => storage),
+      saveTokens: vi.fn((tokens: OAuthTokens) => {
+        storage = tokens;
+      }),
+      redirectToAuthorization: vi.fn(),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn().mockResolvedValue('test-verifier'),
+      saveAuthorizationServerInformation: vi.fn(),
+      invalidateCredentials: vi.fn(
+        (
+          scope: 'all' | 'client' | 'tokens' | 'verifier',
+          context?: OAuthCredentialsInvalidationContext,
+        ) => {
+          invalidationCalls.push({
+            scope,
+            contextTokens: context?.tokens,
+            storageAtInvalidation: storage,
+          });
+          if (
+            scope === 'tokens' &&
+            (!context?.tokens ||
+              storage?.refresh_token === context.tokens?.refresh_token)
+          ) {
+            storage = undefined;
+          }
+        },
+      ),
+    };
+
+    return { provider, invalidationCalls, getStorage: () => storage };
+  }
+
+  function setupSharedStorageFetch(
+    tokenResponses: Array<{ status: number; body: Record<string, unknown> }>,
+    onTokenRequest?: (callIndex: number) => void,
+  ) {
+    let tokenCallCount = 0;
+    mockFetch.mockImplementation((url: URL | string) => {
+      const urlString = url.toString();
+
+      if (urlString.includes('/.well-known/oauth-protected-resource')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            resource: 'https://api.example.com/mcp-server',
+            authorization_servers: ['https://auth.example.com'],
+          }),
+        });
+      } else if (
+        urlString.includes('/.well-known/oauth-authorization-server')
+      ) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            issuer: 'https://auth.example.com',
+            authorization_endpoint: 'https://auth.example.com/authorize',
+            token_endpoint: 'https://auth.example.com/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          }),
+        });
+      } else if (urlString.includes('/token')) {
+        const callIndex = tokenCallCount;
+        tokenCallCount++;
+        onTokenRequest?.(callIndex);
+        const response =
+          tokenResponses[Math.min(callIndex, tokenResponses.length - 1)];
+        return Promise.resolve(
+          new Response(JSON.stringify(response.body), {
+            status: response.status,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        );
+      }
+
+      return Promise.resolve({ ok: false, status: 404 });
+    });
+    return { getTokenCallCount: () => tokenCallCount };
+  }
+
+  const sharedCredential = {
+    authorization_server: 'https://auth.example.com/',
+    token_endpoint: 'https://auth.example.com/token',
+  };
+
+  it('does not delete a newer generation when a stale refresh loses the race', async () => {
+    const { provider, invalidationCalls, getStorage } =
+      createSharedStorageProvider();
+
+    const { getTokenCallCount } = setupSharedStorageFetch(
+      [
+        // The stale refresh is rejected with invalid_grant.
+        {
+          status: 400,
+          body: { error: 'invalid_grant', error_description: 'token revoked' },
+        },
+        // The retry refreshes the winner's still-valid refresh token.
+        {
+          status: 200,
+          body: {
+            access_token: 'winner-access-2',
+            token_type: 'Bearer',
+            refresh_token: 'winner-refresh-2',
+          },
+        },
+      ],
+      // While the stale refresh is in flight, the concurrent client refreshes
+      // first and persists its winning pair into the shared record.
+      callIndex => {
+        if (callIndex === 0) {
+          provider.saveTokens({
+            ...sharedCredential,
+            access_token: 'winner-access',
+            token_type: 'Bearer',
+            refresh_token: 'winner-refresh',
+          });
+        }
+      },
+    );
+
+    provider.saveTokens({
+      ...sharedCredential,
+      access_token: 'stale-access',
+      token_type: 'Bearer',
+      refresh_token: 'stale-refresh',
+    });
+
+    const result = await auth(provider, {
+      serverUrl: 'https://api.example.com/mcp-server',
+    });
+
+    expect(invalidationCalls).toHaveLength(1);
+    expect(invalidationCalls[0]?.scope).toBe('tokens');
+    expect(invalidationCalls[0]?.contextTokens).toEqual(
+      expect.objectContaining({ refresh_token: 'stale-refresh' }),
+    );
+    expect(invalidationCalls[0]?.storageAtInvalidation).toEqual(
+      expect.objectContaining({ refresh_token: 'winner-refresh' }),
+    );
+    expect(result).toBe('AUTHORIZED');
+    expect(getTokenCallCount()).toBe(2);
+    expect(getStorage()).toEqual(
+      expect.objectContaining({ refresh_token: 'winner-refresh-2' }),
+    );
+  });
+
+  it('deletes the record when the rejected generation is still the stored one', async () => {
+    const { provider, invalidationCalls, getStorage } =
+      createSharedStorageProvider();
+
+    const { getTokenCallCount } = setupSharedStorageFetch([
+      {
+        status: 400,
+        body: { error: 'invalid_grant', error_description: 'token revoked' },
+      },
+    ]);
+
+    provider.saveTokens({
+      ...sharedCredential,
+      access_token: 'stale-access',
+      token_type: 'Bearer',
+      refresh_token: 'stale-refresh',
+    });
+
+    const result = await auth(provider, {
+      serverUrl: 'https://api.example.com/mcp-server',
+    });
+
+    // Without a concurrent winner the compare-and-delete clears the record
+    // and the flow falls through to the authorization redirect.
+    expect(result).toBe('REDIRECT');
+    expect(getTokenCallCount()).toBe(1);
+    expect(invalidationCalls).toHaveLength(1);
+    expect(invalidationCalls[0]?.contextTokens).toEqual(
+      expect.objectContaining({ refresh_token: 'stale-refresh' }),
+    );
+    expect(invalidationCalls[0]?.storageAtInvalidation).toEqual(
+      expect.objectContaining({ refresh_token: 'stale-refresh' }),
+    );
+    expect(getStorage()).toBeUndefined();
   });
 });
 
