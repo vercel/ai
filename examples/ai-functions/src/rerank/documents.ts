@@ -17,7 +17,7 @@ export const documents = [
     from: 'John McGill <john_fake_mcgill@microsoft.com>',
     to: ['Steve <steve@me.com>'],
     date: '2024-02-15',
-    subject: 'Commited Pricing Strategy',
+    subject: 'Committed Pricing Strategy',
     text: 'I know we went back and forth on this during the call but the pricing for now should follow the agreement at hand.',
   },
   {
