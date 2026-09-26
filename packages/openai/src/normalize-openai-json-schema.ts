@@ -54,10 +54,7 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
     const propertyNames = schema.propertyNames;
 
     if (propertyNames != null) {
-      if (
-        typeof propertyNames === 'boolean' ||
-        propertyNames.type !== 'string'
-      ) {
+      if (!canMatchString(propertyNames)) {
         throw new UnsupportedFunctionalityError({
           functionality:
             'JSON Schema propertyNames that does not use a string schema',
@@ -181,6 +178,54 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
       ? definition
       : normalizeSchema(definition);
   }
+}
+
+/**
+ * Checks whether a `propertyNames` schema can match a string. Property names
+ * are always strings, so this only returns false for schemas that match no
+ * property name: `false`, `{ not: {} }`, a non-string `type`, `const`, or
+ * `enum`, or combinations of these in `allOf`, `anyOf`, or `oneOf`. Other
+ * keywords, including `$ref`, are not evaluated.
+ */
+function canMatchString(schema: JSONSchema7Definition): boolean {
+  if (typeof schema === 'boolean') {
+    return schema;
+  }
+
+  if (
+    schema.type != null &&
+    (Array.isArray(schema.type)
+      ? !schema.type.includes('string')
+      : schema.type !== 'string')
+  ) {
+    return false;
+  }
+
+  if (schema.const !== undefined && typeof schema.const !== 'string') {
+    return false;
+  }
+
+  if (
+    schema.enum != null &&
+    !schema.enum.some(value => typeof value === 'string')
+  ) {
+    return false;
+  }
+
+  if (
+    schema.not === true ||
+    (schema.not != null &&
+      typeof schema.not === 'object' &&
+      Object.keys(schema.not).length === 0)
+  ) {
+    return false;
+  }
+
+  return (
+    (schema.allOf?.every(canMatchString) ?? true) &&
+    (schema.anyOf?.some(canMatchString) ?? true) &&
+    (schema.oneOf?.some(canMatchString) ?? true)
+  );
 }
 
 function containsRegexLookaround(pattern: string): boolean {
