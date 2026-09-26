@@ -666,6 +666,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
     this.activeResumeRequest?.abortController.abort();
     this.activeResponse?.abortController.abort();
+
+    // Wait for the work queued so far (the in-flight request and any
+    // buffered chunk-processing jobs) to settle, so that no state updates
+    // can land after stop() has resolved.
+    await this.jobExecutor.run(async () => {});
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
