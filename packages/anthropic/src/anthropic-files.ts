@@ -10,10 +10,14 @@ import {
   lazySchema,
   postFormDataToApi,
   zodSchema,
+  resolve,
   type FetchFunction,
+  type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { anthropicFailedResponseHandler } from './anthropic-error';
+import type { AnthropicHeaders } from './anthropic-language-model-options';
+import { fromAnthropicHeaders } from './util/from-anthropic-headers';
 
 const anthropicUploadFileResponseSchema = lazySchema(() =>
   zodSchema(
@@ -32,7 +36,7 @@ const anthropicUploadFileResponseSchema = lazySchema(() =>
 interface AnthropicFilesConfig {
   provider: string;
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: Resolvable<AnthropicHeaders>;
   fetch?: FetchFunction;
 }
 
@@ -44,6 +48,19 @@ export class AnthropicFiles implements FilesV4 {
   }
 
   constructor(private readonly config: AnthropicFilesConfig) {}
+
+  private async getHeaders(
+    headers?: AnthropicHeaders,
+  ): Promise<Record<string, string | undefined>> {
+    const resolvedHeaders = await resolve(this.config.headers);
+    return combineHeaders(
+      fromAnthropicHeaders(resolvedHeaders),
+      {
+        'anthropic-beta': 'files-api-2025-04-14',
+      },
+      fromAnthropicHeaders(headers),
+    );
+  }
 
   async uploadFile({
     data,
@@ -63,13 +80,10 @@ export class AnthropicFiles implements FilesV4 {
       formData.append('file', blob);
     }
 
+    const resolvedHeaders = await this.getHeaders(headers);
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/files`,
-      headers: combineHeaders(
-        this.config.headers(),
-        { 'anthropic-beta': 'files-api-2025-04-14' },
-        headers,
-      ),
+      headers: resolvedHeaders,
       formData,
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
