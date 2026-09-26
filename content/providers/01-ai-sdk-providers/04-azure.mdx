@@ -131,6 +131,13 @@ You can use the following optional settings to customize the OpenAI provider ins
   This option is useful for compatibility with certain Azure OpenAI models or deployments
   that require the legacy endpoint format.
 
+- **speechBaseURL** _string_
+
+  URL prefix for Azure Speech transcription requests (MAI-Transcribe-2), for example
+  a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
+  Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
+  Speech requests do not use `baseURL` or `apiVersion`.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -1091,13 +1098,112 @@ Azure OpenAI supports DALL-E 2 and DALL-E 3 models through deployments. The capa
 
 ## Transcription Models
 
-You can create models that call the Azure OpenAI transcription API using the `.transcription()` factory method.
+You can create models that call the Azure OpenAI or Azure Speech transcription API using the `.transcription()` factory method.
 
 The first argument is the model id e.g. `whisper-1`.
 
 ```ts
 const model = azure.transcription('whisper-1');
 ```
+
+### MAI-Transcribe-2
+
+MAI-Transcribe-2 is a multilingual speech-to-text model from Microsoft AI, served through Azure.
+`azure.transcription('mai-transcribe-2')` uses the Azure Speech API.
+The model ID is matched case-insensitively and sent to Azure as `MAI-Transcribe-2`.
+All other IDs use the OpenAI API by default, including custom deployment names.
+
+```ts
+import { azure, type AzureTranscriptionModelOptions } from '@ai-sdk/azure';
+import { transcribe } from 'ai';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: azure.transcription('mai-transcribe-2'),
+  audio: await readFile('audio.wav'),
+  providerOptions: {
+    azure: {
+      timestamps: 'word',
+      diarization: { enabled: true },
+      transcribeStyle: 'clean',
+    } satisfies AzureTranscriptionModelOptions,
+  },
+});
+```
+
+MAI-Transcribe-2 requires a Microsoft Foundry (Speech) resource in a region where it is available:
+`centralindia`, `eastus`, `northeurope`, `southeastasia`, `westus`, or `westus2`
+(see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions?tabs=llmspeech)).
+Resources in other regions reject the request.
+Set `AZURE_RESOURCE_NAME` and `AZURE_API_KEY` to that resource's name and key,
+or pass `resourceName` and `apiKey` to `createAzure`. `tokenProvider`, custom headers,
+and custom fetch are also supported. Keys are sent as `Ocp-Apim-Subscription-Key`.
+
+Speech requests use `https://{resourceName}.cognitiveservices.azure.com/speechtotext/transcriptions:transcribe`
+with API version `2025-10-15`. Use `speechBaseURL` to supply a different Speech URL prefix
+(without `/speechtotext/transcriptions:transcribe`), for example a regional endpoint:
+
+```ts
+import { createAzure } from '@ai-sdk/azure';
+
+const azure = createAzure({
+  speechBaseURL: 'https://eastus.api.cognitive.microsoft.com',
+  apiKey: process.env.AZURE_SPEECH_API_KEY,
+});
+```
+
+Speech requests do not use `baseURL`, `apiVersion`, or `useDeploymentBasedUrls`;
+those settings only apply to Azure OpenAI models.
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech'_
+  Overrides model-based API selection for this request.
+  Set `openai` for an OpenAI deployment named `mai-transcribe-2`, or `speech` to
+  send another model ID to Speech. Other Speech model IDs are sent unchanged.
+
+- **timestamps** _'word' | 'segment' | 'none'_
+  Timing granularity. The AI SDK defaults to `segment` so that results include
+  timed segments (Azure's own default is `none`). `segment` returns one segment
+  per sentence or speaker turn, `word` additionally returns word timing in provider
+  metadata, and `none` returns a single segment that spans the whole audio.
+
+- **transcribeStyle** _'verbatim' | 'clean'_
+  `verbatim` keeps fillers and false starts, `clean` removes them. Defaults to `verbatim`.
+
+- **locales** _string[]_
+  Exactly one language code, such as `['en']`. This is a strong hint; omit it for
+  automatic language detection and code switching.
+
+- **diarization** _object_
+  Set `enabled` to `true` to identify speakers. Speaker IDs are returned in
+  provider metadata. `maxSpeakers` is not supported by MAI-Transcribe-2.
+
+- **phraseList** _object_
+  Set `phrases` to a list of names and domain terms to bias recognition toward them.
+
+Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
+options remain under `providerOptions.openai`. Speech-only Azure options produce
+warnings when used with the OpenAI API. Unknown or unsupported `providerOptions.azure`
+keys (for example `diarization.maxSpeakers`) are rejected before the request is sent.
+
+Results include transcript text, timed segments, duration, and an ISO-639-1
+language code when the reported phrase locales identify one language. Mixed-language
+results, and languages without an ISO-639-1 code such as Filipino (`fil`) or
+Cantonese (`yue`), leave `language` undefined. Speaker IDs, exact locales, and word
+timing are preserved in `providerMetadata.azure.phrases`; use the exported
+`AzureTranscriptionProviderMetadata` type to access them. Phrase timing is in
+milliseconds in metadata and seconds in normalized `segments`.
+
+MAI-Transcribe-2 is a file transcription model: it accepts WAV, MP3, or FLAC files
+shorter than 2 hours and smaller than 250 MB, and does not support streaming
+transcription. The model is in public preview. See
+[Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
+for supported languages and diarization limits.
+
+AI Gateway forwards these provider options, including `azure.api`.
+
+### OpenAI transcription
 
 <Note>
   If you encounter a "DeploymentNotFound" error with transcription models,
@@ -1164,6 +1270,7 @@ The following provider options are available:
 | `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
 | `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
 | `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
+| `mai-transcribe-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
 
 ## Speech Models
 
