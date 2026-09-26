@@ -720,7 +720,11 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     }
   }
 
-  if (emittedTerminalError) return;
+  // A turn the host itself stopped must not report a success-shaped finish:
+  // the host has already settled the turn on its side, and the loop above can
+  // reach here normally if the abort raced in right as the last message
+  // observed its result.
+  if (emittedTerminalError || turn.abortSignal.aborted) return;
   emittedTerminalFinish = true;
   void emittedTerminalFinish;
   emit({

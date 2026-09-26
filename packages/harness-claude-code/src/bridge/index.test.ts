@@ -989,4 +989,22 @@ describe('Claude Code bridge configuration', () => {
       expect.objectContaining({ type: 'finish' }),
     );
   });
+
+  test('does not report a success-shaped finish for a turn the host already aborted', async () => {
+    // Aborted before the turn even starts, so the loop breaks on its very
+    // first message without going through the error path — exactly the case
+    // that must not fall through to a success `finish`.
+    const turnAbort = new AbortController();
+    turnAbort.abort();
+    state.turnAbortController = turnAbort;
+    state.messages = [
+      { type: 'result', subtype: 'success', is_error: false, result: 'done' },
+    ];
+
+    await import('./index');
+
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish' }),
+    );
+  });
 });
