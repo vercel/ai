@@ -1,5 +1,18 @@
 # @ai-sdk/perplexity
 
+## 5.0.0
+
+### Major Changes
+
+- 38fe0e5: BREAKING: Migrate language generation from the Sonar Chat Completions API to the Agent API. Replace Sonar model IDs and provider options with Agent API presets, models, and tools. The new API changes request and response metadata, raw stream events, usage and cost data, and does not support Sonar PDF input or image and video results.
+
+### Patch Changes
+
+- 38fe0e5: Recover missing text from Agent API terminal events and output items, including incomplete responses, without repeating text already received as deltas. Track each message content part separately.
+- 38fe0e5: Accept native Agent API tool traces such as finance results without validating them as web search results. Preserve these traces in raw responses and stream chunks.
+- 38fe0e5: Preserve URL citation annotations as sources in Agent API streams, including completed and incomplete terminal responses.
+- 38fe0e5: Emit each Agent API source URL once while preserving search result IDs for citation correlation when a URL is fetched or annotated before it appears in search results.
+
 ## 4.0.52
 
 ### Patch Changes
