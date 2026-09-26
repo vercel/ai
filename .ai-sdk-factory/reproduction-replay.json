@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21545,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/google-realtime-input-transcription-id.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/google-realtime-input-transcription-id.ts",
+    "packages/google/src/realtime/__fixtures__/issue-21545-server-events.json",
+    "packages/ai/src/realtime/google-realtime-issue-21545.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21545_USER_MESSAGE_OVERWRITTEN: expected two distinct user transcription messages"
+  }
+}
