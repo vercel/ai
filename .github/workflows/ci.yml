@@ -143,6 +143,9 @@ jobs:
             BASE_SHA="$(git rev-list --max-parents=0 HEAD)"
           fi
 
+          # Do not watch pnpm-lock.yaml directly: any workspace package update
+          # changes it. Docs dependency manifests and shared resolver settings
+          # below still trigger the full docs validation when they change.
           if git diff --quiet "$BASE_SHA" HEAD -- \
             '.github/workflows/ci.yml' \
             '.npmrc' \
@@ -151,7 +154,6 @@ jobs:
             'content/providers/**' \
             'content/cookbook/**' \
             'package.json' \
-            'pnpm-lock.yaml' \
             'pnpm-workspace.yaml'; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
           else
@@ -172,6 +174,15 @@ jobs:
       - name: Install dependencies
         if: steps.docs-changes.outputs.changed == 'true'
         run: pnpm install --frozen-lockfile
+
+      - name: Restore docs build cache
+        if: steps.docs-changes.outputs.changed == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: apps/docs/.next/cache
+          key: ${{ runner.os }}-docs-site-next-${{ hashFiles('pnpm-lock.yaml', 'apps/docs/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-docs-site-next-
 
       # The docs build peaks above the standard runner's 16 GB of RAM
       # (every versioned content family is compiled into one app), which
