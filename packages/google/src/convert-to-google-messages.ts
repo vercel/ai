@@ -13,6 +13,7 @@ import {
   resolveFullMediaType,
   resolveProviderReference,
   secureJsonParse,
+  type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import type {
   GoogleContent,
@@ -260,6 +261,7 @@ export function convertToGoogleMessages(
     supportsFunctionResponseParts?: boolean;
     includeFunctionCallIds?: boolean;
     supportedFunctionResponseUrls?: Record<string, RegExp[]>;
+    toolNameMapping?: ToolNameMapping;
   },
 ): GooglePrompt {
   const systemInstructionParts: Array<{ text: string }> = [];
@@ -273,6 +275,8 @@ export function convertToGoogleMessages(
   const supportsFunctionResponseParts =
     options?.supportsFunctionResponseParts ?? true;
   const includeFunctionCallIds = options?.includeFunctionCallIds ?? true;
+  const toProviderToolName = (toolName: string) =>
+    options?.toolNameMapping?.toProviderToolName(toolName) ?? toolName;
   const supportedFunctionResponseUrls =
     options?.supportedFunctionResponseUrls ?? {};
 
@@ -516,7 +520,7 @@ export function convertToGoogleMessages(
                 case 'tool-call': {
                   if (
                     part.providerExecuted === true &&
-                    part.toolName === 'code_execution'
+                    toProviderToolName(part.toolName) === 'code_execution'
                   ) {
                     return {
                       executableCode: codeExecutionInputSchema.parse(
@@ -583,7 +587,7 @@ export function convertToGoogleMessages(
 
                 case 'tool-result': {
                   if (
-                    part.toolName === 'code_execution' &&
+                    toProviderToolName(part.toolName) === 'code_execution' &&
                     part.output.type === 'json'
                   ) {
                     return {

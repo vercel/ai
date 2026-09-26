@@ -318,6 +318,13 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         })
       : prompt;
 
+    const toolNameMapping = createToolNameMapping({
+      tools,
+      providerToolNames: {
+        'google.code_execution': 'code_execution',
+      },
+    });
+
     const { contents, systemInstruction } = convertToGoogleMessages(
       promptWithDownloadedToolResultFiles,
       {
@@ -328,6 +335,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
         supportsFunctionResponseParts: usesGemini3Features,
         includeFunctionCallIds: !isVertexProvider,
         supportedFunctionResponseUrls,
+        toolNameMapping,
       },
     );
 
@@ -340,12 +348,6 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       modelId,
       isVertexProvider,
-    });
-    const toolNameMapping = createToolNameMapping({
-      tools,
-      providerToolNames: {
-        'google.code_execution': 'code_execution',
-      },
     });
 
     const resolvedThinking = resolveThinkingConfig({

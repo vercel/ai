@@ -1,6 +1,7 @@
 import {
   LanguageModelV4ProviderTool,
   type JSONSchema7,
+  type LanguageModelV4CallOptions,
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -518,6 +519,120 @@ describe('doGenerate', () => {
       ]
     `);
   });
+
+  it.each(['code_execution', 'runCode'])(
+    'should replay code execution parts of the tool registered as %s',
+    async toolName => {
+      const response = {
+        candidates: [
+          {
+            content: { parts: [{ text: '323' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+      };
+      const jsonResponse = () =>
+        new Response(JSON.stringify(response), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      const fetch = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse())
+        .mockResolvedValueOnce(
+          new Response(`data: ${JSON.stringify(response)}\n\n`, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream' },
+          }),
+        )
+        .mockResolvedValueOnce(jsonResponse());
+      const options: LanguageModelV4CallOptions = {
+        tools: [
+          {
+            type: 'provider',
+            id: 'google.code_execution',
+            name: toolName,
+            args: {},
+          },
+          {
+            type: 'function',
+            name: 'listItems',
+            inputSchema: { type: 'object', properties: {} },
+          },
+        ],
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: '17 * 19?' }] },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-call-1',
+                toolName,
+                input: { language: 'PYTHON', code: 'print(17 * 19)' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'function-call-1',
+                toolName: 'listItems',
+                input: {},
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'code-call-1',
+                toolName,
+                output: {
+                  type: 'json',
+                  value: { outcome: 'OUTCOME_OK', output: '323\n' },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'function-call-1',
+                toolName: 'listItems',
+                output: { type: 'json', value: { items: ['a', 'b'] } },
+              },
+            ],
+          },
+        ],
+      };
+      const googleModel = createGoogle({
+        apiKey: 'test-api-key',
+        fetch,
+      }).languageModel('gemini-2.0-pro');
+      const vertexModel = new GoogleLanguageModel('gemini-2.0-pro', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        generateId: () => 'test-id',
+        fetch,
+      });
+
+      await googleModel.doGenerate(options);
+      await convertReadableStreamToArray(
+        (await googleModel.doStream(options)).stream,
+      );
+      await vertexModel.doGenerate(options);
+
+      expect(fetch).toHaveBeenCalledTimes(3);
+      for (const [, init] of fetch.mock.calls) {
+        const { contents } = JSON.parse(init.body);
+        expect(contents[1].parts).toMatchObject([
+          { executableCode: { language: 'PYTHON', code: 'print(17 * 19)' } },
+          { functionCall: { name: 'listItems', args: {} } },
+          { codeExecutionResult: { outcome: 'OUTCOME_OK', output: '323\n' } },
+        ]);
+        expect(contents[2].parts).toMatchObject([
+          { functionResponse: { name: 'listItems' } },
+        ]);
+      }
+    },
+  );
 
   const TEST_URL_GEMINI_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
