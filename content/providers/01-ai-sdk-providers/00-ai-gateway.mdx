@@ -1472,11 +1472,15 @@ The following gateway provider options are available:
 
   When `sort` is active, the response's `providerMetadata.gateway.routing.sort` object contains the sort option used, the resulting execution order, per-provider metric values, and any providers that were deprioritized.
 
-- **models** _string[]_
+- **models** _string[] | [GatewayModelFallback, ...string[]]_
 
-  Specifies fallback models to use when the primary model fails or is unavailable. The gateway will try the primary model first (specified in the `model` parameter), then try each model in this array in order until one succeeds.
+  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Evaluation requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain evaluation with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-evaluation requests. Type evaluation options with `GatewayEvaluationProviderOptions`, since `GatewayProviderOptions` only accepts string entries.
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
+
+  A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
+
+  Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or `{ atLeast: { count, conditions: [...] } }`. Each condition list holds 1 to 20 conditions. `atLeast.count` must be an integer from `1` through the number of conditions. Conditions nest at most 5 levels deep. Question IDs and the conditional `model` are 1 to 256 characters. The SDK checks these bounds before sending the request, and the gateway also checks that each question exists and has a kind that matches its condition. String error fallbacks may follow the conditional entry.
 
 - **user** _string_
 
@@ -1607,6 +1611,63 @@ const { text } = await generateText({
 // 3. If that fails, try gemini-3-flash-preview
 // 4. Return the result from the first model that succeeds
 ```
+
+#### Conditional Evaluation Fallbacks Example
+
+Conditional model entries are available only for evaluation requests. Keep the
+configuration under `providerOptions.gateway.models`. `experimental_evaluate`
+does not have a top-level fallback option.
+
+```ts
+import type { GatewayEvaluationProviderOptions } from '@ai-sdk/gateway';
+import { experimental_evaluate } from 'ai';
+
+const questions = {
+  department: {
+    type: 'choice',
+    instructions: 'Which team should handle this?',
+    criteria: { billing: 'Charges and refunds', support: 'Other requests' },
+  },
+  requestsRefund: {
+    type: 'boolean',
+    instructions: 'Is the customer requesting money back?',
+  },
+} as const;
+
+const result = await experimental_evaluate({
+  model: 'typesafe-ai/jev',
+  state: 'I was charged twice. Please refund the duplicate.',
+  questions,
+  providerOptions: {
+    gateway: {
+      models: [
+        {
+          model: 'openai/gpt-5.6-sol',
+          when: {
+            any: [
+              { question: 'department', confidenceBelow: 0.6 },
+              {
+                question: 'requestsRefund',
+                probabilityBetween: [0.4, 0.6],
+              },
+            ],
+          },
+        },
+      ],
+    } satisfies GatewayEvaluationProviderOptions<keyof typeof questions>,
+  },
+});
+
+// The model that produced the answers, the fallback when the condition matched.
+console.log(result.response.modelId);
+console.log(JSON.stringify(result.providerMetadata?.gateway?.routing, null, 2));
+```
+
+When the condition matches, `result.response.modelId` names the fallback model,
+and `providerMetadata.gateway.routing.modelAttempts` lists the primary and
+fallback attempts. The successful attempt of each stage carries its own
+`generationId`, `usage`, and cost fields, and the first fallback attempt lists
+the questions that triggered it in `triggeredBy`.
 
 #### Zero Data Retention Example
 

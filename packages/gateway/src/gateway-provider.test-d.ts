@@ -36,6 +36,37 @@ const asyncJob = {
 const providerMetadata = { asyncJob } satisfies GatewayProviderMetadata;
 void providerMetadata;
 
+// Routing metadata passes through untyped, under the index signature.
+const evaluationFallbackMetadata = {
+  generationId: 'gen_fallback',
+  routing: {
+    originalModelId: 'typesafe-ai/jev',
+    modelAttempts: [
+      {
+        canonicalSlug: 'typesafe-ai/jev',
+        success: true,
+        providerAttemptCount: 1,
+        providerAttempts: [],
+        generationId: 'gen_primary',
+        usage: { inputTokens: 10, outputTokens: 2 },
+        cost: '0.001',
+        marketCost: '0.001',
+      },
+      {
+        canonicalSlug: 'openai/gpt-5.6-sol',
+        success: true,
+        providerAttemptCount: 1,
+        providerAttempts: [],
+        generationId: 'gen_fallback',
+        usage: { inputTokens: 12, outputTokens: 3 },
+        triggeredBy: [{ question: 'department', reason: 'confidence_below' }],
+        cost: '0.002',
+      },
+    ],
+  },
+} satisfies GatewayProviderMetadata;
+void evaluationFallbackMetadata;
+
 createGateway({ apiKey: 'vck_test-key' });
 createGateway({ apiKey: 'vca_test-token' });
 createGateway({ apiKey: 'vca_test-token', teamIdOrSlug: 'vercel' });

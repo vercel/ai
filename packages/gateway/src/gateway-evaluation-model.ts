@@ -8,6 +8,7 @@ import {
   createJsonResponseHandler,
   getErrorMessage,
   lazySchema,
+  parseProviderOptions,
   postJsonToApi,
   resolve,
   zodSchema,
@@ -17,6 +18,7 @@ import { z } from './zod';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
+import { gatewayEvaluationProviderOptionsSchema } from './gateway-provider-options';
 
 export class GatewayEvaluationModel implements EvaluationModelV4 {
   readonly specificationVersion = 'v4';
@@ -44,6 +46,15 @@ export class GatewayEvaluationModel implements EvaluationModelV4 {
   }: Parameters<EvaluationModelV4['doEvaluate']>[0]): Promise<
     Awaited<ReturnType<EvaluationModelV4['doEvaluate']>>
   > {
+    const gatewayOptions = await parseProviderOptions({
+      provider: 'gateway',
+      providerOptions,
+      schema: gatewayEvaluationProviderOptionsSchema,
+    });
+    const validatedProviderOptions =
+      gatewayOptions == null
+        ? providerOptions
+        : { ...providerOptions, gateway: gatewayOptions };
     const resolvedHeaders = this.config.headers
       ? await resolve(this.config.headers)
       : undefined;
@@ -63,7 +74,9 @@ export class GatewayEvaluationModel implements EvaluationModelV4 {
         body: {
           state,
           questions,
-          ...(providerOptions ? { providerOptions } : {}),
+          ...(validatedProviderOptions
+            ? { providerOptions: validatedProviderOptions }
+            : {}),
         },
         successfulResponseHandler: createJsonResponseHandler(
           gatewayEvaluationResponseSchema,
@@ -84,7 +97,7 @@ export class GatewayEvaluationModel implements EvaluationModelV4 {
         providerMetadata:
           responseBody.providerMetadata as unknown as SharedV4ProviderMetadata,
         response: {
-          modelId: this.modelId,
+          modelId: responseBody.model ?? this.modelId,
           headers: responseHeaders,
           body: rawValue,
         },
@@ -152,6 +165,7 @@ const gatewayEvaluationResponseSchema = lazySchema(() =>
   zodSchema(
     z.object({
       answers: z.record(z.string(), gatewayEvaluationAnswerSchema),
+      model: z.string().optional(),
       rounding: z
         .object({
           probabilityDecimals: z.number().optional(),
