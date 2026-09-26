@@ -1143,7 +1143,76 @@ describe('Chat', () => {
     expect((chat.messages[0]?.parts[1] as any)?.text).toBe('before stop');
   });
 
-  it('should stop a resumed stream while reconnection is pending', async () => {
+  it('should wait for the stream pipeline to terminate before stop() resolves', async () => {
+    const nextChunk = createResolvablePromise<void>();
+
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'before stop',
+        });
+      },
+      async pull(controller) {
+        await nextChunk.promise;
+
+        try {
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: ' after stop',
+          });
+          controller.close();
+        } catch {
+          // the stream was cancelled while the pull was pending
+        }
+      },
+    });
+
+    let onFinishCalls = 0;
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => stream,
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onFinish: () => {
+        onFinishCalls++;
+      },
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+
+    while ((chat.messages.at(-1)?.parts[1] as any)?.text !== 'before stop') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+
+    // once stop() has resolved, the stream pipeline must have fully
+    // terminated: the status is settled, onFinish has run, and no further
+    // chunk processing can update the messages
+    expect(chat.status).toBe('ready');
+    expect(onFinishCalls).toBe(1);
+    const textAfterStop = (chat.messages.at(-1)?.parts[1] as any)?.text;
+
+    nextChunk.resolve();
+    await sendPromise;
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect((chat.messages.at(-1)?.parts[1] as any)?.text).toBe(textAfterStop);
+    expect(chat.status).toBe('ready');
+    expect(onFinishCalls).toBe(1);
+  });
+
+it('should stop a resumed stream while reconnection is pending', async () => {
     const reconnectResult =
       createResolvablePromise<ReadableStream<UIMessageChunk>>();
     let reconnectAbortSignal: AbortSignal | undefined;
