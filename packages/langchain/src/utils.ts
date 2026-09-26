@@ -1790,6 +1790,19 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
+          if (!emittedToolCalls.has(toolCallId)) {
+            markToolCallEmitted(state, toolCallId, eventNamespace);
+            controller.enqueue({
+              type: 'tool-input-start',
+              toolCallId,
+              toolName:
+                typeof dataSource.name === 'string'
+                  ? dataSource.name
+                  : 'unknown',
+              dynamic: true,
+            });
+          }
+
           state.emittedToolOutputMessageIds.add(msgId);
           markToolOutputEmitted(state, toolCallId, eventNamespace);
           if (status === 'error') {
