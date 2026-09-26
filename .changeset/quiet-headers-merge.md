@@ -1,5 +1,7 @@
 ---
 '@ai-sdk/provider-utils': patch
+'@ai-sdk/google': patch
+'@ai-sdk/openai': patch
 ---
 
-Normalize combined header names so later values override case-insensitively.
+Merge case-variant header names so later request credentials override configured values.
