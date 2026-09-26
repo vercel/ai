@@ -1105,6 +1105,144 @@ describe('buildGoogleSessionConfig', () => {
     });
   });
 
+  it('adds the default thinkingLevel when thinkingConfig sets neither thinkingLevel nor thinkingBudget', () => {
+    for (const modelId of [
+      'gemini-3.8-live-extended-thinking',
+      'models/gemini-3.8-live-extended-thinking',
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: {
+                thinkingConfig: { includeThoughts: true },
+              } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          modelId,
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+      });
+    }
+
+    for (const thinkingConfig of [{}, { thinkingLevel: undefined }]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              google: { thinkingConfig } satisfies GoogleRealtimeModelOptions,
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig: { thinkingLevel: 'low' },
+      });
+    }
+  });
+
+  it('keeps thinkingBudget: 0 without adding a default thinkingLevel', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { thinkingBudget: 0 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { thinkingBudget: 0 },
+    });
+  });
+
+  it('does not overwrite a raw generationConfig.thinkingConfig that sets thinkingLevel or thinkingBudget', () => {
+    for (const thinkingConfig of [
+      { thinkingLevel: 'high' },
+      { thinkingBudget: 1024, includeThoughts: true },
+    ]) {
+      expect(
+        buildGoogleSessionConfig(
+          {
+            providerOptions: {
+              generationConfig: {
+                responseModalities: ['AUDIO'],
+                thinkingConfig,
+              },
+            },
+          },
+          'gemini-3.8-live-extended-thinking',
+        ).generationConfig,
+      ).toEqual({
+        responseModalities: ['AUDIO'],
+        thinkingConfig,
+      });
+    }
+  });
+
+  it('adds the default thinkingLevel to a raw generationConfig.thinkingConfig that sets neither', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            temperature: 0.2,
+            thinkingConfig: { includeThoughts: true },
+          },
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      temperature: 0.2,
+      thinkingConfig: { includeThoughts: true, thinkingLevel: 'low' },
+    });
+  });
+
+  it('prefers a typed thinkingConfig over a raw generationConfig.thinkingConfig', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+          google: {
+            thinkingConfig: { thinkingBudget: 512 },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live-extended-thinking',
+    );
+
+    expect(result.generationConfig).toEqual({
+      thinkingConfig: { thinkingBudget: 512 },
+    });
+  });
+
+  it('does not add a default thinkingLevel on Live models without background reasoning', () => {
+    const result = buildGoogleSessionConfig(
+      {
+        providerOptions: {
+          google: {
+            thinkingConfig: { includeThoughts: true },
+          } satisfies GoogleRealtimeModelOptions,
+        },
+      },
+      'gemini-3.8-live',
+    );
+
+    expect(result.generationConfig).toEqual({
+      responseModalities: ['AUDIO'],
+      thinkingConfig: { includeThoughts: true },
+    });
+  });
+
   it('stamps defaultToolBehavior onto every function declaration', () => {
     const result = buildGoogleSessionConfig(
       {
