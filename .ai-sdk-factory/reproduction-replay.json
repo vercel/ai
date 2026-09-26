@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21548,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/langchain-bare-tool-message-order.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/langchain-bare-tool-message-order.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: call_1 emitted tool-output-available without a preceding tool-input-start"
+  }
+}
