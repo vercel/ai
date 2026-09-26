@@ -21,10 +21,14 @@ import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from 
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
-import type { AnthropicModelId } from './anthropic-language-model-options';
+import type {
+  AnthropicHeaders,
+  AnthropicModelId,
+} from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
 import { AnthropicSkills } from './skills/anthropic-skills';
 import { VERSION } from './version';
+import { fromAnthropicHeaders } from './util/from-anthropic-headers';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com';
 const ANTHROPIC_API_VERSIONED_URL = `${ANTHROPIC_API_URL}/v1`;
@@ -101,7 +105,7 @@ export interface AnthropicProviderSettings {
   /**
    * Custom headers to include in the requests.
    */
-  headers?: Record<string, string>;
+  headers?: AnthropicHeaders;
 
   /**
    * Custom fetch implementation. You can use it as a middleware to intercept requests,
@@ -162,7 +166,7 @@ export function createAnthropic(
       {
         'anthropic-version': '2023-06-01',
         ...authHeaders,
-        ...options.headers,
+        ...fromAnthropicHeaders(options.headers),
       },
       `ai-sdk/anthropic/${VERSION}`,
     );

@@ -14,11 +14,13 @@ import {
   anthropicSkillResponseSchema,
   anthropicSkillVersionResponseSchema,
 } from './anthropic-skills-api';
+import type { AnthropicHeaders } from '../anthropic-language-model-options';
+import { fromAnthropicHeaders } from '../util/from-anthropic-headers';
 
 interface AnthropicSkillsConfig {
   provider: string;
   baseURL: string;
-  headers: Resolvable<Record<string, string | undefined>>;
+  headers?: Resolvable<AnthropicHeaders>;
   fetch?: FetchFunction;
 }
 
@@ -43,14 +45,15 @@ export class AnthropicSkills implements SkillsV4 {
   constructor(private readonly config: AnthropicSkillsConfig) {}
 
   private async getHeaders(
-    headers?: Record<string, string | undefined>,
+    headers?: AnthropicHeaders,
   ): Promise<Record<string, string | undefined>> {
+    const resolvedHeaders = await resolve(this.config.headers);
     return combineHeaders(
-      await resolve(this.config.headers),
+      fromAnthropicHeaders(resolvedHeaders),
       {
         'anthropic-beta': 'skills-2025-10-02',
       },
-      headers,
+      fromAnthropicHeaders(headers),
     );
   }
 
