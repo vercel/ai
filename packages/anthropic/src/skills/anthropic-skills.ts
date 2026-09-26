@@ -42,10 +42,16 @@ export class AnthropicSkills implements SkillsV4 {
 
   constructor(private readonly config: AnthropicSkillsConfig) {}
 
-  private async getHeaders(): Promise<Record<string, string | undefined>> {
-    return combineHeaders(await resolve(this.config.headers), {
-      'anthropic-beta': 'skills-2025-10-02',
-    });
+  private async getHeaders(
+    headers?: Record<string, string | undefined>,
+  ): Promise<Record<string, string | undefined>> {
+    return combineHeaders(
+      await resolve(this.config.headers),
+      {
+        'anthropic-beta': 'skills-2025-10-02',
+      },
+      headers,
+    );
   }
 
   private async fetchVersionMetadata({
@@ -92,7 +98,7 @@ export class AnthropicSkills implements SkillsV4 {
       formData.append('files[]', new Blob([content]), file.path);
     }
 
-    const headers = await this.getHeaders();
+    const headers = await this.getHeaders(params.headers);
 
     const { value: response } = await postFormDataToApi({
       url: `${this.config.baseURL}/skills`,

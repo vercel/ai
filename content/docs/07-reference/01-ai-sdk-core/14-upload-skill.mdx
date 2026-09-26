@@ -58,6 +58,12 @@ const { providerReference } = await uploadSkill({
       isOptional: true,
       description: 'Additional provider-specific options.',
     },
+    {
+      name: 'headers'
+      type: 'Record<string, string | undefined>',
+      isOptional: true,
+      description: 'Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.',
+    }
   ]}
 />
 
