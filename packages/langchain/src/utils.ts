@@ -1268,12 +1268,25 @@ function hasEmittedToolCallInCurrentStep(
         ?.has(toolCallId) === true;
 }
 
+function hasPendingToolCall(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return (
+    state.pendingToolCallsByNamespace.get(namespace)?.has(toolCallId) === true
+  );
+}
+
 function markToolCallEmitted(
   state: LangGraphEventState,
   toolCallId: string,
   namespace: string,
 ): void {
   state.emittedToolCalls.add(toolCallId);
+  getOrCreateNamespaceSet(state.pendingToolCallsByNamespace, namespace).add(
+    toolCallId,
+  );
   if (state.currentStepsByNamespace.has(namespace)) {
     getOrCreateNamespaceSet(
       state.emittedToolCallsInCurrentStepByNamespace,
@@ -1326,6 +1339,7 @@ function markToolOutputEmitted(
   namespace: string,
 ): void {
   state.emittedToolOutputCallIds.add(toolCallId);
+  state.pendingToolCallsByNamespace.get(namespace)?.delete(toolCallId);
   if (state.currentStepsByNamespace.has(namespace)) {
     getOrCreateNamespaceSet(
       state.emittedToolOutputsInCurrentStepByNamespace,
@@ -1790,6 +1804,36 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
+          const hasStepScope =
+            state.currentStepsByNamespace.has(eventNamespace);
+          const hasEmittedStart = hasStepScope
+            ? hasEmittedToolCallInCurrentStep(state, toolCallId, eventNamespace)
+            : state.emittedToolCalls.has(toolCallId);
+          const hasCompletedOutputInCurrentStep =
+            hasStepScope &&
+            hasEmittedToolOutputInCurrentStep(
+              state,
+              toolCallId,
+              eventNamespace,
+            );
+
+          if (
+            !hasPendingToolCall(state, toolCallId, eventNamespace) &&
+            !hasEmittedStart &&
+            !hasCompletedOutputInCurrentStep
+          ) {
+            markToolCallEmitted(state, toolCallId, eventNamespace);
+            controller.enqueue({
+              type: 'tool-input-start',
+              toolCallId,
+              toolName:
+                typeof dataSource.name === 'string'
+                  ? dataSource.name
+                  : 'unknown',
+              dynamic: true,
+            });
+          }
+
           state.emittedToolOutputMessageIds.add(msgId);
           markToolOutputEmitted(state, toolCallId, eventNamespace);
           if (status === 'error') {

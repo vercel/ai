@@ -179,10 +179,11 @@ describe('toUIMessageStream', () => {
     `);
   });
 
-  it('should handle tool message output', async () => {
+  it('should start a tool message before streaming its output', async () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',
       content: 'Sunny, 72°F',
+      name: 'searchProducts',
     });
     toolMsg.id = 'msg-1';
 
@@ -199,6 +200,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-1",
+          "toolName": "searchProducts",
+          "type": "tool-input-start",
         },
         {
           "output": "Sunny, 72°F",
@@ -994,6 +1001,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-abc",
+          "toolName": "unknown",
+          "type": "tool-input-start",
         },
         {
           "output": "Tool result here",

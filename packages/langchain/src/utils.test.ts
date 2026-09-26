@@ -990,6 +990,7 @@ describe('processLangGraphEvent', () => {
     messageConcat: new Map(),
     messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    pendingToolCallsByNamespace: new Map(),
     emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
     emittedToolInputsInCurrentStepByNamespace: new Map(),
@@ -1541,11 +1542,190 @@ describe('processLangGraphEvent', () => {
     toolMsg.id = 'msg-1';
     processLangGraphEvent(['messages', [toolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-available',
-      toolCallId: 'call-1',
-      output: 'Tool result',
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'unknown',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Tool result',
+      },
+    ]);
+  });
+
+  it('should not restart a tool call when its output follows a streamed start in a later step', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const aiChunk = new AIMessageChunk({
+      content: '',
+      tool_call_chunks: [
+        { id: 'call-1', name: 'searchProducts', args: '{}', index: 0 },
+      ],
     });
+    aiChunk.id = 'ai-msg-1';
+    processLangGraphEvent(
+      ['messages', [aiChunk, { langgraph_step: 0 }]],
+      state,
+      controller,
+    );
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Tool result',
+      name: 'searchProducts',
+    });
+    toolMsg.id = 'tool-msg-1';
+    processLangGraphEvent(
+      ['messages', [toolMsg, { langgraph_step: 1 }]],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(chunk => {
+        const type = (chunk as { type: string }).type;
+        return type === 'tool-input-start' || type === 'tool-output-available';
+      }),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'searchProducts',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Tool result',
+      },
+    ]);
+  });
+
+  it('should start a reused tool call ID after its previous output', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const firstToolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'First result',
+      name: 'searchProducts',
+    });
+    firstToolMsg.id = 'tool-msg-1';
+    processLangGraphEvent(
+      ['messages', [firstToolMsg, { langgraph_step: 0 }]],
+      state,
+      controller,
+    );
+
+    const secondToolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'Second result',
+      name: 'searchProducts',
+    });
+    secondToolMsg.id = 'tool-msg-2';
+    processLangGraphEvent(
+      ['messages', [secondToolMsg, { langgraph_step: 1 }]],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(chunk => {
+        const type = (chunk as { type: string }).type;
+        return type === 'tool-input-start' || type === 'tool-output-available';
+      }),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'searchProducts',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'First result',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'searchProducts',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Second result',
+      },
+    ]);
+  });
+
+  it('should not restart a tool call after a tools output in the same step', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    const stepMessage = new AIMessageChunk({
+      content: 'Working',
+      id: 'step-0',
+    });
+    processLangGraphEvent(
+      ['messages', [stepMessage, { langgraph_step: 0 }]],
+      state,
+      controller,
+    );
+
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_start',
+          toolCallId: 'call-1',
+          name: 'searchProducts',
+          input: { query: 'shoes' },
+        },
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-1',
+          name: 'searchProducts',
+          output: 'First result',
+        },
+      ],
+      state,
+      controller,
+    );
+
+    const toolMsg = new ToolMessage({
+      tool_call_id: 'call-1',
+      content: 'First result',
+      name: 'searchProducts',
+    });
+    toolMsg.id = 'tool-msg-1';
+    processLangGraphEvent(
+      ['messages', [toolMsg, { langgraph_step: 0 }]],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(
+        chunk => (chunk as { type: string }).type === 'tool-input-start',
+      ),
+    ).toHaveLength(1);
   });
 
   it('should handle plain AI message objects from RemoteGraph', () => {
@@ -2207,11 +2387,19 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['messages', [toolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-error',
-      toolCallId: 'call-1',
-      errorText: 'Connection timeout',
-    });
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'unknown',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        errorText: 'Connection timeout',
+      },
+    ]);
   });
 
   it('should emit tool-output-available for ToolMessage with status success', () => {
@@ -2228,11 +2416,19 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['messages', [toolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-available',
-      toolCallId: 'call-1',
-      output: 'Result data',
-    });
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'unknown',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Result data',
+      },
+    ]);
   });
 
   it('should handle plain tool message objects with error status', () => {
@@ -2250,11 +2446,19 @@ describe('processLangGraphEvent', () => {
 
     processLangGraphEvent(['messages', [plainToolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-error',
-      toolCallId: 'call-1',
-      errorText: 'API rate limit exceeded',
-    });
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'unknown',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'call-1',
+        errorText: 'API rate limit exceeded',
+      },
+    ]);
   });
 
   it('should handle HITL interrupt in values event', () => {
@@ -2900,6 +3104,7 @@ describe('processLangGraphEvent - sources', () => {
     messageConcat: new Map(),
     messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
+    pendingToolCallsByNamespace: new Map(),
     emittedToolCallsInCurrentStepByNamespace: new Map(),
     emittedToolInputs: new Set<string>(),
     emittedToolInputsInCurrentStepByNamespace: new Map(),

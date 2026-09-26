@@ -20,6 +20,8 @@ export interface LangGraphEventState {
   messageIdsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks which tool call IDs have emitted tool-input-start */
   emittedToolCalls: Set<string>;
+  /** Tracks starts without a terminal output, scoped to each LangGraph namespace */
+  pendingToolCallsByNamespace: Map<string, Set<string>>;
   /** Tracks tool-input-start chunks emitted in each namespace's current step */
   emittedToolCallsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks which tool call IDs have emitted complete tool inputs */
