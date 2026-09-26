@@ -1,5 +1,11 @@
 # @ai-sdk/otel
 
+## 1.0.117
+
+### Patch Changes
+
+- ai@7.0.117
+
 ## 1.0.116
 
 ### Patch Changes

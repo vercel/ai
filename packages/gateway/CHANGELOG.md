@@ -1,5 +1,11 @@
 # @ai-sdk/gateway
 
+## 4.0.95
+
+### Patch Changes
+
+- b67b1b7: feat(provider/gateway): type conditional evaluation fallbacks
+
 ## 4.0.94
 
 ### Patch Changes
