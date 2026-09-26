@@ -102,6 +102,12 @@ DNS-rebinding bypasses.
 Wrapping or replacing global `fetch` does not disable this protection: the
 default Node.js download transport is independent of global `fetch`.
 
+When bundling for Node.js, configure your bundler to select the `node` package
+export condition (for example, `platform: 'node'` in esbuild or
+`exportConditions: ['node']` in `@rollup/plugin-node-resolve`). If a portable
+build runs on Node.js, default protected downloads throw before making a request
+rather than silently skipping DNS protection.
+
 Bun, Deno, Cloudflare Workers, and framework edge runtimes use their platform
 fetch, even when they expose a Node-compatible `process` object.
 

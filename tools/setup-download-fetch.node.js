@@ -2,7 +2,7 @@ import { createRequire } from 'node:module';
 import { afterAll } from 'vitest';
 
 // Opt-in for fixture suites only; provider-utils tests must use real sockets.
-// Match the indirect CommonJS load used by the protected download transport.
+// Patch the CommonJS default export used by the protected download transport.
 const undici = createRequire(
   new URL('../packages/provider-utils/package.json', import.meta.url),
 )('undici');

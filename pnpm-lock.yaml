@@ -3806,6 +3806,9 @@ importers:
       '@vercel/ai-tsconfig':
         specifier: workspace:*
         version: link:../../tools/tsconfig
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
       msw:
         specifier: 2.7.0
         version: 2.7.0(@types/node@22.19.19)(typescript@5.8.3)
