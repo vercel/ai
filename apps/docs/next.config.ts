@@ -1,6 +1,8 @@
 import { createGeistdocs } from '@vercel/geistdocs/next';
 import type { NextConfig } from 'next';
 import { exampleRedirects } from './lib/example-redirects';
+import { legacyRedirects } from './lib/legacy-redirects';
+import { versionHostRedirects } from './lib/version-host-redirects';
 
 // createGeistdocs composes Fumadocs MDX and discovers App Router pages and
 // route handlers so createProxy can recover unknown agent/Markdown requests.
@@ -24,7 +26,18 @@ const config: NextConfig = {
       },
     ],
   },
+  headers: () => [
+    {
+      source: '/llms.txt',
+      headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+    },
+    {
+      source: '/llms-full.txt',
+      headers: [{ key: 'X-Robots-Tag', value: 'noindex' }],
+    },
+  ],
   redirects: () => [
+    ...versionHostRedirects,
     // AI SDK 4 is archived separately so it remains available without adding
     // its content families to this app's already memory-intensive build.
     {
@@ -38,8 +51,33 @@ const config: NextConfig = {
       permanent: true,
     },
     {
+      source: '/v5',
+      destination: '/v5/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v6',
+      destination: '/v6/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/docs/harnesses/overview',
+      destination: '/docs/ai-sdk-harnesses/overview',
+      permanent: true,
+    },
+    {
       source: '/v7',
-      destination: '/',
+      destination: '/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/docs',
+      destination: '/docs/introduction',
+      permanent: true,
+    },
+    {
+      source: '/v7/providers',
+      destination: '/providers/ai-sdk-providers',
       permanent: true,
     },
     {
@@ -47,9 +85,20 @@ const config: NextConfig = {
       destination: '/:path*',
       permanent: true,
     },
+    ...legacyRedirects,
     {
-      source: '/docs',
-      destination: '/docs/introduction',
+      source: '/providers/ai-sdk-providers/google-generative-ai',
+      destination: '/providers/ai-sdk-providers/google',
+      permanent: true,
+    },
+    {
+      source: '/getting-started',
+      destination: '/docs/getting-started',
+      permanent: false,
+    },
+    {
+      source: '/v5/unauthenticated-ai-gateway/:path*',
+      destination: '/unauthenticated-ai-gateway/:path*',
       permanent: false,
     },
     // Legacy section landing pages (card grids) were folded into their
@@ -99,12 +148,7 @@ const config: NextConfig = {
     {
       source: '/v5/docs',
       destination: '/v5/docs/introduction',
-      permanent: false,
-    },
-    {
-      source: '/providers',
-      destination: '/providers/ai-sdk-providers',
-      permanent: false,
+      permanent: true,
     },
     {
       source: '/v6/providers',
@@ -114,7 +158,7 @@ const config: NextConfig = {
     {
       source: '/v5/providers',
       destination: '/v5/providers/ai-sdk-providers',
-      permanent: false,
+      permanent: true,
     },
     // Legacy resource URLs, mirroring production.
     {
@@ -148,6 +192,11 @@ const config: NextConfig = {
     {
       source: '/model-library',
       destination: 'https://vercel.com/docs/ai-gateway',
+      permanent: true,
+    },
+    {
+      source: '/llms-full.txt',
+      destination: '/llms.txt',
       permanent: true,
     },
     // The cookbook family root mirrors production (ai-sdk.dev/cookbook):

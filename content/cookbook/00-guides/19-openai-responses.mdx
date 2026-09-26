@@ -20,14 +20,14 @@ The AI SDK is the TypeScript toolkit designed to help developers build AI-powere
 
 The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
 
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call GPT-4o with the new Responses API using the AI SDK:
+At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call GPT-6 Astra with the new Responses API using the AI SDK:
 
 ```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-6-astra'),
   prompt: 'Explain the concept of quantum entanglement.',
 });
 ```
@@ -42,7 +42,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const { output } = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-6-astra'),
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -70,7 +70,7 @@ import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 const { text } = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-6-astra'),
   prompt: 'What is the weather like today in San Francisco?',
   tools: {
     getWeather: tool({
@@ -99,7 +99,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
     web_search_preview: openai.tools.webSearchPreview(),
@@ -116,7 +116,7 @@ The `webSearch` tool also allows you to specify query-specific metadata that can
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'What happened in San Francisco last week?',
   tools: {
     web_search_preview: openai.tools.webSearchPreview({
@@ -143,7 +143,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-5-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'Search the web for the latest NYC mayoral election results',
   tools: {
     mcp: openai.tools.mcp({
@@ -172,12 +172,12 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result1 = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 
 const result2 = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'Summarize in 2 sentences',
   providerOptions: {
     openai: {
@@ -198,7 +198,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('gpt-4o-mini'),
+  model: openai.responses('gpt-6-luna'),
   prompt: 'Summarize in 2 sentences',
   providerOptions: {
     openai: {
@@ -217,15 +217,15 @@ Migrating from the OpenAI Completions API (via the AI SDK) to the new Responses 
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-// Completions API
+// Chat Completions API
 const { text } = await generateText({
-  model: openai('gpt-4o'),
+  model: openai.chat('gpt-6-astra'),
   prompt: 'Explain the concept of quantum entanglement.',
 });
 
 // Responses API
 const { text } = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-6-astra'),
   prompt: 'Explain the concept of quantum entanglement.',
 });
 ```
@@ -236,9 +236,9 @@ When using the Responses API, provider specific options that were previously spe
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-// Completions API
+// Chat Completions API
 const { text } = await generateText({
-  model: openai('gpt-4o'),
+  model: openai.chat('gpt-6-astra'),
   prompt: 'Explain the concept of quantum entanglement.',
   providerOptions: {
     openai: {
@@ -249,7 +249,7 @@ const { text } = await generateText({
 
 // Responses API
 const { text } = await generateText({
-  model: openai.responses('gpt-4o'),
+  model: openai.responses('gpt-6-astra'),
   prompt: 'Explain the concept of quantum entanglement.',
   providerOptions: {
     openai: {

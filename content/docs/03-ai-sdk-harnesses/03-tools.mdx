@@ -25,10 +25,6 @@ the combined tool set through `agent.tools`.
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
 agent.tools.bash;
@@ -60,7 +56,6 @@ Pass AI SDK tools to `HarnessAgent` the same way you do for a `ToolLoopAgent`:
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 
@@ -82,10 +77,6 @@ const weather = tool({
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { weather },
 });
 ```
@@ -129,6 +120,7 @@ When recreating a session for an unfinished turn, rebind it explicitly:
 const session = await agent.createSession({
   sessionId,
   continueFrom,
+  sandboxSession,
   toolsContext: {
     lookupAccount: { userId: 'user-123' },
   },
@@ -191,10 +183,6 @@ with `tools`.
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { weather },
   activeTools: ['weather'],
 });
@@ -205,10 +193,6 @@ const agent = new HarnessAgent({
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { weather },
   inactiveTools: ['bash', 'write'],
 });
@@ -260,7 +244,6 @@ Use `permissionMode` for adapter-native built-ins:
 ```ts
 const agent = new HarnessAgent({
   harness: pi,
-  sandbox: createVercelSandbox({ runtime: 'node24' }),
   permissionMode: 'allow-edits',
 });
 ```
@@ -279,10 +262,6 @@ Use `toolApproval` for host-executed tools:
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { weather },
   toolApproval: {
     weather: 'user-approval',

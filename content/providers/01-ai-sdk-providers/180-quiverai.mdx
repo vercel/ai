@@ -5,7 +5,7 @@ description: Learn how to use QuiverAI models with the AI SDK.
 
 # QuiverAI Provider
 
-[QuiverAI](https://quiver.ai/) generates SVG documents directly from text prompts, vectorizes raster images into clean SVGs, and edits and animates existing SVGs. The QuiverAI provider for the AI SDK exposes these operations through `generateImage`.
+[QuiverAI](https://quiver.ai/) provides Arrow language models that can reason about and create SVG documents, plus native SVG generation, vectorization, editing, and animation endpoints. The AI SDK provider exposes Arrow 2 through `generateText` and `streamText` and exposes image operations through `generateImage`.
 
 ## Setup
 
@@ -56,6 +56,119 @@ You can use the following optional settings to customize the QuiverAI provider i
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
+
+## Language Models
+
+Create an Arrow language model by calling the provider or using
+`.languageModel()`:
+
+```ts
+import { quiverai } from '@ai-sdk/quiverai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: quiverai('arrow-2'),
+  prompt: 'Design a simple compass icon and explain the visual choices.',
+});
+
+console.log(text);
+```
+
+The language-model factory supports `arrow-2` and `arrow-2-telos` through
+QuiverAI's stateless `POST /v1/responses` endpoint.
+
+### Reasoning Options
+
+Configure QuiverAI reasoning through `providerOptions.quiverai`:
+
+```ts
+import { quiverai, type QuiverAILanguageModelOptions } from '@ai-sdk/quiverai';
+import { generateText } from 'ai';
+
+await generateText({
+  model: quiverai('arrow-2-telos'),
+  prompt: 'Create a precise technical SVG diagram.',
+  providerOptions: {
+    quiverai: {
+      reasoningEffort: 'xhigh',
+      reasoningSummary: 'auto',
+    } satisfies QuiverAILanguageModelOptions,
+  },
+});
+```
+
+- **reasoningEffort** _'low' | 'medium' | 'high' | 'xhigh'_
+- **reasoningSummary** _'auto'_
+
+The provider does not request encrypted reasoning. During tool loops it replays
+the full conversation, matching tool calls and results, and opaque reasoning
+item IDs in order without resending private reasoning text or encrypted
+reasoning state.
+
+### Caller-Executed Tools
+
+Standard AI SDK tools are sent as Responses API function tools and execute in
+your application. Use a bounded loop because each step performs another model
+request:
+
+```ts
+import { quiverai } from '@ai-sdk/quiverai';
+import { generateText, isStepCount, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: quiverai('arrow-2'),
+  prompt: 'Create an SVG compass and stage it as compass.svg.',
+  tools: {
+    write_file: tool({
+      description: 'Stage an SVG file in the calling application.',
+      inputSchema: z.object({
+        path: z.string(),
+        content: z.string(),
+      }),
+      execute: async ({ path, content }) => {
+        // Validate and restrict paths before writing model-generated content.
+        return { path, staged: content.startsWith('<svg') };
+      },
+    }),
+  },
+  stopWhen: isStepCount(4),
+});
+```
+
+QuiverAI custom tools return raw strings and are also executed by the caller:
+
+```ts
+const result = await generateText({
+  model: quiverai('arrow-2'),
+  prompt: 'Return a minimal SVG document.',
+  tools: {
+    write_svg: quiverai.tools.customTool({
+      description: 'Return SVG source.',
+      format: { type: 'text' },
+      execute: async svg => ({ accepted: svg.startsWith('<svg') }),
+    }),
+  },
+  stopWhen: isStepCount(3),
+});
+```
+
+Hosted tools, including legacy `quiver:*` tools, are not supported.
+
+### Responses API Limitations
+
+- Requests are stateless. The provider does not enable response storage or
+  response-ID continuation.
+- QuiverAI currently documents text response format for this endpoint.
+  Structured-output settings are omitted and reported in `warnings`.
+- Streaming tool calls are assembled completely before application execution.
+- Abort signals, custom headers, and custom `fetch` implementations are
+  forwarded to the Responses request.
+
+### Language Model Usage
+
+`result.usage` and streaming finish events include input, cache-read,
+cache-write, text-output, and reasoning token counts when returned by QuiverAI.
 
 ## Image Models
 
@@ -319,4 +432,4 @@ Source SVGs, text instructions, and remote source URLs are sent to QuiverAI. Ani
 
 Arrow 2 models return measured token counts in `result.usage`. Fixed-credit models may return compatibility token counts of zero; their credit charge is available in `result.providerMetadata?.quiverai?.credits` when supplied by the API.
 
-Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing. The Responses API is not yet exposed by this provider.
+Model availability and supported operations depend on your organization and API key permissions. Consult QuiverAI's [model catalog](https://docs.quiver.ai/developers/models) for current capabilities and billing.

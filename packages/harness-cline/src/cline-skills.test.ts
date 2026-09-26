@@ -41,10 +41,10 @@ describe('createClineSkillsRuntime', () => {
       Follow the attached templates.
 
       <skill-files>
-      <skill-file path=\"references/style.md\">
+      <skill-file path="references/style.md">
       # Style
       </skill-file>
-      <skill-file path=\"templates/short.md\">
+      <skill-file path="templates/short.md">
       # Short
       </skill-file>
       </skill-files>

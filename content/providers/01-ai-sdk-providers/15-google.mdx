@@ -923,14 +923,14 @@ The `vertexRagStore` tool accepts the following configuration options:
 
 ### Image Outputs
 
-Gemini models with image generation capabilities (e.g. `gemini-2.5-flash-image`) support generating images as part of a multimodal response. Images are exposed as files in the response.
+Gemini models with image generation capabilities (e.g. `gemini-3.1-flash-image-preview`) support generating images as part of a multimodal response. Images are exposed as files in the response.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image'),
+  model: google('gemini-3.1-flash-image-preview'),
   prompt:
     'Create a picture of a nano banana dish in a fancy restaurant with a Gemini theme',
 });
@@ -1088,7 +1088,7 @@ You can pass a `webhookUrl` to receive a notification when the batch reaches a t
 import { google } from '@ai-sdk/google';
 import { experimental_startBatch as startBatch } from 'ai';
 
-const model = 'gemini-3.6-flash';
+const model = 'gemini-3.8-flash';
 
 const batch = await startBatch({
   provider: google,
@@ -1578,7 +1578,7 @@ import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google.interactions('gemini-3.7-flash'),
+  model: google.interactions('gemini-3.8-flash'),
   messages: [
     {
       role: 'user',
@@ -1626,7 +1626,7 @@ These parts are informational and do not require a tool response. They are
 available from both `generateText` and `streamText`.
 
 For static processing, use `'static'` or provide clipping and frame-rate
-options:
+options. `startOffset` and `endOffset` are measured in seconds:
 
 ```ts
 const video = {
@@ -1637,8 +1637,8 @@ const video = {
     google: {
       processing: {
         type: 'static',
-        startOffset: 1200,
-        endOffset: 1500,
+        startOffset: 0,
+        endOffset: 10.5,
         fps: 0.5,
       },
     } satisfies GoogleInteractionsVideoOptions,
@@ -1778,7 +1778,7 @@ import {
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google.interactions('gemini-2.5-flash-image'),
+  model: google.interactions('gemini-3.1-flash-image-preview'),
   prompt:
     'Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.',
   providerOptions: {
@@ -2042,7 +2042,7 @@ You can create models that call the [Google Generative AI embeddings API](https:
 using the `.embedding()` factory method.
 
 ```ts
-const model = google.embedding('gemini-embedding-001');
+const model = google.embedding('gemini-embedding-2');
 ```
 
 The Google provider sends API calls to the right endpoint based on the type of embedding:
@@ -2078,7 +2078,7 @@ import { google, type GoogleEmbeddingModelOptions } from '@ai-sdk/google';
 import { embedMany } from 'ai';
 
 const { embeddings } = await embedMany({
-  model: google.embedding('gemini-embedding-2-preview'),
+  model: google.embedding('gemini-embedding-2'),
   values: ['sunny day at the beach', 'rainy afternoon in the city'],
   providerOptions: {
     google: {
@@ -2132,14 +2132,14 @@ output capabilities through the `:generateContent` API.
 
 ### Gemini Image Models
 
-[Gemini image models](https://ai.google.dev/gemini-api/docs/image-generation) (e.g. `gemini-2.5-flash-image`) are technically multimodal output language models, but they can be used with the `generateImage()` function for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
+[Gemini image models](https://ai.google.dev/gemini-api/docs/image-generation) (e.g. `gemini-3.1-flash-image-preview`) are technically multimodal output language models, but they can be used with the `generateImage()` function for a simpler image generation experience. Internally, the provider calls the language model API with `responseModalities: ['IMAGE']`.
 
 ```ts
 import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
+  model: google.image('gemini-3.1-flash-image-preview'),
   prompt: 'A photorealistic image of a cat wearing a wizard hat',
   aspectRatio: '1:1',
 });
@@ -2155,7 +2155,7 @@ import fs from 'node:fs';
 const sourceImage = fs.readFileSync('./cat.png');
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
+  model: google.image('gemini-3.1-flash-image-preview'),
   prompt: {
     text: 'Add a small wizard hat to this cat',
     images: [sourceImage],
@@ -2170,7 +2170,7 @@ import { google } from '@ai-sdk/google';
 import { generateImage } from 'ai';
 
 const { image } = await generateImage({
-  model: google.image('gemini-2.5-flash-image'),
+  model: google.image('gemini-3.1-flash-image-preview'),
   prompt: {
     text: 'Add a small wizard hat to this cat',
     images: ['https://example.com/cat.png'],
@@ -2233,45 +2233,100 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
 You can create models that call the [Gemini text-to-speech API](https://ai.google.dev/gemini-api/docs/speech-generation)
 using the `.speech()` factory method.
 
-The first argument is the model id e.g. `gemini-2.5-flash-preview-tts`.
+The first argument is the model ID, such as `gemini-3.8-flash-tts` or
+`gemini-3.8-flash-lite-tts`. Speech generation uses the `generateContent` API.
 
 ```ts
-const model = google.speech('gemini-2.5-flash-preview-tts');
+const model = google.speech('gemini-3.8-flash-tts');
 ```
 
 The `voice` argument can be set to one of Gemini's [30 prebuilt voices](https://ai.google.dev/gemini-api/docs/speech-generation#voices)
-e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive. It defaults to `Kore`.
+e.g. `Kore`, `Puck`, `Zephyr`, or `Charon`. Voice names are case-sensitive.
+The default voice is `Kore`. Custom voice IDs and replication keys are not supported.
 
 ```ts highlight="6"
 import { generateSpeech } from 'ai';
 import { google } from '@ai-sdk/google';
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
+  model: google.speech('gemini-3.8-flash-tts'),
   text: 'Hello, world!',
   voice: 'Kore', // Gemini voice name
 });
 ```
 
-By default the generated audio is returned as a playable WAV file (`result.audio.mediaType` is
-`audio/wav`). Set `outputFormat: 'pcm'` to receive the raw signed 16-bit little-endian mono PCM
-bytes instead; the sample rate is reported in `result.providerMetadata.google.sampleRate`.
+By default the generated audio is returned as a playable WAV file
+(`result.audio.mediaType` is `audio/wav`). Gemini 3.8 returns a complete WAV file;
+the provider passes those bytes through unchanged. Older models return raw PCM,
+which the provider wraps in a WAV container. Write `result.audio.uint8Array`
+directly to disk without adding another WAV header.
 
-Gemini honors natural-language style direction. The `instructions` argument is prepended to the
-spoken text, so `instructions: 'Say cheerfully'` with `text: 'Hello'` speaks `Say cheerfully: Hello`.
+Gemini 3.8 supports the following `outputFormat` values:
+
+| Format | Values                 | Result                       |
+| ------ | ---------------------- | ---------------------------- |
+| WAV    | `wav`, `audio/wav`     | WAV with a RIFF header       |
+| PCM    | `pcm`, `audio/l16`     | Headerless signed 16-bit PCM |
+| Mu-law | `mulaw`, `audio/mulaw` | Headerless mu-law audio      |
+| A-law  | `alaw`, `audio/alaw`   | Headerless A-law audio       |
+
+These map to `generationConfig.responseFormat.audio.mimeType` in
+`generateContent`. Older models support `wav` and `pcm`. The source MIME type and
+sample rate are available in `result.providerMetadata.google`.
+
+Gemini 2.5 and 3.1 model IDs retain the legacy request format. Other model IDs,
+including custom aliases, use the structured speech format.
+
+### Speech directions in Gemini 3.8
+
+Gemini 3.8 treats text as a verbatim transcript. The provider sends `instructions`
+as `speechMetadata.style`, leaving the text unchanged. You can also supply
+`providerOptions.google.speechMetadata` with `style` and `speaker` fields.
+An explicit style overrides `instructions`, including an empty style string.
+
+```ts
+const result = await generateSpeech({
+  model: google.speech('gemini-3.8-flash-tts'),
+  text: 'Welcome back. <short pause> It is good to see you. <laugh>',
+  instructions: 'Warm, relaxed, and speaking slowly',
+});
+```
+
+Put sustained delivery directions such as whispering, speaking slowly, or being
+out of breath in metadata. Keep momentary vocal events and pauses such as
+`<laugh>`, `<sigh>`, `<cough>`, `<breath>`, and `<short pause>` in the transcript.
+Avoid sound-effect tags such as applause or thuds. The provider preserves inline
+tags as written.
+
+For Gemini 3.1 and earlier, the provider retains the existing behavior of
+prepending `instructions` to single-speaker text. It ignores instructions with a
+warning for older multi-speaker requests. Structured `turns` and `speechMetadata`
+require Gemini 3.8.
 
 ### Multi-speaker audio
 
-For multi-speaker dialogue, pass a `multiSpeakerVoiceConfig` through `providerOptions`. Each speaker
-name must match a name used in the input text. When set, it overrides the top-level `voice`.
+For Gemini 3.8 dialogue, pass `multiSpeakerVoiceConfig` and `turns` through
+`providerOptions.google`. Every turn must include `speechMetadata.speaker`
+matching a configured speaker; missing or unknown speakers produce an error
+before the request is sent. Speaker labels belong in metadata, not the text.
 
-```ts highlight="7-22"
+The `turns` array replaces the top-level text, so pass `text: ''`. The combined
+turn text must be non-empty. Passing
+nonempty top-level text with turns produces a warning. Put metadata on each turn
+instead of combining turns with top-level `speechMetadata`. Each turn's style
+overrides `instructions`; turns without a style inherit `instructions`.
+
+`multiSpeakerVoiceConfig` overrides the top-level `voice`. Each `voiceConfig`
+uses `prebuiltVoiceConfig: { voiceName: 'Kore' }`. Google supports up to two
+prebuilt voices in a multi-speaker request.
+
+```ts
 import { generateSpeech } from 'ai';
 import { google, type GoogleSpeechModelOptions } from '@ai-sdk/google';
 
 const result = await generateSpeech({
-  model: google.speech('gemini-2.5-flash-preview-tts'),
-  text: 'Joe: How are you? Jane: Doing great, thanks!',
+  model: google.speech('gemini-3.8-flash-lite-tts'),
+  text: '',
   providerOptions: {
     google: {
       multiSpeakerVoiceConfig: {
@@ -2286,10 +2341,24 @@ const result = await generateSpeech({
           },
         ],
       },
+      turns: [
+        {
+          text: 'How are you?',
+          speechMetadata: { speaker: 'Joe', style: 'curious' },
+        },
+        {
+          text: '<laugh> Doing great, thanks!',
+          speechMetadata: { speaker: 'Jane', style: 'cheerful' },
+        },
+      ],
     } satisfies GoogleSpeechModelOptions,
   },
 });
 ```
+
+Older models continue to use labelled transcripts, such as
+`text: 'Joe: How are you? Jane: Doing great, thanks!'`, with
+`multiSpeakerVoiceConfig` and without `turns`.
 
 <Note>
   Gemini TTS models do not support the `speed` or `language` options; passing
@@ -2304,6 +2373,8 @@ const result = await generateSpeech({
 | `gemini-2.5-flash-preview-tts` | <Check />     | <Check />              |
 | `gemini-2.5-pro-preview-tts`   | <Check />     | <Check />              |
 | `gemini-3.1-flash-tts-preview` | <Check />     | <Check />              |
+| `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
+| `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
 ## Evaluation Models
 

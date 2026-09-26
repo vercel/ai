@@ -1,9 +1,15 @@
 import { posix } from 'node:path';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type { HarnessV1Bootstrap } from '../../v1';
+import { harnessStateDirectoryPath, type HarnessV1Bootstrap } from '../../v1';
+import { encodeHarnessPathSegment } from '../../v1/harness-session-data-directory-path';
 import { resolveSandboxDefaultWorkingDirectory } from '../../utils/resolve-sandbox-default-working-directory';
+import { resolveSandboxHomeDir } from '../../utils/sandbox-home-dir';
 import type { HarnessAgentSandboxConfig } from '../harness-agent-settings';
 import { applyBootstrapRecipe, hashHarnessBootstrap } from './bootstrap-recipe';
+import {
+  hasOnBootstrapMarker,
+  writeOnBootstrapMarker,
+} from './on-bootstrap-marker';
 
 const SANDBOX_BOOTSTRAP_IDENTITY_VERSION = 1;
 
@@ -78,7 +84,9 @@ export function resolveSessionWorkDir({
 }): string {
   return joinSandboxPath({
     base: defaultWorkingDirectory,
-    path: workDir ?? `${harnessId}-${sessionId}`,
+    path:
+      workDir ??
+      `${encodeHarnessPathSegment(harnessId)}-${encodeHarnessPathSegment(sessionId)}`,
   });
 }
 
@@ -121,6 +129,7 @@ export async function createSandboxBootstrapPlan({
               recipeIdentity,
               workDir,
               onBootstrap: settings.onBootstrap,
+              bootstrapHash: settings.bootstrapHash,
               abortSignal: opts.abortSignal,
             }),
         }
@@ -134,6 +143,8 @@ export async function runSandboxBootstrap({
   recipeIdentity,
   workDir,
   onBootstrap,
+  bootstrapHash,
+  skipOnBootstrapIfMarked = false,
   defaultWorkingDirectory,
   abortSignal,
 }: {
@@ -142,10 +153,41 @@ export async function runSandboxBootstrap({
   readonly recipeIdentity?: string;
   readonly workDir?: string;
   readonly onBootstrap?: SandboxBootstrapSettings['onBootstrap'];
+  readonly bootstrapHash?: string;
+  readonly skipOnBootstrapIfMarked?: boolean;
   readonly defaultWorkingDirectory?: string;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
   if (recipe == null && onBootstrap == null) return;
+
+  if (recipe != null && recipeIdentity != null) {
+    await applyBootstrapRecipe({
+      session,
+      recipe,
+      identity: recipeIdentity,
+      // Harness infrastructure always lives under the sandbox's own HOME,
+      // never the working directory resolved below for the caller's own
+      // `onBootstrap` hook. Resolved directly from `session` — this runs
+      // from a provider's `onFirstCreate`, before a
+      // `HarnessV1NetworkSandboxSession` even exists.
+      stateDirectory: harnessStateDirectoryPath({
+        sandboxHomeDir: await resolveSandboxHomeDir({
+          sandbox: session,
+          abortSignal,
+        }),
+      }),
+      abortSignal,
+    });
+  }
+
+  if (onBootstrap == null) return;
+
+  if (
+    skipOnBootstrapIfMarked &&
+    bootstrapHash != null &&
+    (await hasOnBootstrapMarker({ session, bootstrapHash, abortSignal }))
+  )
+    return;
 
   const resolvedDefaultWorkingDirectory =
     defaultWorkingDirectory ??
@@ -153,18 +195,6 @@ export async function runSandboxBootstrap({
       sandboxSession: session,
       abortSignal,
     }));
-
-  if (recipe != null && recipeIdentity != null) {
-    await applyBootstrapRecipe({
-      session,
-      recipe,
-      identity: recipeIdentity,
-      defaultWorkingDirectory: resolvedDefaultWorkingDirectory,
-      abortSignal,
-    });
-  }
-
-  if (onBootstrap == null) return;
 
   const bootstrapWorkDir =
     workDir == null
@@ -180,6 +210,9 @@ export async function runSandboxBootstrap({
     abortSignal,
   });
   await onBootstrap({ session, workDir: bootstrapWorkDir, abortSignal });
+  if (bootstrapHash != null) {
+    await writeOnBootstrapMarker({ session, bootstrapHash, abortSignal });
+  }
 }
 
 export async function ensureSandboxDirectory({

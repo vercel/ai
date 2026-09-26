@@ -11,6 +11,9 @@
       "path": "../../packages/ai"
     },
     {
+      "path": "../../packages/google-vertex"
+    },
+    {
       "path": "../../packages/open-responses"
     },
     {

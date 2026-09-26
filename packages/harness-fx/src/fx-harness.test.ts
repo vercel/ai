@@ -1,6 +1,7 @@
 import type { HarnessV1BuiltinTool } from '@ai-sdk/harness';
 import type { ACPHarnessSettings } from '@ai-sdk/harness-acp';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { z } from 'zod/v4';
 import { createFx } from './fx-harness';
 import { VERSION } from './version';
 
@@ -55,6 +56,11 @@ describe('createFx', () => {
             "commonName": undefined,
             "nativeName": undefined,
             "toolUseKind": undefined,
+          },
+          "capability_search": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "readonly",
           },
           "copy_file": {
             "commonName": undefined,
@@ -146,6 +152,11 @@ describe('createFx', () => {
             "nativeName": undefined,
             "toolUseKind": "readonly",
           },
+          "shell": {
+            "commonName": undefined,
+            "nativeName": undefined,
+            "toolUseKind": "bash",
+          },
           "skill": {
             "commonName": undefined,
             "nativeName": undefined,
@@ -233,6 +244,95 @@ describe('createFx', () => {
         "version": "v1",
       }
     `);
+  });
+
+  it('accepts fx v0.0.10 ACP shell and capability search inputs', () => {
+    createFx();
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    const builtinTools = settings.builtinTools as Record<
+      string,
+      HarnessV1BuiltinTool
+    >;
+    const shellInputSchema = builtinTools.shell.inputSchema as z.ZodType;
+    const capabilitySearchInputSchema = builtinTools.capability_search
+      .inputSchema as z.ZodType;
+
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: '.',
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        tty: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        cwd: null,
+        profile: null,
+        tty: false,
+        yield_time_ms: null,
+        timeout_ms: null,
+        future_shell_option: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        profile: 'clean',
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'run',
+        command: 'printf "hello"',
+        shell: { kind: 'executable', path: '/bin/bash' },
+        tty: true,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'interact',
+        session_id: 'session-1',
+        chars: null,
+        yield_time_ms: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      shellInputSchema.safeParse({
+        action: 'stop',
+        session_id: 'session-1',
+        force: null,
+      }).success,
+    ).toBe(true);
+    expect(shellInputSchema.safeParse({ action: 'exec' }).success).toBe(false);
+    expect(
+      shellInputSchema.safeParse({
+        request: { action: 'run', command: 'printf "hello"' },
+      }).success,
+    ).toBe(false);
+
+    expect(
+      capabilitySearchInputSchema.safeParse({ query: 'Find a file tool' })
+        .success,
+    ).toBe(true);
+    expect(
+      capabilitySearchInputSchema.safeParse({
+        query: 'Find a file tool',
+        server: 'filesystem',
+      }).success,
+    ).toBe(true);
+    expect(capabilitySearchInputSchema.safeParse({}).success).toBe(false);
   });
 
   it('forwards user-configurable settings', () => {

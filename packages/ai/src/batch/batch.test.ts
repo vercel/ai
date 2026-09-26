@@ -6,8 +6,11 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import {
@@ -964,4 +967,101 @@ describe('getBatchResults', () => {
       },
     ]);
   });
+});
+
+describe('batch generated file downloads', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function createFileBatchProvider(type: 'file' | 'reasoning-file' = 'file') {
+    return createMockBatchApi({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            type: 'text',
+            id: 'request',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type,
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/batch.txt'),
+                  },
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+  }
+
+  it.each(['file', 'reasoning-file'] as const)(
+    'downloads %s content',
+    async type => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('Hello World')),
+      );
+      const results = await convertReadableStreamToArray(
+        getBatchResults({
+          provider: createFileBatchProvider(type),
+          batch: batchReference,
+        }),
+      );
+      const result = results[0];
+      expect(result).toMatchObject({ status: 'succeeded', type: 'text' });
+      if (result.type !== 'text' || result.status !== 'succeeded')
+        throw new Error('Expected a successful text result');
+      const part = result.content[0];
+      if (part.type !== 'file' && part.type !== 'reasoning-file')
+        throw new Error('Expected a file');
+      expect(part.type).toBe(type);
+      expect(part.file.base64).toBe('SGVsbG8gV29ybGQ=');
+      expect(part.file.uint8Array).toEqual(
+        new TextEncoder().encode('Hello World'),
+      );
+    },
+  );
+
+  it.each(['abort', 'timeout'] as const)(
+    'cancels in-flight downloads on %s',
+    async mode => {
+      const started = Promise.withResolvers<void>();
+      const abortController = new AbortController();
+      let signal: AbortSignal | null | undefined;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_input, init) => {
+          signal = init?.signal;
+          started.resolve();
+          return new Promise<Response>((_resolve, reject) => {
+            if (signal?.aborted) reject(signal.reason);
+            else
+              signal?.addEventListener('abort', () => reject(signal?.reason), {
+                once: true,
+              });
+          });
+        }),
+      );
+      const results = convertReadableStreamToArray(
+        getBatchResults({
+          provider: createFileBatchProvider(),
+          batch: batchReference,
+          abortSignal: abortController.signal,
+          timeout: mode === 'timeout' ? { totalMs: 100 } : undefined,
+        }),
+      );
+      const rejected = expect(results).rejects.toBeDefined();
+      await started.promise;
+      expect(signal).toBeDefined();
+      if (mode === 'abort') abortController.abort(new Error('cancelled'));
+      await rejected;
+      expect(signal?.aborted).toBe(true);
+    },
+  );
 });

@@ -86,6 +86,7 @@ export const uiMessageChunkSchema = lazySchema(() =>
         approvalId: z.string(),
         toolCallId: z.string(),
         approvalDescriptor: z.unknown().optional(),
+        inputSchemaInput: z.unknown().optional(),
         reason: z.string().optional(),
         isAutomatic: z.boolean().optional(),
         signature: z.string().optional(),
@@ -301,6 +302,7 @@ export type UIMessageChunk<
       approvalId: string;
       toolCallId: string;
       approvalDescriptor?: unknown;
+      inputSchemaInput?: unknown;
       reason?: string;
       isAutomatic?: boolean;
       signature?: string;

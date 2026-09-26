@@ -174,6 +174,12 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const warnings: SharedV4Warning[] = [];
 
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsSamplingParameters,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
+
     if (frequencyPenalty != null) {
       warnings.push({
         type: 'unsupported',
@@ -195,14 +201,53 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       });
     }
 
-    if (temperature != null && temperature > 1) {
+    if (rejectsSamplingParameters) {
+      if (temperature != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${this.modelId} and will be ignored`,
+        });
+        temperature = undefined;
+      }
+
+      if (topK != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${this.modelId} and will be ignored`,
+        });
+        topK = undefined;
+      }
+
+      if (topP != null) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${this.modelId} and will be ignored`,
+        });
+        topP = undefined;
+      }
+    }
+
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
+    const shouldNormalizeTemperature = !isOpenAIModel || isOpenAIGptOssModel;
+
+    if (shouldNormalizeTemperature && temperature != null && temperature > 1) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
         details: `${temperature} exceeds bedrock maximum of 1.0. clamped to 1.0`,
       });
       temperature = 1;
-    } else if (temperature != null && temperature < 0) {
+    } else if (
+      shouldNormalizeTemperature &&
+      temperature != null &&
+      temperature < 0
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'temperature',
@@ -228,25 +273,19 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
       modelFamily: this.config.modelFamily,
       reasoningBudgetTokens: amazonBedrockOptions.reasoningConfig?.budgetTokens,
     });
-    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
-    const isOpenAIModel = openAIModelId != null;
-    const isOpenAIGptOssModel =
-      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
 
     amazonBedrockOptions = resolveAmazonBedrockReasoningConfig({
       reasoning,
       amazonBedrockOptions,
       warnings,
       isAnthropicModel,
+      isOpenAIModel,
       modelId: this.modelId,
     });
 
     const isThinkingEnabled =
       amazonBedrockOptions.reasoningConfig?.type === 'enabled' ||
       amazonBedrockOptions.reasoningConfig?.type === 'adaptive';
-
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       amazonBedrockOptions.structuredOutputMode ??
@@ -297,13 +336,14 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
-      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
-      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools != null &&
-      tools.length > 0;
+      (rejectsForcedToolUse ||
+        (structuredOutputMode !== 'jsonTool' &&
+          !supportsStrictTools(this.modelId) &&
+          tools != null &&
+          tools.length > 0));
 
     const jsonResponseTool: LanguageModelV4FunctionTool | undefined =
       responseFormat?.type === 'json' &&
@@ -328,6 +368,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         reasoningBudgetTokens:
           amazonBedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
+        rejectsForcedToolUse,
       });
 
     warnings.push(...toolWarnings);
@@ -492,6 +533,25 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
         feature: 'topK',
         details: 'topK is not supported when thinking is enabled',
       });
+    }
+
+    // OpenAI models reject stopSequences on the Converse API. Models other
+    // than gpt-oss also reject temperature and topP.
+    if (isOpenAIModel) {
+      const unsupportedFeatures = isOpenAIGptOssModel
+        ? (['stopSequences'] as const)
+        : (['temperature', 'topP', 'stopSequences'] as const);
+
+      for (const feature of unsupportedFeatures) {
+        if (inferenceConfig[feature] != null) {
+          delete inferenceConfig[feature];
+          warnings.push({
+            type: 'unsupported',
+            feature,
+            details: `${feature} is not supported by this OpenAI model on the Converse API`,
+          });
+        }
+      }
     }
 
     // Filter tool content from prompt when no tools are available
@@ -1548,12 +1608,14 @@ function resolveAmazonBedrockReasoningConfig({
   amazonBedrockOptions,
   warnings,
   isAnthropicModel,
+  isOpenAIModel,
   modelId,
 }: {
   reasoning: LanguageModelV4CallOptions['reasoning'];
   amazonBedrockOptions: AmazonBedrockLanguageModelChatOptions;
   warnings: SharedV4Warning[];
   isAnthropicModel: boolean;
+  isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
   if (!isCustomReasoning(reasoning)) {
@@ -1561,6 +1623,11 @@ function resolveAmazonBedrockReasoningConfig({
   }
 
   const result = { ...amazonBedrockOptions };
+  const hasPortableReasoning = reasoning !== 'none';
+  const hasExplicitReasoningConfig =
+    amazonBedrockOptions.reasoningConfig != null;
+  const isNovaReasoningModel = modelId.includes('amazon.nova-2-lite-v1:0');
+  const supportsPortableReasoning = isOpenAIModel || isNovaReasoningModel;
 
   if (isAnthropicModel) {
     const capabilities = getModelCapabilities(modelId);
@@ -1593,16 +1660,26 @@ function resolveAmazonBedrockReasoningConfig({
         };
       }
     }
-  } else if (reasoning !== 'none') {
-    const effort = mapReasoningToProviderEffort({
-      reasoning,
-      effortMap: amazonBedrockReasoningEffortMap,
-      warnings,
-    });
-    result.reasoningConfig = {
-      maxReasoningEffort: effort,
-      ...amazonBedrockOptions.reasoningConfig,
-    };
+  } else if (hasPortableReasoning) {
+    if (supportsPortableReasoning || hasExplicitReasoningConfig) {
+      const effort = mapReasoningToProviderEffort({
+        reasoning,
+        effortMap: amazonBedrockReasoningEffortMap,
+        warnings,
+      });
+      result.reasoningConfig = {
+        ...(isNovaReasoningModel && { type: 'enabled' }),
+        maxReasoningEffort: effort,
+        ...amazonBedrockOptions.reasoningConfig,
+      };
+    } else {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
+      });
+    }
   }
 
   /*

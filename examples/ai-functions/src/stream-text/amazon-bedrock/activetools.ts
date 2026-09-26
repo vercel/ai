@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -23,7 +23,6 @@ run(async () => {
           activeTools: [],
         };
       }
-      return undefined;
     },
     toolChoice: 'auto',
     prompt: 'What is the weather in Toronto, Calgary, and Vancouver?',

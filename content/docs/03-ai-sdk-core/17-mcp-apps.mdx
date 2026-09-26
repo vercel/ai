@@ -68,7 +68,7 @@ export async function POST(req: Request) {
     const tools = client.toolsFromDefinitions(modelVisible);
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       messages: await convertToModelMessages(messages),
       onEnd: async () => {

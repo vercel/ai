@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20240620-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     tools: {
       weather: weatherTool,
       cityAttractions: tool({

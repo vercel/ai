@@ -1,5 +1,57 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.126
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- 31742b9: feat(harness): refactor sandbox APIs for cleaner separation of concerns from harness layer, more intuitive DX regardless of how your sandbox is configured, and streamlined handling of sandbox templates/snapshots
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+  - @ai-sdk/harness@1.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.123
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
 ## 1.0.119
 
 ### Patch Changes

@@ -305,7 +305,7 @@ function schemaToTypeInner(schema: JsonSchema, context: SchemaContext): string {
 
 function objectType(schema: JsonSchema, context: SchemaContext): string {
   const properties = isRecord(schema.properties) ? schema.properties : {};
-  const required = new Set(asArray(schema.required)?.filter(isString) ?? []);
+  const required = new Set(asArray(schema.required)?.filter(isString));
   const entries = Object.entries(properties).filter(
     (entry): entry is [string, JsonSchema] => isRecord(entry[1]),
   );

@@ -6,6 +6,12 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
+  EvaluateEndEvent,
+  EvaluateStartEvent,
+  EvaluationModelCallEndEvent,
+  EvaluationModelCallStartEvent,
+} from '../evaluate/evaluate-events';
+import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
@@ -92,6 +98,10 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
+  experimental_onEvaluateStart?: Callback<EvaluateStartEvent>;
+  experimental_onEvaluationModelCallStart?: Callback<EvaluationModelCallStartEvent>;
+  experimental_onEvaluationModelCallEnd?: Callback<EvaluationModelCallEndEvent>;
+  experimental_onEvaluateEnd?: Callback<EvaluateEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
   onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
@@ -213,6 +223,30 @@ export interface Telemetry {
    * Contains the ranking results from the model response.
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
+
+  /** Called when an experimental evaluation operation begins. */
+  experimental_onEvaluateStart?: Callback<
+    InferTelemetryEvent<EvaluateStartEvent>
+  >;
+
+  /**
+   * Called immediately before an experimental evaluation model call begins.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onEvaluationModelCallStart?: Callback<
+    InferTelemetryEvent<EvaluationModelCallStartEvent>
+  >;
+
+  /**
+   * Called after an experimental evaluation model response has been validated.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onEvaluationModelCallEnd?: Callback<
+    InferTelemetryEvent<EvaluationModelCallEndEvent>
+  >;
+
+  /** Called when an experimental evaluation operation completes. */
+  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<EvaluateEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation

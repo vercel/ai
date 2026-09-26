@@ -8,7 +8,6 @@ export default defineConfig([
   {
     entry: { index: 'src/index.ts' },
     format: ['esm'],
-    target: 'es2022',
     dts: true,
     sourcemap: true,
     define: {
@@ -21,7 +20,6 @@ export default defineConfig([
       'bridge/host-tool-mcp': 'src/bridge/host-tool-mcp.ts',
     },
     format: ['esm'],
-    target: 'es2022',
     outExtension: () => ({ js: '.mjs' }),
     dts: false,
     sourcemap: true,

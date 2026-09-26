@@ -4,16 +4,11 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { claudeCodeACPHarness } from './harness';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import { getUserNameTool } from '@/lib/tools/get-user-name-tool';
 import { isStepCount } from 'ai';
 
 export const claudeCodeACPSteppedWorkflowAgent = new HarnessAgent({
   harness: claudeCodeACPHarness,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: { getUserName: getUserNameTool },
   stopWhen: isStepCount(1),
   debug: { enabled: true },

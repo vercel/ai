@@ -6,8 +6,10 @@ import type {
 } from '../prompt';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { getOwn } from '../util/get-own';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { ContentPart } from './content-part';
 import type { ToolSet } from '@ai-sdk/provider-utils';
+import { getToolCallInputSchemaInput } from './tool-call';
 
 /**
  * Converts the result of a `generateText` or `streamText` call to a list of response messages.
@@ -129,6 +131,7 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
         break;
       }
       case 'tool-approval-request':
+        const inputSchemaInput = getToolCallInputSchemaInput(part.toolCall);
         content.push({
           type: 'tool-approval-request',
           approvalId: part.approvalId,
@@ -136,6 +139,10 @@ export async function toResponseMessages<TOOLS extends ToolSet>({
           ...(part.reason != null ? { reason: part.reason } : {}),
           isAutomatic: part.isAutomatic,
           ...(part.signature != null ? { signature: part.signature } : {}),
+          ...(inputSchemaInput != null &&
+          !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+            ? { inputSchemaInput: inputSchemaInput.value }
+            : {}),
         });
         break;
     }

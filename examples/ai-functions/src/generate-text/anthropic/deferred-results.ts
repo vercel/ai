@@ -7,7 +7,7 @@ run(async () => {
   let stepNumber = 0;
 
   const response = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     messages: [{ role: 'user', content: 'calculate 24*78 and weather in nyc' }],
     tools: {
       web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),

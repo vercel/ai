@@ -1,14 +1,20 @@
 import type { HarnessV1Bootstrap } from '@ai-sdk/harness';
 import { createReadBridgeAsset } from '@ai-sdk/harness/utils';
 
+/*
+ * Keep every asset URL literal so bundlers can emit each file separately.
+ * Dynamic new URL() paths can collapse multiple assets into one resolution.
+ */
 const readBridgeAsset = createReadBridgeAsset({
-  resolveAssetUrl: name => new URL(`./bridge/${name}`, import.meta.url),
+  'package.json': new URL('./bridge/package.json', import.meta.url),
+  'pnpm-lock.yaml': new URL('./bridge/pnpm-lock.yaml', import.meta.url),
+  'index.mjs': new URL('./bridge/index.mjs', import.meta.url),
 });
 
 /*
- * Bootstrap is derived state stored under the sandbox's default working
- * directory so snapshot-capable providers preserve its installation and
- * recipe marker without requiring root filesystem access.
+ * Bootstrap is derived state stored under `$HOME/.ai-sdk-harness`, outside
+ * the agent's working directory. Snapshot-capable providers preserve its
+ * installation and recipe marker there.
  */
 export const DEEPAGENTS_BOOTSTRAP_DIR = '.harness-bootstrap/deepagents';
 

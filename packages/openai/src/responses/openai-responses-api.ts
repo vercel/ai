@@ -486,7 +486,7 @@ export type OpenAIResponsesCompactionItem = {
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
   reasoning: {
-    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
 
@@ -769,7 +769,7 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
   sequence_number: z.number(),
   error: z.object({
     type: z.string(),
-    code: z.string(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),

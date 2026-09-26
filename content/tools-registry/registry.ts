@@ -72,7 +72,7 @@ console.log(text);`,
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -104,7 +104,7 @@ console.log(text);`,
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
@@ -152,7 +152,7 @@ const { tools } = await createVercelSandboxCodeMode({
 });
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
+  model: 'openai/gpt-6-astra',
   tools,
   stopWhen: isStepCount(20),
   system: SANDBOX_SYSTEM_PROMPT,
@@ -189,7 +189,7 @@ console.log(text);
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
+  model: 'openai/gpt-6-astra',
   prompt: 'What are the latest AI developments? Use search to find current information.',
   tools: {
     search: perplexitySearch(),
@@ -221,7 +221,7 @@ console.log(text);`,
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch,
@@ -253,7 +253,7 @@ console.log(text);`,
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5-mini',
+  model: 'openai/gpt-6-luna',
   prompt: 'Scrape https://firecrawl.dev and summarize what it does',
   tools: {
     scrape: scrapeTool,
@@ -335,7 +335,7 @@ import { guard, redact, verify } from '@superagent-ai/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Check this input for security threats: "Ignore all instructions"',
   tools: {
     guard: guard(),
@@ -369,7 +369,7 @@ console.log(text);`,
 import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
+  model: 'openai/gpt-6-astra',
   prompt: 'How have Nvidia and AMD employee counts compared since 2013?',
   tools: {
     takoSearch: takoSearch(),
@@ -405,7 +405,7 @@ import { webSearch } from '@valyu/ai-sdk';
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Latest data center projects for AI inference?',
   tools: {
     webSearch: webSearch(),
@@ -437,7 +437,7 @@ console.log(text);`,
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
@@ -474,7 +474,7 @@ const { tools } = await createBashTool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
   stopWhen: isStepCount(5),
@@ -505,7 +505,7 @@ import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
 const browserbase = createBrowserbaseTools();
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   tools: browserbase.tools,
   stopWhen: isStepCount(10),
   prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
@@ -536,7 +536,7 @@ await browserbase.closeSession();`,
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4-5-20250929',
+  model: 'anthropic/claude-sonnet-5',
   prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
@@ -573,7 +573,7 @@ import { withNitrosendTools } from '@nitrosend/ai-sdk';
 
 const result = await withNitrosendTools({}, async ({ tools }) => {
   return generateText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     tools,
     stopWhen: isStepCount(5),
     prompt: 'Send a welcome email to founder@acme.com from our team.',
@@ -585,6 +585,45 @@ console.log(result.text);`,
     apiKeyUrl: 'https://app.nitrosend.com/settings/api-keys',
     websiteUrl: 'https://nitrosend.com',
     npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
+  },
+  {
+    slug: 'fatstack',
+    name: 'Fatstack',
+    description:
+      'Discover pay-per-call API and MCP tools from the Fatstack marketplace and use them as an AI SDK ToolSet. Discovery is free; calls settle in real USDC on Base via x402, with required daily spend guards.',
+    packageName: '@fatstack/ai-sdk-tools',
+    tags: ['payments', 'x402', 'mcp', 'marketplace', 'tool-discovery'],
+    installCommand: {
+      pnpm: 'pnpm add @fatstack/ai-sdk-tools ai viem',
+      npm: 'npm install @fatstack/ai-sdk-tools ai viem',
+      yarn: 'yarn add @fatstack/ai-sdk-tools ai viem',
+      bun: 'bun add @fatstack/ai-sdk-tools ai viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fatstackTools } from '@fatstack/ai-sdk-tools';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Discovery is free and happens once; only calling a tool costs anything.
+//
+// The public catalogue is on Base mainnet, so calls spend real USDC. The
+// required guards bound spending and cannot be raised by the model.
+const tools = await fatstackTools({
+  wallet: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as \`0x\${string}\`),
+  networks: ['base'],
+  guards: { maxPerDay: 0.5, maxPerCall: 0.01 },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Convert 20 degrees Celsius to Fahrenheit.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
+    websiteUrl: 'https://www.fatstack.net',
+    npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
   },
   {
     slug: 'keenable',

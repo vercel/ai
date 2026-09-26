@@ -3,7 +3,7 @@ import type {
   HarnessV1Prompt,
   HarnessV1ResumeSessionState,
 } from '@ai-sdk/harness';
-import type { HarnessAgentSession } from '@ai-sdk/harness/agent';
+import type { HarnessAgent, HarnessAgentSession } from '@ai-sdk/harness/agent';
 import type {
   HarnessWorkflowModelMessage,
   HarnessWorkflowSerializedChunk,
@@ -14,6 +14,9 @@ import type {
 
 /** The non-string arm of {@link HarnessV1Prompt} — a single `UserModelMessage`. */
 type HarnessV1UserMessage = Exclude<HarnessV1Prompt, string>;
+type WorkflowSandboxSession = NonNullable<
+  NonNullable<Parameters<HarnessAgent['createSession']>[0]>['sandboxSession']
+>;
 
 /** A UI-message-stream chunk. Kept structural so this package need not depend on `ai`. */
 export interface HarnessWorkflowChunk {
@@ -47,6 +50,7 @@ export interface HarnessWorkflowAgent<OUTPUT = unknown> {
     sessionId?: string;
     resumeFrom?: HarnessV1ResumeSessionState;
     continueFrom?: HarnessV1ContinueTurnState;
+    sandboxSession?: WorkflowSandboxSession;
   }): Promise<HarnessAgentSession>;
   stream(
     options:
@@ -74,13 +78,13 @@ export interface HarnessWorkflowAgent<OUTPUT = unknown> {
 export interface RunHarnessAgentOptions<OUTPUT = unknown> {
   readonly agent: HarnessWorkflowAgent<OUTPUT>;
   readonly state: HarnessWorkflowState;
+  readonly sandboxSession?: WorkflowSandboxSession;
   readonly timeSliceSeconds?: number;
   /**
-   * When the run finishes or fails, whether to destroy the sandbox. Defaults to
-   * `false`: the session is parked or stopped and a fresh resume state is
-   * returned in `resumeFrom`, so the next user turn reattaches to the same
-   * conversation (multi-turn chat). Set `true` for a one-shot run that should
-   * release the sandbox when the run ends.
+   * When the run finishes or fails, whether to destroy the harness session.
+   * Defaults to `false`: the session is parked and a fresh resume state is
+   * returned in `resumeFrom`. A supplied sandbox session remains caller-owned
+   * even when this is `true`.
    */
   readonly destroyOnFinish?: boolean;
   /**
@@ -114,13 +118,18 @@ export async function runHarnessAgent<OUTPUT = unknown>(
       ? await agent.createSession({
           sessionId: state.sessionId,
           continueFrom: state.continueFrom,
+          sandboxSession: options.sandboxSession,
         })
       : state.resumeFrom != null
         ? await agent.createSession({
             sessionId: state.sessionId,
             resumeFrom: state.resumeFrom,
+            sandboxSession: options.sandboxSession,
           })
-        : await agent.createSession({ sessionId: state.sessionId });
+        : await agent.createSession({
+            sessionId: state.sessionId,
+            sandboxSession: options.sandboxSession,
+          });
 
   let result: HarnessWorkflowStreamResult<OUTPUT>;
   try {
@@ -409,10 +418,10 @@ function createMutableStreamContext(
   context: HarnessWorkflowStreamContext | undefined,
 ): MutableStreamContext {
   return {
-    activeTextParts: { ...(context?.activeTextParts ?? {}) },
-    activeReasoningParts: { ...(context?.activeReasoningParts ?? {}) },
-    activeToolInputs: { ...(context?.activeToolInputs ?? {}) },
-    pendingToolInputs: { ...(context?.pendingToolInputs ?? {}) },
+    activeTextParts: { ...context?.activeTextParts },
+    activeReasoningParts: { ...context?.activeReasoningParts },
+    activeToolInputs: { ...context?.activeToolInputs },
+    pendingToolInputs: { ...context?.pendingToolInputs },
   };
 }
 

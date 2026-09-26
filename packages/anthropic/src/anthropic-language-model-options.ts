@@ -20,6 +20,7 @@ export type AnthropicModelId =
   | 'claude-opus-4-7'
   | 'claude-opus-4-8'
   | 'claude-opus-5'
+  | 'claude-opus-5-5'
   | 'claude-fable-5'
   | 'claude-fable-5-1'
   | 'claude-sonnet-5'
@@ -81,9 +82,10 @@ export const anthropicSystemMessageProviderOptions = z.object({
   clearAt: z.literal('next_user_message').optional(),
 
   /**
-   * Sets the model effort for the turn that follows this mid-conversation
-   * system message. The required `mid-conversation-effort-2026-08-01` beta
-   * is added automatically.
+   * Sets the model effort from the next user turn until a later message
+   * changes it. An effort-only system message with empty content can appear
+   * first. The required `mid-conversation-output-config-2026-07-01` beta is
+   * added automatically.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
@@ -143,6 +145,11 @@ export const anthropicLanguageModelOptions = z.object({
    *
    * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+   *
+   * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
+   * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
+   * provider drops the unsupported setting, emits a warning, and sends an
+   * adaptive thinking request. Use `effort` to control how much they think.
    */
   thinking: z
     .union([
@@ -278,7 +285,11 @@ export const anthropicLanguageModelOptions = z.object({
   toolStreaming: z.boolean().optional(),
 
   /**
-   * @default 'high'
+   * Controls how much effort the model spends on thinking, text responses,
+   * and tool calls. On models that always use adaptive thinking
+   * (e.g. `claude-opus-5-5`), effort is the main lever for latency and cost.
+   *
+   * The API default is `high` for most models and `medium` for `claude-opus-5-5`.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
@@ -372,6 +383,19 @@ export const anthropicLanguageModelOptions = z.object({
         classifierContext: z.record(z.string(), z.unknown()).optional(),
       }),
     )
+    .optional(),
+
+  /**
+   * Requests an on-demand summary of the supplied conversation.
+   *
+   * The required `compact-2026-09-04` beta is added automatically.
+   * Cannot be combined with `contextManagement`.
+   */
+  compaction: z
+    .object({
+      type: z.literal('summarize'),
+      instructions: z.string().optional(),
+    })
     .optional(),
 
   contextManagement: z
