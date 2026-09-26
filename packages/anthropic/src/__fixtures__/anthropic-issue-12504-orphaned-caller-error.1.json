@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "source tool `srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK` not found for tool use block `toolu_019jKkXz4jAdwHweHBw92CVY`"
+  },
+  "request_id": "req_011CfP3JwEyC3uhKgXdPSG7K"
+}

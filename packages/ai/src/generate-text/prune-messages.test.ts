@@ -907,6 +907,103 @@ describe('pruneMessages', () => {
       });
     });
 
+    describe('provider tool dependencies (regression)', () => {
+      it('keeps an Anthropic code-execution source referenced by a retained caller', () => {
+        const sourceToolCallId = 'srvtoolu_source';
+        const dependentToolCallId = 'toolu_dependent';
+
+        const messages: ModelMessage[] = [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Look up AAPL.' }],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: sourceToolCallId,
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: "await lookup({ ticker: 'AAPL' })",
+                },
+                providerExecuted: true,
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: dependentToolCallId,
+                toolName: 'lookup',
+                input: { ticker: 'AAPL' },
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20250825',
+                      toolId: sourceToolCallId,
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: dependentToolCallId,
+                toolName: 'lookup',
+                output: {
+                  type: 'json',
+                  value: { ticker: 'AAPL', price: 185.42 },
+                },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'The price is $185.42.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: '100 shares cost $18,542.' }],
+          },
+          {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Calculation complete.' }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Now do MSFT.' }],
+          },
+        ];
+
+        const result = pruneMessages({
+          messages,
+          toolCalls: 'before-last-5-messages',
+          emptyMessages: 'remove',
+        });
+
+        expect(
+          result.some(
+            message =>
+              message.role === 'assistant' &&
+              typeof message.content !== 'string' &&
+              message.content.some(
+                part =>
+                  part.type === 'tool-call' &&
+                  part.toolCallId === sourceToolCallId,
+              ),
+          ),
+        ).toBe(true);
+      });
+    });
+
     describe('selective tool pruning with approvals (regression)', () => {
       it('should prune the approval response together with its request and tool-call', async () => {
         const messages = JSON.parse(
