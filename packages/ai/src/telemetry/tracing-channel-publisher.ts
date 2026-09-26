@@ -136,6 +136,11 @@ export function openTelemetryChannelSpanContext({
   completion: PromiseLike<unknown>;
 }): TracingChannelContext | undefined {
   if (!isNodeRuntime()) {
+    // The completion promise can reject (abort, timeout, provider error).
+    // With no diagnostics_channel subscribers there is nothing to observe it,
+    // so attach a no-op handler to avoid an unhandled rejection on non-Node
+    // runtimes (e.g. React Native).
+    Promise.resolve(completion).catch(() => {});
     return undefined;
   }
 
