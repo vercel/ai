@@ -293,6 +293,99 @@ describe('toUIMessageStream', () => {
     expect(onFinish).not.toHaveBeenCalled();
   });
 
+  it('calls onStepEnd when finish-step is encountered', async () => {
+    const onStepEnd = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'start-step', request: {}, warnings: [] },
+          {
+            type: 'finish-step',
+            response: { id: 'r', modelId: 'm', timestamp: new Date(0) },
+            usage: testUsage,
+            performance: {
+              effectiveOutputTokensPerSecond: 0,
+              outputTokensPerSecond: 0,
+              inputTokensPerSecond: 0,
+              effectiveTotalTokensPerSecond: 0,
+              stepTimeMs: 0,
+              responseTimeMs: 0,
+              toolExecutionMs: {},
+              timeToFirstOutputMs: undefined,
+            },
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            providerMetadata: undefined,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ] satisfies TextStreamPart<{}>[]),
+        tools: undefined,
+        generateMessageId: () => 'msg-123',
+        onStepEnd,
+      }),
+    );
+
+    expect(onStepEnd).toHaveBeenCalledTimes(1);
+    expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+      isContinuation: false,
+      responseMessage: {
+        id: 'msg-123',
+        role: 'assistant',
+      },
+    });
+  });
+
+  it('prefers onStepEnd over deprecated onStepFinish', async () => {
+    const onStepEnd = vi.fn();
+    const onStepFinish = vi.fn();
+
+    await convertReadableStreamToArray(
+      toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'start-step', request: {}, warnings: [] },
+          {
+            type: 'finish-step',
+            response: { id: 'r', modelId: 'm', timestamp: new Date(0) },
+            usage: testUsage,
+            performance: {
+              effectiveOutputTokensPerSecond: 0,
+              outputTokensPerSecond: 0,
+              inputTokensPerSecond: 0,
+              effectiveTotalTokensPerSecond: 0,
+              stepTimeMs: 0,
+              responseTimeMs: 0,
+              toolExecutionMs: {},
+              timeToFirstOutputMs: undefined,
+            },
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            providerMetadata: undefined,
+          },
+          {
+            type: 'finish',
+            finishReason: 'stop',
+            rawFinishReason: 'stop',
+            totalUsage: testUsage,
+          },
+        ] satisfies TextStreamPart<{}>[]),
+        tools: undefined,
+        onStepEnd,
+        onStepFinish,
+      }),
+    );
+
+    expect(onStepEnd).toHaveBeenCalledTimes(1);
+    expect(onStepFinish).not.toHaveBeenCalled();
+  });
+
   it('reports the source outcome to onEnd', async () => {
     const observe = async (parts: TextStreamPart<{}>[]) => {
       const onEnd = vi.fn();

@@ -6193,6 +6193,90 @@ describe('streamText', () => {
       });
     });
 
+    it('should call onStepEnd when toUIMessageStream emits finish-step', async () => {
+      const onStepEnd = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      await convertReadableStreamToArray(
+        result.toUIMessageStream({
+          onStepEnd,
+          generateMessageId: () => 'msg-step-end',
+        }),
+      );
+
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepEnd.mock.calls[0][0]).toMatchObject({
+        isContinuation: false,
+        responseMessage: {
+          id: 'msg-step-end',
+          role: 'assistant',
+          parts: expect.arrayContaining([
+            expect.objectContaining({ type: 'text', text: 'Hello' }),
+          ]),
+        },
+      });
+    });
+
+    it('should prefer onStepEnd over deprecated onStepFinish in toUIMessageStream', async () => {
+      const onStepEnd = vi.fn();
+      const onStepFinish = vi.fn();
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      await convertReadableStreamToArray(
+        result.toUIMessageStream({
+          onStepEnd,
+          onStepFinish,
+        }),
+      );
+
+      expect(onStepEnd).toHaveBeenCalledTimes(1);
+      expect(onStepFinish).not.toHaveBeenCalled();
+    });
+
     it('should call onFinish when async iteration stops mid-stream', async () => {
       await expectUndefinedUnhandledRejections({
         count: 2,

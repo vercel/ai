@@ -22,6 +22,8 @@ import type { ProviderMetadata } from '../types';
 import type { UIMessage } from '../ui';
 import type {
   UIMessageStreamOnEndCallback,
+  UIMessageStreamOnStepEndCallback,
+  UIMessageStreamOnStepFinishCallback,
   UIMessageStreamOnFinishCallback,
 } from '../ui-message-stream';
 import type { AsyncIterableStream } from '../util';
@@ -268,10 +270,26 @@ describe('streamText types', () => {
   });
 
   describe('toUIMessageStream options', () => {
-    it('should support onEnd and deprecated onFinish', () => {
+    it('should support onStepEnd/onEnd and deprecated aliases', () => {
       const result = streamText({
         model: new MockLanguageModelV4(),
         prompt: 'Hello',
+      });
+
+      result.toUIMessageStream({
+        onStepEnd: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnStepEndCallback<UIMessage>>[0]
+          >();
+        },
+      });
+
+      result.toUIMessageStream({
+        onStepFinish: event => {
+          expectTypeOf(event).toMatchTypeOf<
+            Parameters<UIMessageStreamOnStepFinishCallback<UIMessage>>[0]
+          >();
+        },
       });
 
       result.toUIMessageStream({
