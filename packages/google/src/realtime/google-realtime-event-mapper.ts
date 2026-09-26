@@ -71,6 +71,16 @@ export class GoogleRealtimeEventMapper {
   }
 
   /**
+   * Input transcription names the user turn that the next response answers.
+   * Once the current turn is closed, new user speech belongs to the turn that
+   * `beginTurnIfClosed` opens next, so it must not reuse the input item id of
+   * the turn that just ended.
+   */
+  private get inputItemId(): string {
+    return `google-input-${this.turnClosed ? this.turnCounter + 1 : this.turnCounter}`;
+  }
+
+  /**
    * Rolls over to the next turn lazily, only once new model content actually
    * arrives. `turnComplete` merely marks the current turn closed; the counter
    * is not advanced until the next response begins. This keeps a transcript
@@ -154,7 +164,7 @@ export class GoogleRealtimeEventMapper {
     if (data.inputTranscription?.text != null) {
       return {
         type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
+        itemId: this.inputItemId,
         transcript: data.inputTranscription.text,
         raw,
       };
@@ -170,6 +180,10 @@ export class GoogleRealtimeEventMapper {
     const events: RealtimeModelV4ServerEvent[] = [];
 
     if (serverContent.interrupted) {
+      // An interruption ends the current model turn: Google follows
+      // `interrupted` only with `turnComplete`. Close the turn now so user
+      // speech that arrives before `turnComplete` gets the next input item id.
+      this.turnClosed = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -217,7 +231,7 @@ export class GoogleRealtimeEventMapper {
     if (serverContent.inputTranscription?.text) {
       events.push({
         type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
+        itemId: this.inputItemId,
         transcript: serverContent.inputTranscription.text,
         raw,
       });
