@@ -63,6 +63,10 @@ const piMock = vi.hoisted(() => {
         const handlers = extensionHandlers.get(eventType) ?? [];
         handlers.push(handler);
         extensionHandlers.set(eventType, handlers);
+        return () => {
+          const index = handlers.indexOf(handler);
+          if (index !== -1) handlers.splice(index, 1);
+        };
       }),
     } as unknown as ExtensionAPI,
     extensionFactoryInputs: [] as Array<{
@@ -325,10 +329,11 @@ describe('createPiSession', () => {
     }
   });
 
-  it('does not reload inline extensions between turns', async () => {
+  it('does not reload inline extensions between turns and supports unsubscription', async () => {
     const observedEvents: string[] = [];
+    let unsubscribe: (() => void) | undefined;
     const factory = vi.fn((piApi: ExtensionAPI) => {
-      piApi.on('agent_start', () => {
+      unsubscribe = piApi.on('agent_start', () => {
         observedEvents.push('agent_start');
       });
     });
@@ -366,10 +371,11 @@ describe('createPiSession', () => {
           emit: vi.fn(),
         });
         await control.done;
+        unsubscribe?.();
       }
 
       expect(factory).toHaveBeenCalledOnce();
-      expect(observedEvents).toEqual(['agent_start', 'agent_start']);
+      expect(observedEvents).toEqual(['agent_start']);
       expect(piMock.resourceLoaderReloadCount).toBe(3);
       expect(piMock.agentSessionExtensionResults).toHaveLength(1);
     } finally {
