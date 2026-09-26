@@ -11,7 +11,7 @@ There are two approaches you can take to building a web search agent with the AI
 1. Use a model that has native web-searching capabilities
 2. Use a tool to access the web and return search results.
 
-Both approaches have their advantages and disadvantages. Models with native search capabilities tend to be faster and there is no additional cost to make the search. The disadvantage is that you have less control over what is being searched, and the functionality is limited to models that support it.
+Provider-native search runs on the provider's infrastructure and returns sources alongside the generated response. Available search controls and pricing vary by provider; search can incur additional tool charges.
 
 instead, by using a tool, you can achieve more flexibility and greater control over your search queries. It allows you to customize your search strategy, specify search parameters, and you can use it with any LLM that supports tool calling. This approach will incur additional costs for the search API you use, but gives you complete control over the search experience.
 
@@ -73,19 +73,26 @@ for (const toolResult of toolResults) {
 
 ### Perplexity
 
-Perplexity's Sonar models combines real-time web search with natural language processing. Each response is grounded in current web data and includes detailed citations.
+Perplexity's Agent API offers presets that combine models with native tools such as web search. The `fast` preset can search the web and return citations through the `sources` property.
+
+Install `@ai-sdk/perplexity` and set `PERPLEXITY_API_KEY` in your environment to use the provider directly:
+
+<InstallPackages packages="@ai-sdk/perplexity" />
 
 ```ts
+import { perplexity } from '@ai-sdk/perplexity';
 import { generateText } from 'ai';
 
 const { text, sources } = await generateText({
-  model: 'perplexity/sonar-pro',
+  model: perplexity('fast'),
   prompt: 'What are the latest developments in quantum computing?',
 });
 
 console.log(text);
 console.log(sources);
 ```
+
+See the [Perplexity provider documentation](/providers/ai-sdk-providers/perplexity#agent-tools) for native tools, search filters, and Agent API options.
 
 ### Gemini
 
