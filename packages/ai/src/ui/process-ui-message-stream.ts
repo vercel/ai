@@ -62,22 +62,56 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   lastMessage: UI_MESSAGE | undefined;
   messageId: string;
 }): StreamingUIMessageState<UI_MESSAGE> {
+  const message =
+    lastMessage?.role === 'assistant'
+      ? lastMessage
+      : ({
+          id: messageId,
+          metadata: undefined,
+          role: 'assistant',
+          parts: [] as UIMessagePart<
+            InferUIMessageData<UI_MESSAGE>,
+            InferUIMessageTools<UI_MESSAGE>
+          >[],
+        } as UI_MESSAGE);
+  const partialToolCalls: StreamingUIMessageState<UI_MESSAGE>['partialToolCalls'] =
+    createIdMap();
+  const lastStepStartIndex = message.parts.findLastIndex(
+    part => part.type === 'step-start',
+  );
+  let staticToolIndex = 0;
+
+  for (const part of message.parts.slice(lastStepStartIndex + 1)) {
+    if (!isToolUIPart(part)) {
+      continue;
+    }
+
+    const index = staticToolIndex;
+    if (isStaticToolUIPart(part)) {
+      staticToolIndex++;
+    }
+
+    const rawInput = (part as { rawInput?: unknown }).rawInput;
+    if (part.state !== 'input-streaming' || typeof rawInput !== 'string') {
+      continue;
+    }
+
+    partialToolCalls[part.toolCallId] = {
+      text: rawInput,
+      index,
+      toolName:
+        part.type === 'dynamic-tool' ? part.toolName : getStaticToolName(part),
+      dynamic: part.type === 'dynamic-tool',
+      title: part.title,
+      toolMetadata: part.toolMetadata,
+    };
+  }
+
   return {
-    message:
-      lastMessage?.role === 'assistant'
-        ? lastMessage
-        : ({
-            id: messageId,
-            metadata: undefined,
-            role: 'assistant',
-            parts: [] as UIMessagePart<
-              InferUIMessageData<UI_MESSAGE>,
-              InferUIMessageTools<UI_MESSAGE>
-            >[],
-          } as UI_MESSAGE),
+    message,
     activeTextParts: createIdMap(),
     activeReasoningParts: createIdMap(),
-    partialToolCalls: createIdMap(),
+    partialToolCalls,
   };
 }
 

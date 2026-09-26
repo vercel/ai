@@ -808,6 +808,17 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    const resumableResponseMessage =
+      trigger === 'resume-stream' &&
+      responseMessage?.role === 'assistant' &&
+      responseMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          part.state === 'input-streaming' &&
+          typeof (part as { rawInput?: unknown }).rawInput === 'string',
+      )
+        ? this.state.snapshot(responseMessage)
+        : undefined;
     const usesEarlierAssistantMessage =
       responseMessageIndex !== -1 &&
       responseMessageIndex < this.state.messages.length - 1 &&
@@ -822,9 +833,11 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-            trigger === 'resume-stream' || trigger === 'regenerate-message'
-              ? undefined
-              : this.state.snapshot(responseMessage),
+            trigger === 'resume-stream'
+              ? resumableResponseMessage
+              : trigger === 'regenerate-message'
+                ? undefined
+                : this.state.snapshot(responseMessage),
           messageId: this.generateId(),
         }),
         abortController,
