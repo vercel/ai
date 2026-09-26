@@ -72,6 +72,10 @@ function batchResponse(
     cancel_initiated_at: null,
     ended_at: '2024-09-24T18:38:24.100Z',
     results_url: urls.results,
+    scope: {
+      id: 'id',
+      type: 'session',
+    },
     ...overrides,
   };
 }

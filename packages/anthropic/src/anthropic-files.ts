@@ -25,6 +25,13 @@ const anthropicUploadFileResponseSchema = lazySchema(() =>
       size_bytes: z.number(),
       created_at: z.string(),
       downloadable: z.boolean().nullish(),
+      expires_at: z.string().nullish(),
+      scope: z
+        .object({
+          id: z.string(),
+          type: z.literal('session'),
+        })
+        .nullish(),
     }),
   ),
 );
