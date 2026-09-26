@@ -1,3 +1,4 @@
+import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { describe, expect, it, vi } from 'vitest';
 import {
   convertToGoogleMessages,
@@ -1883,6 +1884,109 @@ describe('server tool combination round-trip', () => {
               args: {},
             },
             thoughtSignature: 'function-signature',
+          },
+          {
+            codeExecutionResult: {
+              outcome: 'OUTCOME_OK',
+              output: '323\n',
+            },
+          },
+        ],
+      },
+      {
+        role: 'user',
+        parts: [
+          {
+            functionResponse: {
+              id: 'function-call-1',
+              name: 'listItems',
+              response: {
+                name: 'listItems',
+                content: { items: ['a', 'b'] },
+              },
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should preserve code execution parts registered under a custom tool name', () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'code-call-1',
+              toolName: 'runCode',
+              input: { language: 'PYTHON', code: 'print(17 * 19)' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              input: {},
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'code-call-1',
+              toolName: 'runCode',
+              output: {
+                type: 'json',
+                value: { outcome: 'OUTCOME_OK', output: '323\n' },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'function-call-1',
+              toolName: 'listItems',
+              output: {
+                type: 'json',
+                value: { items: ['a', 'b'] },
+              },
+            },
+          ],
+        },
+      ],
+      {
+        toolNameMapping: createToolNameMapping({
+          tools: [
+            {
+              type: 'provider',
+              id: 'google.code_execution',
+              name: 'runCode',
+              args: {},
+            },
+          ],
+          providerToolNames: { 'google.code_execution': 'code_execution' },
+        }),
+      },
+    );
+
+    expect(result.contents).toEqual([
+      {
+        role: 'model',
+        parts: [
+          {
+            executableCode: {
+              language: 'PYTHON',
+              code: 'print(17 * 19)',
+            },
+          },
+          {
+            functionCall: {
+              id: 'function-call-1',
+              name: 'listItems',
+              args: {},
+            },
           },
           {
             codeExecutionResult: {
