@@ -183,6 +183,7 @@ describe('toUIMessageStream', () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',
       content: 'Sunny, 72°F',
+      name: 'get_weather',
     });
     toolMsg.id = 'msg-1';
 
@@ -199,6 +200,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-1",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
         },
         {
           "output": "Sunny, 72°F",
@@ -994,6 +1001,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-abc",
+          "toolName": "unknown",
+          "type": "tool-input-start",
         },
         {
           "output": "Tool result here",

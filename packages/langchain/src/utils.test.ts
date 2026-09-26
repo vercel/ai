@@ -1529,7 +1529,7 @@ describe('processLangGraphEvent', () => {
     expect(chunks).toHaveLength(0);
   });
 
-  it('should handle tool message output', () => {
+  it('should start the tool lifecycle before a bare tool message output', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -1537,15 +1537,24 @@ describe('processLangGraphEvent', () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',
       content: 'Tool result',
+      name: 'searchProducts',
     });
     toolMsg.id = 'msg-1';
     processLangGraphEvent(['messages', [toolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-available',
-      toolCallId: 'call-1',
-      output: 'Tool result',
-    });
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'searchProducts',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Tool result',
+      },
+    ]);
   });
 
   it('should handle plain AI message objects from RemoteGraph', () => {
