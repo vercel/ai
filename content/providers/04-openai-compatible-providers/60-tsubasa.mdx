@@ -1,0 +1,79 @@
+---
+title: Tsubasa
+description: Configure Tsubasa's Chat Completions API with the AI SDK.
+---
+
+# Tsubasa Provider
+
+[Tsubasa](https://tsubasa.sh) provides a Chat Completions API for text models.
+Use the existing `@ai-sdk/openai-compatible` module to create a named provider.
+
+<Note>
+  Tsubasa is currently in website-only mode. API access is unavailable, and
+  these examples require the service to be enabled. Live model qualification for
+  tool calling and structured output is pending.
+</Note>
+
+## Setup
+
+Install the OpenAI Compatible provider and the AI SDK:
+
+<InstallPackages packages="ai @ai-sdk/openai-compatible" />
+
+Once API access is available, store your Tsubasa key in the server-side
+`TSUBASA_API_KEY` environment variable. See the [API documentation](https://tsubasa.sh/docs)
+for access and model availability.
+
+## Provider Instance
+
+Create the provider with Tsubasa's public endpoint:
+
+```ts
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+
+const tsubasa = createOpenAICompatible({
+  name: 'tsubasa',
+  apiKey: process.env.TSUBASA_API_KEY,
+  baseURL: 'https://api.tsubasa.sh/v1',
+});
+```
+
+The provider sends the API key as a Bearer token. The public model IDs are
+`tsubasa-fast` and `tsubasa-pro`.
+
+## Generate Text
+
+Pass a Tsubasa model to `generateText`:
+
+```ts
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: tsubasa('tsubasa-pro'),
+  prompt: 'Explain the difference between a stack and a queue.',
+});
+```
+
+## Stream Text
+
+Use `streamText` with the same provider instance:
+
+```ts
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: tsubasa('tsubasa-fast'),
+  prompt: 'Describe binary search in three sentences.',
+});
+
+for await (const part of result.textStream) {
+  process.stdout.write(part);
+}
+```
+
+## API Scope
+
+This configuration targets Chat Completions only. Tsubasa does not expose
+Responses, embeddings, images, audio, or legacy text-completion endpoints.
+Model discovery uses `GET https://api.tsubasa.sh/v1/models` when the service is
+enabled. A configuration test does not establish live model compatibility.
