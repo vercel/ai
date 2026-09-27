@@ -5,6 +5,7 @@ import {
   getGatewayAuthToken,
 } from './gateway-provider';
 import { GatewayFetchMetadata } from './gateway-fetch-metadata';
+import { GatewayRequest } from './gateway-request';
 import { GatewaySpendReport } from './gateway-spend-report';
 import { GatewayGenerationInfoFetcher } from './gateway-generation-info';
 import { NoSuchModelError } from '@ai-sdk/provider';
@@ -44,6 +45,7 @@ vi.mock('./gateway-spend-report', () => ({
       },
     };
   }),
+  convertGatewayRestSpendReportResponse: (response: unknown) => response,
 }));
 
 const mockGetGenerationInfo = vi.fn();
@@ -58,6 +60,7 @@ vi.mock('./gateway-generation-info', () => ({
       },
     };
   }),
+  convertGatewayRestGenerationInfoResponse: (response: unknown) => response,
 }));
 
 // Mock the gateway fetch metadata to prevent actual network calls
@@ -80,6 +83,22 @@ vi.mock('./gateway-fetch-metadata', () => ({
           await config.headers();
         }
         return mockGetCredits();
+      },
+    };
+  }),
+  convertGatewayRestCreditsResponse: (response: unknown) => response,
+}));
+
+const mockGatewayRequest = vi.fn();
+vi.mock('./gateway-request', () => ({
+  GatewayRequest: vi.fn(function (config: any) {
+    return {
+      request: async (route: string, params?: unknown) => {
+        if (config.headers && typeof config.headers === 'function') {
+          await config.headers();
+        }
+
+        return mockGatewayRequest(route, params);
       },
     };
   }),
@@ -259,6 +278,18 @@ describe('GatewayProvider', () => {
     mockGetCredits.mockReturnValue({ balance: '100.00', total_used: '50.00' });
     mockGetSpendReport.mockReturnValue({ results: [] });
     mockGetGenerationInfo.mockReturnValue({ id: 'gen_test' });
+    mockGatewayRequest.mockImplementation((route, params) => {
+      switch (route) {
+        case 'GET /v1/credits':
+          return mockGetCredits();
+        case 'GET /v1/report':
+          return mockGetSpendReport(params);
+        case 'GET /v1/generation':
+          return mockGetGenerationInfo(params);
+        default:
+          throw new Error(`Unexpected Gateway request: ${route}`);
+      }
+    });
     if ('AI_GATEWAY_API_KEY' in process.env) {
       Reflect.deleteProperty(process.env, 'AI_GATEWAY_API_KEY');
     }
@@ -1507,7 +1538,7 @@ describe('GatewayProvider', () => {
       const credits = await provider.getCredits();
 
       expect(credits).toEqual({ balance: '150.50', total_used: '75.25' });
-      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+      expect(GatewayRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
           headers: expect.any(Function),
@@ -1525,7 +1556,7 @@ describe('GatewayProvider', () => {
 
       await provider.getCredits();
 
-      expect(GatewayFetchMetadata).toHaveBeenCalledWith(
+      expect(GatewayRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: customBaseURL,
         }),
@@ -1564,7 +1595,7 @@ describe('GatewayProvider', () => {
 
       await provider.getCredits();
 
-      const config = vi.mocked(GatewayFetchMetadata).mock.calls[0][0];
+      const config = vi.mocked(GatewayRequest).mock.calls[0][0];
       const headers = (await resolve(config.headers))!;
 
       expect(headers).toEqual({
@@ -1599,7 +1630,7 @@ describe('GatewayProvider', () => {
       });
 
       expect(report).toEqual(mockResults);
-      expect(GatewaySpendReport).toHaveBeenCalledWith(
+      expect(GatewayRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: 'https://ai-gateway.vercel.sh/v4/ai',
           headers: expect.any(Function),
@@ -1646,7 +1677,7 @@ describe('GatewayProvider', () => {
         endDate: '2026-03-25',
       });
 
-      expect(GatewaySpendReport).toHaveBeenCalledWith(
+      expect(GatewayRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           baseURL: customBaseURL,
         }),
@@ -1665,7 +1696,7 @@ describe('GatewayProvider', () => {
         endDate: '2026-03-25',
       });
 
-      expect(GatewaySpendReport).toHaveBeenCalledWith(
+      expect(GatewayRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           fetch: customFetch,
         }),
