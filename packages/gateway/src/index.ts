@@ -40,7 +40,7 @@ export type {
   GatewayRestModelPricingTier,
   GatewayRestModelReasoningOption,
   GatewayRestModelsResponse,
-} from './gateway-rest-model';
+} from './gateway-rest-types';
 export type {
   GatewayCreditsResponse,
   GatewayRestCreditsResponse,

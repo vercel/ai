@@ -18,7 +18,7 @@ import type {
   GatewayRestModelEndpointsParams,
   GatewayRestModelEndpointsResponse,
   GatewayRestModelsResponse,
-} from './gateway-rest-model';
+} from './gateway-rest-types';
 import type {
   GatewayRestSpendReportResponse,
   GatewaySpendReportParams,

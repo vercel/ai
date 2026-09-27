@@ -1,6 +1,4 @@
-/**
- * The response returned by the AI Gateway `GET /v1/models` REST endpoint.
- */
+/** Types for raw AI Gateway REST API responses. */
 export interface GatewayRestModelsResponse {
   /** Always `"list"` for model-list responses. */
   object: 'list';
