@@ -926,6 +926,62 @@ describe('doStream', () => {
     );
   });
 
+  it('accepts null fields in stream events', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: null,
+      },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        call_id: 'call-1',
+        sequence_number: 1,
+        thought: 'Fetched content from 0 URLs',
+        contents: null,
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 2,
+        results: null,
+      },
+      { type: 'response.reasoning.stopped', sequence_number: 3 },
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        delta: 'Hello',
+      },
+      {
+        type: 'response.output_text.done',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        text: null,
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-0',
+          delta: 'Fetched content from 0 URLs',
+        },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+        { type: 'text-start', id: 'msg-1' },
+        { type: 'text-delta', id: 'msg-1', delta: 'Hello' },
+        { type: 'text-end', id: 'msg-1' },
+      ]),
+    );
+  });
+
   it('emits a fetched URL only once with its later search result ID', async () => {
     prepareStream([
       {
