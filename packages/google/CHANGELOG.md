@@ -1,5 +1,14 @@
 # @ai-sdk/google
 
+## 3.0.128
+
+### Patch Changes
+
+- 3983fea: fix(google): forward supported GCS tool result URLs as function response file data on Vertex Gemini 3 and later. Restrict forwarding to supported image, PDF, and text MIME types while preserving HTTP(S) downloads for tool results on all Gemini generations.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
 ## 3.0.127
 
 ### Patch Changes
