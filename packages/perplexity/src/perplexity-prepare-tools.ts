@@ -1,6 +1,6 @@
 import type {
-  LanguageModelV4CallOptions,
-  SharedV4Warning,
+  LanguageModelV3CallOptions,
+  SharedV3Warning,
 } from '@ai-sdk/provider';
 import type { PerplexityAgentTool } from './perplexity-agent-api';
 
@@ -8,14 +8,14 @@ export function preparePerplexityTools({
   tools,
   toolChoice,
 }: {
-  tools: LanguageModelV4CallOptions['tools'];
-  toolChoice: LanguageModelV4CallOptions['toolChoice'];
+  tools: LanguageModelV3CallOptions['tools'];
+  toolChoice: LanguageModelV3CallOptions['toolChoice'];
 }): {
   tools: PerplexityAgentTool[];
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 } {
   const preparedTools: PerplexityAgentTool[] = [];
-  const warnings: SharedV4Warning[] = [];
+  const warnings: SharedV3Warning[] = [];
 
   for (const tool of tools ?? []) {
     if (tool.type === 'provider') {

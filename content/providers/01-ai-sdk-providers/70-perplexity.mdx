@@ -87,9 +87,10 @@ The Agent API provides the `fast`, `low`, `medium`, `high`, and `xhigh`
 presets. You can also pass an Agent API model ID directly, such as
 `perplexity/sonar`.
 
-Version 5 uses the Agent API exclusively. Legacy Sonar model IDs and provider
-options are not mapped; see [Migrating from v4 Sonar to v5 Agent
-API](#migrating-from-v4-sonar-to-v5-agent-api) before upgrading.
+Starting with version 3.0.64, language generation uses the Agent API
+exclusively. Legacy Sonar model IDs and provider options are not mapped; see
+[Migrating from Sonar to the Agent API](#migrating-from-sonar-to-the-agent-api)
+before upgrading.
 
 ### Sources
 
@@ -150,7 +151,7 @@ tools or supply tools when using a direct model ID.
 
 Search and fetch results are exposed as AI SDK sources. Other native tool traces,
 including finance, sandbox, and MCP results, are available in `response.body`
-and raw stream chunks (`include: { rawChunks: true }`). They are not exposed as
+and raw stream chunks (`includeRawChunks: true`). They are not exposed as
 AI SDK client tool calls. Accounts with zero data retention may reject
 file-capable tools such as `finance_search` and `sandbox`.
 
@@ -180,21 +181,21 @@ The Perplexity provider includes additional metadata in the response through `pr
 Additional configuration options are available through `providerOptions`.
 
 ```ts
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateText } from 'ai';
+
 const result = await generateText({
   model: perplexity('low'),
   prompt: 'What are the latest developments in quantum computing?',
   providerOptions: {
     perplexity: {
-<<<<<<< HEAD
-      return_images: true, // Enable image responses (Tier-2 Perplexity users only)
-      search_recency_filter: 'week', // Filter search results by recency
-    },
-=======
       max_steps: 5,
       store: true,
       reasoning: { effort: 'low' },
     } satisfies PerplexityLanguageModelOptions,
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
   },
 });
 
@@ -220,9 +221,6 @@ The following Agent API options are available:
 
 - **tools** _array_
 
-<<<<<<< HEAD
-  Filter search results by recency. Possible values: `'hour'`, `'day'`, `'week'`, `'month'`. If not specified, defaults to all time.
-=======
   Native Agent API tools and their configuration.
 
 - **models** _string[]_
@@ -262,7 +260,6 @@ The following Agent API options are available:
 - **skills** _array_
 
   Agent API skill configuration.
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
 
 <Note>
   See the [Perplexity Agent API
@@ -291,46 +288,47 @@ Image URL and data inputs are converted to Agent API `input_image` parts.
 The Agent API does not provide a Sonar-equivalent PDF input field, so PDF file
 parts are not supported.
 
-### Migrating from v4 Sonar to v5 Agent API
+### Migrating from Sonar to the Agent API
 
 <Note>
-  Version 5 is a breaking migration from Sonar Chat Completions to the Agent
-  API. It does not provide legacy model aliases, translate Sonar provider
+  Version 3.0.64 is a breaking migration from Sonar Chat Completions to the
+  Agent API. It does not provide legacy model aliases, translate Sonar provider
   options, or emit migration warnings at runtime.
 </Note>
 
-<Warning>
+<Note type="warning">
   Perplexity supports Sonar Chat Completions only until September 27, 2026.
   Upgrade language-generation applications to the Agent API before that date;
-  staying on version 4 does not preserve service after the Sonar shutdown.
-</Warning>
+  staying on version 3.0.63 or earlier does not preserve service after the
+  Sonar shutdown.
+</Note>
 
 Replace each Sonar model ID with an Agent API preset or direct Agent API model
 ID. These presets are suggested starting points, not equivalent aliases: a
 preset can select different models and tools, so cost, latency, and output can
 change.
 
-| v4 Sonar model        | Suggested v5 starting point |
-| --------------------- | --------------------------- |
-| `sonar`               | `fast`                      |
-| `sonar-pro`           | `low`                       |
-| `sonar-reasoning`     | `medium`                    |
-| `sonar-reasoning-pro` | `medium`                    |
-| `sonar-deep-research` | `high`                      |
+| Sonar model           | Suggested Agent API starting point |
+| --------------------- | ---------------------------------- |
+| `sonar`               | `fast`                             |
+| `sonar-pro`           | `low`                              |
+| `sonar-reasoning`     | `medium`                           |
+| `sonar-reasoning-pro` | `medium`                           |
+| `sonar-deep-research` | `high`                             |
 
 For example:
 
 ```ts
-// v4
+// 3.0.63 and earlier (Sonar)
 perplexity('sonar-pro');
 
-// v5
+// 3.0.64 and later (Agent API)
 perplexity('low');
 ```
 
 Move Sonar search and reasoning options to their Agent API locations:
 
-| v4 provider option                       | v5 Agent API option                    |
+| Sonar provider option                    | Agent API option                       |
 | ---------------------------------------- | -------------------------------------- |
 | Domain, recency, and date filters        | `tools[].filters` on `web_search`      |
 | `num_search_results`                     | `tools[].max_results`                  |
@@ -435,23 +433,13 @@ The following optional provider options are available for embedding models:
 
 ## Model Capabilities
 
-<<<<<<< HEAD
-| Model                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `sonar-deep-research` | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar-reasoning-pro` | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar-reasoning`     | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar-pro`           | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `sonar`               | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-=======
-| Model    | Image Input | Object Generation | Tool Usage | Tool Streaming |
-| -------- | ----------- | ----------------- | ---------- | -------------- |
-| `fast`   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `low`    | <Check />   | <Check />         | <Check />  | <Check />      |
-| `medium` | <Check />   | <Check />         | <Check />  | <Check />      |
-| `high`   | <Check />   | <Check />         | <Check />  | <Check />      |
-| `xhigh`  | <Check />   | <Check />         | <Check />  | <Check />      |
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
+| Model    | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
+| -------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `fast`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `low`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `medium` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `high`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `xhigh`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
   Please see the [Perplexity docs](https://docs.perplexity.ai) for detailed API

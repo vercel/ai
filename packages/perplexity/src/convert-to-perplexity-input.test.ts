@@ -36,15 +36,12 @@ describe('convertToPerplexityInput', () => {
             {
               type: 'file',
               mediaType: 'image/png',
-              data: {
-                type: 'url',
-                url: new URL('https://example.com/image.png'),
-              },
+              data: new URL('https://example.com/image.png'),
             },
             {
               type: 'file',
               mediaType: 'image/png',
-              data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+              data: new Uint8Array([0, 1, 2, 3]),
             },
           ],
         },
@@ -164,7 +161,7 @@ describe('convertToPerplexityInput', () => {
             {
               type: 'file',
               mediaType: 'application/pdf',
-              data: { type: 'data', data: 'JVBERi0xLjQ=' },
+              data: 'JVBERi0xLjQ=',
             },
           ],
         },

@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-import type { LanguageModelV3Usage } from '@ai-sdk/provider';
-=======
-import type { JSONObject, LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
+import type { JSONObject, LanguageModelV3Usage } from '@ai-sdk/provider';
 
 export function convertPerplexityUsage(
   usage:

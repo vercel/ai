@@ -1,13 +1,3 @@
-<<<<<<< HEAD
-// https://docs.perplexity.ai/models/model-cards
-export type PerplexityLanguageModelId =
-  | 'sonar-deep-research'
-  | 'sonar-reasoning-pro'
-  | 'sonar-reasoning'
-  | 'sonar-pro'
-  | 'sonar'
-  | (string & {});
-=======
 import { z } from 'zod/v4';
 
 const userLocationSchema = z.looseObject({
@@ -132,4 +122,3 @@ export const perplexityLanguageModelOptions = z.looseObject({
 export type PerplexityLanguageModelOptions = z.infer<
   typeof perplexityLanguageModelOptions
 >;
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))

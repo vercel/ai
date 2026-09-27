@@ -1,12 +1,8 @@
-<<<<<<< HEAD
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
-=======
 import {
   APICallError,
   InvalidArgumentError,
-  type LanguageModelV4Prompt,
+  type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
 import {
   convertReadableStreamToArray,
   mockId,
@@ -340,7 +336,6 @@ describe('doGenerate', () => {
       maxOutputTokens: 200,
       temperature: 0.4,
       topP: 0.9,
-      reasoning: 'high',
       responseFormat: {
         type: 'json',
         name: 'answer',
@@ -369,31 +364,13 @@ describe('doGenerate', () => {
           max_steps: 4,
           previous_response_id: 'resp-previous',
           store: false,
+          reasoning: { effort: 'high' },
           tools: [{ type: 'web_search', search_context_size: 'low' }],
           future_option: { enabled: true },
         },
       },
     });
 
-<<<<<<< HEAD
-    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-      {
-        "messages": [
-          {
-            "content": "Hello",
-            "role": "user",
-          },
-        ],
-        "model": "sonar",
-        "return_images": true,
-        "search_recency_filter": "month",
-      }
-    `);
-  });
-
-  it('should pass headers', async () => {
-    prepareJsonFixtureResponse('perplexity-text');
-=======
     expect(await server.calls[0].requestBodyJson).toEqual({
       preset: 'low',
       input: [{ type: 'message', role: 'user', content: 'Hello' }],
@@ -463,7 +440,6 @@ describe('doGenerate', () => {
         ],
       }),
     );
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
 
     const result = await model.doGenerate({ prompt: TEST_PROMPT });
 
@@ -636,333 +612,6 @@ describe('doGenerate', () => {
       headers: { 'custom-request-header': 'request-value' },
     });
 
-<<<<<<< HEAD
-    expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
-      {
-        "authorization": "Bearer test-api-key",
-        "content-type": "application/json",
-        "custom-provider-header": "provider-header-value",
-        "custom-request-header": "request-header-value",
-      }
-    `);
-  });
-
-  it('should expose the raw response headers', async () => {
-    prepareJsonFixtureResponse('perplexity-text', {
-      headers: { 'test-header': 'test-value' },
-    });
-
-    const { response } = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(response?.headers).toMatchInlineSnapshot(`
-      {
-        "content-length": "2786",
-        "content-type": "application/json",
-        "test-header": "test-value",
-      }
-    `);
-  });
-
-  it('should extract usage', async () => {
-    prepareJsonFixtureResponse('perplexity-text');
-
-    const { usage } = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(usage).toMatchInlineSnapshot(`
-      {
-        "inputTokens": {
-          "cacheRead": undefined,
-          "cacheWrite": undefined,
-          "noCache": 11,
-          "total": 11,
-        },
-        "outputTokens": {
-          "reasoning": 0,
-          "text": 392,
-          "total": 392,
-        },
-        "raw": {
-          "completion_tokens": 392,
-          "prompt_tokens": 11,
-          "total_tokens": 403,
-        },
-      }
-    `);
-  });
-
-  it('should send additional response information', async () => {
-    prepareJsonFixtureResponse('perplexity-text');
-
-    const { response } = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect({
-      id: response?.id,
-      timestamp: response?.timestamp,
-      modelId: response?.modelId,
-    }).toMatchInlineSnapshot(`
-      {
-        "id": "aec30d94-c6a5-4d30-935e-97dbe8de9f85",
-        "modelId": "sonar",
-        "timestamp": 2026-02-11T00:03:40.000Z,
-      }
-    `);
-  });
-
-  it('should handle PDF files with base64 encoding', async () => {
-    prepareJsonFixtureResponse('perplexity-text');
-
-    const prompt: LanguageModelV3Prompt = [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Analyze this PDF' },
-          {
-            type: 'file',
-            mediaType: 'application/pdf',
-            data: 'mock-pdf-data',
-            filename: 'test.pdf',
-          },
-        ],
-      },
-    ];
-
-    await perplexityModel.doGenerate({ prompt });
-
-    const requestBody =
-      await server.calls[server.calls.length - 1].requestBodyJson;
-
-    expect(requestBody.messages[0].content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Analyze this PDF",
-          "type": "text",
-        },
-        {
-          "file_name": "test.pdf",
-          "file_url": {
-            "url": "mock-pdf-data",
-          },
-          "type": "file_url",
-        },
-      ]
-    `);
-  });
-
-  it('should handle PDF files with URLs', async () => {
-    prepareJsonFixtureResponse('perplexity-text');
-
-    const prompt: LanguageModelV3Prompt = [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: 'Analyze this PDF' },
-          {
-            type: 'file',
-            mediaType: 'application/pdf',
-            data: new URL('https://example.com/test.pdf'),
-            filename: 'test.pdf',
-          },
-        ],
-      },
-    ];
-
-    await perplexityModel.doGenerate({ prompt });
-
-    const requestBody =
-      await server.calls[server.calls.length - 1].requestBodyJson;
-
-    expect(requestBody.messages[0].content).toMatchInlineSnapshot(`
-      [
-        {
-          "text": "Analyze this PDF",
-          "type": "text",
-        },
-        {
-          "file_name": "test.pdf",
-          "file_url": {
-            "url": "https://example.com/test.pdf",
-          },
-          "type": "file_url",
-        },
-      ]
-    `);
-  });
-
-  it('should extract images', async () => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'json-value',
-      headers: { 'content-type': 'application/json' },
-      body: {
-        id: 'test-id',
-        created: 1680000000,
-        model: modelId,
-        choices: [
-          {
-            message: { role: 'assistant', content: '' },
-            finish_reason: 'stop',
-          },
-        ],
-        images: [
-          {
-            image_url: 'https://example.com/image.jpg',
-            origin_url: 'https://example.com/image.jpg',
-            height: 100,
-            width: 100,
-          },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
-      },
-    };
-
-    const result = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": null,
-          "images": [
-            {
-              "height": 100,
-              "imageUrl": "https://example.com/image.jpg",
-              "originUrl": "https://example.com/image.jpg",
-              "width": 100,
-            },
-          ],
-          "usage": {
-            "citationTokens": null,
-            "numSearchQueries": null,
-          },
-        },
-      }
-    `);
-  });
-
-  it('should extract extended usage', async () => {
-    const rawUsage = {
-      prompt_tokens: 10,
-      completion_tokens: 20,
-      total_tokens: 30,
-      search_context_size: 'medium',
-      citation_tokens: 30,
-      num_search_queries: 40,
-      reasoning_tokens: 50,
-      cost: {
-        input_tokens_cost: 0.1,
-        output_tokens_cost: 0.2,
-        reasoning_tokens_cost: 0.3,
-        request_cost: 0.4,
-        citation_tokens_cost: 0.5,
-        search_queries_cost: 0.6,
-        total_cost: 2.1,
-        future_cost_field: {
-          currency: 'USD',
-        },
-      },
-      future_usage_field: {
-        units: 2,
-      },
-    };
-
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'json-value',
-      headers: { 'content-type': 'application/json' },
-      body: {
-        id: 'test-id',
-        created: 1680000000,
-        model: modelId,
-        choices: [
-          {
-            message: { role: 'assistant', content: '' },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: rawUsage,
-      },
-    };
-
-    const result = await perplexityModel.doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.usage).toEqual({
-      inputTokens: {
-        total: 10,
-        noCache: 10,
-        cacheRead: undefined,
-        cacheWrite: undefined,
-      },
-      outputTokens: {
-        total: 70,
-        text: 20,
-        reasoning: 50,
-      },
-      raw: rawUsage,
-    });
-
-    expect(result.providerMetadata).toMatchInlineSnapshot(`
-      {
-        "perplexity": {
-          "cost": {
-            "inputTokensCost": 0.1,
-            "outputTokensCost": 0.2,
-            "requestCost": 0.4,
-            "totalCost": 2.1,
-          },
-          "images": null,
-          "usage": {
-            "citationTokens": 30,
-            "numSearchQueries": 40,
-          },
-        },
-      }
-    `);
-  });
-
-  it.each([
-    {
-      name: 'search context size',
-      additionalUsage: { search_context_size: 'extra-large' },
-    },
-    {
-      name: 'specialized cost',
-      additionalUsage: { cost: { reasoning_tokens_cost: 'unknown' } },
-    },
-  ])('should reject invalid $name values', async ({ additionalUsage }) => {
-    server.urls[CHAT_COMPLETIONS_URL].response = {
-      type: 'json-value',
-      body: {
-        id: 'test-id',
-        created: 1680000000,
-        model: modelId,
-        choices: [
-          {
-            message: { role: 'assistant', content: '' },
-            finish_reason: 'stop',
-          },
-        ],
-        usage: {
-          prompt_tokens: 10,
-          completion_tokens: 20,
-          total_tokens: 30,
-          ...additionalUsage,
-        },
-      },
-    };
-
-    await expect(
-      perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      }),
-    ).rejects.toThrow();
-=======
     expect(server.calls[0].requestHeaders).toEqual(
       expect.objectContaining({
         authorization: 'Bearer custom-key',
@@ -973,7 +622,6 @@ describe('doGenerate', () => {
     expect(result.response?.headers).toEqual(
       expect.objectContaining({ 'test-header': 'test-value' }),
     );
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
   });
 });
 
@@ -1243,46 +891,6 @@ describe('doStream', () => {
             unified: 'tool-calls',
             raw: 'requires_action',
           },
-<<<<<<< HEAD
-          "type": "raw",
-        },
-        {
-          "id": "ppl-123",
-          "modelId": "sonar",
-          "timestamp": 2009-02-13T23:31:30.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "id-67",
-          "sourceType": "url",
-          "type": "source",
-          "url": "https://example.com",
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "rawValue": {
-            "choices": [
-              {
-                "delta": {
-                  "content": " world",
-                },
-                "finish_reason": null,
-                "index": 0,
-              },
-            ],
-            "created": 1234567890,
-            "id": "ppl-456",
-            "model": "sonar",
-            "object": "chat.completion.chunk",
-=======
         }),
       ]),
     );
@@ -1298,7 +906,6 @@ describe('doStream', () => {
             title: 'Fetched page',
             url: 'https://example.com/fetched',
             snippet: 'Fetched content.',
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
           },
         ],
       },
@@ -1315,6 +922,62 @@ describe('doStream', () => {
           url: 'https://example.com/fetched',
           title: 'Fetched page',
         }),
+      ]),
+    );
+  });
+
+  it('accepts null fields in stream events', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: null,
+      },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        call_id: 'call-1',
+        sequence_number: 1,
+        thought: 'Fetched content from 0 URLs',
+        contents: null,
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 2,
+        results: null,
+      },
+      { type: 'response.reasoning.stopped', sequence_number: 3 },
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        delta: 'Hello',
+      },
+      {
+        type: 'response.output_text.done',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        text: null,
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        {
+          type: 'reasoning-delta',
+          id: 'reasoning-0',
+          delta: 'Fetched content from 0 URLs',
+        },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+        { type: 'text-start', id: 'msg-1' },
+        { type: 'text-delta', id: 'msg-1', delta: 'Hello' },
+        { type: 'text-end', id: 'msg-1' },
       ]),
     );
   });

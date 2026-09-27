@@ -1,43 +1,22 @@
-<<<<<<< HEAD
-import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  SharedV3Warning,
-=======
 import {
   APICallError,
-  type LanguageModelV4,
-  type LanguageModelV4CallOptions,
-  type LanguageModelV4Content,
-  type LanguageModelV4FinishReason,
-  type LanguageModelV4GenerateResult,
-  type LanguageModelV4StreamPart,
-  type LanguageModelV4StreamResult,
-  type SharedV4ProviderMetadata,
-  type SharedV4Warning,
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
+  type LanguageModelV3,
+  type LanguageModelV3CallOptions,
+  type LanguageModelV3Content,
+  type LanguageModelV3FinishReason,
+  type LanguageModelV3GenerateResult,
+  type LanguageModelV3StreamPart,
+  type LanguageModelV3StreamResult,
+  type SharedV3ProviderMetadata,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
-<<<<<<< HEAD
-  postJsonToApi,
-=======
-  createLanguageModelResponseMetadata,
-  isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
-  serializeModelOptions,
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
   type FetchFunction,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
@@ -45,9 +24,6 @@ import type { z } from 'zod/v4';
 import { convertPerplexityUsage } from './convert-perplexity-usage';
 import { convertToPerplexityInput } from './convert-to-perplexity-input';
 import { mapPerplexityFinishReason } from './map-perplexity-finish-reason';
-<<<<<<< HEAD
-import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
-=======
 import {
   perplexityAgentChunkSchema,
   perplexityAgentResponseSchema,
@@ -64,24 +40,19 @@ import type {
   PerplexityLanguageModelId,
 } from './perplexity-options';
 import { preparePerplexityTools } from './perplexity-prepare-tools';
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
 
 type PerplexityAgentConfig = {
   baseURL: string;
-  headers: () => Record<string, string | undefined>;
+  headers?: () => Record<string, string | undefined>;
   generateId: () => string;
   fetch?: FetchFunction;
 };
 
-<<<<<<< HEAD
-export class PerplexityLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3';
-=======
 type PerplexityOutputItem = z.infer<typeof perplexityOutputItemSchema>;
 type PerplexitySearchResult = z.infer<typeof perplexitySearchResultSchema>;
 type PerplexityUsage = z.infer<typeof perplexityUsageSchema>;
 type PerplexityUrlSource = Extract<
-  LanguageModelV4Content,
+  LanguageModelV3Content,
   { type: 'source'; sourceType: 'url' }
 >;
 
@@ -109,16 +80,19 @@ function getResponseMetadata(response: {
   model?: string | null;
   created_at?: number | null;
 }) {
-  return createLanguageModelResponseMetadata({
-    id: response.id,
-    model: response.model,
-    created: response.created_at,
-  });
+  return {
+    id: response.id ?? undefined,
+    modelId: response.model ?? undefined,
+    timestamp:
+      response.created_at != null
+        ? new Date(response.created_at * 1000)
+        : undefined,
+  };
 }
 
 function getProviderMetadata(
   usage: PerplexityUsage | null | undefined,
-): SharedV4ProviderMetadata {
+): SharedV3ProviderMetadata {
   const cost = usage?.cost;
   const numSearchQueries = usage?.tool_calls_details
     ? Object.entries(usage.tool_calls_details)
@@ -195,32 +169,14 @@ function getFetchedSources(item: PerplexityOutputItem) {
   return item.type === 'fetch_url_results' ? (item.contents ?? []) : [];
 }
 
-export class PerplexityLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'v4';
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
+export class PerplexityLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3';
   readonly provider = 'perplexity';
 
   readonly modelId: PerplexityLanguageModelId;
 
   private readonly config: PerplexityAgentConfig;
 
-<<<<<<< HEAD
-=======
-  static [WORKFLOW_SERIALIZE](model: PerplexityLanguageModel) {
-    return serializeModelOptions({
-      modelId: model.modelId,
-      config: model.config,
-    });
-  }
-
-  static [WORKFLOW_DESERIALIZE](options: {
-    modelId: PerplexityLanguageModelId;
-    config: PerplexityAgentConfig;
-  }) {
-    return new PerplexityLanguageModel(options.modelId, options.config);
-  }
-
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
   constructor(
     modelId: PerplexityLanguageModelId,
     config: PerplexityAgentConfig,
@@ -233,7 +189,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     'image/*': [/^https?:\/\/.*$/],
   };
 
-  private getArgs({
+  private async getArgs({
     prompt,
     maxOutputTokens,
     temperature,
@@ -245,14 +201,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     responseFormat,
     seed,
     providerOptions,
-<<<<<<< HEAD
-  }: LanguageModelV3CallOptions) {
-    const warnings: SharedV3Warning[] = [];
-=======
     tools,
     toolChoice,
-  }: LanguageModelV4CallOptions) {
-    const warnings: SharedV4Warning[] = [];
+  }: LanguageModelV3CallOptions) {
+    const warnings: SharedV3Warning[] = [];
 
     const perplexityOptions =
       (await parseProviderOptions({
@@ -260,7 +212,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         providerOptions,
         schema: perplexityLanguageModelOptions,
       })) ?? {};
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
 
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
@@ -278,38 +229,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
 
-<<<<<<< HEAD
-    return {
-      args: {
-        // model id:
-        model: this.modelId,
-
-        // standardized settings:
-        frequency_penalty: frequencyPenalty,
-        max_tokens: maxOutputTokens,
-        presence_penalty: presencePenalty,
-        temperature,
-        top_k: topK,
-        top_p: topP,
-
-        // response format:
-        response_format:
-          responseFormat?.type === 'json'
-            ? {
-                type: 'json_schema',
-                json_schema: { schema: responseFormat.schema },
-              }
-            : undefined,
-
-        // provider extensions
-        ...providerOptions?.perplexity,
-
-        // messages:
-        messages: convertToPerplexityMessages(prompt),
-      },
-      warnings,
-    };
-=======
     const { tools: nativeTools, ...agentOptions } = perplexityOptions;
 
     const modelSelection = getModelSelection(this.modelId);
@@ -326,18 +245,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       ...functionTools,
     ];
 
-    let reasoningConfig = agentOptions.reasoning;
-    if (reasoningConfig == null && isCustomReasoning(reasoning)) {
-      if (reasoning === 'none') {
-        warnings.push({
-          type: 'unsupported',
-          feature: 'reasoning "none"',
-        });
-      } else {
-        reasoningConfig = { effort: reasoning };
-      }
-    }
-
     const body: Record<string, unknown> = {
       ...agentOptions,
       ...modelSelection,
@@ -345,7 +252,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
-      reasoning: reasoningConfig,
       response_format:
         responseFormat?.type === 'json' && responseFormat.schema != null
           ? {
@@ -369,13 +275,12 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     }
 
     return { args: body, warnings };
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
   }
 
   async doGenerate(
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3GenerateResult> {
-    const { args: body, warnings } = this.getArgs(options);
+    const { args: body, warnings } = await this.getArgs(options);
 
     const url = `${this.config.baseURL}/v1/agent`;
     const {
@@ -383,13 +288,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       value: response,
       rawValue: rawResponse,
     } = await postJsonToApi({
-<<<<<<< HEAD
-      url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
-=======
       url,
       headers: combineHeaders(this.config.headers?.(), options.headers),
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -402,15 +302,6 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
-    const choice = response.choices[0];
-    const content: Array<LanguageModelV3Content> = [];
-
-    // text content:
-    const text = choice.message.content;
-    if (text.length > 0) {
-      content.push({ type: 'text', text });
-=======
     if (response.error != null || response.status === 'failed') {
       throw new APICallError({
         message: response.error?.message ?? 'Perplexity response failed',
@@ -421,10 +312,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
         responseBody: rawResponse as string,
         isRetryable: false,
       });
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
     }
 
-    const content: LanguageModelV4Content[] = [];
+    const content: LanguageModelV3Content[] = [];
     const sourceIndexesByUrl = new Map<string, number>();
     let hasFunctionCall = false;
 
@@ -525,26 +415,14 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-<<<<<<< HEAD
     options: LanguageModelV3CallOptions,
   ): Promise<LanguageModelV3StreamResult> {
-    const { args, warnings } = this.getArgs(options);
-
-    const body = { ...args, stream: true };
-
-    const { responseHeaders, value: response } = await postJsonToApi({
-      url: `${this.config.baseURL}/chat/completions`,
-      headers: combineHeaders(this.config.headers(), options.headers),
-=======
-    options: LanguageModelV4CallOptions,
-  ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = { ...args, stream: true };
 
     const { responseHeaders, value: response } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/agent`,
       headers: combineHeaders(this.config.headers?.(), options.headers),
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
       body,
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: perplexityErrorSchema,
@@ -574,13 +452,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
     return {
       stream: response.pipeThrough(
         new TransformStream<
-<<<<<<< HEAD
-          ParseResult<z.infer<typeof perplexityChunkSchema>>,
-          LanguageModelV3StreamPart
-=======
           ParseResult<z.infer<typeof perplexityAgentChunkSchema>>,
-          LanguageModelV4StreamPart
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
+          LanguageModelV3StreamPart
         >({
           start(controller) {
             controller.enqueue({ type: 'stream-start', warnings });
@@ -601,11 +474,13 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
             const getTextId = (
               itemId: string | null | undefined,
-              outputIndex: number | undefined,
-              contentIndex = 0,
+              outputIndex: number | null | undefined,
+              contentIndex: number | null | undefined = 0,
             ) => {
               const id = itemId ?? String(outputIndex ?? 'text');
-              return contentIndex === 0 ? id : `${id}:${contentIndex}`;
+              return contentIndex == null || contentIndex === 0
+                ? id
+                : `${id}:${contentIndex}`;
             };
 
             const emitTextDelta = (id: string, delta: string) => {
@@ -622,7 +497,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-delta', id, delta });
             };
 
-            const finishText = (id: string, text: string | undefined) => {
+            const finishText = (
+              id: string,
+              text: string | null | undefined,
+            ) => {
               const state = textStates.get(id);
               if (state?.ended) {
                 return;
@@ -646,7 +524,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
             const finishOutputText = (
               item: PerplexityOutputItem,
-              outputIndex?: number,
+              outputIndex?: number | null,
             ) => {
               if (item.type === 'message') {
                 for (const [contentIndex, part] of (
@@ -678,7 +556,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
             };
 
-            const emitReasoningThought = (thought: string | undefined) => {
+            const emitReasoningThought = (
+              thought: string | null | undefined,
+            ) => {
               if (activeReasoningId != null && thought != null) {
                 controller.enqueue({
                   type: 'reasoning-delta',
@@ -945,112 +825,8 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
   }
 }
 
-<<<<<<< HEAD
-function getResponseMetadata({
-  id,
-  model,
-  created,
-}: {
-  id: string;
-  created: number;
-  model: string;
-}) {
-  return {
-    id,
-    modelId: model,
-    timestamp: new Date(created * 1000),
-  };
-}
-
-const perplexityCostSchema = z
-  .object({
-    input_tokens_cost: z.number().nullish(),
-    output_tokens_cost: z.number().nullish(),
-    reasoning_tokens_cost: z.number().nullish(),
-    request_cost: z.number().nullish(),
-    citation_tokens_cost: z.number().nullish(),
-    search_queries_cost: z.number().nullish(),
-    total_cost: z.number().nullish(),
-  })
-  .catchall(z.json());
-
-const perplexityUsageSchema = z
-  .object({
-    prompt_tokens: z.number(),
-    completion_tokens: z.number(),
-    total_tokens: z.number().nullish(),
-    search_context_size: z.enum(['low', 'medium', 'high']).nullish(),
-    citation_tokens: z.number().nullish(),
-    num_search_queries: z.number().nullish(),
-    reasoning_tokens: z.number().nullish(),
-    cost: perplexityCostSchema.nullish(),
-  })
-  .catchall(z.json());
-
-export const perplexityImageSchema = z.object({
-  image_url: z.string(),
-  origin_url: z.string(),
-  height: z.number(),
-  width: z.number(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const perplexityResponseSchema = z.object({
-  id: z.string(),
-  created: z.number(),
-  model: z.string(),
-  choices: z.array(
-    z.object({
-      message: z.object({
-        role: z.literal('assistant'),
-        content: z.string(),
-      }),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  citations: z.array(z.string()).nullish(),
-  images: z.array(perplexityImageSchema).nullish(),
-  usage: perplexityUsageSchema.nullish(),
-});
-
-// limited version of the schema, focussed on what is needed for the implementation
-// this approach limits breakages when the API changes and increases efficiency
-const perplexityChunkSchema = z.object({
-  id: z.string(),
-  created: z.number(),
-  model: z.string(),
-  choices: z.array(
-    z.object({
-      delta: z.object({
-        role: z.literal('assistant').optional(),
-        content: z.string().nullish(),
-      }),
-      finish_reason: z.string().nullish(),
-    }),
-  ),
-  citations: z.array(z.string()).nullish(),
-  images: z.array(perplexityImageSchema).nullish(),
-  usage: perplexityUsageSchema.nullish(),
-});
-
-export const perplexityErrorSchema = z.object({
-  error: z.object({
-    code: z.number(),
-    message: z.string().nullish(),
-    type: z.string().nullish(),
-  }),
-});
-
-export type PerplexityErrorData = z.infer<typeof perplexityErrorSchema>;
-
-const errorToMessage = (data: PerplexityErrorData) => {
-  return data.error.message ?? data.error.type ?? 'unknown error';
-};
-=======
 export {
   perplexityErrorSchema,
   perplexityErrorToMessage,
 } from './perplexity-agent-api';
 export type { PerplexityErrorData } from './perplexity-agent-api';
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))

@@ -14,7 +14,7 @@ import {
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
 import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV3 {

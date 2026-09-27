@@ -3,7 +3,7 @@ import { perplexity } from '@ai-sdk/perplexity';
 import {
   APICallError,
   generateText,
-  isStepCount,
+  stepCountIs,
   Output,
   streamText,
   tool,
@@ -92,7 +92,7 @@ describe('Perplexity Agent API', () => {
             },
           }),
         },
-        stopWhen: isStepCount(3),
+        stopWhen: stepCountIs(3),
         maxOutputTokens: 1024,
         maxRetries: 0,
       };

@@ -1,20 +1,16 @@
 import {
   UnsupportedFunctionalityError,
-  type LanguageModelV4Prompt,
-  type LanguageModelV4ToolResultOutput,
-  type SharedV4Warning,
+  type LanguageModelV3Prompt,
+  type LanguageModelV3ToolResultOutput,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
-import {
-  convertUint8ArrayToBase64,
-  getTopLevelMediaType,
-  resolveFullMediaType,
-} from '@ai-sdk/provider-utils';
+import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 import type {
   PerplexityAgentInput,
   PerplexityAgentInputContent,
 } from './perplexity-language-model-prompt';
 
-function serializeToolOutput(output: LanguageModelV4ToolResultOutput): string {
+function serializeToolOutput(output: LanguageModelV3ToolResultOutput): string {
   switch (output.type) {
     case 'text':
     case 'error-text':
@@ -41,6 +37,11 @@ function serializeToolOutput(output: LanguageModelV4ToolResultOutput): string {
   }
 }
 
+function getTopLevelMediaType(mediaType: string): string {
+  const slashIndex = mediaType.indexOf('/');
+  return slashIndex === -1 ? mediaType : mediaType.substring(0, slashIndex);
+}
+
 function getThoughtSignature(
   providerOptions:
     | Record<string, Record<string, unknown> | undefined>
@@ -50,12 +51,12 @@ function getThoughtSignature(
   return typeof thoughtSignature === 'string' ? thoughtSignature : undefined;
 }
 
-export function convertToPerplexityInput(prompt: LanguageModelV4Prompt): {
+export function convertToPerplexityInput(prompt: LanguageModelV3Prompt): {
   input: PerplexityAgentInput;
-  warnings: SharedV4Warning[];
+  warnings: SharedV3Warning[];
 } {
   const input: PerplexityAgentInput = [];
-  const warnings: SharedV4Warning[] = [];
+  const warnings: SharedV3Warning[] = [];
 
   for (const { role, content } of prompt) {
     switch (role) {
@@ -77,30 +78,24 @@ export function convertToPerplexityInput(prompt: LanguageModelV4Prompt): {
                   });
                 }
 
-                switch (part.data.type) {
-                  case 'url':
-                    return {
-                      type: 'input_image',
-                      image_url: part.data.url.toString(),
-                    };
-                  case 'data':
-                    return {
-                      type: 'input_image',
-                      image_url: `data:${resolveFullMediaType({ part })};base64,${
-                        typeof part.data.data === 'string'
-                          ? part.data.data
-                          : convertUint8ArrayToBase64(part.data.data)
-                      }`,
-                    };
-                  case 'reference':
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'file parts with provider references',
-                    });
-                  case 'text':
-                    throw new UnsupportedFunctionalityError({
-                      functionality: 'text file parts',
-                    });
+                if (part.data instanceof URL) {
+                  return {
+                    type: 'input_image',
+                    image_url: part.data.toString(),
+                  };
                 }
+
+                const mediaType =
+                  part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
+
+                return {
+                  type: 'input_image',
+                  image_url: `data:${mediaType};base64,${
+                    typeof part.data === 'string'
+                      ? part.data
+                      : convertUint8ArrayToBase64(part.data)
+                  }`,
+                };
               }
             }
           },
@@ -160,8 +155,6 @@ export function convertToPerplexityInput(prompt: LanguageModelV4Prompt): {
               });
               break;
             case 'file':
-            case 'reasoning-file':
-            case 'custom':
               throw new UnsupportedFunctionalityError({
                 functionality: `assistant ${part.type} parts`,
               });
