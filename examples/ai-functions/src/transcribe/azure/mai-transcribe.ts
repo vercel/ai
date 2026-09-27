@@ -3,7 +3,7 @@ import {
   type AzureTranscriptionModelOptions,
   type AzureTranscriptionProviderMetadata,
 } from '@ai-sdk/azure';
-import { transcribe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 import { run } from '../../lib/run';
 
