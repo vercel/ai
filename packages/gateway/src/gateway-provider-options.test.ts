@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   EVALUATION_FALLBACK_MAX_CONDITION_DEPTH,
   EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST,
-  EVALUATION_FALLBACK_MAX_MODEL_LENGTH,
   EVALUATION_FALLBACK_MAX_QUESTION_LENGTH,
   gatewayEvaluationProviderOptionsSchema,
 } from './gateway-provider-options';
@@ -208,17 +207,15 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('applies the shared condition and model bounds', () => {
+  it('applies the shared condition bounds', () => {
     expect({
       depth: EVALUATION_FALLBACK_MAX_CONDITION_DEPTH,
       conditionsPerList: EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST,
       questionLength: EVALUATION_FALLBACK_MAX_QUESTION_LENGTH,
-      modelLength: EVALUATION_FALLBACK_MAX_MODEL_LENGTH,
     }).toEqual({
       depth: 5,
       conditionsPerList: 20,
       questionLength: 256,
-      modelLength: 256,
     });
   });
 
@@ -242,10 +239,10 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
   });
 
   it.each([
-    { length: EVALUATION_FALLBACK_MAX_MODEL_LENGTH, success: true },
-    { length: EVALUATION_FALLBACK_MAX_MODEL_LENGTH + 1, success: false },
+    { length: 1_000, success: true },
+    { length: 0, success: false },
   ])(
-    'bounds conditional model length at $length',
+    'accepts any non-empty conditional model length ($length)',
     async ({ length, success }) => {
       const result = await safeValidateTypes({
         value: {

@@ -6,7 +6,6 @@ import { z } from './zod';
 export const EVALUATION_FALLBACK_MAX_CONDITION_DEPTH = 5;
 export const EVALUATION_FALLBACK_MAX_CONDITIONS_PER_LIST = 20;
 export const EVALUATION_FALLBACK_MAX_QUESTION_LENGTH = 256;
-export const EVALUATION_FALLBACK_MAX_MODEL_LENGTH = 256;
 
 export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
   zodSchema(
@@ -214,7 +213,7 @@ const groupBeyondMaxDepthSchema = z
 
 const conditionalModelFallbackSchema = z
   .object({
-    model: z.string().min(1).max(EVALUATION_FALLBACK_MAX_MODEL_LENGTH),
+    model: z.string().min(1),
     when: conditionSchema(1),
   })
   .strict();
