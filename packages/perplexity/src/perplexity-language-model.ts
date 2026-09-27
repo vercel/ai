@@ -504,11 +504,13 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
             const getTextId = (
               itemId: string | null | undefined,
-              outputIndex: number | undefined,
-              contentIndex = 0,
+              outputIndex: number | null | undefined,
+              contentIndex: number | null | undefined = 0,
             ) => {
               const id = itemId ?? String(outputIndex ?? 'text');
-              return contentIndex === 0 ? id : `${id}:${contentIndex}`;
+              return contentIndex == null || contentIndex === 0
+                ? id
+                : `${id}:${contentIndex}`;
             };
 
             const emitTextDelta = (id: string, delta: string) => {
@@ -525,7 +527,10 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               controller.enqueue({ type: 'text-delta', id, delta });
             };
 
-            const finishText = (id: string, text: string | undefined) => {
+            const finishText = (
+              id: string,
+              text: string | null | undefined,
+            ) => {
               const state = textStates.get(id);
               if (state?.ended) {
                 return;
@@ -549,7 +554,7 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
 
             const finishOutputText = (
               item: PerplexityOutputItem,
-              outputIndex?: number,
+              outputIndex?: number | null,
             ) => {
               if (item.type === 'message') {
                 for (const [contentIndex, part] of (
@@ -581,7 +586,9 @@ export class PerplexityLanguageModel implements LanguageModelV4 {
               }
             };
 
-            const emitReasoningThought = (thought: string | undefined) => {
+            const emitReasoningThought = (
+              thought: string | null | undefined,
+            ) => {
               if (activeReasoningId != null && thought != null) {
                 controller.enqueue({
                   type: 'reasoning-delta',
