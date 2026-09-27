@@ -8,13 +8,22 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: perplexity('low'),
-    prompt: 'What has happened in San Francisco recently?',
+    prompt:
+      'What recent peer-reviewed research explains the relationship between sleep and memory consolidation?',
     providerOptions: {
       perplexity: {
         tools: [
           {
             type: 'web_search',
-            filters: { search_recency_filter: 'week' },
+            filters: {
+              search_domain_filter: [
+                'arxiv.org',
+                'nature.com',
+                'pubmed.ncbi.nlm.nih.gov',
+                'science.org',
+              ],
+            },
+            search_context_size: 'low',
           },
         ],
       } satisfies PerplexityLanguageModelOptions,

@@ -7,34 +7,29 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('low'),
+    // Direct Agent API model ID (not a preset):
+    model: perplexity('perplexity/sonar'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
-        tools: [
-          {
-            type: 'web_search',
-            filters: { search_recency_filter: 'week' },
-          },
-        ],
+        // Direct model IDs do not include preset tools. Without an explicit
+        // web_search tool, the response contains no sources.
+        tools: [{ type: 'web_search' }],
       } satisfies PerplexityLanguageModelOptions,
     },
   });
 
   console.log(result.text);
   console.log();
-  console.log('Sources:', result.sources);
+  console.log('Model:', result.response.modelId);
+  console.log('Sources:', result.sources.length);
   console.log('Token usage:', result.usage);
   console.log('Finish reason:', result.finishReason);
   console.log('Metadata:', result.providerMetadata);
 
   for (const source of result.sources) {
     if (source.sourceType === 'url') {
-      console.log('ID:', source.id);
-      console.log('Title:', source.title);
-      console.log('URL:', source.url);
-      console.log('Provider metadata:', source.providerMetadata);
-      console.log();
+      console.log(`- ${source.title}: ${source.url}`);
     }
   }
 });

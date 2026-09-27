@@ -7,14 +7,21 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: perplexity('low'),
-    prompt: 'What has happened in San Francisco recently?',
+    model: perplexity('fast'),
+    prompt: 'What are notable public transit updates near me this month?',
     providerOptions: {
       perplexity: {
         tools: [
           {
             type: 'web_search',
-            filters: { search_recency_filter: 'week' },
+            search_context_size: 'medium',
+            user_location: {
+              country: 'US',
+              region: 'California',
+              city: 'San Francisco',
+              latitude: 37.7749,
+              longitude: -122.4194,
+            },
           },
         ],
       } satisfies PerplexityLanguageModelOptions,

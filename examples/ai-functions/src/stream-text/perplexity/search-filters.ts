@@ -8,13 +8,22 @@ import { run } from '../../lib/run';
 run(async () => {
   const result = streamText({
     model: perplexity('low'),
-    prompt: 'What has happened in San Francisco recently?',
+    prompt:
+      'Summarize recent United States federal AI policy updates from official sources.',
     providerOptions: {
       perplexity: {
         tools: [
           {
             type: 'web_search',
-            filters: { search_recency_filter: 'week' },
+            filters: {
+              search_domain_filter: [
+                'whitehouse.gov',
+                'congress.gov',
+                'federalregister.gov',
+              ],
+              search_after_date_filter: '1/1/2026',
+            },
+            max_results: 10,
           },
         ],
       } satisfies PerplexityLanguageModelOptions,
