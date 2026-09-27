@@ -4,12 +4,22 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
+<<<<<<< HEAD
         search_recency_filter: 'week',
       },
+=======
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
+      } satisfies PerplexityLanguageModelOptions,
+>>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
     },
   });
 

@@ -4,20 +4,18 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     messages: [
       {
         role: 'user',
         content: [
-          {
-            type: 'text',
-            text: 'What is this document about? Provide a brief summary.',
-          },
+          { type: 'text', text: 'Describe this image.' },
           {
             type: 'file',
-            data: new URL('https://example.com/path/to/document.pdf'),
-            mediaType: 'application/pdf',
-            filename: 'document.pdf',
+            data: new URL(
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1280px-Fronalpstock_big.jpg',
+            ),
+            mediaType: 'image/jpeg',
           },
         ],
       },
@@ -25,4 +23,5 @@ run(async () => {
   });
 
   console.log(result.text);
+  console.log('Token usage:', result.usage);
 });

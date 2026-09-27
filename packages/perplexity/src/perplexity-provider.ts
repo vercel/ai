@@ -19,12 +19,12 @@ import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV3 {
   /**
-   * Creates an Perplexity chat model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   (modelId: PerplexityLanguageModelId): LanguageModelV3;
 
   /**
-   * Creates an Perplexity language model for text generation.
+   * Creates a Perplexity Agent API model or preset for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV3;
 
@@ -46,7 +46,7 @@ export interface PerplexityProvider extends ProviderV3 {
 
 export interface PerplexityProviderSettings {
   /**
-   * Base URL for the perplexity API calls.
+   * Base URL for Perplexity API calls.
    */
   baseURL?: string;
 

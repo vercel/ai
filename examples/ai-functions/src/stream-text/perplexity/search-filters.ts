@@ -1,25 +1,32 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
     model: perplexity('low'),
-    prompt: 'What has happened in San Francisco recently?',
+    prompt:
+      'Summarize recent United States federal AI policy updates from official sources.',
     providerOptions: {
       perplexity: {
-<<<<<<< HEAD
-        search_recency_filter: 'week',
-      },
-=======
         tools: [
           {
             type: 'web_search',
-            filters: { search_recency_filter: 'week' },
+            filters: {
+              search_domain_filter: [
+                'whitehouse.gov',
+                'congress.gov',
+                'federalregister.gov',
+              ],
+              search_after_date_filter: '1/1/2026',
+            },
+            max_results: 10,
           },
         ],
       } satisfies PerplexityLanguageModelOptions,
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
     },
   });
 
@@ -33,6 +40,6 @@ run(async () => {
   console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });

@@ -1,25 +1,30 @@
-import { perplexity } from '@ai-sdk/perplexity';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: perplexity('low'),
-    prompt: 'What has happened in San Francisco recently?',
+    model: perplexity('fast'),
+    prompt: 'What are notable public transit updates near me this month?',
     providerOptions: {
       perplexity: {
-<<<<<<< HEAD
-        search_recency_filter: 'week',
-      },
-=======
         tools: [
           {
             type: 'web_search',
-            filters: { search_recency_filter: 'week' },
+            search_context_size: 'medium',
+            user_location: {
+              country: 'US',
+              region: 'California',
+              city: 'San Francisco',
+              latitude: 37.7749,
+              longitude: -122.4194,
+            },
           },
         ],
       } satisfies PerplexityLanguageModelOptions,
->>>>>>> 38fe0e5997 (feat(provider/perplexity)!: migrate to Agent API (#18991))
     },
   });
 
@@ -33,6 +38,6 @@ run(async () => {
   console.log('Usage:', await result.usage);
   console.log(
     'Metadata:',
-    JSON.stringify(await result.providerMetadata, null, 2),
+    JSON.stringify((await result.finalStep).providerMetadata, null, 2),
   );
 });
