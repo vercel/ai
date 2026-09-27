@@ -79,7 +79,7 @@ import { customProvider, gateway } from 'ai';
 export const anthropic = customProvider({
   languageModels: {
     opus: gateway('anthropic/claude-opus-5.5'),
-    sonnet: gateway('anthropic/claude-sonnet-5'),
+    sonnet: gateway('anthropic/claude-sonnet-5.5'),
     haiku: gateway('anthropic/claude-haiku-4.5'),
   },
   fallbackProvider: gateway,
@@ -100,7 +100,7 @@ import {
 
 export const myProvider = customProvider({
   languageModels: {
-    'text-medium': gateway('anthropic/claude-sonnet-5'),
+    'text-medium': gateway('anthropic/claude-sonnet-5.5'),
     'text-small': gateway('openai/gpt-6-luna'),
     'reasoning-medium': wrapLanguageModel({
       model: gateway('openai/gpt-6-astra'),
@@ -154,7 +154,7 @@ const myOpenAI = customProvider({
 // custom provider with skills interface:
 const myAnthropic = customProvider({
   languageModels: {
-    sonnet: anthropic('claude-sonnet-5'),
+    sonnet: anthropic('claude-sonnet-5-5'),
   },
   skills: anthropic.skills(),
 });
@@ -330,7 +330,7 @@ import { createProviderRegistry, customProvider, uploadSkill } from 'ai';
 
 const registry = createProviderRegistry({
   anthropic: customProvider({
-    languageModels: { sonnet: anthropic('claude-sonnet-5') },
+    languageModels: { sonnet: anthropic('claude-sonnet-5-5') },
     skills: anthropic.skills(),
   }),
 });

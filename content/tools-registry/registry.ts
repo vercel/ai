@@ -437,7 +437,7 @@ console.log(text);`,
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
@@ -474,7 +474,7 @@ const { tools } = await createBashTool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
   stopWhen: isStepCount(5),
@@ -536,7 +536,7 @@ await browserbase.closeSession();`,
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
