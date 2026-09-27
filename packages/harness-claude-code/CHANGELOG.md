@@ -1,5 +1,11 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
 ## 1.0.131
 
 ### Patch Changes
