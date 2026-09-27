@@ -189,9 +189,10 @@ const result = streamText({
 });
 ```
 
-For `claude-opus-5-5` and `claude-fable-5-1`, the default `"auto"` mode uses
-native structured outputs through `output_config.format`. These models reject
-forced tool use, so the `"jsonTool"` mode cannot be used with them. If you
+For `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, the
+default `"auto"` mode uses native structured outputs through
+`output_config.format`. These models reject forced tool use, so the
+`"jsonTool"` mode cannot be used with them. If you
 request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
 emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
@@ -199,7 +200,7 @@ verify that a tool call was made.
 
 ### Effort
 
-Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, and `claude-sonnet-5` additionally support `xhigh` for maximum reasoning effort.
+Anthropic introduced an `effort` option with `claude-opus-4-5` that affects thinking, text responses, and function calls. Effort defaults to `high` and you can set it to `medium` or `low` to save tokens and to lower time-to-last-token latency (TTLT). `claude-opus-4-7`, `claude-opus-4-8`, `claude-opus-5`, `claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`, `claude-sonnet-5`, and `claude-sonnet-5-5` additionally support `xhigh` for maximum reasoning effort.
 
 On `claude-opus-5`, thinking can only be disabled at effort levels up to and including `high`. When you combine `thinking: { type: 'disabled' }` with `effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high` and emits a warning instead of sending a request that the API would reject.
 
@@ -209,6 +210,16 @@ On `claude-opus-5-5`, thinking is always adaptive and cannot be disabled, so
 carrying over the setting you used on `claude-opus-5`. Set `maxOutputTokens`
 with room for thinking as well as the reply; thinking counts toward the limit
 even when its content is not returned.
+
+On `claude-sonnet-5-5`, thinking cannot be turned off either, and the API
+default effort is `high`. Its effort levels are not equivalent to those of
+`claude-sonnet-5`, so test several levels rather than carrying over your
+current setting. For agentic coding and other multi-step tool use, start at
+`medium` for well-specified tasks and move to `high` for harder ones. The
+lowest thinking setting, [`between_tools`](#between-tools-thinking), is only
+accepted at `low`, `medium`, and `high` effort. When you combine it with
+`effort: 'xhigh'` or `effort: 'max'`, the AI SDK lowers the effort to `high`
+and emits a warning.
 
 ```ts highlight="8-10"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -313,6 +324,8 @@ The `inferenceGeo` option accepts `'us'` (US-only infrastructure) or `'global'` 
 ### Safety Classifiers and Fallbacks
 
 Claude Fable 5 has safeguards that limit its performance in certain areas like cybersecurity, biology, and chemistry, and automated safety checks are run on every request.
+
+Claude Sonnet 5.5 also has safety classifiers enabled, including for cybersecurity, biology, and reasoning extraction. Requests that ask the model to reproduce its internal reasoning in the response text can be declined with the `reasoning_extraction` category; use `thinking: { type: 'adaptive', display: 'summarized' }` and read the reasoning parts instead.
 
 When one of these checks blocks a request, the API does not answer it. Instead it returns a classifier block: a `200` response with a `refusal` stop reason and an optional `stop_details` object describing the category that triggered the block. The AI SDK surfaces this as a `content-filter` finish reason, with the details available on `providerMetadata.anthropic.stopDetails`.
 
@@ -431,13 +444,19 @@ const { text } = await generateText({
 
 ##### Adaptive-Only Models
 
-`claude-opus-5-5`, `claude-fable-5`, and `claude-fable-5-1` always run adaptive
-thinking. The API rejects `thinking: { type: 'disabled' }` and budget-based
-`thinking: { type: 'enabled' }` for these models. To keep existing code working,
-the provider:
+`claude-sonnet-5-5`, `claude-opus-5-5`, `claude-fable-5`, and
+`claude-fable-5-1` always run adaptive thinking. The API rejects
+`thinking: { type: 'disabled' }` and budget-based
+`thinking: { type: 'enabled' }` for these models. To keep existing code
+working, the provider:
 
 - removes `thinking: { type: 'disabled' }` and emits a warning,
 - converts `thinking: { type: 'enabled', budgetTokens }` to `{ type: 'adaptive' }` and emits a warning.
+
+On `claude-sonnet-5-5`, which supports
+[`between_tools` thinking](#between-tools-thinking), the provider instead
+replaces `thinking: { type: 'disabled' }` with `thinking: { type: 'between_tools' }`
+and emits a warning.
 
 Use `effort` to control how much these models think. On `claude-opus-5-5`, set
 `effort: 'low'` when time to first token matters, and move to `medium` if
@@ -462,6 +481,42 @@ const { text } = await generateText({
   assuming the first part is text. Under the default `display: 'omitted'`
   setting, thinking blocks are returned with empty text.
 </Note>
+
+##### Between-Tools Thinking
+
+`claude-sonnet-5-5` supports `thinking: { type: 'between_tools' }`, its lowest
+thinking setting. The model does no upfront thinking, but the short progress
+notes it writes between tool calls are still returned as thinking blocks, each
+with a short summary. They are available as reasoning parts and are sent back
+unchanged on the next step. `between_tools` accepts no other thinking options
+(such as `display` or `blockBinding`) and is only accepted at `low`, `medium`,
+and `high` effort. Per-message effort changes via
+[mid-conversation system messages](#mid-conversation-system-controls) are not
+supported with `between_tools`.
+
+```ts highlight="16-17"
+import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
+import { generateText, stepCountIs, tool } from 'ai';
+import { z } from 'zod';
+
+const { text, steps } = await generateText({
+  model: anthropic('claude-sonnet-5-5'),
+  stopWhen: stepCountIs(5),
+  tools: {
+    weather: tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, temperature: 72 }),
+    }),
+  },
+  providerOptions: {
+    anthropic: {
+      thinking: { type: 'between_tools' },
+      effort: 'low',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+  prompt: 'Compare the weather in San Francisco and New York.',
+});
+```
 
 ##### Thinking Display (Opus 4.7+)
 
@@ -490,11 +545,11 @@ console.log(text);
 
 ##### Thinking Updates
 
-Use `display: 'updates'` with `claude-opus-5-5` or `claude-fable-5-1` to stream
-thinking summaries between tool calls. These models return progress notes
-between tool calls as thinking blocks rather than text, so without this setting
-a long tool-calling turn can look silent. The provider adds the required
-`thinking-display-updates-2026-08-18` beta header automatically:
+Use `display: 'updates'` with `claude-sonnet-5-5`, `claude-opus-5-5`, or
+`claude-fable-5-1` to stream thinking summaries between tool calls. These models
+return progress notes between tool calls as thinking blocks rather than text, so
+without this setting a long tool-calling turn can look silent. The provider adds
+the required `thinking-display-updates-2026-08-18` beta header automatically:
 
 ```ts highlight="12-16"
 import { anthropic, AnthropicLanguageModelOptions } from '@ai-sdk/anthropic';
@@ -519,11 +574,13 @@ const result = streamText({
 
 ##### Thinking Block Binding
 
-Fable 5.1 can recover from a thinking-block prefix mismatch by dropping the
-mismatched block. Set `blockBinding.prefixMismatchBehavior` to `drop_block`, or
-set it to `error` to reject the request. You can provide block binding by itself
-to preserve the model's default thinking mode, or combine it with adaptive
-thinking.
+Fable 5.1, Opus 5.5, and Sonnet 5.5 can recover from a thinking-block prefix
+mismatch by dropping the mismatched block. Set
+`blockBinding.prefixMismatchBehavior` to `drop_block`, or set it to `error` to
+reject the request. You can provide block binding by itself to preserve the
+model's default thinking mode, or combine it with adaptive thinking. Block
+binding is not available with `between_tools` thinking; keep the message
+history append-only instead.
 
 ```ts highlight="7-11"
 const result = await generateText({
@@ -1038,19 +1095,20 @@ const computerTool = anthropic.tools.computer_20251124({
 ```
 
 <Note>
-  Use `computerToolset_20260801` for Claude Opus 5.5 (required), Opus 5, Sonnet
-  5, Fable 5, Fable 5.1, and Opus 4.8. Use `computer_20251124` for Claude Opus
-  4.5 through Opus 4.7, which support the zoom action. Use `computer_20250124`
-  for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus 4, and Sonnet 3.7.
+  Use `computerToolset_20260801` for Claude Sonnet 5.5 and Opus 5.5 (required),
+  Opus 5, Sonnet 5, Fable 5, Fable 5.1, and Opus 4.8. Use `computer_20251124`
+  for Claude Opus 4.5 through Opus 4.7, which support the zoom action. Use
+  `computer_20250124` for Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, Opus
+  4, and Sonnet 3.7.
 </Note>
 
 #### Computer Toolset
 
 Newer models use the computer toolset instead of a versioned computer tool.
-`claude-opus-5-5` accepts computer use only through the toolset and rejects the
-older `computer_*` tool types with a 400. The toolset does not require a beta
-header and has no display size parameters: coordinates are always in the pixel
-space of the screenshots you return. Zoom is enabled by default, and Claude can
+`claude-sonnet-5-5` and `claude-opus-5-5` accept computer use only through the
+toolset and reject the older `computer_*` tool types with a 400. The toolset
+does not require a beta header and has no display size parameters: coordinates
+are always in the pixel space of the screenshots you return. Zoom is enabled by default, and Claude can
 return several actions in one turn, each as its own tool call.
 
 The API returns each action as a separate `tool_use` block with
@@ -1376,10 +1434,10 @@ This sends `tool_reference` blocks to Anthropic, which loads the corresponding d
 
 ### Mid-Conversation System Controls
 
-With `claude-opus-5-5` and `claude-fable-5-1`, use an empty system message to
-change effort from the next user turn. A separate system message containing text
-can provide a turn-scoped reminder with `clearAt: 'next_user_message'`: its text
-applies until the next user message. Keep the reminder after a user turn and
+With `claude-sonnet-5-5`, `claude-opus-5-5`, and `claude-fable-5-1`, use an
+empty system message to change effort from the next user turn. A separate
+system message containing text can provide a turn-scoped reminder with
+`clearAt: 'next_user_message'`: its text applies until the next user message. Keep the reminder after a user turn and
 before an assistant turn, or at the end of the messages array.
 The provider adds the required
 `mid-conversation-system-clear-at-2026-08-21` and
@@ -1889,6 +1947,7 @@ and the `mediaType` should be set to `'application/pdf'`.
 | `claude-fable-5-1`  | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-5-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-5`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `claude-sonnet-5-5` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-sonnet-5`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-fable-5`    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `claude-opus-4-8`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |

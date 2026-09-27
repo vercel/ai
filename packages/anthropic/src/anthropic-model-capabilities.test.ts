@@ -10,6 +10,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
     expect(
@@ -21,6 +22,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
   });
@@ -40,6 +42,7 @@ describe('getModelCapabilities', () => {
         rejectsThinkingDisabledAboveHighEffort: false,
         rejectsThinkingDisabled: false,
         rejectsForcedToolUse: false,
+        supportsBetweenToolsThinking: false,
         isKnownModel: false,
       });
     },
@@ -53,6 +56,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     });
   });
@@ -65,6 +69,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     });
   });
@@ -77,6 +82,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     });
     expect(getModelCapabilities('claude-opus-5').rejectsForcedToolUse).toBe(
@@ -85,6 +91,25 @@ describe('getModelCapabilities', () => {
     expect(getModelCapabilities('claude-fable-5')).toMatchObject({
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
+    });
+  });
+
+  it('recognizes Sonnet 5.5 as supporting between_tools thinking', () => {
+    expect(getModelCapabilities('claude-sonnet-5-5')).toEqual({
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: true,
+      isKnownModel: true,
+    });
+    expect(getModelCapabilities('claude-sonnet-5')).toMatchObject({
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
     });
   });
 
@@ -96,6 +121,7 @@ describe('getModelCapabilities', () => {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     });
   });
