@@ -49,12 +49,12 @@ const { text } = await generateText({
 });
 ```
 
-Version 3.0.64 is a breaking migration from Sonar Chat Completions to the Agent
+Version 3.1.0 is a breaking migration from Sonar Chat Completions to the Agent
 API. Legacy Sonar model IDs and provider options are not mapped. Review the
 [migration notes](https://ai-sdk.dev/providers/ai-sdk-providers/perplexity#migrating-from-v4-sonar-to-v5-agent-api)
 before upgrading an existing application (the notes refer to the Sonar-based
 releases as v4 and the Agent API releases as v5; for AI SDK 6 these are
-3.0.63 and earlier, and 3.0.64 and later).
+3.0.63 and earlier, and 3.1.0 and later).
 
 Perplexity supports Sonar Chat Completions only until September 27, 2026.
 Remaining on version 3.0.63 or earlier will not preserve language generation

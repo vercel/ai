@@ -87,7 +87,7 @@ The Agent API provides the `fast`, `low`, `medium`, `high`, and `xhigh`
 presets. You can also pass an Agent API model ID directly, such as
 `perplexity/sonar`.
 
-Starting with version 3.0.64, language generation uses the Agent API
+Starting with version 3.1.0, language generation uses the Agent API
 exclusively. Legacy Sonar model IDs and provider options are not mapped; see
 [Migrating from Sonar to the Agent API](#migrating-from-sonar-to-the-agent-api)
 before upgrading.
@@ -291,7 +291,7 @@ parts are not supported.
 ### Migrating from Sonar to the Agent API
 
 <Note>
-  Version 3.0.64 is a breaking migration from Sonar Chat Completions to the
+  Version 3.1.0 is a breaking migration from Sonar Chat Completions to the
   Agent API. It does not provide legacy model aliases, translate Sonar provider
   options, or emit migration warnings at runtime.
 </Note>
@@ -322,7 +322,7 @@ For example:
 // 3.0.63 and earlier (Sonar)
 perplexity('sonar-pro');
 
-// 3.0.64 and later (Agent API)
+// 3.1.0 and later (Agent API)
 perplexity('low');
 ```
 
