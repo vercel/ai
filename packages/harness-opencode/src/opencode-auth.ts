@@ -17,6 +17,7 @@ export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   'OPENAI_API_KEY',
   'ANTHROPIC_API_KEY',
   'ANTHROPIC_AUTH_TOKEN',
+  'GOOGLE_GENERATIVE_AI_API_KEY',
   'XAI_API_KEY',
   'GITHUB_TOKEN',
   'GITHUB_COPILOT_TOKEN',
@@ -112,6 +113,22 @@ export function createOpenCodeRequestTransformations({
 
       return transformations;
     }
+    case 'google':
+      return environment.GOOGLE_GENERATIVE_AI_API_KEY &&
+        sandboxEnvironment.GOOGLE_GENERATIVE_AI_API_KEY
+        ? [
+            createCredentialRequestTransformation({
+              matchUrl: 'https://generativelanguage.googleapis.com',
+              matchHeaders: {
+                'x-goog-api-key':
+                  sandboxEnvironment.GOOGLE_GENERATIVE_AI_API_KEY,
+              },
+              transformHeaders: {
+                'x-goog-api-key': environment.GOOGLE_GENERATIVE_AI_API_KEY,
+              },
+            }),
+          ]
+        : [];
     case 'xai':
       return createBearerTransformation({
         environment,
@@ -156,6 +173,7 @@ export function createOpenCodeRequestTransformations({
 export type OpenCodeResolvedAuthenticationMode =
   | 'anthropic'
   | 'openai'
+  | 'google'
   | 'xai'
   | 'github-copilot'
   | 'poe'
@@ -219,7 +237,11 @@ export function resolveOpenCodeEnv({
 }): Record<string, string> {
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
   const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
-  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    model,
+    provider,
+    environment: authenticationEnvironment,
+  });
   if (
     (selectedProvider === 'openai' && auth === 'openai') ||
     (selectedProvider === 'anthropic' && auth === 'anthropic')
@@ -256,9 +278,17 @@ export function resolveOpenCodeAuthenticationMode({
   if (isHarnessAuthenticationEnvironment(auth)) {
     return getAiGatewayAuthFromEnv({ env: auth }).apiKey
       ? 'ai-gateway'
-      : resolveOpenCodeProvider({ model, provider });
+      : resolveOpenCodeAuthenticationProvider({
+          model,
+          provider,
+          environment: auth,
+        });
   }
-  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    model,
+    provider,
+    environment: processEnv,
+  });
   if (selectedProvider === 'openai' && auth === 'openai') {
     return 'openai';
   }
@@ -272,6 +302,23 @@ export function resolveOpenCodeAuthenticationMode({
     return 'ai-gateway';
   }
   return selectedProvider;
+}
+
+function resolveOpenCodeAuthenticationProvider({
+  model,
+  provider,
+  environment,
+}: {
+  model?: string;
+  provider?: string;
+  environment: Record<string, string | undefined>;
+}): Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'> {
+  const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  return model == null &&
+    provider == null &&
+    environment.GOOGLE_GENERATIVE_AI_API_KEY != null
+    ? 'google'
+    : selectedProvider;
 }
 
 function pickOpenAI({
@@ -316,15 +363,17 @@ function pickDirectProvider({
   if (provider === 'openai') return pickOpenAI({ processEnv });
   if (provider === 'anthropic') return pickAnthropic({ processEnv });
   const names =
-    provider === 'xai'
-      ? ['XAI_API_KEY', 'XAI_BASE_URL']
-      : provider === 'github-copilot'
-        ? ['GITHUB_COPILOT_TOKEN', 'GITHUB_TOKEN']
-        : provider === 'poe'
-          ? ['POE_API_KEY']
-          : provider === 'opencode-go'
-            ? ['OPENCODE_API_KEY']
-            : ['GITLAB_TOKEN', 'GITLAB_INSTANCE_URL'];
+    provider === 'google'
+      ? ['GOOGLE_GENERATIVE_AI_API_KEY']
+      : provider === 'xai'
+        ? ['XAI_API_KEY', 'XAI_BASE_URL']
+        : provider === 'github-copilot'
+          ? ['GITHUB_COPILOT_TOKEN', 'GITHUB_TOKEN']
+          : provider === 'poe'
+            ? ['POE_API_KEY']
+            : provider === 'opencode-go'
+              ? ['OPENCODE_API_KEY']
+              : ['GITLAB_TOKEN', 'GITLAB_INSTANCE_URL'];
   return Object.fromEntries(
     names.flatMap(name =>
       processEnv[name] == null ? [] : [[name, processEnv[name]!]],
@@ -382,6 +431,7 @@ function isDirectProvider(
   return (
     value === 'anthropic' ||
     value === 'openai' ||
+    value === 'google' ||
     value === 'xai' ||
     value === 'github-copilot' ||
     value === 'poe' ||
