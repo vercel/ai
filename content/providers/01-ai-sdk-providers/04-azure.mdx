@@ -1132,7 +1132,7 @@ All other IDs use the OpenAI API by default, including custom deployment names.
 
 ```ts
 import { azure, type AzureTranscriptionModelOptions } from '@ai-sdk/azure';
-import { transcribe } from 'ai';
+import { experimental_transcribe as transcribe } from 'ai';
 import { readFile } from 'fs/promises';
 
 const result = await transcribe({
@@ -1282,20 +1282,12 @@ The following provider options are available:
 
 ### Model Capabilities
 
-<<<<<<< HEAD
 | Model                    | Transcription       | Duration            | Segments            | Language            |
 | ------------------------ | ------------------- | ------------------- | ------------------- | ------------------- |
 | `whisper-1`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-=======
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `mai-transcribe-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
->>>>>>> 354af1cc6d (feat(azure): support MAI-Transcribe-2 through transcription (#20836))
+| `mai-transcribe-2`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 ## Speech Models
 

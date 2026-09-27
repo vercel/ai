@@ -1,4 +1,4 @@
-import type { TranscriptionModelV4 } from '@ai-sdk/provider';
+import type { TranscriptionModelV3 } from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -13,8 +13,8 @@ import type { AzureTranscriptionProviderMetadata } from './azure-transcription-p
 import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
 import { isMAITranscribe2 } from './azure-transcription-model-options';
 
-export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
-  readonly specificationVersion = 'v4';
+export class AzureSpeechTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
   readonly provider = 'azure.transcription';
 
   constructor(
@@ -27,9 +27,9 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+    options: Parameters<TranscriptionModelV3['doGenerate']>[0],
     azureOptions: AzureTranscriptionModelSpeechOptions = {},
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+  ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const timestamp = new Date();
     const formData = new FormData();
     formData.append(

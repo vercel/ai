@@ -1,15 +1,5 @@
-import { OpenAITranscriptionModel } from '@ai-sdk/openai/internal';
-import {
-  APICallError,
-  InvalidArgumentError,
-  UnsupportedFunctionalityError,
-  type TranscriptionModelV4,
-} from '@ai-sdk/provider';
-import {
-  WORKFLOW_DESERIALIZE,
-  WORKFLOW_SERIALIZE,
-  type FetchFunction,
-} from '@ai-sdk/provider-utils';
+import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
+import { type FetchFunction } from '@ai-sdk/provider-utils';
 import fs from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -445,69 +435,6 @@ describe('Speech responses', () => {
     await expect(
       provider.transcription('mai-transcribe-2').doGenerate(input),
     ).rejects.toBe(error);
-  });
-});
-
-describe('streaming and serialization', () => {
-  it('delegates OpenAI streaming without changing call options', async () => {
-    const { provider } = setup();
-    const result = { stream: new ReadableStream() };
-    const stream = vi
-      .spyOn(OpenAITranscriptionModel.prototype, 'doStream')
-      .mockResolvedValue(result);
-    const options = {
-      audio: new ReadableStream<Uint8Array>(),
-      inputAudioFormat: { type: 'audio/pcm' as const, rate: 24000 },
-      providerOptions: { azure: { api: 'openai' }, openai: { language: 'en' } },
-    };
-    expect(
-      await provider.transcription('mai-transcribe-2').doStream!(options),
-    ).toBe(result);
-    expect(stream).toHaveBeenCalledWith(options);
-  });
-
-  it('rejects Speech streaming before sending audio', async () => {
-    const { provider, fetch } = setup();
-    await expect(
-      provider.transcription('mai-transcribe-2').doStream!({
-        audio: new ReadableStream(),
-        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-      }),
-    ).rejects.toBeInstanceOf(UnsupportedFunctionalityError);
-    expect(fetch).not.toHaveBeenCalled();
-  });
-
-  it('restores request-time routing after a workflow serialization round trip', async () => {
-    const { provider, fetch, request } = setup({
-      baseURL: 'https://proxy.example',
-      speechBaseURL: 'https://speech.example',
-    });
-    const model = provider.transcription('mai-transcribe-2');
-    const constructor = model.constructor as unknown as {
-      [WORKFLOW_SERIALIZE](model: TranscriptionModelV4): {
-        modelId: string;
-        config: AzureOpenAIProviderSettings;
-      };
-      [WORKFLOW_DESERIALIZE](value: {
-        modelId: string;
-        config: AzureOpenAIProviderSettings;
-      }): TranscriptionModelV4;
-    };
-    const serialized = constructor[WORKFLOW_SERIALIZE](model);
-    expect(serialized.config.fetch).toBeUndefined();
-    const restored = constructor[WORKFLOW_DESERIALIZE]({
-      ...serialized,
-      config: { ...serialized.config, fetch },
-    });
-    await restored.doGenerate(input);
-    expect(request().url).toBe(
-      'https://speech.example/speechtotext/transcriptions:transcribe?api-version=2025-10-15',
-    );
-    await restored.doGenerate({
-      ...input,
-      providerOptions: { azure: { api: 'openai' } },
-    });
-    expect(request().url).toBe('https://proxy.example/audio/transcriptions');
   });
 });
 
