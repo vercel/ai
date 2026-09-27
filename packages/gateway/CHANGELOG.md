@@ -1,5 +1,12 @@
 # @ai-sdk/gateway
 
+## 4.0.96
+
+### Patch Changes
+
+- e6a7996: fix(provider/gateway): accept any non-empty conditional evaluation fallback model
+- e19f0fc: fix(provider/gateway): accept conditional evaluation fallbacks in GatewayProviderOptions
+
 ## 4.0.95
 
 ### Patch Changes
