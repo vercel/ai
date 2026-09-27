@@ -1,7 +1,6 @@
 import { expectTypeOf, it } from 'vitest';
 import type {
   EvaluationFallbackCondition,
-  GatewayEvaluationProviderOptions,
   GatewayModelFallback,
   GatewayProviderOptions,
 } from './index';
@@ -78,14 +77,9 @@ it('types conditional evaluation model fallbacks', () => {
     models: existingModels,
   } satisfies GatewayProviderOptions;
   expectTypeOf(existingOptions.models).toEqualTypeOf<string[]>();
-  expectTypeOf<GatewayProviderOptions['models']>().toEqualTypeOf<
-    string[] | undefined
+  expectTypeOf<string[]>().toMatchTypeOf<
+    NonNullable<GatewayProviderOptions['models']>
   >();
-  const existingEvaluationOptions = {
-    models: existingModels,
-    order: ['openai'],
-  } satisfies GatewayEvaluationProviderOptions;
-  void existingEvaluationOptions;
 
   const options = {
     models: [
@@ -94,21 +88,26 @@ it('types conditional evaluation model fallbacks', () => {
     ],
     order: ['openai'],
     serviceOwnedOption: true,
-  } satisfies GatewayEvaluationProviderOptions<QuestionId>;
-  expectTypeOf(options).toMatchTypeOf<
-    GatewayEvaluationProviderOptions<QuestionId>
-  >();
-  expectTypeOf<GatewayEvaluationProviderOptions['sort']>().toEqualTypeOf<
-    GatewayProviderOptions['sort']
-  >();
+  } satisfies GatewayProviderOptions<QuestionId>;
+  expectTypeOf(options).toMatchTypeOf<GatewayProviderOptions<QuestionId>>();
 
-  const languageOptions: GatewayProviderOptions = {
-    // @ts-expect-error Conditional fallbacks are only valid on evaluation requests.
+  const untypedQuestions = {
     models: [{ model: 'openai/gpt-5.6-sol', when: confidence }],
-  };
-  const invalidEvaluationSort: GatewayEvaluationProviderOptions = {
-    // @ts-expect-error Evaluation options keep the typed routing options.
+  } satisfies GatewayProviderOptions;
+  void untypedQuestions;
+
+  const invalidSort: GatewayProviderOptions = {
+    // @ts-expect-error Provider options keep the typed routing options.
     sort: 'latency',
+  };
+  const unknownFallbackQuestion: GatewayProviderOptions<QuestionId> = {
+    models: [
+      {
+        model: 'openai/gpt-5.6-sol',
+        // @ts-expect-error The question ID must come from the configured question set.
+        when: { question: 'missing', confidenceBelow: 0.6 },
+      },
+    ],
   };
 
   // @ts-expect-error Conditional fallbacks require a model.
@@ -151,17 +150,17 @@ it('types conditional evaluation model fallbacks', () => {
     model: 'openai/gpt-5.6-sol',
     when: confidence,
   };
-  const conditionalAfterString: GatewayEvaluationProviderOptions = {
+  const conditionalAfterString: GatewayProviderOptions = {
     // @ts-expect-error A conditional fallback must be the first models entry.
     models: ['anthropic/claude-haiku-4.5', conditional],
   };
-  const multipleConditionals: GatewayEvaluationProviderOptions = {
+  const multipleConditionals: GatewayProviderOptions = {
     // @ts-expect-error models supports at most one conditional fallback.
     models: [conditional, conditional],
   };
 
-  void languageOptions;
-  void invalidEvaluationSort;
+  void invalidSort;
+  void unknownFallbackQuestion;
   void missingModel;
   void malformedBounds;
   void invalidField;
