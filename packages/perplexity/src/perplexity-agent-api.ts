@@ -141,26 +141,26 @@ export const perplexityAgentResponseSchema = z.looseObject({
 
 export const perplexityAgentChunkSchema = z.looseObject({
   type: z.string(),
-  sequence_number: z.number().optional(),
-  response: perplexityAgentResponseSchema.optional(),
-  item: perplexityOutputItemSchema.optional(),
-  output_index: z.number().optional(),
-  item_id: z.string().optional(),
-  content_index: z.number().optional(),
-  delta: z.string().optional(),
-  text: z.string().optional(),
-  thought: z.string().optional(),
-  queries: z.array(z.string()).optional(),
-  urls: z.array(z.string()).optional(),
-  results: z.array(perplexitySearchResultSchema).optional(),
-  contents: z.array(perplexityFetchedContentSchema).optional(),
+  sequence_number: z.number().nullish(),
+  response: perplexityAgentResponseSchema.nullish(),
+  item: perplexityOutputItemSchema.nullish(),
+  output_index: z.number().nullish(),
+  item_id: z.string().nullish(),
+  content_index: z.number().nullish(),
+  delta: z.string().nullish(),
+  text: z.string().nullish(),
+  thought: z.string().nullish(),
+  queries: z.array(z.string()).nullish(),
+  urls: z.array(z.string()).nullish(),
+  results: z.array(perplexitySearchResultSchema).nullish(),
+  contents: z.array(perplexityFetchedContentSchema).nullish(),
   error: z
     .looseObject({
-      code: z.string().optional(),
+      code: z.string().nullish(),
       message: z.string(),
-      type: z.string().optional(),
+      type: z.string().nullish(),
     })
-    .optional(),
+    .nullish(),
 });
 
 export const perplexityErrorSchema = z.looseObject({
