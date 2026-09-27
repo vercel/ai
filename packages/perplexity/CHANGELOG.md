@@ -1,5 +1,11 @@
 # @ai-sdk/perplexity
 
+## 5.0.1
+
+### Patch Changes
+
+- 6da8aa0: Accept `null` fields in Agent API stream events, such as `contents: null` on `response.reasoning.fetch_url_results` when no URLs were fetched. Previously these events failed validation and errored the stream.
+
 ## 5.0.0
 
 ### Major Changes
