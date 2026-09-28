@@ -119,14 +119,14 @@ Image generation can take one to several minutes, so give the request a generous
 
 ### Video generation
 
-The AI SDK has no video model type, so video is a plain async function on the provider. It submits the job, polls until it completes, and returns the video URL (and optionally the bytes):
+The AI SDK has no video model type, so video is a plain async function on the provider. It submits the job, polls until it completes, and returns the video URL (and optionally the bytes). Video is slow, often ten minutes or more, so it waits up to 30 minutes by default (`maxWaitMs`):
 
 ```typescript
 import { apimaster } from '@apimaster/ai-sdk-provider';
 import { writeFile } from 'node:fs/promises';
 
 const video = await apimaster.generateVideo({
-  model: 'sora-2',
+  model: 'seedance-2.5',
   prompt: 'a waterfall forming a rainbow, cinematic',
   durationSeconds: 4,
   aspectRatio: '16:9',
