@@ -6901,18 +6901,8 @@ describe('processUIMessageStream', () => {
       });
     });
 
-    it('should warn when creating a static output-error part with rawInput', () => {
-      expect(warningLogger).toHaveBeenCalledOnce();
-      expect(warningLogger).toHaveBeenCalledWith({
-        warnings: [
-          {
-            type: 'deprecated',
-            setting: 'rawInput in output-error UI message parts',
-            message:
-              'Use the "input" field instead. The "rawInput" field will be removed in the next major version.',
-          },
-        ],
-      });
+    it('should not warn when creating a static output-error part', () => {
+      expect(warningLogger).not.toHaveBeenCalled();
     });
 
     it('should call the update function with the correct arguments', async () => {
@@ -6978,11 +6968,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -7002,11 +6992,11 @@ describe('processUIMessageStream', () => {
                 },
                 {
                   "errorText": "Invalid input for tool cityAttractions",
-                  "input": undefined,
+                  "input": "{ "cities": "San Francisco" }",
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": "{ "cities": "San Francisco" }",
+                  "rawInput": undefined,
                   "state": "output-error",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -7028,11 +7018,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Invalid input for tool cityAttractions",
-            "input": undefined,
+            "input": "{ "cities": "San Francisco" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "cities": "San Francisco" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",
@@ -7130,11 +7120,11 @@ describe('processUIMessageStream', () => {
           },
           {
             "errorText": "Model tried to call unavailable tool 'nonExistentTool'.",
-            "input": undefined,
+            "input": "{ "foo": "bar" }",
             "output": undefined,
             "preliminary": undefined,
             "providerExecuted": undefined,
-            "rawInput": "{ "foo": "bar" }",
+            "rawInput": undefined,
             "state": "output-error",
             "title": undefined,
             "toolCallId": "call-1",
