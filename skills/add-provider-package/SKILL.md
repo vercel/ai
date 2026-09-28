@@ -64,7 +64,7 @@ packages/<provider>/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
-├── tsup.config.ts
+├── tsdown.config.ts
 ├── turbo.json
 ├── vitest.node.config.js
 └── vitest.edge.config.js

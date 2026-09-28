@@ -1,0 +1,66 @@
+import { defineConfig } from 'tsdown';
+
+export default defineConfig([
+  // Universal APIs
+  {
+    entry: ['src/index.ts'],
+    format: ['esm'],
+    target: 'es2022',
+    deps: { neverBundle: ['react', 'svelte', 'vue', 'chai', 'chai/*'] },
+    dts: true,
+    sourcemap: true,
+    platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+  },
+  // Internal APIs
+  {
+    entry: ['internal/index.ts'],
+    outDir: 'dist/internal',
+    format: ['esm'],
+    target: 'es2022',
+    deps: { neverBundle: ['chai', 'chai/*'] },
+    dts: true,
+    sourcemap: true,
+    platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+  },
+  // Test utilities
+  {
+    entry: ['test/index.ts'],
+    outDir: 'dist/test',
+    format: ['esm'],
+    target: 'es2022',
+    deps: {
+      neverBundle: [
+        'chai',
+        'chai/*',
+        'vitest',
+        'vitest/*',
+        '@vitest/*',
+        'vitest/dist/*',
+        'vitest/dist/chunks/*',
+        'vitest/dist/node/*',
+        'vitest/dist/node/chunks/*',
+      ],
+    },
+    dts: true,
+    sourcemap: true,
+    platform: 'node',
+    define: {
+      __PACKAGE_VERSION__: JSON.stringify(
+        (await import('./package.json', { with: { type: 'json' } })).default
+          .version,
+      ),
+    },
+  },
+]);

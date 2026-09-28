@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /*
- * These bridge imports are externalized by tsup and resolved inside the
+ * These bridge imports are externalized by tsdown and resolved inside the
  * sandbox from src/bridge/package.json and its lockfile. Keep this file,
- * tsup.config.ts, and the bridge package dependency list in sync.
+ * tsdown.config.ts, and the bridge package dependency list in sync.
  */
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
