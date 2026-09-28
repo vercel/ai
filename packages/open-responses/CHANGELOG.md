@@ -1,5 +1,15 @@
 # @ai-sdk/open-responses
 
+## 2.0.55
+
+### Patch Changes
+
+- 8cf3f5b: Allow extension codecs to explicitly opt in to exact bare tool, item, and event discriminator registration.
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
 ## 2.0.54
 
 ### Patch Changes

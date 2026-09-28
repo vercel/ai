@@ -1,5 +1,20 @@
 # @ai-sdk/harness
 
+## 1.0.129
+
+### Patch Changes
+
+- e5aeb11: feat(harness): allow setting `HarnessAgent`'s `workDir` to "." to use the sandbox's default working directory
+- d99d6dc: fix(harness): forward configured runtime context to callbacks and telemetry
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [e3605f6]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
 ## 1.0.128
 
 ### Patch Changes

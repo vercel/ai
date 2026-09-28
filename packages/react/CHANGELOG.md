@@ -1,5 +1,19 @@
 # @ai-sdk/react
 
+## 4.0.122
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [e3605f6]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/mcp@2.0.61
+
 ## 4.0.121
 
 ### Patch Changes
