@@ -35,6 +35,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
+ * @param keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param consumeSseStream - Whether to consume the SSE stream. Optional.
  */
 export async function pipeAgentUIStreamToResponse<
@@ -48,6 +49,7 @@ export async function pipeAgentUIStreamToResponse<
   headers,
   status,
   statusText,
+  keepAliveMs,
   consumeSseStream,
   ...options
 }: {
@@ -71,6 +73,7 @@ export async function pipeAgentUIStreamToResponse<
     headers,
     status,
     statusText,
+    keepAliveMs,
     consumeSseStream,
     stream: await createAgentUIStream(options),
   });
