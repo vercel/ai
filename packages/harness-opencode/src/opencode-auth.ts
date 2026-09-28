@@ -340,9 +340,9 @@ function resolveOpenCodeAuthenticationProvider({
   }
   return model == null &&
     provider == null &&
-    environment.GOOGLE_GENERATIVE_AI_API_KEY != null &&
+    (environment.GOOGLE_GENERATIVE_AI_API_KEY?.length ?? 0) > 0 &&
     !NON_GOOGLE_DIRECT_CREDENTIAL_ENVIRONMENT_VARIABLES.some(
-      name => environment[name] != null,
+      name => (environment[name]?.length ?? 0) > 0,
     )
     ? 'google'
     : selectedProvider;

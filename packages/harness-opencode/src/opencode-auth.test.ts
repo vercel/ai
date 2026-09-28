@@ -109,6 +109,39 @@ describe('OpenCode auth', () => {
     ).toBe('google');
   });
 
+  it('ignores an empty ambient Google credential when selecting the fallback provider', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({});
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
+  it('selects a valid Google credential when unrelated provider credentials are empty', () => {
+    const processEnv = {
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      OPENAI_API_KEY: '',
+      ANTHROPIC_API_KEY: '',
+      ANTHROPIC_AUTH_TOKEN: '',
+      XAI_API_KEY: '',
+      GITHUB_TOKEN: '',
+      GITHUB_COPILOT_TOKEN: '',
+      POE_API_KEY: '',
+      OPENCODE_API_KEY: '',
+      GITLAB_TOKEN: '',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('google');
+  });
+
   it.each(['anthropic', 'openai'] as const)(
     'keeps explicit %s authentication authoritative over ambient Google credentials',
     auth => {
