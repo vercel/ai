@@ -1,5 +1,13 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.57
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
 ## 1.0.56
 
 ### Patch Changes
