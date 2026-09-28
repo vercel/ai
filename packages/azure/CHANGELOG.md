@@ -1,5 +1,16 @@
 # @ai-sdk/azure
 
+## 4.0.84
+
+### Patch Changes
+
+- 5b9f10b: Reject an Azure `resourceName` that is not a single DNS label, so a malformed value cannot rewrite the request host.
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/deepseek@3.0.56
+  - @ai-sdk/openai@4.0.80
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 4.0.83
 
 ### Patch Changes

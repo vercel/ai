@@ -1,5 +1,14 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.60
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 2.0.59
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/perplexity
 
+## 5.0.3
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 5.0.2
 
 ### Patch Changes

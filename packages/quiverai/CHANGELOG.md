@@ -1,5 +1,14 @@
 # @ai-sdk/quiverai
 
+## 2.0.52
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/open-responses@2.0.56
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 2.0.51
 
 ### Patch Changes
