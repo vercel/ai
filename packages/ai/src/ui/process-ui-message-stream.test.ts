@@ -12,12 +12,8 @@ import {
   type InferUIMessageData,
   type UIMessage,
 } from './ui-messages';
-<<<<<<< HEAD
-import { beforeEach, describe, it, expect, vi } from 'vitest';
-=======
 import { validateUIMessages } from './validate-ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
@@ -46,6 +42,10 @@ describe('processUIMessageStream', () => {
   beforeEach(() => {
     writeCalls = [];
     state = undefined;
+  });
+
+  afterEach(() => {
+    delete globalThis.AI_SDK_LOG_WARNINGS;
   });
 
   const runUpdateMessageJob = async (
