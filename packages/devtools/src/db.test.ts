@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { validateRemoteDbPath } from './db.js';
 
 const originalCwd = process.cwd();
 let tempDirs: string[] = [];
@@ -34,13 +35,14 @@ describe('devtools db path validation', () => {
     tempDirs = [];
   });
 
-  it('accepts real .devtools/generations.json files', async () => {
-    const { db, tempDir } = await loadDbModule();
+  it('accepts real .devtools/generations.json files', () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ai-sdk-devtools-'));
+    tempDirs.push(tempDir);
     const dbPath = path.join(tempDir, 'app', '.devtools', 'generations.json');
 
     writeDb(dbPath, []);
 
-    expect(db.validateRemoteDbPath(dbPath)).toBe(fs.realpathSync(dbPath));
+    expect(validateRemoteDbPath(dbPath)).toBe(fs.realpathSync(dbPath));
   });
 
   it('rejects paths outside .devtools/generations.json', async () => {
