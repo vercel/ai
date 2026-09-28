@@ -1,5 +1,15 @@
 # @ai-sdk/alibaba
 
+## 2.0.57
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
 ## 2.0.56
 
 ### Patch Changes
