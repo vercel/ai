@@ -38,7 +38,7 @@
   ],
   "scripts": {
     "build": "pnpm clean && tsdown",
-    "clean": "del-cli build dist *.tsbuildinfo",
+    "clean": "del-cli build *.tsbuildinfo",
     "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",

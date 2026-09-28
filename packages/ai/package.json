@@ -26,7 +26,7 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli dist docs *.tsbuildinfo",
+    "clean": "del-cli docs *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",

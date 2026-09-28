@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "clean": "del-cli dist docs && del-cli internal/dist",
+    "clean": "del-cli docs && del-cli internal/",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/90-elevenlabs.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --noEmit",

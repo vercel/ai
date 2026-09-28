@@ -23,7 +23,7 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "tsdown --watch",
-    "clean": "del-cli dist docs",
+    "clean": "del-cli docs",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/110-deepgram.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --noEmit",

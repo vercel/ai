@@ -22,7 +22,7 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.node.config.js --run",
     "test:update": "vitest --config vitest.node.config.js --run -u",

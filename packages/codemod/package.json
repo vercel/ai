@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "build": "pnpm clean && tsdown",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "clean": "del-cli *.tsbuildinfo",
     "dev": "tsdown --watch",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.config.ts --run",

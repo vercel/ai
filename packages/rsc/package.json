@@ -9,7 +9,6 @@
   "scripts": {
     "build": "tsdown",
     "build:watch": "pnpm build --watch",
-    "clean": "del-cli dist",
     "type-check": "tsc --noEmit",
     "test:watch": "vitest --config vitest.config.js",
     "test": "pnpm test:node && pnpm test:ui && pnpm test:e2e:ci && pnpm test:edge",

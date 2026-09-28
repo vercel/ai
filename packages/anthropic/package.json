@@ -24,7 +24,7 @@
   "scripts": {
     "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
-    "clean": "del-cli dist docs *.tsbuildinfo",
+    "clean": "del-cli docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/05-anthropic.mdx ./docs/",
     "postpack": "del-cli docs",
     "type-check": "tsc --build",
