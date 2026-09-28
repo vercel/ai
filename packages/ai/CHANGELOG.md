@@ -1,5 +1,16 @@
 # ai
 
+## 5.0.268
+
+### Patch Changes
+
+- dfffb7e: fix(ai): cancel response streams when clients disconnect
+- 1d0096a: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/gateway@2.0.160
+  - @ai-sdk/provider-utils@3.0.40
+
 ## 5.0.267
 
 ### Patch Changes
