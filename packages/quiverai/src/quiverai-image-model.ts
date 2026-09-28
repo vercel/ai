@@ -49,7 +49,9 @@ export class QuiverAIImageModel implements ImageModelV4 {
   get supportsFileInputs(): boolean | undefined {
     return this.modelId === 'arrow-1' ||
       this.modelId === 'arrow-1.1' ||
-      this.modelId === 'arrow-1.1-max'
+      this.modelId === 'arrow-1.1-max' ||
+      this.modelId === 'arrow-2' ||
+      this.modelId === 'arrow-2-telos'
       ? true
       : undefined;
   }

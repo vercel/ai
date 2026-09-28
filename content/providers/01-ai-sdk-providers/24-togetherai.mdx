@@ -246,9 +246,10 @@ const { images } = await generateImage({
 
 `supportsFileInputs` reports `true` for these models and `supportsMaskInputs`
 reports `false`. The provider sends the first standardized image input as
-`image_url`. FLUX.2 Dev requires `reference_images`, which this mapping does not
-send, so its standardized file-input capability is `false`. Unrecognized model
-IDs report `undefined` (unknown), including IDs under a known provider namespace.
+`image_url`. FLUX.2 Dev and `google/gemini-3-pro-image` require `reference_images`,
+which this mapping does not send, so their standardized file-input capability is
+`false`. Unrecognized model IDs report `undefined` (unknown), including IDs under
+a known provider namespace.
 
 ### Model Capabilities
 

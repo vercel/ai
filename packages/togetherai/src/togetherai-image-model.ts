@@ -56,8 +56,9 @@ export class TogetherAIImageModel implements ImageModelV4 {
       'black-forest-labs/FLUX.1.1-pro',
       'black-forest-labs/FLUX.1-pro',
       'black-forest-labs/FLUX.1-schnell-Free',
-      // FLUX.2 Dev requires reference_images, which doGenerate does not send.
+      // These models require reference_images, which doGenerate does not send.
       'black-forest-labs/FLUX.2-dev',
+      'google/gemini-3-pro-image',
     ].includes(this.modelId)
       ? false
       : undefined;

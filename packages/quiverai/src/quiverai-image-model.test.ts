@@ -11,6 +11,18 @@ describe('QuiverAIImageModel', () => {
         supportsFileInputs: true,
         supportsMaskInputs: false,
       },
+      ...['arrow-1.1', 'arrow-1.1-max', 'arrow-2', 'arrow-2-telos'].map(
+        modelId => ({
+          modelId,
+          supportsFileInputs: true,
+          supportsMaskInputs: false,
+        }),
+      ),
+      {
+        modelId: 'arrow-2-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
       {
         modelId: 'custom-image-model',
         supportsFileInputs: undefined,

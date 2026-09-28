@@ -74,12 +74,18 @@ describe('capabilities', () => {
       supportsFileInputs: false,
       supportsMaskInputs: false,
     },
+    {
+      modelId: 'google/gemini-3-pro-image',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
     ...[
       'black-forest-labs/custom-model',
       'stabilityai/custom-model',
       'black-forest-labs/FLUX.1-kontext-custom',
       'custom/FLUX.1-kontext-pro',
       'black-forest-labs/FLUX.2-custom',
+      'google/gemini-custom',
     ].map(modelId => ({
       modelId,
       supportsFileInputs: undefined,
