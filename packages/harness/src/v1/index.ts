@@ -48,6 +48,9 @@ export type {
   HarnessV1ResponseFormat,
 } from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
+export type { HarnessV1SandboxTemplate } from './harness-v1-sandbox-template';
+export type { HarnessV1SandboxSessionCreateOptions } from './harness-v1-sandbox-session-create-options';
+export type { HarnessV1SandboxSessionResumeOptions } from './harness-v1-sandbox-session-resume-options';
 export type {
   HarnessV1ContinueTurnState,
   HarnessV1LifecycleState,

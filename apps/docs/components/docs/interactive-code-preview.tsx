@@ -353,38 +353,18 @@ const loadHighlighter = (): Promise<ShikiHighlighter> => {
 };
 
 /**
- * Highlight code with the Geist css-variables shiki theme and return the
- * inner HTML of the generated `<code>` element (shiki `.line` spans, with
- * `highlighted` added to the requested 1-based lines). The Geistdocs
- * CodeBlock supplies the surrounding `<pre>`, mirroring the DOM shape the
- * MDX pipeline produces at build time.
+ * Highlight code with the Geist css-variables shiki theme. Geistdocs owns the
+ * surrounding pre/code elements, so return tokens that can be rendered as
+ * React children and copied as plain text.
  */
 const highlightCode = async (
   code: string,
-  highlightedLines: number[],
-): Promise<string> => {
+): Promise<Awaited<ReturnType<ShikiHighlighter['codeToTokensBase']>>> => {
   const highlighter = await loadHighlighter();
-  const html = highlighter.codeToHtml(code, {
+  return highlighter.codeToTokensBase(code, {
     lang: 'typescript',
     theme: geistShikiTheme,
-    transformers: [
-      {
-        line(node, line) {
-          if (highlightedLines.includes(line)) {
-            this.addClassToHast(node, 'highlighted');
-          }
-        },
-      },
-    ],
   });
-
-  const codeTagStart = html.indexOf('<code');
-  const contentStart = html.indexOf('>', codeTagStart) + 1;
-  const contentEnd = html.lastIndexOf('</code>');
-  if (codeTagStart === -1 || contentEnd === -1 || contentStart === 0) {
-    return '';
-  }
-  return html.slice(contentStart, contentEnd);
 };
 
 function ModelDropdown({
@@ -855,18 +835,18 @@ export const InteractiveCodePreview = ({
   const highlightKey = `${activeHighlightedLines.join(',')}|${processedCode}`;
   const [highlighted, setHighlighted] = useState<{
     key: string;
-    html: string;
+    tokens: Awaited<ReturnType<ShikiHighlighter['codeToTokensBase']>>;
   } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    highlightCode(processedCode, activeHighlightedLines)
-      .then(html => {
-        if (!cancelled && html) {
+    highlightCode(processedCode)
+      .then(tokens => {
+        if (!cancelled) {
           setHighlighted({
             key: `${activeHighlightedLines.join(',')}|${processedCode}`,
-            html,
+            tokens,
           });
         }
       })
@@ -879,8 +859,8 @@ export const InteractiveCodePreview = ({
     };
   }, [processedCode, activeHighlightedLines]);
 
-  const highlightedHtml =
-    highlighted?.key === highlightKey ? highlighted.html : null;
+  const highlightedTokens =
+    highlighted?.key === highlightKey ? highlighted.tokens : null;
 
   const plainLines = processedCode.split('\n');
 
@@ -956,20 +936,28 @@ export const InteractiveCodePreview = ({
         id={`${id}-panel`}
         role="tabpanel"
       >
-        <CodeBlock
-          className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4"
-          tabIndex={0}
-        >
-          {highlightedHtml ? (
-            <code
-              // Shiki output rendered inside the Geistdocs CodeBlock pre,
-              // mirroring the DOM shape the MDX pipeline emits at build time.
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-            />
-          ) : (
-            <code>
-              {plainLines.map((line, index) => (
+        <CodeBlock className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4">
+          {highlightedTokens
+            ? highlightedTokens.map((line, lineIndex) => (
+                <span
+                  className={cx(
+                    'line',
+                    activeHighlightedLines.includes(lineIndex + 1) &&
+                      'highlighted',
+                  )}
+                  // Shiki output is position-stable for the current code string.
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={lineIndex}
+                >
+                  {line.map(token => (
+                    <span key={token.offset} style={{ color: token.color }}>
+                      {token.content}
+                    </span>
+                  ))}
+                  {'\n'}
+                </span>
+              ))
+            : plainLines.map((line, index) => (
                 <span
                   className={cx(
                     'line',
@@ -982,8 +970,6 @@ export const InteractiveCodePreview = ({
                   {'\n'}
                 </span>
               ))}
-            </code>
-          )}
         </CodeBlock>
       </div>
 

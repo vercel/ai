@@ -202,7 +202,7 @@ describe('evaluation model resolution', () => {
     async resolution => {
       vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
       vi.stubEnv('AI_GATEWAY_API_KEY', 'test-api-key');
-      const modelId = 'typesafe-ai/jev-latest';
+      const modelId = 'typesafe-ai/jev';
       const state = 'The capital of France is Paris.';
       const questions = {
         correct: { type: 'boolean', instructions: 'Is this correct?' },
@@ -237,7 +237,7 @@ describe('evaluation model resolution', () => {
 
   it('requires an explicitly configured default provider to support evaluation', () => {
     vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', new MockProviderV4());
-    expect(() => resolveEvaluationModel('typesafe-ai/jev-latest')).toThrow(
+    expect(() => resolveEvaluationModel('typesafe-ai/jev')).toThrow(
       'The default provider does not support evaluation models.',
     );
     expect(server.calls).toHaveLength(0);

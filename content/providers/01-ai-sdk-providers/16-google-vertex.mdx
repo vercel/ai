@@ -138,6 +138,8 @@ You can use the following optional settings to customize the provider instance:
 - **toolResultDownloads** _object_
 
   Settings for downloading remote files in tool results before sending them to Vertex as inline data.
+  Supported Google Cloud Storage URLs are forwarded directly for Gemini 3 and later models.
+  See [Tool Result Files](#tool-result-files) for the supported MIME types.
   - **maxBytes** _number_
 
     Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
@@ -710,6 +712,42 @@ const { text } = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Tool Result Files
+
+For Gemini 3 and later models, tool results can include Google Cloud Storage
+(`gs://`) file URLs. Vertex receives these references directly as
+`functionResponse.parts[].fileData`, without downloading the files into the SDK
+process. The supported MIME types are `image/png`, `image/jpeg`, `image/webp`,
+`application/pdf`, and `text/plain`. Specify the full MIME type; a top-level type
+such as `image` is not sufficient for GCS tool results.
+
+Use a file part in the tool's `toModelOutput` result:
+
+```ts
+toModelOutput: ({ output }) => ({
+  type: 'content',
+  value: [
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: {
+        type: 'url',
+        url: new URL(output.gcsUri),
+        originalUrl: output.gcsUri,
+      },
+    },
+  ],
+}),
+```
+
+Include `originalUrl` when URL parsing changes an opaque GCS URI, such as a path
+containing spaces, so Vertex receives the exact object reference. The Vertex
+caller must have access to the referenced object.
+
+HTTP(S) tool-result files are downloaded and sent as inline data, subject to
+`toolResultDownloads.maxBytes`. Direct GCS tool-result forwarding is not supported
+for older Gemini models or MIME types outside the list above.
 
 ### Cached Content
 

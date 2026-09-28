@@ -42,6 +42,7 @@ export {
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { fetchUntrustedUrl } from './fetch-untrusted-url';
 export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';

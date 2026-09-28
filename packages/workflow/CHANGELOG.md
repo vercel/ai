@@ -1,5 +1,36 @@
 # @ai-sdk/workflow
 
+## 2.0.49
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 2.0.48
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 2.0.47
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+  - @ai-sdk/provider-utils@5.0.49
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - ai@7.0.115
+
 ## 2.0.45
 
 ### Patch Changes

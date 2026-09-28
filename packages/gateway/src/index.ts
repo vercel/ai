@@ -47,6 +47,8 @@ export type {
   GatewayProviderMetadata,
 } from './gateway-provider-metadata';
 export type {
+  EvaluationFallbackCondition,
+  GatewayModelFallback,
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */
   GatewayProviderOptions as GatewayLanguageModelOptions,

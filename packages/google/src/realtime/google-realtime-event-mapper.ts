@@ -481,14 +481,24 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
-  // Default to the lowest-latency thinking level so a session on a
-  // background-reasoning model works without provider options. Merged last so
-  // it survives a raw `providerOptions.generationConfig`.
-  const thinkingConfig =
+  // Background-reasoning models require a `thinkingLevel` or `thinkingBudget`.
+  // Default to the lowest-latency level when the effective thinking config (the
+  // typed option, else a raw `providerOptions.generationConfig.thinkingConfig`)
+  // sets neither. Merged last so it survives a raw
+  // `providerOptions.generationConfig`.
+  const rawGenerationConfig = restProviderOptions.generationConfig;
+  const explicitThinkingConfig =
     googleOptions?.thinkingConfig ??
-    (isThinkingLiveModel(modelId)
-      ? { thinkingLevel: 'low' as const }
+    (isRecord(rawGenerationConfig) &&
+    isRecord(rawGenerationConfig.thinkingConfig)
+      ? rawGenerationConfig.thinkingConfig
       : undefined);
+  const thinkingConfig =
+    isThinkingLiveModel(modelId) &&
+    explicitThinkingConfig?.thinkingLevel == null &&
+    explicitThinkingConfig?.thinkingBudget == null
+      ? { ...explicitThinkingConfig, thinkingLevel: 'low' as const }
+      : googleOptions?.thinkingConfig;
   const applyThinkingConfig = () => {
     if (thinkingConfig == null) return;
     const target = isRecord(setup.generationConfig)

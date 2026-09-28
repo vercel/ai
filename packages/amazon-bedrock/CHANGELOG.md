@@ -1,5 +1,36 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.97
+
+### Patch Changes
+
+- Updated dependencies [94d5d6d]
+  - @ai-sdk/openai@4.0.78
+
+## 5.0.96
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [2abd503]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/openai@4.0.77
+  - @ai-sdk/anthropic@4.0.65
+
+## 5.0.95
+
+### Patch Changes
+
+- 2bff9cc: fix(bedrock): prevent duplicate Mistral tool-call IDs in Amazon Bedrock conversations
+- 4e6a98c: fix(amazon-bedrock): fall back to automatic tool choice for models that reject forced tool use
+- b134d74: fix(amazon-bedrock): ignore portable reasoning for models without known reasoning support
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/openai@4.0.76
+
 ## 5.0.94
 
 ### Patch Changes

@@ -323,6 +323,52 @@ describe('runHarnessAgentStep output', () => {
     expect(readOutput).not.toHaveBeenCalled();
   });
 
+  test.each(['fresh', 'resume', 'continue'] as const)(
+    'forwards a caller-owned sandbox session for %s runs',
+    async branch => {
+      const session = fakeSession({});
+      const result = streamResult({ output: async () => undefined });
+      const createSession = vi.fn(async () => session);
+      const agent: HarnessWorkflowAgent = {
+        createSession,
+        stream: vi.fn(async () => result),
+        continueStream: vi.fn(async () => result),
+      };
+      const sandboxSession = await createSandboxProvider().createSession();
+      const resumeFrom = {
+        type: 'resume-session' as const,
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1' as const,
+        data: {},
+      };
+      const continueFrom = {
+        type: 'continue-turn' as const,
+        harnessId: 'mock',
+        specificationVersion: 'harness-v1' as const,
+        data: {},
+      };
+      await runHarnessAgentStep({
+        agent,
+        state: {
+          ...createHarnessWorkflowState({
+            prompt: 'Hello.',
+            sessionId: 'session-1',
+          }),
+          ...(branch === 'resume' ? { resumeFrom } : {}),
+          ...(branch === 'continue' ? { continueFrom } : {}),
+        },
+        sandboxSession,
+        writable: collectingWritable().writable,
+      });
+      expect(createSession).toHaveBeenCalledWith({
+        sessionId: 'session-1',
+        ...(branch === 'resume' ? { resumeFrom } : {}),
+        ...(branch === 'continue' ? { continueFrom } : {}),
+        sandboxSession,
+      });
+    },
+  );
+
   test('finishes a text-only HarnessAgent turn without reading output', async () => {
     const agent = new HarnessAgent({
       harness: createOutputHarness('Hello.'),

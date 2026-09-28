@@ -1,5 +1,36 @@
 # @ai-sdk/sandbox-vercel
 
+## 1.0.128
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- 31742b9: feat(harness): refactor sandbox APIs for cleaner separation of concerns from harness layer, more intuitive DX regardless of how your sandbox is configured, and streamlined handling of sandbox templates/snapshots
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
 ## 1.0.124
 
 ### Patch Changes

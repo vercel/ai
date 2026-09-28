@@ -1,5 +1,35 @@
 # @ai-sdk/gateway
 
+## 4.0.96
+
+### Patch Changes
+
+- e6a7996: fix(provider/gateway): accept any non-empty conditional evaluation fallback model
+- e19f0fc: fix(provider/gateway): accept conditional evaluation fallbacks in GatewayProviderOptions
+
+## 4.0.95
+
+### Patch Changes
+
+- b67b1b7: feat(provider/gateway): type conditional evaluation fallbacks
+
+## 4.0.94
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.93
+
+### Patch Changes
+
+- 80b9100: feat (provider/gateway): add Browserbase Search and Fetch tool support
+- d3cc6ae: feat(provider/gateway): accept structured-output in the has provider option
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 4.0.92
 
 ### Patch Changes

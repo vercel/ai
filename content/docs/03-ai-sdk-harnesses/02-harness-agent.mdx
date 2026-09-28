@@ -11,7 +11,7 @@ results while a preconfigured harness powers these results.
 
 ## Installation
 
-Install the core harness package, a harness adapter, and a sandbox provider:
+Install the core harness package, a harness adapter, and a sandbox adapter:
 
 <InstallPackages packages="@ai-sdk/harness @ai-sdk/harness-claude-code @ai-sdk/sandbox-vercel" />
 
@@ -24,15 +24,10 @@ like `@ai-sdk/sandbox-vercel`. Host-runtime harnesses such as Pi can also run wi
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 
 export const agent = new HarnessAgent({
   harness: claudeCode,
   model: 'claude-sonnet-4-6',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   instructions:
     'You are a careful coding assistant. Prefer small changes and explain tradeoffs.',
 });
@@ -40,6 +35,17 @@ export const agent = new HarnessAgent({
 
 Construct the agent at module scope. It holds configuration, not a live session.
 Live state belongs to `HarnessAgentSession`.
+Create a sandbox session separately and pass it to `agent.createSession()`:
+
+```ts
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+```
 
 Set `model` to select the model that the harness runtime uses. Model identifiers
 are specific to each harness. When omitted, the harness uses its default model.
@@ -51,7 +57,7 @@ are set.
 ## Run a Turn
 
 ```ts
-const session = await agent.createSession();
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -66,6 +72,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -75,7 +82,7 @@ try {
 Use `stream()` for incremental output:
 
 ```ts
-const session = await agent.createSession();
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -94,6 +101,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -106,7 +114,6 @@ steps, and tool executions:
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox,
   tools: { weather },
   onStart: event => console.log('call started', event.callId),
   onStepStart: event => console.log('step started', event.stepNumber),
@@ -145,7 +152,6 @@ import { z } from 'zod';
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox,
   output: Output.object({
     schema: z.object({
       recipe: z.object({
@@ -163,7 +169,7 @@ const agent = new HarnessAgent({
   }),
 });
 
-const session = await agent.createSession();
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -205,10 +211,10 @@ of relying on message replay.
 End every session explicitly:
 
 - `session.destroy()` stops the runtime and discards resumability.
-- `session.detach()` parks the runtime and sandbox, returns resume state, and
-  keeps the sandbox warm for a later attach. If the turn is unfinished, the
+- `session.detach()` parks the runtime, returns resume state, and leaves a
+  supplied sandbox running for a later attach. If the turn is unfinished, the
   resume state includes the continuation state.
-- `session.stop()` saves resume state, then stops the runtime and sandbox. If
+- `session.stop()` saves resume state, then stops the runtime. If
   the turn is unfinished, the resume state includes the continuation state.
 - `session.suspendTurn()` is for advanced active-turn continuation across a
   process boundary.
@@ -237,7 +243,6 @@ const getPolicy = tool({
 
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox,
   tools: { getPolicy },
   callOptionsSchema: z.object({
     area: z.enum(['frontend', 'backend']),
@@ -253,7 +258,7 @@ const agent = new HarnessAgent({
   }),
 });
 
-const session = await agent.createSession();
+const session = await agent.createSession({ sandboxSession });
 try {
   await agent.generate({
     session,
@@ -305,7 +310,10 @@ the harness runtime but do not stop or destroy the supplied sandbox session.
 In this case, the agent does not need a `sandbox` provider in its constructor.
 
 ```ts
-const session = await agent.createSession({ sessionId: chatId });
+const session = await agent.createSession({
+  sessionId: chatId,
+  sandboxSession,
+});
 
 try {
   const result = await agent.stream({ session, messages });
@@ -326,22 +334,39 @@ try {
 
 ## Resuming
 
-Persist the opaque resume state and pass it back with the original `sessionId`:
+Persist the opaque resume state. In this example, the harness `sessionId` is
+`chatId`, and the sandbox ID is derived from the same known ID. If your
+application cannot derive the sandbox ID, persist `sandboxSession.id` alongside
+the harness `sessionId` and resume state instead. Reattach the sandbox before
+asking the agent to resume. When you choose `sandboxId` on creation, it names a **new**
+live sandbox and never looks one up. Reusing that ID with the creator fails
+if the named sandbox exists; only the resume function performs a lookup.
 
 ```ts
 const resumeState = await loadResumeState({ chatId });
+const sandboxId = `chat-${chatId}`;
+
+const sandboxSession = resumeState
+  ? await resumeVercelNetworkSandboxSession({ sandboxId })
+  : await createVercelNetworkSandboxSession({
+      sandboxId,
+      ports: [4000],
+      template: await agent.getSandboxTemplate(),
+    });
 
 const session = await agent.createSession(
   resumeState
-    ? { sessionId: chatId, resumeFrom: resumeState }
-    : { sessionId: chatId },
+    ? { sessionId: chatId, resumeFrom: resumeState, sandboxSession }
+    : { sessionId: chatId, sandboxSession },
 );
 ```
 
 `HarnessAgent` validates that the resume state was produced by the same harness
 adapter before handing it to the runtime. If the resume state includes an
 unfinished turn, call `continueStream()` or `continueGenerate()` before sending a
-new prompt.
+new prompt. The Vercel resume function reattaches whether the sandbox is still
+running after `detach()` or stopped with a restorable snapshot. After
+`sandboxSession.destroy()` deletes it, that ID cannot be resumed.
 
 ## Continue a Suspended Turn
 
@@ -362,6 +387,7 @@ When you only have raw continuation state from `suspendTurn()`, resume with
 const session = await agent.createSession({
   sessionId: chatId,
   continueFrom: continuationState,
+  sandboxSession,
   // Rebind this when the suspended turn used host-only tool context:
   toolsContext,
 });
@@ -391,14 +417,10 @@ import { isStepCount } from 'ai';
 
 const steppedAgent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   stopWhen: isStepCount(1),
 });
 
-const session = await steppedAgent.createSession();
+const session = await steppedAgent.createSession({ sandboxSession });
 const result = await steppedAgent.generate({
   session,
   prompt: 'Create a short TODO.md for this repository.',
@@ -434,10 +456,6 @@ files or lightweight configuration.
 ```ts
 const agent = new HarnessAgent({
   harness: claudeCode,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     workDir: 'repo',
     bootstrapHash: 'ripgrep-v1',
@@ -469,75 +487,54 @@ while `onBootstrap` receives the sandbox's default working directory.
 
 ## Prepare Reusable Sandboxes
 
-Use `prepareHarnessSandboxTemplate()` when you want the sandbox provider to
-create or refresh its reusable template for one harness ahead of time:
+Use `agent.getSandboxTemplate()` to resolve one harness's bootstrap recipe and
+`sandboxConfig.onBootstrap` before creating a sandbox. The template's identity
+is known before sandbox creation. Vercel persists the prepared snapshot and
+creates a live sandbox from it; identical calls reuse that snapshot:
 
 ```ts
-import { prepareHarnessSandboxTemplate } from '@ai-sdk/harness/agent';
-
-await prepareHarnessSandboxTemplate({
-  harness: claudeCode,
-  sandboxProvider: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
-  sandboxConfig: {
-    bootstrapHash: 'ripgrep-v1',
-    onBootstrap: async ({ session, abortSignal }) => {
-      await session.run({
-        command:
-          'command -v rg >/dev/null || (apt-get update && apt-get install -y ripgrep)',
-        abortSignal,
-      });
-    },
-  },
-});
-```
-
-Use `prepareSandboxForHarness()` when you own the native sandbox lifecycle and
-want to snapshot the prepared sandbox yourself. It applies the selected harness
-bootstrap recipes and `sandboxConfig.onBootstrap`, then returns preparation
-metadata. It does not stop or snapshot the sandbox.
-
-```ts
-import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
-import { Sandbox } from '@vercel/sandbox';
-
-const nativeSandbox = await Sandbox.create({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
-const sandboxProvider = createVercelSandbox({ sandbox: nativeSandbox });
-const session = await sandboxProvider.createSession();
 
-const preparation = await prepareSandboxForHarness({
-  session: session.restricted(),
+const session = await agent.createSession({ sandboxSession });
+try {
+  await agent.generate({ session, prompt: 'Inspect this repository.' });
+} finally {
+  await session.destroy();
+  await sandboxSession.destroy();
+}
+```
+
+For multiple harnesses sharing a caller bootstrap hook, build one template from
+all adapters. The last adapter wins for duplicate `harnessId` values, and the
+recipe identities are sorted before hashing. `onSession` is not part of the
+template and runs separately on every acquired session.
+
+```ts
+import { createHarnessSandboxTemplate } from '@ai-sdk/harness/agent';
+
+const template = await createHarnessSandboxTemplate({
   harnesses: [claudeCode, codex],
   sandboxConfig,
 });
+console.log(template?.identity);
 
-const { snapshot } = await nativeSandbox.stop();
-if (snapshot == null) {
-  throw new Error('Prepared sandbox did not create a snapshot.');
-}
-
-const sandboxFromSnapshot = await Sandbox.create({
-  source: {
-    type: 'snapshot',
-    snapshotId: snapshot.id,
-  },
+const sandboxSession = await createVercelNetworkSandboxSession({
+  source: { type: 'snapshot', snapshotId: baseSnapshotId },
   ports: [4000],
+  template,
 });
-
-const agent = new HarnessAgent({
-  harness: claudeCode,
-  sandbox: createVercelSandbox({ sandbox: sandboxFromSnapshot }),
-  sandboxConfig,
-});
-
-console.log(preparation.identity);
 ```
+
+The derived template includes the source snapshot ID in its cache key, so
+repeated calls with the same source and template reuse the prepared snapshot.
+Pin mutable Git revisions, image tags, and source URLs when relying on cached
+templates. `sandboxId` names the live sandbox, not its reusable template.
+The existing native `name` option still names the live sandbox; if both are
+supplied, their values must match.
 
 ## Settings
 
@@ -546,7 +543,6 @@ console.log(preparation.identity);
 - `harness`: the adapter instance.
 - `model`: optional harness-specific model identifier. When omitted, the
   harness uses its default model.
-- `sandbox`: a `HarnessV1SandboxProvider`.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
   prompt when supported, or prepended to the user prompt otherwise.
@@ -580,26 +576,21 @@ Adapter-specific settings belong on the adapter factory, for example
 
 When your application creates and manages sandboxes itself, prepare the network
 sandbox session first and then pass that same session to `agent.createSession()`.
-The agent does not need a sandbox provider and does not stop or destroy the
+The agent does not create the sandbox and does not stop or destroy the
 caller-owned sandbox.
 
 ```ts
-import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 
 const sandbox = await Sandbox.create({
   runtime: 'node24',
   ports: [4000],
 });
-const sandboxProvider = createVercelSandbox({ sandbox });
-const sandboxSession = await sandboxProvider.createSession();
-
-await prepareSandboxForHarness({
-  session: sandboxSession.restricted(),
-  harnesses: [claudeCode],
-});
+const sandboxSession =
+  createVercelNetworkSandboxSessionFromNativeSandbox(sandbox);
 
 const agent = new HarnessAgent({ harness: claudeCode });
 const session = await agent.createSession({ sandboxSession });
@@ -617,7 +608,7 @@ try {
   }
 } finally {
   await session.destroy();
-  await sandbox.stop();
+  await sandboxSession.destroy();
 }
 ```
 
@@ -634,28 +625,27 @@ configure the bridge port and its externally reachable endpoint on the adapter
 because the basic session cannot resolve them.
 
 ```ts
-import { HarnessAgent, prepareSandboxForHarness } from '@ai-sdk/harness/agent';
+import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import {
+  createVercelNetworkSandboxSessionFromNativeSandbox,
+  createVercelSandboxSessionFromNativeSandbox,
+} from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 
 const sandbox = await Sandbox.create({
   runtime: 'node24',
   ports: [4000],
 });
-const sandboxProvider = createVercelSandbox({ sandbox });
-const sandboxSession = await sandboxProvider.createSession();
+const sandboxSession =
+  createVercelNetworkSandboxSessionFromNativeSandbox(sandbox);
 const portEndpoint = await sandboxSession.getPortEndpoint({
   port: 4000,
   protocol: 'ws',
 });
-const restrictedSandboxSession = sandboxSession.restricted();
+const restrictedSandboxSession =
+  createVercelSandboxSessionFromNativeSandbox(sandbox);
 const claudeCode = createClaudeCode({ port: 4000, portEndpoint });
-
-await prepareSandboxForHarness({
-  session: restrictedSandboxSession,
-  harnesses: [claudeCode],
-});
 
 const agent = new HarnessAgent({ harness: claudeCode });
 const session = await agent.createSession({
@@ -675,7 +665,7 @@ try {
   }
 } finally {
   await session.destroy();
-  await sandbox.stop();
+  await sandboxSession.destroy();
 }
 ```
 
