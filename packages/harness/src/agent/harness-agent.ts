@@ -114,8 +114,10 @@ type PreparedHarnessAgentTurnSettings<
 type PreparedHarnessAgentPromptTurnInput<
   THarness extends HarnessAgentAdapter<any>,
   TUserTools extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
 > = PreparedHarnessAgentTurnSettings<THarness, TUserTools> & {
   prompt: HarnessAgentPrompt;
+  runtimeContext: RUNTIME_CONTEXT;
 };
 
 type PreparedHarnessAgentContinueTurnInput<
@@ -340,6 +342,12 @@ export class HarnessAgent<
      * non-serializable host objects.
      */
     toolsContext?: ToolsContextSettings<TUserTools>['toolsContext'];
+    /**
+     * Rebinds host-only runtime context for an unfinished turn resumed with
+     * `continueFrom` (directly or through `resumeFrom`). Runtime context is
+     * not serialized into lifecycle state.
+     */
+    runtimeContext?: RUNTIME_CONTEXT;
     /**
      * Existing sandbox session to run the harness in. When provided, the
      * caller retains ownership of the sandbox lifecycle.
@@ -611,6 +619,7 @@ export class HarnessAgent<
         pendingToolResults: effectiveContinueFrom?.pendingToolResults,
         turnSettings: effectiveContinueFrom?.turnSettings,
         resumedToolsContext: options?.toolsContext,
+        resumedRuntimeContext: options?.runtimeContext,
         turnState:
           effectiveContinueFrom == null
             ? 'idle'
@@ -650,7 +659,7 @@ export class HarnessAgent<
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, done } =
       continueTurnInput == null
-        ? await this._startPromptTurn({ options, runtimeContext })
+        ? await this._startPromptTurn({ options })
         : await this._startContinueTurn({
             session: options.session,
             turnInput: continueTurnInput,
@@ -680,7 +689,7 @@ export class HarnessAgent<
       this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, ready } =
       continueTurnInput == null
-        ? await this._startPromptTurn({ options, runtimeContext })
+        ? await this._startPromptTurn({ options })
         : await this._startContinueTurn({
             session: options.session,
             turnInput: continueTurnInput,
@@ -781,7 +790,6 @@ export class HarnessAgent<
       RUNTIME_CONTEXT
     > &
       HarnessAgentCallExtensions;
-    runtimeContext: RUNTIME_CONTEXT;
   }): Promise<
     HarnessAgentTurnResult<THarness, TUserTools, RUNTIME_CONTEXT, OUTPUT>
   > {
@@ -795,7 +803,7 @@ export class HarnessAgent<
     >({
       ...this._buildTurnOptions({
         turnSettings: turnInput,
-        runtimeContext: input.runtimeContext,
+        runtimeContext: turnInput.runtimeContext,
         abortSignal: input.options.abortSignal,
         responseFormat,
         callbacks: this._resolveLifecycleCallbacks(input.options),
@@ -964,7 +972,9 @@ export class HarnessAgent<
       RUNTIME_CONTEXT
     > &
       HarnessAgentCallExtensions,
-  ): Promise<PreparedHarnessAgentPromptTurnInput<THarness, TUserTools>> {
+  ): Promise<
+    PreparedHarnessAgentPromptTurnInput<THarness, TUserTools, RUNTIME_CONTEXT>
+  > {
     let callOptions = options;
     if (
       this.settings.callOptionsSchema != null &&
@@ -1006,6 +1016,7 @@ export class HarnessAgent<
       skills: this.settings.skills,
       instructions: this.settings.instructions,
       tools: this.settings.tools,
+      runtimeContext: this.settings.runtimeContext,
       toolsContext:
         this.settings.toolsContext ?? ({} as InferToolSetContext<TUserTools>),
       ...promptOptions,
@@ -1032,6 +1043,8 @@ export class HarnessAgent<
 
     return {
       prompt: this._resolvePromptTurnInput(preparedCallArgs),
+      runtimeContext:
+        preparedCallArgs.runtimeContext ?? ({} as RUNTIME_CONTEXT),
       ...this._prepareTurnSettings({
         model: preparedCallArgs.model,
         skills: preparedCallArgs.skills,

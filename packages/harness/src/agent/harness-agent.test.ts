@@ -379,6 +379,235 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
+    type RuntimeContext = { requestId: string; secret: string };
+    const configuredContext = { requestId: 'default', secret: 'configured' };
+    const preparedInputs: Array<RuntimeContext | undefined> = [];
+    const lifecycleContexts: RuntimeContext[] = [];
+    const telemetryContexts: unknown[] = [];
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'ok' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent<
+      typeof harness,
+      {},
+      RuntimeContext,
+      never,
+      { requestId: string }
+    >({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: configuredContext,
+      callOptionsSchema: z.object({ requestId: z.string() }),
+      prepareCall: ({ options, runtimeContext, ...rest }) => {
+        preparedInputs.push(runtimeContext);
+        return {
+          ...rest,
+          runtimeContext: { requestId: options.requestId, secret: 'private' },
+        };
+      },
+      onStart: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onStepStart: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onStepEnd: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onEnd: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      telemetry: {
+        includeRuntimeContext: { requestId: true },
+        integrations: [
+          {
+            onEnd: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        ],
+      },
+    });
+    const session = await agent.createSession();
+
+    const generated = await agent.generate({
+      session,
+      prompt: 'first',
+      options: { requestId: 'req-1' },
+    });
+    const streamed = await agent.stream({
+      session,
+      prompt: 'second',
+      options: { requestId: 'req-2' },
+    });
+    await streamed.consumeStream();
+
+    expect(preparedInputs).toEqual([configuredContext, configuredContext]);
+    expect(generated.finalStep.runtimeContext).toEqual({
+      requestId: 'req-1',
+      secret: 'private',
+    });
+    expect((await streamed.finalStep).runtimeContext).toEqual({
+      requestId: 'req-2',
+      secret: 'private',
+    });
+    expect(lifecycleContexts).toEqual([
+      ...Array(4).fill(generated.finalStep.runtimeContext),
+      ...Array(4).fill((await streamed.finalStep).runtimeContext),
+    ]);
+    expect(telemetryContexts).toEqual([
+      { requestId: 'req-1' },
+      { requestId: 'req-2' },
+    ]);
+    await session.destroy();
+  });
+
+  test('defaults to empty runtime context when prepareCall clears it', async () => {
+    const { harness } = mockHarness({ script: () => finishEvents() });
+    const agent = new HarnessAgent<typeof harness, {}, { requestId: string }>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { requestId: 'configured' },
+      prepareCall: call => ({ ...call, runtimeContext: undefined }),
+    });
+    const session = await agent.createSession();
+    const result = await agent.generate({ session, prompt: 'go' });
+
+    expect(result.finalStep.runtimeContext).toEqual({});
+    await session.destroy();
+  });
+
+  test('preserves prepared runtime context during an in-memory continuation', async () => {
+    type RuntimeContext = { requestId: string };
+    const preparedContext = { requestId: 'prepared' };
+    const { harness } = mockHarness({
+      script: () => [
+        finishEvents()[0]!,
+        { type: 'text-delta', id: 'next-step', delta: 'next' },
+      ],
+      continueScript: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const prepareCallSpy = vi.fn();
+    const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { requestId: 'default' },
+      prepareCall: call => {
+        prepareCallSpy();
+        return { ...call, runtimeContext: preparedContext };
+      },
+      stopWhen: isStepCount(1),
+    });
+    const session = await agent.createSession();
+
+    const first = await agent.generate({ session, prompt: 'go' });
+    expect(session.hasUnfinishedTurn()).toBe(true);
+    expect(first.finalStep.runtimeContext).toBe(preparedContext);
+
+    const continued = await agent.continueGenerate({ session });
+    expect(continued.finalStep.runtimeContext).toBe(preparedContext);
+    expect(prepareCallSpy).toHaveBeenCalledTimes(1);
+    await session.destroy();
+  });
+
+  test.each([
+    { name: 'rebound context', rebind: true, expectedRequestId: 'prepared' },
+    {
+      name: 'constructor fallback',
+      rebind: false,
+      expectedRequestId: 'default',
+    },
+  ])(
+    'uses $name after recreating a suspended turn without serializing runtime context',
+    async ({ rebind, expectedRequestId }) => {
+      type RuntimeContext = { requestId: string };
+      const preparedContext = { requestId: 'prepared' };
+      const { harness } = mockHarness({
+        script: () => [
+          finishEvents()[0]!,
+          { type: 'text-delta', id: 'next-step', delta: 'next' },
+        ],
+        continueScript: () => [
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'done' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'end_turn' },
+            usage: zeroUsage(),
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'end_turn' },
+            totalUsage: zeroUsage(),
+          },
+        ],
+      });
+      const prepareCallSpy = vi.fn();
+      const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+        harness,
+        sandbox: makeSandboxProvider(),
+        runtimeContext: { requestId: 'default' },
+        prepareCall: call => {
+          prepareCallSpy();
+          return { ...call, runtimeContext: preparedContext };
+        },
+        stopWhen: isStepCount(1),
+      });
+      let session = await agent.createSession();
+
+      const first = await agent.generate({ session, prompt: 'go' });
+      expect(first.finalStep.runtimeContext).toBe(preparedContext);
+      const sessionId = session.sessionId;
+      const continueFrom = await session.suspendTurn();
+      expect(continueFrom).not.toHaveProperty('runtimeContext');
+      expect(continueFrom.turnSettings).not.toHaveProperty('runtimeContext');
+
+      session = await agent.createSession({
+        sessionId,
+        continueFrom: structuredClone(continueFrom),
+        ...(rebind ? { runtimeContext: preparedContext } : {}),
+      });
+      const continued = await agent.continueGenerate({ session });
+      expect(continued.finalStep.runtimeContext).toEqual({
+        requestId: expectedRequestId,
+      });
+      expect(prepareCallSpy).toHaveBeenCalledTimes(1);
+      await session.destroy();
+    },
+  );
+
   test('forwards configured runtime context through every public turn entry point', async () => {
     type RuntimeContext = { conversationId: string };
     const runtimeContext = { conversationId: 'conversation-1' };
