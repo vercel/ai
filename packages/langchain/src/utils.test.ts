@@ -960,6 +960,15 @@ describe('processLangGraphEvent', () => {
     messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedToolCallsInCurrentStepByNamespace: new Map(),
+<<<<<<< HEAD
+=======
+    emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
+    emittedToolOutputMessageIds: new Set<string>(),
+    emittedToolOutputCallIds: new Set<string>(),
+    emittedToolOutputsInCurrentStepByNamespace: new Map(),
+    unfinishedToolCallsByNamespace: new Map(),
+>>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
@@ -1178,7 +1187,7 @@ describe('processLangGraphEvent', () => {
     expect(chunks).toHaveLength(0);
   });
 
-  it('should handle tool message output', () => {
+  it('should start the tool lifecycle before a bare tool message output', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
     const controller = createMockController(chunks);
@@ -1186,15 +1195,24 @@ describe('processLangGraphEvent', () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',
       content: 'Tool result',
+      name: 'searchProducts',
     });
     toolMsg.id = 'msg-1';
     processLangGraphEvent(['messages', [toolMsg]], state, controller);
 
-    expect(chunks).toContainEqual({
-      type: 'tool-output-available',
-      toolCallId: 'call-1',
-      output: 'Tool result',
-    });
+    expect(chunks).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'searchProducts',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Tool result',
+      },
+    ]);
   });
 
   it('should handle plain AI message objects from RemoteGraph', () => {
@@ -1768,6 +1786,158 @@ describe('processLangGraphEvent', () => {
     expect(stepEvents).toHaveLength(0);
   });
 
+<<<<<<< HEAD
+=======
+  it('should attach delayed tool output to a prior step without synthesizing a new input lifecycle', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            content: '',
+            id: 'msg-1',
+            tool_call_chunks: [
+              {
+                id: 'call-1',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Waiting', id: 'msg-2' }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'tools',
+        {
+          event: 'on_tool_end',
+          toolCallId: 'call-1',
+          name: 'get_weather',
+          output: 'Sunny',
+        },
+      ],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(
+        chunk =>
+          (chunk as { type: string }).type === 'tool-input-start' ||
+          (chunk as { type: string }).type === 'tool-input-available',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+    ]);
+    expect(chunks).toContainEqual({
+      type: 'tool-output-available',
+      toolCallId: 'call-1',
+      output: 'Sunny',
+    });
+  });
+
+  it('should attach a delayed bare tool message to an unfinished lifecycle in the same namespace', () => {
+    const state = createMockState();
+    const chunks: unknown[] = [];
+    const controller = createMockController(chunks);
+
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            content: '',
+            id: 'msg-1',
+            tool_call_chunks: [
+              {
+                id: 'call-1',
+                name: 'get_weather',
+                args: '{"city":"SF"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new AIMessageChunk({ content: 'Waiting', id: 'msg-2' }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      state,
+      controller,
+    );
+    processLangGraphEvent(
+      [
+        'messages',
+        [
+          new ToolMessage({
+            id: 'tool-message-1',
+            tool_call_id: 'call-1',
+            content: 'Sunny',
+            name: 'get_weather',
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      state,
+      controller,
+    );
+
+    expect(
+      chunks.filter(
+        chunk =>
+          (chunk as { type: string }).type === 'tool-input-start' ||
+          (chunk as { type: string }).type === 'tool-output-available',
+      ),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-1',
+        toolName: 'get_weather',
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-1',
+        output: 'Sunny',
+      },
+    ]);
+  });
+
+>>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
   it('should emit tool-output-error for ToolMessage with status error', () => {
     const state = createMockState();
     const chunks: unknown[] = [];
@@ -2477,6 +2647,15 @@ describe('processLangGraphEvent - sources', () => {
     messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedToolCallsInCurrentStepByNamespace: new Map(),
+<<<<<<< HEAD
+=======
+    emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
+    emittedToolOutputMessageIds: new Set<string>(),
+    emittedToolOutputCallIds: new Set<string>(),
+    emittedToolOutputsInCurrentStepByNamespace: new Map(),
+    unfinishedToolCallsByNamespace: new Map(),
+>>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),

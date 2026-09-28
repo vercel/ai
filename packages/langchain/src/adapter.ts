@@ -438,6 +438,15 @@ export function toUIMessageStream<TState = unknown>(
     messageIdsInCurrentStepByNamespace: new Map(),
     emittedToolCalls: new Set<string>(),
     emittedToolCallsInCurrentStepByNamespace: new Map(),
+<<<<<<< HEAD
+=======
+    emittedToolInputs: new Set<string>(),
+    emittedToolInputsInCurrentStepByNamespace: new Map(),
+    emittedToolOutputMessageIds: new Set<string>(),
+    emittedToolOutputCallIds: new Set<string>(),
+    emittedToolOutputsInCurrentStepByNamespace: new Map(),
+    unfinishedToolCallsByNamespace: new Map(),
+>>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
     emittedImages: new Set<string>(),
     emittedReasoningIds: new Set<string>(),
     messageReasoningIds: new Map(),
