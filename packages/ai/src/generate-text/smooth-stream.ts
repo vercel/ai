@@ -2,6 +2,7 @@ import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { ProviderMetadata } from '../types';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,
@@ -97,24 +98,31 @@ export function smoothStream<TOOLS extends ToolSet>({
   return () => {
     let buffer = '';
     let id = '';
+    let providerMetadata: ProviderMetadata | undefined;
+
+    function flushBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (buffer.length > 0 || providerMetadata != null) {
+        controller.enqueue({
+          type: 'text-delta',
+          text: buffer,
+          id,
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        });
+        buffer = '';
+        providerMetadata = undefined;
+      }
+    }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type !== 'text-delta') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', text: buffer, id });
-            buffer = '';
-          }
-
+          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
 
-<<<<<<< HEAD
-        if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text-delta', text: buffer, id });
-          buffer = '';
-=======
         if (chunk.text.length === 0 && chunk.providerMetadata != null) {
           flushBuffer(controller);
           controller.enqueue(chunk);
@@ -125,36 +133,26 @@ export function smoothStream<TOOLS extends ToolSet>({
         // metadata from multiple input deltas.
         if (
           buffer.length > 0 &&
-          (chunk.type !== type ||
-            chunk.id !== id ||
+          (chunk.id !== id ||
             providerMetadata != null ||
             chunk.providerMetadata != null)
         ) {
           flushBuffer(controller);
->>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
         }
 
         buffer += chunk.text;
         id = chunk.id;
-<<<<<<< HEAD
-=======
-        type = chunk.type;
         providerMetadata = chunk.providerMetadata;
->>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-<<<<<<< HEAD
-          controller.enqueue({ type: 'text-delta', text: match, id });
-=======
           controller.enqueue({
-            type,
+            type: 'text-delta',
             text: match,
             id,
             ...(providerMetadata != null ? { providerMetadata } : {}),
           });
->>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
           buffer = buffer.slice(match.length);
 
           await delay(isDocumentHidden() ? null : delayInMs);
