@@ -17,7 +17,7 @@ export default defineConfig(
     },
     {
       dts: {
-        only: true,
+        emitDtsOnly: true,
       },
       sourcemap: false,
       platform: 'node',
