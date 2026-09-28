@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: azure.completion('model-router'),
+    model: azure.chat('model-router'),
     prompt: 'Say where is copenhagen in three words max',
     include: {
       rawChunks: true,

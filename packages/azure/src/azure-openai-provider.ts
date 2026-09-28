@@ -1,6 +1,5 @@
 import {
   OpenAIChatLanguageModel,
-  OpenAICompletionLanguageModel,
   OpenAIEmbeddingModel,
   OpenAIImageModel,
   OpenAIResponsesLanguageModel,
@@ -60,11 +59,6 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * Creates an Azure OpenAI responses API model for text generation.
    */
   responses(deploymentId: string): LanguageModelV4;
-
-  /**
-   * Creates an Azure OpenAI completion model for text generation.
-   */
-  completion(deploymentId: string): LanguageModelV4;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
@@ -322,14 +316,6 @@ export function createAzure(
       supportsStructuredOutputs: true,
     });
 
-  const createCompletionModel = (modelId: string) =>
-    new OpenAICompletionLanguageModel(modelId, {
-      provider: 'azure.completion',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
-
   const createEmbeddingModel = (modelId: string) =>
     new OpenAIEmbeddingModel(modelId, {
       provider: 'azure.embeddings',
@@ -406,7 +392,6 @@ export function createAzure(
   provider.languageModel = createResponsesModel;
   provider.chat = createChatModel;
   provider.deepseek = createDeepSeekModel;
-  provider.completion = createCompletionModel;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

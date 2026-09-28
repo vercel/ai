@@ -24,7 +24,7 @@ You have several options:
      const { prompt } = await req.json();
 
      const result = streamText({
-       model: openai.completion('gpt-3.5-turbo-instruct'),
+       model: openai('gpt-4o-mini'),
        maxOutputTokens: 2000,
        prompt,
      });

@@ -90,7 +90,6 @@ const providerApiVersionChanged = createAzure({
 
 const server = createTestServer({
   'https://test-resource.openai.azure.com/openai/v1/chat/completions': {},
-  'https://test-resource.openai.azure.com/openai/v1/completions': {},
   'https://test-resource.openai.azure.com/openai/v1/embeddings': {},
   'https://test-resource.openai.azure.com/openai/v1/images/generations': {},
   'https://test-resource.openai.azure.com/openai/v1/responses': {},
@@ -789,90 +788,6 @@ describe('deepseek', () => {
         },
       }
     `);
-  });
-});
-
-describe('completion', () => {
-  describe('doGenerate', () => {
-    function prepareJsonCompletionResponse({
-      content = '',
-      usage = {
-        prompt_tokens: 4,
-        total_tokens: 34,
-        completion_tokens: 30,
-      },
-      finish_reason = 'stop',
-    }: {
-      content?: string;
-      usage?: {
-        prompt_tokens: number;
-        total_tokens: number;
-        completion_tokens: number;
-      };
-      finish_reason?: string;
-    }) {
-      server.urls[
-        'https://test-resource.openai.azure.com/openai/v1/completions'
-      ].response = {
-        type: 'json-value',
-        body: {
-          id: 'cmpl-96cAM1v77r4jXa4qb2NSmRREV5oWB',
-          object: 'text_completion',
-          created: 1711363706,
-          model: 'test-deployment',
-          choices: [
-            {
-              text: content,
-              index: 0,
-              finish_reason,
-            },
-          ],
-          usage,
-        },
-      };
-    }
-
-    it('should set the correct api version', async () => {
-      prepareJsonCompletionResponse({ content: 'Hello World!' });
-
-      await provider.completion('test-deployment').doGenerate({
-        prompt: TEST_PROMPT,
-      });
-      expect(
-        server.calls[0].requestUrlSearchParams.get('api-version'),
-      ).toMatchInlineSnapshot(`"v1"`);
-    });
-
-    it('should pass headers', async () => {
-      prepareJsonCompletionResponse({ content: 'Hello World!' });
-
-      const provider = createAzure({
-        resourceName: 'test-resource',
-        apiKey: 'test-api-key',
-        headers: {
-          'Custom-Provider-Header': 'provider-header-value',
-        },
-      });
-
-      await provider.completion('test-deployment').doGenerate({
-        prompt: TEST_PROMPT,
-        headers: {
-          'Custom-Request-Header': 'request-header-value',
-        },
-      });
-
-      expect(server.calls[0].requestHeaders).toMatchInlineSnapshot(`
-        {
-          "api-key": "test-api-key",
-          "content-type": "application/json",
-          "custom-provider-header": "provider-header-value",
-          "custom-request-header": "request-header-value",
-        }
-      `);
-      expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/azure/0.0.0-test`,
-      );
-    });
   });
 });
 
