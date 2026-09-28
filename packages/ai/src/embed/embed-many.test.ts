@@ -664,6 +664,36 @@ describe('telemetry', () => {
 });
 
 describe('result.providerMetadata', () => {
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'merges metadata for provider %s as an own property',
+    async providerName => {
+      const result = await embedMany({
+        model: new MockEmbeddingModelV3({
+          maxEmbeddingsPerCall: 1,
+          doEmbed: async ({ values: [value] }) => ({
+            embeddings: [[1]],
+            warnings: [],
+            providerMetadata: {
+              [value === 'a' ? 'other' : providerName]:
+                value === 'a'
+                  ? {}
+                  : { [value === 'b' ? 'first' : 'second']: true },
+            },
+          }),
+        }),
+        values: ['a', 'b', 'c'],
+      });
+      expect(Object.getPrototypeOf(result.providerMetadata)).toBe(
+        Object.prototype,
+      );
+      expect(Object.hasOwn(result.providerMetadata!, providerName)).toBe(true);
+      expect(Object.entries(result.providerMetadata!)).toStrictEqual([
+        ['other', {}],
+        [providerName, { first: true, second: true }],
+      ]);
+    },
+  );
+
   it('should include provider metadata when returned by the model', async () => {
     const providerMetadata = {
       gateway: { routing: { resolvedProvider: 'test-provider' } },
