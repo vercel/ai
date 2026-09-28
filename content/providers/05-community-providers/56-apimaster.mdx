@@ -1,0 +1,145 @@
+---
+title: APIMaster
+description: APIMaster provider for AI SDK 7
+---
+
+# APIMaster
+
+[APIMaster](https://apimaster.ai/docs) is an OpenAI-compatible gateway to models from OpenAI, Anthropic, DeepSeek, Moonshot, Zhipu, Qwen and others, plus image and video models, behind one API key.
+
+The `@apimaster/ai-sdk-provider` package is built on [`@ai-sdk/openai-compatible`](/providers/openai-compatible-providers): chat, completion, embedding and image models are the standard OpenAI-compatible implementations. On top of that it adds:
+
+- **Preset configuration**: base URL and `APIMASTER_API_KEY` lookup
+- **Model id autocomplete** for the models the gateway serves
+- **`generateVideo`**: a helper for video generation, which the AI SDK has no model type for
+
+The base URL is configurable, so the package also works with other OpenAI-compatible gateways.
+
+## Setup
+
+Version 0.2 of the package supports AI SDK 7 and needs Node 22 or later.
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @apimaster/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @apimaster/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @apimaster/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+
+  <Tab>
+    <Snippet text="bun add @apimaster/ai-sdk-provider ai@^7 zod" dark />
+  </Tab>
+</Tabs>
+
+Set your API key as an environment variable:
+
+```bash
+export APIMASTER_API_KEY="your_api_key_here"
+```
+
+## Provider Instance
+
+You can import the default provider instance `apimaster`, which reads `APIMASTER_API_KEY` from the environment:
+
+```typescript
+import { apimaster } from '@apimaster/ai-sdk-provider';
+```
+
+To customize the settings, use `createAPIMaster`:
+
+```typescript
+import { createAPIMaster } from '@apimaster/ai-sdk-provider';
+
+const apimaster = createAPIMaster({
+  apiKey: process.env.APIMASTER_API_KEY,
+  baseURL: 'https://apimaster.ai/v1', // or any other OpenAI-compatible endpoint
+});
+```
+
+| Method | Model type |
+| --- | --- |
+| `apimaster(id)` / `apimaster.chatModel(id)` | Language model (chat completions) |
+| `apimaster.completionModel(id)` | Language model (completions) |
+| `apimaster.embeddingModel(id)` | Embedding model |
+| `apimaster.imageModel(id)` | Image model |
+| `apimaster.generateVideo(options)` | Video helper (see below) |
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { apimaster } from '@apimaster/ai-sdk-provider';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: apimaster('gpt-5.5'),
+  prompt: 'Why does time to first token matter?',
+});
+
+console.log(text);
+```
+
+Most models on the gateway are reasoning models, and reasoning tokens count against `maxOutputTokens`. If you set a very small limit, the visible answer can come back empty; raise the limit before assuming the model failed.
+
+### `streamText`
+
+```typescript
+import { apimaster } from '@apimaster/ai-sdk-provider';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: apimaster('claude-sonnet-4-6'),
+  prompt: 'Count to ten.',
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### `generateImage`
+
+```typescript
+import { apimaster } from '@apimaster/ai-sdk-provider';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: apimaster.imageModel('gpt-image-2'),
+  prompt: 'a corgi astronaut on the moon',
+  size: '1792x1024',
+});
+```
+
+Image generation can take one to several minutes, so give the request a generous timeout.
+
+### Video generation
+
+The AI SDK has no video model type, so video is a plain async function on the provider. It submits the job, polls until it completes, and returns the video URL (and optionally the bytes):
+
+```typescript
+import { apimaster } from '@apimaster/ai-sdk-provider';
+import { writeFile } from 'node:fs/promises';
+
+const video = await apimaster.generateVideo({
+  model: 'sora-2',
+  prompt: 'a waterfall forming a rainbow, cinematic',
+  durationSeconds: 4,
+  aspectRatio: '16:9',
+  download: true,
+});
+
+await writeFile('clip.mp4', video.bytes!);
+```
+
+Pass `referenceImageUrl` for image-to-video. Set `aspectRatio` explicitly when you do: a portrait reference image with no aspect ratio is treated as 16:9.
+
+## Additional Resources
+
+- [APIMaster Provider Repository](https://github.com/apimaster-ai/apimaster-ai-provider)
+- [NPM Package](https://www.npmjs.com/package/@apimaster/ai-sdk-provider)
+- [APIMaster Documentation](https://apimaster.ai/docs)
