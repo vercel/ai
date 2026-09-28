@@ -65,6 +65,77 @@ describe('StreamingToolCallTracker', () => {
     ]);
   });
 
+  it.each([
+    { description: 'omitted ids', id: undefined },
+    { description: 'repeated ids', id: 'dup' },
+  ])(
+    'keeps complete same-name calls separate with $description and a reused index',
+    ({ id }) => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller, {
+        generateId: () => 'generated',
+      });
+
+      tracker.processDelta({
+        index: 0,
+        id,
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":1}' },
+      });
+      tracker.processDelta({
+        index: 0,
+        id,
+        type: 'function',
+        function: { name: 'same_tool', arguments: '{"value":2}' },
+      });
+      tracker.flush();
+
+      const toolCalls = getToolCalls(parts);
+      expect(toolCalls.map(toolCall => toolCall.input)).toEqual([
+        '{"value":1}',
+        '{"value":2}',
+      ]);
+      expect(new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size).toBe(
+        2,
+      );
+    },
+  );
+
+  it.each(['', '   '])(
+    'ignores an unmatched blank function name without losing prior calls',
+    name => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_a',
+        type: 'function',
+        function: { name: 'valid_tool', arguments: '{"value":1}' },
+      });
+
+      expect(() =>
+        tracker.processDelta({
+          index: 1,
+          id: 'call_b',
+          type: 'function',
+          function: { name, arguments: '{"value":2}' },
+        }),
+      ).not.toThrow();
+
+      tracker.flush();
+
+      expect(getToolCalls(parts)).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_a',
+          toolName: 'valid_tool',
+          input: '{"value":1}',
+        },
+      ]);
+    },
+  );
+
   it('uses index evidence for a continuation with a blank id', () => {
     const { parts, controller } = createCollector();
     const tracker = new StreamingToolCallTracker(controller);
@@ -128,7 +199,7 @@ describe('StreamingToolCallTracker', () => {
     ]);
   });
 
-  it.each([undefined, '', '   '])('rejects an unusable function name', name => {
+  it.each([undefined, null])('rejects a missing function name', name => {
     const { controller } = createCollector();
     const tracker = new StreamingToolCallTracker(controller);
 
