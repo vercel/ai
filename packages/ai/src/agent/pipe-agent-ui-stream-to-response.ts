@@ -18,7 +18,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  *
  * @param response - The Node.js ServerResponse object to pipe to.
  * @param agent - The agent to run.
- * @param uiMessages - The input UI messages.
+ * @param uiMessages - The input UI messages. Defaults to originalMessages.
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent. Optional.
@@ -44,7 +44,7 @@ export async function pipeAgentUIStreamToResponse<
 }: {
   response: ServerResponse;
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  uiMessages: unknown[];
+  uiMessages?: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration;
   options?: CALL_OPTIONS;

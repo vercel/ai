@@ -16,7 +16,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  * Runs the agent and returns a response object with a UI message stream.
  *
  * @param agent - The agent to run.
- * @param uiMessages - The input UI messages.
+ * @param uiMessages - The input UI messages. Defaults to originalMessages.
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent. Optional.
@@ -42,7 +42,7 @@ export async function createAgentUIStreamResponse<
   ...options
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  uiMessages: unknown[];
+  uiMessages?: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration;
   options?: CALL_OPTIONS;
