@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.122
+
+### Patch Changes
+
+- f3575f8: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data and harness runtime messages. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 27ab8d4: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- Updated dependencies [870f509]
+- Updated dependencies [a75f1fd]
+  - @ai-sdk/gateway@4.0.100
+
 ## 7.0.121
 
 ### Patch Changes
