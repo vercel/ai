@@ -499,7 +499,9 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     if (
       isNovaReasoningModel &&
       thinkingType === 'enabled' &&
-      maxReasoningEffort === 'high' &&
+      (maxReasoningEffort === 'high' ||
+        maxReasoningEffort === 'xhigh' ||
+        maxReasoningEffort === 'max') &&
       inferenceConfig.maxTokens != null
     ) {
       delete inferenceConfig.maxTokens;

@@ -8408,6 +8408,57 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should omit maxOutputTokens for Nova 2 xhigh portable reasoning (max effort)', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 explicit max reasoning effort', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'max',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
     it('should map reasoning to reasoningConfig when explicitly enabled for Nova 2', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
