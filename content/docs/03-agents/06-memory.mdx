@@ -129,7 +129,7 @@ const mem0 = createMem0({
 });
 
 const agent = new ToolLoopAgent({
-  model: mem0('gpt-4.1', { user_id: 'user-123' }),
+  model: mem0('gpt-6-astra', { user_id: 'user-123' }),
 });
 
 const { text } = await agent.generate({
@@ -240,7 +240,7 @@ const mongodbMemory = createMongoDBMemory({
 
 // Scope to a user and session per request
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4.1'),
+  model: openai('gpt-6-astra'),
   tools: mongodbMemory({ userId: 'alice', sessionId: 'sess-001' }),
   stopWhen: isLoopFinished(),
 });

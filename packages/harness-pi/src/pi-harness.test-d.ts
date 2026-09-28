@@ -1,5 +1,9 @@
 import { expectTypeOf, test } from 'vitest';
-import { createPi, type PiHarnessSettings } from './index';
+import {
+  createPi,
+  type PiCredentialStore,
+  type PiHarnessSettings,
+} from './index';
 
 test('PiHarnessSettings accepts readonly extension factory arrays', () => {
   const extensionFactories = [
@@ -38,4 +42,9 @@ test('createPi accepts explicit provider model configurations', () => {
       },
     },
   });
+});
+
+test('createPi accepts an injected credential store and reattach opt-out', () => {
+  const credentials = {} as PiCredentialStore;
+  createPi({ credentials, reattachInProcess: false });
 });

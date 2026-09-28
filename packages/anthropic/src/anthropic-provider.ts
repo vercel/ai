@@ -2,6 +2,7 @@ import {
   InvalidArgumentError,
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -16,6 +17,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
@@ -51,6 +53,9 @@ export interface AnthropicProvider extends ProviderV4 {
   chat(modelId: AnthropicModelId): LanguageModelV4;
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
+
+  /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
+  evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -204,6 +209,11 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
+  provider.evaluationModel = (modelId: AnthropicModelId) =>
+    new EvaluationLanguageModel({
+      model: createChatModel(modelId),
+      provider: `${providerName.replace(/\.messages$/, '')}.evaluation`,
+    });
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {

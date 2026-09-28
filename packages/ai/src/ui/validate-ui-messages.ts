@@ -5,11 +5,13 @@ import {
   validateTypes,
   zodSchema,
   type FlexibleSchema,
+  type MaybePromiseLike,
   type Tool,
 } from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
 import { getOwn } from '../util/get-own';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import { z, type ZodType } from '../util/zod';
 import type {
@@ -20,6 +22,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
   z.string(),
@@ -47,8 +50,38 @@ function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   } as DynamicToolUIPart;
 }
 
-const uiMessagesSchema = lazySchema(() =>
-  zodSchema(
+function getToolPartInputSchemaInput(
+  toolPart: ToolUIPart,
+): { value: unknown } | undefined {
+  return toolPart.approval != null &&
+    Object.prototype.hasOwnProperty.call(toolPart.approval, 'inputSchemaInput')
+    ? { value: toolPart.approval.inputSchemaInput }
+    : undefined;
+}
+
+const uiMessagesSchema = lazySchema(() => {
+  const approvalRequestedSchema = z.object({
+    id: z.string(),
+    approved: z.never().optional(),
+    descriptor: z.unknown().optional(),
+    requestReason: z.string().optional(),
+    reason: z.never().optional(),
+    isAutomatic: z.boolean().optional(),
+    signature: z.string().optional(),
+    inputSchemaInput: z.unknown().optional(),
+  });
+  const approvalRespondedSchema = approvalRequestedSchema.extend({
+    approved: z.boolean(),
+    reason: z.string().optional(),
+  });
+  const approvalGrantedSchema = approvalRespondedSchema.extend({
+    approved: z.literal(true),
+  });
+  const approvalDeniedSchema = approvalRespondedSchema.extend({
+    approved: z.literal(false),
+  });
+
+  return zodSchema(
     z
       .array(
         z
@@ -153,15 +186,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.never().optional(),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.never().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalRequestedSchema,
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -175,15 +200,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.boolean(),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.string().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalRespondedSchema,
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -199,17 +216,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      requestReason: z.string().optional(),
-                      reason: z.string().optional(),
-                      isAutomatic: z.boolean().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
+                  approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -225,17 +232,7 @@ const uiMessagesSchema = lazySchema(() =>
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      requestReason: z.string().optional(),
-                      reason: z.string().optional(),
-                      isAutomatic: z.boolean().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
+                  approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
@@ -249,15 +246,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.literal(false),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.string().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalDeniedSchema,
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -296,15 +285,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.never().optional(),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.never().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalRequestedSchema,
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -317,15 +298,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.boolean(),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.string().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalRespondedSchema,
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -340,17 +313,7 @@ const uiMessagesSchema = lazySchema(() =>
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
                   preliminary: z.boolean().optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      requestReason: z.string().optional(),
-                      reason: z.string().optional(),
-                      isAutomatic: z.boolean().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
+                  approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -365,17 +328,7 @@ const uiMessagesSchema = lazySchema(() =>
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   resultProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z
-                    .object({
-                      id: z.string(),
-                      approved: z.literal(true),
-                      descriptor: z.unknown().optional(),
-                      requestReason: z.string().optional(),
-                      reason: z.string().optional(),
-                      isAutomatic: z.boolean().optional(),
-                      signature: z.string().optional(),
-                    })
-                    .optional(),
+                  approval: approvalGrantedSchema.optional(),
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),
@@ -388,15 +341,7 @@ const uiMessagesSchema = lazySchema(() =>
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: z.object({
-                    id: z.string(),
-                    approved: z.literal(false),
-                    descriptor: z.unknown().optional(),
-                    requestReason: z.string().optional(),
-                    reason: z.string().optional(),
-                    isAutomatic: z.boolean().optional(),
-                    signature: z.string().optional(),
-                  }),
+                  approval: approvalDeniedSchema,
                 }),
               ]),
             ),
@@ -416,8 +361,8 @@ const uiMessagesSchema = lazySchema(() =>
           }),
       )
       .nonempty('Messages array must not be empty'),
-  ),
-);
+  );
+});
 
 export type SafeValidateUIMessagesResult<UI_MESSAGE extends UIMessage> =
   | {
@@ -452,6 +397,11 @@ type ValidateUIMessagesOptions<UI_MESSAGE extends UIMessage> = {
           >;
         };
   };
+  experimental_refineToolInput?: {
+    [NAME in keyof InferUIMessageTools<UI_MESSAGE> & string]?: (
+      input: InferUIMessageTools<UI_MESSAGE>[NAME]['input'],
+    ) => MaybePromiseLike<InferUIMessageTools<UI_MESSAGE>[NAME]['input']>;
+  };
 };
 
 async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
@@ -460,6 +410,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
     metadataSchema,
     dataSchemas,
     tools,
+    experimental_refineToolInput,
   }: ValidateUIMessagesOptions<UI_MESSAGE>,
   {
     convertMissingTerminalToolsToDynamic,
@@ -484,9 +435,11 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
       schema: uiMessagesSchema,
     });
 
+    warnIfUIMessageHasDeprecatedRawInput(validatedMessages);
+
     if (metadataSchema) {
       for (const [msgIdx, message] of validatedMessages.entries()) {
-        await validateTypes({
+        message.metadata = await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
           context: {
@@ -524,7 +477,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               };
             }
 
-            await validateTypes({
+            dataPart.data = await validateTypes({
               value: dataPart.data,
               schema: dataSchema,
               context: {
@@ -580,49 +533,65 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               entityName: toolName,
               entityId: toolPart.toolCallId,
             };
+            const inputSchemaInput = getToolPartInputSchemaInput(toolPart);
+            const inputToValidate =
+              inputSchemaInput == null
+                ? toolPart.input
+                : inputSchemaInput.value;
             let convertToDynamic = false;
 
             // Tool input validation
-            if (toolPart.state === 'output-error') {
-              // Failed calls can retain invalid input. Keep them loadable, but
-              // expose incompatible input as unknown instead of the current
-              // static tool input type.
-              if (toolPart.input !== undefined) {
-                const result = await safeValidateTypes({
-                  value: toolPart.input,
-                  schema: tool.inputSchema,
-                  context: inputValidationContext,
-                });
-                convertToDynamic = !result.success;
-              }
-            } else if (toolPart.state === 'output-available') {
+            if (
+              toolPart.state !== 'input-streaming' &&
+              (toolPart.state !== 'output-error' ||
+                inputSchemaInput != null ||
+                toolPart.input !== undefined)
+            ) {
               const result = await safeValidateTypes({
-                value: toolPart.input,
+                value: inputToValidate,
                 schema: tool.inputSchema,
                 context: inputValidationContext,
               });
 
+              let inputError: TypeValidationError | undefined;
               if (!result.success) {
-                // Empty terminal input can represent aborted or incomplete
-                // history whose input was never streamed. Preserve it without
-                // claiming that it matches the current static input type.
-                if (isEmptyObject(toolPart.input)) {
-                  convertToDynamic = true;
-                } else {
-                  throw result.error;
+                inputError = result.error;
+              } else if (inputSchemaInput != null) {
+                try {
+                  const refine = getOwn(experimental_refineToolInput, toolName);
+                  const reconstructedInput =
+                    refine == null ? result.value : await refine(result.value);
+
+                  if (!isDeepEqualData(reconstructedInput, toolPart.input)) {
+                    inputError = new TypeValidationError({
+                      value: toolPart.input,
+                      cause:
+                        'Tool input does not match the output reconstructed from inputSchemaInput.',
+                      context: inputValidationContext,
+                    });
+                  }
+                } catch (error) {
+                  inputError = new TypeValidationError({
+                    value: inputToValidate,
+                    cause: error,
+                    context: inputValidationContext,
+                  });
                 }
               }
-            } else if (
-              toolPart.state === 'input-available' ||
-              toolPart.state === 'approval-requested' ||
-              toolPart.state === 'approval-responded' ||
-              toolPart.state === 'output-denied'
-            ) {
-              await validateTypes({
-                value: toolPart.input,
-                schema: tool.inputSchema,
-                context: inputValidationContext,
-              });
+
+              if (inputError != null) {
+                // Failed calls and empty terminal inputs must remain loadable,
+                // but must not claim to match the current static input type.
+                if (
+                  toolPart.state === 'output-error' ||
+                  (toolPart.state === 'output-available' &&
+                    isEmptyObject(toolPart.input))
+                ) {
+                  convertToDynamic = true;
+                } else {
+                  throw inputError;
+                }
+              }
             }
 
             // Tool output validation

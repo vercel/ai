@@ -1,5 +1,116 @@
 # @ai-sdk/xai
 
+## 5.0.11
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 5.0.10
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 5.0.9
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 5.0.8
+
+### Patch Changes
+
+- 5434a34: feat(xai): add missing video provider options
+- 0a5dd0f: feat(xai): add missing Responses API provider options
+
+## 5.0.7
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 5.0.6
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.5
+
+### Patch Changes
+
+- 7cf7cee: feat(xai): add grok 4.7 model ID
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 5.0.3
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 5.0.1
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.0
+
+### Major Changes
+
+- 1f20dba: feat(xai)!: remove Chat Completions API
+
 ## 4.0.59
 
 ### Patch Changes

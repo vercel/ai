@@ -404,7 +404,6 @@ class HangingToolCallTransport implements MCPTransport {
     if (message.method === 'tools/call') {
       // Intentionally never respond. This exercises aborting an in-flight
       // request after it has been sent to a slow or hung MCP server.
-      return;
     }
   }
 }

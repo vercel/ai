@@ -207,7 +207,14 @@ function buildHostTools(toolSchemas: StartMessage['tools']) {
           input: JSON.stringify(input),
           providerExecuted: false,
         } as BridgeEvent);
-        const { output } = await turn.requestToolResult(toolCallId);
+        const { output, isError } = await turn.requestToolResult(toolCallId);
+        turn.emit({
+          type: 'tool-result',
+          toolCallId,
+          toolName: schema.name,
+          result: output ?? null,
+          ...(isError !== undefined ? { isError } : {}),
+        });
         return typeof output === 'string' ? output : JSON.stringify(output);
       },
       {
@@ -315,7 +322,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     hostToolNames,
     mcpToolNames,
     structuredOutputToolNames: new Set(
-      currentResponseFormat?.map(format => format.name) ?? [],
+      currentResponseFormat?.map(format => format.name),
     ),
     emit,
   });

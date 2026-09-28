@@ -1,5 +1,38 @@
 # @ai-sdk/provider
 
+## 4.0.19
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+## 4.0.18
+
+### Patch Changes
+
+- ffb0e76: fix(provider): preserve opaque file URI strings for provider serialization
+
+## 4.0.17
+
+### Patch Changes
+
+- a7dd893: Add experimental evaluation model aliases and registry resolution. `customProvider` accepts `evaluationModels`, registries expose `evaluationModel`, and `experimental_evaluate` accepts string IDs when an evaluation-capable default provider is explicitly configured. Evaluation never implicitly falls back to Gateway. Model-resolution errors now identify `evaluationModel` while stable provider contracts remain unchanged.
+
+## 4.0.16
+
+### Patch Changes
+
+- d06bb2a: Allow readonly arrays and objects containing them to be used as JSON values.
+- 123d71f: Add `experimental_evaluate` and the isolated experimental v4 evaluation model specification for Choice, Score, and Boolean questions against shared state. Includes typed answers, optional Choice/Score distributions, required Boolean probabilities, validation, retries, cancellation, and `Experimental_EvaluationUnsupportedQuestionTypeError` for unsupported questions.
+
 ## 4.0.15
 
 ### Patch Changes

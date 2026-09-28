@@ -122,6 +122,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-1',
     'anthropic.claude-sonnet-5',
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
@@ -154,6 +157,9 @@ describe('amazon-bedrock-anthropic-provider', () => {
     'anthropic.claude-fable-5',
     'us.anthropic.claude-fable-5',
     'eu.anthropic.claude-fable-5',
+    'anthropic.claude-fable-5-1',
+    'us.anthropic.claude-fable-5-1',
+    'global.anthropic.claude-fable-5-1',
     'anthropic.claude-sonnet-5',
     'us.anthropic.claude-sonnet-5',
     'eu.anthropic.claude-sonnet-5',
@@ -236,7 +242,6 @@ describe('amazon-bedrock-anthropic-provider', () => {
         if (environmentVariableName === 'AWS_ENDPOINT_URL') {
           return 'https://global.example.com';
         }
-        return undefined;
       },
     );
 

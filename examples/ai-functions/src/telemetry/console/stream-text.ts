@@ -7,7 +7,7 @@ registerTelemetry(consoleTelemetry);
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
     runtimeContext: {
       something: 'custom',

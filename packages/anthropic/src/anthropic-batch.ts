@@ -799,10 +799,19 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'compaction':
+        if (!part.content) {
+          break;
+        }
+
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
@@ -833,7 +842,7 @@ function convertAnthropicBatchResponse(
           toolName,
           input: JSON.stringify(
             isCodeExecutionAlias
-              ? { type: part.name, ...(part.input ?? {}) }
+              ? { type: part.name, ...part.input }
               : part.name === 'code_execution' &&
                   part.input != null &&
                   'code' in part.input &&
@@ -1097,6 +1106,9 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     ...(stopDetails != null ? { stopDetails } : {}),
     ...(response.input_transformations != null
       ? { inputTransformations: response.input_transformations }
+      : {}),
+    ...(response.safeguard_results != null
+      ? { safeguardResults: response.safeguard_results }
       : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(

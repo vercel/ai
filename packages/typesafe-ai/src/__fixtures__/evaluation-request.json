@@ -1,0 +1,54 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "message": "I was charged twice. Please refund the duplicate.",
+    "order": {
+      "amount": 49
+    }
+  },
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": {
+        "question": "Which team should handle this?"
+      },
+      "criteria": {
+        "billing": {
+          "includes": [
+            "Charges",
+            "Invoices",
+            "Refunds"
+          ]
+        },
+        "technical": [
+          "Bugs",
+          "Outages"
+        ],
+        "other": null
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": [
+        "How severe is the issue?"
+      ],
+      "criteria": [
+        {
+          "meaning": "Cosmetic; functionality works"
+        },
+        "Functionality impaired; workaround exists",
+        "Blocking; no workaround"
+      ]
+    },
+    "requestsRefund": {
+      "type": "noul",
+      "instructions": "Is the customer requesting a refund?",
+      "criteria": {
+        "true": {
+          "meaning": "Explicit request for money back"
+        },
+        "false": null
+      }
+    }
+  }
+}

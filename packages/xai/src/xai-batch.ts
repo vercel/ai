@@ -40,13 +40,8 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { convertXaiChatUsage } from './convert-xai-chat-usage';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapXaiFinishReason } from './map-xai-finish-reason';
-import {
-  xaiChatResponseSchema,
-  type XaiChatResponse,
-} from './xai-chat-language-model';
 import { xaiFailedResponseHandler } from './xai-error';
 import { xaiFilesResponseSchema } from './files/xai-files-api';
 import {
@@ -170,6 +165,59 @@ const xaiBatchResultSchema = z.object({
 });
 
 type XaiBatchResult = z.infer<typeof xaiBatchResultSchema>;
+
+// xAI returns text batch results in Chat Completions API shape even when the
+// request was submitted to the Responses API endpoint.
+const xaiBatchTextResponseSchema = z.object({
+  id: z.string().nullish(),
+  created: z.number().nullish(),
+  model: z.string().nullish(),
+  choices: z
+    .array(
+      z.object({
+        message: z.object({
+          role: z.enum(['assistant', 'tool']),
+          content: z.string().nullish(),
+          reasoning_content: z.string().nullish(),
+          tool_calls: z
+            .array(
+              z.object({
+                id: z.string(),
+                type: z.literal('function'),
+                function: z.object({
+                  name: z.string(),
+                  arguments: z.string(),
+                }),
+              }),
+            )
+            .nullish(),
+        }),
+        index: z.number(),
+        finish_reason: z.string().nullish(),
+      }),
+    )
+    .nullish(),
+  usage: z
+    .object({
+      prompt_tokens: z.number(),
+      completion_tokens: z.number(),
+      total_tokens: z.number(),
+      cost_in_usd_ticks: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({ cached_tokens: z.number().nullish() })
+        .nullish(),
+      completion_tokens_details: z
+        .object({ reasoning_tokens: z.number().nullish() })
+        .nullish(),
+    })
+    .nullish(),
+  citations: z.array(z.string().url()).nullish(),
+  service_tier: z.string().nullish(),
+  code: z.string().nullish(),
+  error: z.string().nullish(),
+});
+
+type XaiBatchTextResponse = z.infer<typeof xaiBatchTextResponseSchema>;
 
 const xaiBatchResultsPageSchema = lazySchema(() =>
   zodSchema(
@@ -460,19 +508,17 @@ export class XaiBatch implements BatchV4<XaiBatchModelIds> {
       };
     }
 
-    // xAI returns text batch results in chat completion format, including for
-    // requests submitted to the Responses API endpoint.
     const response = result.batch_result?.response;
     if (response?.chat_get_completion != null) {
       const validation = await safeValidateTypes({
         value: response.chat_get_completion,
-        schema: xaiChatResponseSchema,
+        schema: zodSchema(xaiBatchTextResponseSchema),
       });
       if (!validation.success) {
         return invalidXaiBatchResult(result.batch_request_id);
       }
 
-      const conversion = convertXaiChatBatchResponse(validation.value);
+      const conversion = convertXaiBatchTextResponse(validation.value);
       return conversion.success
         ? {
             type: 'text',
@@ -738,8 +784,8 @@ function invalidXaiImageBatchResult(id: string): ImageBatchV4ItemResult {
   };
 }
 
-function convertXaiChatBatchResponse(
-  response: XaiChatResponse,
+function convertXaiBatchTextResponse(
+  response: XaiBatchTextResponse,
 ): XaiBatchResponseConversion {
   if (response.error != null) {
     return {
@@ -829,7 +875,7 @@ function convertXaiChatBatchResponse(
         raw: lastAssistantChoice?.finish_reason ?? undefined,
       },
       usage: response.usage
-        ? convertXaiChatUsage(response.usage)
+        ? convertXaiBatchTextUsage(response.usage)
         : createNullLanguageModelUsage(),
       response: getResponseMetadata(response),
       warnings: [],
@@ -847,5 +893,33 @@ function convertXaiChatBatchResponse(
         } satisfies SharedV4ProviderMetadata,
       }),
     },
+  };
+}
+
+function convertXaiBatchTextUsage(
+  usage: NonNullable<XaiBatchTextResponse['usage']>,
+) {
+  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
+  const reasoningTokens =
+    usage.completion_tokens_details?.reasoning_tokens ?? 0;
+  const promptTokensIncludesCached = cacheReadTokens <= usage.prompt_tokens;
+
+  return {
+    inputTokens: {
+      total: promptTokensIncludesCached
+        ? usage.prompt_tokens
+        : usage.prompt_tokens + cacheReadTokens,
+      noCache: promptTokensIncludesCached
+        ? usage.prompt_tokens - cacheReadTokens
+        : usage.prompt_tokens,
+      cacheRead: cacheReadTokens,
+      cacheWrite: undefined,
+    },
+    outputTokens: {
+      total: usage.completion_tokens + reasoningTokens,
+      text: usage.completion_tokens,
+      reasoning: reasoningTokens,
+    },
+    raw: usage,
   };
 }

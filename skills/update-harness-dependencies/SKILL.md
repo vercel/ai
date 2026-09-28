@@ -28,7 +28,7 @@ pnpm --filter harness-claude-code update @anthropic-ai/claude-agent-sdk @modelco
 # Cline
 pnpm --filter harness-cline update @cline/agents --latest --lockfile-only
 # Codex
-pnpm --filter harness-codex update @openai/codex-sdk --latest --lockfile-only
+pnpm --filter harness-codex update @openai/codex --latest --lockfile-only
 # Deep Agents
 pnpm --filter harness-deepagents update @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --lockfile-only
 # GitHub Copilot
@@ -51,7 +51,7 @@ pnpm --dir packages/harness-acp/src/v1/bridge update @agentclientprotocol/sdk @m
 # Claude Code
 pnpm --dir packages/harness-claude-code/src/bridge update @anthropic-ai/claude-agent-sdk @anthropic-ai/claude-code @modelcontextprotocol/sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Codex
-pnpm --dir packages/harness-codex/src/bridge update @openai/codex-sdk --latest --ignore-workspace --config.minimumReleaseAge=4320
+pnpm --dir packages/harness-codex/src/bridge update @openai/codex --latest --ignore-workspace --config.minimumReleaseAge=4320
 # Deep Agents
 pnpm --dir packages/harness-deepagents/src/bridge update @langchain/anthropic @langchain/core @langchain/langgraph deepagents langchain langsmith --latest --ignore-workspace --config.minimumReleaseAge=4320
 # GitHub Copilot

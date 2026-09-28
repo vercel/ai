@@ -180,6 +180,62 @@ describe('HttpChatTransport', () => {
         'test-value-fn',
       );
     });
+
+    it.each([
+      {
+        name: 'constructor headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            headers: {
+              'Content-Type': 'application/json; charset=utf-8',
+            },
+          }),
+        requestHeaders: undefined,
+      },
+      {
+        name: 'per-request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+          }),
+        requestHeaders: {
+          'Content-Type': 'application/json; charset=utf-8',
+        },
+      },
+      {
+        name: 'prepared request headers',
+        createTransport: () =>
+          new MockHttpChatTransport({
+            api: 'http://localhost/api/chat',
+            prepareSendMessagesRequest: () => ({
+              body: {},
+              headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+              },
+            }),
+          }),
+        requestHeaders: undefined,
+      },
+    ])('should use custom content type from $name once', async testCase => {
+      server.urls['http://localhost/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [],
+      };
+
+      await testCase.createTransport().sendMessages({
+        chatId: 'c123',
+        messageId: 'm123',
+        trigger: 'submit-message',
+        messages: [],
+        abortSignal: new AbortController().signal,
+        headers: testCase.requestHeaders,
+      });
+
+      expect(server.calls[0].requestHeaders['content-type']).toBe(
+        'application/json; charset=utf-8',
+      );
+    });
   });
 
   describe('error response', () => {
@@ -234,6 +290,48 @@ describe('HttpChatTransport', () => {
   });
 
   describe('reconnectToStream', () => {
+    it.each([
+      {
+        api: '/api/chat?mode=demo',
+        expectedApi: '/api/chat/c123/stream?mode=demo',
+      },
+      {
+        api: 'https://example.com/api/chat?mode=demo&locale=en',
+        expectedApi:
+          'https://example.com/api/chat/c123/stream?mode=demo&locale=en',
+      },
+      {
+        api: '/api/chat?mode=a%2Fb',
+        expectedApi: '/api/chat/c123/stream?mode=a%2Fb',
+      },
+      {
+        api: '/api/chat?mode=demo#section',
+        expectedApi: '/api/chat/c123/stream?mode=demo#section',
+      },
+      {
+        api: '/api/chat#section',
+        expectedApi: '/api/chat/c123/stream#section',
+      },
+    ])(
+      'should append the reconnect path before query parameters and fragments for $api',
+      async ({ api, expectedApi }) => {
+        let receivedApi: RequestInfo | URL | undefined;
+        const transport = new MockHttpChatTransport({
+          api,
+          fetch: async input => {
+            receivedApi = input;
+            return new Response(null, { status: 204 });
+          },
+        });
+
+        await transport.reconnectToStream({
+          chatId: 'c123',
+        });
+
+        expect(receivedApi).toBe(expectedApi);
+      },
+    );
+
     it('should pass the abort signal to fetch', async () => {
       const abortController = new AbortController();
       let receivedAbortSignal: AbortSignal | null | undefined;

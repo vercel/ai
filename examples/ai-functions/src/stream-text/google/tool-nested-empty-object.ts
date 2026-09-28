@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     tools: {
       navigate: tool({
         description: 'Navigate to a URL',

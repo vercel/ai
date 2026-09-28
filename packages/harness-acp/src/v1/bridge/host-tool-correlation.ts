@@ -284,6 +284,9 @@ function mergeObservedToolCall({
 }): ACPToolCall {
   return {
     toolCallId: update.toolCallId,
+    ...((update.name ?? previous?.name) == null
+      ? {}
+      : { name: update.name ?? previous?.name }),
     title: update.title ?? previous?.title ?? `Tool ${update.toolCallId}`,
     ...(update.kind == null ? {} : { kind: update.kind }),
     ...(update.status == null ? {} : { status: update.status }),
@@ -312,6 +315,9 @@ function hasPortableEvidence({
       value: evidence,
       property: 'name',
     });
+    if (programmaticName === invocation.toolName) {
+      hasToolName = true;
+    }
     const deferredToolName = getProperty({
       value: rawInput,
       property: 'tool_name',
@@ -515,7 +521,6 @@ function findTokenInvocation({
       return invocation;
     }
   }
-  return undefined;
 }
 
 function removeInvocationForToolCall({

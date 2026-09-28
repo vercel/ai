@@ -205,6 +205,14 @@ export async function POST(req: Request) {
 
 The `consumeStream` function is necessary for proper abort handling in UI message streams. It ensures that the stream is properly consumed even when aborted, preventing potential memory leaks or hanging connections.
 
+The `onEnd` callback distinguishes consumer cancellation from an observed
+abort. When the consumer cancels the UI message stream before an outcome is
+declared, such as during a client disconnect, `isCancelled` is `true`,
+`outcome.status` remains `'unknown'`, and `isAborted` remains `false`. When the
+stream observes an `abort` part first, `outcome.status` is `'aborted'`,
+`isAborted` is `true`, and `isCancelled` is absent. Check both flags when the
+same cleanup should run for either case.
+
 ## AI SDK RSC
 
 <Note type="warning">

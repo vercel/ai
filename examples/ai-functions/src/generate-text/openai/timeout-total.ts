@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { text, usage } = await generateText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-6-luna'),
     prompt: 'Invent a new holiday and describe its traditions.',
     timeout: { totalMs: 1000 }, // 1 second timeout using object format
   });

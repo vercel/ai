@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     reasoning: 'low',
     providerOptions: {

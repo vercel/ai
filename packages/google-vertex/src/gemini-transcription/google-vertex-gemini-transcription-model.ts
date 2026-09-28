@@ -149,7 +149,6 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
       });
       if (parsed != null) return parsed;
     }
-    return undefined;
   }
 
   async doGenerate(

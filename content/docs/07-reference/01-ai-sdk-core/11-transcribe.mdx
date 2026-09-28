@@ -13,7 +13,7 @@ import { openai } from '@ai-sdk/openai';
 import { readFile } from 'fs/promises';
 
 const { text: transcript } = await transcribe({
-  model: openai.transcription('whisper-1'),
+  model: openai.transcription('gpt-4o-transcribe'),
   audio: await readFile('audio.mp3'),
 });
 

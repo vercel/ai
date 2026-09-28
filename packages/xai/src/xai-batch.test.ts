@@ -254,10 +254,6 @@ describe('xAI batch', () => {
               'The xAI Batch API does not support per-batch webhook URLs.',
           },
         },
-        {
-          requestId: 'germany',
-          warning: { type: 'unsupported', feature: 'topK' },
-        },
       ],
     });
 
@@ -296,6 +292,7 @@ describe('xAI batch', () => {
         url: '/v1/responses',
         body: {
           model: 'grok-4.20-non-reasoning',
+          top_k: 10,
           input: [
             {
               role: 'user',
@@ -1041,7 +1038,6 @@ describe('xAI batch', () => {
     for (const model of [
       provider('grok-4.3'),
       provider.responses('grok-4.3'),
-      provider.chat('grok-4.3'),
     ]) {
       expect((model as any).doStartBatch).toBeUndefined();
     }

@@ -7,7 +7,10 @@ import {
   type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
+import {
+  createCredentialRequestTransformation,
+  type SandboxChannelReconnectOptions,
+} from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
@@ -66,6 +69,13 @@ export type GrokBuildHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * MCP server definitions keyed by server name. Each definition uses the
    * underlying runtime's native MCP server configuration format.
@@ -300,6 +310,7 @@ export function createGrokBuild(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     modelMapping: {
       type: 'session-model',

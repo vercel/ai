@@ -534,17 +534,18 @@ describe('Live over an application WebSocket relay', () => {
     await ready(session);
 
     socket().closeFromServer({
-      code: 1011,
-      reason: 'upstream unavailable',
+      code: 1007,
+      reason: 'Request contains an invalid argument',
       wasClean: true,
     });
-    await flushEvents();
 
     expect(onError).toHaveBeenCalledExactlyOnceWith(
       new Error(
-        'Realtime WebSocket closed unexpectedly (code 1011: upstream unavailable)',
+        'Realtime WebSocket closed unexpectedly (code 1007: Request contains an invalid argument)',
       ),
     );
+    expect(session.snapshot.status).toBe('closing');
+    await flushEvents();
     expect(session.snapshot.status).toBe('error');
     expect(session.snapshot.session?.finalization).toBe('unconfirmed');
   });

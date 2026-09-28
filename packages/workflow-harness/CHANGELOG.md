@@ -1,5 +1,128 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.128
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- 31742b9: feat(harness): refactor sandbox APIs for cleaner separation of concerns from harness layer, more intuitive DX regardless of how your sandbox is configured, and streamlined handling of sandbox templates/snapshots
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+  - @ai-sdk/harness@1.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.125
+
+## 1.0.124
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.123
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.120
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.117
+
+## 1.0.116
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.116
+
+## 1.0.115
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.114
+
+## 1.0.113
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.113
+
 ## 1.0.112
 
 ### Patch Changes
