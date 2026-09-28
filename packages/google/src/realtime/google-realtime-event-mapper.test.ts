@@ -304,9 +304,48 @@ describe('GoogleRealtimeEventMapper', () => {
         serverContent: { inputTranscription: { text: ' date?' } },
       });
 
-      expect(beforeResponse).toMatchObject({ itemId: 'google-input-1' });
+      expect(beforeResponse).toMatchObject({
+        itemId: 'google-input-1',
+        transcript: 'And the',
+      });
       expect(response).toMatchObject({ responseId: 'google-resp-1' });
-      expect(afterResponseStarted).toMatchObject({ itemId: 'google-input-1' });
+      expect(afterResponseStarted).toMatchObject({
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+      });
+    });
+
+    it('accumulates input transcription fragments per input item', () => {
+      for (const toWireEvent of [
+        (text: string) => ({ serverContent: { inputTranscription: { text } } }),
+        (text: string) => ({ inputTranscription: { text } }),
+      ]) {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        const first = [
+          mapper.parseServerEvent(toWireEvent('What time')),
+          mapper.parseServerEvent(toWireEvent(' is it?')),
+        ];
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: { parts: [{ inlineData: { data: 'audio1' } }] },
+          },
+        });
+        mapper.parseServerEvent({ serverContent: { interrupted: true } });
+        const bargeIn = [
+          mapper.parseServerEvent(toWireEvent('Wait,')),
+          mapper.parseServerEvent(toWireEvent(' stop.')),
+        ];
+
+        expect(first).toMatchObject([
+          { itemId: 'google-input-0', transcript: 'What time' },
+          { itemId: 'google-input-0', transcript: 'What time is it?' },
+        ]);
+        expect(bargeIn).toMatchObject([
+          { itemId: 'google-input-1', transcript: 'Wait,' },
+          { itemId: 'google-input-1', transcript: 'Wait, stop.' },
+        ]);
+      }
     });
 
     it('gives speech that interrupts a response the next input item id', () => {

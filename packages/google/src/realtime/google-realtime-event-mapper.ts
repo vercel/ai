@@ -61,6 +61,7 @@ export class GoogleRealtimeEventMapper {
   private hasTranscript = false;
   private turnClosed = false;
   private inputAudioRate = 16000;
+  private inputTranscript = { itemId: '', text: '' };
 
   private get responseId(): string {
     return `google-resp-${this.turnCounter}`;
@@ -78,6 +79,29 @@ export class GoogleRealtimeEventMapper {
    */
   private get inputItemId(): string {
     return `google-input-${this.turnClosed ? this.turnCounter + 1 : this.turnCounter}`;
+  }
+
+  /**
+   * Google streams one user utterance as consecutive transcription fragments
+   * (e.g. "What time", " is it?"), while `input-transcription-completed`
+   * replaces the message for its item id. Emit the running transcript of the
+   * current input item so later fragments extend the message instead of
+   * overwriting it.
+   */
+  private inputTranscriptionCompleted(
+    text: string,
+    raw: unknown,
+  ): RealtimeModelV4ServerEvent {
+    const itemId = this.inputItemId;
+    const previous =
+      this.inputTranscript.itemId === itemId ? this.inputTranscript.text : '';
+    this.inputTranscript = { itemId, text: previous + text };
+    return {
+      type: 'input-transcription-completed',
+      itemId,
+      transcript: this.inputTranscript.text,
+      raw,
+    };
   }
 
   /**
@@ -162,12 +186,10 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.inputTranscription?.text != null) {
-      return {
-        type: 'input-transcription-completed',
-        itemId: this.inputItemId,
-        transcript: data.inputTranscription.text,
+      return this.inputTranscriptionCompleted(
+        data.inputTranscription.text,
         raw,
-      };
+      );
     }
 
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
@@ -229,12 +251,12 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (serverContent.inputTranscription?.text) {
-      events.push({
-        type: 'input-transcription-completed',
-        itemId: this.inputItemId,
-        transcript: serverContent.inputTranscription.text,
-        raw,
-      });
+      events.push(
+        this.inputTranscriptionCompleted(
+          serverContent.inputTranscription.text,
+          raw,
+        ),
+      );
     }
 
     // `generationComplete` means generation has stopped, but playback and the
