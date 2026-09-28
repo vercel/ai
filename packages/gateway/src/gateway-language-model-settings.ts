@@ -53,6 +53,7 @@ export type GatewayModelId =
   | 'anthropic/claude-sonnet-4.5'
   | 'anthropic/claude-sonnet-4.6'
   | 'anthropic/claude-sonnet-5'
+  | 'anthropic/claude-sonnet-5.5'
   | 'arcee-ai/trinity-large-thinking'
   | 'bytedance/seed-1.6'
   | 'bytedance/seed-1.8'
