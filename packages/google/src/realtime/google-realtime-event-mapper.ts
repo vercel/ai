@@ -57,6 +57,8 @@ type GoogleRealtimeWireEvent = {
 export class GoogleRealtimeEventMapper {
   private turnCounter = 0;
   private inputTranscriptionCounter = 0;
+  private inputTranscriptionBuffer = '';
+  private inputTranscriptionBoundary = false;
   private hasAudio = false;
   private hasText = false;
   private hasTranscript = false;
@@ -87,10 +89,31 @@ export class GoogleRealtimeEventMapper {
     this.turnClosed = false;
   }
 
-  // Finalized input transcriptions can arrive independently of response turn
-  // events, so their synthetic IDs must use an independent sequence.
-  private nextInputTranscriptionItemId(): string {
-    return `google-input-${this.inputTranscriptionCounter++}`;
+  // Google streams input transcription as a sequence of non-accumulating
+  // fragments for a single user utterance (e.g. "The quick brown fox",
+  // " jumps over the", " lazy dog."). Concatenate consecutive fragments into
+  // one running transcript under a stable synthetic id so the realtime reducer
+  // (which overwrites the message for a given id) surfaces them as a single
+  // coherent user message rather than one message per fragment. A new
+  // utterance begins after the model takes the turn (`turnComplete`) or the
+  // user interrupts, at which point the id advances and the buffer resets.
+  //
+  // Input transcriptions can arrive independently of response turn events, so
+  // their synthetic IDs use a sequence independent of `turnCounter`.
+  private accumulateInputTranscription(delta: string): {
+    itemId: string;
+    transcript: string;
+  } {
+    if (this.inputTranscriptionBoundary && this.inputTranscriptionBuffer !== '') {
+      this.inputTranscriptionCounter++;
+      this.inputTranscriptionBuffer = '';
+    }
+    this.inputTranscriptionBoundary = false;
+    this.inputTranscriptionBuffer += delta;
+    return {
+      itemId: `google-input-${this.inputTranscriptionCounter}`,
+      transcript: this.inputTranscriptionBuffer,
+    };
   }
 
   parseServerEvent(
@@ -158,10 +181,13 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.inputTranscription?.text != null) {
+      const { itemId, transcript } = this.accumulateInputTranscription(
+        data.inputTranscription.text,
+      );
       return {
         type: 'input-transcription-completed',
-        itemId: this.nextInputTranscriptionItemId(),
-        transcript: data.inputTranscription.text,
+        itemId,
+        transcript,
         raw,
       };
     }
@@ -176,6 +202,9 @@ export class GoogleRealtimeEventMapper {
     const events: RealtimeModelV4ServerEvent[] = [];
 
     if (serverContent.interrupted) {
+      // A barge-in ends the current user utterance; the next input
+      // transcription fragment belongs to a fresh utterance.
+      this.inputTranscriptionBoundary = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -221,10 +250,13 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (serverContent.inputTranscription?.text) {
+      const { itemId, transcript } = this.accumulateInputTranscription(
+        serverContent.inputTranscription.text,
+      );
       events.push({
         type: 'input-transcription-completed',
-        itemId: this.nextInputTranscriptionItemId(),
-        transcript: serverContent.inputTranscription.text,
+        itemId,
+        transcript,
         raw,
       });
     }
@@ -298,6 +330,9 @@ export class GoogleRealtimeEventMapper {
       // Mark the turn closed but defer advancing the counter until the next
       // response actually begins (see `beginTurnIfClosed`).
       this.turnClosed = true;
+      // The model has taken the turn, so any input transcription that follows
+      // is a new user utterance and must start a fresh accumulation buffer.
+      this.inputTranscriptionBoundary = true;
     }
 
     if (events.length === 0) {

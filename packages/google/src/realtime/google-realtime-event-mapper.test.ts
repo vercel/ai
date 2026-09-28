@@ -353,7 +353,47 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('assigns distinct IDs when a completed turn transcript arrives late', () => {
+    it('accumulates consecutive input transcription fragments into one utterance', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const fragment1 = {
+        serverContent: {
+          inputTranscription: { text: 'The quick brown fox' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment1)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox',
+        raw: fragment1,
+      });
+
+      const fragment2 = {
+        serverContent: {
+          inputTranscription: { text: ' jumps over the' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment2)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the',
+        raw: fragment2,
+      });
+
+      const fragment3 = {
+        serverContent: {
+          inputTranscription: { text: ' lazy dog.' },
+        },
+      };
+      expect(mapper.parseServerEvent(fragment3)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'The quick brown fox jumps over the lazy dog.',
+        raw: fragment3,
+      });
+    });
+
+    it('starts a fresh accumulation for the next utterance after a completed turn', () => {
       const mapper = new GoogleRealtimeEventMapper();
 
       mapper.parseServerEvent({
@@ -367,6 +407,7 @@ describe('GoogleRealtimeEventMapper', () => {
         serverContent: { turnComplete: true },
       });
 
+      // A late transcript for the just-completed turn still opens at index 0.
       const delayed = {
         serverContent: {
           inputTranscription: { text: 'What time is it?' },
@@ -379,16 +420,18 @@ describe('GoogleRealtimeEventMapper', () => {
         raw: delayed,
       });
 
-      const next = {
+      // A second fragment with no intervening turn boundary is part of the
+      // same utterance and accumulates under the same id.
+      const continued = {
         serverContent: {
-          inputTranscription: { text: 'And the date?' },
+          inputTranscription: { text: ' And the date?' },
         },
       };
-      expect(mapper.parseServerEvent(next)).toEqual({
+      expect(mapper.parseServerEvent(continued)).toEqual({
         type: 'input-transcription-completed',
-        itemId: 'google-input-1',
-        transcript: 'And the date?',
-        raw: next,
+        itemId: 'google-input-0',
+        transcript: 'What time is it? And the date?',
+        raw: continued,
       });
 
       expect(
