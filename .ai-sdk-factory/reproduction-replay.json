@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 12099,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12099-last-assistant-message-complete-with-tool-calls.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-12099-last-assistant-message-complete-with-tool-calls.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "BUG REPRODUCED: terminal error text triggered an unexpected automatic chat endpoint call (calls=1)"
+  }
+}
