@@ -10,7 +10,6 @@ export default defineConfig(
         neverBundle: ['ai'],
       },
       sourcemap: false,
-      outDir: 'dist',
       clean: false,
     },
     // Viewer server

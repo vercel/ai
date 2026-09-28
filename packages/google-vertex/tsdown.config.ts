@@ -11,7 +11,6 @@ export default defineConfig(
             .version,
         ),
       },
-      outDir: 'dist',
     },
     {
       entry: ['src/edge/index.ts'],

@@ -20,15 +20,12 @@ export default defineConfig(
       },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
-      platform: 'node',
       deps: {
         alwaysBundle: ['@ai-sdk/harness'],
         neverBundle: [
           '@opencode-ai/sdk/v2',
           '@modelcontextprotocol/sdk',
           'opencode-ai',
-          'ws',
-          'zod',
         ],
       },
       define: {

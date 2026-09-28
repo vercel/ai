@@ -1,11 +1,5 @@
-import { defineConfig, mergeConfig } from 'tsdown';
+import { defineConfig } from 'tsdown';
 
 import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 
-export default defineConfig(
-  mergeConfig(tsdownBaseConfig, {
-    outDir: 'dist',
-    banner: {},
-    deps: { neverBundle: ['vue'] },
-  }),
-);
+export default defineConfig(tsdownBaseConfig);

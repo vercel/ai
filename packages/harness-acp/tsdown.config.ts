@@ -17,15 +17,9 @@ export default defineConfig(
       entry: { 'bridge/index': 'src/v1/bridge/index.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
-      platform: 'node',
       deps: {
         alwaysBundle: ['@ai-sdk/harness', '@ai-sdk/provider-utils'],
-        neverBundle: [
-          '@agentclientprotocol/sdk',
-          '@modelcontextprotocol/sdk',
-          'ws',
-          'zod',
-        ],
+        neverBundle: ['@agentclientprotocol/sdk', '@modelcontextprotocol/sdk'],
       },
       outputOptions: { codeSplitting: false },
       define: {
@@ -36,15 +30,9 @@ export default defineConfig(
       entry: { 'bridge/host-tool-mcp': 'src/v1/bridge/host-tool-mcp.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
-      platform: 'node',
       deps: {
         alwaysBundle: ['@ai-sdk/harness', '@ai-sdk/provider-utils'],
-        neverBundle: [
-          '@agentclientprotocol/sdk',
-          '@modelcontextprotocol/sdk',
-          'ws',
-          'zod',
-        ],
+        neverBundle: ['@agentclientprotocol/sdk', '@modelcontextprotocol/sdk'],
       },
       outputOptions: { codeSplitting: false },
       define: {

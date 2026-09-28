@@ -17,7 +17,6 @@ export default defineConfig(
       entry: { 'bridge/index': 'src/bridge/index.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
-      platform: 'node',
       // The shared bridge runtime (`@ai-sdk/harness/bridge`) must be INLINED —
       // the sandbox only installs the bridge's own deps (src/bridge/package.json),
       // so a bare import would not resolve there. The runtime SDKs the bridge
@@ -30,8 +29,6 @@ export default defineConfig(
           '@langchain/core',
           '@langchain/langgraph',
           '@langchain/mcp-adapters',
-          'ws',
-          'zod',
         ],
       },
       define: {

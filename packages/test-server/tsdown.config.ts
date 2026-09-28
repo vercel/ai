@@ -5,12 +5,9 @@ import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 export default defineConfig(
   [
     {
-      platform: 'node',
       deps: {
         neverBundle: [
           'chai',
-          'msw',
-          'msw/*',
           'vitest',
           'vitest/*',
           '@vitest/*',
@@ -23,7 +20,6 @@ export default defineConfig(
     },
     {
       entry: ['src/with-vitest.ts'],
-      platform: 'node',
     },
   ].map(config => mergeConfig(tsdownBaseConfig, config)),
 );

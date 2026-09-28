@@ -17,7 +17,6 @@ export default defineConfig(
       entry: { 'bridge/index': 'src/bridge/index.ts' },
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
-      platform: 'node',
       // The shared bridge runtime (`@ai-sdk/harness/bridge`) must be INLINED —
       // the sandbox only installs the bridge's own deps, so a bare import would
       // not resolve there. tsdown externalizes package.json deps by default, hence
@@ -31,8 +30,6 @@ export default defineConfig(
           '@anthropic-ai/claude-agent-sdk',
           '@anthropic-ai/claude-code',
           '@modelcontextprotocol/sdk',
-          'ws',
-          'zod',
         ],
       },
       define: {
