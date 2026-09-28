@@ -55,23 +55,40 @@ describe('baseMessagesToUIMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].role).toBe('assistant');
+    // One tool call is one part: the input-available part is upgraded to
+    // output-available so replay emits a single tool-call model message.
     expect(result[0].parts).toEqual([
       {
         type: 'dynamic-tool',
         toolName: 'get_weather',
         toolCallId: 'call-1',
-        state: 'input-available',
-        input: { city: 'NYC' },
-      },
-      {
-        type: 'dynamic-tool',
-        toolName: 'tool',
-        toolCallId: 'call-1',
         state: 'output-available',
-        input: {},
+        input: { city: 'NYC' },
         output: 'Sunny, 72F',
       },
     ]);
+  });
+
+  it('should replay a completed tool call as a single tool-call model message', async () => {
+    const uiMessages = baseMessagesToUIMessages([
+      new AIMessage({
+        content: '',
+        tool_calls: [
+          { id: 'call-1', name: 'get_weather', args: { city: 'NYC' } },
+        ],
+      }),
+      new ToolMessage({ tool_call_id: 'call-1', content: 'Sunny, 72F' }),
+    ]);
+
+    const roundTripped = await toBaseMessages(uiMessages);
+    const aiMessage = roundTripped.find(
+      message => message.getType() === 'ai',
+    ) as AIMessage;
+    expect(aiMessage.tool_calls).toHaveLength(1);
+    expect(aiMessage.tool_calls?.[0]).toMatchObject({
+      id: 'call-1',
+      name: 'get_weather',
+    });
   });
 
   it('should keep orphan tool results instead of dropping them', () => {

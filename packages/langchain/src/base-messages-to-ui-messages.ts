@@ -98,29 +98,48 @@ export function baseMessagesToUIMessages(
     }
 
     if (message instanceof ToolMessage) {
+      const output = textContent(message.content);
       const parentId = assistantByToolCallId.get(message.tool_call_id);
-      const outputPart = {
-        type: 'dynamic-tool',
-        toolName: message.name ?? 'tool',
-        toolCallId: message.tool_call_id,
-        state: 'output-available',
-        input: {},
-        output: textContent(message.content),
-      } satisfies DynamicToolUIPart;
       const parent =
         parentId != null
           ? uiMessages.find(candidate => candidate.id === parentId)
           : uiMessages
               .filter(candidate => candidate.role === 'assistant')
               .at(-1);
-      if (parent != null) {
-        parent.parts.push(outputPart);
+      // One tool call is one part: upgrade the matching input-available part
+      // to output-available so replay emits a single tool-call model message.
+      const existingIndex =
+        parent?.parts.findIndex(
+          part =>
+            part.type === 'dynamic-tool' &&
+            part.toolCallId === message.tool_call_id &&
+            part.state === 'input-available',
+        ) ?? -1;
+      if (parent != null && existingIndex >= 0) {
+        const existing = parent.parts[existingIndex] as DynamicToolUIPart;
+        parent.parts[existingIndex] = {
+          ...existing,
+          state: 'output-available',
+          output,
+        } as DynamicToolUIPart;
       } else {
-        uiMessages.push({
-          id: messageId(message, 'tool'),
-          role: 'assistant',
-          parts: [outputPart],
-        });
+        const outputPart = {
+          type: 'dynamic-tool',
+          toolName: message.name ?? 'tool',
+          toolCallId: message.tool_call_id,
+          state: 'output-available',
+          input: {},
+          output,
+        } satisfies DynamicToolUIPart;
+        if (parent != null) {
+          parent.parts.push(outputPart);
+        } else {
+          uiMessages.push({
+            id: messageId(message, 'tool'),
+            role: 'assistant',
+            parts: [outputPart],
+          });
+        }
       }
       continue;
     }
