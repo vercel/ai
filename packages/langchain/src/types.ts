@@ -22,21 +22,8 @@ export interface LangGraphEventState {
   emittedToolCalls: Set<string>;
   /** Tracks tool-input-start chunks emitted in each namespace's current step */
   emittedToolCallsInCurrentStepByNamespace: Map<string, Set<string>>;
-<<<<<<< HEAD
-=======
-  /** Tracks which tool call IDs have emitted complete tool inputs */
-  emittedToolInputs: Set<string>;
-  /** Tracks complete tool inputs emitted in each namespace's current step */
-  emittedToolInputsInCurrentStepByNamespace: Map<string, Set<string>>;
-  /** Tracks message IDs whose terminal tool outputs have been emitted */
-  emittedToolOutputMessageIds: Set<string>;
-  /** Tracks tool call IDs whose terminal outputs have been emitted */
-  emittedToolOutputCallIds: Set<string>;
-  /** Tracks terminal tool outputs emitted in each namespace's current step */
-  emittedToolOutputsInCurrentStepByNamespace: Map<string, Set<string>>;
   /** Tracks tool calls still awaiting a terminal output in each namespace */
   unfinishedToolCallsByNamespace: Map<string, Set<string>>;
->>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */

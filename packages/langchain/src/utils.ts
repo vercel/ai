@@ -1211,8 +1211,6 @@ function markToolCallEmitted(
   }
 }
 
-<<<<<<< HEAD
-=======
 function markToolCallStarted(
   state: LangGraphEventState,
   toolCallId: string,
@@ -1234,61 +1232,6 @@ function hasUnfinishedToolCall(
     true
   );
 }
-
-function hasEmittedToolInputInCurrentStep(
-  state: LangGraphEventState,
-  toolCallId: string,
-  namespace: string,
-): boolean {
-  return !state.currentStepsByNamespace.has(namespace)
-    ? state.emittedToolInputs.has(toolCallId)
-    : state.emittedToolInputsInCurrentStepByNamespace
-        .get(namespace)
-        ?.has(toolCallId) === true;
-}
-
-function markToolInputEmitted(
-  state: LangGraphEventState,
-  toolCallId: string,
-  namespace: string,
-): void {
-  state.emittedToolInputs.add(toolCallId);
-  if (state.currentStepsByNamespace.has(namespace)) {
-    getOrCreateNamespaceSet(
-      state.emittedToolInputsInCurrentStepByNamespace,
-      namespace,
-    ).add(toolCallId);
-  }
-}
-
-function hasEmittedToolOutputInCurrentStep(
-  state: LangGraphEventState,
-  toolCallId: string,
-  namespace: string,
-): boolean {
-  return !state.currentStepsByNamespace.has(namespace)
-    ? state.emittedToolOutputCallIds.has(toolCallId)
-    : state.emittedToolOutputsInCurrentStepByNamespace
-        .get(namespace)
-        ?.has(toolCallId) === true;
-}
-
-function markToolOutputEmitted(
-  state: LangGraphEventState,
-  toolCallId: string,
-  namespace: string,
-): void {
-  state.emittedToolOutputCallIds.add(toolCallId);
-  state.unfinishedToolCallsByNamespace.get(namespace)?.delete(toolCallId);
-  if (state.currentStepsByNamespace.has(namespace)) {
-    getOrCreateNamespaceSet(
-      state.emittedToolOutputsInCurrentStepByNamespace,
-      namespace,
-    ).add(toolCallId);
-  }
-}
-
->>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
 function findMessageCurrentStepNamespace(
   state: LangGraphEventState,
   messageId: string,
@@ -1731,8 +1674,6 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
-<<<<<<< HEAD
-=======
           const wasEmittedInCurrentStep = hasEmittedToolCallInCurrentStep(
             state,
             toolCallId,
@@ -1772,9 +1713,9 @@ export function processLangGraphEvent(
             });
           }
 
-          state.emittedToolOutputMessageIds.add(msgId);
-          markToolOutputEmitted(state, toolCallId, eventNamespace);
->>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
+          state.unfinishedToolCallsByNamespace
+            .get(eventNamespace)
+            ?.delete(toolCallId);
           if (status === 'error') {
             // Tool execution failed
             controller.enqueue({
@@ -1799,114 +1740,6 @@ export function processLangGraphEvent(
       return;
     }
 
-<<<<<<< HEAD
-=======
-    case 'tools': {
-      if (data == null || typeof data !== 'object' || Array.isArray(data)) {
-        return;
-      }
-
-      const payload = data as {
-        event?: unknown;
-        name?: unknown;
-        input?: unknown;
-        data?: unknown;
-        output?: unknown;
-        error?: unknown;
-        toolCallId?: unknown;
-      };
-      const toolCallId =
-        typeof payload.toolCallId === 'string' ? payload.toolCallId : undefined;
-      const toolName =
-        typeof payload.name === 'string' ? payload.name : 'unknown';
-
-      if (!toolCallId) return;
-
-      const ensureToolInputLifecycle = ({
-        allowPreviousStep,
-      }: {
-        allowPreviousStep: boolean;
-      }) => {
-        if (
-          !hasEmittedToolCallInCurrentStep(state, toolCallId, eventNamespace)
-        ) {
-          if (
-            allowPreviousStep &&
-            hasUnfinishedToolCall(state, toolCallId, eventNamespace)
-          ) {
-            return;
-          }
-
-          markToolCallStarted(state, toolCallId, eventNamespace);
-          controller.enqueue({
-            type: 'tool-input-start',
-            toolCallId,
-            toolName,
-            dynamic: true,
-          });
-        }
-
-        if (
-          !hasEmittedToolInputInCurrentStep(state, toolCallId, eventNamespace)
-        ) {
-          markToolInputEmitted(state, toolCallId, eventNamespace);
-          controller.enqueue({
-            type: 'tool-input-available',
-            toolCallId,
-            toolName,
-            input: payload.input,
-            dynamic: true,
-          });
-        }
-      };
-
-      switch (payload.event) {
-        case 'on_tool_start': {
-          const toolCallKey = `${toolName}:${JSON.stringify(payload.input)}`;
-          emittedToolCallsByKey.set(toolCallKey, toolCallId);
-
-          ensureToolInputLifecycle({ allowPreviousStep: false });
-          break;
-        }
-
-        case 'on_tool_event': {
-          ensureToolInputLifecycle({ allowPreviousStep: true });
-          controller.enqueue({
-            type: 'tool-output-available',
-            toolCallId,
-            output: payload.data,
-            preliminary: true,
-          });
-          break;
-        }
-
-        case 'on_tool_end': {
-          ensureToolInputLifecycle({ allowPreviousStep: true });
-          markToolOutputEmitted(state, toolCallId, eventNamespace);
-          controller.enqueue({
-            type: 'tool-output-available',
-            toolCallId,
-            output: payload.output,
-          });
-          break;
-        }
-
-        case 'on_tool_error': {
-          ensureToolInputLifecycle({ allowPreviousStep: true });
-          markToolOutputEmitted(state, toolCallId, eventNamespace);
-          controller.enqueue({
-            type: 'tool-output-error',
-            toolCallId,
-            errorText: formatToolError(payload.error),
-          });
-          break;
-        }
-      }
-
-      return;
-    }
-
->>>>>>> 47ba121f19 (fix: preserve ordered bare LangChain tool lifecycles when tool-call IDs are reused (#21552))
     case 'values': {
       /**
        * Finalize all pending message chunks
