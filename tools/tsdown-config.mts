@@ -3,4 +3,5 @@ export const tsdownBaseConfig = {
   target: 'es2022' as const,
   dts: true,
   sourcemap: true,
+  fixedExtension: false,
 };
