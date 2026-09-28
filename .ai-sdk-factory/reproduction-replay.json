@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 17805,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17805-ui-stream-keepalive.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-17805-ui-stream-keepalive.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #17805 REPRODUCED: idle UI stream timed out with 524 before headers; first-byte UI stream was disconnected after byte silence"
+  }
+}
