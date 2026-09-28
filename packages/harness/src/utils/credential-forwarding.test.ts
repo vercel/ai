@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyCredentialForwarding,
-  createSandboxCredentialEnvironment,
   resolveSandboxCredentialEnvironment,
 } from './credential-forwarding';
 import { isSandboxCredentialPlaceholder } from './sandbox-credential-brokering';
@@ -89,13 +88,13 @@ describe('applyCredentialForwarding', () => {
   });
 });
 
-describe('createSandboxCredentialEnvironment', () => {
+describe('resolveSandboxCredentialEnvironment', () => {
   it('forwards generated placeholders and returns the exact results', async () => {
     const credentialForwarding = vi.fn(
       ({ credential }: { credential: string }) => `wrapped-${credential}`,
     );
 
-    const result = await createSandboxCredentialEnvironment({
+    const result = await resolveSandboxCredentialEnvironment({
       environment: {
         API_KEY: 'real-secret',
         SECOND_API_KEY: 'second-real-secret',
@@ -115,16 +114,14 @@ describe('createSandboxCredentialEnvironment', () => {
 
   it('does not add absent credential variables', async () => {
     await expect(
-      createSandboxCredentialEnvironment({
+      resolveSandboxCredentialEnvironment({
         environment: { BASE_URL: 'https://api.example.com' },
         credentialEnvironmentVariables: ['API_KEY'],
         credentialForwarding: undefined,
       }),
     ).resolves.toEqual({});
   });
-});
 
-describe('resolveSandboxCredentialEnvironment', () => {
   it('reuses only current credentials and creates placeholders for new names', async () => {
     const previousSandboxCredentialEnvironment = {
       API_KEY: 'saved-placeholder',

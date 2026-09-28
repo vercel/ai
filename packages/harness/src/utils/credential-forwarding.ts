@@ -28,22 +28,6 @@ export async function applyCredentialForwarding({
   return forwardedEnvironment;
 }
 
-export async function createSandboxCredentialEnvironment({
-  environment,
-  credentialEnvironmentVariables,
-  credentialForwarding,
-}: {
-  environment: Readonly<Record<string, string>>;
-  credentialEnvironmentVariables: ReadonlyArray<string>;
-  credentialForwarding: HarnessV1CredentialForwarding | undefined;
-}): Promise<Record<string, string>> {
-  return resolveSandboxCredentialEnvironment({
-    environment,
-    credentialEnvironmentVariables,
-    credentialForwarding,
-  });
-}
-
 export async function resolveSandboxCredentialEnvironment({
   environment,
   credentialEnvironmentVariables,
