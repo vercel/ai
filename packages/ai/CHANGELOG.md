@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.296
+
+### Patch Changes
+
+- 0741da8: fix(ai): allow agent UI streams to use original messages as input
+- a63fa9b: fix(ai): preserve tool metadata from tool output chunks
+- a61bea9: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+
 ## 6.0.295
 
 ### Patch Changes
