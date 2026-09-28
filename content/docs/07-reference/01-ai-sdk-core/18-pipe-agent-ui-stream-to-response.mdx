@@ -56,9 +56,9 @@ export async function handler(req, res) {
     {
       name: 'uiMessages',
       type: 'unknown[]',
-      isRequired: true,
+      isRequired: false,
       description:
-        'Array of input UI messages sent to the agent (such as user/assistant message objects).',
+        'Array of input UI messages sent to the agent (such as user/assistant message objects). When omitted, originalMessages is used as the input.',
     },
     {
       name: 'abortSignal',
@@ -141,7 +141,7 @@ app.post('/chat', async (req, res) => {
 - **Abort Handling:** For best robustness, use an `AbortSignal` (for example, wired to Express/Hono client disconnects) to ensure quick cancellation of agent computation and streaming.
 - **Node.js Only:** Only works with Node.js [ServerResponse](https://nodejs.org/api/http.html#class-httpserverresponse) objects (e.g., in Express, Hono’s node adapter, etc.), not Edge/serverless/web Response APIs.
 - **Streaming Support:** Make sure your client (and any proxies) correctly support streaming HTTP responses for full effect.
-- **Parameter Names:** The property for input messages is `uiMessages` (not `messages`) for consistency with SDK agent utilities.
+- **Parameter Names:** The property for input messages is `uiMessages` (not `messages`) for consistency with SDK agent utilities. It can be omitted when `originalMessages` is provided.
 
 ## See Also
 

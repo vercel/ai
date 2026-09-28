@@ -54,9 +54,9 @@ export async function* streamAgent(
     {
       name: 'uiMessages',
       type: 'unknown[]',
-      isRequired: true,
+      isRequired: false,
       description:
-        'Array of input UI message objects (e.g., user/assistant/chat history). These will be validated and converted for the agent.',
+        'Array of input UI message objects (e.g., user/assistant/chat history). These will be validated and converted for the agent. When omitted, originalMessages is used as the input.',
     },
     {
       name: 'abortSignal',
@@ -141,7 +141,7 @@ for await (const chunk of stream) {
 
 - The agent **must** implement the `.stream({ prompt, ... })` method and define its supported `tools` property.
 - This utility returns an async iterable for maximal streaming flexibility. For HTTP responses, see [`createAgentUIStreamResponse`](/docs/reference/ai-sdk-core/create-agent-ui-stream-response) (Web) or [`pipeAgentUIStreamToResponse`](/docs/reference/ai-sdk-core/pipe-agent-ui-stream-to-response) (Node.js).
-- The `uiMessages` parameter is named `uiMessages`, **not** just `messages`.
+- The `uiMessages` parameter is named `uiMessages`, **not** just `messages`. It can be omitted when `originalMessages` is provided.
 - You can provide advanced options via `UIMessageStreamOptions` (for example, to include sources or usage).
 - To cancel the stream, pass an [`AbortSignal`](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal) via the `abortSignal` parameter.
 

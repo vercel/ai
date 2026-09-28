@@ -17,7 +17,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  * Runs the agent and stream the output as a UI message stream.
  *
  * @param agent - The agent to run.
- * @param uiMessages - The input UI messages.
+ * @param uiMessages - The input UI messages. Defaults to originalMessages.
  * @param abortSignal - The abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param options - The options for the agent.
@@ -42,7 +42,7 @@ export async function createAgentUIStream<
   ...uiMessageStreamOptions
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, OUTPUT>;
-  uiMessages: unknown[];
+  uiMessages?: unknown[];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration;
   options?: CALL_OPTIONS;
@@ -58,10 +58,12 @@ export async function createAgentUIStream<
     InferUIMessageChunk<UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>>
   >
 > {
+  const inputMessages = uiMessages ?? uiMessageStreamOptions.originalMessages;
+
   const validatedMessages = await validateUIMessagesForAgent<
     UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
   >({
-    messages: uiMessages,
+    messages: inputMessages,
     tools: agent.tools,
   });
 
