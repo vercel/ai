@@ -1,5 +1,13 @@
 # ai
 
+## 6.0.295
+
+### Patch Changes
+
+- 0b38b6b: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [358683e]
+  - @ai-sdk/gateway@3.0.205
+
 ## 6.0.294
 
 ### Patch Changes
