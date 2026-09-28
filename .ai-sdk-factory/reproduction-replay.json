@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21576,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21576-response-disconnect.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21576-response-disconnect.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21576_REPRODUCED: response closed=true, pipe settled=false, source cancelled=false; expected all true after the client disconnected"
+  }
+}
