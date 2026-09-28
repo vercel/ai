@@ -28,7 +28,7 @@ import {
 import {
   applyCredentialForwarding,
   classifyDiskLog,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
@@ -330,13 +330,14 @@ export function createOpenCode(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: resolvedAuthEnvironment,
             credentialEnvironmentVariables:
               OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxAuthEnvironment = {
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,

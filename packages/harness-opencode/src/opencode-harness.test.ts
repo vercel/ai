@@ -478,7 +478,74 @@ describe('createOpenCode adapter', () => {
     expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
-    await session.doDetach();
+    const resumeFrom = await session.doDetach();
+    const savedEnvironment = (
+      resumeFrom.data as {
+        sandboxCredentialEnvironment?: Record<string, string>;
+      }
+    ).sandboxCredentialEnvironment;
+    expect(savedEnvironment?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const resumedSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'new-anthropic-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom: {
+        ...resumeFrom,
+        data: { sandboxCredentialEnvironment: savedEnvironment },
+      },
+    });
+    const resumedCredential = spawnEnvs[1]?.ANTHROPIC_API_KEY;
+    expect(resumedCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(spawnEnvs[1]?.OPENAI_API_KEY).toBeUndefined();
+    expect(JSON.stringify(spawnEnvs[1])).not.toContain('new-anthropic-secret');
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(2, [
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: resumedCredential },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'new-anthropic-secret' } },
+      },
+    ]);
+    const nextState = await resumedSession.doDetach();
+    expect(
+      (
+        nextState.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ ANTHROPIC_API_KEY: resumedCredential });
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const olderSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'older-state-secret' },
+    }).doStart({
+      sessionId: 'older-state',
+      sandboxSession,
+      sessionWorkDir: '/workspace/older-state',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'opencode',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    expect(spawnEnvs[2]?.ANTHROPIC_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[2])).not.toContain('older-state-secret');
+    await olderSession.doDetach();
   });
 
   it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
