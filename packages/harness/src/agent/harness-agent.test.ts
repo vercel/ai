@@ -3917,6 +3917,30 @@ describe('HarnessAgent', () => {
     expect(sandboxDestroy).not.toHaveBeenCalled();
   });
 
+  test('session.detach() keeps the local handle active when detaching fails', async () => {
+    const doDetach = vi.fn(async () => {
+      throw new Error('could not persist resume state');
+    });
+    const doStop = vi.fn(async () => ({
+      type: 'resume-session' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    }));
+    const { session } = makeLifecycleSession({
+      underlyingSession: { doDetach, doStop },
+    });
+
+    await expect(session.detach()).rejects.toThrow(
+      'could not persist resume state',
+    );
+    await expect(session.stop()).resolves.toMatchObject({
+      type: 'resume-session',
+    });
+    expect(doDetach).toHaveBeenCalledTimes(1);
+    expect(doStop).toHaveBeenCalledTimes(1);
+  });
+
   test('session.stop() saves state and stops the sandbox', async () => {
     const {
       session,

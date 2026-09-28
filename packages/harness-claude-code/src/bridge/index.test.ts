@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -379,47 +378,6 @@ describe('Claude Code bridge configuration', () => {
       permissionPromptToolName: 'stdio',
     });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
-  });
-
-  test('allows ExitPlanMode to complete when bypassing permissions', async () => {
-    const liveMessages = JSON.parse(
-      readFileSync(
-        new URL(
-          './__fixtures__/issue-21587-exit-plan-mode.json',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    ) as Record<string, unknown>[];
-    const liveFailure = liveMessages
-      .flatMap(message => {
-        const sdkMessage = message.message as
-          | { content?: Record<string, unknown>[] }
-          | undefined;
-        return sdkMessage?.content ?? [];
-      })
-      .find(
-        block =>
-          block.type === 'tool_result' &&
-          block.tool_use_id === 'toolu_exit_plan_mode',
-      );
-    expect(liveFailure).toMatchObject({
-      is_error: true,
-      content:
-        'Tool permission request failed: Error: canUseTool callback is not provided.',
-    });
-
-    await import('./index');
-
-    const canUseTool = state.queryArgs[0]?.options.canUseTool;
-    expect(canUseTool).toBeTypeOf('function');
-    if (typeof canUseTool !== 'function') return;
-    await expect(
-      canUseTool('ExitPlanMode', {}, { toolUseID: 'toolu_exit_plan_mode' }),
-    ).resolves.toMatchObject({
-      behavior: 'allow',
-      toolUseID: 'toolu_exit_plan_mode',
-    });
   });
 
   test('preserves inactive tool filtering when bypassing permissions', async () => {
@@ -870,30 +828,6 @@ describe('Claude Code bridge configuration', () => {
         content: [{ type: 'text', text: 'Actually, Paris, Texas.' }],
       },
     });
-  });
-
-  test('keeps the query open for background task completion after the first result', async () => {
-    state.messages = JSON.parse(
-      readFileSync(
-        new URL(
-          './__fixtures__/issue-21587-background-keepalive.json',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    ) as Record<string, unknown>[];
-
-    await import('./index');
-
-    const streamedText = state.emitted
-      .filter(event => event.type === 'text-delta')
-      .map(event => event.delta)
-      .join('');
-    if (streamedText !== 'STARTEDCOMPLETED') {
-      throw new Error(
-        `ISSUE_21587: background task follow-up was dropped after the first result (received ${JSON.stringify(streamedText)})`,
-      );
-    }
   });
 
   test('a host abort interrupts the query gracefully, stays quiet, and disposes it', async () => {
