@@ -102,15 +102,14 @@ describe.each(['before', 'after'] as const)(
                       : undefined,
                 });
 
-        // Undici wraps the validating lookup's DownloadError as the cause.
+        // node-fetch includes the validating lookup error in its FetchError.
         const dnsError = {
-          name: 'AI_DownloadError',
           message: expect.stringContaining(
             'resolved to disallowed IP address 127.0.0.1',
           ),
         };
         await expect(request).rejects.toMatchObject({
-          cause: entryPoint === 'blob' ? { cause: dnsError } : dnsError,
+          ...(entryPoint === 'blob' ? { cause: dnsError } : dnsError),
         });
         expect(lookup).toHaveBeenCalledExactlyOnceWith(
           'files.example.com',
@@ -130,12 +129,9 @@ it('still validates DNS when global fetch is unavailable at import time', async 
     await import('./fetch-with-validated-redirects');
 
   await expect(fetchWithValidatedEndpoint({ url })).rejects.toMatchObject({
-    cause: {
-      name: 'AI_DownloadError',
-      message: expect.stringContaining(
-        'resolved to disallowed IP address 127.0.0.1',
-      ),
-    },
+    message: expect.stringContaining(
+      'resolved to disallowed IP address 127.0.0.1',
+    ),
   });
   expect(lookup).toHaveBeenCalledTimes(1);
   expect(onConnection).not.toHaveBeenCalled();

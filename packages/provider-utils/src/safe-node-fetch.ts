@@ -1,101 +1,48 @@
-import type * as nodeDnsModule from 'node:dns';
+import type { LookupAddress, LookupAllOptions } from 'node:dns';
+import type { LookupFunction } from 'node:net';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 import type { FetchFunction } from './fetch-function';
 import { isNodeRuntime } from './is-node-runtime';
 import { validateDownloadAddress } from './validate-download-url';
 
-type NodeDns = typeof nodeDnsModule;
-
-type LookupAddress = {
-  address: string;
-  family: number;
-};
-
-type LookupOptions = {
-  all?: boolean;
-  family?: number;
-  hints?: number;
-  order?: 'ipv4first' | 'ipv6first' | 'verbatim';
-  verbatim?: boolean;
-};
-
-type Lookup = (
-  hostname: string,
-  options: LookupOptions & { all: true },
-  callback: (
-    error: NodeJS.ErrnoException | null,
-    addresses: LookupAddress[],
+/** Validate every DNS result inside the connector, then connect to those same addresses. */
+export function createSafeLookup(
+  lookup: (
+    hostname: string,
+    options: LookupAllOptions,
+    callback: (
+      error: NodeJS.ErrnoException | null,
+      addresses: LookupAddress[],
+    ) => void,
   ) => void,
-) => void;
-
-type LookupAllCallback = (
-  error: NodeJS.ErrnoException | null,
-  addresses: LookupAddress[],
-) => void;
-
-type LookupOneCallback = (
-  error: NodeJS.ErrnoException | null,
-  address: string,
-  family: number,
-) => void;
-
-type SafeLookup = {
-  (
-    hostname: string,
-    options: LookupOptions & { all: true },
-    callback: LookupAllCallback,
-  ): void;
-  (
-    hostname: string,
-    options: LookupOptions & { all?: false },
-    callback: LookupOneCallback,
-  ): void;
-};
-
-/**
- * Creates a DNS lookup hook that validates every returned address before
- * returning the callback shape requested by the HTTP connector. Because
- * resolution and validation happen inside the connector, the socket is pinned
- * to the validated result and DNS rebinding cannot introduce a second lookup.
- */
-export function createSafeLookup(lookup: Lookup): SafeLookup {
-  return ((
-    hostname: string,
-    options: LookupOptions,
-    callback: LookupAllCallback | LookupOneCallback,
-  ): void => {
+): LookupFunction {
+  return (hostname, options, callback) => {
     lookup(hostname, { ...options, all: true }, (error, addresses) => {
       if (error) {
-        (callback as (error: Error) => void)(error);
+        callback(error, []);
         return;
       }
 
+      const firstAddress = addresses[0];
       try {
-        const [firstAddress] = addresses;
-
         if (firstAddress == null) {
           throw new Error(`Hostname ${hostname} did not resolve to an address`);
         }
-
         for (const { address, family } of addresses) {
           validateDownloadAddress({ address, family, hostname });
         }
-
-        if (options.all === true) {
-          (callback as LookupAllCallback)(null, addresses);
-        } else {
-          (callback as LookupOneCallback)(
-            null,
-            firstAddress.address,
-            firstAddress.family,
-          );
-        }
       } catch (error) {
-        (callback as (error: Error) => void)(
-          error instanceof Error ? error : new Error(String(error)),
-        );
+        callback(error instanceof Error ? error : new Error(String(error)), []);
+        return;
+      }
+
+      if (options.all) {
+        callback(null, addresses);
+      } else {
+        callback(null, firstAddress.address, firstAddress.family);
       }
     });
-  }) as SafeLookup;
+  };
 }
 
 let safeNodeFetchPromise: Promise<FetchFunction> | undefined;
@@ -105,44 +52,77 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
     return globalThis.fetch;
   }
 
-  // Global fetch wrappers cannot be relied on to preserve the dispatcher
+  // Global fetch wrappers cannot be relied on to preserve the agent
   // that pins connections to validated DNS results.
-  return (safeNodeFetchPromise ??= Promise.resolve().then(createSafeNodeFetch));
+  return (safeNodeFetchPromise ??= createSafeNodeFetch());
 }
 
 async function createSafeNodeFetch(): Promise<FetchFunction> {
-  const { lookup } = loadBuiltinModule<NodeDns>('node:dns');
-  // Only the Node build includes this dependency. A literal import lets
-  // bundlers and deployment tracers include it while keeping loading lazy.
-  const { Agent, fetch } = (await import('undici')).default;
+  const { lookup } = process.getBuiltinModule('node:dns');
+  const { Agent: HttpAgent } = process.getBuiltinModule('node:http');
+  const { Agent: HttpsAgent } = process.getBuiltinModule('node:https');
+  const { Readable } = process.getBuiltinModule('node:stream');
+  // Keep this literal import visible to deployment bundlers, and out of the
+  // portable build. Using our own transport also bypasses patched global fetch.
+  const { default: fetch } = await import('node-fetch');
+  const safeLookup = createSafeLookup(lookup);
+  const httpAgent = new HttpAgent({ keepAlive: true, lookup: safeLookup });
+  const httpsAgent = new HttpsAgent({ keepAlive: true, lookup: safeLookup });
 
-  const dispatcher = new Agent({
-    connect: {
-      lookup: createSafeLookup(lookup as Lookup) as never,
-    },
-  });
+  return async (input, init) => {
+    // Normalize native Request/Headers/body inputs before crossing into
+    // node-fetch, which uses its own Fetch classes and Node streams.
+    // The request stream assertion bridges the same Node/DOM type mismatch.
+    const request = new Request(input, init);
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: [...request.headers],
+      body:
+        request.body == null
+          ? undefined
+          : Readable.fromWeb(request.body as NodeReadableStream),
+      signal: init?.signal ?? request.signal,
+      redirect: request.redirect,
+      agent: url => (url.protocol === 'https:' ? httpsAgent : httpAgent),
+    });
 
-  return ((input, init) =>
-    fetch(
-      input as Parameters<typeof fetch>[0],
-      {
-        ...init,
-        dispatcher,
-      } as Parameters<typeof fetch>[1],
-    ) as unknown as Promise<Response>) satisfies FetchFunction;
-}
-
-function loadBuiltinModule<T>(id: string): T {
-  const processWithBuiltins = globalThis.process as
-    | {
-        getBuiltinModule?: (id: string) => unknown;
-      }
-    | undefined;
-  const builtinModule = processWithBuiltins?.getBuiltinModule?.(id);
-
-  if (builtinModule == null) {
-    throw new Error(`Node.js built-in module ${id} is unavailable`);
-  }
-
-  return builtinModule as T;
+    // node-fetch types its body as the broader NodeJS.ReadableStream interface.
+    // Verify it is a Readable before using Node's Web Stream adapter.
+    if (response.body != null && !(response.body instanceof Readable)) {
+      throw new TypeError('Expected node-fetch to return a Node Readable');
+    }
+    // SDK consumers require Web Streams (getReader/cancel), not Node streams.
+    const body =
+      response.body == null ||
+      request.method === 'HEAD' ||
+      [204, 205, 304].includes(response.status)
+        ? null
+        : Readable.toWeb(response.body);
+    if (body == null) {
+      response.body?.resume();
+    }
+    // Node and DOM declarations disagree on Web Stream iterator methods;
+    // both adapters use the same native Web Streams at runtime.
+    const result = new Response(body as ReadableStream | null, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: Object.entries(response.headers.raw()).flatMap(
+        ([name, values]) =>
+          values.map<[string, string]>(value => [name, value]),
+      ),
+    });
+    // Response's constructor cannot set fetch metadata. Preserve it on clones
+    // too, without replacing the native body consumption implementation.
+    function withMetadata(value: Response): Response {
+      const clone = value.clone.bind(value);
+      Object.defineProperties(value, {
+        url: { value: response.url },
+        redirected: { value: response.redirected },
+        type: { value: 'basic' },
+        clone: { value: () => withMetadata(clone()) },
+      });
+      return value;
+    }
+    return withMetadata(result);
+  };
 }

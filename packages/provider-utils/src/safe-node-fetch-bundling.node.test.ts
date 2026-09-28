@@ -47,7 +47,7 @@ const { fetchWithValidatedEndpoint } = await import(pathToFileURL(process.argv[2
 await assert.rejects(
   fetchWithValidatedEndpoint({ url: 'https://download.example.com/file' }),
   error => {
-    assert.equal(error.cause, dnsError, error.stack);
+    assert.match(error.message, /bundling-test-dns-lookup/);
     return true;
   },
 );
@@ -220,7 +220,10 @@ describe.each([
           name: 'reject-node-transport-dependencies',
           setup(builder) {
             builder.onResolve({ filter: /.*/ }, args => {
-              if (isBuiltin(args.path) || /^undici(?:\/|$)/.test(args.path)) {
+              if (
+                isBuiltin(args.path) ||
+                /^(?:undici|node-fetch)(?:\/|$)/.test(args.path)
+              ) {
                 throw new Error(`Unexpected Node dependency: ${args.path}`);
               }
               return undefined;

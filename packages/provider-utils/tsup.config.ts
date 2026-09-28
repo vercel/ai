@@ -20,7 +20,7 @@ export default defineConfig([
       sourcemap: true,
       platform: runtime === 'node' ? 'node' : 'browser',
       // Replace the transport before bundling so the portable output has no
-      // Undici dependency. A runtime guard around import('undici') would prevent
+      // node-fetch dependency. A runtime guard around import('node-fetch') would prevent
       // execution, but browser/edge bundlers would still try to resolve it.
       esbuildPlugins:
         runtime === 'portable'

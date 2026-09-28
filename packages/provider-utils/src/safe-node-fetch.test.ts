@@ -94,6 +94,10 @@ function runLookup(addresses: Address[]) {
         if (error) {
           reject(error);
         } else {
+          if (typeof result === 'string') {
+            reject(new Error('Expected all addresses'));
+            return;
+          }
           resolve(result);
         }
       });
@@ -128,6 +132,10 @@ describe('createSafeLookup', () => {
         if (error) {
           reject(error);
         } else {
+          if (typeof address !== 'string' || family == null) {
+            reject(new Error('Expected one address'));
+            return;
+          }
           resolve({ address, family });
         }
       });

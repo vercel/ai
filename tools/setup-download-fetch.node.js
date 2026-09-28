@@ -1,30 +1,37 @@
 import { createRequire } from 'node:module';
-import { afterAll } from 'vitest';
+import { Readable } from 'node:stream';
+import { vi } from 'vitest';
 
-// Opt-in for fixture suites only; provider-utils tests must use real sockets.
-// Patch the CommonJS default export used by the protected download transport.
-const undici = createRequire(
+// Opt-in for fixture suites only; provider-utils tests use real sockets.
+const transportPath = createRequire(
   new URL('../packages/provider-utils/package.json', import.meta.url),
-)('undici');
-const originalUndiciFetch = undici.fetch;
+).resolve('node-fetch');
 const originalGlobalFetch = globalThis.fetch;
 
-// Resolve late for per-test mocks/MSW; a vi.fn bridge would be reset by tests.
-// Strip the real connector so delegating mocks cannot bypass their handlers.
-undici.fetch = (input, { dispatcher: _dispatcher, ...init } = {}) => {
-  if (globalThis.fetch === originalGlobalFetch) {
-    const url = new URL(
-      typeof input === 'object' && 'url' in input ? input.url : input,
-    );
-    if (url.protocol !== 'data:') {
-      throw new Error(
-        'Download fixture tests must install a global fetch mock',
+vi.doMock(transportPath, async () => {
+  const actual = await vi.importActual(transportPath);
+  return {
+    ...actual,
+    // Resolve late for per-test mocks/MSW. Strip the real connection agent.
+    default: async (input, { agent: _agent, ...init } = {}) => {
+      if (
+        globalThis.fetch === originalGlobalFetch &&
+        new URL(input).protocol !== 'data:'
+      ) {
+        throw new Error(
+          'Download fixture tests must install a global fetch mock',
+        );
+      }
+      const response = await globalThis.fetch(input, init);
+      return new actual.Response(
+        response.body == null ? null : Readable.fromWeb(response.body),
+        {
+          status: response.status,
+          statusText: response.statusText,
+          headers: [...response.headers],
+          url: response.url,
+        },
       );
-    }
-  }
-  return globalThis.fetch(input, init);
-};
-
-afterAll(() => {
-  undici.fetch = originalUndiciFetch;
+    },
+  };
 });
