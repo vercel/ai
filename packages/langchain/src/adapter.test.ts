@@ -435,6 +435,129 @@ describe('toUIMessageStream', () => {
     ]);
   });
 
+  it('should keep an unfinished tool call separate from a bare same-id lifecycle in another namespace', async () => {
+    const firstNamespace = ['tools:first'];
+    const secondNamespace = ['tools:second'];
+    const secondToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'second result',
+      name: 'second_tool',
+      id: 'tool-message-2',
+    });
+    const inputStream = convertArrayToReadableStream([
+      [
+        firstNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'first_tool',
+                args: '{"query":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1, langgraph_node: 'model' },
+        ],
+      ],
+      [
+        secondNamespace,
+        'messages',
+        [secondToolMessage, { langgraph_step: 1, langgraph_node: 'tools' }],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-output-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          providerMetadata: chunk.providerMetadata,
+          ...('toolName' in chunk ? { toolName: chunk.toolName } : {}),
+          ...('output' in chunk ? { output: chunk.output } : {}),
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        providerMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'second result',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: 'output' in part ? part.output : undefined,
+          callProviderMetadata: part.callProviderMetadata,
+          resultProviderMetadata:
+            'resultProviderMetadata' in part
+              ? part.resultProviderMetadata
+              : undefined,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        output: undefined,
+        callProviderMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+        resultProviderMetadata: undefined,
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        output: 'second result',
+        callProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+        resultProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
+  });
+
   it('should handle custom events', async () => {
     const inputStream = convertArrayToReadableStream([
       ['custom', { custom: 'data' }],

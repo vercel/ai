@@ -1282,6 +1282,28 @@ function markToolCallEmitted(
   }
 }
 
+function markToolCallStarted(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): void {
+  markToolCallEmitted(state, toolCallId, namespace);
+  getOrCreateNamespaceSet(state.unfinishedToolCallsByNamespace, namespace).add(
+    toolCallId,
+  );
+}
+
+function hasUnfinishedToolCall(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return (
+    state.unfinishedToolCallsByNamespace.get(namespace)?.has(toolCallId) ===
+    true
+  );
+}
+
 function hasEmittedToolInputInCurrentStep(
   state: LangGraphEventState,
   toolCallId: string,
@@ -1326,6 +1348,7 @@ function markToolOutputEmitted(
   namespace: string,
 ): void {
   state.emittedToolOutputCallIds.add(toolCallId);
+  state.unfinishedToolCallsByNamespace.get(namespace)?.delete(toolCallId);
   if (state.currentStepsByNamespace.has(namespace)) {
     getOrCreateNamespaceSet(
       state.emittedToolOutputsInCurrentStepByNamespace,
@@ -1679,7 +1702,7 @@ export function processLangGraphEvent(
                   eventNamespace,
                 )
               ) {
-                markToolCallEmitted(state, toolCallId, eventNamespace);
+                markToolCallStarted(state, toolCallId, eventNamespace);
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
@@ -1800,8 +1823,7 @@ export function processLangGraphEvent(
           );
           const isDelayedOutputForPreviousLifecycle =
             !wasEmittedInCurrentStep &&
-            emittedToolCalls.has(toolCallId) &&
-            !state.emittedToolOutputCallIds.has(toolCallId);
+            hasUnfinishedToolCall(state, toolCallId, eventNamespace);
 
           if (
             !wasEmittedInCurrentStep &&
@@ -1821,7 +1843,7 @@ export function processLangGraphEvent(
               controller.enqueue({ type: 'start-step' });
             }
 
-            markToolCallEmitted(state, toolCallId, eventNamespace);
+            markToolCallStarted(state, toolCallId, eventNamespace);
             controller.enqueue({
               type: 'tool-input-start',
               toolCallId,
@@ -1888,11 +1910,14 @@ export function processLangGraphEvent(
         if (
           !hasEmittedToolCallInCurrentStep(state, toolCallId, eventNamespace)
         ) {
-          if (allowPreviousStep && emittedToolCalls.has(toolCallId)) {
+          if (
+            allowPreviousStep &&
+            hasUnfinishedToolCall(state, toolCallId, eventNamespace)
+          ) {
             return;
           }
 
-          markToolCallEmitted(state, toolCallId, eventNamespace);
+          markToolCallStarted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-input-start',
             toolCallId,
@@ -2189,7 +2214,7 @@ export function processLangGraphEvent(
                     (!emittedToolCalls.has(toolCall.id) &&
                       !completedToolCallIds.has(toolCall.id)))
                 ) {
-                  markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
+                  markToolCallStarted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
@@ -2366,7 +2391,7 @@ export function processLangGraphEvent(
                * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
-                markToolCallEmitted(state, toolCallId, eventNamespace);
+                markToolCallStarted(state, toolCallId, eventNamespace);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',
