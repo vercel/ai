@@ -31,7 +31,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
-  it('should return true when there is a text part after the last tool result in the last step', () => {
+  it('should return false when text follows the last tool result in the last step', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -47,21 +47,23 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                 input: {
                   city: 'New York',
                 },
-                output: 'windy',
+                output: {
+                  success: true,
+                  queryResult: 'large result',
+                },
               },
               {
                 type: 'text',
-                text: 'The current weather in New York is windy.',
-                state: 'done',
+                text: 'Prompt is too long',
               },
             ],
           },
         ],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('should return true when the tool has a output-error state', () => {
+  it('should return true when the tool has an output-error state', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -79,10 +81,35 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                 },
                 errorText: 'Unable to get weather information',
               },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return true when text precedes the last completed tool call', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
               {
                 type: 'text',
-                text: 'The current weather in New York is windy.',
+                text: 'I will check the weather.',
                 state: 'done',
+              },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_1',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
               },
             ],
           },
@@ -343,11 +370,6 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                   location: 'New York',
                 },
                 output: 'cloudy',
-              },
-              {
-                type: 'text',
-                text: 'The current weather in New York is cloudy.',
-                state: 'done',
               },
             ],
           },
