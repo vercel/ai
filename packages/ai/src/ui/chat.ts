@@ -535,67 +535,6 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       }
     };
 
-<<<<<<< HEAD
-=======
-    // For resume-stream, check if there's an active stream before
-    // changing status. This avoids a brief flash of 'submitted' status
-    // when there is no stream to resume (e.g. on page load).
-    let resumeStream: ReadableStream<UIMessageChunk> | undefined;
-    if (trigger === 'resume-stream') {
-      try {
-        const reconnect = await this.transport.reconnectToStream({
-          chatId: this.id,
-          abortSignal: abortController.signal,
-          metadata,
-          headers,
-          body,
-        });
-
-        if (abortController.signal.aborted || !isCurrentRequest()) {
-          await reconnect?.cancel().catch(() => {});
-          if (isCurrentRequest()) {
-            this.setStatus({ status: 'ready' });
-            this.resumableStreamState = undefined;
-          }
-          clearActiveResumeRequest();
-          return;
-        }
-
-        if (reconnect == null) {
-          this.setStatus({ status: 'ready' });
-          this.resumableStreamState = undefined;
-          clearActiveResumeRequest();
-          return; // no active stream found, so we do not resume
-        }
-
-        resumeStream = reconnect;
-      } catch (err) {
-        if (
-          abortController.signal.aborted ||
-          (err as { name?: string }).name === 'AbortError'
-        ) {
-          if (isCurrentRequest()) {
-            this.setStatus({ status: 'ready' });
-            this.resumableStreamState = undefined;
-          }
-          clearActiveResumeRequest();
-          return;
-        }
-
-        if (!isCurrentRequest()) {
-          return;
-        }
-
-        if (this.onError && err instanceof Error) {
-          this.onError(err);
-        }
-        this.setStatus({ status: 'error', error: err as Error });
-        clearActiveResumeRequest();
-        return;
-      }
-    }
-
->>>>>>> e21b98bc73 (fix: resumeStream fails to continue active UI message parts after a disconnect (#21509))
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
@@ -607,27 +546,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     try {
       const response = {
-<<<<<<< HEAD
-        state: createStreamingUIMessageState({
-          lastMessage:
-            trigger === 'resume-stream'
-              ? undefined
-              : this.state.snapshot(lastMessage),
-          messageId: this.generateId(),
-        }),
-=======
         state:
           trigger === 'resume-stream' && this.resumableStreamState != null
             ? this.resumableStreamState
             : createStreamingUIMessageState({
                 lastMessage:
-                  trigger === 'resume-stream' ||
-                  trigger === 'regenerate-message'
+                  trigger === 'resume-stream'
                     ? undefined
-                    : this.state.snapshot(responseMessage),
+                    : this.state.snapshot(lastMessage),
                 messageId: this.generateId(),
               }),
->>>>>>> e21b98bc73 (fix: resumeStream fails to continue active UI message parts after a disconnect (#21509))
         abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
@@ -654,6 +582,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           await reconnect?.cancel().catch(() => {});
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           return;
         }
@@ -661,6 +590,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         if (reconnect == null) {
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           return; // no active stream found, so we do not resume
         }
