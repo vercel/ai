@@ -45,8 +45,9 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
 export type HarnessAgentSandboxConfig = {
   /**
    * Optional fixed working directory for all sessions, relative to the
-   * sandbox's default working directory. When omitted, sessions keep the
-   * existing `<harnessId>-<sessionId>` work directory.
+   * sandbox's default working directory. Use `'.'` to use the default
+   * working directory itself. When omitted, sessions keep the existing
+   * `<harnessId>-<sessionId>` work directory.
    */
   readonly workDir?: string;
 
