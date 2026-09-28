@@ -570,19 +570,8 @@ jobs:
       - name: Extract package build artifacts
         run: tar -xzf package-build-artifacts.tgz
 
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
       - name: Test production consumer bundles
         run: pnpm test:bundlers ${{ matrix.zod }}
-
-      - name: Upload failure traces
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: consumer-bundles-zod-${{ matrix.zod }}
-          path: tools/bundler-tests/test-results
-          if-no-files-found: ignore
 
   test_ai_matrix:
     name: 'Test AI'

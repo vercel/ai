@@ -10,6 +10,7 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@types/react": "19.2.18",
+    "esbuild": "0.28.1",
     "typescript": "5.8.3"
   }
 }
