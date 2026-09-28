@@ -166,8 +166,7 @@ const agent = new HarnessAgent({
 
 Runtime context is excluded from telemetry by default. Use
 `telemetry.includeRuntimeContext` to allowlist individual top-level properties;
-only properties set to `true` are sent to telemetry integrations. The allowlist
-keys are type-checked against the inferred runtime context shape. Lifecycle
+only properties set to `true` are sent to telemetry integrations. Lifecycle
 callbacks and results still receive the full context, so avoid storing secrets
 that those consumers should not access.
 

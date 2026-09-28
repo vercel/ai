@@ -379,10 +379,7 @@ export type HarnessAgentSettings<
    * Register an integration here (e.g. `@ai-sdk/otel`) or globally via
    * `registerTelemetry`. The harness itself stays OpenTelemetry-agnostic.
    */
-  readonly telemetry?: TelemetryOptions<
-    RUNTIME_CONTEXT,
-    NoInfer<HarnessAllTools<THarness, TUserTools>>
-  >;
+  readonly telemetry?: TelemetryOptions;
 
   /**
    * Diagnostics configuration. Enables bridge log forwarding (sandbox

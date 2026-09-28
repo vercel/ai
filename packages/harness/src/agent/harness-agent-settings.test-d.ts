@@ -147,7 +147,7 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
   });
 
-  test('accepts runtime context and type-checks telemetry context keys', () => {
+  test('accepts runtime context without narrowing telemetry context keys', () => {
     type RuntimeContext = { tenantId: string; requestId: string };
     type RuntimeContextSettings = HarnessAgentSettings<
       typeof harness,
@@ -165,8 +165,12 @@ describe('HarnessAgentSettings tool filtering types', () => {
         includeRuntimeContext: {
           tenantId: true,
           requestId: false,
-          // @ts-expect-error includeRuntimeContext only supports runtime context properties
           unknown: true,
+        },
+        includeToolsContext: {
+          unknownTool: {
+            unknownProperty: true,
+          },
         },
       },
     };
