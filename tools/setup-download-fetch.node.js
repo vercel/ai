@@ -55,6 +55,8 @@ process.getBuiltinModule = id => {
           done(error);
         },
       });
+      // Fixture streams have no sockets and therefore no inactivity timeout.
+      request.setTimeout = () => request;
       const abort = () => request.destroy(options.signal.reason);
       options.signal?.addEventListener('abort', abort, { once: true });
       return request;

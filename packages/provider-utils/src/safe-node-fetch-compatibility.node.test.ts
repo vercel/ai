@@ -1,8 +1,16 @@
 import { createServer, type Server } from 'node:http';
-import { gzipSync, deflateSync, brotliCompressSync } from 'node:zlib';
+import {
+  gzipSync,
+  deflateSync,
+  deflateRawSync,
+  brotliCompressSync,
+} from 'node:zlib';
 import { once } from 'node:events';
-import { afterEach, beforeEach, expect, it } from 'vitest';
-import { getDefaultDownloadFetch } from './safe-node-fetch';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import {
+  getDefaultDownloadFetch,
+  createSafeNodeFetch,
+} from './safe-node-fetch';
 
 let server: Server;
 let origin: string;
@@ -164,14 +172,17 @@ it.each([
   expect(await (await fetch(origin)).text()).toBe('decoded content');
 });
 
-it('rejects malformed compressed responses', async () => {
-  server.on('request', (_request, response) => {
-    response.writeHead(200, { 'Content-Encoding': 'gzip' });
-    response.end('not gzip');
-  });
-  const fetch = await getDefaultDownloadFetch();
-  await expect((await fetch(origin)).text()).rejects.toThrow();
-});
+it.each(['gzip', 'deflate', 'br'])(
+  'rejects malformed %s responses',
+  async encoding => {
+    server.on('request', (_request, response) => {
+      response.writeHead(200, { 'Content-Encoding': encoding });
+      response.end('not gzip');
+    });
+    const fetch = await getDefaultDownloadFetch();
+    await expect((await fetch(origin)).text()).rejects.toThrow();
+  },
+);
 
 it('cancels a compressed response and closes its socket', async () => {
   let closed!: Promise<unknown>;
@@ -242,4 +253,285 @@ it('supports inline data URLs without a socket', async () => {
   expect(await (await fetch('data:text/plain;base64,aGVsbG8=')).text()).toBe(
     'hello',
   );
+});
+
+it.each(['gzip', 'deflate', 'br'])(
+  'accepts empty %s responses',
+  async encoding => {
+    server.on('request', (_request, response) => {
+      response.writeHead(200, { 'Content-Encoding': encoding });
+      response.end();
+    });
+    const fetch = await getDefaultDownloadFetch();
+    expect(await (await fetch(origin)).text()).toBe('');
+  },
+);
+
+it.each([
+  ['deflate', deflateRawSync('decoded content')],
+  ['gzip, br', brotliCompressSync(gzipSync('decoded content'))],
+  ['deflate, gzip', gzipSync(deflateRawSync('decoded content'))],
+] as const)('decodes legacy or stacked %s', async (encoding, data) => {
+  server.on('request', (_request, response) => {
+    response.writeHead(200, { 'Content-Encoding': encoding });
+    response.write(data.subarray(0, 1));
+    setImmediate(() => response.end(data.subarray(1)));
+  });
+  const fetch = await getDefaultDownloadFetch();
+  expect(await (await fetch(origin)).text()).toBe('decoded content');
+});
+
+it('preserves an unknown encoding stack without partially decoding it', async () => {
+  const data = gzipSync('opaque content');
+  server.on('request', (_request, response) => {
+    response.writeHead(200, { 'Content-Encoding': 'unknown, gzip' });
+    response.end(data);
+  });
+  const fetch = await getDefaultDownloadFetch();
+  expect(Buffer.from(await (await fetch(origin)).arrayBuffer())).toEqual(data);
+});
+
+it.each([
+  'hello 🌍',
+  new URLSearchParams({ code: 'hello 🌍' }),
+  new Blob(['hello 🌍']),
+  new Uint8Array([0, 1, 255]),
+  new ArrayBuffer(3),
+])('sends the byte length of known bodies', async body => {
+  server.on('request', async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    response.end(
+      JSON.stringify({
+        length: request.headers['content-length'],
+        actual: Buffer.concat(chunks).length,
+        chunked: request.headers['transfer-encoding'],
+      }),
+    );
+  });
+  const fetch = await getDefaultDownloadFetch();
+  const result = await (await fetch(origin, { method: 'POST', body })).json();
+  expect(result.length).toBe(String(result.actual));
+  expect(result.chunked).toBeUndefined();
+});
+
+it('times out while waiting for response headers and closes the socket', async () => {
+  let closed!: Promise<unknown>;
+  server.on('request', request => {
+    closed = once(request.socket, 'close');
+  });
+  const fetch = await createSafeNodeFetch({ idleTimeout: 40 });
+  await expect(fetch(origin)).rejects.toThrow('socket timed out');
+  await closed;
+});
+
+it('times out a stalled response body', async () => {
+  server.on('request', (_request, response) => response.write('first'));
+  const fetch = await createSafeNodeFetch({ idleTimeout: 40 });
+  const response = await fetch(origin);
+  await expect(response.text()).rejects.toThrow('socket timed out');
+});
+
+it('does not impose an overall deadline on active downloads', async () => {
+  server.on('request', (_request, response) => {
+    const timer = setInterval(() => response.write('.'), 10);
+    const end = setTimeout(() => response.end(), 160);
+    response.on('close', () => {
+      clearInterval(timer);
+      clearTimeout(end);
+    });
+  });
+  const fetch = await createSafeNodeFetch({ idleTimeout: 80 });
+  expect((await (await fetch(origin)).text()).length).toBeGreaterThan(3);
+});
+
+it('rejects protocol upgrades instead of leaving a pending request', async () => {
+  server.on('request', (_request, response) => {
+    response.writeHead(101, { Connection: 'Upgrade', Upgrade: 'websocket' });
+    response.end();
+  });
+  const fetch = await getDefaultDownloadFetch();
+  await expect(fetch(origin)).rejects.toThrow('upgrades are unsupported');
+});
+
+it.each([
+  { integrity: 'sha256-test' },
+  { cache: 'force-cache' as const },
+  { referrer: 'https://example.com/' },
+  { keepalive: true },
+])('rejects unsupported semantics before connecting: %j', async init => {
+  let connections = 0;
+  server.on('connection', () => connections++);
+  const fetch = await getDefaultDownloadFetch();
+  await expect(fetch(origin, init)).rejects.toThrow();
+  expect(connections).toBe(0);
+});
+
+it('propagates a custom abort reason while waiting for headers', async () => {
+  const controller = new AbortController();
+  const reason = new Error('user cancelled');
+  server.on('request', () => controller.abort(reason));
+  const fetch = await getDefaultDownloadFetch();
+  await expect(fetch(origin, { signal: controller.signal })).rejects.toBe(
+    reason,
+  );
+});
+
+it.each([205, 304])('returns no body for status %s', async status => {
+  server.on('request', (_request, response) => {
+    response.writeHead(status, { 'Content-Encoding': 'gzip' });
+    response.end();
+  });
+  const fetch = await getDefaultDownloadFetch();
+  expect((await fetch(origin)).body).toBeNull();
+});
+
+it.each<Record<string, string>>([
+  { 'Content-Length': '1' },
+  { 'Content-Length': '-1' },
+  { 'Content-Length': 'no' },
+  { 'Transfer-Encoding': 'chunked' },
+])(
+  'rejects conflicting request framing before connecting: %j',
+  async headers => {
+    let connections = 0;
+    server.on('connection', () => connections++);
+    const fetch = await getDefaultDownloadFetch();
+    await expect(
+      fetch(origin, { method: 'POST', body: 'hello', headers }),
+    ).rejects.toThrow();
+    expect(connections).toBe(0);
+  },
+);
+
+it('reuses a connection after a complete response without retaining its abort signal', async () => {
+  let connections = 0;
+  server.on('connection', () => connections++);
+  server.on('request', (_request, response) => response.end('complete'));
+  const controller = new AbortController();
+  const fetch = await createSafeNodeFetch({ idleTimeout: 80 });
+  expect(
+    await (await fetch(origin, { signal: controller.signal })).text(),
+  ).toBe('complete');
+  controller.abort();
+  expect(await (await fetch(origin)).text()).toBe('complete');
+  expect(connections).toBe(1);
+});
+
+it('propagates upload errors and closes the request', async () => {
+  const reason = new Error('upload failed');
+  const body = new ReadableStream({
+    start(controller) {
+      controller.error(reason);
+    },
+  });
+  const fetch = await getDefaultDownloadFetch();
+  await expect(
+    fetch(
+      new Request(origin, {
+        method: 'POST',
+        body,
+        ...{ duplex: 'half' },
+      }),
+    ),
+  ).rejects.toBe(reason);
+});
+
+it('cancels a streaming upload when the request is aborted', async () => {
+  const controller = new AbortController();
+  let cancelled = false;
+  const body = new ReadableStream({
+    start(stream) {
+      stream.enqueue(new Uint8Array([1]));
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  server.on('request', () => controller.abort());
+  const fetch = await getDefaultDownloadFetch();
+  await expect(
+    fetch(
+      new Request(origin, {
+        method: 'POST',
+        body,
+        signal: controller.signal,
+        ...{ duplex: 'half' },
+      }),
+    ),
+  ).rejects.toMatchObject({ name: 'AbortError' });
+  expect(cancelled).toBe(true);
+});
+
+it('bounds DNS lookup time without falling back to global fetch', async () => {
+  const lookup = vi
+    .spyOn(process.getBuiltinModule('node:dns'), 'lookup')
+    .mockImplementation(() => {});
+  try {
+    const fetch = await createSafeNodeFetch({ connectTimeout: 40 });
+    await expect(fetch('http://files.example.com')).rejects.toThrow(
+      'connection timed out',
+    );
+  } finally {
+    lookup.mockRestore();
+  }
+});
+
+it('bounds the header wait even if a server keeps sending incomplete headers', async () => {
+  server.on('request', request => {
+    request.socket.write('HTTP/1.1 200 OK\r\n');
+    const interval = setInterval(
+      () => request.socket.write('X-Slow: header\r\n'),
+      10,
+    );
+    request.socket.on('close', () => clearInterval(interval));
+  });
+  const fetch = await createSafeNodeFetch({
+    headersTimeout: 80,
+    idleTimeout: 200,
+  });
+  await expect(fetch(origin)).rejects.toThrow('headers timed out');
+});
+
+it.each(['gzip', 'gzip, br'])(
+  'preserves custom abort reasons during %s decoding',
+  async encoding => {
+    const controller = new AbortController();
+    const reason = new Error('stop decoding');
+    server.on('request', (_request, response) => {
+      response.writeHead(200, { 'Content-Encoding': encoding });
+      const data = gzipSync('first chunk');
+      response.write(encoding === 'gzip' ? data : brotliCompressSync(data));
+    });
+    const fetch = await getDefaultDownloadFetch();
+    const response = await fetch(origin, { signal: controller.signal });
+    const reader = response.body!.getReader();
+    await reader.read();
+    controller.abort(reason);
+    await expect(reader.read()).rejects.toBe(reason);
+  },
+);
+
+it('bounds the TLS handshake, not just the TCP connection', async () => {
+  const { createServer } = process.getBuiltinModule('node:net');
+  const { server: stalled, address } = await new Promise<{
+    server: ReturnType<typeof createServer>;
+    address: string;
+  }>(resolve => {
+    const server = createServer(socket => {
+      socket.on('data', () => {});
+    });
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (!address || typeof address === 'string')
+        throw new Error('Expected TCP address');
+      resolve({ server, address: `https://127.0.0.1:${address.port}` });
+    });
+  });
+  try {
+    const fetch = await createSafeNodeFetch({ connectTimeout: 40 });
+    await expect(fetch(address)).rejects.toThrow('connection timed out');
+  } finally {
+    await new Promise<void>(resolve => stalled.close(() => resolve()));
+  }
 });

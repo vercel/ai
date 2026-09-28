@@ -58,16 +58,69 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
   return (safeNodeFetchPromise ??= createSafeNodeFetch());
 }
 
-async function createSafeNodeFetch(): Promise<FetchFunction> {
+// Exported for transport tests, not from the package entrypoint.
+export async function createSafeNodeFetch({
+  connectTimeout = 10_000,
+  idleTimeout = 300_000,
+  headersTimeout = 300_000,
+} = {}): Promise<FetchFunction> {
   const { lookup } = process.getBuiltinModule('node:dns');
   const http = process.getBuiltinModule('node:http');
   const https = process.getBuiltinModule('node:https');
-  const { Readable, pipeline } = process.getBuiltinModule('node:stream');
-  const { createGunzip, createInflate, createBrotliDecompress } =
-    process.getBuiltinModule('node:zlib');
+  const { Readable, PassThrough, pipeline, addAbortSignal } =
+    process.getBuiltinModule('node:stream');
+  const {
+    createGunzip,
+    createInflate,
+    createInflateRaw,
+    createBrotliDecompress,
+  } = process.getBuiltinModule('node:zlib');
   const safeLookup = createSafeLookup(lookup);
   const httpAgent = new http.Agent({ keepAlive: true, lookup: safeLookup });
   const httpsAgent = new https.Agent({ keepAlive: true, lookup: safeLookup });
+
+  async function* decode(
+    source: AsyncIterable<Uint8Array>,
+    encoding: string,
+    signal: AbortSignal,
+  ): AsyncGenerator<Uint8Array> {
+    const iterator = source[Symbol.asyncIterator]();
+    const first = await iterator.next();
+    // Some servers label an empty response as compressed without writing a
+    // compression header. Peek without buffering the rest of the download.
+    if (first.done) return;
+    const decoder =
+      encoding === 'br'
+        ? createBrotliDecompress()
+        : encoding === 'gzip' || encoding === 'x-gzip'
+          ? createGunzip()
+          : // Legacy servers also send raw DEFLATE under the "deflate" coding.
+            (first.value[0] & 0x0f) === 8
+            ? createInflate()
+            : createInflateRaw();
+    const compressed = Readable.from(
+      (async function* () {
+        yield first.value;
+        for (
+          let next = await iterator.next();
+          !next.done;
+          next = await iterator.next()
+        ) {
+          yield next.value;
+        }
+      })(),
+    );
+    addAbortSignal(signal, compressed);
+    addAbortSignal(signal, decoder);
+    pipeline(compressed, decoder, () => {});
+    try {
+      yield* decoder;
+    } finally {
+      compressed.destroy();
+      decoder.destroy();
+      await iterator.return?.();
+    }
+  }
 
   return async (input, init) => {
     const request = new Request(input, init);
@@ -89,7 +142,52 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
       );
     }
 
+    if (
+      request.cache !== 'default' ||
+      (request.referrer !== '' && request.referrer !== 'about:client') ||
+      request.keepalive
+    ) {
+      throw new TypeError(
+        'Unsupported download cache, referrer, or keepalive option',
+      );
+    }
+
     const headers = new Headers(request.headers);
+    const requestBody = init?.body;
+    const length =
+      typeof requestBody === 'string'
+        ? new TextEncoder().encode(requestBody).byteLength
+        : requestBody instanceof URLSearchParams
+          ? new TextEncoder().encode(requestBody.toString()).byteLength
+          : requestBody instanceof Blob
+            ? requestBody.size
+            : requestBody instanceof ArrayBuffer ||
+                ArrayBuffer.isView(requestBody)
+              ? requestBody.byteLength
+              : undefined;
+    if (headers.has('transfer-encoding')) {
+      throw new TypeError('The download transport manages Transfer-Encoding');
+    }
+    const declaredLength = headers.get('content-length');
+    if (
+      declaredLength != null &&
+      (!/^\d+$/.test(declaredLength) ||
+        !Number.isSafeInteger(Number(declaredLength)) ||
+        (length != null && Number(declaredLength) !== length) ||
+        (request.body == null && Number(declaredLength) !== 0))
+    ) {
+      throw new TypeError('Invalid download request Content-Length');
+    }
+    // A stream has no known length; reject a supplied length instead of risking
+    // truncation or writing excess bytes into a reused HTTP connection.
+    if (request.body != null && length == null && declaredLength != null) {
+      throw new TypeError(
+        'Content-Length requires a known download request body size',
+      );
+    }
+    if (length != null && !headers.has('content-length')) {
+      headers.set('content-length', String(length));
+    }
     if (!headers.has('accept')) headers.set('accept', '*/*');
     if (!headers.has('accept-encoding'))
       headers.set('accept-encoding', 'gzip, deflate, br');
@@ -107,6 +205,7 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
           signal,
         },
         incoming => {
+          clearTimeout(headersTimer);
           try {
             const status = incoming.statusCode;
             if (status == null)
@@ -133,25 +232,42 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
               request.method !== 'HEAD' && ![204, 205, 304].includes(status);
             if (hasBody) {
               body = incoming;
-              const encoding = responseHeaders
-                .get('content-encoding')
-                ?.trim()
-                .toLowerCase();
-              const decoder =
-                encoding === 'gzip' || encoding === 'x-gzip'
-                  ? createGunzip()
-                  : encoding === 'deflate' || encoding === 'x-deflate'
-                    ? createInflate()
-                    : encoding === 'br'
-                      ? createBrotliDecompress()
-                      : undefined;
-              if (decoder) {
-                // pipeline propagates decoding errors and cancellation in both
-                // directions, so cancelling the Web Stream closes the socket.
-                body = decoder;
-                pipeline(incoming, decoder, error => {
-                  if (error) outgoing.destroy(error);
+              const encodings =
+                responseHeaders
+                  .get('content-encoding')
+                  ?.toLowerCase()
+                  .split(',')
+                  .map(value => value.trim()) ?? [];
+              // An unknown coding makes the entire stack opaque, like fetch.
+              if (
+                encodings.length &&
+                encodings.every(encoding =>
+                  ['gzip', 'x-gzip', 'deflate', 'x-deflate', 'br'].includes(
+                    encoding,
+                  ),
+                )
+              ) {
+                const decodedBody = new PassThrough();
+                body = decodedBody;
+                const decoding = new AbortController();
+                body.once('close', () => {
+                  decoding.abort();
+                  if (!incoming.complete) incoming.destroy();
                 });
+                pipeline(
+                  incoming,
+                  async function* (source) {
+                    let decoded: AsyncIterable<Uint8Array> = source;
+                    for (const encoding of encodings.reverse()) {
+                      decoded = decode(decoded, encoding, decoding.signal);
+                    }
+                    yield* decoded;
+                  },
+                  decodedBody,
+                  error => {
+                    if (error) outgoing.destroy(error);
+                  },
+                );
               }
             } else {
               incoming.resume();
@@ -173,7 +289,43 @@ async function createSafeNodeFetch(): Promise<FetchFunction> {
           }
         },
       );
-      outgoing.once('close', () => upload?.destroy());
+      // Cover DNS/TCP/TLS setup separately from socket inactivity. The latter
+      // also bounds header waits, but permits arbitrarily long active streams.
+      const timer = setTimeout(
+        () => outgoing.destroy(new Error('Download connection timed out')),
+        connectTimeout,
+      );
+      timer.unref();
+      const headersTimer = setTimeout(
+        () =>
+          outgoing.destroy(new Error('Download response headers timed out')),
+        headersTimeout,
+      );
+      headersTimer.unref();
+      outgoing.once('socket', socket => {
+        if (!socket.connecting) clearTimeout(timer);
+        else
+          socket.once(
+            url.protocol === 'https:' ? 'secureConnect' : 'connect',
+            () => clearTimeout(timer),
+          );
+      });
+      outgoing.setTimeout(idleTimeout, () =>
+        outgoing.destroy(new Error('Download socket timed out')),
+      );
+      outgoing.once('upgrade', (_response, socket) => {
+        socket.destroy();
+        const error = new TypeError(
+          'Download protocol upgrades are unsupported',
+        );
+        outgoing.destroy(error);
+        reject(error);
+      });
+      outgoing.once('close', () => {
+        clearTimeout(timer);
+        clearTimeout(headersTimer);
+        upload?.destroy();
+      });
       outgoing.on('error', error => {
         const failure = signal.aborted ? signal.reason : error;
         upload?.destroy(error);
