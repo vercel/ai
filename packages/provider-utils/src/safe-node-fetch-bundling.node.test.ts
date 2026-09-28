@@ -43,7 +43,8 @@ globalThis.fetch = () => {
   throw new Error('Protected download fell back to global fetch');
 };
 
-const { fetchWithValidatedEndpoint } = await import(pathToFileURL(process.argv[2]));
+const loaded = await import(pathToFileURL(process.argv[2]));
+const { fetchWithValidatedEndpoint } = loaded.default ?? loaded;
 await assert.rejects(
   fetchWithValidatedEndpoint({ url: 'https://download.example.com/file' }),
   error => {
@@ -84,74 +85,32 @@ it.each(['cjs', 'esm'] as const)(
       minify: true,
       platform: 'node',
       format,
-      // esbuild leaves Node built-in requires in bundled CommonJS dependencies.
-      // Supply their standard ESM bridge; no third-party package is externalized.
-      banner:
-        format === 'esm'
-          ? {
-              js: `import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);`,
-            }
-          : undefined,
     });
     await verifyNodeTransport(entry);
   },
 );
 
-it.each(['cjs', 'esm'] as const)(
-  'rejects a portable bundle running on Node before loading a transport or requesting (%s)',
-  async format => {
-    const entry = join(
-      directory,
-      format === 'cjs' ? 'portable.cjs' : 'portable.mjs',
+describe.each(['neutral', 'browser'] as const)(
+  '%s bundle running on Node',
+  platform => {
+    it.each(['cjs', 'esm'] as const)(
+      'retains DNS protection (%s)',
+      async format => {
+        const entry = join(
+          directory,
+          format === 'cjs' ? 'bundle.cjs' : 'bundle.mjs',
+        );
+        await build({
+          stdin: { contents: publicEntry, resolveDir: packageDirectory },
+          outfile: entry,
+          bundle: true,
+          minify: true,
+          platform,
+          format,
+        });
+        await verifyNodeTransport(entry);
+      },
     );
-    await build({
-      stdin: { contents: publicEntry, resolveDir: packageDirectory },
-      outfile: entry,
-      bundle: true,
-      minify: true,
-      platform: 'neutral',
-      format,
-    });
-    const runner = join(directory, 'portable-runner.mjs');
-    await writeFile(
-      runner,
-      `
-import assert from 'node:assert/strict';
-import dns from 'node:dns';
-import { pathToFileURL } from 'node:url';
-
-let requests = 0;
-let lookups = 0;
-let builtinLoads = 0;
-globalThis.fetch = async () => {
-  requests++;
-  return new Response('unguarded download');
-};
-dns.lookup = () => { lookups++; throw new Error('Unexpected DNS lookup'); };
-process.getBuiltinModule = () => {
-  builtinLoads++;
-  throw new Error('Unexpected Node transport initialization');
-};
-
-// Importing remains safe; only attempting a protected download should fail.
-const loaded = await import(pathToFileURL(process.argv[2]));
-const { fetchWithValidatedEndpoint } = loaded.default ?? loaded;
-await assert.rejects(
-  fetchWithValidatedEndpoint({ url: 'https://download.example.com/file' }),
-  /portable build cannot perform protected downloads in Node\\.js.*configure your bundler.*node.*export condition/,
-);
-assert.equal(requests, 0);
-assert.equal(lookups, 0);
-assert.equal(builtinLoads, 0);
-`,
-    );
-    const env = { ...process.env };
-    delete env.NODE_PATH;
-    await execFileAsync(process.execPath, [runner, entry], {
-      cwd: directory,
-      env,
-      timeout: 10_000,
-    });
   },
 );
 
