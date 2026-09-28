@@ -476,22 +476,18 @@ export class HarnessAgentSession {
       );
     }
     const session = this.underlyingSession;
-    try {
-      if (this.turnState !== 'idle') {
-        return this.toResumeStateWithContinuation({
-          continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
-        });
-      }
-      const raw = await session.doDetach();
-      const validated = await validateLifecycleStateData({
-        harness: this.harness,
-        state: raw,
-        expectedType: 'resume-session',
-      });
-      return validated;
-    } finally {
-      this.endLocalHandle({ sessionState: 'detached' });
-    }
+    const state =
+      this.turnState !== 'idle'
+        ? this.toResumeStateWithContinuation({
+            continueFrom: await this.finalizeCurrentTurnSuspension({ session }),
+          })
+        : await validateLifecycleStateData({
+            harness: this.harness,
+            state: await session.doDetach(),
+            expectedType: 'resume-session',
+          });
+    this.endLocalHandle({ sessionState: 'detached' });
+    return state;
   }
 
   /**
