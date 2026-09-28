@@ -353,6 +353,126 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    it('keeps an interrupting utterance together across the trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { interrupted: true },
+      });
+
+      const firstFragment = {
+        serverContent: {
+          inputTranscription: { text: 'Stop', finished: false },
+        },
+      };
+      expect(mapper.parseServerEvent(firstFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop',
+        raw: firstFragment,
+      });
+
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const finalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' now.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(finalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Stop now.',
+        raw: finalFragment,
+      });
+    });
+
+    it('keeps a delayed final fragment with its utterance and separates the next one', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'What time', finished: false },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const delayedFinalFragment = {
+        serverContent: {
+          inputTranscription: { text: ' is it?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(delayedFinalFragment)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayedFinalFragment,
+      });
+
+      const nextUtterance = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(nextUtterance)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw: nextUtterance,
+      });
+    });
+
+    it('assigns separate IDs to consecutive finished transcriptions', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      const first = {
+        serverContent: {
+          inputTranscription: { text: 'First utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(first)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'First utterance.',
+        raw: first,
+      });
+
+      const second = {
+        serverContent: {
+          inputTranscription: { text: 'Second utterance.', finished: true },
+        },
+      };
+      expect(mapper.parseServerEvent(second)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'Second utterance.',
+        raw: second,
+      });
+    });
+
     it('accumulates consecutive input transcription fragments into one utterance', () => {
       const mapper = new GoogleRealtimeEventMapper();
 

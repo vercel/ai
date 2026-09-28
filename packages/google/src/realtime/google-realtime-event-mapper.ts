@@ -25,8 +25,8 @@ type GoogleRealtimeServerContent = {
       text?: string;
     }>;
   };
-  outputTranscription?: { text?: string };
-  inputTranscription?: { text?: string };
+  outputTranscription?: { text?: string; finished?: boolean };
+  inputTranscription?: { text?: string; finished?: boolean };
   turnComplete?: boolean;
   waitingForInput?: boolean;
 };
@@ -38,7 +38,7 @@ type GoogleRealtimeWireEvent = {
   };
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
-  inputTranscription?: { text?: string };
+  inputTranscription?: { text?: string; finished?: boolean };
   goAway?: { timeLeft?: string };
   sessionResumptionUpdate?: {
     newHandle?: string;
@@ -58,7 +58,10 @@ export class GoogleRealtimeEventMapper {
   private turnCounter = 0;
   private inputTranscriptionCounter = 0;
   private inputTranscriptionBuffer = '';
-  private inputTranscriptionBoundary = false;
+  private inputTranscriptionBoundary: 'none' | 'interrupted' | 'turn-complete' =
+    'none';
+  private inputTranscriptionFinished = false;
+  private preserveInputTranscriptionAcrossTurnComplete = false;
   private hasAudio = false;
   private hasText = false;
   private hasTranscript = false;
@@ -94,25 +97,36 @@ export class GoogleRealtimeEventMapper {
   // " jumps over the", " lazy dog."). Concatenate consecutive fragments into
   // one running transcript under a stable synthetic id so the realtime reducer
   // (which overwrites the message for a given id) surfaces them as a single
-  // coherent user message rather than one message per fragment. A new
-  // utterance begins after the model takes the turn (`turnComplete`) or the
-  // user interrupts, at which point the id advances and the buffer resets.
+  // coherent user message rather than one message per fragment. Google's
+  // `finished` signal is the authoritative utterance boundary. For older
+  // payloads without that signal, response boundaries remain a fallback.
   //
   // Input transcriptions can arrive independently of response turn events, so
   // their synthetic IDs use a sequence independent of `turnCounter`.
-  private accumulateInputTranscription(delta: string): {
+  private accumulateInputTranscription({
+    text,
+    finished,
+  }: {
+    text: string;
+    finished?: boolean;
+  }): {
     itemId: string;
     transcript: string;
   } {
+    const hasFinishedSignal = finished != null;
     if (
-      this.inputTranscriptionBoundary &&
-      this.inputTranscriptionBuffer !== ''
+      this.inputTranscriptionBuffer !== '' &&
+      (this.inputTranscriptionFinished ||
+        this.inputTranscriptionBoundary === 'interrupted' ||
+        (this.inputTranscriptionBoundary === 'turn-complete' &&
+          !hasFinishedSignal))
     ) {
       this.inputTranscriptionCounter++;
       this.inputTranscriptionBuffer = '';
     }
-    this.inputTranscriptionBoundary = false;
-    this.inputTranscriptionBuffer += delta;
+    this.inputTranscriptionBoundary = 'none';
+    this.inputTranscriptionBuffer += text;
+    this.inputTranscriptionFinished = finished === true;
     return {
       itemId: `google-input-${this.inputTranscriptionCounter}`,
       transcript: this.inputTranscriptionBuffer,
@@ -184,9 +198,10 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.inputTranscription?.text != null) {
-      const { itemId, transcript } = this.accumulateInputTranscription(
-        data.inputTranscription.text,
-      );
+      const { itemId, transcript } = this.accumulateInputTranscription({
+        text: data.inputTranscription.text,
+        finished: data.inputTranscription.finished,
+      });
       return {
         type: 'input-transcription-completed',
         itemId,
@@ -206,8 +221,10 @@ export class GoogleRealtimeEventMapper {
 
     if (serverContent.interrupted) {
       // A barge-in ends the current user utterance; the next input
-      // transcription fragment belongs to a fresh utterance.
-      this.inputTranscriptionBoundary = true;
+      // transcription fragment belongs to a fresh utterance. The interrupted
+      // response's trailing turnComplete must not split that new utterance.
+      this.inputTranscriptionBoundary = 'interrupted';
+      this.preserveInputTranscriptionAcrossTurnComplete = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -253,9 +270,10 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (serverContent.inputTranscription?.text) {
-      const { itemId, transcript } = this.accumulateInputTranscription(
-        serverContent.inputTranscription.text,
-      );
+      const { itemId, transcript } = this.accumulateInputTranscription({
+        text: serverContent.inputTranscription.text,
+        finished: serverContent.inputTranscription.finished,
+      });
       events.push({
         type: 'input-transcription-completed',
         itemId,
@@ -333,9 +351,17 @@ export class GoogleRealtimeEventMapper {
       // Mark the turn closed but defer advancing the counter until the next
       // response actually begins (see `beginTurnIfClosed`).
       this.turnClosed = true;
-      // The model has taken the turn, so any input transcription that follows
-      // is a new user utterance and must start a fresh accumulation buffer.
-      this.inputTranscriptionBoundary = true;
+      if (this.preserveInputTranscriptionAcrossTurnComplete) {
+        this.preserveInputTranscriptionAcrossTurnComplete = false;
+      } else {
+        // For payloads without `finished`, the completed response remains the
+        // fallback signal that the next transcription is a new utterance.
+        // A transcription carrying `finished` can still arrive late and close
+        // the preceding utterance after this response boundary.
+        if (this.inputTranscriptionBoundary !== 'interrupted') {
+          this.inputTranscriptionBoundary = 'turn-complete';
+        }
+      }
     }
 
     if (events.length === 0) {
