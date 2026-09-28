@@ -1,21 +1,22 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  {
-    entry: ['src/index.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    dts: {
-      compilerOptions: {
-        composite: false,
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    {
+      entry: ['src/index.ts'],
+      dts: {
+        compilerOptions: {
+          composite: false,
+        },
+      },
+      define: {
+        __PACKAGE_VERSION__: JSON.stringify(
+          (await import('./package.json', { with: { type: 'json' } })).default
+            .version,
+        ),
       },
     },
-    sourcemap: true,
-    define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
-    },
-  },
-]);
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

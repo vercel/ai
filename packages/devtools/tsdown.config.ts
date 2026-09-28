@@ -1,21 +1,23 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  // Middleware entry (main package export)
-  {
-    entry: ['src/index.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    dts: true,
-    outDir: 'dist',
-    clean: false,
-  },
-  // Viewer server
-  {
-    entry: ['src/viewer/server.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    outDir: 'dist/viewer',
-    clean: false,
-  },
-]);
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    // Middleware entry (main package export)
+    {
+      entry: ['src/index.ts'],
+      sourcemap: false,
+      outDir: 'dist',
+      clean: false,
+    },
+    // Viewer server
+    {
+      entry: ['src/viewer/server.ts'],
+      dts: false,
+      sourcemap: false,
+      outDir: 'dist/viewer',
+      clean: false,
+    },
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

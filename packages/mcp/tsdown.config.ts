@@ -1,19 +1,15 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  {
-    entry: ['src/index.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    dts: true,
-    sourcemap: true,
-  },
-  {
-    entry: ['src/tool/mcp-stdio/index.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    dts: true,
-    sourcemap: true,
-    outDir: 'dist/mcp-stdio',
-  },
-]);
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    {
+      entry: ['src/index.ts'],
+    },
+    {
+      entry: ['src/tool/mcp-stdio/index.ts'],
+      outDir: 'dist/mcp-stdio',
+    },
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

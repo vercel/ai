@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs';
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
+
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 
 const packageVersion = JSON.stringify(
   (await import('./package.json', { with: { type: 'json' } })).default.version,
@@ -20,18 +22,16 @@ const implementationPnpmWorkspaceYaml = JSON.stringify(
   ).toString(),
 );
 
-export default defineConfig({
-  entry: { index: 'src/index.ts' },
-  format: ['esm'],
-  target: 'es2022',
-  dts: true,
-  sourcemap: true,
-  define: {
-    __PACKAGE_VERSION__: packageVersion,
-    __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: implementationPackageJson,
-    __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: implementationPnpmLockYaml,
-    __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
-      implementationPnpmWorkspaceYaml,
-  },
-  clean: false,
-});
+export default defineConfig(
+  mergeConfig(tsdownBaseConfig, {
+    entry: { index: 'src/index.ts' },
+    define: {
+      __PACKAGE_VERSION__: packageVersion,
+      __GROK_BUILD_IMPLEMENTATION_PACKAGE_JSON__: implementationPackageJson,
+      __GROK_BUILD_IMPLEMENTATION_PNPM_LOCK_YAML__: implementationPnpmLockYaml,
+      __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
+        implementationPnpmWorkspaceYaml,
+    },
+    clean: false,
+  }),
+);

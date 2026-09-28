@@ -1,27 +1,27 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  {
-    entry: [
-      'src/**/*.ts',
-      '!src/**/*.test.ts',
-      '!src/e2e/**/*.ts',
-      '!src/utils/test-helpers.ts',
-    ],
-    format: ['esm'],
-    target: 'es2022',
-    dts: false,
-    sourcemap: true,
-    platform: 'node',
-    unbundle: true,
-  },
-  {
-    entry: { index: 'src/index.ts' },
-    format: ['esm'],
-    target: 'es2022',
-    dts: {
-      only: true,
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    {
+      entry: [
+        'src/**/*.ts',
+        '!src/**/*.test.ts',
+        '!src/e2e/**/*.ts',
+        '!src/utils/test-helpers.ts',
+      ],
+      dts: false,
+      platform: 'node',
+      unbundle: true,
     },
-    platform: 'node',
-  },
-]);
+    {
+      entry: { index: 'src/index.ts' },
+      dts: {
+        only: true,
+      },
+      sourcemap: false,
+      platform: 'node',
+    },
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

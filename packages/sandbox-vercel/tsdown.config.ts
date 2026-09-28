@@ -1,11 +1,11 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  {
-    entry: { index: 'src/index.ts' },
-    format: ['esm'],
-    target: 'es2022',
-    dts: true,
-    sourcemap: true,
-  },
-]);
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    {
+      entry: { index: 'src/index.ts' },
+    },
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

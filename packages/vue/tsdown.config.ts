@@ -1,14 +1,14 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  {
-    entry: ['src/index.ts'],
-    outDir: 'dist',
-    banner: {},
-    format: ['esm'],
-    target: 'es2022',
-    deps: { neverBundle: ['vue'] },
-    dts: true,
-    sourcemap: true,
-  },
-]);
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    {
+      entry: ['src/index.ts'],
+      outDir: 'dist',
+      banner: {},
+      deps: { neverBundle: ['vue'] },
+    },
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

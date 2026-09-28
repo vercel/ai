@@ -1,66 +1,58 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig([
-  // Universal APIs
-  {
-    entry: ['src/index.ts'],
-    format: ['esm'],
-    target: 'es2022',
-    deps: { neverBundle: ['react', 'svelte', 'vue', 'chai', 'chai/*'] },
-    dts: true,
-    sourcemap: true,
-    platform: 'node',
-    define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  [
+    // Universal APIs
+    {
+      entry: ['src/index.ts'],
+      deps: { neverBundle: ['react', 'svelte', 'vue', 'chai', 'chai/*'] },
+      platform: 'node',
+      define: {
+        __PACKAGE_VERSION__: JSON.stringify(
+          (await import('./package.json', { with: { type: 'json' } })).default
+            .version,
+        ),
+      },
     },
-  },
-  // Internal APIs
-  {
-    entry: ['internal/index.ts'],
-    outDir: 'dist/internal',
-    format: ['esm'],
-    target: 'es2022',
-    deps: { neverBundle: ['chai', 'chai/*'] },
-    dts: true,
-    sourcemap: true,
-    platform: 'node',
-    define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
+    // Internal APIs
+    {
+      entry: ['internal/index.ts'],
+      outDir: 'dist/internal',
+      deps: { neverBundle: ['chai', 'chai/*'] },
+      platform: 'node',
+      define: {
+        __PACKAGE_VERSION__: JSON.stringify(
+          (await import('./package.json', { with: { type: 'json' } })).default
+            .version,
+        ),
+      },
     },
-  },
-  // Test utilities
-  {
-    entry: ['test/index.ts'],
-    outDir: 'dist/test',
-    format: ['esm'],
-    target: 'es2022',
-    deps: {
-      neverBundle: [
-        'chai',
-        'chai/*',
-        'vitest',
-        'vitest/*',
-        '@vitest/*',
-        'vitest/dist/*',
-        'vitest/dist/chunks/*',
-        'vitest/dist/node/*',
-        'vitest/dist/node/chunks/*',
-      ],
+    // Test utilities
+    {
+      entry: ['test/index.ts'],
+      outDir: 'dist/test',
+      deps: {
+        neverBundle: [
+          'chai',
+          'chai/*',
+          'vitest',
+          'vitest/*',
+          '@vitest/*',
+          'vitest/dist/*',
+          'vitest/dist/chunks/*',
+          'vitest/dist/node/*',
+          'vitest/dist/node/chunks/*',
+        ],
+      },
+      platform: 'node',
+      define: {
+        __PACKAGE_VERSION__: JSON.stringify(
+          (await import('./package.json', { with: { type: 'json' } })).default
+            .version,
+        ),
+      },
     },
-    dts: true,
-    sourcemap: true,
-    platform: 'node',
-    define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
-    },
-  },
-]);
+  ].map(config => mergeConfig(tsdownBaseConfig, config)),
+);

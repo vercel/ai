@@ -1,12 +1,12 @@
-import { defineConfig } from 'tsdown';
+import { defineConfig, mergeConfig } from 'tsdown';
 
-export default defineConfig({
-  entry: ['src/index.ts'],
-  dts: true,
-  format: ['esm'],
-  target: 'es2022',
-  outDir: 'dist',
-  sourcemap: true,
-  clean: true,
-  // external: [/node_modules/] // you can list external deps here if needed
-});
+import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
+
+export default defineConfig(
+  mergeConfig(tsdownBaseConfig, {
+    entry: ['src/index.ts'],
+    outDir: 'dist',
+    clean: true,
+    // external: [/node_modules/] // you can list external deps here if needed
+  }),
+);
