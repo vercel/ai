@@ -289,7 +289,7 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
-    it('increments turn IDs when user speech interrupts a response', () => {
+    it('keeps the interrupted response active until its trailing turnComplete', () => {
       const mapper = new GoogleRealtimeEventMapper();
 
       mapper.parseServerEvent({
@@ -320,6 +320,77 @@ describe('GoogleRealtimeEventMapper', () => {
         transcript: 'Stop.',
         raw,
       });
+
+      const turnCompleteRaw = {
+        serverContent: { turnComplete: true },
+      };
+      expect(mapper.parseServerEvent(turnCompleteRaw)).toEqual([
+        {
+          type: 'audio-done',
+          responseId: 'google-resp-0',
+          itemId: 'google-item-0',
+          raw: turnCompleteRaw,
+        },
+        {
+          type: 'response-done',
+          responseId: 'google-resp-0',
+          status: 'completed',
+          raw: turnCompleteRaw,
+        },
+      ]);
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: {
+            modelTurn: {
+              parts: [{ inlineData: { data: 'audio2' } }],
+            },
+          },
+        }),
+      ).toMatchObject({
+        responseId: 'google-resp-1',
+        itemId: 'google-item-1',
+      });
+    });
+
+    it('assigns distinct IDs when a completed turn transcript arrives late', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+
+      mapper.parseServerEvent({
+        serverContent: {
+          modelTurn: {
+            parts: [{ inlineData: { data: 'audio1' } }],
+          },
+        },
+      });
+      mapper.parseServerEvent({
+        serverContent: { turnComplete: true },
+      });
+
+      const delayed = {
+        serverContent: {
+          inputTranscription: { text: 'What time is it?' },
+        },
+      };
+      expect(mapper.parseServerEvent(delayed)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-0',
+        transcript: 'What time is it?',
+        raw: delayed,
+      });
+
+      const next = {
+        serverContent: {
+          inputTranscription: { text: 'And the date?' },
+        },
+      };
+      expect(mapper.parseServerEvent(next)).toEqual({
+        type: 'input-transcription-completed',
+        itemId: 'google-input-1',
+        transcript: 'And the date?',
+        raw: next,
+      });
+
       expect(
         mapper.parseServerEvent({
           serverContent: {

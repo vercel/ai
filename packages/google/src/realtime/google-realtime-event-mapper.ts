@@ -56,6 +56,7 @@ type GoogleRealtimeWireEvent = {
  */
 export class GoogleRealtimeEventMapper {
   private turnCounter = 0;
+  private inputTranscriptionCounter = 0;
   private hasAudio = false;
   private hasText = false;
   private hasTranscript = false;
@@ -71,8 +72,8 @@ export class GoogleRealtimeEventMapper {
   }
 
   /**
-   * Rolls over to the next turn lazily, once input or model content for the
-   * next turn arrives. `turnComplete` merely marks the current turn closed.
+   * Rolls over to the next turn lazily, once model content for the next turn
+   * arrives. `turnComplete` merely marks the current turn closed.
    * This keeps an output transcript that arrives shortly after `turnComplete`
    * attached to the turn it belongs to, since Google delivers transcription
    * independently with no guaranteed ordering relative to `turnComplete`.
@@ -84,6 +85,12 @@ export class GoogleRealtimeEventMapper {
     this.hasText = false;
     this.hasTranscript = false;
     this.turnClosed = false;
+  }
+
+  // Finalized input transcriptions can arrive independently of response turn
+  // events, so their synthetic IDs must use an independent sequence.
+  private nextInputTranscriptionItemId(): string {
+    return `google-input-${this.inputTranscriptionCounter++}`;
   }
 
   parseServerEvent(
@@ -151,10 +158,9 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (data.inputTranscription?.text != null) {
-      this.beginTurnIfClosed();
       return {
         type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
+        itemId: this.nextInputTranscriptionItemId(),
         transcript: data.inputTranscription.text,
         raw,
       };
@@ -170,7 +176,6 @@ export class GoogleRealtimeEventMapper {
     const events: RealtimeModelV4ServerEvent[] = [];
 
     if (serverContent.interrupted) {
-      this.turnClosed = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -216,10 +221,9 @@ export class GoogleRealtimeEventMapper {
     }
 
     if (serverContent.inputTranscription?.text) {
-      this.beginTurnIfClosed();
       events.push({
         type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
+        itemId: this.nextInputTranscriptionItemId(),
         transcript: serverContent.inputTranscription.text,
         raw,
       });
