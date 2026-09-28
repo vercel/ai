@@ -138,6 +138,39 @@ Harness runtimes execute their built-in tools internally. For those tools,
 lifecycle after the runtime reports the result. The callbacks are still
 delivered before the tool result is published to the result stream.
 
+## Runtime Context
+
+Set `runtimeContext` on `HarnessAgent` to make application context available to
+every turn. The configured context is forwarded through `generate()`,
+`stream()`, `continueGenerate()`, and `continueStream()`. Lifecycle callbacks
+receive the full context, and it is also available on each result's
+`finalStep.runtimeContext`.
+
+```ts
+const agent = new HarnessAgent({
+  harness: claudeCode,
+  runtimeContext: {
+    conversationId: 'conversation-123',
+    userId: 'user-456',
+  },
+  telemetry: {
+    includeRuntimeContext: {
+      conversationId: true,
+    },
+  },
+  onEnd: ({ runtimeContext }) => {
+    console.log(runtimeContext.userId);
+  },
+});
+```
+
+Runtime context is excluded from telemetry by default. Use
+`telemetry.includeRuntimeContext` to allowlist individual top-level properties;
+only properties set to `true` are sent to telemetry integrations. The allowlist
+keys are type-checked against the inferred runtime context shape. Lifecycle
+callbacks and results still receive the full context, so avoid storing secrets
+that those consumers should not access.
+
 ## Generate Structured Output
 
 Set `output` when constructing `HarnessAgent` to require the same typed output
@@ -555,6 +588,8 @@ supplied, their values must match.
 - `stopWhen`: condition(s) for finishing a result slice after a completed
   harness tool step that can continue into another model step.
 - `tools`: AI SDK tools executed by the host when the harness calls them.
+- `runtimeContext`: application context forwarded to lifecycle callbacks and
+  results for every turn.
 - `activeTools`: allowlist of built-in and host-executed tools the harness can
   call.
 - `inactiveTools`: denylist of built-in and host-executed tools the harness
@@ -563,7 +598,9 @@ supplied, their values must match.
 - `permissionMode`: built-in tool permission mode.
 - `toolApproval`: approval status map for host-executed tools.
 - `sandboxConfig`: sandbox working-directory and lifecycle hook configuration.
-- `telemetry`, `debug`, and `onLog`: observability and diagnostics.
+- `telemetry`, `debug`, and `onLog`: observability and diagnostics. Use
+  `telemetry.includeRuntimeContext` to allowlist runtime context properties for
+  telemetry.
 
 Telemetry reports each turn's resolved model, instructions, and active
 host-defined tools. Skills are adapter context and do not have a corresponding
