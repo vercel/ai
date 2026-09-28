@@ -375,10 +375,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
-              anyPart.rawInput =
-                options.state === 'output-error'
-                  ? (anyOptions.rawInput ?? anyPart.rawInput)
-                  : anyOptions.rawInput;
+              anyPart.rawInput = anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
