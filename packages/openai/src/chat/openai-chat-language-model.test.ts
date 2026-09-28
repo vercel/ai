@@ -3266,6 +3266,39 @@ describe('doStream', () => {
     });
   });
 
+  it('keeps same-name tool calls separate when their id and index are reused', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"dup","type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":1}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"dup","type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":2}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const toolCalls = (await convertReadableStreamToArray(stream)).filter(
+      part => part.type === 'tool-call',
+    );
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'same_tool', input: '{"value":1}' },
+      { toolName: 'same_tool', input: '{"value":2}' },
+    ]);
+  });
+
   it('should stream tool call that is sent in one chunk', async () => {
     server.urls['https://api.openai.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
