@@ -62,6 +62,13 @@ function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
 }
 
+function getMcpToolName(item: CodexItem): string {
+  const toolName = item.tool ?? 'unknown';
+  return item.server != null && item.server.length > 0
+    ? `mcp__${item.server}__${toolName}`
+    : toolName;
+}
+
 export function createEmitStreamEvent({
   send,
   stepTracker,
@@ -206,12 +213,13 @@ export function createEmitStreamEvent({
     }
 
     if (item.type === 'mcp_tool_call') {
+      const toolName = getMcpToolName(item);
       if (event.type === 'item.started') {
         send({
           type: 'tool-call',
           toolCallId: id,
-          toolName: item.tool ?? 'unknown',
-          nativeName: item.tool ?? 'unknown',
+          toolName,
+          nativeName: toolName,
           input: JSON.stringify(item.arguments ?? {}),
           providerExecuted: true,
           dynamic: true,
@@ -220,7 +228,7 @@ export function createEmitStreamEvent({
         send({
           type: 'tool-result',
           toolCallId: id,
-          toolName: item.tool ?? 'unknown',
+          toolName,
           result: extractMcpToolCallResult(item),
           dynamic: true,
         });
