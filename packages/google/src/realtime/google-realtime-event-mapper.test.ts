@@ -252,7 +252,7 @@ describe('GoogleRealtimeEventMapper', () => {
       expect(next).toMatchObject({ responseId: 'google-resp-1' });
     });
 
-    it('gives each user turn a new input item id that matches its response', () => {
+    it('gives each user turn a new input item id', () => {
       for (const toWireEvent of [
         (text: string) => ({ serverContent: { inputTranscription: { text } } }),
         (text: string) => ({ inputTranscription: { text } }),
@@ -411,6 +411,103 @@ describe('GoogleRealtimeEventMapper', () => {
       expect(next).toMatchObject({
         responseId: 'google-resp-1',
         itemId: 'google-item-1',
+      });
+    });
+
+    describe('with finished input transcriptions', () => {
+      const input = (text: string, finished?: boolean) => ({
+        serverContent: { inputTranscription: { text, finished } },
+      });
+      const audio = {
+        serverContent: {
+          modelTurn: { parts: [{ inlineData: { data: 'audio' } }] },
+        },
+      };
+
+      it('keeps an interrupting utterance on one id across the trailing turnComplete', () => {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        const question = mapper.parseServerEvent(
+          input('Tell me a story.', true),
+        );
+        mapper.parseServerEvent(audio);
+        mapper.parseServerEvent({ serverContent: { interrupted: true } });
+        const before = mapper.parseServerEvent(input('Wait,'));
+        mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+        const after = mapper.parseServerEvent(input(' stop.', true));
+
+        expect([question, before, after]).toMatchObject([
+          { itemId: 'google-input-0', transcript: 'Tell me a story.' },
+          { itemId: 'google-input-1', transcript: 'Wait,' },
+          { itemId: 'google-input-1', transcript: 'Wait, stop.' },
+        ]);
+      });
+
+      it('does not append an interrupting utterance transcribed before interrupted to the previous one', () => {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        mapper.parseServerEvent(input('Tell me a story.', true));
+        mapper.parseServerEvent(audio);
+        const before = mapper.parseServerEvent(input('Wait,'));
+        mapper.parseServerEvent({ serverContent: { interrupted: true } });
+        const after = mapper.parseServerEvent(input(' stop.', true));
+
+        expect([before, after]).toMatchObject([
+          { itemId: 'google-input-1', transcript: 'Wait,' },
+          { itemId: 'google-input-1', transcript: 'Wait, stop.' },
+        ]);
+      });
+
+      it('keeps a late fragment after turnComplete with its utterance', () => {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        mapper.parseServerEvent(input('Hi.', true));
+        mapper.parseServerEvent(audio);
+        mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+        const start = mapper.parseServerEvent(input('What time'));
+        mapper.parseServerEvent(audio);
+        mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+        const late = mapper.parseServerEvent(input(' is it?', true));
+        const next = mapper.parseServerEvent(input('And the date?', true));
+
+        expect([start, late, next]).toMatchObject([
+          { itemId: 'google-input-1', transcript: 'What time' },
+          { itemId: 'google-input-1', transcript: 'What time is it?' },
+          { itemId: 'google-input-2', transcript: 'And the date?' },
+        ]);
+      });
+
+      it('gives consecutive finished utterances their own ids', () => {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        expect([
+          mapper.parseServerEvent(input('Hello.', true)),
+          mapper.parseServerEvent(input('Are you', false)),
+          mapper.parseServerEvent(input(' there?', true)),
+        ]).toMatchObject([
+          { itemId: 'google-input-0', transcript: 'Hello.' },
+          { itemId: 'google-input-1', transcript: 'Are you' },
+          { itemId: 'google-input-1', transcript: 'Are you there?' },
+        ]);
+      });
+
+      it('ends the utterance on a finished transcription without text', () => {
+        const mapper = new GoogleRealtimeEventMapper();
+
+        mapper.parseServerEvent({ inputTranscription: { text: 'Hello.' } });
+        const finished = mapper.parseServerEvent({
+          inputTranscription: { finished: true },
+        });
+        const next = mapper.parseServerEvent({
+          inputTranscription: { text: 'Are you there?' },
+        });
+
+        expect(finished).toEqual([]);
+        expect(next).toMatchObject({
+          itemId: 'google-input-1',
+          transcript: 'Are you there?',
+        });
       });
     });
 
