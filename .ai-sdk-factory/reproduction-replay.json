@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 12099,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-12099-last-assistant-message-complete-with-tool-calls.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-12099-last-assistant-message-complete-with-tool-calls.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #12099 reproduced: terminal assistant error text triggered an unexpected second chat request."
+  }
+}
