@@ -246,6 +246,80 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
+  it('qualifies MCP tool names with their server identity', () => {
+    const emitted: Record<string, unknown>[] = [];
+    const stepTracker = {
+      observeEvent: () => {},
+      finishTurn: () => {},
+    } as CodexStepTracker;
+    const emitStreamEvent = createEmitStreamEvent({
+      send: event => emitted.push(event),
+      stepTracker,
+      setTurnUsage: () => {},
+      setThreadId: () => {},
+      emitWarning: () => {},
+      emitError: () => {},
+    });
+
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'context7-call',
+        server: 'context7',
+        tool: 'query-docs',
+        arguments: { libraryId: '/vercel/next.js' },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.completed',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'context7-call',
+        server: 'context7',
+        tool: 'query-docs',
+        result: { structured_content: { found: true } },
+      },
+    });
+    emitStreamEvent({
+      type: 'item.started',
+      item: {
+        type: 'mcp_tool_call',
+        id: 'serverless-call',
+        tool: 'query-docs',
+        arguments: {},
+      },
+    });
+
+    expect(emitted).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'context7-call',
+        toolName: 'mcp__context7__query-docs',
+        nativeName: 'mcp__context7__query-docs',
+        input: '{"libraryId":"/vercel/next.js"}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+      {
+        type: 'tool-result',
+        toolCallId: 'context7-call',
+        toolName: 'mcp__context7__query-docs',
+        result: { found: true },
+        dynamic: true,
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'serverless-call',
+        toolName: 'query-docs',
+        nativeName: 'query-docs',
+        input: '{}',
+        providerExecuted: true,
+        dynamic: true,
+      },
+    ]);
+  });
+
   it('emits native tool calls and real results with a distinct step tracker id', () => {
     const emitted: Record<string, unknown>[] = [];
     const observed: unknown[] = [];
