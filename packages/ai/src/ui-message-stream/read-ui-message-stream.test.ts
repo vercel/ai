@@ -13,7 +13,7 @@ function createUIMessageStream(parts: UIMessageChunk[]) {
 
 describe('readUIMessageStream', () => {
   it('should continue a hydrated partial static tool call', async () => {
-    const message = {
+    const message: UIMessage = {
       id: 'msg-123',
       role: 'assistant',
       parts: [
@@ -25,7 +25,51 @@ describe('readUIMessageStream', () => {
           rawInput: '{"title":"Hel',
         },
       ],
-    } as unknown as UIMessage;
+    };
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: 'lo"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-1',
+            toolName: 'createDocument',
+            input: { title: 'Hello' },
+          },
+        ]),
+        terminateOnError: true,
+      }),
+    );
+
+    expect(messages.at(-1)?.parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+  });
+
+  it('should accept a hydrated partial static tool call without raw input', async () => {
+    const message: UIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-createDocument',
+          toolCallId: 'tool-1',
+          state: 'input-streaming',
+          input: { title: 'Hel' },
+        },
+      ],
+    };
 
     const messages = await convertAsyncIterableToArray(
       readUIMessageStream({

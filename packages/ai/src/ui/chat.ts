@@ -812,10 +812,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
       responseMessage.parts.some(
-        part =>
-          isToolUIPart(part) &&
-          part.state === 'input-streaming' &&
-          typeof (part as { rawInput?: unknown }).rawInput === 'string',
+        part => isToolUIPart(part) && part.state === 'input-streaming',
       )
         ? this.state.snapshot(responseMessage)
         : undefined;

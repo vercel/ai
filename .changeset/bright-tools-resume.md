@@ -2,4 +2,4 @@
 'ai': patch
 ---
 
-fix(ai): resume hydrated partial static tool calls
+fix(ai): preserve hydrated partial static tool input across stream resumptions

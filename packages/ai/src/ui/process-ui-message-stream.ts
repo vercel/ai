@@ -89,13 +89,12 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
       staticToolIndex++;
     }
 
-    const rawInput = (part as { rawInput?: unknown }).rawInput;
-    if (part.state !== 'input-streaming' || typeof rawInput !== 'string') {
+    if (part.state !== 'input-streaming') {
       continue;
     }
 
     partialToolCalls[part.toolCallId] = {
-      text: rawInput,
+      text: part.rawInput ?? '',
       index,
       toolName:
         part.type === 'dynamic-tool' ? part.toolName : getStaticToolName(part),
@@ -219,6 +218,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  rawInput?: string;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
                 }
@@ -334,6 +334,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
+                  rawInput?: string;
                   providerMetadata?: ProviderMetadata;
                 }
               | {
@@ -374,7 +375,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.input = anyOptions.input;
               anyPart.output = anyOptions.output;
               anyPart.errorText = anyOptions.errorText;
-              anyPart.rawInput = anyOptions.rawInput ?? anyPart.rawInput;
+              anyPart.rawInput =
+                options.state === 'output-error'
+                  ? (anyOptions.rawInput ?? anyPart.rawInput)
+                  : anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
               if (options.title !== undefined) {
                 anyPart.title = options.title;
@@ -679,6 +683,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
                   input: partialArgs,
+                  rawInput: partialToolCall.text,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });
@@ -688,6 +693,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
                   input: partialArgs,
+                  rawInput: partialToolCall.text,
                   title: partialToolCall.title,
                   toolMetadata: partialToolCall.toolMetadata,
                 });
