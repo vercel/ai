@@ -464,7 +464,7 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const tools: Record<string, Tool> = {};
+    const tools: Record<string, Tool> = Object.create(null);
 
     let listToolsResult = await this.listTools();
     const toolDefinitions = [...listToolsResult.tools];

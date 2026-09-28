@@ -1,3 +1,5 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import {
   type ProviderOptions,
   withUserAgentSuffix,
@@ -319,10 +321,10 @@ Only applicable for HTTP-based providers.
               for (const [providerName, metadata] of Object.entries(
                 result.providerMetadata,
               )) {
-                providerMetadata[providerName] = {
-                  ...providerMetadata[providerName],
+                setOwn(providerMetadata, providerName, {
+                  ...getOwn(providerMetadata, providerName),
                   ...metadata,
-                };
+                });
               }
             }
           }

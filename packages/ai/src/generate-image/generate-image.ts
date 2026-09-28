@@ -1,3 +1,5 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import type {
   ImageModelV2,
   ImageModelV2ProviderMetadata,
@@ -254,10 +256,13 @@ Only applicable for HTTP-based providers.
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
+          const currentEntry = getOwn(providerMetadata, providerName) ?? {
+            images: [],
+          };
+          currentEntry.images.push(
             ...result.providerMetadata[providerName].images,
           );
+          setOwn(providerMetadata, providerName, currentEntry);
         }
       }
     }

@@ -118,7 +118,7 @@ class DefaultProviderRegistry<
   PROVIDERS extends Record<string, ProviderV2>,
   SEPARATOR extends string,
 > implements ProviderRegistryProvider<PROVIDERS, SEPARATOR> {
-  private providers: PROVIDERS = {} as PROVIDERS;
+  private providers: PROVIDERS = Object.create(null);
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
