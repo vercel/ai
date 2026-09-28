@@ -71,7 +71,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -83,7 +83,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -105,7 +105,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = await generateText({
-    model: vertexAnthropic('claude-sonnet-5', {
+    model: vertexAnthropic('claude-sonnet-5-5', {
       cacheControl: true,
     }),
     messages: [
@@ -203,7 +203,7 @@ const customProvider = createVertexAnthropic({
 });
 
 const { text } = await generateText({
-  model: customProvider('claude-sonnet-5'),
+  model: customProvider('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -220,7 +220,7 @@ const customProvider = createVertexAnthropic({
 });
 
 const { text } = await generateText({
-  model: customProvider('claude-sonnet-5'),
+  model: customProvider('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```

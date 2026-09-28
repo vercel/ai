@@ -99,7 +99,7 @@ export default defineLazyEventHandler(async () => {
     const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
-      model: gateway('anthropic/claude-sonnet-5'),
+      model: gateway('anthropic/claude-sonnet-5.5'),
       messages: await convertToModelMessages(messages),
     });
 
@@ -133,11 +133,11 @@ You can also explicitly import and use the gateway provider in two other equival
 ```ts
 // Option 1: Import from 'ai' package (included by default)
 import { gateway } from 'ai';
-model: gateway('anthropic/claude-sonnet-5');
+model: gateway('anthropic/claude-sonnet-5.5');
 
 // Option 2: Install and import from '@ai-sdk/gateway' package
 import { gateway } from '@ai-sdk/gateway';
-model: gateway('anthropic/claude-sonnet-5');
+model: gateway('anthropic/claude-sonnet-5.5');
 ```
 
 ### Using other providers
@@ -251,7 +251,7 @@ export default defineLazyEventHandler(async () => {
     const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
-      model: gateway('anthropic/claude-sonnet-5'),
+      model: gateway('anthropic/claude-sonnet-5.5'),
       messages: await convertToModelMessages(messages),
       tools: {
         weather: tool({
@@ -376,7 +376,7 @@ export default defineLazyEventHandler(async () => {
     const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
-      model: gateway('anthropic/claude-sonnet-5'),
+      model: gateway('anthropic/claude-sonnet-5.5'),
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(5),
       tools: {
@@ -437,7 +437,7 @@ export default defineLazyEventHandler(async () => {
     const { messages }: { messages: UIMessage[] } = await readBody(event);
 
     const result = streamText({
-      model: gateway('anthropic/claude-sonnet-5'),
+      model: gateway('anthropic/claude-sonnet-5.5'),
       messages: await convertToModelMessages(messages),
       stopWhen: isStepCount(5),
       tools: {

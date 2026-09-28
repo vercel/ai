@@ -620,7 +620,7 @@ import { gateway, generateText } from 'ai';
 
 // Make a request
 const result = await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -643,7 +643,7 @@ With `streamText`, you can capture the generation ID from the first chunk via `s
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -673,7 +673,7 @@ a tool is running:
 import { gateway, generateText } from 'ai';
 
 await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
   onLanguageModelCallEnd({ providerMetadata }) {
     const generationId = providerMetadata?.gateway?.generationId as
@@ -720,7 +720,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
 });
 
@@ -1375,7 +1375,7 @@ The `getSpendReport()` method accepts the following parameters:
 - **groupBy** _string_ - Aggregation dimension: `'day'` (default), `'user'`, `'model'`, `'tag'`, `'provider'`, or `'credential_type'`
 - **datePart** _string_ - Time granularity when `groupBy` is `'day'`: `'day'` or `'hour'`
 - **userId** _string_ - Filter to a specific user
-- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5'`)
+- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5.5'`)
 - **provider** _string_ - Filter to a specific provider (e.g. `'anthropic'`)
 - **credentialType** _string_ - Filter by `'byok'` or `'system'` credentials
 - **tags** _string[]_ - Filter to requests matching these tags
@@ -1434,7 +1434,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
@@ -1576,7 +1576,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
@@ -1678,7 +1678,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
@@ -1697,7 +1697,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this proprietary business data...',
   providerOptions: {
     gateway: {
@@ -1716,7 +1716,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
@@ -1754,7 +1754,7 @@ import { generateText } from 'ai';
 import fs from 'node:fs';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   messages: [
     {
       role: 'user',
