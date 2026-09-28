@@ -1475,6 +1475,7 @@ export function processLangGraphEvent(
        * active UI text/reasoning part, so omit it when another namespace is
        * still active.
        */
+      let startedUIReducerStep = false;
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
@@ -1485,6 +1486,7 @@ export function processLangGraphEvent(
         if (currentStep === null) {
           if (state.currentStepsByNamespace.size === 0) {
             controller.enqueue({ type: 'start-step' });
+            startedUIReducerStep = true;
           }
           state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
           state.messageIdsInCurrentStepByNamespace.set(
@@ -1520,6 +1522,7 @@ export function processLangGraphEvent(
            * scope while the concurrent message lifecycle remains active.
            */
           controller.enqueue({ type: 'start-step' });
+          startedUIReducerStep = true;
           state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
           state.messageIdsInCurrentStepByNamespace.set(
             eventNamespace,
@@ -1790,7 +1793,34 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
-          if (!emittedToolCalls.has(toolCallId)) {
+          const wasEmittedInCurrentStep = hasEmittedToolCallInCurrentStep(
+            state,
+            toolCallId,
+            eventNamespace,
+          );
+          const isDelayedOutputForPreviousLifecycle =
+            !wasEmittedInCurrentStep &&
+            emittedToolCalls.has(toolCallId) &&
+            !state.emittedToolOutputCallIds.has(toolCallId);
+
+          if (
+            !wasEmittedInCurrentStep &&
+            !isDelayedOutputForPreviousLifecycle
+          ) {
+            /**
+             * A newly observed namespace does not normally start another global
+             * reducer step while another namespace is active. Reused provider
+             * IDs need a distinct reducer scope, however, or the new output
+             * overwrites the prior namespace's tool part.
+             */
+            if (
+              !startedUIReducerStep &&
+              state.currentStepsByNamespace.has(eventNamespace) &&
+              emittedToolCalls.has(toolCallId)
+            ) {
+              controller.enqueue({ type: 'start-step' });
+            }
+
             markToolCallEmitted(state, toolCallId, eventNamespace);
             controller.enqueue({
               type: 'tool-input-start',
