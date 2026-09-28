@@ -9,7 +9,6 @@ const packageVersion = JSON.stringify(
 export default defineConfig(
   [
     {
-      entry: { index: 'src/index.ts' },
       define: {
         __PACKAGE_VERSION__: packageVersion,
       },

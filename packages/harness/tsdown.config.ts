@@ -4,9 +4,7 @@ import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 
 export default defineConfig(
   [
-    {
-      entry: { index: 'src/index.ts' },
-    },
+    {},
     {
       entry: { 'agent/index': 'agent/index.ts' },
     },

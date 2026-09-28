@@ -6,7 +6,6 @@ export default defineConfig(
   [
     // Middleware entry (main package export)
     {
-      entry: ['src/index.ts'],
       sourcemap: false,
       outDir: 'dist',
       clean: false,

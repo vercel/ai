@@ -5,7 +5,6 @@ import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 export default defineConfig(
   [
     {
-      entry: ['src/index.ts'],
       platform: 'node',
       deps: {
         neverBundle: [

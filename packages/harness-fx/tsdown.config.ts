@@ -8,7 +8,6 @@ const packageVersion = JSON.stringify(
 
 export default defineConfig(
   mergeConfig(tsdownBaseConfig, {
-    entry: { index: 'src/index.ts' },
     define: {
       __PACKAGE_VERSION__: packageVersion,
     },

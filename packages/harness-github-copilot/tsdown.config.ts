@@ -24,7 +24,6 @@ const implementationPnpmWorkspaceYaml = JSON.stringify(
 
 export default defineConfig(
   mergeConfig(tsdownBaseConfig, {
-    entry: { index: 'src/index.ts' },
     define: {
       __PACKAGE_VERSION__: packageVersion,
       __GITHUB_COPILOT_IMPLEMENTATION_PACKAGE_JSON__: implementationPackageJson,

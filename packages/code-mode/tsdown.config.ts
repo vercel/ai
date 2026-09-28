@@ -16,7 +16,6 @@ export default defineConfig(
       unbundle: true,
     },
     {
-      entry: { index: 'src/index.ts' },
       dts: {
         only: true,
       },

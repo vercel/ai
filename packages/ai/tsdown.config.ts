@@ -6,7 +6,6 @@ export default defineConfig(
   [
     // Universal APIs
     {
-      entry: ['src/index.ts'],
       deps: { neverBundle: ['react', 'svelte', 'vue', 'chai', 'chai/*'] },
       platform: 'node',
       define: {
