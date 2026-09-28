@@ -1,5 +1,28 @@
 # @ai-sdk/provider-utils
 
+## 5.0.49
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+
+## 5.0.48
+
+### Patch Changes
+
+- be877ff: Add `fetchUntrustedUrl`, an opt-in fetch helper that withholds credentials and
+  unknown custom headers from untrusted first-hop URLs. A matching configured
+  `credentialedOrigin` (or `trustedOrigin` when omitted) allows sanitized caller
+  headers. Otherwise only allowlisted metadata is sent; callers can explicitly
+  allow additional non-credential metadata with `untrustedFirstHopHeaders`.
+
+  The helper shares URL validation, DNS pinning, and redirect protection with
+  `fetchWithValidatedRedirects`, and is now used by `downloadBlob`.
+  `fetchWithValidatedRedirects` and `getFromApi` retain their existing behavior.
+  Direct callers must opt into the new helper for first-hop credential isolation;
+  existing authenticated and custom-header requests are not silently changed.
+
 ## 5.0.47
 
 ### Patch Changes

@@ -284,9 +284,10 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        *
        * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
        * combined with automatic compaction or automatic truncation.
+       * Supported efforts vary by model; 'none' is supported by GPT-6 Sol and Luna.
        */
       reasoningEffortUpdate: z
-        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
 
       /**
@@ -445,7 +446,7 @@ export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
        * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
        */
       reasoningEffortUpdate: z
-        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
     }),
   ),

@@ -486,7 +486,7 @@ export type OpenAIResponsesCompactionItem = {
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
   reasoning: {
-    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
 

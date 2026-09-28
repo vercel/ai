@@ -77,9 +77,9 @@ This design lets you use the portable `reasoning` parameter by default and fall 
 
 ## Provider Support
 
-The `reasoning` parameter is supported by the following providers: OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, Fireworks, and Amazon Bedrock. Each provider translates the value to its native reasoning API. Some providers support all six levels natively, while others coerce to fewer levels (a warning is emitted when coercion occurs). Some providers use a numeric token budget instead of an enum for reasoning control; in those cases the top-level `reasoning` value is mapped to a budget calculated as a percentage of the model's maximum output tokens.
+The `reasoning` parameter is supported by the following providers: OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, Fireworks, Amazon Bedrock, and Perplexity. Each provider translates the value to its native reasoning API. Some providers support all six levels natively, while others coerce to fewer levels (a warning is emitted when coercion occurs). Some providers use a numeric token budget instead of an enum for reasoning control; in those cases the top-level `reasoning` value is mapped to a budget calculated as a percentage of the model's maximum output tokens.
 
-Providers that do not support reasoning (e.g. Mistral, Perplexity, Cohere) emit an `unsupported` warning and ignore the parameter.
+Providers that do not support reasoning (e.g. Mistral and Cohere) emit an `unsupported` warning and ignore the parameter.
 
 ## Migrating from `providerOptions`
 

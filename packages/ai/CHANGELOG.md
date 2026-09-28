@@ -1,5 +1,43 @@
 # ai
 
+## 7.0.118
+
+### Patch Changes
+
+- Updated dependencies [e6a7996]
+- Updated dependencies [e19f0fc]
+  - @ai-sdk/gateway@4.0.96
+
+## 7.0.117
+
+### Patch Changes
+
+- Updated dependencies [b67b1b7]
+  - @ai-sdk/gateway@4.0.95
+
+## 7.0.116
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/gateway@4.0.94
+
+## 7.0.115
+
+### Patch Changes
+
+- be877ff: Use the new `fetchUntrustedUrl` helper for SDK downloads, preserving the existing
+  user-agent header and URL validation while enforcing first-hop credential isolation.
+- Updated dependencies [80b9100]
+- Updated dependencies [d3cc6ae]
+- Updated dependencies [be877ff]
+  - @ai-sdk/gateway@4.0.93
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 7.0.114
 
 ### Patch Changes

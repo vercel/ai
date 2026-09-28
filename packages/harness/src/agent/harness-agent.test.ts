@@ -205,7 +205,25 @@ function mockHarness(options: {
 function makeSandboxSession(
   options: Partial<HarnessV1NetworkSandboxSession> = {},
 ): HarnessV1NetworkSandboxSession {
-  const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+  const run = vi.fn(async (args: { command: string }) => ({
+    exitCode: 0,
+    stdout:
+      args.command === 'printf "%s" "$HOME"'
+        ? '/home/agent'
+        : args.command === 'pwd'
+          ? '/work\n'
+          : '',
+    stderr: '',
+  }));
+  const files = new Map<string, string>();
+  const readTextFile = vi.fn(
+    async ({ path }: { path: string }) => files.get(path) ?? null,
+  );
+  const writeTextFile = vi.fn(
+    async ({ path, content }: { path: string; content: string }) => {
+      files.set(path, content);
+    },
+  );
   const sandboxSession = {
     id: 'sandbox',
     defaultWorkingDirectory: '/work',
@@ -213,9 +231,11 @@ function makeSandboxSession(
     getPortEndpoint: async () => ({ url: 'ws://example.test/' }),
     getPortUrl: async () => 'ws://example.test/',
     run,
+    readTextFile,
+    writeTextFile,
     stop: vi.fn(async () => {}),
     destroy: vi.fn(async () => {}),
-    restricted: () => ({ run }) as never,
+    restricted: () => ({ run, readTextFile, writeTextFile }) as never,
     ...options,
   } as unknown as HarnessV1NetworkSandboxSession;
   return sandboxSession;
@@ -2669,11 +2689,23 @@ describe('HarnessAgent', () => {
       if (args.command === 'pwd') {
         return { exitCode: 0, stdout: '/work\n', stderr: '' };
       }
+      if (args.command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     });
+    const files = new Map<string, string>();
     const restrictedSession = {
       label: 'restricted',
       run,
+      readTextFile: vi.fn(
+        async ({ path }: { path: string }) => files.get(path) ?? null,
+      ),
+      writeTextFile: vi.fn(
+        async ({ path, content }: { path: string; content: string }) => {
+          files.set(path, content);
+        },
+      ),
     };
     const sandboxSession = makeSandboxSession({
       run,
@@ -2726,7 +2758,7 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('sandboxConfig.onBootstrap is skipped for resumed sessions while onSession still runs', async () => {
+  test('sandboxConfig.onBootstrap runs for a resumed session missing its marker while onSession still runs', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const onSandboxBootstrap = vi.fn(async () => {});
     const onSandboxSession = vi.fn(async () => {});
@@ -2751,7 +2783,7 @@ describe('HarnessAgent', () => {
       },
     });
 
-    expect(onSandboxBootstrap).not.toHaveBeenCalled();
+    expect(onSandboxBootstrap).toHaveBeenCalledOnce();
     expect(onSandboxSession).toHaveBeenCalledWith({
       session: expect.any(Object),
       sessionWorkDir: '/work/ai-sdk',

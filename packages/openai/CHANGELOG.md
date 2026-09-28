@@ -1,5 +1,27 @@
 # @ai-sdk/openai
 
+## 4.0.78
+
+### Patch Changes
+
+- 94d5d6d: Support `reasoningEffortUpdate: 'none'` for GPT-6 Sol and Luna in request-level options and positioned system messages. Validate update efforts against the model's supported efforts, warning and omitting unsupported request-level updates and rejecting unsupported historical updates.
+
+## 4.0.77
+
+### Patch Changes
+
+- 2abd503: Default OpenAI Responses function tools to `strict: false` when tool strict mode is omitted.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 4.0.75
 
 ### Patch Changes

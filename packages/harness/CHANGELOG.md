@@ -1,5 +1,37 @@
 # @ai-sdk/harness
 
+## 1.0.128
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 1.0.127
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 1.0.126
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- 31742b9: feat(harness): refactor sandbox APIs for cleaner separation of concerns from harness layer, more intuitive DX regardless of how your sandbox is configured, and streamlined handling of sandbox templates/snapshots
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - ai@7.0.115
+
 ## 1.0.124
 
 ### Patch Changes

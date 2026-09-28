@@ -1,5 +1,41 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.23
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+- @ai-sdk/harness-acp@1.0.66
+
+## 1.0.22
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+- @ai-sdk/harness-acp@1.0.65
+
+## 1.0.21
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [be13602]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/harness-acp@1.0.64
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.20
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+  - @ai-sdk/harness-acp@1.0.63
+
 ## 1.0.19
 
 ### Patch Changes

@@ -1,5 +1,36 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.130
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
 ## 1.0.128
 
 ### Patch Changes

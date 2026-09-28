@@ -1,5 +1,22 @@
 # @ai-sdk/google
 
+## 4.0.82
+
+### Patch Changes
+
+- bc49f78: fix(google): forward supported Vertex tool result URLs as function response file data
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.81
+
+### Patch Changes
+
+- b126c4b: fix(google): serialize Interactions video offsets as Google duration strings
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 4.0.80
 
 ### Patch Changes

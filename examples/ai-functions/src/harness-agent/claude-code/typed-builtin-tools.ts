@@ -1,6 +1,6 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from './_create';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -16,12 +16,6 @@ const claudeCode = createClaudeCode();
  * schema. No casts.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-    timeout: 10 * 60 * 1000,
-  });
-
   const today = tool({
     description: 'Return the current date in ISO format.',
     inputSchema: z.object({}),
@@ -30,12 +24,18 @@ run(async () => {
 
   const agent = new HarnessAgent({
     harness: claudeCode,
-    sandbox,
     tools: { today },
   });
 
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt:
@@ -44,6 +44,7 @@ run(async () => {
 
     await printFullStream({ result });
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

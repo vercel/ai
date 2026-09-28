@@ -6,20 +6,23 @@ import {
   detectMediaType,
   downloadBlob,
   isFullMediaType,
+  isUrlSupported,
 } from '@ai-sdk/provider-utils';
 
 /**
- * Vertex function responses only accept inline file data. Download remote tool
- * result files before converting the prompt to the Google request format.
+ * Download tool result file URLs that Vertex cannot reference directly before
+ * converting the prompt to the Google request format.
  */
 export async function downloadToolResultFiles(
   prompt: LanguageModelV4Prompt,
   {
     abortSignal,
     maxBytes,
+    supportedUrls = {},
   }: {
     abortSignal: AbortSignal | undefined;
     maxBytes: number;
+    supportedUrls?: Record<string, RegExp[]>;
   },
 ): Promise<LanguageModelV4Prompt> {
   const result: LanguageModelV4Prompt = [];
@@ -36,6 +39,7 @@ export async function downloadToolResultFiles(
                 output: await downloadToolResultOutput(part.output, {
                   abortSignal,
                   maxBytes,
+                  supportedUrls,
                 }),
               }
             : part,
@@ -60,6 +64,7 @@ export async function downloadToolResultFiles(
           output: await downloadToolResultOutput(part.output, {
             abortSignal,
             maxBytes,
+            supportedUrls,
           }),
         });
       }
@@ -79,9 +84,11 @@ async function downloadToolResultOutput(
   {
     abortSignal,
     maxBytes,
+    supportedUrls,
   }: {
     abortSignal: AbortSignal | undefined;
     maxBytes: number;
+    supportedUrls: Record<string, RegExp[]>;
   },
 ): Promise<LanguageModelV4ToolResultOutput> {
   if (output.type !== 'content') {
@@ -92,6 +99,17 @@ async function downloadToolResultOutput(
 
   for (const part of output.value) {
     if (part.type !== 'file' || part.data.type !== 'url') {
+      value.push(part);
+      continue;
+    }
+
+    if (
+      isUrlSupported({
+        url: part.data.url.toString(),
+        mediaType: part.mediaType,
+        supportedUrls,
+      })
+    ) {
       value.push(part);
       continue;
     }

@@ -15,7 +15,7 @@ The bridge installs the Codex CLI inside the sandbox the first time the session 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createCodex } from '@ai-sdk/harness-codex';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
@@ -26,10 +26,6 @@ const agent = new HarnessAgent({
     },
   }),
   id: 'demo',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: {
     deploy: tool({
       description: 'Deploy a service.',
@@ -60,13 +56,14 @@ const agent = new HarnessAgent({
       { name: 'haiku-mode', description: 'Answer in haikus.', content: '...' },
     ],
   }),
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -76,7 +73,9 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.createSession()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.
+The adapter needs a sandbox session with an exposed port. The caller ends the
+harness session and sandbox separately.

@@ -24,7 +24,10 @@ type ConvertResult = {
   mediaType: string | undefined;
 };
 
-function convertUrlToFilePartData(url: URL): ConvertResult {
+function convertUrlToFilePartData(
+  url: URL,
+  originalUrl?: string,
+): ConvertResult {
   if (url.protocol === 'data:') {
     const { mediaType, base64Content } = splitDataUrl(url.toString());
 
@@ -38,7 +41,10 @@ function convertUrlToFilePartData(url: URL): ConvertResult {
     return { data: { type: 'data', data: base64Content }, mediaType };
   }
 
-  return { data: { type: 'url', url }, mediaType: undefined };
+  return {
+    data: { type: 'url', url, ...(originalUrl != null ? { originalUrl } : {}) },
+    mediaType: undefined,
+  };
 }
 
 function convertUrlStringToFilePartData(content: string): ConvertResult {
@@ -98,7 +104,7 @@ export function convertToLanguageModelV4FilePart(
         }
         return convertInlineDataToFilePartData(content.data);
       case 'url':
-        return convertUrlToFilePartData(content.url);
+        return convertUrlToFilePartData(content.url, content.originalUrl);
       case 'reference':
         return {
           data: { type: 'reference', reference: content.reference },

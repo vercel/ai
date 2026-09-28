@@ -132,7 +132,7 @@ with `AI_GATEWAY_API_KEY` or Vercel OIDC, then pass a Gateway model ID:
 import { experimental_evaluate } from 'ai';
 
 const result = await experimental_evaluate({
-  model: 'typesafe-ai/jev-latest',
+  model: 'typesafe-ai/jev',
   state: 'I was charged twice. Please refund the extra charge.',
   questions: {
     refund: {
@@ -246,8 +246,8 @@ if (result.answers.requestsRefund.probability >= 0.8) {
 The model's `supportedQuestionTypes` are checked before calling the provider.
 Any unsupported question fails the entire call with
 `Experimental_EvaluationUnsupportedQuestionTypeError`. Successful calls return
-an answer for every question; there is no partial success or automatic model
-substitution.
+an answer for every question; there is no partial success, and Core does not
+substitute models automatically.
 
 Invalid inputs throw `InvalidArgumentError`. Missing answers, mismatched answer
 types, invalid options, scores, or probabilities throw `InvalidResponseDataError`.
@@ -266,7 +266,10 @@ For tests, use `Experimental_EvaluationMockModelV4` from `ai/test`.
 Evaluation currently returns one complete result for one shared state. It does
 not stream answers, perform multilabel classification, or batch unrelated
 states. Run separate calls for separate states. Provider support and judgment
-quality depend on the chosen model; the SDK does not choose a model automatically.
+quality depend on the chosen model. Core does not choose another model, but a
+provider can implement routing through its provider options. For example, AI
+Gateway supports conditional evaluation fallbacks under
+`providerOptions.gateway.models`.
 
 Runnable examples are in
 [`examples/ai-functions/src/evaluate`](https://github.com/vercel/ai/tree/main/examples/ai-functions/src/evaluate),

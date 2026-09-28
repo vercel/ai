@@ -220,6 +220,83 @@ describe('createACPStreamTranslator', () => {
     `);
   });
 
+  it('uses the typed ACP name before metadata and exposes it to classifiers', () => {
+    const events: HarnessV1StreamPart[] = [];
+    const candidates: ACPToolCall[] = [];
+    const translator = createACPStreamTranslator({
+      emit: event => events.push(event),
+      emitToolCallCandidate: ({ toolCall }) => candidates.push(toolCall),
+      builtinTools: [
+        {
+          toolName: 'bash',
+          nativeName: 'shell',
+          inputSchema: {
+            type: 'object',
+            properties: { command: { type: 'string' } },
+            required: ['command'],
+          },
+        },
+      ],
+    });
+
+    translator.update({
+      update: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'call-typed-name',
+        name: 'shell',
+        title: 'Generic operation',
+        status: 'completed',
+        rawInput: { command: 'pwd' },
+        _meta: { runtime: { toolName: 'UnknownTool' } },
+      },
+      rawUpdate: {
+        sessionUpdate: 'tool_call',
+        toolCallId: 'call-typed-name',
+        title: 'Generic operation',
+        status: 'completed',
+        rawInput: { command: 'pwd' },
+        _meta: { runtime: { toolName: 'UnknownTool' } },
+      },
+    });
+
+    expect(toolEvents({ events })).toMatchInlineSnapshot(`
+      [
+        {
+          "input": "{"command":"pwd"}",
+          "nativeName": "shell",
+          "providerExecuted": true,
+          "toolCallId": "call-typed-name",
+          "toolName": "bash",
+          "type": "tool-call",
+        },
+        {
+          "result": {},
+          "toolCallId": "call-typed-name",
+          "toolName": "bash",
+          "type": "tool-result",
+        },
+      ]
+    `);
+    expect(candidates).toMatchInlineSnapshot(`
+      [
+        {
+          "_meta": {
+            "runtime": {
+              "toolName": "UnknownTool",
+            },
+          },
+          "name": "shell",
+          "rawInput": {
+            "command": "pwd",
+          },
+          "status": "completed",
+          "title": "Generic operation",
+          "toolCallId": "call-typed-name",
+        },
+      ]
+    `);
+  });
+
   it('matches a configured native name from ACP metadata', () => {
     const events: HarnessV1StreamPart[] = [];
     const translator = createACPStreamTranslator({

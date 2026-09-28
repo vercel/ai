@@ -1,5 +1,5 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { isStepCount } from 'ai';
 import { createCursorACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -8,15 +8,16 @@ import { run } from '../../lib/run';
 run(async () => {
   const agent = new HarnessAgent({
     harness: createCursorACP(),
-    sandbox: createVercelSandbox({
-      runtime: 'node24',
-      ports: [4000],
-      timeout: 10 * 60 * 1000,
-    }),
     stopWhen: isStepCount(1),
   });
 
-  let session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session = await agent.createSession({ sandboxSession });
   let isFirstSlice = true;
   let observedSuspendedSlice = false;
   try {
@@ -48,9 +49,14 @@ run(async () => {
       observedSuspendedSlice = true;
       const sessionId = session.sessionId;
       const continueFrom = await session.suspendTurn();
-      session = await agent.createSession({ sessionId, continueFrom });
+      session = await agent.createSession({
+        sandboxSession,
+        sessionId,
+        continueFrom,
+      });
     }
   } finally {
     await session.destroy();
+    await sandboxSession.destroy();
   }
 });
