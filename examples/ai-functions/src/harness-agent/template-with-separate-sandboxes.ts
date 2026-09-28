@@ -24,7 +24,7 @@ const harnesses = [
 ] satisfies ReadonlyArray<{ name: string; harness: HarnessAgentAdapter }>;
 
 const sandboxConfig = {
-  workDir: 'workspace',
+  workDir: '.',
   bootstrapHash: 'shared-harness-tools-v1',
   onBootstrap: async ({ session, workDir, abortSignal }) => {
     await session.writeTextFile({

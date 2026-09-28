@@ -24,6 +24,8 @@ import type { ProdiaImageModelId } from './prodia-image-settings';
 export class ProdiaImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+  readonly supportsFileInputs = false;
+  readonly supportsMaskInputs = false;
 
   get provider(): string {
     return this.config.provider;
