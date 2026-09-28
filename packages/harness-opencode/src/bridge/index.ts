@@ -311,7 +311,7 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  const mcp = { ...(start.mcpServers ?? {}) };
+  const mcp = { ...start.mcpServers };
   if (relayPort && start.tools && start.tools.length > 0) {
     mcp['harness-tools'] = {
       type: 'local',
@@ -464,8 +464,6 @@ function buildProviderConfig(
       },
     };
   }
-
-  return undefined;
 }
 
 function parseOpenAIQueryParams(): Record<string, unknown> {
@@ -570,7 +568,6 @@ function readSessionId(data: unknown): string | undefined {
   const record = data as { id?: unknown; data?: { id?: unknown } };
   if (typeof record.id === 'string') return record.id;
   if (typeof record.data?.id === 'string') return record.data.id;
-  return undefined;
 }
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
@@ -1454,7 +1451,6 @@ function getHostToolName(
   ) {
     return rawToolName.slice('harness-tools_'.length);
   }
-  return undefined;
 }
 
 function authorizeHostToolCall({
@@ -1593,7 +1589,6 @@ function latestLegacyAssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function latestV2AssistantMessage(
@@ -1623,7 +1618,6 @@ function latestV2AssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function emitAssistantContentPart(part: unknown, emit: Emit): void {

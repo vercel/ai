@@ -1,5 +1,54 @@
 # @ai-sdk/openai
 
+## 4.0.78
+
+### Patch Changes
+
+- 94d5d6d: Support `reasoningEffortUpdate: 'none'` for GPT-6 Sol and Luna in request-level options and positioned system messages. Validate update efforts against the model's supported efforts, warning and omitting unsupported request-level updates and rejecting unsupported historical updates.
+
+## 4.0.77
+
+### Patch Changes
+
+- 2abd503: Default OpenAI Responses function tools to `strict: false` when tool strict mode is omitted.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.75
+
+### Patch Changes
+
+- ca31b89: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 4.0.74
+
+### Patch Changes
+
+- 4cf5a99: fix(openai): classify Responses stream errors with null codes
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.72
 
 ### Patch Changes

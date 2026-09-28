@@ -1,6 +1,7 @@
 import {
   type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type EmbeddingModelV4,
+  type Experimental_VideoModelV3,
   type Experimental_VideoModelV4,
   type FilesV4,
   type ImageModelV4,
@@ -34,6 +35,12 @@ import type { RerankingModel } from '../types/reranking-model';
 import type { SpeechModel } from '../types/speech-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import type { VideoModel } from '../types/video-model';
+
+type ProviderWithOptionalVideoModel = {
+  videoModel?: (
+    modelId: string,
+  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+};
 
 /**
  * Creates a custom provider with specified language models, text embedding models, image models, transcription models, speech models, file APIs, skill APIs, and an optional fallback provider.
@@ -247,11 +254,11 @@ export function customProvider<
         return resolveVideoModel(videoModels[modelId]);
       }
 
-      // TODO AI SDK v7
-      // @ts-expect-error - videoModel support is experimental
-      const videoModel = fallbackProvider?.videoModel;
-      if (videoModel) {
-        return videoModel(modelId);
+      const provider = fallbackProviderArg as
+        | ProviderWithOptionalVideoModel
+        | undefined;
+      if (provider?.videoModel) {
+        return resolveVideoModel(provider.videoModel(modelId));
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });

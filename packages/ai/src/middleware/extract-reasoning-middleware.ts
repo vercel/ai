@@ -24,7 +24,7 @@ export function extractReasoningMiddleware({
   startWithReasoning?: boolean;
 }): LanguageModelMiddleware {
   const openingTag = `<${tagName}>`;
-  const closingTag = `<\/${tagName}>`;
+  const closingTag = `</${tagName}>`;
 
   return {
     specificationVersion: 'v4',

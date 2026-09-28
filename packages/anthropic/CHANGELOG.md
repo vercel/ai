@@ -1,5 +1,46 @@
 # @ai-sdk/anthropic
 
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.64
+
+### Patch Changes
+
+- 67f8000: Preserve effort updates on empty system messages at the beginning of a conversation, including consecutive updates.
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.63
+
+### Patch Changes
+
+- 154221f: feat(anthropic): support on-demand compaction and preserve signed compaction blocks
+
+## 4.0.62
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.61
+
+### Patch Changes
+
+- 3733d6e: fix(anthropic): omit empty compaction blocks from replay
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.60
 
 ### Patch Changes

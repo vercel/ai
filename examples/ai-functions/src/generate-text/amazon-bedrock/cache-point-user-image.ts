@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     messages: [
       {
         role: 'user',

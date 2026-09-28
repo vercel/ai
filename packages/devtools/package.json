@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/devtools",
-  "version": "1.0.22",
+  "version": "1.0.24",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -52,6 +52,7 @@
     "@types/node": "22.19.19",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
+    "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-react": "^4.7.0",
     "ai": "workspace:*",
     "class-variance-authority": "^0.7.1",

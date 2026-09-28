@@ -1,8 +1,8 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createCline } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const cline = createCline();
 
@@ -36,15 +36,17 @@ const cline = createCline();
  * manual compaction is useful across the large range in between.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({ harness: cline });
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({ harness: cline, sandbox });
 
   let exitCode = 0;
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1: build up some context ---');
     const first = await agent.stream({
       session,
@@ -68,7 +70,8 @@ run(async () => {
     exitCode = 1;
     console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
     process.exit(exitCode);
   }
 });

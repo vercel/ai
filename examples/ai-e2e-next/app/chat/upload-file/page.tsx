@@ -7,20 +7,20 @@ import { useRef, useState } from 'react';
 
 const MODELS = [
   {
-    id: 'claude-sonnet-4-6',
+    id: 'claude-sonnet-5',
     provider: 'anthropic',
-    label: 'Claude Sonnet 4.6 (Anthropic)',
+    label: 'Claude Sonnet 5 (Anthropic)',
   },
   {
     id: 'gemini-3.1-pro-preview',
     provider: 'google',
     label: 'Gemini 3.1 Pro Preview (Google)',
   },
-  { id: 'gpt-5.6', provider: 'openai', label: 'GPT-5.6 (OpenAI)' },
+  { id: 'gpt-6-astra', provider: 'openai', label: 'GPT-6 Astra (OpenAI)' },
   {
-    id: 'grok-4.20-0309-reasoning',
+    id: 'grok-4.7',
     provider: 'xai',
-    label: 'Grok 4.20 Reasoning (xAI)',
+    label: 'Grok 4.7 (xAI)',
   },
 ] as const;
 

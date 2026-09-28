@@ -204,11 +204,6 @@ export async function convertToAnthropicPrompt({
           });
         }
 
-        // The first block becomes the top-level system prompt. Later system
-        // blocks are sent as inline system messages — always when they carry
-        // tool changes (which are only valid mid-conversation), and otherwise
-        // only when a top-level system prompt already exists (preserving the
-        // existing hoisting behavior for plain text).
         const toolChangeCount = convertedMessages.reduce(
           (count, message) => count + message.toolChangeCount,
           0,
@@ -230,12 +225,26 @@ export async function convertToAnthropicPrompt({
             });
           }
 
+          // Initial instruction text goes in the top-level system field.
+          // Effort-only messages stay in the messages array.
           for (const message of convertedMessages) {
-            if (message.clearAt != null || message.effort != null) {
+            if (
+              message.content.length === 0 &&
+              message.clearAt == null &&
+              message.effort != null
+            ) {
+              messages.push({
+                role: 'system',
+                content: [],
+                output_config: { effort: message.effort },
+              });
+              betas.add('mid-conversation-output-config-2026-07-01');
+            } else if (message.clearAt != null || message.effort != null) {
               warnings.push({
                 type: 'other',
                 message:
-                  'clearAt and effort on the initial system message are not supported by Anthropic. ' +
+                  'clearAt and effort on this initial system message are not supported by Anthropic. ' +
+                  'Use a separate effort-only system message with empty content to set effort. ' +
                   'These options have been ignored.',
               });
             }
@@ -711,7 +720,11 @@ export async function convertToAnthropicPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string; citations?: Citation[] }
+                  | {
+                      type?: string;
+                      citations?: Citation[];
+                      signature?: string;
+                    }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -719,9 +732,16 @@ export async function convertToAnthropicPrompt({
                     break;
                   }
 
+                  if (typeof textMetadata.signature === 'string') {
+                    betas.add('compact-2026-09-04');
+                  }
+
                   anthropicContent.push({
                     type: 'compaction',
                     content: part.text,
+                    ...(typeof textMetadata.signature === 'string' && {
+                      signature: textMetadata.signature,
+                    }),
                     cache_control: cacheControl,
                   });
                 } else {

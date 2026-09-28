@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    model: anthropic('claude-3-5-sonnet-latest'),
+    model: anthropic('claude-sonnet-5'),
     tools: {
       web_search: anthropic.tools.webSearch_20250305(),
     },

@@ -20,9 +20,19 @@ export async function timeSliceStep(
 
   const { codexHarnessAgent } =
     await import('@/agent/harness/codex/basic-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: codexHarnessAgent,
+    sessionId: state.sessionId,
+    ports: [4000],
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentTimeSlice({
     agent: codexHarnessAgent,
     state,
+    sandboxSession,
     timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

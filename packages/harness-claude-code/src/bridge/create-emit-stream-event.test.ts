@@ -431,7 +431,7 @@ describe('createEmitStreamEvent', () => {
           "type": "stream-start",
         },
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "tool-1",
@@ -859,7 +859,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryId\":\"/vercel/next.js\"}",
+          "input": "{"libraryId":"/vercel/next.js"}",
           "nativeName": "mcp__context7__query-docs",
           "providerExecuted": true,
           "toolCallId": "external-tool",

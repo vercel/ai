@@ -1,5 +1,6 @@
 import {
   APICallError,
+  InvalidArgumentError,
   InvalidResponseDataError,
   type JSONObject,
   type LanguageModelV4,
@@ -508,6 +509,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     }
 
     const contextManagement = anthropicOptions?.contextManagement;
+    const compaction = anthropicOptions?.compaction;
+
+    if (contextManagement != null && compaction != null) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message:
+          'Anthropic provider options `compaction` and `contextManagement` cannot be used together.',
+      });
+    }
 
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
@@ -779,6 +789,15 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           })),
         }),
 
+      ...(compaction && {
+        compaction: {
+          type: compaction.type,
+          ...(compaction.instructions !== undefined && {
+            instructions: compaction.instructions,
+          }),
+        },
+      }),
+
       ...(contextManagement && {
         context_management: {
           edits: contextManagement.edits
@@ -923,6 +942,10 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions.safeguards.length > 0
     ) {
       betas.add('dangerous-tool-use-2026-09-03');
+    }
+
+    if (compaction) {
+      betas.add('compact-2026-09-04');
     }
 
     if (contextManagement) {
@@ -1271,6 +1294,9 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
             providerMetadata: {
               anthropic: {
                 type: 'compaction',
+                ...(part.signature != null && {
+                  signature: part.signature,
+                }),
               },
             },
           });
@@ -1971,9 +1997,27 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                     providerMetadata: {
                       anthropic: {
                         type: 'compaction',
+                        ...(part.signature != null && {
+                          signature: part.signature,
+                        }),
                       },
                     },
                   });
+
+                  // On-demand compaction blocks arrive complete in
+                  // content_block_start, without compaction_delta events.
+                  if (
+                    part.signature != null &&
+                    part.content != null &&
+                    part.content !== ''
+                  ) {
+                    controller.enqueue({
+                      type: 'text-delta',
+                      id: String(value.index),
+                      delta: part.content,
+                    });
+                  }
+
                   return;
                 }
 

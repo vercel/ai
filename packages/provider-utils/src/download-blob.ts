@@ -1,6 +1,6 @@
 import { cancelResponseBody } from './cancel-response-body';
 import { DownloadError } from './download-error';
-import { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+import { fetchUntrustedUrl } from './fetch-untrusted-url';
 import {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
@@ -22,7 +22,7 @@ export async function downloadBlob(
   options?: { maxBytes?: number; abortSignal?: AbortSignal },
 ): Promise<Blob> {
   try {
-    const response = await fetchWithValidatedRedirects({
+    const response = await fetchUntrustedUrl({
       url,
       abortSignal: options?.abortSignal,
     });

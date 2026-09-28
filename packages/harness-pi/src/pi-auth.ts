@@ -418,7 +418,6 @@ export async function registerPiProviders({
         clientApp,
         headers,
       });
-      return;
     }
   }
 }

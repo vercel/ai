@@ -6,7 +6,7 @@ import { run } from '../lib/run';
 
 const myProvider = customProvider({
   languageModels: {
-    sonnet: anthropic('claude-sonnet-4-5'),
+    sonnet: anthropic('claude-sonnet-5'),
   },
   skills: anthropic.skills(),
 });

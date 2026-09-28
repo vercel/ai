@@ -59,11 +59,27 @@ export type GoogleContentPart =
         id: string;
       };
       thoughtSignature?: string;
+    }
+  | {
+      executableCode: {
+        language: string;
+        code: string;
+      };
+    }
+  | {
+      codeExecutionResult: {
+        outcome: string;
+        output: string;
+      };
     };
 
-export type GoogleFunctionResponsePart = {
-  inlineData: { mimeType: string; data: string };
-};
+export type GoogleFunctionResponsePart =
+  | {
+      inlineData: { mimeType: string; data: string };
+    }
+  | {
+      fileData: { mimeType: string; fileUri: string };
+    };
 
 export type GoogleGroundingMetadata = GroundingMetadataSchema;
 

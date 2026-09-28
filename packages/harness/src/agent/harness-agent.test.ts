@@ -205,7 +205,25 @@ function mockHarness(options: {
 function makeSandboxSession(
   options: Partial<HarnessV1NetworkSandboxSession> = {},
 ): HarnessV1NetworkSandboxSession {
-  const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+  const run = vi.fn(async (args: { command: string }) => ({
+    exitCode: 0,
+    stdout:
+      args.command === 'printf "%s" "$HOME"'
+        ? '/home/agent'
+        : args.command === 'pwd'
+          ? '/work\n'
+          : '',
+    stderr: '',
+  }));
+  const files = new Map<string, string>();
+  const readTextFile = vi.fn(
+    async ({ path }: { path: string }) => files.get(path) ?? null,
+  );
+  const writeTextFile = vi.fn(
+    async ({ path, content }: { path: string; content: string }) => {
+      files.set(path, content);
+    },
+  );
   const sandboxSession = {
     id: 'sandbox',
     defaultWorkingDirectory: '/work',
@@ -213,9 +231,11 @@ function makeSandboxSession(
     getPortEndpoint: async () => ({ url: 'ws://example.test/' }),
     getPortUrl: async () => 'ws://example.test/',
     run,
+    readTextFile,
+    writeTextFile,
     stop: vi.fn(async () => {}),
     destroy: vi.fn(async () => {}),
-    restricted: () => ({ run }) as never,
+    restricted: () => ({ run, readTextFile, writeTextFile }) as never,
     ...options,
   } as unknown as HarnessV1NetworkSandboxSession;
   return sandboxSession;
@@ -359,6 +379,344 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('uses prepared runtime context for each prompt turn and filters telemetry', async () => {
+    type RuntimeContext = { requestId: string; secret: string };
+    const configuredContext = { requestId: 'default', secret: 'configured' };
+    const preparedInputs: Array<RuntimeContext | undefined> = [];
+    const lifecycleContexts: RuntimeContext[] = [];
+    const telemetryContexts: unknown[] = [];
+    const { harness } = mockHarness({
+      script: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'ok' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const agent = new HarnessAgent<
+      typeof harness,
+      {},
+      RuntimeContext,
+      never,
+      { requestId: string }
+    >({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: configuredContext,
+      callOptionsSchema: z.object({ requestId: z.string() }),
+      prepareCall: ({ options, runtimeContext, ...rest }) => {
+        preparedInputs.push(runtimeContext);
+        return {
+          ...rest,
+          runtimeContext: { requestId: options.requestId, secret: 'private' },
+        };
+      },
+      onStart: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onStepStart: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onStepEnd: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      onEnd: ({ runtimeContext }) => {
+        lifecycleContexts.push(runtimeContext);
+      },
+      telemetry: {
+        includeRuntimeContext: { requestId: true },
+        integrations: [
+          {
+            onEnd: event => {
+              telemetryContexts.push(
+                (event as { runtimeContext: unknown }).runtimeContext,
+              );
+            },
+          },
+        ],
+      },
+    });
+    const session = await agent.createSession();
+
+    const generated = await agent.generate({
+      session,
+      prompt: 'first',
+      options: { requestId: 'req-1' },
+    });
+    const streamed = await agent.stream({
+      session,
+      prompt: 'second',
+      options: { requestId: 'req-2' },
+    });
+    await streamed.consumeStream();
+
+    expect(preparedInputs).toEqual([configuredContext, configuredContext]);
+    expect(generated.finalStep.runtimeContext).toEqual({
+      requestId: 'req-1',
+      secret: 'private',
+    });
+    expect((await streamed.finalStep).runtimeContext).toEqual({
+      requestId: 'req-2',
+      secret: 'private',
+    });
+    expect(lifecycleContexts).toEqual([
+      ...Array(4).fill(generated.finalStep.runtimeContext),
+      ...Array(4).fill((await streamed.finalStep).runtimeContext),
+    ]);
+    expect(telemetryContexts).toEqual([
+      { requestId: 'req-1' },
+      { requestId: 'req-2' },
+    ]);
+    await session.destroy();
+  });
+
+  test('defaults to empty runtime context when prepareCall clears it', async () => {
+    const { harness } = mockHarness({ script: () => finishEvents() });
+    const agent = new HarnessAgent<typeof harness, {}, { requestId: string }>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { requestId: 'configured' },
+      prepareCall: call => ({ ...call, runtimeContext: undefined }),
+    });
+    const session = await agent.createSession();
+    const result = await agent.generate({ session, prompt: 'go' });
+
+    expect(result.finalStep.runtimeContext).toEqual({});
+    await session.destroy();
+  });
+
+  test('preserves prepared runtime context during an in-memory continuation', async () => {
+    type RuntimeContext = { requestId: string };
+    const preparedContext = { requestId: 'prepared' };
+    const { harness } = mockHarness({
+      script: () => [
+        finishEvents()[0]!,
+        { type: 'text-delta', id: 'next-step', delta: 'next' },
+      ],
+      continueScript: () => [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'done' },
+        { type: 'text-end', id: 'text-1' },
+        {
+          type: 'finish-step',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          usage: zeroUsage(),
+        },
+        {
+          type: 'finish',
+          finishReason: { unified: 'stop', raw: 'end_turn' },
+          totalUsage: zeroUsage(),
+        },
+      ],
+    });
+    const prepareCallSpy = vi.fn();
+    const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { requestId: 'default' },
+      prepareCall: call => {
+        prepareCallSpy();
+        return { ...call, runtimeContext: preparedContext };
+      },
+      stopWhen: isStepCount(1),
+    });
+    const session = await agent.createSession();
+
+    const first = await agent.generate({ session, prompt: 'go' });
+    expect(session.hasUnfinishedTurn()).toBe(true);
+    expect(first.finalStep.runtimeContext).toBe(preparedContext);
+
+    const continued = await agent.continueGenerate({ session });
+    expect(continued.finalStep.runtimeContext).toBe(preparedContext);
+    expect(prepareCallSpy).toHaveBeenCalledTimes(1);
+    await session.destroy();
+  });
+
+  test.each([
+    { name: 'rebound context', rebind: true, expectedRequestId: 'prepared' },
+    {
+      name: 'constructor fallback',
+      rebind: false,
+      expectedRequestId: 'default',
+    },
+  ])(
+    'uses $name after recreating a suspended turn without serializing runtime context',
+    async ({ rebind, expectedRequestId }) => {
+      type RuntimeContext = { requestId: string };
+      const preparedContext = { requestId: 'prepared' };
+      const { harness } = mockHarness({
+        script: () => [
+          finishEvents()[0]!,
+          { type: 'text-delta', id: 'next-step', delta: 'next' },
+        ],
+        continueScript: () => [
+          { type: 'text-start', id: 'text-1' },
+          { type: 'text-delta', id: 'text-1', delta: 'done' },
+          { type: 'text-end', id: 'text-1' },
+          {
+            type: 'finish-step',
+            finishReason: { unified: 'stop', raw: 'end_turn' },
+            usage: zeroUsage(),
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'end_turn' },
+            totalUsage: zeroUsage(),
+          },
+        ],
+      });
+      const prepareCallSpy = vi.fn();
+      const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+        harness,
+        sandbox: makeSandboxProvider(),
+        runtimeContext: { requestId: 'default' },
+        prepareCall: call => {
+          prepareCallSpy();
+          return { ...call, runtimeContext: preparedContext };
+        },
+        stopWhen: isStepCount(1),
+      });
+      let session = await agent.createSession();
+
+      const first = await agent.generate({ session, prompt: 'go' });
+      expect(first.finalStep.runtimeContext).toBe(preparedContext);
+      const sessionId = session.sessionId;
+      const continueFrom = await session.suspendTurn();
+      expect(continueFrom).not.toHaveProperty('runtimeContext');
+      expect(continueFrom.turnSettings).not.toHaveProperty('runtimeContext');
+
+      session = await agent.createSession({
+        sessionId,
+        continueFrom: structuredClone(continueFrom),
+        ...(rebind ? { runtimeContext: preparedContext } : {}),
+      });
+      const continued = await agent.continueGenerate({ session });
+      expect(continued.finalStep.runtimeContext).toEqual({
+        requestId: expectedRequestId,
+      });
+      expect(prepareCallSpy).toHaveBeenCalledTimes(1);
+      await session.destroy();
+    },
+  );
+
+  test('forwards configured runtime context through every public turn entry point', async () => {
+    type RuntimeContext = { conversationId: string };
+    const runtimeContext = { conversationId: 'conversation-1' };
+    const lifecycleContexts: RuntimeContext[] = [];
+    const telemetryContexts: RuntimeContext[] = [];
+    const completedTurn = () => [
+      { type: 'stream-start' as const, modelId: 'mock-model' },
+      { type: 'text-start' as const, id: 'text-1' },
+      {
+        type: 'text-delta' as const,
+        id: 'text-1',
+        delta: 'completed',
+      },
+      { type: 'text-end' as const, id: 'text-1' },
+      {
+        type: 'finish-step' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: zeroUsage(),
+      },
+      {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        totalUsage: zeroUsage(),
+      },
+    ];
+    const { harness } = mockHarness({
+      script: completedTurn,
+      continueScript: completedTurn,
+    });
+    const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext,
+      telemetry: {
+        includeRuntimeContext: { conversationId: true },
+        integrations: [
+          {
+            onEnd: event => {
+              telemetryContexts.push(
+                (event as unknown as { runtimeContext: RuntimeContext })
+                  .runtimeContext,
+              );
+            },
+          },
+        ],
+      },
+      onEnd: event => {
+        lifecycleContexts.push(event.runtimeContext);
+      },
+    });
+
+    const generateSession = await agent.createSession();
+    const generated = await agent.generate({
+      session: generateSession,
+      prompt: 'generate',
+    });
+    expect(generated.finalStep.runtimeContext).toBe(runtimeContext);
+    await generateSession.destroy();
+
+    const streamSession = await agent.createSession();
+    const streamed = await agent.stream({
+      session: streamSession,
+      prompt: 'stream',
+    });
+    await streamed.consumeStream();
+    expect((await streamed.finalStep).runtimeContext).toBe(runtimeContext);
+    await streamSession.destroy();
+
+    const continueState = {
+      type: 'continue-turn' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    };
+    const continueGenerateSession = await agent.createSession({
+      continueFrom: continueState,
+    });
+    const continuedGeneration = await agent.continueGenerate({
+      session: continueGenerateSession,
+    });
+    expect(continuedGeneration.finalStep.runtimeContext).toBe(runtimeContext);
+    await continueGenerateSession.destroy();
+
+    const continueStreamSession = await agent.createSession({
+      continueFrom: continueState,
+    });
+    const continuedStream = await agent.continueStream({
+      session: continueStreamSession,
+    });
+    await continuedStream.consumeStream();
+    expect((await continuedStream.finalStep).runtimeContext).toBe(
+      runtimeContext,
+    );
+    await continueStreamSession.destroy();
+
+    expect(lifecycleContexts).toEqual([
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+    ]);
+    expect(telemetryContexts).toEqual([
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+    ]);
+  });
+
   test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
     const builtinTools = {
       bash: tool({
@@ -2489,6 +2847,40 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('workDir dot uses the sandbox default working directory for the session and harness', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const restrictedSession = { label: 'restricted', run };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const onSandboxSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: '.', onSession: onSandboxSession },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work' },
+      abortSignal: undefined,
+    });
+    expect(onSandboxSession).toHaveBeenCalledWith({
+      session: restrictedSession,
+      sessionWorkDir: '/work',
+      abortSignal: undefined,
+    });
+    expect(doStart.mock.calls[0]?.[0]).toMatchObject({
+      sessionWorkDir: '/work',
+    });
+
+    await session.destroy();
+  });
+
   test('deprecated top-level onSandboxSession warns and still runs', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
@@ -2573,7 +2965,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2596,7 +2993,7 @@ describe('HarnessAgent', () => {
 
     expect(writeTextFile).toHaveBeenCalledWith({
       path: expect.stringMatching(
-        /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
       ),
       content: expect.any(String),
       abortSignal: undefined,
@@ -2664,11 +3061,23 @@ describe('HarnessAgent', () => {
       if (args.command === 'pwd') {
         return { exitCode: 0, stdout: '/work\n', stderr: '' };
       }
+      if (args.command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     });
+    const files = new Map<string, string>();
     const restrictedSession = {
       label: 'restricted',
       run,
+      readTextFile: vi.fn(
+        async ({ path }: { path: string }) => files.get(path) ?? null,
+      ),
+      writeTextFile: vi.fn(
+        async ({ path, content }: { path: string; content: string }) => {
+          files.set(path, content);
+        },
+      ),
     };
     const sandboxSession = makeSandboxSession({
       run,
@@ -2721,7 +3130,7 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('sandboxConfig.onBootstrap is skipped for resumed sessions while onSession still runs', async () => {
+  test('sandboxConfig.onBootstrap runs for a resumed session missing its marker while onSession still runs', async () => {
     const { harness } = mockHarness({ script: () => [] });
     const onSandboxBootstrap = vi.fn(async () => {});
     const onSandboxSession = vi.fn(async () => {});
@@ -2746,7 +3155,7 @@ describe('HarnessAgent', () => {
       },
     });
 
-    expect(onSandboxBootstrap).not.toHaveBeenCalled();
+    expect(onSandboxBootstrap).toHaveBeenCalledOnce();
     expect(onSandboxSession).toHaveBeenCalledWith({
       session: expect.any(Object),
       sessionWorkDir: '/work/ai-sdk',
@@ -2772,7 +3181,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = {
@@ -2812,9 +3226,68 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     const markerWrite = writeCalls.at(-1)?.[0];
+    // Applied by `onFirstCreate`, before a `HarnessV1NetworkSandboxSession`
+    // even exists — resolved straight from the plain `SandboxSession`'s HOME,
+    // never the working directory.
     expect(markerWrite?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
+
+    await session.destroy();
+  });
+
+  test('resolves harness state under the sandbox HOME, never the working directory', async () => {
+    const base = mockHarness({ script: () => [] });
+    const recipe: HarnessV1Bootstrap = {
+      harnessId: 'mock',
+      bootstrapDir: '.harness-bootstrap/mock',
+      files: [{ path: '.harness-bootstrap/mock/bridge.mjs', content: 'x' }],
+      commands: [],
+    };
+    const harness: HarnessV1 = {
+      ...base.harness,
+      getBootstrap: vi.fn(async () => recipe),
+    };
+    const readTextFile = vi.fn(async () => null);
+    const writeTextFile = vi.fn(async () => {});
+    const run = vi.fn(async (args: { command: string }) => ({
+      exitCode: 0,
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
+      stderr: '',
+    }));
+    const restrictedSession = { run, readTextFile, writeTextFile };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: 'ai-sdk' },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    // All harness-generated state resolves under the sandbox's own HOME,
+    // not `defaultWorkingDirectory` (`/work`) …
+    const writtenPaths = (
+      writeTextFile.mock.calls as unknown as Array<[{ path: string }]>
+    ).map(call => call[0].path);
+    expect(writtenPaths).toContain(
+      '/home/agent/.ai-sdk-harness/.harness-bootstrap/mock/bridge.mjs',
+    );
+    for (const path of writtenPaths) {
+      expect(path).toMatch(/^\/home\/agent\/\.ai-sdk-harness\//);
+    }
+    // … while the session still works in the sandbox working directory.
+    expect(base.doStart.mock.calls[0]![0]).toMatchObject({
+      sessionWorkDir: '/work/ai-sdk',
+    });
 
     await session.destroy();
   });
@@ -2836,7 +3309,12 @@ describe('HarnessAgent', () => {
     const writeTextFile = vi.fn(async () => {});
     const run = vi.fn(async (args: { command: string }) => ({
       exitCode: 0,
-      stdout: args.command === 'pwd' ? '/work\n' : '',
+      stdout:
+        args.command === 'pwd'
+          ? '/work\n'
+          : args.command === 'printf "%s" "$HOME"'
+            ? '/home/agent'
+            : '',
       stderr: '',
     }));
     const restrictedSession = { run, readTextFile, writeTextFile };
@@ -2863,7 +3341,7 @@ describe('HarnessAgent', () => {
     expect(readTextFile.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         path: expect.stringMatching(
-          /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+          /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
         ),
       }),
     );
@@ -2871,7 +3349,7 @@ describe('HarnessAgent', () => {
       [{ path: string }]
     >;
     expect(writeCalls.at(-1)?.[0]?.path).toMatch(
-      /^\/work\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+      /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/mock\/\.bootstrap-[0-9a-f]{16}\.ok$/,
     );
 
     await session.destroy();

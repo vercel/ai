@@ -32,17 +32,18 @@ import { pi, createPi } from '@ai-sdk/harness-pi';
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { pi } from '@ai-sdk/harness-pi';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: pi,
   model: 'anthropic/claude-sonnet-4.6',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 let exitCode = 0;
 try {
@@ -61,6 +62,7 @@ try {
   console.error(err);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
   process.exit(exitCode);
 }
 ```
@@ -232,13 +234,13 @@ const harness = createPi({
 
 ## Sandbox
 
-Pi needs a `HarnessV1SandboxProvider`, but it does not require exposed ports.
-You can use a network sandbox adapter like `@ai-sdk/sandbox-vercel`, or a
-local emulation like `@ai-sdk/sandbox-just-bash`:
+Pi needs a sandbox session but does not require exposed ports. You can create a
+Vercel network session or a local just-bash session:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
+  template: await agent.getSandboxTemplate(),
 });
 ```
 

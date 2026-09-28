@@ -51,7 +51,7 @@ const tools = {
 
 run(async () => {
   const result = await generateText({
-    model: openai('gpt-5.6-sol'),
+    model: openai('gpt-6-sol'),
     tools,
     experimental_toolCallers: {
       getInventory: ['programmatic', DIRECT_TOOL_CALL],

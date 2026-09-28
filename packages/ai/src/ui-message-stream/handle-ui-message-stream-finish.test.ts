@@ -508,7 +508,7 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.isAborted).toBe(true);
     });
 
-    it('should call onFinish when reader is cancelled (simulating browser close/navigation)', async () => {
+    it('should report consumer cancellation when the reader is cancelled before an outcome is declared', async () => {
       await expectUndefinedUnhandledRejections(async () => {
         const onFinishCallback = vi.fn();
 
@@ -537,8 +537,73 @@ describe('handleUIMessageStreamFinish', () => {
 
         const callArgs = onFinishCallback.mock.calls[0][0];
         expect(callArgs.isAborted).toBe(false);
+        expect(callArgs.isCancelled).toBe(true);
+        expect(callArgs.outcome).toEqual({ status: 'unknown' });
         expect(callArgs.responseMessage.id).toBe('msg-1');
       });
+    });
+
+    it.each([
+      { status: 'completed' } as const,
+      { status: 'failed', error: new Error('stream failed') } as const,
+      { status: 'aborted' } as const,
+    ])(
+      'should preserve a declared $status outcome when the reader is cancelled',
+      async declaredOutcome => {
+        const onEndCallback = vi.fn();
+        const stream = new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: 'start', messageId: 'msg-1' });
+          },
+        });
+
+        const resultStream = handleUIMessageStreamFinish<UIMessage>({
+          stream,
+          messageId: 'msg-1',
+          originalMessages: [],
+          onError: mockErrorHandler,
+          onEnd: onEndCallback,
+          getOutcome: () => declaredOutcome,
+        });
+
+        const reader = resultStream.getReader();
+        await reader.read();
+        await reader.cancel();
+
+        expect(onEndCallback).toHaveBeenCalledTimes(1);
+        expect(onEndCallback.mock.calls[0][0].outcome).toBe(declaredOutcome);
+        expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
+      },
+    );
+
+    it('should prefer an observed abort over cancellation', async () => {
+      const onEndCallback = vi.fn();
+      const stream = new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start', messageId: 'msg-1' });
+          controller.enqueue({ type: 'abort' });
+        },
+      });
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      const reader = resultStream.getReader();
+      await reader.read();
+      await reader.read();
+      await reader.cancel();
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0]).toMatchObject({
+        isAborted: true,
+        outcome: { status: 'aborted' },
+      });
+      expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
     });
   });
 

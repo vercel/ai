@@ -1289,8 +1289,6 @@ function extractTotalTokenCountFromUsage(usage: StreamUsage | undefined) {
   if (inputTokens != null && outputTokens != null) {
     return inputTokens + outputTokens;
   }
-
-  return undefined;
 }
 
 function extractInputTokenCountFromUsage(usage: StreamUsage | undefined) {

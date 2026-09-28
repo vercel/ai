@@ -9,7 +9,7 @@ import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     prompt: `Call the echo tool with "hello world". what does it respond with back?`,
     providerOptions: {
       anthropic: {

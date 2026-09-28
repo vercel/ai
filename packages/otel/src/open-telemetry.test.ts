@@ -2869,29 +2869,29 @@ describe('OpenTelemetry integration with evaluate', () => {
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
-              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.evaluation.state": "{"message":"Please refund me"}",
               "gen_ai.operation.name": "evaluate",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
             "name": "evaluate mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             },
           },
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{\"refund\":{\"type\":\"boolean\",\"instructions\":\"Refund?\"}}",
-              "ai.evaluation.state": "{\"message\":\"Please refund me\"}",
+              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.evaluation.state": "{"message":"Please refund me"}",
               "gen_ai.operation.name": "evaluate",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
             "name": "evaluate mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{\"refund\":{\"type\":\"boolean\",\"probability\":0.9}}",
+              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },

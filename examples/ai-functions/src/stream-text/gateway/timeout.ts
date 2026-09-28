@@ -47,7 +47,7 @@ run(async () => {
     );
 
     const result = streamText({
-      model: gateway('anthropic/claude-3.5-sonnet'),
+      model: gateway('anthropic/claude-sonnet-5'),
       prompt:
         'Write a detailed essay about the history of artificial intelligence, covering major milestones from the 1950s to present day.',
     });

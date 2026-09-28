@@ -41,7 +41,6 @@ vi.mock('./browser-realtime-transport', () => ({
 
 vi.mock('./browser-realtime-audio', () => ({
   BrowserRealtimeAudio: class {
-    constructor(_options: unknown) {}
     ensurePlaybackContext = vi.fn();
     startCapture = vi.fn();
     stopCapture = vi.fn();

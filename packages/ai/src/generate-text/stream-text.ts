@@ -2046,6 +2046,7 @@ class DefaultStreamTextResult<
           toolsContext,
           runtimeContext,
           toolApprovalSecret: experimental_toolApprovalSecret,
+          refineToolInput,
         });
 
         const localDeniedToolApprovals = [

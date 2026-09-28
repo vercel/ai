@@ -806,7 +806,12 @@ function convertAnthropicBatchResponse(
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
@@ -837,7 +842,7 @@ function convertAnthropicBatchResponse(
           toolName,
           input: JSON.stringify(
             isCodeExecutionAlias
-              ? { type: part.name, ...(part.input ?? {}) }
+              ? { type: part.name, ...part.input }
               : part.name === 'code_execution' &&
                   part.input != null &&
                   'code' in part.input &&

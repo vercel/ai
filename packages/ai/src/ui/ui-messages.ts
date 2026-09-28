@@ -324,6 +324,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -340,6 +341,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -358,6 +360,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -380,6 +383,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -396,6 +400,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -456,6 +461,7 @@ export type DynamicToolUIPart = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -472,6 +478,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -490,6 +497,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -507,6 +515,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -523,6 +532,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );

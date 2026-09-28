@@ -63,7 +63,7 @@ const toolApproval = opaPolicy({
 
 // 3. Pass it to generateText. Everything else is normal.
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   tools: { git, bash, queryLogs },
   toolApproval,
   prompt: 'find the failing test and push the fix',
@@ -559,7 +559,7 @@ import { wasmPolicyClient, opaCapabilityMiddleware } from '@ai-sdk/policy-opa';
 const client = await wasmPolicyClient({ wasm });
 
 const wrappedModel = wrapLanguageModel({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5'),
   middleware: opaCapabilityMiddleware({
     client,
     path: 'agent/tools/allowed',

@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.4'),
+    model: openai.responses('gpt-6-astra'),
     tools: {
       validateEmail: tool({
         description: 'Validate an email address.',

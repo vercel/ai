@@ -1,13 +1,13 @@
 # Harness abstraction architecture
 
-This document explains how the harness specification, sandbox providers, and harness adapter implementations connect in the AI SDK.
+This document explains how harness agents, sandbox sessions, and harness adapters fit together in the AI SDK.
 It starts with a high-level view and then describes the main decisions involved in adding a new harness adapter.
 
 ## High-level architecture
 
 - **Harness agent**: user-facing agent runtime wrapper (`HarnessAgent`)
 - **Harness specification**: `HarnessV1`
-- **Sandbox provider**: optional `HarnessV1SandboxProvider` for framework-managed sandbox sessions
+- **Sandbox template**: `HarnessSandboxTemplate`, prepared by a sandbox session creator before a live session starts
 - **Sandbox session**: either `HarnessV1NetworkSandboxSession` (recommended) or the narrower `Experimental_SandboxSession`
 - **Harness implementations**: provider-specific coding-agent adapters that implement `HarnessV1`
 
@@ -17,8 +17,9 @@ classDiagram
     class HarnessV1 {
       <<interface>>
     }
-    class HarnessV1SandboxProvider {
-      <<interface>>
+    class HarnessSandboxTemplate {
+      identity
+      prepare(options)
     }
     class HarnessV1NetworkSandboxSession {
       <<interface>>
@@ -30,8 +31,8 @@ classDiagram
     class HarnessImplementationB
 
     HarnessAgent ..> HarnessV1 : uses
-    HarnessAgent ..> HarnessV1SandboxProvider : optionally uses
-    HarnessV1SandboxProvider ..> HarnessV1NetworkSandboxSession : creates or resumes
+    HarnessAgent ..> HarnessSandboxTemplate : resolves bootstrap
+    HarnessSandboxTemplate ..> Experimental_SandboxSession : prepares
     HarnessV1NetworkSandboxSession --|> Experimental_SandboxSession : extends
     HarnessAgent ..> Experimental_SandboxSession : passes to adapter
     HarnessV1 ..> Experimental_SandboxSession : operates on
@@ -40,7 +41,7 @@ classDiagram
     HarnessImplementationB ..|> HarnessV1 : implements
 ```
 
-`HarnessAgent` either creates or resumes a sandbox session through the configured `HarnessV1SandboxProvider`, or uses the sandbox session passed to `createSession()`.
+The caller creates or reattaches a sandbox session and passes it to `HarnessAgent.createSession({ sandboxSession })`.
 It then creates the per-session work directory and calls `HarnessV1.doStart()` with both the `sandboxSession` and `sessionWorkDir`.
 Sandbox provisioning and lifecycle behavior are described in [Sandbox ownership and lifecycle](#sandbox-ownership-and-lifecycle).
 
@@ -60,56 +61,44 @@ It should expose native runtime output, tool calls, approvals, completion, and u
   - Represents one active harness session.
   - Handles prompt turns, continued turns, compaction, suspension, detach, stop, and destroy.
 
-`HarnessV1SandboxProvider` and `HarnessV1NetworkSandboxSession` are part of the overall architecture, but they are sandbox contracts rather than harness adapter contracts. To implement a sandbox that supports the harness layer, see the [sandbox abstraction architecture doc](./sandbox-abstraction.md).
+`HarnessSandboxTemplate` is the agent-layer alias of the sandbox contract `HarnessV1SandboxTemplate`. It and `HarnessV1NetworkSandboxSession` are sandbox contracts rather than harness adapter contracts. To implement a sandbox that supports the harness layer, see the [sandbox abstraction architecture doc](./sandbox-abstraction.md).
 
-A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes to `doStart()`; they do not implement the sandbox provider or sandbox session interfaces.
+A harness implementer consumes the `sandboxSession` that `HarnessAgent` passes to `doStart()`; they do not implement sandbox session interfaces.
 
 ## Sandbox ownership and lifecycle
 
-`HarnessAgent` supports three ways to provide a sandbox session:
-
-| Provisioning mode                 | Configuration                                                                                                      | Sandbox lifecycle owner | Resume behavior                                                                                                                                                  |
-| --------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework-managed network sandbox | Configure `HarnessAgent` with `sandbox: HarnessV1SandboxProvider` and omit `sandboxSession` from `createSession()` | `HarnessAgent`          | Creates a fresh sandbox through `HarnessV1SandboxProvider.createSession()` or resumes one through `resumeSession()`                                              |
-| Caller-provided network sandbox   | Pass a `HarnessV1NetworkSandboxSession` to `createSession({ sandboxSession })`                                     | Caller                  | The caller supplies the appropriate live or resumed sandbox session together with any harness lifecycle state                                                    |
-| Caller-provided regular sandbox   | Pass an `Experimental_SandboxSession` to `createSession({ sandboxSession })`                                       | Caller                  | The caller supplies the appropriate sandbox session together with any harness lifecycle state; network capabilities are unavailable through the session contract |
+Pass a `HarnessV1NetworkSandboxSession` to `createSession({ sandboxSession })` when an adapter needs ports or network policy. A basic `Experimental_SandboxSession` is sufficient for adapters that do not need network ports to communicate with an in-sandbox process. To resume, reattach the native sandbox and supply its adapted session together with the harness lifecycle state.
 
 Passing `sandboxSession` directly always leaves its lifecycle with the caller, regardless of which sandbox session interface it implements.
 `HarnessAgent` does not stop or destroy a caller-provided sandbox.
 
-### With a framework-managed sandbox
-
-- `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
-- `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; calls `sandboxSession.stop()`.
-- `session.destroy()`: Calls adapter `doDestroy()`; calls `sandboxSession.destroy()`.
-
-### With a caller-provided sandbox
+### With a supplied sandbox
 
 - `session.detach()`: Calls adapter `doDetach()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
 - `session.stop()`: Calls adapter `doStop()`, or `doSuspendTurn()` for an unfinished turn; leaves the sandbox unchanged.
 - `session.destroy()`: Calls adapter `doDestroy()`; leaves the sandbox unchanged.
+
+Explicit calls to `sandboxSession.stop()` or `sandboxSession.destroy()` on a network adaptation still operate on the native sandbox. These methods are not called by `HarnessAgentSession` when the sandbox session was supplied by the caller, including when startup fails.
 
 The adapter never owns the sandbox lifecycle.
 It receives the selected sandbox session through `HarnessV1.doStart()` and must not stop or destroy it.
 
 ```mermaid
 flowchart TD
-    ManagedCall["createSession() without sandboxSession"]
-    Provider["HarnessV1SandboxProvider"]
-    ManagedSession["Framework-managed HarnessV1NetworkSandboxSession"]
+    Template["HarnessAgent.getSandboxTemplate()"]
+    Creator["Sandbox creator applies template and returns network session"]
     ProvidedCall["createSession({ sandboxSession }) with a caller-provided network or regular session"]
     Setup["HarnessAgent creates sessionWorkDir"]
     Adapter["HarnessV1.doStart({ sandboxSession, sessionWorkDir })"]
     Runtime["Coding agent runtime"]
 
-    ManagedCall --> Provider
-    Provider -->|"createSession() or resumeSession()"| ManagedSession
-    ManagedSession --> Setup
+    Template --> Creator
+    Creator --> ProvidedCall
     ProvidedCall --> Setup
     Setup --> Adapter
     Adapter --> Runtime
 
-    style Provider stroke:#66f,stroke-width:3px
+    style Template stroke:#66f,stroke-width:3px
     style ProvidedCall stroke:#6f6,stroke-width:3px
     style Setup stroke:#f9f,stroke-width:3px
 ```
@@ -180,15 +169,11 @@ flowchart LR
 ```
 
 Bridge-backed harnesses must bootstrap the sandbox that is passed to them.
-That bootstrap can be declared as a [`HarnessV1Bootstrap`](../packages/harness/src/v1/harness-v1-bootstrap.ts) recipe so `HarnessAgent` and sandbox providers can apply it consistently.
+That bootstrap must be declared as a [`HarnessV1Bootstrap`](../packages/harness/src/v1/harness-v1-bootstrap.ts) recipe so the agent and sandbox templates can apply it consistently.
 
-To prewarm a sandbox provider's reusable template for one harness, call [`prepareHarnessSandboxTemplate()`](../packages/harness/src/agent/prepare-harness-sandbox-template.ts).
-Pass the same `sandboxConfig` bootstrap settings to `prepareHarnessSandboxTemplate()` and `HarnessAgent`.
-Matching settings produce the same bootstrap plan and identity, allowing snapshot-capable providers to reuse the prepared template and avoid their one-time bootstrap hook.
+Call `agent.getSandboxTemplate()` for one adapter, or pass the same `sandboxConfig` you gave the `agent` to `createHarnessSandboxTemplate({ harnesses, sandboxConfig })`, to prepare the sandbox template for multiple harness adapters. Both resolve recipes and a deterministic aggregate identity before returning. A sandbox creator calls `template.prepare({ session, abortSignal })` on a basic session, then persists the prepared filesystem when its SDK supports snapshots. A creator with no snapshot support prepares every fresh sandbox.
 
-To prepare a caller-owned sandbox for one or more harnesses, call [`prepareSandboxForHarness()`](../packages/harness/src/agent/prepare-sandbox-for-harness.ts) against the sandbox session, then snapshot or otherwise persist it yourself.
-Later, pass a sandbox created from that artifact to `HarnessAgent`; matching per-recipe bootstrap markers prevent already applied recipes from running again.
-The aggregate preparation identity returned by `prepareSandboxForHarness()` is caller metadata and is not the identity that `HarnessAgent` passes to a sandbox provider.
+The identity includes normalized `workDir`, `bootstrapHash`, and sorted harness recipe identities. The caller changes `bootstrapHash` when the bootstrap hook's side effects change. Recipe and successful-hook markers live under the sandbox's HOME, separate from the session work directory. `onSession` runs each time the agent acquires a session, not during template preparation.
 
 ## Filesystem boundaries
 

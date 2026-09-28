@@ -202,7 +202,7 @@ import { DirectChatTransport, ToolLoopAgent } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'You are a helpful assistant.',
 });
 
@@ -246,7 +246,7 @@ const weatherTool = tool({
 });
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'You are a helpful assistant with access to weather data.',
   tools: { weather: weatherTool },
 });
@@ -268,7 +268,7 @@ import { DirectChatTransport, ToolLoopAgent } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const agent = new ToolLoopAgent<{ userId: string }>({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prepareCall: ({ options, ...rest }) => ({
     ...rest,
     providerOptions: {

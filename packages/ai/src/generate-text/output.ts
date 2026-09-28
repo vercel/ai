@@ -497,8 +497,6 @@ function getArrayLengthValidationError({
       cause: `elements array must contain at most ${maxItems} items`,
     });
   }
-
-  return undefined;
 }
 
 /**

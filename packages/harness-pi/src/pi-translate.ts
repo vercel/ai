@@ -102,8 +102,8 @@ export function createPiTranslatorState(
     stepOpen: false,
     hostToolResults: new Map(),
     dynamicToolCallIds: new Set(),
-    builtinToolNames: new Set(options.builtinToolNames ?? []),
-    hostToolNames: new Set(options.hostToolNames ?? []),
+    builtinToolNames: new Set(options.builtinToolNames),
+    hostToolNames: new Set(options.hostToolNames),
     nativeToCommonNameMap: map,
   };
 }

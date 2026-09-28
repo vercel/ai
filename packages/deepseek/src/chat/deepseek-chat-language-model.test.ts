@@ -84,7 +84,6 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
 
     it('should reject a response without choices', async () => {
