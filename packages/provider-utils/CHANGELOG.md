@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 5.0.51
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+
 ## 5.0.50
 
 ### Patch Changes

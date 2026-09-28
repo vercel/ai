@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-pi",
-  "version": "1.0.132",
+  "version": "1.0.133",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,

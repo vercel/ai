@@ -1,5 +1,13 @@
 # @ai-sdk/alibaba
 
+## 2.0.58
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 2.0.57
 
 ### Patch Changes
