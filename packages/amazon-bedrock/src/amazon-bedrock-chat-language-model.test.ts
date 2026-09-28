@@ -5099,6 +5099,8 @@ describe('doGenerate', () => {
       'anthropic.claude-opus-5-5',
       'us.anthropic.claude-opus-5-5',
       'global.anthropic.claude-opus-5-5',
+      'anthropic.claude-sonnet-5-5',
+      'us.anthropic.claude-sonnet-5-5',
     ])(
       'should build an auto tool choice for required choice on %s',
       async modelId => {

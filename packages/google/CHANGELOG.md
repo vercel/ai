@@ -1,5 +1,11 @@
 # @ai-sdk/google
 
+## 4.0.84
+
+### Patch Changes
+
+- d0290cf: fix(google): preserve realtime user utterances with independent IDs and cumulative transcripts, honor text-free transcription completion markers, and advance response IDs after interruption
+
 ## 4.0.83
 
 ### Patch Changes

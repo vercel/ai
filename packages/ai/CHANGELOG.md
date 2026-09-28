@@ -1,5 +1,14 @@
 # ai
 
+## 7.0.120
+
+### Patch Changes
+
+- b032d70: fix(ai): preserve tool metadata from tool output chunks
+- e21b98b: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [e361d39]
+  - @ai-sdk/gateway@4.0.98
+
 ## 7.0.119
 
 ### Patch Changes
