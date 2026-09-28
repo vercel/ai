@@ -90,8 +90,8 @@ For bridge packages, add any bridge asset copy step required for files under `sr
 Bridge dependency rules (bridge-backed harnesses):
 
 - The bridge's runtime deps live in `src/bridge/package.json` (installed in-sandbox at bootstrap), not the main package.json. After changing them, regenerate `src/bridge/pnpm-lock.yaml` with `pnpm --dir packages/harness-<name>/src/bridge install --lockfile-only --ignore-workspace` (runnable from the repo root).
-- For every third-party import in `src/bridge/`, keep three things in sync: the import, the `deps.neverBundle` array in `tsdown.config.ts`, and the dep in `src/bridge/package.json`. A missing entry shows up only at sandbox runtime as a module-resolution error.
-- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — even though nothing imports them directly. These fail only when a model of that provider is actually used.
+- For every third-party import in `src/bridge/`, add the dependency to `src/bridge/package.json` so it is installed in the sandbox. tsdown automatically externalizes dependencies, peer dependencies, and optional dependencies declared by the main package; add bridge-only dependencies that are not declared there to `deps.neverBundle` in `tsdown.config.ts`. A missing dependency or required exclusion may show up only at sandbox runtime as a module-resolution error.
+- Include packages the runtime _lazily_ imports — e.g. provider SDKs (`@anthropic-ai/sdk`, `openai`) resolved from the model id at runtime — in `src/bridge/package.json` even though nothing imports them directly. They do not need a `neverBundle` entry unless the bridge source imports them. These fail only when a model of that provider is actually used.
 - Match shared dependency versions (transport, schema, tooling, runtime SDKs) to what the other harness packages currently use — copy from a sibling package rather than choosing your own pins. Stale pins drift from security patches and can desync from the shared bridge runtime; check the current versions at creation time.
 
 ### 3. Create TypeScript, Build, and Test Configs
