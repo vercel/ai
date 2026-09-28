@@ -1,0 +1,59 @@
+[
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "name": "EnterPlanMode",
+          "id": "toolu_enter_plan_mode",
+          "input": {}
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_enter_plan_mode",
+          "content": "Entered plan mode."
+        }
+      ]
+    }
+  },
+  {
+    "type": "assistant",
+    "message": {
+      "content": [
+        {
+          "type": "tool_use",
+          "name": "ExitPlanMode",
+          "id": "toolu_exit_plan_mode",
+          "input": {}
+        }
+      ]
+    }
+  },
+  {
+    "type": "user",
+    "message": {
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_exit_plan_mode",
+          "is_error": true,
+          "content": "Tool permission request failed: Error: canUseTool callback is not provided."
+        }
+      ]
+    }
+  },
+  {
+    "type": "result",
+    "subtype": "success",
+    "is_error": false,
+    "result": "ExitPlanMode requires a permission-approval callback that isn't wired up in this session, so it can't succeed here. The session is currently still in plan mode."
+  }
+]
