@@ -83,6 +83,13 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    */
   languageCode: z.union([z.literal('en'), z.string()]).nullish(),
   /**
+   * List of language codes for code-switching (e.g. `['en', 'es']`).
+   * One value must be `en`. Requires a universal model.
+   * https://www.assemblyai.com/docs/api-reference/transcripts/submit
+   * Issue: https://github.com/vercel/ai/issues/9613
+   */
+  languageCodes: z.array(z.string()).nullish(),
+  /**
    * Confidence threshold for language detection.
    */
   languageConfidenceThreshold: z.number().nullish(),

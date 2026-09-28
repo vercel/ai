@@ -388,6 +388,26 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send languageCodes as language_codes for code-switching', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('universal-3-5-pro').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        assemblyai: {
+          languageCodes: ['en', 'es'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls[1].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      speech_models: ['universal-3-5-pro'],
+      language_codes: ['en', 'es'],
+    });
+  });
+
   it('should surface diarization + audio-intelligence via providerMetadata', async () => {
     prepareJsonResponse();
 

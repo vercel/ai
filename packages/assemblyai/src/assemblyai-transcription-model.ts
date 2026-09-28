@@ -126,6 +126,8 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
       body.iab_categories = assemblyaiOptions.iabCategories ?? undefined;
       body.language_code =
         (assemblyaiOptions.languageCode as never) ?? undefined;
+      body.language_codes =
+        assemblyaiOptions.languageCodes ?? undefined;
       body.language_confidence_threshold =
         assemblyaiOptions.languageConfidenceThreshold ?? undefined;
       body.language_detection =
