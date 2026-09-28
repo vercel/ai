@@ -8,6 +8,8 @@ import type {
 const name = 'AI_NoEmbeddingGeneratedError';
 const marker = `vercel.ai.error.${name}`;
 const symbol = Symbol.for(marker);
+const invalidResponseDataMarker = 'vercel.ai.error.AI_InvalidResponseDataError';
+const invalidResponseDataSymbol = Symbol.for(invalidResponseDataMarker);
 
 export type EmbeddingModelResponseMetadata =
   | {
@@ -22,6 +24,7 @@ export type EmbeddingModelResponseMetadata =
  */
 export class NoEmbeddingGeneratedError extends AISDKError {
   private readonly [symbol] = true; // used in isInstance
+  private readonly [invalidResponseDataSymbol] = true; // backwards compatibility
 
   /**
    * The values that were sent to the embedding model.
@@ -32,6 +35,14 @@ export class NoEmbeddingGeneratedError extends AISDKError {
    * The embeddings that were returned by the embedding model.
    */
   readonly embeddings: Array<Embedding>;
+
+  /**
+   * The embeddings returned by the model.
+   *
+   * @deprecated Use `embeddings` instead. This property preserves compatibility
+   * with `InvalidResponseDataError.isInstance` guards.
+   */
+  readonly data: Array<Embedding>;
 
   /**
    * The expected number of embeddings.
@@ -85,6 +96,7 @@ export class NoEmbeddingGeneratedError extends AISDKError {
 
     this.values = values;
     this.embeddings = embeddings;
+    this.data = embeddings;
     this.expectedCount = values.length;
     this.actualCount = embeddings.length;
     this.responses = responses;

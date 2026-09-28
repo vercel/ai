@@ -68,11 +68,13 @@ describe('error handling', () => {
       expect.unreachable();
     } catch (error) {
       expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
         name: 'AI_NoEmbeddingGeneratedError',
         message: 'No embeddings generated: expected 3, received 0.',
         values: testValues,
         embeddings: [],
+        data: [],
         expectedCount: 3,
         actualCount: 0,
         responses: [response],

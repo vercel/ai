@@ -15,6 +15,8 @@ output counts.
 - `message`: The error message. By default, it includes the expected and actual embedding counts.
 - `values`: The values sent in the failed embedding model call.
 - `embeddings`: Any embeddings returned by the model.
+- `data`: Deprecated alias for `embeddings`, retained so existing
+  `InvalidResponseDataError.isInstance` guards continue to match.
 - `expectedCount`: The number of embeddings required for the values.
 - `actualCount`: The number of embeddings returned by the model.
 - `responses`: Raw response data, including headers and body, when available.
@@ -39,3 +41,7 @@ try {
   }
 }
 ```
+
+For backwards compatibility, `InvalidResponseDataError.isInstance(error)` also
+returns `true` for this error. Prefer the more specific
+`NoEmbeddingGeneratedError.isInstance` guard for new code.

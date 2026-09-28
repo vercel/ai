@@ -29,6 +29,9 @@ it('exposes typed diagnostics for empty generation results', () => {
   expectTypeOf<NoEmbeddingGeneratedError['embeddings']>().toEqualTypeOf<
     Array<Embedding>
   >();
+  expectTypeOf<NoEmbeddingGeneratedError['data']>().toEqualTypeOf<
+    Array<Embedding>
+  >();
   expectTypeOf<NoEmbeddingGeneratedError['usage']>().toEqualTypeOf<
     EmbeddingModelUsage | undefined
   >();

@@ -1,4 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -59,11 +62,13 @@ describe('result.embedding', () => {
 
     await expect(result).rejects.toSatisfy(error => {
       expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
         name: 'AI_NoEmbeddingGeneratedError',
         message: 'No embeddings generated: expected 1, received 0.',
         values: [testValue],
         embeddings: [],
+        data: [],
         expectedCount: 1,
         actualCount: 0,
         usage: { tokens: 5 },
