@@ -99,6 +99,11 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
+   * Tool execution errors marked `providerExecuted: true` bypass this callback.
+   * Their strings pass through unchanged; other values are JSON-stringified to
+   * preserve provider error data for model-message round trips. Stream errors
+   * and invalid tool calls still use it.
+   *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;

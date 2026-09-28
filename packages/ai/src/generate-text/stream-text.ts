@@ -2698,7 +2698,7 @@ class DefaultStreamTextResult<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -3032,6 +3032,9 @@ class DefaultStreamTextResult<
             case 'tool-error': {
               const dynamic = isDynamic(part);
 
+              // Preserve provider error codes for model-message round trips.
+              // These execution errors intentionally bypass onError; invalid
+              // tool calls and stream errors still go through it.
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,
