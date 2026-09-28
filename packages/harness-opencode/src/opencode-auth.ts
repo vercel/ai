@@ -27,6 +27,18 @@ export const OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES = [
   OPENCODE_SUBSCRIPTION_ACCESS_TOKEN_ENVIRONMENT_VARIABLE,
 ] as const;
 
+const NON_GOOGLE_DIRECT_CREDENTIAL_ENVIRONMENT_VARIABLES = [
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_KEY',
+  'ANTHROPIC_AUTH_TOKEN',
+  'XAI_API_KEY',
+  'GITHUB_TOKEN',
+  'GITHUB_COPILOT_TOKEN',
+  'POE_API_KEY',
+  'OPENCODE_API_KEY',
+  'GITLAB_TOKEN',
+] as const;
+
 export function createOpenCodeRequestTransformations({
   env: environment,
   sandboxEnv: sandboxEnvironment,
@@ -238,6 +250,7 @@ export function resolveOpenCodeEnv({
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(auth);
   const authenticationEnvironment = suppliedEnvironment ? auth : processEnv;
   const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    auth,
     model,
     provider,
     environment: authenticationEnvironment,
@@ -279,12 +292,14 @@ export function resolveOpenCodeAuthenticationMode({
     return getAiGatewayAuthFromEnv({ env: auth }).apiKey
       ? 'ai-gateway'
       : resolveOpenCodeAuthenticationProvider({
+          auth,
           model,
           provider,
           environment: auth,
         });
   }
   const selectedProvider = resolveOpenCodeAuthenticationProvider({
+    auth,
     model,
     provider,
     environment: processEnv,
@@ -305,18 +320,30 @@ export function resolveOpenCodeAuthenticationMode({
 }
 
 function resolveOpenCodeAuthenticationProvider({
+  auth,
   model,
   provider,
   environment,
 }: {
+  auth: OpenCodeAuthenticationMode | undefined;
   model?: string;
   provider?: string;
   environment: Record<string, string | undefined>;
 }): Exclude<OpenCodeResolvedAuthenticationMode, 'ai-gateway'> {
   const selectedProvider = resolveOpenCodeProvider({ model, provider });
+  if (
+    model == null &&
+    provider == null &&
+    (auth === 'anthropic' || auth === 'openai')
+  ) {
+    return auth;
+  }
   return model == null &&
     provider == null &&
-    environment.GOOGLE_GENERATIVE_AI_API_KEY != null
+    environment.GOOGLE_GENERATIVE_AI_API_KEY != null &&
+    !NON_GOOGLE_DIRECT_CREDENTIAL_ENVIRONMENT_VARIABLES.some(
+      name => environment[name] != null,
+    )
     ? 'google'
     : selectedProvider;
 }

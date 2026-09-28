@@ -109,6 +109,40 @@ describe('OpenCode auth', () => {
     ).toBe('google');
   });
 
+  it.each(['anthropic', 'openai'] as const)(
+    'keeps explicit %s authentication authoritative over ambient Google credentials',
+    auth => {
+      const processEnv = {
+        ANTHROPIC_API_KEY: 'anthropic-key',
+        OPENAI_API_KEY: 'openai-key',
+        GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+      };
+
+      expect(resolveOpenCodeEnv({ auth, processEnv })).toEqual(
+        auth === 'anthropic'
+          ? { ANTHROPIC_API_KEY: 'anthropic-key' }
+          : { OPENAI_API_KEY: 'openai-key' },
+      );
+      expect(resolveOpenCodeAuthenticationMode({ auth, processEnv })).toBe(
+        auth,
+      );
+    },
+  );
+
+  it('preserves the Anthropic fallback for mixed direct-provider credentials', () => {
+    const processEnv = {
+      ANTHROPIC_API_KEY: 'anthropic-key',
+      GOOGLE_GENERATIVE_AI_API_KEY: 'google-key',
+    };
+
+    expect(resolveOpenCodeEnv({ auth: 'auto', processEnv })).toEqual({
+      ANTHROPIC_API_KEY: 'anthropic-key',
+    });
+    expect(
+      resolveOpenCodeAuthenticationMode({ auth: 'auto', processEnv }),
+    ).toBe('anthropic');
+  });
+
   it('rejects nested authentication objects before reading ambient credentials', () => {
     const auth = { openai: { apiKey: 'legacy-key' } } as never;
 
