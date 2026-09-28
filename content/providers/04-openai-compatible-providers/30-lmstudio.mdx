@@ -8,7 +8,7 @@ description: Use the LM Studio OpenAI compatible API with the AI SDK.
 [LM Studio](https://lmstudio.ai/) is a user interface for running local models.
 
 It contains an OpenAI compatible API server that you can use with the AI SDK.
-You can start the local server under the [Local Server tab](https://lmstudio.ai/docs/basics/server) in the LM Studio UI ("Start Server" button).
+You can start the local server under the [Local Server tab](https://lmstudio.ai/docs/developer/openai-compat) in the LM Studio UI ("Start Server" button).
 
 ## Setup
 
@@ -32,19 +32,19 @@ const lmstudio = createOpenAICompatible({
 
 <Note>
   LM Studio uses port `1234` by default, but you can change in the [app's Local
-  Server tab](https://lmstudio.ai/docs/basics/server).
+  Server tab](https://lmstudio.ai/docs/developer/openai-compat).
 </Note>
 
 ## Language Models
 
-You can interact with local LLMs in [LM Studio](https://lmstudio.ai/docs/basics/server#endpoints-overview) using a provider instance.
+You can interact with local LLMs in [LM Studio](https://lmstudio.ai/docs/developer/openai-compat) using a provider instance.
 The first argument is the model id, e.g. `llama-3.2-1b`.
 
 ```ts
 const model = lmstudio('llama-3.2-1b');
 ```
 
-###### To be able to use a model, you need to [download it first](https://lmstudio.ai/docs/basics/download-model).
+###### To be able to use a model, you need to [download it first](https://lmstudio.ai/docs/app/basics/download-model).
 
 ### Example
 
@@ -70,7 +70,7 @@ LM Studio language models can also be used with `streamText`.
 
 ## Embedding Models
 
-You can create models that call the [LM Studio embeddings API](https://lmstudio.ai/docs/basics/server#endpoints-overview)
+You can create models that call the [LM Studio embeddings API](https://lmstudio.ai/docs/developer/openai-compat)
 using the `.embeddingModel()` factory method.
 
 ```ts
