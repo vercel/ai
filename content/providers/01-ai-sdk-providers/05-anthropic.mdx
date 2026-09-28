@@ -1742,6 +1742,18 @@ In this flow:
   `code_execution_20260120` or `code_execution_20250825` tool.
 </Note>
 
+#### Pruning Programmatic Tool History
+
+When pruning removes a code execution call but keeps a tool call that references
+it through `caller.toolId`, the provider omits the dangling caller metadata from
+history before a subsequent user message and emits a warning. The retained tool
+calls and results are still sent to Anthropic; the removed code execution history
+is not restored.
+
+Tool-result messages do not end a turn. Caller metadata in an active tool
+continuation is preserved, so keep the source code execution call when returning
+programmatic tool results.
+
 #### Container Persistence
 
 When using programmatic tool calling across multiple steps, you need to preserve the container ID between steps using `prepareStep`. You can use the `forwardAnthropicContainerIdFromLastStep` helper function to do this automatically. The container ID is available in `providerMetadata.anthropic.container.id` after each step completes.

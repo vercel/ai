@@ -118,6 +118,82 @@ describe('AnthropicMessagesLanguageModel', () => {
     );
   });
 
+  describe('pruned programmatic tool history', () => {
+    it.each(['generate', 'stream'])(
+      'should omit orphaned callers and expose the warning for %s',
+      async method => {
+        const options = {
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'lookup-call',
+                  toolName: 'lookup',
+                  input: { ticker: 'AAPL' },
+                  providerOptions: {
+                    anthropic: {
+                      caller: {
+                        type: 'code_execution_20250825',
+                        toolId: 'pruned-source',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'lookup-call',
+                  toolName: 'lookup',
+                  output: { type: 'text', value: '185.42' },
+                },
+              ],
+            },
+            ...TEST_PROMPT,
+          ] satisfies LanguageModelV3Prompt,
+        };
+        const warnings = [
+          {
+            type: 'other',
+            message:
+              'Omitted caller metadata for tool lookup-call because source code execution tool pruned-source is missing from the conversation history.',
+          },
+        ];
+
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-text');
+          expect((await model.doGenerate(options)).warnings).toEqual(warnings);
+        } else {
+          prepareChunksFixtureResponse('anthropic-text');
+          const result = await model.doStream(options);
+          const chunks = await convertReadableStreamToArray(result.stream);
+          expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+          expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+        }
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.messages[0].content).toEqual([
+          {
+            type: 'tool_use',
+            id: 'lookup-call',
+            name: 'lookup',
+            input: { ticker: 'AAPL' },
+          },
+        ]);
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'tool_result',
+          tool_use_id: 'lookup-call',
+          content: '185.42',
+        });
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
