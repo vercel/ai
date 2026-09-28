@@ -1,0 +1,42 @@
+{
+  "model": "claude-sonnet-4-6",
+  "id": "msg_011CfWBu94HWxZXjXK6ZhEXM",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "thinking",
+      "thinking": "The user wants me to call checkSandboxErrors immediately.",
+      "signature": "Eq4CCpIBCBIYAipAM+SGYGx7V1aPBT2LXi5M54elabwLjKMzxMZ7dQBpCn7jCn2ZkTBMgSLasCPWFF+8WMNYFp1xjC6uGZVxY3r8QDIRY2xhdWRlLXNvbm5ldC00LTY4AEIIdGhpbmtpbmdaJDNiOTNhNWRkLTczMDItNDgzZi1hZWFlLTM2MjA3NTU0OGFlMagBh7jq1QYSDNydXz9zcJ0AqizKMBoMWF4MBXod7dF4HVu3IjAqraMrYlluR4bgmuEmWgWhCkVJwHulmGCJQdC/sp1159oNVg2LtQomhtAXeciPrnwqSQ/VQUpZzAJ/SwqeRixWF0cnac6CC/ndDGQq0zwI9Ru9WzH59xuEbule/yBisuGwiyR6WwsfKaMDaXb51Obn56qHuGLD2Np2mOgYAQ=="
+    },
+    {
+      "type": "tool_use",
+      "id": "toolu_017R7ACrx7NF7sLDDtvdQ1u9",
+      "name": "checkSandboxErrors",
+      "input": {},
+      "caller": {
+        "type": "direct"
+      }
+    }
+  ],
+  "container": null,
+  "stop_reason": "tool_use",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+    "input_tokens": 599,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 59,
+    "output_tokens_details": {
+      "thinking_tokens": 18
+    },
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "diagnostics": null
+}
