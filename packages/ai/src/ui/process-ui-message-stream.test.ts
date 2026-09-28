@@ -7,8 +7,19 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
 } from './process-ui-message-stream';
+<<<<<<< HEAD
 import type { InferUIMessageData, UIMessage } from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
+=======
+import {
+  isToolUIPart,
+  type InferUIMessageData,
+  type UIMessage,
+} from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import { UIMessageStreamError } from '../error/ui-message-stream-error';
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
 
 function createUIMessageStream(parts: UIMessageChunk[]) {
   return convertArrayToReadableStream(parts);
@@ -2912,7 +2923,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"t",
                   "state": "input-streaming",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -2937,7 +2948,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"test-value"}}",
                   "state": "input-streaming",
                   "toolCallId": "tool-call-0",
                   "type": "tool-test-tool",
@@ -4900,7 +4911,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "toolCallId": "tool-call-1",
                   "type": "tool-tool-name",
@@ -5082,6 +5093,613 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+<<<<<<< HEAD
+=======
+
+    it('should preserve separate call and result provider metadata for static tools', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          providerMetadata: { testProvider: { itemId: 'call-item' } },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          providerExecuted: true,
+          providerMetadata: { testProvider: { itemId: 'result-item' } },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { itemId: 'call-item' },
+      });
+      expect(toolPart.resultProviderMetadata).toEqual({
+        testProvider: { itemId: 'result-item' },
+      });
+    });
+  });
+
+  describe('provider-executed dynamic tools', () => {
+    let onToolCallInvoked: boolean;
+
+    beforeEach(async () => {
+      onToolCallInvoked = false;
+
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-start',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-1',
+          inputTextDelta: '{ "query": "test" }',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-2',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          dynamic: true,
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'tool-call-2',
+          errorText: 'error-text',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          onToolCall: () => {
+            onToolCallInvoked = true;
+          },
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should not call onToolCall', async () => {
+      expect(onToolCallInvoked).toBe(false);
+    });
+
+    it('should call the update function with the correct arguments', async () => {
+      expect(writeCalls).toMatchInlineSnapshot(`
+        [
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": undefined,
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "state": "input-streaming",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": "{ "query": "test" }",
+                  "state": "input-streaming",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "input-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "state": "input-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-2",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+          {
+            "message": {
+              "id": "msg-123",
+              "metadata": undefined,
+              "parts": [
+                {
+                  "type": "step-start",
+                },
+                {
+                  "errorText": undefined,
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": {
+                    "result": "provider-result",
+                  },
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-available",
+                  "title": undefined,
+                  "toolCallId": "tool-call-1",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+                {
+                  "errorText": "error-text",
+                  "input": {
+                    "query": "test",
+                  },
+                  "output": undefined,
+                  "preliminary": undefined,
+                  "providerExecuted": true,
+                  "rawInput": undefined,
+                  "state": "output-error",
+                  "title": undefined,
+                  "toolCallId": "tool-call-2",
+                  "toolName": "tool-name",
+                  "type": "dynamic-tool",
+                },
+              ],
+              "role": "assistant",
+            },
+          },
+        ]
+      `);
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": undefined,
+            "input": {
+              "query": "test",
+            },
+            "output": {
+              "result": "provider-result",
+            },
+            "preliminary": undefined,
+            "providerExecuted": true,
+            "rawInput": undefined,
+            "state": "output-available",
+            "title": undefined,
+            "toolCallId": "tool-call-1",
+            "toolName": "tool-name",
+            "type": "dynamic-tool",
+          },
+          {
+            "errorText": "error-text",
+            "input": {
+              "query": "test",
+            },
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": true,
+            "rawInput": undefined,
+            "state": "output-error",
+            "title": undefined,
+            "toolCallId": "tool-call-2",
+            "toolName": "tool-name",
+            "type": "dynamic-tool",
+          },
+        ]
+      `);
+    });
+
+    it('should preserve separate call and result provider metadata for dynamic tools', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { testProvider: { itemId: 'call-item' } },
+        },
+        {
+          type: 'tool-output-error',
+          toolCallId: 'tool-call-1',
+          errorText: 'error-text',
+          providerExecuted: true,
+          dynamic: true,
+          providerMetadata: { testProvider: { itemId: 'result-item' } },
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart.callProviderMetadata).toEqual({
+        testProvider: { itemId: 'call-item' },
+      });
+      expect(toolPart.resultProviderMetadata).toEqual({
+        testProvider: { itemId: 'result-item' },
+      });
+    });
+
+    it('should preserve tool metadata on dynamic tool parts', async () => {
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-123' },
+        { type: 'start-step' },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-1',
+          toolName: 'tool-name',
+          input: { query: 'test' },
+          dynamic: true,
+          toolMetadata: { clientName: 'MyMCPClient' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-1',
+          output: { result: 'provider-result' },
+          dynamic: true,
+        },
+        { type: 'finish-step' },
+        { type: 'finish' },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+
+      const toolPart = state!.message.parts.find(
+        (part: any) => part.toolCallId === 'tool-call-1',
+      ) as any;
+
+      expect(toolPart).toMatchInlineSnapshot(`
+        {
+          "errorText": undefined,
+          "input": {
+            "query": "test",
+          },
+          "output": {
+            "result": "provider-result",
+          },
+          "preliminary": undefined,
+          "providerExecuted": undefined,
+          "rawInput": undefined,
+          "state": "output-available",
+          "title": undefined,
+          "toolCallId": "tool-call-1",
+          "toolMetadata": {
+            "clientName": "MyMCPClient",
+          },
+          "toolName": "tool-name",
+          "type": "dynamic-tool",
+        }
+      `);
+    });
+  });
+
+  it('should apply output chunk tool metadata to static and dynamic tool parts', async () => {
+    const stream = createUIMessageStream([
+      { type: 'start', messageId: 'msg-123' },
+      { type: 'start-step' },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'dynamic-success',
+        output: { result: 'provider-result' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'dynamic-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'dynamic-error',
+        errorText: 'error-text',
+        dynamic: true,
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-success',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'static-success',
+        output: { result: 'provider-result' },
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'static-error',
+        toolName: 'tool-name',
+        input: { query: 'test' },
+        toolMetadata: { phase: 'static-input' },
+      },
+      {
+        type: 'tool-output-error',
+        toolCallId: 'static-error',
+        errorText: 'error-text',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+
+    state = createStreamingUIMessageState({
+      messageId: 'msg-123',
+      lastMessage: undefined,
+    });
+
+    await consumeStream({
+      stream: processUIMessageStream({
+        stream,
+        runUpdateMessageJob,
+        onError: error => {
+          throw error;
+        },
+      }),
+    });
+
+    expect(
+      state.message.parts.filter(isToolUIPart).map(part => ({
+        toolCallId: part.toolCallId,
+        state: part.state,
+        toolMetadata: part.toolMetadata,
+      })),
+    ).toEqual([
+      {
+        toolCallId: 'dynamic-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'dynamic-output-available' },
+      },
+      {
+        toolCallId: 'dynamic-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'dynamic-output-error' },
+      },
+      {
+        toolCallId: 'static-success',
+        state: 'output-available',
+        toolMetadata: { phase: 'static-output-available' },
+      },
+      {
+        toolCallId: 'static-error',
+        state: 'output-error',
+        toolMetadata: { phase: 'static-output-error' },
+      },
+    ]);
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
   });
 
   it('should call onToolCall for client-executed tools', async () => {
@@ -5265,7 +5883,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "toolCallId": "tool-call-1",
                   "toolName": "t1",
@@ -5825,7 +6443,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
                   "state": "input-streaming",
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
@@ -5906,6 +6524,195 @@ describe('processUIMessageStream', () => {
     });
   });
 
+<<<<<<< HEAD
+=======
+  describe('dynamic tool errors after input streaming', () => {
+    const terminalChunks: Array<{
+      name: string;
+      chunk: UIMessageChunk;
+    }> = [
+      {
+        name: 'tool input error',
+        chunk: {
+          type: 'tool-input-error',
+          toolCallId: 'call-1',
+          toolName: 'cityAttractions',
+          input: { cities: ['San Francisco'] },
+          errorText: 'Invalid input for tool cityAttractions',
+          dynamic: true,
+        },
+      },
+      {
+        name: 'tool output error',
+        chunk: {
+          type: 'tool-output-error',
+          toolCallId: 'call-1',
+          errorText: 'Tool execution failed',
+          dynamic: true,
+        },
+      },
+    ];
+
+    it.each(terminalChunks)(
+      'clears raw input on $name',
+      async ({ chunk: terminalChunk }) => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
+        const stream = createUIMessageStream([
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            dynamic: true,
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call-1',
+            inputTextDelta: '{ "cities": ["San Francisco"] }',
+          },
+          terminalChunk,
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        const toolPart = state.message.parts.find(
+          (part: any) => part.toolCallId === 'call-1',
+        );
+
+        expect(toolPart).toMatchObject({
+          type: 'dynamic-tool',
+          state: 'output-error',
+        });
+        expect((toolPart as any).rawInput).toBeUndefined();
+
+        await validateUIMessages({ messages: [state.message] });
+
+        expect(warningLogger).not.toHaveBeenCalled();
+      },
+    );
+  });
+
+  describe('tool input error with dynamic flag mismatch', () => {
+    // Regression: when tool-input-start creates a static part (dynamic is
+    // undefined because the tool isn't in the tools object) and tool-input-error
+    // arrives with dynamic: true (from parseToolCall's catch for NoSuchToolError),
+    // the error should update the existing static part instead of creating a
+    // second dynamic-tool part.
+    beforeEach(async () => {
+      const stream = createUIMessageStream([
+        {
+          type: 'start',
+        },
+        {
+          type: 'start-step',
+        },
+        {
+          toolCallId: 'call-1',
+          toolName: 'nonExistentTool',
+          type: 'tool-input-start',
+          // dynamic is NOT set (undefined) — this is what happens when the
+          // tool isn't in the tools object and the provider doesn't set it
+        },
+        {
+          inputTextDelta: '{ "foo": "bar" }',
+          toolCallId: 'call-1',
+          type: 'tool-input-delta',
+        },
+        {
+          errorText: "Model tried to call unavailable tool 'nonExistentTool'.",
+          input: '{ "foo": "bar" }',
+          toolCallId: 'call-1',
+          toolName: 'nonExistentTool',
+          type: 'tool-input-error',
+          // dynamic IS set to true — this is what parseToolCall returns for
+          // invalid tool calls (NoSuchToolError catch)
+          dynamic: true,
+        },
+        {
+          errorText: "Model tried to call unavailable tool 'nonExistentTool'.",
+          toolCallId: 'call-1',
+          type: 'tool-output-error',
+        },
+        {
+          type: 'finish-step',
+        },
+        {
+          type: 'finish',
+        },
+      ]);
+
+      state = createStreamingUIMessageState({
+        messageId: 'msg-123',
+        lastMessage: undefined,
+      });
+
+      await consumeStream({
+        stream: processUIMessageStream({
+          stream,
+          runUpdateMessageJob,
+          onError: error => {
+            throw error;
+          },
+        }),
+      });
+    });
+
+    it('should produce exactly one tool part (no duplicate)', async () => {
+      const toolParts = state!.message.parts.filter(
+        (p: any) => p.toolCallId === 'call-1',
+      );
+      expect(toolParts).toHaveLength(1);
+    });
+
+    it('should keep the static tool type from tool-input-start', async () => {
+      const toolPart = state!.message.parts.find(
+        (p: any) => p.toolCallId === 'call-1',
+      ) as any;
+      expect(toolPart.type).toBe('tool-nonExistentTool');
+    });
+
+    it('should have the correct final message state', async () => {
+      expect(state!.message.parts).toMatchInlineSnapshot(`
+        [
+          {
+            "type": "step-start",
+          },
+          {
+            "errorText": "Model tried to call unavailable tool 'nonExistentTool'.",
+            "input": "{ "foo": "bar" }",
+            "output": undefined,
+            "preliminary": undefined,
+            "providerExecuted": undefined,
+            "rawInput": undefined,
+            "state": "output-error",
+            "title": undefined,
+            "toolCallId": "call-1",
+            "type": "tool-nonExistentTool",
+          },
+        ]
+      `);
+    });
+  });
+
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
   describe('preliminary tool results', () => {
     beforeEach(async () => {
       const stream = createUIMessageStream([

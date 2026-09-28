@@ -1190,6 +1190,201 @@ describe('file attachments with data url', () => {
           type: 'text-start',
           id: '0',
         }),
+<<<<<<< HEAD
+=======
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-streaming',
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+        });
+      });
+
+      controller.write(
+        formatChunk({
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: '{"testArg":"t',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-streaming',
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 't' },
+          rawInput: '{"testArg":"t',
+        });
+      });
+
+      controller.write(
+        formatChunk({
+          type: 'tool-input-delta',
+          toolCallId: 'tool-call-0',
+          inputTextDelta: 'est-value"}}',
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-streaming',
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          input: { testArg: 'test-value' },
+          rawInput: '{"testArg":"test-value"}}',
+        });
+      });
+
+      controller.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+        });
+      });
+
+      controller.write(
+        formatChunk({
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-0',
+          output: 'test-result',
+        }),
+      );
+      controller.close();
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'output-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          output: 'test-result',
+        });
+      });
+    });
+
+    it('should display tool call and tool result (when there is no tool call streaming)', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+        });
+      });
+
+      controller.write(
+        formatChunk({
+          type: 'tool-output-available',
+          toolCallId: 'tool-call-0',
+          output: 'test-result',
+        }),
+      );
+      controller.close();
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'output-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          output: 'test-result',
+        });
+      });
+    });
+
+    it('should update tool call to result when addToolOutput is called', async () => {
+      const controller = new TestResponseController();
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(formatChunk({ type: 'start' }));
+      controller.write(formatChunk({ type: 'start-step' }));
+      controller.write(
+        formatChunk({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        }),
+      );
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'input-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+        });
+      });
+
+      await userEvent.click(screen.getByTestId('add-result-0'));
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('message-1').textContent ?? ''),
+        ).toStrictEqual({
+          state: 'output-available',
+          input: { testArg: 'test-value' },
+          toolCallId: 'tool-call-0',
+          type: 'tool-test-tool',
+          output: 'test-result',
+        });
+      });
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
         formatChunk({
           type: 'text-delta',
           id: '0',

@@ -234,8 +234,19 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
 } & (
   | {
       state: 'input-streaming';
+<<<<<<< HEAD
       input: DeepPartial<asUITool<TOOL>['input']> | undefined;
       providerExecuted?: boolean;
+=======
+      input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
       output?: never;
       errorText?: never;
     }
@@ -294,7 +305,18 @@ export type DynamicToolUIPart = {
 } & (
   | {
       state: 'input-streaming';
+<<<<<<< HEAD
       input: unknown | undefined;
+=======
+      input?: unknown;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
+>>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
       output?: never;
       errorText?: never;
     }
