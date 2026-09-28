@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 17805,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-17805.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-17805.ts",
+    "examples/next/app/api/reproduction-17805/route.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_17805_REPRODUCED: idle stream timed out with 524 and seeded stream was disconnected after byte silence"
+  }
+}
