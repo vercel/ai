@@ -160,6 +160,12 @@ export type HarnessAgentSettings<
   readonly toolsContext?: InferToolSetContext<TUserTools>;
 
   /**
+   * Runtime context passed to lifecycle callbacks and telemetry.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly runtimeContext?: RUNTIME_CONTEXT;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -233,7 +239,7 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools'
+        'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
       > & {
         toolsContext: InferToolSetContext<TUserTools>;
       },
@@ -246,7 +252,7 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools'
+      'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
     > & {
       toolsContext: InferToolSetContext<TUserTools>;
     } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>
