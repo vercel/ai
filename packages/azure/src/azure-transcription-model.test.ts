@@ -184,7 +184,7 @@ describe('Speech requests', () => {
         'test-key',
       );
       expect(request().headers.has('api-key')).toBe(false);
-      expect(request().headers.get('user-agent')).toContain('ai-sdk/azure/');
+      expect(request().headers.get('user-agent')).toContain('ai-sdk-azure/');
       expect(definition()).toEqual({
         enhancedMode: {
           enabled: true,

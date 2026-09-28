@@ -298,7 +298,7 @@ describe('CartesiaSpeechModel', () => {
       });
 
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/cartesia/0.0.0-test`,
+        `ai-sdk-cartesia/0.0.0-test`,
       );
     });
 

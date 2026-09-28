@@ -84,7 +84,7 @@ export function createMoonshotAI(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/moonshotai/${VERSION}`,
+      `ai-sdk-moonshotai/${VERSION}`,
     );
 
   const createChatModel = (modelId: MoonshotAIChatModelId) => {

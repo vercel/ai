@@ -240,7 +240,7 @@ export function createAzure(
         ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/azure/${VERSION}`,
+      `ai-sdk-azure/${VERSION}`,
     );
   };
 

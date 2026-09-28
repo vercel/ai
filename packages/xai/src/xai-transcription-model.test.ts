@@ -208,7 +208,7 @@ describe('doGenerate', () => {
       'custom-provider-header': 'provider-header-value',
       'custom-request-header': 'request-header-value',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/xai/0.0.0-test');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-xai/0.0.0-test');
   });
 
   it('should extract text, segments, language, and duration', async () => {

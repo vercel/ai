@@ -228,7 +228,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 
@@ -1137,7 +1137,7 @@ describe('doStream', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 
