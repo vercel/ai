@@ -2072,7 +2072,7 @@ describe('Chat', () => {
         toolCallId: 'tool-call-0',
         output: 'test-output',
       });
-      await vi.advanceTimersByTimeAsync(0);
+      await delay();
 
       expect(server.calls.length).toBe(0);
     });
