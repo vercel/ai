@@ -4,6 +4,7 @@ import {
   type Experimental_VideoModelV4,
   type LanguageModelV4,
   type ProviderV4,
+  type ImageModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -56,6 +57,16 @@ export interface AlibabaProvider extends ProviderV4 {
    * Creates a model for video generation.
    */
   videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  image(modelId: AlibabaImageModelId): ImageModelV4;
+
+  /**
+   * Creates a model for image generation.
+   */
+  imageModel(modelId: AlibabaImageModelId): ImageModelV4;
 }
 
 export interface AlibabaProviderSettings {

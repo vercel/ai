@@ -660,7 +660,7 @@ const { images } = await generateImage({
   n: 1,
   providerOptions: {
     alibaba: {
-      enableThinking: true,
+      prompt_extend_mode: 'agent',
     } satisfies AlibabaImageModelOptions,
   },
 });
@@ -684,7 +684,7 @@ const { images } = await generateImage({
   image: 'https://example.com/first-frame.jpg',
   providerOptions: {
     alibaba: {
-      enableThinking: true,
+      prompt_extend_mode: 'agent',
     } satisfies AlibabaImageModelOptions,
   },
 });
