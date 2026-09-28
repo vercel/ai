@@ -371,8 +371,8 @@ function getOpenAIRealtimeConnection(
   protocols: string[];
   headers: Record<string, string | undefined>;
 } {
-  // last case-variant wins: combineHeaders keeps case-distinct keys and
-  // spreads per-call headers after configuration headers
+  // Per-call headers are merged after configuration headers, so the last
+  // case-variant wins.
   let authorization: string | undefined;
   for (const [key, value] of Object.entries(headers)) {
     if (key.toLowerCase() === 'authorization' && value != null) {

@@ -153,8 +153,8 @@ export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4 {
     }
 
     const headers = combineHeaders(this.config.headers(), options.headers);
-    // last case-variant wins: combineHeaders keeps case-distinct keys and
-    // spreads per-call headers after configuration headers
+    // Per-call headers are merged after configuration headers, so the last
+    // case-variant wins.
     let apiKey: string | undefined;
     for (const [key, value] of Object.entries(headers)) {
       if (key.toLowerCase() === 'x-goog-api-key' && value != null) {
