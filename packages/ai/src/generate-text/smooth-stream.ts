@@ -110,21 +110,58 @@ export function smoothStream<TOOLS extends ToolSet>({
           return;
         }
 
+<<<<<<< HEAD
         if (chunk.id !== id && buffer.length > 0) {
           controller.enqueue({ type: 'text-delta', text: buffer, id });
           buffer = '';
+=======
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.type !== type ||
+            chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
+          flushBuffer(controller);
+>>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
         }
 
         buffer += chunk.text;
         id = chunk.id;
+<<<<<<< HEAD
+=======
+        type = chunk.type;
+        providerMetadata = chunk.providerMetadata;
+>>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
+<<<<<<< HEAD
           controller.enqueue({ type: 'text-delta', text: match, id });
+=======
+          controller.enqueue({
+            type,
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
+>>>>>>> 119536f236 (fix: preserve smoothStream provider metadata without loss or cross-delta leakage (#19561))
           buffer = buffer.slice(match.length);
 
           await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });
