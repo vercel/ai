@@ -147,6 +147,33 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
   });
 
+  test('accepts runtime context and type-checks telemetry context keys', () => {
+    type RuntimeContext = { tenantId: string; requestId: string };
+    type RuntimeContextSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const settings: RuntimeContextSettings = {
+      harness,
+      tools: userTools,
+      runtimeContext: {
+        tenantId: 'tenant-1',
+        requestId: 'request-1',
+      },
+      telemetry: {
+        includeRuntimeContext: {
+          tenantId: true,
+          requestId: false,
+          // @ts-expect-error includeRuntimeContext only supports runtime context properties
+          unknown: true,
+        },
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<RuntimeContextSettings>();
+  });
+
   test('deprecated lifecycle aliases are not settings', () => {
     const settings: Settings = {
       harness,
