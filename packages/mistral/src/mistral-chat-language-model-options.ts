@@ -1,27 +1,38 @@
 import { z } from 'zod/v4';
 
-// https://docs.mistral.ai/getting-started/models/models_overview/
+// https://docs.mistral.ai/models
 export type MistralChatModelId =
-  | 'ministral-3b-latest'
-  | 'ministral-8b-latest'
-  | 'ministral-14b-latest'
-  | 'mistral-large-latest'
-  | 'mistral-medium-latest'
-  | 'mistral-medium-3'
-  | 'mistral-large-2512'
-  | 'mistral-medium-2508'
-  | 'mistral-medium-2505'
-  | 'mistral-small-2506'
-  | 'pixtral-large-latest'
-  // reasoning config support models
-  | 'mistral-medium-3.5'
-  | 'mistral-small-latest'
-  | 'mistral-small-2603'
-  // reasoning models
+  | 'codestral-2508'
+  | 'codestral-latest'
+  | 'glm-5-2'
+  | 'labs-leanstral-1-5'
+  | 'labs-leanstral-1-5-1'
   | 'magistral-medium-latest'
   | 'magistral-small-latest'
-  | 'magistral-medium-2509'
-  | 'magistral-small-2509'
+  | 'ministral-14b-2512'
+  | 'ministral-14b-latest'
+  | 'ministral-3b-2512'
+  | 'ministral-3b-latest'
+  | 'ministral-8b-2512'
+  | 'ministral-8b-latest'
+  | 'mistral-code-fim-latest'
+  | 'mistral-code-latest'
+  | 'mistral-large-latest'
+  | 'mistral-large-2512'
+  | 'mistral-medium'
+  | 'mistral-medium-latest'
+  | 'mistral-medium-2604'
+  | 'mistral-medium-3'
+  | 'mistral-medium-3-5'
+  | 'mistral-medium-3.5'
+  | 'mistral-small-2603'
+  | 'mistral-small-latest'
+  | 'mistral-vibe-cli-fast'
+  | 'mistral-vibe-cli-latest'
+  | 'mistral-vibe-cli-with-tools'
+  | 'voxtral-small-2507'
+  | 'voxtral-small-latest'
+  | 'zai-glm-5-2'
   | (string & {});
 
 export const mistralLanguageModelChatOptions = z.object({

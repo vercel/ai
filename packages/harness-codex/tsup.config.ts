@@ -8,7 +8,6 @@ export default defineConfig([
   {
     entry: { index: 'src/index.ts' },
     format: ['esm'],
-    target: 'es2022',
     dts: true,
     sourcemap: true,
     define: {
@@ -18,7 +17,6 @@ export default defineConfig([
   {
     entry: { 'bridge/index': 'src/bridge/index.ts' },
     format: ['esm'],
-    target: 'es2022',
     outExtension: () => ({ js: '.mjs' }),
     dts: false,
     sourcemap: true,
@@ -28,7 +26,7 @@ export default defineConfig([
     // not resolve there. tsup externalizes package.json deps by default, hence
     // the explicit override.
     noExternal: ['@ai-sdk/harness'],
-    external: ['@openai/codex-sdk', '@openai/codex', 'ws'],
+    external: ['@openai/codex', 'ws'],
     define: {
       __PACKAGE_VERSION__: packageVersion,
     },

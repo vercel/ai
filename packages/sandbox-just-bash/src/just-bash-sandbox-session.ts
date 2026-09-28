@@ -1,10 +1,11 @@
 import { isAbsolute, posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_SandboxSession,
-  type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
+  type Experimental_SandboxProcess as SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, SandboxCommand } from 'just-bash';
+import { ensureRealpath } from './utils';
 
 /**
  * `Experimental_SandboxSession` implementation backed by a `just-bash`
@@ -16,7 +17,7 @@ import type { Sandbox, SandboxCommand } from 'just-bash';
  * `JustBashNetworkSandboxSession.restricted()` — not constructed directly by
  * consumers.
  */
-export class JustBashSandboxSession implements Experimental_SandboxSession {
+export class JustBashSandboxSession implements SandboxSession {
   constructor(protected readonly sandbox: Sandbox) {}
 
   get description(): string {
@@ -45,12 +46,13 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     abortSignal?: AbortSignal;
   }): Promise<{ exitCode: number; stdout: string; stderr: string }> {
     abortSignal?.throwIfAborted();
+    await ensureRealpath(this.sandbox);
+    abortSignal?.throwIfAborted();
 
     const finished = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: createBashArgs(command, env),
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -76,15 +78,16 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
     workingDirectory?: string;
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+  }): Promise<SandboxProcess> {
+    abortSignal?.throwIfAborted();
+    await ensureRealpath(this.sandbox);
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
       cmd: 'bash',
-      args: ['-c', command],
+      args: createBashArgs(command, env),
       detached: true,
       ...(workingDirectory !== undefined ? { cwd: workingDirectory } : {}),
-      ...(env !== undefined ? { env } : {}),
       ...(abortSignal !== undefined ? { signal: abortSignal } : {}),
     });
 
@@ -192,10 +195,34 @@ export class JustBashSandboxSession implements Experimental_SandboxSession {
   }
 }
 
+function createBashArgs(
+  command: string,
+  env: Record<string, string> | undefined,
+): string[] {
+  // just-bash applies runCommand's env to the outer execution, but its `bash`
+  // command only inherits exported variables. Export assignments passed as
+  // positional arguments so values are not interpolated into the script.
+  const assignments =
+    env == null
+      ? []
+      : Object.entries(env).map(([name, value]) => `${name}=${value}`);
+
+  if (assignments.length === 0) {
+    return ['-c', command];
+  }
+
+  return [
+    '-c',
+    `${assignments.map(() => 'export -- "$1"; shift').join('\n')}\n${command}`,
+    'bash',
+    ...assignments,
+  ];
+}
+
 function createSandboxProcess(
   command: SandboxCommand,
   abortSignal: AbortSignal | undefined,
-): Experimental_SandboxProcess {
+): SandboxProcess {
   const encoder = new TextEncoder();
   const controllers: {
     stdout?: ReadableStreamDefaultController<Uint8Array>;

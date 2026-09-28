@@ -4,6 +4,10 @@ import {
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleLanguageModel,
@@ -45,6 +49,29 @@ const SAFETY_RATINGS = [
     probability: 'NEGLIGIBLE',
   },
 ];
+
+const COMPLETE_USAGE_METADATA = {
+  promptTokenCount: 12,
+  cachedContentTokenCount: 4,
+  candidatesTokenCount: 71,
+  toolUsePromptTokenCount: 65,
+  thoughtsTokenCount: 89,
+  totalTokenCount: 237,
+  promptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 12, nestedSentinel: 'prompt' },
+  ],
+  cacheTokensDetails: [
+    { modality: 'TEXT', tokenCount: 4, nestedSentinel: 'cache' },
+  ],
+  candidatesTokensDetails: [
+    { modality: 'TEXT', tokenCount: 71, nestedSentinel: 'candidate' },
+  ],
+  toolUsePromptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 65, nestedSentinel: 'tool' },
+  ],
+  serviceTier: 'standard',
+  topLevelSentinel: 'preserve-me',
+};
 
 const provider = createGoogle({
   apiKey: 'test-api-key',
@@ -341,7 +368,7 @@ describe('urlContextMetadata', () => {
 });
 
 describe('doGenerate', () => {
-  it('should associate multiple generated and streamed code execution results with the same tool call', async () => {
+  it('should use the custom code execution tool name for generated and streamed results', async () => {
     const response = {
       candidates: [
         {
@@ -399,7 +426,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -413,7 +440,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -423,7 +450,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -433,7 +460,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
@@ -446,7 +473,7 @@ describe('doGenerate', () => {
           {
             type: 'provider',
             id: 'google.code_execution',
-            name: 'code_execution',
+            name: 'CodeExecutionTool',
             args: {},
           },
         ],
@@ -465,7 +492,7 @@ describe('doGenerate', () => {
           "input": "{"language":"PYTHON","code":"print('ok')\\nprint(1/0)"}",
           "providerExecuted": true,
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-call",
         },
         {
@@ -475,7 +502,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
         {
@@ -485,7 +512,7 @@ describe('doGenerate', () => {
       ",
           },
           "toolCallId": "test-id",
-          "toolName": "code_execution",
+          "toolName": "CodeExecutionTool",
           "type": "tool-result",
         },
       ]
@@ -528,6 +555,8 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
+  const TEST_TOOL_RESULT_FILE_URL = 'https://example.com/tool-result-image.jpg';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -541,6 +570,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
+    [TEST_TOOL_RESULT_FILE_URL]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -555,7 +585,10 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
     } = {},
   ) {
     server.urls[url].response = {
@@ -670,6 +703,327 @@ describe('doGenerate', () => {
         name: 'lookup',
         content: { answer: 'known' },
       },
+    });
+  });
+
+  it('should forward supported Vertex tool result URLs as function response file data', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'hero.png activated' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents[0]).toEqual({
+      role: 'user',
+      parts: [
+        {
+          functionResponse: {
+            name: 'viewFiles',
+            response: {
+              name: 'viewFiles',
+              content: 'hero.png activated',
+            },
+            parts: [
+              {
+                fileData: {
+                  mimeType: 'image/png',
+                  fileUri: 'gs://example-bucket/renditions/hero.png',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it.each([
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+  ])(
+    'should forward supported Vertex %s tool result URLs as function response file data',
+    async mediaType => {
+      server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'done' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+        },
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'testCallId',
+                toolName: 'viewFiles',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('gs://example-bucket/result'),
+                      },
+                      mediaType,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts[0].functionResponse.parts).toEqual([
+        {
+          fileData: {
+            mimeType: mediaType,
+            fileUri: 'gs://example-bucket/result',
+          },
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    'video/mp4',
+    'image/png-not-supported',
+    'application/pdf-not-supported',
+  ])(
+    'should not forward unsupported Vertex %s tool result URLs',
+    async mediaType => {
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await expect(
+        vertexModel.doGenerate({
+          prompt: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'testCallId',
+                  toolName: 'viewFiles',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        data: {
+                          type: 'url',
+                          url: new URL('gs://example-bucket/result'),
+                        },
+                        mediaType,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
+
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('should preserve Vertex tool result URL handling across workflow serialization', async () => {
+    server.urls[TEST_TOOL_RESULT_FILE_URL].response = {
+      type: 'binary',
+      headers: { 'content-type': 'image/jpeg' },
+      body: Buffer.from([0xff, 0xd8, 0xff]),
+    };
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const originalModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    const serialized = GoogleLanguageModel[WORKFLOW_SERIALIZE](originalModel);
+
+    expect(serialized.config.downloadToolResultFiles).toEqual({
+      maxBytes: 7 * 1024 * 1024,
+      supportsGoogleCloudStorageUrls: true,
+    });
+
+    const restoredModel = GoogleLanguageModel[WORKFLOW_DESERIALIZE](
+      serialized as never,
+    );
+
+    await restoredModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/result.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(TEST_TOOL_RESULT_FILE_URL),
+                    },
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      TEST_TOOL_RESULT_FILE_URL,
+      TEST_URL_GEMINI_3_7_FLASH,
+    ]);
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          parts: [
+            {
+              functionResponse: {
+                parts: [
+                  {
+                    fileData: {
+                      mimeType: 'image/png',
+                      fileUri: 'gs://example-bucket/result.png',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: '/9j/',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -866,6 +1220,40 @@ describe('doGenerate', () => {
       expect(usage).toMatchSnapshot();
     });
 
+    it('should preserve complete raw usage metadata', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 77,
+          noCache: 73,
+          cacheRead: 4,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 160,
+          text: 71,
+          reasoning: 89,
+        },
+        raw: COMPLETE_USAGE_METADATA,
+      });
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -884,6 +1272,39 @@ describe('doGenerate', () => {
       `);
     });
   });
+
+  it.each([
+    { toolUsePromptTokenCount: '65' },
+    {
+      cacheTokensDetails: [{ modality: 'TEXT', tokenCount: '4' }],
+    },
+    {
+      toolUsePromptTokensDetails: [{ modality: 1, tokenCount: 65 }],
+    },
+  ])('should reject invalid usage metadata values: %j', async invalidUsage => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 12,
+          ...invalidUsage,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -1341,6 +1762,89 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    ['frequencyPenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['presencePenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['frequencyPenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['presencePenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    [
+      'frequencyPenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+    [
+      'presencePenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+  ] as const)(
+    'should omit unsupported %s for %s',
+    async (penalty, modelId, url) => {
+      prepareJsonFixtureResponse('google-text', { url });
+
+      const result = await provider.languageModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        [penalty]: 0.5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig).toEqual({});
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: penalty,
+        },
+      ]);
+    },
+  );
+
+  it('should pass penalty settings for Gemini 2.0 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_0_PRO,
+    });
+
+    const result = await provider.languageModel('gemini-2.0-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should pass penalty settings for Vertex Gemini 2.5 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH,
+    });
+
+    const vertexModel = new GoogleLanguageModel('gemini-2.5-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+    });
+
+    const result = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   it('should only pass valid provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -1506,7 +2010,9 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -1541,7 +2047,7 @@ describe('doGenerate', () => {
         }),
     },
   ])(
-    'should inline local JSON Schema references in $name tool requests',
+    'should preserve local JSON Schema references in $name tool requests',
     async ({ createModel }) => {
       prepareJsonFixtureResponse('google-text');
 
@@ -1572,17 +2078,20 @@ describe('doGenerate', () => {
 
       expect(
         (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
-          .parameters,
+          .parametersJsonSchema,
       ).toEqual({
         type: 'object',
         properties: {
           locale: {
-            type: 'string',
-            enum: ['de', 'en'],
+            $ref: '#/$defs/Locale',
             description: 'Locale for formatting',
           },
         },
         required: ['locale'],
+        additionalProperties: false,
+        $defs: {
+          Locale: { type: 'string', enum: ['de', 'en'] },
+        },
       });
     },
   );
@@ -1658,8 +2167,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "location": {
                 "type": "string",
@@ -1667,12 +2175,52 @@ describe('doGenerate', () => {
             },
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
   });
 
-  it('should inline local JSON Schema references in response schemas', async () => {
+  it('should pass array length constraints in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            elements: {
+              type: 'array',
+              items: { type: 'string' },
+              minItems: 2,
+              maxItems: 4,
+            },
+          },
+          required: ['elements'],
+        },
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        elements: {
+          type: 'array',
+          items: { type: 'string' },
+          minItems: 2,
+          maxItems: 4,
+        },
+      },
+      required: ['elements'],
+    });
+  });
+
+  it('should preserve local JSON Schema references in response schemas', async () => {
     prepareJsonFixtureResponse('google-text');
 
     await model.doGenerate({
@@ -1693,13 +2241,17 @@ describe('doGenerate', () => {
     });
 
     expect(
-      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+      (await server.calls[0].requestBodyJson).generationConfig
+        .responseJsonSchema,
     ).toEqual({
       type: 'object',
       properties: {
-        locale: { type: 'string', enum: ['de', 'en'] },
+        locale: { $ref: '#/$defs/Locale' },
       },
       required: ['locale'],
+      $defs: {
+        Locale: { type: 'string', enum: ['de', 'en'] },
+      },
     });
   });
 
@@ -1735,8 +2287,8 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
+            "additionalProperties": false,
             "properties": {
               "property1": {
                 "type": "string",
@@ -1751,6 +2303,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -1846,7 +2399,8 @@ describe('doGenerate', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "additionalProperties": false,
                   "properties": {
                     "property1": {
                       "type": "string",
@@ -1931,8 +2485,7 @@ describe('doGenerate', () => {
           },
         ],
         "generationConfig": {
-          "responseMimeType": "application/json",
-          "responseSchema": {
+          "responseJsonSchema": {
             "properties": {
               "text": {
                 "type": "string",
@@ -1943,6 +2496,7 @@ describe('doGenerate', () => {
             ],
             "type": "object",
           },
+          "responseMimeType": "application/json",
         },
       }
     `);
@@ -2565,6 +3119,79 @@ describe('doGenerate', () => {
       }
     `);
   });
+
+  it('should surface prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        responseId: 'blocked-response-id',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toEqual({
+      unified: 'content-filter',
+      raw: 'PROHIBITED_CONTENT',
+    });
+    expect(result.providerMetadata?.google).toMatchObject({
+      promptFeedback: {
+        blockReason: 'PROHIBITED_CONTENT',
+      },
+      groundingMetadata: null,
+      urlContextMetadata: null,
+      safetyRatings: null,
+      usageMetadata: {
+        promptTokenCount: 9,
+        totalTokenCount: 9,
+        serviceTier: 'standard',
+      },
+      finishMessage: null,
+      serviceTier: 'standard',
+    });
+    expect(result.response?.id).toBe('blocked-response-id');
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [],
+          promptFeedback: { blockReason },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([]);
+      expect(result.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+      expect(result.providerMetadata?.google.promptFeedback).toEqual({
+        blockReason,
+      });
+    },
+  );
 
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
@@ -5608,6 +6235,205 @@ describe('doStream', () => {
     `);
   });
 
+  it('should surface streamed prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          responseId: 'blocked-response-id',
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'response-metadata',
+      id: 'blocked-response-id',
+    });
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'PROHIBITED_CONTENT',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          groundingMetadata: null,
+          urlContextMetadata: null,
+          safetyRatings: null,
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          finishMessage: null,
+          serviceTier: 'standard',
+        },
+      },
+    });
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const finishEvent = (await convertReadableStreamToArray(stream)).find(
+        event => event.type === 'finish',
+      );
+
+      expect(finishEvent?.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+    },
+  );
+
+  it('should preserve prompt feedback and trailing usage from separate chunks', async () => {
+    const promptFeedback = {
+      blockReason: 'BLOCK_REASON_UNSPECIFIED',
+      safetyRatings: [],
+    };
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 13,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({ promptFeedback })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({ usageMetadata })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'stop',
+        raw: 'STOP',
+      },
+      usage: {
+        outputTokens: {
+          total: 3,
+        },
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback,
+          usageMetadata,
+        },
+      },
+    });
+  });
+
+  it('should keep a confirmed prompt block terminal across later chunks', async () => {
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 0,
+      totalTokenCount: 10,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: { blockReason: 'SAFETY' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'BLOCK_REASON_UNSPECIFIED',
+          },
+          usageMetadata,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toEqual([]);
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'SAFETY',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: { blockReason: 'SAFETY' },
+          usageMetadata,
+        },
+      },
+    });
+  });
+
   it('should expose finishMessage in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
@@ -5694,6 +6520,58 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
+  });
+
+  it('should preserve the final complete raw usage metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent?.usage).toEqual({
+      inputTokens: {
+        total: 77,
+        noCache: 73,
+        cacheRead: 4,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 160,
+        text: 71,
+        reasoning: 89,
+      },
+      raw: COMPLETE_USAGE_METADATA,
+    });
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
@@ -6462,7 +7340,11 @@ describe('doStream', () => {
               ],
               "serviceTier": null,
               "urlContextMetadata": null,
-              "usageMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",
@@ -6825,7 +7707,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",
@@ -7222,7 +8106,9 @@ describe('doStream', () => {
               {
                 "description": "",
                 "name": "test-tool",
-                "parameters": {
+                "parametersJsonSchema": {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "additionalProperties": false,
                   "properties": {
                     "value": {
                       "type": "string",

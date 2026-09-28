@@ -4,6 +4,7 @@ import type { ClaudeCodeHarnessAgentMessage } from '@/agent/harness/claude-code/
 import { Response } from '@/components/ai-elements/response';
 import { useChatId } from '@/components/chat-id-provider';
 import ChatInput from '@/components/chat-input';
+import AskUserQuestionsToolView from '@/components/tool/ask-user-questions-tool-view';
 import DynamicToolView from '@/components/tool/dynamic-tool-view';
 import GetUserNameToolView from '@/components/tool/get-user-name-tool-view';
 import HarnessBashToolView from '@/components/tool/harness-bash-tool-view';
@@ -89,6 +90,21 @@ export default function ClaudeCodeHarnessChat({
                         tool: 'getUserName',
                         toolCallId,
                         output: { name },
+                      })
+                    }
+                  />
+                );
+              }
+              case 'tool-askUserQuestions': {
+                return (
+                  <AskUserQuestionsToolView
+                    key={part.toolCallId}
+                    invocation={part}
+                    onResponse={({ toolCallId, output }) =>
+                      addToolOutput({
+                        tool: 'askUserQuestions',
+                        toolCallId,
+                        output,
                       })
                     }
                   />

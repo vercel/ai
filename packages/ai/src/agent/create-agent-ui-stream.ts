@@ -21,7 +21,7 @@ import type {
   InferUITools,
   UIMessage,
 } from '../ui/ui-messages';
-import { validateUIMessages } from '../ui/validate-ui-messages';
+import { validateUIMessagesForAgent } from '../ui/validate-ui-messages';
 import {
   createAsyncIterableStream,
   type AsyncIterableStream,
@@ -77,7 +77,7 @@ export async function createAgentUIStream<
 } & UIMessageStreamOptions<UI_MESSAGE>): Promise<
   AsyncIterableStream<InferUIMessageChunk<UI_MESSAGE>>
 > {
-  const validatedMessages = await validateUIMessages<UI_MESSAGE>({
+  const validatedMessages = await validateUIMessagesForAgent<UI_MESSAGE>({
     messages: uiMessages,
     // tools are compatible; the casting is required because the context param is
     // not available in ui messages

@@ -104,5 +104,8 @@ export async function validateLifecycleStateData<
     ...(state.pendingToolResults !== undefined
       ? { pendingToolResults: state.pendingToolResults }
       : {}),
+    ...(state.turnSettings !== undefined
+      ? { turnSettings: state.turnSettings }
+      : {}),
   } as STATE;
 }

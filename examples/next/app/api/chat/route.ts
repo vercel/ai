@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   const userStopSignal = new AbortController();
 
   const result = streamText({
-    model: 'openai/gpt-5-mini',
+    model: 'openai/gpt-6-luna',
     messages: await convertToModelMessages(messages),
     abortSignal: userStopSignal.signal,
     // throttle reading from chat store to max once per second

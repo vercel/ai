@@ -8,7 +8,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     prompt: `Call the echo tool with "hello world". what does it respond with back?`,
     providerOptions: {
       anthropic: {

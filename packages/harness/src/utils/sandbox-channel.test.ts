@@ -14,6 +14,7 @@ const outboundSchema = z.discriminatedUnion('type', [
   }),
   z.object({ type: z.literal('finish') }),
   z.object({ type: z.literal('finish-step') }),
+  z.object({ type: z.literal('compaction') }),
   z.object({ type: z.literal('error'), error: z.unknown() }),
 ]);
 type Outbound = z.infer<typeof outboundSchema>;
@@ -113,6 +114,134 @@ describe('SandboxChannel', () => {
     const captured: unknown[] = [];
     channel.on('finish', evt => captured.push(evt));
     expect(captured).toHaveLength(1);
+  });
+
+  it('replays buffered messages in arrival order across event types', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    connector.current().deliver({ type: 'finish-step' });
+    connector.current().deliver({ type: 'finish' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    expect(captured).toEqual([]);
+
+    channel.on('finish-step', evt => captured.push(evt.type));
+    expect(captured).toEqual(['finish-step', 'text-delta', 'finish-step']);
+
+    channel.on('finish', evt => captured.push(evt.type));
+    expect(captured).toEqual([
+      'finish-step',
+      'text-delta',
+      'finish-step',
+      'finish',
+    ]);
+  });
+
+  it('preserves arrival order when listeners attach across a microtask', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    await Promise.resolve();
+    channel.on('finish-step', evt => captured.push(evt.type));
+
+    expect(captured).toEqual(['finish-step', 'text-delta']);
+  });
+
+  it('preserves arrival order across an explicit asynchronous listener attachment', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    const finishListenerAttachment = channel.beginListenerAttachment();
+    await channel.open();
+    connector.current().deliver({ type: 'finish-step' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    await new Promise(resolve => setTimeout(resolve, 0));
+    channel.on('finish-step', evt => captured.push(evt.type));
+    expect(captured).toEqual([]);
+
+    finishListenerAttachment();
+    expect(captured).toEqual(['finish-step', 'text-delta']);
+  });
+
+  it('holds events that arrive while listeners are attaching', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    const finishListenerAttachment = channel.beginListenerAttachment();
+    await channel.open();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.delta));
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+    expect(captured).toEqual([]);
+
+    finishListenerAttachment();
+    expect(captured).toEqual(['result']);
+  });
+
+  it('does not block subscribed events behind an unhandled buffered type', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'compaction' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    connector.current().deliver({ type: 'finish' });
+    await flush();
+
+    const captured: string[] = [];
+    channel.on('text-delta', evt => captured.push(evt.type));
+    channel.on('finish', evt => captured.push(evt.type));
+    await flush();
+
+    expect(captured).toEqual(['text-delta', 'finish']);
+
+    const compactions: Outbound[] = [];
+    channel.on('compaction', evt => compactions.push(evt));
+    expect(compactions).toEqual([{ type: 'compaction' }]);
+  });
+
+  it('delivers an already buffered subscribed event after immediate unsubscribe', async () => {
+    const connector = makeConnector();
+    const channel = makeChannel(connector);
+    await channel.open();
+    connector.current().deliver({ type: 'compaction' });
+    connector
+      .current()
+      .deliver({ type: 'text-delta', id: 'a', delta: 'result' });
+    await flush();
+
+    const captured: string[] = [];
+    const unsubscribe = channel.on('text-delta', evt =>
+      captured.push(evt.delta),
+    );
+    unsubscribe();
+    await flush();
+
+    expect(captured).toEqual(['result']);
   });
 
   it('suspend freezes the cursor at the last delivered event and closes with reason "suspended"', async () => {
@@ -342,6 +471,127 @@ describe('SandboxChannel', () => {
     sockets[0].drop();
     await vi.waitFor(() => expect(closes.length).toBe(1));
     expect(closes[0]).toBe(1006);
+  });
+
+  it('bounds a hanging reconnect connection by maxElapsedMs', async () => {
+    const first = makeFakeSocket();
+    const connectSignals: AbortSignal[] = [];
+    let calls = 0;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: ({ abortSignal }) => {
+        connectSignals.push(abortSignal);
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return new Promise<WebSocket>(() => {});
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+    const closes: number[] = [];
+    channel.onClose(code => closes.push(code));
+
+    first.drop();
+    await vi.waitFor(() => expect(closes).toEqual([1006]), {
+      timeout: 200,
+    });
+    expect(connectSignals[1]?.aborted).toBe(true);
+  });
+
+  it('does not let a backoff delay extend the reconnect deadline', async () => {
+    const first = makeFakeSocket();
+    let calls = 0;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: () => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return Promise.reject(new Error('connect refused'));
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 100, maxDelayMs: 100 },
+    });
+    await channel.open();
+    const closes: number[] = [];
+    channel.onClose(code => closes.push(code));
+
+    first.drop();
+    await vi.waitFor(() => expect(closes).toEqual([1006]), {
+      timeout: 200,
+    });
+    expect(calls).toBeGreaterThanOrEqual(2);
+  });
+
+  it('closes a socket that resolves after the reconnect attempt is aborted', async () => {
+    const first = makeFakeSocket();
+    const late = makeFakeSocket();
+    const terminate = vi.fn();
+    (late.socket as unknown as { terminate: () => void }).terminate = terminate;
+    let calls = 0;
+    let resolveLate: ((socket: WebSocket) => void) | undefined;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: () => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        return new Promise<WebSocket>(resolve => {
+          resolveLate = resolve;
+        });
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 20, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+
+    first.drop();
+    await vi.waitFor(() => expect(resolveLate).toBeTypeOf('function'));
+    await vi.waitFor(() => expect(channel.isClosed()).toBe(true), {
+      timeout: 200,
+    });
+    resolveLate!(late.socket);
+    await flush();
+    expect(terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts an active connection when the channel is torn down', async () => {
+    const first = makeFakeSocket();
+    let calls = 0;
+    let reconnectSignal: AbortSignal | undefined;
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: ({ abortSignal }) => {
+        calls++;
+        if (calls === 1) return Promise.resolve(first.socket);
+        reconnectSignal = abortSignal;
+        return new Promise<WebSocket>(() => {});
+      },
+      outboundSchema,
+      reconnect: { maxElapsedMs: 1_000, initialDelayMs: 1, maxDelayMs: 1 },
+    });
+    await channel.open();
+
+    first.drop();
+    await vi.waitFor(() => expect(reconnectSignal).toBeDefined());
+    channel.close();
+    await flush();
+
+    expect(reconnectSignal?.aborted).toBe(true);
+    expect(channel.isClosed()).toBe(true);
+  });
+
+  it('passes a distinct abort signal to each connection attempt', async () => {
+    const connector = makeConnector();
+    const signals: AbortSignal[] = [];
+    const channel = new SandboxChannel<Outbound, Inbound>({
+      connect: async ({ abortSignal }) => {
+        signals.push(abortSignal);
+        return connector.connect();
+      },
+      outboundSchema,
+      reconnect: { initialDelayMs: 1, maxDelayMs: 1, maxElapsedMs: 200 },
+    });
+    await channel.open();
+    connector.current().drop();
+    await vi.waitFor(() => expect(signals).toHaveLength(2));
+    expect(signals[0]).not.toBe(signals[1]);
+    expect(signals.every(signal => !signal.aborted)).toBe(true);
   });
 
   it('seeds lastSeenEventId and advances it as events arrive', async () => {

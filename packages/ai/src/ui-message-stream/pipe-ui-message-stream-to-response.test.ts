@@ -5,6 +5,28 @@ import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-respo
 import { toUIMessageStream } from './to-ui-message-stream';
 import { describe, it, expect } from 'vitest';
 
+const cookies = [
+  'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
+  'locale=en; Path=/',
+];
+
+const multipleCookieHeaderInputs = [
+  {
+    name: 'Headers input',
+    headers: new Headers([
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ]),
+  },
+  {
+    name: 'header pair array input',
+    headers: [
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ],
+  },
+] satisfies Array<{ name: string; headers: HeadersInit }>;
+
 describe('pipeUIMessageStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
     const mockResponse = createMockServerResponse();
@@ -61,6 +83,26 @@ describe('pipeUIMessageStreamToResponse', () => {
       ]
     `);
   });
+
+  it.each(multipleCookieHeaderInputs)(
+    'should preserve multiple Set-Cookie headers with $name',
+    async ({ headers }) => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        headers,
+        stream: convertArrayToReadableStream([
+          { type: 'start', messageId: 'message-id' },
+          { type: 'finish' },
+        ]),
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.headers['set-cookie']).toStrictEqual(cookies);
+    },
+  );
 
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();

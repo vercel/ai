@@ -116,7 +116,7 @@ import { addCacheControlToMessages } from './add-cache-control-to-messages';
 
 async function main() {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     prompt: 'Help me analyze this codebase and suggest improvements.',
     stopWhen: isStepCount(10),
     tools: {

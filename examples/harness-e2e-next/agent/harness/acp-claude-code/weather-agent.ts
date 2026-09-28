@@ -11,7 +11,6 @@ import {
   createTraceTreeReporter,
 } from '@ai-sdk/harness/agent';
 import { claudeCodeACPHarness } from './harness';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherClaudeCodeACPHarnessAgent = new HarnessAgent({
@@ -19,10 +18,6 @@ export const weatherClaudeCodeACPHarnessAgent = new HarnessAgent({
   instructions: weatherInstructions,
   skills: [weatherForecastSkill, weatherCodesSkill],
   tools: { get_weather: weatherTool },
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     onSession: async ({ session, sessionWorkDir, abortSignal }) => {
       await session.writeTextFile({

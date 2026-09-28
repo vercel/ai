@@ -201,7 +201,7 @@ async function main() {
   console.log(`Available tools: ${Object.keys(tools).join(', ')}`);
 
   const { text: answer } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
     stopWhen: isStepCount(10),
     onStepFinish: async ({ toolResults }) => {

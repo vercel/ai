@@ -36,7 +36,8 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
@@ -44,11 +45,12 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
   provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
 
@@ -659,6 +661,7 @@ export function mapToolResultOutput({
         }
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          const url = new URL(item.url);
           let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
           if (!item.mediaType) {
             const inferenceSuffix =
@@ -674,7 +677,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType,
             providerOptions: item.providerOptions,
           };
@@ -730,6 +737,7 @@ export function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          const url = new URL(item.url);
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
@@ -737,7 +745,11 @@ export function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType: 'image',
             providerOptions: item.providerOptions,
           };

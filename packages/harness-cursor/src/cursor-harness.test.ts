@@ -55,7 +55,6 @@ describe('createCursor', () => {
           "listMcpResources",
           "readMcpResource",
           "applyAgentDiff",
-          "askQuestion",
           "fetch",
           "switchMode",
           "generateImage",
@@ -112,6 +111,13 @@ describe('createCursor', () => {
       },
     ]);
     expect(settings.credentialBrokering?.({ env: {} })).toEqual([]);
+    expect(settings.modelMapping).toEqual({
+      type: 'session-config-option',
+      path: 'model',
+    });
+    expect(settings.clientCapabilities).toEqual({
+      _meta: { parameterizedModelPicker: true },
+    });
   });
 
   it('forwards user-configurable settings', () => {
@@ -122,12 +128,17 @@ describe('createCursor', () => {
       credential: string;
     }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     createCursor({
       credentialForwarding,
-      model: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -135,21 +146,57 @@ describe('createCursor', () => {
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
     expect({
       credentialForwarding: settings.credentialForwarding,
-      modelId: settings.modelId,
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
       credentialForwarding,
-      modelId: 'claude-4-sonnet',
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
+  });
+
+  it('applies headers to configured model request routes', () => {
+    createCursor({ auth: 'ai-gateway' });
+    const gatewaySettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      gatewaySettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/cursor/v1' },
+        },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
+
+    mocks.createACP.mockClear();
+    createCursor();
+    const autoSettings = mocks.createACP.mock
+      .calls[0]?.[0] as ACPHarnessSettings;
+    expect(
+      autoSettings.credentialBrokering?.({
+        env: {},
+        headers: { 'x-tenant': 'acme' },
+      }),
+    ).toEqual([
+      {
+        match: { host: 'api2.cursor.sh' },
+        transform: { headers: { 'x-tenant': 'acme' } },
+      },
+    ]);
   });
 
   it.each(['direct', 'ai-gateway'] as const)(
@@ -163,7 +210,7 @@ describe('createCursor', () => {
       expect(warn.mock.calls[0]?.[0]).toContain(`auth: "${auth}"`);
       expect(warn.mock.calls[0]?.[0]).toContain('CURSOR_API_KEY');
       const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-      expect(settings.auth).toBeUndefined();
+      expect(settings.auth).toBe(auth);
       expect(settings.providerAuthentication).toBeUndefined();
       warn.mockRestore();
     },
@@ -176,9 +223,19 @@ describe('createCursor', () => {
 
     expect(warn).not.toHaveBeenCalled();
     const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
-    expect(settings.auth).toBeUndefined();
+    expect(settings.auth).toBe('auto');
     expect(settings.providerAuthentication).toBeUndefined();
     warn.mockRestore();
+  });
+
+  it('forwards a supplied authentication environment for Cursor credentials', () => {
+    const auth = { CURSOR_API_KEY: 'programmatic-cursor-key' };
+
+    createCursor({ auth });
+
+    const settings = mocks.createACP.mock.calls[0]?.[0] as ACPHarnessSettings;
+    expect(settings.auth).toBe(auth);
+    expect(settings.providerAuthentication).toBeUndefined();
   });
 
   it('classifies Cursor MCP calls from their raw input', () => {

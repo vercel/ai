@@ -28,6 +28,13 @@ async function throwingStep(): Promise<string> {
   throw new FatalError('Tool execution failed fatally');
 }
 
+async function executeApprovedAction(input: {
+  action: string;
+}): Promise<string> {
+  'use step';
+  return `executed:${input.action}`;
+}
+
 // ============================================================================
 // Core agent tests
 // ============================================================================
@@ -511,6 +518,96 @@ export async function agentToolApprovalE2e() {
     toolResultsCount: result.toolResults.length,
     stepCount: result.steps.length,
     firstToolCallName: result.toolCalls[0]?.toolName,
+  };
+}
+
+const signedToolApprovalSecret = {
+  environmentVariable: 'WORKFLOW_TOOL_APPROVAL_SECRET',
+};
+
+export async function agentSignedToolApprovalIssueE2e() {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([
+      {
+        type: 'tool-call',
+        toolName: 'riskyTool',
+        input: JSON.stringify({ action: 'delete' }),
+      },
+    ]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [{ role: 'user', content: 'do something risky' }],
+    writable: getWritable(),
+  });
+
+  return { toolCallsCount: result.toolCalls.length };
+}
+
+export async function agentSignedToolApprovalResumeE2e(signature: string) {
+  'use workflow';
+  const agent = new WorkflowAgent({
+    model: mockSequenceModel([{ type: 'text', text: 'approved action done' }]),
+    tools: {
+      riskyTool: tool({
+        description: 'A dangerous tool that needs approval',
+        inputSchema: z.object({ action: z.string() }),
+        execute: executeApprovedAction,
+        needsApproval: true,
+      }),
+    },
+    experimental_toolApprovalSecret: signedToolApprovalSecret,
+  });
+
+  const result = await agent.stream({
+    messages: [
+      { role: 'user', content: 'do something risky' },
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'riskyTool',
+            input: { action: 'delete' },
+          },
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-call-1',
+            toolCallId: 'call-1',
+            signature,
+          },
+        ],
+      },
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-approval-response',
+            approvalId: 'approval-call-1',
+            approved: true,
+          },
+        ],
+      },
+    ],
+    writable: getWritable(),
+  });
+
+  return {
+    lastStepText: result.steps.at(-1)?.text,
+    containsApprovedToolResult: JSON.stringify(result.messages).includes(
+      'executed:delete',
+    ),
   };
 }
 

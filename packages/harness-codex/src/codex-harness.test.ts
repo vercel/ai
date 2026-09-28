@@ -10,7 +10,11 @@ import { createCodex } from './codex-harness';
 const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
-  connects: [] as Array<() => Promise<unknown>>,
+  channels: [] as Array<{ emit(type: string, message: unknown): void }>,
+  connects: [] as Array<
+    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+  >,
+  reconnects: [] as Array<unknown>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -58,16 +62,39 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    private readonly listeners = new Map<
+      string,
+      Set<(message: unknown) => void>
+    >();
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       channelMocks.connects.push(connect);
+      channelMocks.reconnects.push(reconnect);
+      channelMocks.channels.push(this);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
-        await channelMocks.connects.at(-1)!();
+        await channelMocks.connects.at(-1)!({
+          abortSignal: new AbortController().signal,
+        });
       }
     }
-    on(): () => void {
+    on(type: string, listener: (message: unknown) => void): () => void {
+      const listeners = this.listeners.get(type) ?? new Set();
+      listeners.add(listener);
+      this.listeners.set(type, listeners);
+      return () => listeners.delete(listener);
+    }
+    onReconnect(): () => void {
       return () => {};
+    }
+    emit(type: string, message: unknown): void {
+      for (const listener of this.listeners.get(type) ?? []) listener(message);
     }
     onClose(): void {}
     send(message: unknown): void {
@@ -136,7 +163,12 @@ function fakeNetworkSandboxSessionForStartupSuccess({
       runs.push(command);
       return {
         exitCode: 0,
-        stdout: command === 'pwd' ? '/vercel/sandbox\n' : '',
+        stdout:
+          command === 'pwd'
+            ? '/vercel/sandbox\n'
+            : command === 'printf "%s" "$HOME"'
+              ? '/home/vercel-sandbox'
+              : '',
         stderr: '',
       };
     },
@@ -189,6 +221,8 @@ describe('createCodex adapter', () => {
     sentMessages.length = 0;
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.channels.length = 0;
+    channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -197,11 +231,63 @@ describe('createCodex adapter', () => {
     expect(harness.harnessId).toBe('codex');
     expect(harness.specificationVersion).toBe('harness-v1');
     expect(harness.supportsBuiltinToolApprovals).toBe(false);
-    expect(Object.keys(harness.builtinTools)).toEqual(['bash', 'webSearch']);
+    expect(Object.keys(harness.builtinTools)).toEqual([
+      'bash',
+      'webSearch',
+      'apply_patch',
+      'view_image',
+    ]);
     expect(harness.builtinTools.bash.nativeName).toBe('shell');
     expect(harness.builtinTools.bash.commonName).toBe('bash');
     expect(harness.builtinTools.webSearch.nativeName).toBe('web_search');
     expect(harness.builtinTools.webSearch.commonName).toBe('webSearch');
+    expect(harness.builtinTools.apply_patch.toolUseKind).toBe('edit');
+    expect(harness.builtinTools.view_image.toolUseKind).toBe('readonly');
+  });
+
+  it('waits for Codex to accept steering and rejects messages after the turn finishes', async () => {
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Weather in Paris?',
+      emit: () => {},
+    });
+    const channel = channelMocks.channels.at(-1)!;
+    const steering = control.submitUserMessage?.('Actually, Paris, Texas.');
+    const request = sentMessages.find(
+      (message): message is { type: string; messageId: string; text: string } =>
+        typeof message === 'object' &&
+        message != null &&
+        Reflect.get(message, 'type') === 'user-message',
+    );
+    expect(request).toEqual({
+      type: 'user-message',
+      messageId: expect.any(String),
+      text: 'Actually, Paris, Texas.',
+    });
+    channel.emit('user-message-response', {
+      type: 'user-message-response',
+      messageId: request!.messageId,
+      accepted: true,
+    });
+    await expect(steering).resolves.toBeUndefined();
+
+    channel.emit('finish', { type: 'finish' });
+    await control.done;
+    await expect(control.submitUserMessage?.('Too late.')).rejects.toThrow(
+      'no longer accepting user messages',
+    );
+    await session.doDestroy();
   });
 
   it('rejects built-in permission modes other than allow-all', async () => {
@@ -216,24 +302,21 @@ describe('createCodex adapter', () => {
     ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
   });
 
-  it('rejects built-in tool filtering controls', async () => {
-    const harness = createCodex();
-    await expect(
-      harness.doStart({
-        sessionId: 's1',
-        sandboxSession: {} as HarnessV1NetworkSandboxSession,
-        sessionWorkDir: '/vercel/sandbox/codex-s1',
-        builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
-      }),
-    ).rejects.toBeInstanceOf(HarnessCapabilityUnsupportedError);
-  });
-
   it('throws HarnessCapabilityUnsupportedError when the network sandbox session exposes no ports', async () => {
     const harness = createCodex();
     const sandboxSession = {
       id: 'test-sandbox',
       defaultWorkingDirectory: '/vercel/sandbox',
-      restricted: () => ({}) as never,
+      restricted: () =>
+        ({
+          run: async () => ({
+            exitCode: 0,
+            stdout: '/home/vercel-sandbox',
+            stderr: '',
+          }),
+          readTextFile: async () => null,
+          writeTextFile: async () => {},
+        }) as never,
       ports: [] as ReadonlyArray<number>,
       async getPortEndpoint() {
         return { url: '' };
@@ -302,7 +385,7 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
 
-    expect(runs).toContain('pwd');
+    expect(runs).toContain('printf "%s" "$HOME"');
     expect(webSocketMocks.calls.at(-1)).toEqual({
       url: expect.stringContaining('wss://sandbox.example/bridge'),
       headers: portEndpoint.headers,
@@ -356,18 +439,155 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #',
     });
 
+    const sessionStateDir =
+      '/home/vercel-sandbox/.ai-sdk-harness/.agent-runs/s1%3B%20env%20%3E%20%2Ftmp%2Fleak%20%23';
     expect(runs).toContain(
-      "mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge'",
+      `mkdir -p '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' '${sessionStateDir}/bridge'`,
     );
     expect(spawns).toEqual([
-      "node '/vercel/sandbox/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/bridge' --cli-shim-dir '/vercel/sandbox/.agent-runs/s1; env > /tmp/leak #/codex'",
+      `node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/codex/bridge.mjs' --workdir '/vercel/sandbox/codex-s1; env > /tmp/workdir-leak #' --bridge-state-dir '${sessionStateDir}/bridge'`,
     ]);
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
       'ai-sdk/harness-codex/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
-    expect(session.modelId).toBe('gpt-5.5');
     await session.doDestroy();
+  });
+
+  it('falls back to the default model, overridden by the per-turn model', async () => {
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+    });
+    const firstControl = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(firstControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        model: 'gpt-5.5',
+      });
+    });
+
+    const secondControl = await session.doPromptTurn({
+      model: 'agent-model',
+      skills: [],
+      tools: [],
+      prompt: 'Hello again',
+      emit: () => {},
+    });
+    void Promise.resolve(secondControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        model: 'agent-model',
+      });
+    });
+    await session.doDestroy();
+  });
+
+  it('forwards built-in tool filtering to the bridge', async () => {
+    const builtinToolFiltering = {
+      mode: 'deny' as const,
+      toolNames: ['bash'],
+    };
+    const session = await createCodex().doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      builtinToolFiltering,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    await vi.waitFor(() => {
+      expect(
+        (sentMessages.at(-1) as { builtinToolFiltering?: unknown })
+          .builtinToolFiltering,
+      ).toEqual(builtinToolFiltering);
+    });
+    await session.doDestroy();
+  });
+
+  it('passes headers to the bridge for Gateway and direct auth', async () => {
+    const gatewaySession = await createCodex({
+      auth: { AI_GATEWAY_API_KEY: 'gateway-key' },
+    }).doStart({
+      sessionId: 'gateway',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-gateway',
+    });
+    const gatewayControl = await gatewaySession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(gatewayControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        headers: { 'x-tenant': 'acme' },
+      });
+    });
+    await gatewaySession.doDestroy();
+
+    const directSession = await createCodex({
+      auth: { OPENAI_API_KEY: 'openai-key' },
+    }).doStart({
+      sessionId: 'direct',
+      headers: { 'x-tenant': 'acme' },
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        runs: [],
+        spawns: [],
+        writes: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/codex-direct',
+    });
+    const directControl = await directSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+    void Promise.resolve(directControl.done).catch(() => {});
+
+    await vi.waitFor(() => {
+      expect(sentMessages.at(-1)).toMatchObject({
+        type: 'start',
+        headers: { 'x-tenant': 'acme' },
+      });
+    });
+    await directSession.doDestroy();
   });
 
   it('brokers credentials when the sandbox supports additive request transformations', async () => {
@@ -387,10 +607,8 @@ describe('createCodex adapter', () => {
     });
     const harness = createCodex({
       auth: {
-        openai: {
-          apiKey: 'openai-secret',
-          baseUrl: 'https://openai.example/v1',
-        },
+        OPENAI_API_KEY: 'openai-secret',
+        OPENAI_BASE_URL: 'https://openai.example/v1',
       },
       credentialForwarding: async options => {
         forwardedCredentials.push(options);
@@ -434,6 +652,7 @@ describe('createCodex adapter', () => {
   });
 
   it('customizes real credentials when request transformations are unavailable', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const forwardedCredentials: Array<{
       credential: string;
@@ -448,7 +667,7 @@ describe('createCodex adapter', () => {
     });
     Object.assign(sandboxSession, { addRequestTransformations: undefined });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
       credentialForwarding: options => {
         forwardedCredentials.push(options);
         return 'caller-managed-credential';
@@ -469,8 +688,36 @@ describe('createCodex adapter', () => {
     ]);
     expect(spawnEnvs.at(0)?.CODEX_API_KEY).toBe('caller-managed-credential');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
+    expect(warn).not.toHaveBeenCalled();
 
     await session.doDestroy();
+
+    const identityHarness = createCodex({
+      auth: { OPENAI_API_KEY: 'openai-secret' },
+      credentialForwarding: ({ credential }) => credential,
+    });
+    const identitySandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs: [],
+      writes: [],
+    });
+    Object.assign(identitySandboxSession, {
+      addRequestTransformations: undefined,
+    });
+    const identitySession = await identityHarness.doStart({
+      sessionId: 's2',
+      sandboxSession: identitySandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s2',
+    });
+
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      'The sandbox implementation does not support configuring request transformations, so credential brokering does not work. Falling back to less secure credential forwarding.',
+    );
+
+    await identitySession.doDestroy();
+    warn.mockRestore();
   });
 
   it('configures the standard OpenAI URL for brokered direct auth', async () => {
@@ -485,7 +732,7 @@ describe('createCodex adapter', () => {
       addRequestTransformations,
     });
     const harness = createCodex({
-      auth: { openai: { apiKey: 'openai-secret' } },
+      auth: { OPENAI_API_KEY: 'openai-secret' },
     });
 
     const session = await harness.doStart({
@@ -535,6 +782,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Use Context7.',
       emit: () => {},
     });
@@ -566,6 +815,8 @@ describe('createCodex adapter', () => {
       sessionWorkDir: '/vercel/sandbox/codex-s1',
     });
     const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'Be concise.',
       emit: () => {},
     });
@@ -588,7 +839,12 @@ describe('createCodex adapter', () => {
     const mintBridgeToken = vi.fn(
       (sandboxId: string) => `token-for-${sandboxId}`,
     );
-    const harness = createCodex({ mintBridgeToken });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createCodex({ mintBridgeToken, reconnect });
     const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
       bridgePortUrl: 'ws://127.0.0.1:1',
       runs,
@@ -619,6 +875,7 @@ describe('createCodex adapter', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
     await attachedSession.doDetach();
   });
 
@@ -696,9 +953,9 @@ describe('createCodex adapter', () => {
     });
 
     it('shares the getter across configured harness instances', () => {
-      const first = createCodex({ model: 'first-model' });
+      const first = createCodex({ reasoningEffort: 'low' });
       const second = createCodex({
-        model: 'second-model',
+        reasoningEffort: 'high',
         webSearch: true,
       });
 

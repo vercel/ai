@@ -22,16 +22,20 @@ import {
   WORKFLOW_SERIALIZE,
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
 import { supportsReasoningEffort } from '../supports-reasoning-effort';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -135,6 +139,15 @@ function isRetryableStatusCode(statusCode: number): boolean {
   );
 }
 
+export const xaiResponsesSupportedUrls: Record<string, RegExp[]> = {
+  'image/*': [/^https?:\/\/.*$/],
+  // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
+  // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
+  // through to the converter instead of being downloaded to bytes by the SDK.
+  'application/pdf': [/^https?:\/\/.*$/],
+  'text/*': [/^https?:\/\/.*$/],
+};
+
 export class XaiResponsesLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -165,31 +178,30 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     return this.config.provider;
   }
 
-  readonly supportedUrls: Record<string, RegExp[]> = {
-    'image/*': [/^https?:\/\/.*$/],
-    // xAI's Responses API accepts non-image documents (PDF, plain text, CSV, etc.) as
-    // `{ type: 'input_file', file_url }`. Keeping these URLs intact here lets them pass
-    // through to the converter instead of being downloaded to bytes by the SDK.
-    'application/pdf': [/^https?:\/\/.*$/],
-    'text/*': [/^https?:\/\/.*$/],
-  };
+  readonly supportedUrls = xaiResponsesSupportedUrls;
 
-  protected async getArgs({
-    prompt,
-    maxOutputTokens,
-    temperature,
-    topP,
-    topK,
-    frequencyPenalty,
-    presencePenalty,
-    stopSequences,
-    seed,
-    responseFormat,
-    providerOptions,
-    tools,
-    toolChoice,
-    reasoning,
-  }: LanguageModelV4CallOptions) {
+  static async prepareRequest({
+    modelId,
+    options: {
+      prompt,
+      maxOutputTokens,
+      temperature,
+      topP,
+      topK,
+      frequencyPenalty,
+      presencePenalty,
+      stopSequences,
+      seed,
+      responseFormat,
+      providerOptions,
+      tools,
+      toolChoice,
+      reasoning,
+    },
+  }: {
+    modelId: XaiResponsesModelId;
+    options: LanguageModelV4CallOptions;
+  }) {
     const warnings: SharedV4Warning[] = [];
 
     const options =
@@ -198,10 +210,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         providerOptions,
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
-
-    if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
-    }
 
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
@@ -272,7 +280,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
 
     let resolvedReasoningEffort = options.reasoningEffort;
     if (resolvedReasoningEffort == null && isCustomReasoning(reasoning)) {
-      if (!supportsReasoningEffort(this.modelId)) {
+      if (!supportsReasoningEffort(modelId)) {
         warnings.push({
           type: 'unsupported',
           feature: 'reasoning',
@@ -288,7 +296,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             low: 'low',
             medium: 'medium',
             high: 'high',
-            xhigh: this.modelId === 'grok-4.6' ? 'xhigh' : 'high',
+            xhigh: modelId === 'grok-4.6' ? 'xhigh' : 'high',
           },
           warnings,
         });
@@ -296,7 +304,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     }
 
     const baseArgs: Record<string, unknown> = {
-      model: this.modelId,
+      model: modelId,
       input,
       logprobs:
         options.logprobs === true || options.topLogprobs != null
@@ -306,6 +314,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      top_k: topK,
+      min_p: options.minP,
       seed,
       ...(responseFormat?.type === 'json' && {
         text: {
@@ -321,15 +331,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((resolvedReasoningEffort != null ||
-        options.reasoningSummary != null) && {
+      ...(resolvedReasoningEffort != null && {
         reasoning: {
-          ...(resolvedReasoningEffort != null && {
-            effort: resolvedReasoningEffort,
-          }),
-          ...(options.reasoningSummary != null && {
-            summary: options.reasoningSummary,
-          }),
+          effort: resolvedReasoningEffort,
         },
       }),
       ...(options.store === false && {
@@ -341,8 +345,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.maxTurns != null && {
+        max_turns: options.maxTurns,
+      }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
+      ...(options.promptCacheKey != null && {
+        prompt_cache_key: options.promptCacheKey,
+      }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
       ...(options.serviceTier != null && {
         service_tier: options.serviceTier,
+      }),
+      ...(options.user != null && {
+        user: options.user,
       }),
     };
 
@@ -364,6 +383,13 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       fileSearchToolName,
       imageGenerationToolName,
     };
+  }
+
+  private getArgs(options: LanguageModelV4CallOptions) {
+    return XaiResponsesLanguageModel.prepareRequest({
+      modelId: this.modelId,
+      options,
+    });
   }
 
   async doGenerate(
@@ -522,6 +548,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
           providerExecuted: true,
         });
 
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
+
         continue;
       }
 
@@ -616,7 +651,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
+        response.service_tier != null ||
+        response.prompt_cache_key != null ||
+        response.safety_identifier != null) && {
         providerMetadata: {
           xai: {
             ...(response.usage?.cost_in_usd_ticks != null && {
@@ -624,6 +661,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }),
             ...(response.service_tier != null && {
               serviceTier: response.service_tier,
+            }),
+            ...(response.prompt_cache_key != null && {
+              promptCacheKey: response.prompt_cache_key,
+            }),
+            ...(response.safety_identifier != null && {
+              safetyIdentifier: response.safety_identifier,
             }),
           },
         },
@@ -676,6 +719,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let promptCacheKey: string | undefined = undefined;
+    let safetyIdentifier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -871,6 +916,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               serviceTier = response.service_tier ?? undefined;
+              promptCacheKey = response.prompt_cache_key ?? undefined;
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -1239,7 +1286,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1340,11 +1390,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...((costInUsdTicks != null || serviceTier != null) && {
+              ...((costInUsdTicks != null ||
+                serviceTier != null ||
+                promptCacheKey != null ||
+                safetyIdentifier != null) && {
                 providerMetadata: {
                   xai: {
                     ...(costInUsdTicks != null && { costInUsdTicks }),
                     ...(serviceTier != null && { serviceTier }),
+                    ...(promptCacheKey != null && { promptCacheKey }),
+                    ...(safetyIdentifier != null && { safetyIdentifier }),
                   },
                 },
               }),
@@ -1355,5 +1410,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

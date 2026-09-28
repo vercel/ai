@@ -9,7 +9,4 @@ export const openCode = createOpenCode();
 export { createOpenCode } from './opencode-harness';
 export { VERSION } from './version';
 export type { OpenCodeHarnessSettings } from './opencode-harness';
-export type {
-  OpenCodeAuthenticationMode,
-  OpenCodeAuthOptions,
-} from './opencode-auth';
+export type { OpenCodeAuthenticationMode } from './opencode-auth';

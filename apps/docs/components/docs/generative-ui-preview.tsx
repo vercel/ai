@@ -1,71 +1,79 @@
 'use client';
 
 import { useState } from 'react';
+import { EventPlanningSimulation } from './preview-event-planning';
+import { MediaSearchSimulation } from './preview-media-search';
+import { WeatherSearchSimulation } from './preview-weather-search';
 
-const Preview = ({
+type SimulationType = 'weather' | 'event-planning' | 'media-search';
+
+const PlayIcon = () => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height={10}
+    viewBox="0 0 16 16"
+    width={10}
+  >
+    <path
+      clipRule="evenodd"
+      d="M14.5528 7.77638C14.737 7.86851 14.737 8.13147 14.5528 8.2236L1.3618 14.8191C1.19558 14.9022 1 14.7813 1 14.5955L1 1.4045C1 1.21865 1.19558 1.09778 1.3618 1.18089L14.5528 7.77638Z"
+      fill="currentColor"
+      fillRule="evenodd"
+    />
+  </svg>
+);
+
+const PauseIcon = () => (
+  <svg
+    aria-hidden="true"
+    fill="none"
+    height={10}
+    viewBox="0 0 16 16"
+    width={10}
+  >
+    <path
+      clipRule="evenodd"
+      d="M5.5 2.5V1.75H4V2.5V13.5V14.25H5.5V13.5V2.5ZM12 2.5V1.75H10.5V2.5V13.5V14.25H12V13.5V2.5Z"
+      fill="currentColor"
+      fillRule="evenodd"
+    />
+  </svg>
+);
+
+const Simulation = ({
+  isPlaying,
   type,
 }: {
-  type: 'weather' | 'event-planning' | 'media-search';
+  isPlaying: boolean;
+  type: SimulationType;
 }) => {
-  if (type === 'event-planning') {
-    return (
-      <div className="grid w-full gap-2 text-sm">
-        {['Check calendars', 'Find a venue', 'Invite attendees'].map(item => (
-          <div className="rounded-md bg-gray-100 p-3" key={item}>
-            {item}
-          </div>
-        ))}
-      </div>
-    );
+  switch (type) {
+    case 'weather':
+      return <WeatherSearchSimulation isPlaying={isPlaying} />;
+    case 'event-planning':
+      return <EventPlanningSimulation isPlaying={isPlaying} />;
+    case 'media-search':
+      return <MediaSearchSimulation isPlaying={isPlaying} />;
+    default:
+      return null;
   }
-
-  if (type === 'media-search') {
-    return (
-      <div className="grid w-full grid-cols-3 gap-2">
-        {['Starry Night', 'Sunflowers', 'Olive Trees'].map((item, index) => (
-          <div
-            className="flex aspect-square items-end rounded-md bg-blue-200 p-2 text-blue-1000 text-xs"
-            key={item}
-            style={{ opacity: 1 - index * 0.15 }}
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full rounded-lg bg-blue-700 p-4 text-white">
-      <div className="text-sm opacity-80">San Francisco</div>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-4xl">47°</span>
-        <span aria-label="Sunny" className="size-9 rounded-full bg-amber-300" />
-      </div>
-      <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs">
-        {['Now', '9 AM', '10 AM', '11 AM'].map((time, index) => (
-          <div key={time}>
-            <div className="opacity-75">{time}</div>
-            <div className="mt-1">{47 + index * 2}°</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 };
 
+/**
+ * Static weather conversation shown at the top of the generative UI guide
+ * (the paused state of the CardPlayer weather simulation).
+ */
 export const WeatherSearch = () => (
-  <div className="not-prose my-6 mx-auto flex max-w-md flex-col gap-3 rounded-lg border border-gray-alpha-400 p-5">
-    <div className="ml-auto rounded-lg bg-gray-1000 px-3 py-2 text-background-100 text-sm">
-      What is the weather in San Francisco?
-    </div>
-    <div className="text-center font-mono text-gray-800 text-xs">
-      getWeather(&quot;San Francisco&quot;)
-    </div>
-    <Preview type="weather" />
+  <div className="not-prose my-6 mx-auto max-w-md rounded-lg border border-gray-alpha-400">
+    <WeatherSearchSimulation />
   </div>
 );
 
+/**
+ * Play/pause card around a looping generative-UI simulation (ported from the
+ * legacy ai-sdk.dev app).
+ */
 export const CardPlayer = ({
   description,
   title,
@@ -73,32 +81,29 @@ export const CardPlayer = ({
 }: {
   description: string;
   title: string;
-  type: 'weather' | 'event-planning' | 'media-search';
+  type: SimulationType;
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
   return (
-    <section className="not-prose mx-auto my-6 max-w-lg overflow-hidden rounded-lg border border-gray-alpha-400">
-      <div
-        className={`flex min-h-72 items-center justify-center p-6 transition-opacity ${
-          isPlaying ? 'opacity-100' : 'opacity-75'
-        }`}
-      >
-        <Preview type={type} />
+    <section className="not-prose mx-auto my-6 flex w-fit max-w-full flex-col items-center rounded-lg border border-gray-alpha-400">
+      <div className="flex w-[350px] max-w-full flex-col items-center">
+        <Simulation isPlaying={isPlaying} type={type} />
       </div>
-      <div className="border-gray-alpha-400 border-t p-4">
-        <div className="flex items-center justify-between gap-4">
-          <h3 className="font-semibold text-gray-1000 text-lg">{title}</h3>
+      <div className="flex w-full flex-col gap-1 border-gray-alpha-400 border-t p-4">
+        <div className="flex flex-row items-center gap-3">
+          <h3 className="font-medium text-gray-1000 text-lg">{title}</h3>
           <button
             aria-label={`${isPlaying ? 'Pause' : 'Play'} ${title} preview`}
-            className="rounded-md border border-gray-alpha-400 px-3 py-1.5 text-gray-1000 text-sm hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-blue-700"
+            aria-pressed={isPlaying}
+            className="flex size-7 items-center justify-center rounded-md bg-gray-200 text-gray-900 hover:bg-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
             onClick={() => setIsPlaying(value => !value)}
             type="button"
           >
-            {isPlaying ? 'Pause' : 'Play'}
+            {isPlaying ? <PauseIcon /> : <PlayIcon />}
           </button>
         </div>
-        <p className="mt-1 text-gray-900 text-sm leading-5">{description}</p>
+        <p className="text-gray-900 text-sm leading-5">{description}</p>
       </div>
     </section>
   );

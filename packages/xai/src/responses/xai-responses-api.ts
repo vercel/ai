@@ -2,7 +2,10 @@ import { z } from 'zod/v4';
 
 export type XaiResponsesIncludeValue =
   | 'file_search_call.results'
-  | 'reasoning.encrypted_content';
+  | 'web_search_call.action.sources'
+  | 'code_interpreter_call.outputs'
+  | 'reasoning.encrypted_content'
+  | 'no_inline_citations';
 
 export type XaiResponsesIncludeOptions =
   | Array<XaiResponsesIncludeValue>
@@ -168,6 +171,31 @@ const toolCallSchema = z.object({
   action: z.any().optional(),
 });
 
+export const webSearchWireSourceSchema = z.object({
+  type: z.literal('url'),
+  url: z.string(),
+});
+
+export const webSearchWireActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().nullish(),
+    queries: z.array(z.string()).nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().nullish(),
+    pattern: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+]);
+
 const mcpCallSchema = z.object({
   name: z.string().optional(),
   arguments: z.string().optional(),
@@ -292,6 +320,8 @@ export const xaiResponsesResponseSchema = z.object({
   usage: xaiResponsesUsageSchema.nullish(),
   status: z.string(),
   service_tier: z.string().nullish(),
+  prompt_cache_key: z.string().nullish(),
+  safety_identifier: z.string().nullish(),
 });
 
 export const xaiResponsesChunkSchema = z.union([
@@ -577,6 +607,8 @@ export const xaiResponsesChunkSchema = z.union([
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: xaiResponsesUsageSchema.nullish(),
       service_tier: z.string().nullish(),
+      prompt_cache_key: z.string().nullish(),
+      safety_identifier: z.string().nullish(),
     }),
   }),
   z.object({

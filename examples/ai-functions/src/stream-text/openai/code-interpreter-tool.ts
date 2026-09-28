@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('gpt-5-nano'),
+    model: openai.responses('gpt-5.4-nano'),
     tools: {
       code_interpreter: openai.tools.codeInterpreter(),
     },

@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { output } = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     output: Output.object({
       schema: z.object({
         name: z.string().describe('Full name of the person.'),

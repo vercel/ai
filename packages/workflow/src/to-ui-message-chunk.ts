@@ -185,20 +185,22 @@ export function toUIMessageChunk(
     case 'raw':
       return undefined;
 
+    case 'tool-approval-request':
+      return {
+        type: 'tool-approval-request',
+        approvalId: part.approvalId,
+        toolCallId:
+          'toolCallId' in part ? part.toolCallId : part.toolCall.toolCallId,
+        ...(part.signature != null ? { signature: part.signature } : {}),
+      };
+
     default: {
-      // Pass through tool-approval-request, step boundaries, and other
-      // chunks as-is. Step boundaries (finish-step/start-step) are not
-      // standard ModelCallStreamPart types but are written by the
-      // WorkflowAgent between tool execution and the next model step
-      // to ensure proper message splitting in convertToModelMessages.
+      // Pass through step boundaries and other chunks as-is. Step boundaries
+      // (finish-step/start-step) are not standard ModelCallStreamPart types
+      // but are written by the WorkflowAgent between tool execution and the
+      // next model step to ensure proper message splitting in
+      // convertToModelMessages.
       const passthroughPart = part as any;
-      if (passthroughPart.type === 'tool-approval-request') {
-        return {
-          type: 'tool-approval-request',
-          approvalId: passthroughPart.approvalId,
-          toolCallId: passthroughPart.toolCallId,
-        } as UIMessageChunk;
-      }
       if (
         passthroughPart.type === 'finish-step' ||
         passthroughPart.type === 'start-step' ||

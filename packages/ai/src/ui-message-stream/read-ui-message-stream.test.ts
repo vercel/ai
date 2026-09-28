@@ -373,4 +373,70 @@ describe('readUIMessageStream', () => {
       'Test error message',
     );
   });
+
+  it('should cancel the input stream when iteration exits early', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start', messageId: 'msg-123' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+      cancel,
+    });
+
+    for await (const message of readUIMessageStream({ stream })) {
+      if (
+        message.parts.some(part => part.type === 'text' && part.text.length > 0)
+      ) {
+        break;
+      }
+    }
+
+    await vi.waitFor(() => {
+      expect(cancel).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('should cancel the input stream when its reader is cancelled', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start', messageId: 'msg-123' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+      cancel,
+    });
+    const reader = readUIMessageStream({ stream }).getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (
+          done ||
+          value.parts.some(part => part.type === 'text' && part.text.length > 0)
+        ) {
+          break;
+        }
+      }
+
+      await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
+
+    await vi.waitFor(() => {
+      expect(cancel).toHaveBeenCalledOnce();
+    });
+  });
 });

@@ -47,7 +47,7 @@ export async function sendMessage(message: string) {
   messages.update([...messages.get(), { role: 'user', content: message }]);
 
   const { value: stream } = await streamUI({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     instructions: 'you are a friendly assistant!',
     messages: messages.get(),
     text: async function* ({ content, done }) {
@@ -187,7 +187,7 @@ import { getWeather } from '@/utils/queries';
 import { Weather } from '@/components/weather';
 
 const { value: stream } = await streamUI({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'you are a friendly assistant!',
   messages,
   text: async function* ({ content, done }) {
@@ -399,7 +399,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamUI } from '@ai-sdk/rsc';
 
 const { value: stream } = await streamUI({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'you are a friendly assistant!',
   messages,
   initial: <div>Loading...</div>,

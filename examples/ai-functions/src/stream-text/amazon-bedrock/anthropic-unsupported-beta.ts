@@ -10,7 +10,7 @@ async function main() {
     // Bedrock does not support the redact-thinking beta header.
     // This should trigger a model-level error from Bedrock.
     const result = streamText({
-      model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+      model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
       prompt: 'Say hello.',
       providerOptions: {
         anthropic: {

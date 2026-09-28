@@ -28,14 +28,14 @@ The Google Vertex provider has two different authentication implementations depe
 
 ### Node.js Runtime
 
-The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
+The Node.js runtime is the default runtime supported by the AI SDK. You can use the default provider instance to generate text with the `gemini-3.8-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex('gemini-3.8-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -46,14 +46,14 @@ This provider supports all standard Google Cloud authentication options through 
 
 The Edge runtime is supported through the `@ai-sdk/google-vertex/edge` module. Note the additional sub-module path `/edge` required to differentiate the Edge provider from the Node.js provider.
 
-You can use the default provider instance to generate text with the `gemini-2.5-flash` model like this:
+You can use the default provider instance to generate text with the `gemini-3.8-flash` model like this:
 
 ```ts
 import { vertex } from '@ai-sdk/google-vertex/edge';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertex('gemini-2.5-flash'),
+  model: vertex('gemini-3.8-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -71,7 +71,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-3-5-sonnet@20240620'),
+  model: vertexAnthropic('claude-sonnet-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -83,7 +83,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic/edge';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-3-5-sonnet@20240620'),
+  model: vertexAnthropic('claude-sonnet-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -105,7 +105,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 async function main() {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022', {
+    model: vertexAnthropic('claude-sonnet-5', {
       cacheControl: true,
     }),
     messages: [
@@ -161,7 +161,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-2.5-flash'),
+  model: customProvider('gemini-3.8-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -184,7 +184,7 @@ const customProvider = createVertex({
 });
 
 const { text } = await generateText({
-  model: customProvider('gemini-2.5-flash'),
+  model: customProvider('gemini-3.8-flash'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -203,7 +203,7 @@ const customProvider = createVertexAnthropic({
 });
 
 const { text } = await generateText({
-  model: customProvider('claude-3-5-sonnet@20240620'),
+  model: customProvider('claude-sonnet-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
@@ -220,7 +220,7 @@ const customProvider = createVertexAnthropic({
 });
 
 const { text } = await generateText({
-  model: customProvider('claude-3-5-sonnet@20240620'),
+  model: customProvider('claude-sonnet-5'),
   prompt: 'Write a vegetarian lasagna recipe.',
 });
 ```
