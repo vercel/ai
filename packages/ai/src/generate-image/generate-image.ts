@@ -1,3 +1,5 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import type {
   ImageModelV3,
   ImageModelV3CallOptions,
@@ -284,10 +286,13 @@ export async function generateImage({
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(
+          const currentEntry = getOwn(providerMetadata, providerName) ?? {
+            images: [],
+          };
+          currentEntry.images.push(
             ...result.providerMetadata[providerName].images,
           );
+          setOwn(providerMetadata, providerName, currentEntry);
         }
       }
     }

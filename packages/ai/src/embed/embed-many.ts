@@ -1,3 +1,5 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import {
   withUserAgentSuffix,
   type ProviderOptions,
@@ -358,10 +360,10 @@ export async function embedMany({
               for (const [providerName, metadata] of Object.entries(
                 result.providerMetadata,
               )) {
-                providerMetadata[providerName] = {
-                  ...providerMetadata[providerName],
+                setOwn(providerMetadata, providerName, {
+                  ...getOwn(providerMetadata, providerName),
                   ...metadata,
-                };
+                });
               }
             }
           }

@@ -393,6 +393,47 @@ describe('MCPClient', () => {
     await client?.close();
   });
 
+  it.each(['automatic', 'explicit'] as const)(
+    'preserves prototype-named tools with %s schemas',
+    async schemaMode => {
+      const names = ['__proto__', 'constructor', 'toString'];
+      const transport = new MockMCPTransport({
+        overrideTools: names.map(name => ({
+          name,
+          inputSchema: { type: 'object' },
+        })),
+        toolCallResults: Object.fromEntries(
+          names.map(name => [
+            name,
+            { content: [{ type: 'text', text: name }] },
+          ]),
+        ),
+      });
+      const send = vi.spyOn(transport, 'send');
+      client = await createMCPClient({ transport });
+      const tools =
+        schemaMode === 'automatic'
+          ? await client.tools()
+          : await client.tools({
+              schemas: Object.fromEntries(
+                names.map(name => [name, { inputSchema: z.object({}) }]),
+              ),
+            });
+      expect(Object.getPrototypeOf(tools)).toBeNull();
+      expect(Object.keys(tools)).toEqual(names);
+      for (const name of names) {
+        expect(Object.prototype.hasOwnProperty.call(tools, name)).toBe(true);
+        await tools[name].execute({}, { messages: [], toolCallId: '1' });
+        expect(send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            method: 'tools/call',
+            params: expect.objectContaining({ name }),
+          }),
+        );
+      }
+    },
+  );
+
   it('should return AI SDK compatible tool set', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },
