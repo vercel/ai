@@ -31,8 +31,6 @@ import {
   type UIMessage,
   type UIMessagePart,
 } from './ui-messages';
-import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
-
 export type StreamingUIMessageState<UI_MESSAGE extends UIMessage> = {
   message: UI_MESSAGE;
   activeTextParts: Record<string, TextUIPart>;
@@ -732,15 +730,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
                   state: 'output-error',
-                  input: undefined,
-                  rawInput: chunk.input,
+                  input: chunk.input,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
                   providerMetadata: chunk.providerMetadata,
                   toolMetadata: chunk.toolMetadata,
                 });
-
-                warnIfUIMessageHasDeprecatedRawInput([state.message]);
               }
 
               write();
@@ -754,6 +749,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 id: chunk.approvalId,
                 ...(chunk.approvalDescriptor != null
                   ? { descriptor: chunk.approvalDescriptor }
+                  : {}),
+                ...(Object.prototype.hasOwnProperty.call(
+                  chunk,
+                  'inputSchemaInput',
+                )
+                  ? { inputSchemaInput: chunk.inputSchemaInput }
                   : {}),
                 ...(chunk.reason != null
                   ? { requestReason: chunk.reason }
@@ -815,7 +816,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
@@ -831,7 +833,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     preliminary: chunk.preliminary,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
@@ -855,7 +858,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
@@ -871,7 +875,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );

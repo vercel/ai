@@ -506,6 +506,54 @@ describe('Anthropic batch', () => {
     });
   });
 
+  it('starts an on-demand compaction batch request with the inferred beta header', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'compact-conversation',
+          ...request('Summarize this conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                compaction: {
+                  type: 'summarize',
+                  instructions: 'Preserve decisions and open questions.',
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        },
+      ],
+    });
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          custom_id: 'compact-conversation',
+          params: {
+            compaction: {
+              type: 'summarize',
+              instructions: 'Preserve decisions and open questions.',
+            },
+          },
+        },
+      ],
+    });
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta']
+        .split(',')
+        .map(beta => beta.trim()),
+    ).toContain('compact-2026-09-04');
+  });
+
   it.each([
     {
       feature: 'providerOptions.anthropic.speed',
@@ -993,6 +1041,67 @@ describe('Anthropic batch', () => {
     expect(result.result.providerMetadata).toEqual({
       anthropic: expect.objectContaining({ safeguardResults }),
     });
+  });
+
+  it('preserves signed compaction blocks in batch results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'compaction',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+              stop_reason: 'compaction',
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'compaction',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation.',
+              providerMetadata: {
+                anthropic: {
+                  type: 'compaction',
+                  signature: 'compaction-signature',
+                },
+              },
+            },
+          ],
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        },
+      },
+    ]);
   });
 
   it('preserves client and provider-executed tool content', async () => {

@@ -1,5 +1,48 @@
 # @ai-sdk/open-responses
 
+## 2.0.55
+
+### Patch Changes
+
+- 8cf3f5b: Allow extension codecs to explicitly opt in to exact bare tool, item, and event discriminator registration.
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 2.0.52
+
+### Patch Changes
+
+- 2147b86: Add QuiverAI Arrow 2 language models through the Responses API, with provider-local reasoning validation, stateless history replay, and workflow serialization that preserves QuiverAI configuration and behavior.
+
+  Add reusable Open Responses transport configuration, response-error metadata extraction for generation and streaming, cache-write accounting, and OpenAI-compatible custom tools. Preserve text, image, and file custom-tool results and complete tool inputs when streaming deltas are omitted.
+
+## 2.0.51
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
 ## 2.0.50
 
 ### Patch Changes

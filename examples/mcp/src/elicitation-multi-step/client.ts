@@ -149,7 +149,7 @@ async function main() {
     }
 
     const { text: response } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(12),
       onStepFinish: async ({ toolResults }) => {

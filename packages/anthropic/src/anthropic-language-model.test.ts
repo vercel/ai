@@ -61,6 +61,140 @@ describe('AnthropicLanguageModel', () => {
     };
   }
 
+  describe('initial per-message effort', () => {
+    it.each([
+      { method: 'generate', requestEffort: undefined },
+      { method: 'generate', requestEffort: 'high' },
+      { method: 'stream', requestEffort: undefined },
+      { method: 'stream', requestEffort: 'high' },
+    ])(
+      'should send initial effort via $method with request effort $requestEffort',
+      async ({ method, requestEffort }) => {
+        const options = {
+          prompt: [
+            { role: 'system', content: 'initial instructions' },
+            {
+              role: 'system',
+              content: '',
+              providerOptions: { anthropic: { effort: 'low' } },
+            },
+            {
+              role: 'system',
+              content: '',
+              providerOptions: { anthropic: { effort: 'medium' } },
+            },
+            ...TEST_PROMPT,
+          ] satisfies LanguageModelV4Prompt,
+          ...(requestEffort != null && {
+            providerOptions: { anthropic: { effort: requestEffort } },
+          }),
+        };
+
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-text');
+          const result = await provider('claude-fable-5-1').doGenerate(options);
+          expect(result.warnings).toEqual([]);
+        } else {
+          prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
+          const result = await provider('claude-fable-5-1').doStream(options);
+          const chunks = await convertReadableStreamToArray(result.stream);
+          expect(chunks[0]).toEqual({ type: 'stream-start', warnings: [] });
+          expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+        }
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.system).toEqual([
+          { type: 'text', text: 'initial instructions' },
+        ]);
+        expect(body.messages).toEqual([
+          { role: 'system', content: [], output_config: { effort: 'low' } },
+          { role: 'system', content: [], output_config: { effort: 'medium' } },
+          ...TEST_PROMPT,
+        ]);
+        expect(body.output_config?.effort).toBe(requestEffort);
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'mid-conversation-output-config-2026-07-01',
+        );
+      },
+    );
+  });
+
+  describe('pruned programmatic tool history', () => {
+    it.each(['generate', 'stream'])(
+      'should omit orphaned callers and expose the warning for %s',
+      async method => {
+        const options = {
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'lookup-call',
+                  toolName: 'lookup',
+                  input: { ticker: 'AAPL' },
+                  providerOptions: {
+                    anthropic: {
+                      caller: {
+                        type: 'code_execution_20250825',
+                        toolId: 'pruned-source',
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'lookup-call',
+                  toolName: 'lookup',
+                  output: { type: 'text', value: '185.42' },
+                },
+              ],
+            },
+            ...TEST_PROMPT,
+          ] satisfies LanguageModelV4Prompt,
+        };
+        const warnings = [
+          {
+            type: 'other',
+            message:
+              'Omitted caller metadata for tool lookup-call because source code execution tool pruned-source is missing from the conversation history.',
+          },
+        ];
+
+        if (method === 'generate') {
+          prepareJsonFixtureResponse('anthropic-text');
+          expect((await model.doGenerate(options)).warnings).toEqual(warnings);
+        } else {
+          prepareChunksFixtureResponse('anthropic-text');
+          const result = await model.doStream(options);
+          const chunks = await convertReadableStreamToArray(result.stream);
+          expect(chunks[0]).toEqual({ type: 'stream-start', warnings });
+          expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);
+        }
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.messages[0].content).toEqual([
+          {
+            type: 'tool_use',
+            id: 'lookup-call',
+            name: 'lookup',
+            input: { ticker: 'AAPL' },
+          },
+        ]);
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'tool_result',
+          tool_use_id: 'lookup-call',
+          content: '185.42',
+        });
+      },
+    );
+  });
+
   describe('doGenerate', () => {
     describe('reasoning (thinking enabled)', () => {
       it('should pass thinking config; add budget tokens; clear out temperature, top_p, top_k; and return warnings', async () => {
@@ -6707,6 +6841,164 @@ describe('AnthropicLanguageModel', () => {
       });
     });
 
+    describe('on-demand compaction', () => {
+      it('should send compaction in the request body and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            anthropic: {
+              compaction: {
+                type: 'summarize',
+                instructions: 'Preserve decisions and unresolved questions.',
+              },
+            } satisfies AnthropicLanguageModelOptions,
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          compaction: {
+            type: 'summarize',
+            instructions: 'Preserve decisions and unresolved questions.',
+          },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-09-04',
+        );
+      });
+
+      it('should reject compaction together with context management', async () => {
+        await expect(
+          model.doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              anthropic: {
+                compaction: { type: 'summarize' },
+                contextManagement: {
+                  edits: [{ type: 'clear_tool_uses_20250919' }],
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        ).rejects.toMatchObject({
+          name: 'AI_InvalidArgumentError',
+          argument: 'providerOptions',
+          message:
+            'Anthropic provider options `compaction` and `contextManagement` cannot be used together.',
+        });
+        expect(server.calls).toHaveLength(0);
+      });
+
+      it('should preserve the signature on compaction responses', async () => {
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'json-value',
+          body: {
+            id: 'msg_compaction',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'compaction',
+                content: 'Summary of the conversation.',
+                signature: 'compaction-signature',
+              },
+            ],
+            model: 'claude-opus-5',
+            stop_reason: 'compaction',
+            stop_sequence: null,
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              iterations: [
+                {
+                  type: 'compaction',
+                  input_tokens: 120,
+                  output_tokens: 30,
+                },
+              ],
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+        });
+
+        expect(result.content).toEqual([
+          {
+            type: 'text',
+            text: 'Summary of the conversation.',
+            providerMetadata: {
+              anthropic: {
+                type: 'compaction',
+                signature: 'compaction-signature',
+              },
+            },
+          },
+        ]);
+        expect(result.finishReason).toEqual({
+          unified: 'other',
+          raw: 'compaction',
+        });
+      });
+
+      it('should replay signed compaction blocks and add the beta header', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await model.doGenerate({
+          prompt: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Summary of the conversation.',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'compaction',
+                      signature: 'compaction-signature',
+                    },
+                  },
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'Continue the conversation.' }],
+            },
+          ],
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+            },
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'text',
+                  text: 'Continue the conversation.',
+                },
+              ],
+            },
+          ],
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
+          'compact-2026-09-04',
+        );
+      });
+    });
+
     describe('safeguards', () => {
       const safeguardResults = [
         {
@@ -8134,6 +8426,51 @@ describe('AnthropicLanguageModel', () => {
           !(part as { providerMetadata?: unknown }).providerMetadata,
       );
       expect(regularTextStart).toBeDefined();
+    });
+
+    it('should stream complete signed on-demand compaction blocks', async () => {
+      server.urls['https://api.anthropic.com/v1/messages'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          'data: {"type":"message_start","message":{"id":"msg_compaction","type":"message","role":"assistant","content":[],"model":"claude-opus-5","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":0,"output_tokens":0}}}\n\n',
+          'data: {"type":"content_block_start","index":0,"content_block":{"type":"compaction","content":"Summary of the conversation.","signature":"compaction-signature"}}\n\n',
+          'data: {"type":"content_block_stop","index":0}\n\n',
+          'data: {"type":"message_delta","delta":{"stop_reason":"compaction","stop_sequence":null},"usage":{"output_tokens":0,"iterations":[{"type":"compaction","input_tokens":120,"output_tokens":30}]}}\n\n',
+          'data: {"type":"message_stop"}\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const result = await convertReadableStreamToArray(stream);
+
+      expect(result).toContainEqual({
+        type: 'text-start',
+        id: '0',
+        providerMetadata: {
+          anthropic: {
+            type: 'compaction',
+            signature: 'compaction-signature',
+          },
+        },
+      });
+      expect(result).toContainEqual({
+        type: 'text-delta',
+        id: '0',
+        delta: 'Summary of the conversation.',
+      });
+      expect(result).toContainEqual({
+        type: 'text-end',
+        id: '0',
+      });
+      expect(result).toContainEqual(
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        }),
+      );
     });
 
     it('should parse iterations from streaming compaction response', async () => {
@@ -11646,6 +11983,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11662,6 +12000,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11678,6 +12017,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11694,6 +12034,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11710,6 +12051,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11740,6 +12082,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": true,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11756,6 +12099,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": true,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -11773,6 +12117,7 @@ describe('getModelCapabilities', () => {
           "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": true,
           "supportsAdaptiveThinking": true,
+          "supportsBetweenToolsThinking": false,
           "supportsStructuredOutput": true,
           "supportsXhighEffort": true,
         }
@@ -11796,6 +12141,7 @@ describe('getModelCapabilities', () => {
           "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": false,
           "supportsAdaptiveThinking": false,
+          "supportsBetweenToolsThinking": false,
           "supportsStructuredOutput": false,
           "supportsXhighEffort": false,
         }
@@ -11813,6 +12159,7 @@ describe('getModelCapabilities', () => {
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
         "supportsAdaptiveThinking": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": false,
       }
@@ -11840,6 +12187,7 @@ describe('getModelCapabilities', () => {
           "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": false,
           "supportsAdaptiveThinking": false,
+          "supportsBetweenToolsThinking": false,
           "supportsStructuredOutput": false,
           "supportsXhighEffort": false,
         }
@@ -11988,10 +12336,10 @@ describe('mid-conversation tool changes', () => {
     );
   });
 
-  it('should send clearAt and per-turn effort with their beta headers', async () => {
+  it('should send separate effort updates and turn-scoped reminders with their beta headers', async () => {
     prepareJsonFixtureResponse('anthropic-text');
 
-    await provider('claude-fable-5').doGenerate({
+    await provider('claude-fable-5-1').doGenerate({
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
         { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
@@ -12000,22 +12348,33 @@ describe('mid-conversation tool changes', () => {
           content: '',
           providerOptions: {
             anthropic: {
-              clearAt: 'next_user_message',
               effort: 'xhigh',
             },
           },
         },
         { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+        {
+          role: 'system',
+          content: 'Verify every claim in this answer.',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
       ],
     });
 
     const requestBody = await server.calls[0].requestBodyJson;
-    expect(requestBody.messages).toContainEqual({
-      role: 'system',
-      content: [],
-      clear_at: 'next_user_message',
-      output_config: { effort: 'xhigh' },
-    });
+    expect(requestBody.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'Draft an answer.' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'Draft.' }] },
+      { role: 'system', content: [], output_config: { effort: 'xhigh' } },
+      { role: 'user', content: [{ type: 'text', text: 'Now finalize it.' }] },
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'Verify every claim in this answer.' }],
+        clear_at: 'next_user_message',
+      },
+    ]);
     expect(server.calls[0].requestHeaders['anthropic-beta']).toContain(
       'mid-conversation-system-clear-at-2026-08-21',
     );
@@ -12312,6 +12671,7 @@ describe('claude-opus-5-5 specific behavior', () => {
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": true,
         "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
         "supportsXhighEffort": true,
       }
@@ -12591,6 +12951,277 @@ describe('claude-opus-5-5 specific behavior', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tool_choice).toEqual({ type: 'any' });
+    expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('claude-sonnet-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const TEST_TOOL = {
+    type: 'function' as const,
+    name: 'testTool',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { value: { type: 'string' as const } },
+      required: ['value'],
+      additionalProperties: false,
+    },
+  };
+
+  it('should return capabilities that reject disabled thinking and forced tool use', () => {
+    expect(getModelCapabilities('claude-sonnet-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsAdaptiveThinking": true,
+        "supportsBetweenToolsThinking": true,
+        "supportsStructuredOutput": true,
+        "supportsXhighEffort": true,
+      }
+    `);
+  });
+
+  it('should not send thinking by default', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send between_tools thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'between_tools' },
+          effort: 'medium',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'medium' });
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(server.calls[0].requestHeaders['anthropic-beta']).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should replace disabled thinking with between_tools thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "thinking cannot be disabled for claude-sonnet-5-5. Using 'between_tools' thinking, the lowest thinking setting, instead.",
+          "feature": "providerOptions.anthropic.thinking",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should lower xhigh effort to high with between_tools thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'between_tools' },
+          effort: 'xhigh',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'high' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "effort 'xhigh' is not supported with 'between_tools' thinking. The effort has been lowered to 'high'.",
+          "feature": "providerOptions.anthropic.effort",
+          "type": "unsupported",
+        },
+      ]
+    `);
+  });
+
+  it('should lower max effort to high when disabled thinking is replaced', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'max',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'high' });
+    expect(
+      result.warnings.map(warning =>
+        'feature' in warning ? warning.feature : undefined,
+      ),
+    ).toEqual([
+      'providerOptions.anthropic.thinking',
+      'providerOptions.anthropic.effort',
+    ]);
+  });
+
+  it('should convert budget-based thinking to adaptive thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 5000 },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      feature: 'providerOptions.anthropic.thinking',
+    });
+  });
+
+  it('should map reasoning "none" to between_tools thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'none',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should map reasoning "xhigh" to adaptive thinking with effort "xhigh"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'xhigh',
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      thinking: { type: 'adaptive', display: 'summarized' },
+      output_config: { effort: 'xhigh' },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should fall back to auto tool choice when tool choice is "required"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({ feature: 'toolChoice' });
+  });
+
+  it('should use native structured outputs when jsonTool mode is requested', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        anthropic: {
+          structuredOutputMode: 'jsonTool',
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      feature: 'providerOptions.anthropic.structuredOutputMode',
+    });
+  });
+
+  it('should keep disabled thinking for claude-sonnet-5', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+        } satisfies AnthropicLanguageModelOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'disabled' });
     expect(result.warnings).toEqual([]);
   });
 });

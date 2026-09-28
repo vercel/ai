@@ -23,6 +23,43 @@ const server = createTestServer({
   'https://api.openai.com/v1/images/edits': {},
 });
 
+describe('image editing capabilities', () => {
+  it.each([
+    'dall-e-2',
+    'gpt-image-1',
+    'gpt-image-1-mini',
+    'gpt-image-1.5',
+    'gpt-image-2',
+    'gpt-image-2.5-flare',
+    'gpt-image-2.5-flare-2026-09-08',
+    'gpt-image-2.5-sunburst',
+    'gpt-image-2.5-sunburst-2026-09-08',
+    'chatgpt-image-latest',
+  ])('advertises file and mask support for %s', modelId => {
+    const model = provider.image(modelId);
+
+    expect(model.supportsFileInputs).toBe(true);
+    expect(model.supportsMaskInputs).toBe(true);
+  });
+
+  it('advertises that dall-e-3 does not support editing inputs', () => {
+    const model = provider.image('dall-e-3');
+
+    expect(model.supportsFileInputs).toBe(false);
+    expect(model.supportsMaskInputs).toBe(false);
+  });
+
+  it.each(['custom-image-model', 'gpt-image-custom', 'chatgpt-image-custom'])(
+    'leaves editing support unknown for %s',
+    modelId => {
+      const model = provider.image(modelId);
+
+      expect(model.supportsFileInputs).toBeUndefined();
+      expect(model.supportsMaskInputs).toBeUndefined();
+    },
+  );
+});
+
 function prepareJsonFixtureResponse(
   filename: string,
   headers?: Record<string, string>,

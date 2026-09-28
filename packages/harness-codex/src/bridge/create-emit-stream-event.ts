@@ -15,6 +15,8 @@ export type CodexItem = {
   status?: 'in_progress' | 'completed' | 'failed';
   server?: string;
   tool?: string;
+  input?: string;
+  isError?: boolean;
   arguments?: unknown;
   result?: { content?: unknown; structured_content?: unknown } | unknown;
   error?: { message?: string };
@@ -58,6 +60,13 @@ const NATIVE_TO_COMMON: Readonly<Record<string, HarnessV1BuiltinToolName>> = {
 
 function toCommonName(nativeName: string): HarnessV1BuiltinToolName | string {
   return NATIVE_TO_COMMON[nativeName] ?? nativeName;
+}
+
+function getMcpToolName(item: CodexItem): string {
+  const toolName = item.tool ?? 'unknown';
+  return item.server != null && item.server.length > 0
+    ? `mcp__${item.server}__${toolName}`
+    : toolName;
 }
 
 export function createEmitStreamEvent({
@@ -113,6 +122,28 @@ export function createEmitStreamEvent({
     const observeStep = (): void => {
       stepTracker.observeEvent({ event, itemId: id });
     };
+
+    if (item.type === 'native_tool' && item.tool != null) {
+      if (event.type === 'item.started' && item.input != null) {
+        send({
+          type: 'tool-call',
+          toolCallId: id,
+          toolName: item.tool,
+          input: item.input,
+          providerExecuted: true,
+        });
+      } else if (event.type === 'item.completed') {
+        send({
+          type: 'tool-result',
+          toolCallId: id,
+          toolName: item.tool,
+          result: item.result,
+          ...(item.isError ? { isError: true } : {}),
+        });
+      }
+      stepTracker.observeEvent({ event, itemId: `native-tool:${id}` });
+      return;
+    }
 
     if (item.type === 'agent_message' && typeof item.text === 'string') {
       /*
@@ -182,12 +213,13 @@ export function createEmitStreamEvent({
     }
 
     if (item.type === 'mcp_tool_call') {
+      const toolName = getMcpToolName(item);
       if (event.type === 'item.started') {
         send({
           type: 'tool-call',
           toolCallId: id,
-          toolName: item.tool ?? 'unknown',
-          nativeName: item.tool ?? 'unknown',
+          toolName,
+          nativeName: toolName,
           input: JSON.stringify(item.arguments ?? {}),
           providerExecuted: true,
           dynamic: true,
@@ -196,7 +228,7 @@ export function createEmitStreamEvent({
         send({
           type: 'tool-result',
           toolCallId: id,
-          toolName: item.tool ?? 'unknown',
+          toolName,
           result: extractMcpToolCallResult(item),
           dynamic: true,
         });
@@ -323,12 +355,13 @@ function extractMcpToolCallResult(item: CodexItem): unknown {
 function mapUsage(usage: Record<string, number>): Record<string, unknown> {
   const input = usage.input_tokens ?? 0;
   const cacheRead = usage.cached_input_tokens ?? 0;
+  const cacheWrite = usage.cache_write_input_tokens ?? 0;
   return {
     inputTokens: {
       total: input,
-      noCache: Math.max(0, input - cacheRead),
+      noCache: Math.max(0, input - cacheRead - cacheWrite),
       cacheRead,
-      cacheWrite: 0,
+      cacheWrite,
     },
     outputTokens: {
       total: usage.output_tokens ?? 0,

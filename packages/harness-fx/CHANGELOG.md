@@ -1,5 +1,81 @@
 # @ai-sdk/harness-fx
 
+## 1.0.43
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+- @ai-sdk/harness-acp@1.0.68
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+  - @ai-sdk/harness-acp@1.0.67
+
+## 1.0.41
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+- @ai-sdk/harness-acp@1.0.66
+
+## 1.0.40
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+- @ai-sdk/harness-acp@1.0.65
+
+## 1.0.39
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [be13602]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/harness-acp@1.0.64
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.38
+
+### Patch Changes
+
+- a36b1ef: fix(harness-fx): fix obsolete built-in `shell` tool name and schema
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+  - @ai-sdk/harness-acp@1.0.63
+
+## 1.0.37
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+  - @ai-sdk/harness-acp@1.0.62
+
+## 1.0.36
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+  - @ai-sdk/harness-acp@1.0.61
+
 ## 1.0.35
 
 ### Patch Changes

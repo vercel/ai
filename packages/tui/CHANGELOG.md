@@ -1,5 +1,74 @@
 # @ai-sdk/tui
 
+## 1.0.121
+
+### Patch Changes
+
+- 8e0fbcc: Escape untrusted terminal control characters in agent output, tool content, errors, titles, and prompts before rendering, preventing terminal escape sequence injection while preserving TUI formatting.
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+
+## 1.0.119
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 1.0.118
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 1.0.117
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - ai@7.0.115
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [b5679a7]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+
+## 1.0.114
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [dcdb011]
+- Updated dependencies [8f72832]
+- Updated dependencies [fe07867]
+- Updated dependencies [b74c0cb]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [c93ee90]
+- Updated dependencies [771e74b]
+  - ai@7.0.113
+
 ## 1.0.113
 
 ### Patch Changes

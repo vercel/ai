@@ -260,10 +260,10 @@ describe('createDeepAgents', () => {
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(
-      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
     expect(spawns.at(0)).toContain(
-      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
     const control = await session.doPromptTurn({
       model: 'agent-model',

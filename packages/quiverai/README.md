@@ -1,6 +1,6 @@
 # AI SDK - QuiverAI Provider
 
-The **QuiverAI provider** for the [AI SDK](https://ai-sdk.dev/docs) adds image generation support for the [QuiverAI](https://quiver.ai/) API. QuiverAI generates SVG documents from text prompts and can also vectorize raster images.
+The **QuiverAI provider** for the [AI SDK](https://ai-sdk.dev/docs) adds Arrow language-model and image-generation support for the [QuiverAI](https://quiver.ai/) API.
 
 > **Deploying to Vercel?** With Vercel's AI Gateway you can access many models from other providers — no additional packages, API keys, or extra cost. [Get started with AI Gateway](https://vercel.com/ai-gateway).
 
@@ -43,6 +43,20 @@ const { image } = await generateImage({
 const filename = `image-${Date.now()}.svg`;
 fs.writeFileSync(filename, image.uint8Array);
 console.log(`Image saved to ${filename}`);
+```
+
+## Text Generation Example
+
+```ts
+import { quiverai } from '@ai-sdk/quiverai';
+import { generateText } from 'ai';
+
+const { text } = await generateText({
+  model: quiverai('arrow-2'),
+  prompt: 'Design a simple compass icon and explain the visual choices.',
+});
+
+console.log(text);
 ```
 
 ## Documentation

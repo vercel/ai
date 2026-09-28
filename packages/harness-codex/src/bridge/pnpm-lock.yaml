@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@openai/codex-sdk':
+      '@openai/codex':
         specifier: 0.155.0
         version: 0.155.0
       ws:
@@ -16,10 +16,6 @@ importers:
         version: 8.21.0
 
 packages:
-
-  '@openai/codex-sdk@0.155.0':
-    resolution: {integrity: sha512-oD/7iCZnXqDlrnoWWpGkZExrUStpAau1koyUO/fSW3WwkqewRf+MGj3OS41Buw7gNwj0oM6ilI9RHqP5QQWJaQ==}
-    engines: {node: '>=18'}
 
   '@openai/codex@0.155.0':
     resolution: {integrity: sha512-35a85Hbwy9WXkDTJumLjTcmMgpR7BMdrTloWBVGjoA+FBCh7jb3+cYp2W+3U4klqGAjAskoIvQZv7/eedmCjHA==}
@@ -75,10 +71,6 @@ packages:
         optional: true
 
 snapshots:
-
-  '@openai/codex-sdk@0.155.0':
-    dependencies:
-      '@openai/codex': 0.155.0
 
   '@openai/codex@0.155.0':
     optionalDependencies:

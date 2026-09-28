@@ -2,6 +2,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { createGoogle } from './google-provider';
 import { GoogleSpeechModel } from './google-speech-model';
 import { describe, it, expect, vi } from 'vitest';
+import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -16,9 +17,19 @@ const url =
 // 8 bytes of raw PCM ([1..8]) base64-encoded.
 const PCM_BASE64 = 'AQIDBAUGBwg=';
 const PCM_BYTES = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+const WAV_BASE64 =
+  'UklGRiwAAABXQVZFZm10IBAAAAABAAEAwF0AAIC7AAACABAAZGF0YQgAAAABAgMEBQYHCA==';
+const modernModels = [
+  'gemini-3.8-flash-tts',
+  'gemini-3.8-flash-lite-tts',
+  'custom-tts-model',
+];
+const modernUrl = (id: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${id}:generateContent`;
 
-const server = createTestServer({
+const server = createTestServer<Record<string, object>>({
   [url]: {},
+  ...Object.fromEntries(modernModels.map(id => [modernUrl(id), {}])),
 });
 
 function dataView(audio: Uint8Array): DataView {
@@ -26,6 +37,129 @@ function dataView(audio: Uint8Array): DataView {
 }
 
 describe('doGenerate', () => {
+  it.each([
+    'gemini-2.5-flash-preview-tts',
+    'gemini-3.1-flash-tts-preview',
+    ...modernModels,
+  ])(
+    'preserves raw usage including cached input tokens for %s',
+    async modelId => {
+      const body = {
+        candidates: [
+          {
+            content: {
+              parts: [
+                { inlineData: { data: WAV_BASE64, mimeType: 'audio/wav' } },
+              ],
+            },
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 6,
+          cachedContentTokenCount: 5,
+          candidatesTokenCount: 67,
+          totalTokenCount: 73,
+          candidatesTokensDetails: [{ modality: 'AUDIO', tokenCount: 67 }],
+        },
+      };
+      const model = createGoogle({
+        apiKey: 'test-api-key',
+        fetch: vi
+          .fn<typeof globalThis.fetch>()
+          .mockResolvedValue(Response.json(body)),
+      }).speech(modelId);
+
+      const result = await model.doGenerate({ text: 'Hello.' });
+
+      expect(result.response.body).toStrictEqual(body);
+    },
+  );
+
+  it.each([
+    'gemini-2.5-flash-preview-tts',
+    'gemini-2.5-pro-preview-tts',
+    'gemini-2.5-flash-tts',
+    'gemini-3.1-flash-tts-preview',
+    'gemini-3.1-flash-tts',
+  ])('preserves legacy requests and PCM conversion for %s', async modelId => {
+    const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+      Response.json({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  inlineData: {
+                    data: PCM_BASE64,
+                    mimeType: 'audio/L16;rate=24000',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+    );
+    const model = createGoogle({ apiKey: 'test-api-key', fetch }).speech(
+      modelId,
+    );
+    const result = await model.doGenerate({
+      text: 'Hello.',
+      instructions: 'Whisper',
+      outputFormat: 'wav',
+    });
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toStrictEqual({
+      contents: [{ role: 'user', parts: [{ text: 'Whisper: Hello.' }] }],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
+    });
+    expect(result.audio).toEqual(convertBase64ToUint8Array(WAV_BASE64));
+  });
+
+  it.each([
+    'gemini-2.5-flash-preview-tts',
+    'gemini-3.1-flash-tts-preview',
+    ...modernModels,
+  ])('rejects an empty transcript before fetching for %s', async modelId => {
+    const fetch = vi.fn();
+    const model = createGoogle({ apiKey: 'test-api-key', fetch }).speech(
+      modelId,
+    );
+
+    await expect(
+      model.doGenerate({ text: '', instructions: 'Whisper' }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'text',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it.each(modernModels)(
+    'rejects empty turns even with top-level text for %s',
+    async modelId => {
+      const fetch = vi.fn();
+      const model = createGoogle({ apiKey: 'test-api-key', fetch }).speech(
+        modelId,
+      );
+
+      await expect(
+        model.doGenerate({
+          text: 'Ignored',
+          providerOptions: { google: { turns: [{ text: '' }] } },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'text',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    },
+  );
+
   function prepareJsonResponse({
     headers,
     mimeType = 'audio/L16;rate=24000',
@@ -128,6 +262,12 @@ describe('doGenerate', () => {
 
     // PCM payload is preserved after the header.
     expect(Array.from(audio.slice(44))).toEqual(Array.from(PCM_BYTES));
+  });
+
+  it('should preserve WAV responses even from older models', async () => {
+    prepareJsonResponse({ mimeType: 'audio/wav', data: WAV_BASE64 });
+    const result = await model.doGenerate({ text: 'Hello' });
+    expect(result.audio).toEqual(convertBase64ToUint8Array(WAV_BASE64));
   });
 
   it('should derive the WAV sample rate from the response mime type', async () => {
@@ -352,5 +492,263 @@ describe('doGenerate', () => {
     const result = await model.doGenerate({ text: 'Hello from the AI SDK!' });
 
     expect(result.warnings).toEqual([]);
+  });
+});
+
+describe.each(modernModels)('%s', modelId => {
+  const modernModel = provider.speech(modelId);
+  const multiSpeakerVoiceConfig = {
+    speakerVoiceConfigs: [
+      {
+        speaker: 'Joe',
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+      },
+      {
+        speaker: 'Jane',
+        voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
+      },
+    ],
+  };
+
+  function prepareResponse(mimeType = 'audio/wav', data = WAV_BASE64) {
+    server.urls[modernUrl(modelId)].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          { content: { parts: [{ inlineData: { mimeType, data } }] } },
+        ],
+      },
+    };
+  }
+
+  it('preserves the transcript and maps instructions to speech metadata', async () => {
+    prepareResponse();
+    const result = await modernModel.doGenerate({
+      text: 'Hello. <laugh> How are you? <short pause>',
+      instructions: 'whispering',
+    });
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: 'Hello. <laugh> How are you? <short pause>',
+              speechMetadata: { style: 'whispering' },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
+    });
+    expect(result.audio).toEqual(convertBase64ToUint8Array(WAV_BASE64));
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('allows an empty style to override instructions', async () => {
+    prepareResponse();
+    await modernModel.doGenerate({
+      text: 'Hello',
+      instructions: 'excited',
+      providerOptions: { google: { speechMetadata: { style: '' } } },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [{ parts: [{ text: 'Hello', speechMetadata: { style: '' } }] }],
+    });
+  });
+
+  it.each(['voice_custom', 'voicekey_custom'])(
+    'rejects custom voice %s before fetching',
+    async voice => {
+      await expect(
+        modernModel.doGenerate({ text: 'Hello', voice }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'voice',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it.each([
+    { voice: 'voice_custom' },
+    { voice: 'voicekey_custom' },
+    { voice: 'voice_custom', prebuiltVoiceConfig: { voiceName: 'Kore' } },
+  ])(
+    'rejects custom speaker voice configuration %j before fetching',
+    async voiceConfig => {
+      await expect(
+        modernModel.doGenerate({
+          text: '',
+          providerOptions: {
+            google: {
+              turns: [{ text: 'Hello', speechMetadata: { speaker: 'Joe' } }],
+              multiSpeakerVoiceConfig: {
+                speakerVoiceConfigs: [{ speaker: 'Joe', voiceConfig }],
+              },
+            },
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'providerOptions',
+      });
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('sends separate turns with explicit speakers and per-turn styles', async () => {
+    prepareResponse();
+    const result = await modernModel.doGenerate({
+      text: '',
+      instructions: 'speaking slowly',
+      providerOptions: {
+        google: {
+          multiSpeakerVoiceConfig,
+          turns: [
+            { text: 'Hi.', speechMetadata: { speaker: 'Joe' } },
+            {
+              text: '<sigh> Hello.',
+              speechMetadata: { speaker: 'Jane', style: '' },
+            },
+          ],
+        },
+      },
+    });
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          parts: [
+            {
+              text: 'Hi.',
+              speechMetadata: { speaker: 'Joe', style: 'speaking slowly' },
+            },
+            {
+              text: '<sigh> Hello.',
+              speechMetadata: { speaker: 'Jane', style: '' },
+            },
+          ],
+        },
+      ],
+      generationConfig: { speechConfig: { multiSpeakerVoiceConfig } },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it.each([undefined, 'Unknown'])(
+    'rejects missing or unconfigured speaker %s',
+    async speaker => {
+      await expect(
+        modernModel.doGenerate({
+          text: '',
+          providerOptions: {
+            google: {
+              multiSpeakerVoiceConfig,
+              turns: [
+                {
+                  text: 'Hello',
+                  speechMetadata: speaker == null ? {} : { speaker },
+                },
+              ],
+            },
+          },
+        }),
+      ).rejects.toThrow('Every multi-speaker turn must specify');
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('rejects a labelled transcript without structured speakers', async () => {
+    await expect(
+      modernModel.doGenerate({
+        text: 'Joe: Hi. Jane: Hello.',
+        providerOptions: { google: { multiSpeakerVoiceConfig } },
+      }),
+    ).rejects.toThrow('Every multi-speaker turn must specify');
+    expect(server.calls).toHaveLength(0);
+  });
+
+  it('rejects conflicting global and per-turn metadata', async () => {
+    await expect(
+      modernModel.doGenerate({
+        text: '',
+        providerOptions: {
+          google: {
+            speechMetadata: { style: 'excited' },
+            turns: [{ text: 'Hello' }],
+          },
+        },
+      }),
+    ).rejects.toThrow('Set speechMetadata on each turn');
+  });
+
+  it('warns when turns replace nonempty top-level text', async () => {
+    prepareResponse();
+    const result = await modernModel.doGenerate({
+      text: 'Ignored',
+      providerOptions: { google: { turns: [{ text: 'Spoken' }] } },
+    });
+    expect(result.warnings).toContainEqual(
+      expect.objectContaining({ feature: 'text' }),
+    );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      contents: [{ parts: [{ text: 'Spoken' }] }],
+    });
+  });
+
+  it.each([
+    ['pcm', 'AUDIO_L16', 'audio/l16'],
+    ['audio/l16', 'AUDIO_L16', 'audio/l16'],
+    ['mulaw', 'AUDIO_MULAW', 'audio/mulaw'],
+    ['audio/mulaw', 'AUDIO_MULAW', 'audio/mulaw'],
+    ['alaw', 'AUDIO_ALAW', 'audio/alaw'],
+    ['audio/alaw', 'AUDIO_ALAW', 'audio/alaw'],
+  ])(
+    'requests %s and preserves raw bytes',
+    async (outputFormat, mimeType, responseMimeType) => {
+      prepareResponse(
+        `${responseMimeType}; rate=24000; channels=1`,
+        PCM_BASE64,
+      );
+      const result = await modernModel.doGenerate({
+        text: 'Hello',
+        outputFormat,
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generationConfig: { responseFormat: { audio: { mimeType } } },
+      });
+      expect(result.audio).toEqual(PCM_BYTES);
+      expect(result.warnings).toEqual([]);
+      expect(result.providerMetadata?.google.sampleRate).toBe(24000);
+    },
+  );
+
+  it.each(['wav', 'audio/wav'])(
+    'requests %s without adding another header',
+    async outputFormat => {
+      prepareResponse();
+      const result = await modernModel.doGenerate({
+        text: 'Hello',
+        outputFormat,
+      });
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        generationConfig: {
+          responseFormat: { audio: { mimeType: 'AUDIO_WAV' } },
+        },
+      });
+      expect(result.audio).toEqual(convertBase64ToUint8Array(WAV_BASE64));
+    },
+  );
+
+  it('returns empty audio without a WAV header', async () => {
+    prepareResponse('audio/wav', '');
+    expect((await modernModel.doGenerate({ text: 'Hello' })).audio).toEqual(
+      new Uint8Array(),
+    );
   });
 });

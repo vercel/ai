@@ -25,7 +25,7 @@ run(async () => {
   ];
 
   const turn1 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {
@@ -51,7 +51,7 @@ run(async () => {
   });
 
   const turn2 = await generateText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     messages,
     reasoning: 'medium',
     providerOptions: {

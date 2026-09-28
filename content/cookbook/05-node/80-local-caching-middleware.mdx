@@ -225,7 +225,7 @@ import { cached } from '../middleware/your-cache-middleware';
 
 async function main() {
   const result = streamText({
-    model: cached(openai('gpt-4o')),
+    model: cached(openai('gpt-4.1')),
     maxOutputTokens: 512,
     temperature: 0.3,
     maxRetries: 5,

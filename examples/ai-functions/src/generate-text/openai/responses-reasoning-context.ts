@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const firstResult = await generateText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-astra'),
     reasoning: 'low',
     prompt: `Create a three-step launch plan for a new API.
 The launch must remain reversible and cannot interrupt existing clients.`,
@@ -37,7 +37,7 @@ The launch must remain reversible and cannot interrupt existing clients.`,
   console.log();
 
   const secondResult = await generateText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-astra'),
     reasoning: 'low',
     prompt:
       'Revise step two so it includes a measurable rollback trigger, without changing the other steps.',

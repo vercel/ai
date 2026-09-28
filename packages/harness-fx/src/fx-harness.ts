@@ -239,6 +239,48 @@ const terminalRequestSchema = z.looseObject({
   close_policy: z.enum(['graceful', 'force']).nullable().optional(),
 });
 
+const shellExecutableSchema = z.looseObject({
+  kind: z.literal('executable'),
+  path: z.string(),
+  clean_start: z.boolean().nullish(),
+});
+
+const shellRunWithProfileSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  profile: z.enum(['clean', 'user']).nullish(),
+  tty: z.boolean().nullish(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellRunWithExecutableSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  shell: shellExecutableSchema,
+  tty: z.boolean(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellInputSchema = z.union([
+  shellRunWithProfileSchema,
+  shellRunWithExecutableSchema,
+  z.looseObject({
+    action: z.literal('interact'),
+    session_id: z.string(),
+    chars: z.string().nullish(),
+    yield_time_ms: z.number().int().nonnegative().nullish(),
+  }),
+  z.looseObject({
+    action: z.literal('stop'),
+    session_id: z.string(),
+    force: z.boolean().nullish(),
+  }),
+]);
+
 const subagentNotificationsSchema = z.looseObject({
   terminal: z
     .looseObject({
@@ -382,6 +424,10 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'bash',
   },
+  shell: {
+    ...tool({ inputSchema: shellInputSchema }),
+    toolUseKind: 'bash',
+  },
   skill: {
     ...tool({
       inputSchema: z.looseObject({
@@ -487,6 +533,15 @@ const FX_BUILTIN_TOOLS = {
       inputSchema: z.looseObject({
         query: z.string(),
         limit: z.number().int().positive().optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
+  capability_search: {
+    ...tool({
+      inputSchema: z.looseObject({
+        query: z.string().min(1),
+        server: z.string().min(1).optional(),
       }),
     }),
     toolUseKind: 'readonly',

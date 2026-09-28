@@ -35,43 +35,9 @@ import { PreviewSwitchProviders } from '@/components/docs/provider-preview';
 import { resolveDocsHref } from '@/components/docs/resolve-href';
 import { Snippet } from '@/components/docs/snippet';
 import { Steps } from '@/components/docs/steps';
-import { createStub } from '@/components/docs/stub';
 import { Tab, Tabs } from '@/components/docs/tabs';
 
 type LinkComponent = ComponentType<ComponentProps<'a'>>;
-
-/**
- * Components not yet ported from the legacy app. Rendered as visible
- * placeholders — port or drop them in phase 2.
- */
-const stubNames = [
-  'Frameworks',
-  'ReferenceTable',
-  'ObjectTableList',
-  'ExamplesList',
-  'MarketingVisualVercelAi',
-  'MarketingFrameworkCircles',
-  'MusicPlayer',
-  'FeatureCard',
-  'ModelCard',
-  'LogoOpenAi',
-  'CompatibilityModelCards',
-  'FrameworkCard',
-  'ExampleCards',
-  'CodePreview',
-  'TabbedCodePreview',
-  'InteractiveCodePreview',
-  // Imported (top-level) by ai-sdk-rsc pages in the legacy app; the
-  // sync-content transform strips those imports.
-  'EventPlanning',
-  'Searching',
-  'UIPreviewCard',
-  'Weather',
-] as const;
-
-const stubs = Object.fromEntries(
-  stubNames.map(name => [name, createStub(name)]),
-);
 
 export const getMdxComponents = ({
   link,
@@ -92,7 +58,6 @@ export const getMdxComponents = ({
 
   return {
     ...createMdxComponents({ a: VersionedLink }),
-    ...stubs,
     Note,
     Check,
     Cross,

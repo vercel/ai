@@ -92,6 +92,11 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const novaMicroModelId = 'us.amazon.nova-micro-v1:0';
+const novaMicroGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaMicroModelId,
+)}/converse`;
+
 const openaiModelId = 'openai.gpt-oss-120b-1:0';
 const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
@@ -160,6 +165,7 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [novaMicroGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [usOpenaiGenerateUrl]: {},
   [globalOpenaiGenerateUrl]: {},
@@ -244,6 +250,13 @@ const model = new AmazonBedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaMicroModel = new AmazonBedrockChatLanguageModel(novaMicroModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -4359,6 +4372,77 @@ describe('doGenerate', () => {
     });
   });
 
+  it.each([
+    'global.anthropic.claude-opus-4-7',
+    'eu.anthropic.claude-opus-4-8',
+    'us.anthropic.claude-opus-5',
+  ])(
+    'should omit unsupported sampling parameters for %s',
+    async samplingModelId => {
+      let requestBody: any;
+      const samplingModel = new AmazonBedrockChatLanguageModel(
+        samplingModelId,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: 'OK' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      const result = await samplingModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        topK: 10,
+      });
+
+      expect(requestBody.inferenceConfig?.temperature).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topP).toBeUndefined();
+      expect(requestBody.inferenceConfig?.topK).toBeUndefined();
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details: `temperature is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topK',
+          details: `topK is not supported by ${samplingModelId} and will be ignored`,
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details: `topP is not supported by ${samplingModelId} and will be ignored`,
+        },
+      ]);
+    },
+  );
+
   it('should support guardrails', async () => {
     prepareJsonFixtureResponse('amazon-bedrock-text');
 
@@ -4954,6 +5038,161 @@ describe('doGenerate', () => {
     );
     expect(requestBody.toolConfig.toolChoice).toEqual({
       tool: { name: 'getWeatherByCity' },
+    });
+  });
+
+  describe('models that reject forced tool use', () => {
+    type RequestCapture = {
+      body: {
+        toolConfig: {
+          toolChoice?: unknown;
+          tools: Array<{ toolSpec: { name: string } }>;
+        };
+        additionalModelRequestFields?: { tool_choice?: unknown };
+      };
+    };
+
+    const weatherTool = {
+      type: 'function' as const,
+      name: 'getWeather',
+      description: 'Get weather',
+      inputSchema: { type: 'object' as const },
+    };
+    const timeTool = {
+      type: 'function' as const,
+      name: 'getTime',
+      description: 'Get time',
+      inputSchema: { type: 'object' as const },
+    };
+
+    function createModelThatCapturesRequest(
+      modelId: string,
+      capture: RequestCapture,
+    ) {
+      return new AmazonBedrockChatLanguageModel(modelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        generateId: () => 'test-id',
+        fetch: async (_input, init) => {
+          capture.body = JSON.parse(String(init?.body));
+          return new Response(
+            JSON.stringify({
+              output: {
+                message: {
+                  role: 'assistant',
+                  content: [{ text: 'Done' }],
+                },
+              },
+              stopReason: 'end_turn',
+              usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+            }),
+            {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            },
+          );
+        },
+      });
+    }
+
+    it.each([
+      'anthropic.claude-opus-5-5',
+      'us.anthropic.claude-opus-5-5',
+      'global.anthropic.claude-opus-5-5',
+      'anthropic.claude-sonnet-5-5',
+      'us.anthropic.claude-sonnet-5-5',
+    ])(
+      'should build an auto tool choice for required choice on %s',
+      async modelId => {
+        const capture = {} as RequestCapture;
+        const testModel = createModelThatCapturesRequest(modelId, capture);
+
+        const result = await testModel.doGenerate({
+          tools: [weatherTool],
+          toolChoice: { type: 'required' },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+        expect(result.warnings).toEqual([
+          {
+            type: 'unsupported',
+            feature: 'toolChoice',
+            details:
+              "toolChoice 'required' is not supported by this model because it rejects forced tool use. " +
+              "Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.",
+          },
+        ]);
+      },
+    );
+
+    it('should build an auto choice containing only the named tool', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool, timeTool],
+        toolChoice: { type: 'tool', toolName: 'getWeather' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ auto: {} });
+      expect(
+        capture.body.toolConfig.tools.map(tool => tool.toolSpec.name),
+      ).toEqual(['getWeather']);
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            "toolChoice 'tool' is not supported by this model because it rejects forced tool use. " +
+            "Only the 'getWeather' tool is sent with 'auto' tool choice. " +
+            'Instruct the model to use the tool in the prompt and verify that a tool call was made.',
+        },
+      ]);
+    });
+
+    it('should build an Anthropic auto choice when parallel tool use is disabled', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus55AnthropicModelId,
+        capture,
+      );
+
+      await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          anthropic: { disableParallelToolUse: true },
+        },
+      });
+
+      expect(capture.body.additionalModelRequestFields?.tool_choice).toEqual({
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      });
+      expect(capture.body.toolConfig.toolChoice).toBeUndefined();
+    });
+
+    it('should keep building forced tool choices for models that support them', async () => {
+      const capture = {} as RequestCapture;
+      const testModel = createModelThatCapturesRequest(
+        opus5AnthropicModelId,
+        capture,
+      );
+
+      const result = await testModel.doGenerate({
+        tools: [weatherTool],
+        toolChoice: { type: 'required' },
+        prompt: TEST_PROMPT,
+      });
+
+      expect(capture.body.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(result.warnings).toEqual([]);
     });
   });
 
@@ -5875,6 +6114,137 @@ describe('doGenerate', () => {
     expect(
       requestBody.additionalModelRequestFields?.reasoning_effort,
     ).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'strips unsupported sampling settings for OpenAI model %s',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new AmazonBedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      const result = await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0,
+        topP: 0.5,
+        topK: 5,
+        stopSequences: [],
+        maxOutputTokens: 100,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig).toStrictEqual({
+        maxTokens: 100,
+        topK: 5,
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported',
+          feature: 'temperature',
+          details:
+            'temperature is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'topP',
+          details:
+            'topP is not supported by this OpenAI model on the Converse API',
+        },
+        {
+          type: 'unsupported',
+          feature: 'stopSequences',
+          details:
+            'stopSequences is not supported by this OpenAI model on the Converse API',
+        },
+      ]);
+    },
+  );
+
+  it('does not warn about clamping an unsupported OpenAI temperature', async () => {
+    server.urls[usOpenaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const usOpenaiModel = new AmazonBedrockChatLanguageModel(usOpenaiModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      fetch: fakeFetchWithAuth,
+      generateId: () => 'test-id',
+    });
+
+    const result = await usOpenaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 2,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toBeUndefined();
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'temperature',
+        details:
+          'temperature is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
+  });
+
+  it('keeps supported sampling settings for OpenAI gpt-oss models', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      temperature: 0.2,
+      topP: 0.5,
+      stopSequences: ['END'],
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.inferenceConfig).toStrictEqual({
+      temperature: 0.2,
+      topP: 0.5,
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'stopSequences',
+        details:
+          'stopSequences is not supported by this OpenAI model on the Converse API',
+      },
+    ]);
   });
 
   it('should pass maxReasoningEffort as output_config.effort for Anthropic models (generate)', async () => {
@@ -7977,7 +8347,7 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+    it('should map portable reasoning for Nova 2', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
       await novaModel.doGenerate({
@@ -7986,10 +8356,177 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 high reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'maxOutputTokens',
+        details: `maxOutputTokens is not supported by ${novaModelId} when high reasoning is enabled and will be ignored`,
+      });
+    });
+
+    it('should preserve maxOutputTokens for Nova 2 medium reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBe(1024);
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      );
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 xhigh portable reasoning (max effort)', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 explicit max reasoning effort', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'max',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should map reasoning to reasoningConfig when explicitly enabled for Nova 2', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should ignore portable reasoning for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('high');
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
+      });
+    });
+
+    it('should forward explicit reasoningConfig for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
     });
 
     it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {

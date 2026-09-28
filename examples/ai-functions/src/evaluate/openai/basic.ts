@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await experimental_evaluate({
-    model: openai.evaluationModel('gpt-5.6-luna'),
+    model: openai.evaluationModel('gpt-6-luna'),
     state: {
       message:
         'I was charged twice. A refund is pending, so I can keep working.',

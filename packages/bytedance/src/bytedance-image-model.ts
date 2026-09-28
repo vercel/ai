@@ -43,6 +43,22 @@ export class ByteDanceImageModel implements ImageModelV4 {
   // available via the `sequentialImageGeneration` provider option instead.
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'dola-seedream-5-0-pro-260628',
+      'seedream-5-0-260128',
+      'seedream-5-0-lite-260128',
+      'seedream-4-5-251128',
+      'seedream-4-0-250828',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
