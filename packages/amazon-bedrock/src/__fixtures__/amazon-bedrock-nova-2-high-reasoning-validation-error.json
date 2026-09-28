@@ -1,0 +1,3 @@
+{
+  "message": "The model returned the following errors: `maxTokens` must be unset when reasoningConfig type is 'enabled' and maxReasoningEffort is 'high'. Please consult our documentation at https://docs.aws.amazon.com/nova/latest/userguide"
+}

@@ -1,0 +1,29 @@
+{
+  "metrics": {
+    "latencyMs": 11162
+  },
+  "output": {
+    "message": {
+      "content": [
+        {
+          "reasoningContent": {
+            "reasoningText": {
+              "text": "[REDACTED]."
+            }
+          }
+        },
+        {
+          "text": "ok"
+        }
+      ],
+      "role": "assistant"
+    }
+  },
+  "stopReason": "end_turn",
+  "usage": {
+    "inputTokens": 88,
+    "outputTokens": 2980,
+    "serverToolUsage": {},
+    "totalTokens": 3068
+  }
+}

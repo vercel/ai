@@ -5984,6 +5984,56 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
+  it('does not send Nova 2 high reasoning with maxTokens', async () => {
+    const validationError = fs.readFileSync(
+      'src/__fixtures__/amazon-bedrock-nova-2-high-reasoning-validation-error.json',
+      'utf8',
+    );
+    const successResponse = fs.readFileSync(
+      'src/__fixtures__/amazon-bedrock-nova-2-high-reasoning-success.json',
+      'utf8',
+    );
+    let requestBody: any;
+    const highReasoningModel = new AmazonBedrockChatLanguageModel(novaModelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+      fetch: async (_input, init) => {
+        requestBody = JSON.parse(String(init?.body));
+        const reasoningConfig =
+          requestBody.additionalModelRequestFields?.reasoningConfig;
+        const hasInvalidCombination =
+          reasoningConfig?.type === 'enabled' &&
+          reasoningConfig.maxReasoningEffort === 'high' &&
+          requestBody.inferenceConfig?.maxTokens != null;
+
+        return new Response(
+          hasInvalidCombination ? validationError : successResponse,
+          {
+            status: hasInvalidCombination ? 400 : 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        );
+      },
+    });
+
+    const result = await highReasoningModel.doGenerate({
+      prompt: TEST_PROMPT,
+      reasoning: 'high',
+      maxOutputTokens: 1024,
+    });
+
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: 'ok',
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig
+        ?.maxReasoningEffort === 'high' &&
+        requestBody.inferenceConfig?.maxTokens != null,
+    ).toBe(false);
+  });
+
   it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
     server.urls[openaiGenerateUrl].response = {
       type: 'json-value',
