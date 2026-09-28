@@ -270,6 +270,7 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       rejectsThinkingDisabledAboveHighEffort,
       rejectsThinkingDisabled,
       rejectsForcedToolUse,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -315,7 +316,8 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ??
       (this.modelId.includes('claude-fable-5-1') ||
-      this.modelId.includes('claude-opus-5-5')
+      this.modelId.includes('claude-opus-5-5') ||
+      this.modelId.includes('claude-sonnet-5-5')
         ? 'auto'
         : 'jsonTool');
     let useStructuredOutput =
@@ -388,7 +390,20 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
       const thinking = anthropicOptions.thinking;
 
-      if ('type' in thinking && thinking.type === 'disabled') {
+      if (
+        'type' in thinking &&
+        thinking.type === 'disabled' &&
+        supportsBetweenToolsThinking
+      ) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+        });
+        anthropicOptions.thinking = { type: 'between_tools' };
+      } else if ('type' in thinking && thinking.type === 'disabled') {
         warnings.push({
           type: 'unsupported-setting',
           setting: 'providerOptions.anthropic.thinking',
@@ -440,8 +455,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       anthropicOptions.effort = 'high';
     }
 
+    // `between_tools` thinking is only accepted at `low`, `medium`, and
+    // `high` effort. Lower the effort to `high` to keep the minimal thinking
+    // setting instead of sending a request that the API would reject.
+    if (
+      thinkingType === 'between_tools' &&
+      anthropicOptions != null &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported with 'between_tools' thinking. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
+
     const isThinking =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
     let thinkingBudget =
       thinkingOptions != null && 'budgetTokens' in thinkingOptions
         ? thinkingOptions.budgetTokens
@@ -2280,9 +2315,14 @@ export function getModelCapabilities(modelId: string): {
    * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
    */
   rejectsForcedToolUse: boolean;
+  /**
+   * Supports `thinking.type` `between_tools`, the lowest thinking setting on
+   * models that reject disabled thinking.
+   */
+  supportsBetweenToolsThinking: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-5-5')) {
+  if (modelId.includes('claude-sonnet-5-5')) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
@@ -2290,6 +2330,18 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-5-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-5')) {
@@ -2300,6 +2352,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-fable-5-1')) {
@@ -2310,6 +2363,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-fable-5')) {
@@ -2320,6 +2374,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2334,6 +2389,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2347,6 +2403,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2361,6 +2418,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2371,6 +2429,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2384,6 +2443,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2394,6 +2454,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2404,6 +2465,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2416,6 +2478,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2429,6 +2492,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else {
@@ -2441,6 +2505,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   }

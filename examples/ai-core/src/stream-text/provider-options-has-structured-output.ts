@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: 'anthropic/claude-sonnet-5',
+    model: 'anthropic/claude-sonnet-5.5',
     providerOptions: {
       gateway: {
         has: ['structured-output'],

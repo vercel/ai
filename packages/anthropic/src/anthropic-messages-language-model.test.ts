@@ -6815,6 +6815,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6829,6 +6830,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6843,6 +6845,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6857,6 +6860,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6871,6 +6875,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6897,6 +6902,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -6918,6 +6924,7 @@ describe('getModelCapabilities', () => {
           "rejectsSamplingParameters": true,
           "rejectsThinkingDisabled": false,
           "rejectsThinkingDisabledAboveHighEffort": true,
+          "supportsBetweenToolsThinking": false,
           "supportsStructuredOutput": true,
         }
       `);
@@ -6932,6 +6939,7 @@ describe('getModelCapabilities', () => {
         "rejectsSamplingParameters": false,
         "rejectsThinkingDisabled": false,
         "rejectsThinkingDisabledAboveHighEffort": false,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": false,
       }
     `);
@@ -7272,6 +7280,7 @@ describe('claude-opus-5-5 specific behavior', () => {
         "rejectsSamplingParameters": true,
         "rejectsThinkingDisabled": true,
         "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsBetweenToolsThinking": false,
         "supportsStructuredOutput": true,
       }
     `);
@@ -7535,6 +7544,268 @@ describe('claude-opus-5-5 specific behavior', () => {
 
     const requestBody = await server.calls[0].requestBodyJson;
     expect(requestBody.tool_choice).toEqual({ type: 'any' });
+    expect(result.warnings).toEqual([]);
+  });
+});
+
+describe('claude-sonnet-5-5 specific behavior', () => {
+  const server = createTestServer({
+    'https://api.anthropic.com/v1/messages': {},
+  });
+
+  function prepareJsonFixtureResponse(filename: string) {
+    server.urls['https://api.anthropic.com/v1/messages'].response = {
+      type: 'json-value',
+      body: JSON.parse(
+        fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
+      ),
+    };
+  }
+
+  const TEST_TOOL = {
+    type: 'function' as const,
+    name: 'testTool',
+    inputSchema: {
+      type: 'object' as const,
+      properties: { value: { type: 'string' as const } },
+      required: ['value'],
+      additionalProperties: false,
+    },
+  };
+
+  it('should return capabilities that reject disabled thinking and forced tool use', () => {
+    expect(getModelCapabilities('claude-sonnet-5-5')).toMatchInlineSnapshot(`
+      {
+        "isKnownModel": true,
+        "maxOutputTokens": 128000,
+        "rejectsForcedToolUse": true,
+        "rejectsSamplingParameters": true,
+        "rejectsThinkingDisabled": true,
+        "rejectsThinkingDisabledAboveHighEffort": true,
+        "supportsBetweenToolsThinking": true,
+        "supportsStructuredOutput": true,
+      }
+    `);
+  });
+
+  it('should not send thinking by default', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should send between_tools thinking', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'between_tools' },
+          effort: 'medium',
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'medium' });
+    expect(requestBody.max_tokens).toBe(128000);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should replace disabled thinking with between_tools thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'low',
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'low' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "thinking cannot be disabled for claude-sonnet-5-5. Using 'between_tools' thinking, the lowest thinking setting, instead.",
+          "setting": "providerOptions.anthropic.thinking",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
+  });
+
+  it('should lower xhigh effort to high with between_tools thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'between_tools' },
+          effort: 'xhigh',
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'high' });
+    expect(result.warnings).toMatchInlineSnapshot(`
+      [
+        {
+          "details": "effort 'xhigh' is not supported with 'between_tools' thinking. The effort has been lowered to 'high'.",
+          "setting": "providerOptions.anthropic.effort",
+          "type": "unsupported-setting",
+        },
+      ]
+    `);
+  });
+
+  it('should lower max effort to high when disabled thinking is replaced', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+          effort: 'max',
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'between_tools' });
+    expect(requestBody.output_config).toEqual({ effort: 'high' });
+    expect(
+      result.warnings.map(warning =>
+        'setting' in warning ? warning.setting : undefined,
+      ),
+    ).toEqual([
+      'providerOptions.anthropic.thinking',
+      'providerOptions.anthropic.effort',
+    ]);
+  });
+
+  it('should convert budget-based thinking to adaptive thinking and warn', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'enabled', budgetTokens: 5000 },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toEqual({ type: 'adaptive' });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      setting: 'providerOptions.anthropic.thinking',
+    });
+  });
+
+  it('should fall back to auto tool choice when tool choice is "required"', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [TEST_TOOL],
+      toolChoice: { type: 'required' },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.tool_choice).toEqual({ type: 'auto' });
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({ setting: 'toolChoice' });
+  });
+
+  it('should use native structured outputs when jsonTool mode is requested', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        anthropic: {
+          structuredOutputMode: 'jsonTool',
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatchObject({
+      setting: 'providerOptions.anthropic.structuredOutputMode',
+    });
+  });
+
+  it('should use native structured outputs by default', async () => {
+    prepareJsonFixtureResponse('anthropic-json-output-format.1');
+
+    const result = await provider('claude-sonnet-5-5').doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { name: { type: 'string' } },
+          required: ['name'],
+          additionalProperties: false,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.output_config?.format).toMatchObject({
+      type: 'json_schema',
+    });
+    expect(requestBody.tools).toBeUndefined();
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should not use between_tools thinking for claude-sonnet-5', async () => {
+    prepareJsonFixtureResponse('anthropic-text');
+
+    const result = await provider('claude-sonnet-5').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          thinking: { type: 'disabled' },
+        } satisfies AnthropicProviderOptions,
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.thinking).toBeUndefined();
     expect(result.warnings).toEqual([]);
   });
 });
