@@ -42,7 +42,7 @@ export type ImageModelV4 = {
    * `undefined` means that support is unknown. Callers should only route image
    * editing requests to the model when this value resolves to `true`.
    */
-  readonly supportsFileInputs?: PromiseLike<boolean> | boolean;
+  readonly supportsFileInputs?: PromiseLike<boolean | undefined> | boolean;
 
   /**
    * Whether the model supports mask inputs for image editing.
@@ -50,7 +50,7 @@ export type ImageModelV4 = {
    * `undefined` means that support is unknown. Mask support is advertised
    * separately because some models support image file inputs without masks.
    */
-  readonly supportsMaskInputs?: PromiseLike<boolean> | boolean;
+  readonly supportsMaskInputs?: PromiseLike<boolean | undefined> | boolean;
 
   /**
    * Generates an array of images.

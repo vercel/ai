@@ -29,6 +29,16 @@ describe('capabilities', () => {
       supportsFileInputs: undefined,
       supportsMaskInputs: undefined,
     },
+    {
+      modelId: 'black-forest-labs/flux-2-custom',
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    },
+    {
+      modelId: 'black-forest-labs/flux-2-dev',
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    },
   ] as const)(
     'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
     ({ modelId, supportsFileInputs, supportsMaskInputs }) => {

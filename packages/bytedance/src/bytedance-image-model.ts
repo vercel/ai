@@ -44,7 +44,15 @@ export class ByteDanceImageModel implements ImageModelV4 {
   readonly maxImagesPerCall = 1;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId.includes('seedream') ? true : undefined;
+    return [
+      'dola-seedream-5-0-pro-260628',
+      'seedream-5-0-260128',
+      'seedream-5-0-lite-260128',
+      'seedream-4-5-251128',
+      'seedream-4-0-250828',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {

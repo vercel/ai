@@ -119,6 +119,36 @@ describe('wrapImageModel', () => {
   });
 
   describe('image editing capabilities', () => {
+    it('should preserve asynchronously resolved unknown capabilities', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: Promise.resolve(undefined),
+          supportsMaskInputs: Promise.resolve(undefined),
+        }),
+        middleware: { specificationVersion: 'v4' },
+      });
+
+      await expect(wrappedModel.supportsFileInputs).resolves.toBeUndefined();
+      await expect(wrappedModel.supportsMaskInputs).resolves.toBeUndefined();
+    });
+
+    it('should allow asynchronous overrides to mark support as unknown', async () => {
+      const wrappedModel = wrapImageModel({
+        model: new MockImageModelV4({
+          supportsFileInputs: true,
+          supportsMaskInputs: false,
+        }),
+        middleware: {
+          specificationVersion: 'v4',
+          overrideSupportsFileInputs: async () => undefined,
+          overrideSupportsMaskInputs: async () => undefined,
+        },
+      });
+
+      await expect(wrappedModel.supportsFileInputs).resolves.toBeUndefined();
+      await expect(wrappedModel.supportsMaskInputs).resolves.toBeUndefined();
+    });
+
     it('should pass through capabilities by default', async () => {
       const wrappedModel = wrapImageModel({
         model: new MockImageModelV4({

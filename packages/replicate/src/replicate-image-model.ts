@@ -51,7 +51,8 @@ export class ReplicateImageModel implements ImageModelV4 {
 
   get supportsFileInputs(): boolean | undefined {
     if (
-      this.isFlux2Model ||
+      this.modelId === 'black-forest-labs/flux-2-pro' ||
+      this.modelId === 'black-forest-labs/flux-2-dev' ||
       this.modelId === 'black-forest-labs/flux-fill-pro' ||
       this.modelId === 'black-forest-labs/flux-fill-dev'
     ) {
@@ -69,7 +70,7 @@ export class ReplicateImageModel implements ImageModelV4 {
       return true;
     }
 
-    return this.isFlux2Model ? false : undefined;
+    return this.supportsFileInputs === true ? false : undefined;
   }
 
   get provider(): string {

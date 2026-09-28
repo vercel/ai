@@ -51,6 +51,40 @@ describe('capabilities', () => {
       supportsFileInputs: true,
       supportsMaskInputs: false,
     },
+    ...[
+      'black-forest-labs/FLUX.1-kontext-max',
+      'black-forest-labs/FLUX.1-kontext-dev',
+      'black-forest-labs/FLUX.1-canny',
+      'black-forest-labs/FLUX.1-depth',
+      'black-forest-labs/FLUX.1-redux',
+      'black-forest-labs/FLUX.2-pro',
+      'black-forest-labs/FLUX.2-flex',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: true,
+      supportsMaskInputs: false,
+    })),
+    {
+      modelId: 'black-forest-labs/FLUX.1-schnell',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    {
+      modelId: 'black-forest-labs/FLUX.2-dev',
+      supportsFileInputs: false,
+      supportsMaskInputs: false,
+    },
+    ...[
+      'black-forest-labs/custom-model',
+      'stabilityai/custom-model',
+      'black-forest-labs/FLUX.1-kontext-custom',
+      'custom/FLUX.1-kontext-pro',
+      'black-forest-labs/FLUX.2-custom',
+    ].map(modelId => ({
+      modelId,
+      supportsFileInputs: undefined,
+      supportsMaskInputs: undefined,
+    })),
     {
       modelId: 'stabilityai/stable-diffusion-xl-base-1.0',
       supportsFileInputs: false,
@@ -407,6 +441,31 @@ describe('Image Editing', () => {
       },
     },
   });
+
+  it.each(['black-forest-labs/FLUX.2-pro', 'black-forest-labs/FLUX.2-flex'])(
+    'should send standardized file inputs as image_url for %s',
+    async modelId => {
+      const model = createBasicModel({ modelId });
+
+      await model.doGenerate({
+        prompt: 'Make the shirt yellow',
+        files: [{ type: 'url', url: 'https://example.com/input.jpg' }],
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: modelId,
+        prompt: 'Make the shirt yellow',
+        image_url: 'https://example.com/input.jpg',
+        response_format: 'base64',
+      });
+    },
+  );
 
   it('should send image_url when URL file is provided', async () => {
     const model = createBasicModel();

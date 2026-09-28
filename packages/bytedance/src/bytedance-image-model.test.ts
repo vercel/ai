@@ -61,6 +61,23 @@ describe('ByteDanceImageModel', () => {
         supportsFileInputs: true,
         supportsMaskInputs: false,
       },
+      ...[
+        'dola-seedream-5-0-pro-260628',
+        'seedream-5-0-lite-260128',
+        'seedream-4-5-251128',
+        'seedream-4-0-250828',
+      ].map(modelId => ({
+        modelId,
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      })),
+      ...['not-seedream', 'custom-seedream-model', 'seedream-future'].map(
+        modelId => ({
+          modelId,
+          supportsFileInputs: undefined,
+          supportsMaskInputs: undefined,
+        }),
+      ),
       {
         modelId: 'custom-image-model',
         supportsFileInputs: undefined,

@@ -119,10 +119,15 @@ if (needsMask && (await model.supportsMaskInputs) !== true) {
 ```
 
 `supportsFileInputs` and `supportsMaskInputs` can be `true`, `false`, or
-`undefined` (unknown), and providers may expose them asynchronously. Treat only
-`true` as confirmed support when selecting a model for an edit. File and mask
+`undefined` (unknown), and providers may expose any of these values
+asynchronously. Treat only `true` as confirmed support when selecting a model for an edit. File and mask
 support are separate because some models accept reference images but do not
 accept masks.
+
+These capabilities describe support for the SDK's standardized image and mask
+inputs, including the provider's request mapping. A model name that resembles a
+supported family is not sufficient evidence of support. A model may still require
+provider-specific options or impose limits on input formats and counts.
 
 The AI SDK does not automatically reject editing inputs based on these
 capabilities. Applications can decide whether to reject the request, ask the

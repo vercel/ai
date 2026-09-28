@@ -21,3 +21,8 @@
 ---
 
 feat(provider): advertise image model file and mask input support
+
+Use confirmed model IDs for capability declarations so unrecognized model names
+remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+allow asynchronous capability lookups and middleware overrides to resolve to
+unknown.

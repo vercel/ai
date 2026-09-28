@@ -4,10 +4,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 describe('ImageModelV4', () => {
   it('exposes optional image editing capabilities', () => {
     expectTypeOf<ImageModelV4['supportsFileInputs']>().toEqualTypeOf<
-      PromiseLike<boolean> | boolean | undefined
+      PromiseLike<boolean | undefined> | boolean | undefined
     >();
     expectTypeOf<ImageModelV4['supportsMaskInputs']>().toEqualTypeOf<
-      PromiseLike<boolean> | boolean | undefined
+      PromiseLike<boolean | undefined> | boolean | undefined
     >();
   });
 

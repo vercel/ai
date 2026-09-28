@@ -33,16 +33,32 @@ export class TogetherAIImageModel implements ImageModelV4 {
 
   get supportsFileInputs(): boolean | undefined {
     if (
-      this.modelId.includes('/FLUX.1-kontext-') ||
-      this.modelId === 'black-forest-labs/FLUX.1-canny' ||
-      this.modelId === 'black-forest-labs/FLUX.1-depth' ||
-      this.modelId === 'black-forest-labs/FLUX.1-redux'
+      [
+        'black-forest-labs/FLUX.1-kontext-pro',
+        'black-forest-labs/FLUX.1-kontext-max',
+        'black-forest-labs/FLUX.1-kontext-dev',
+        'black-forest-labs/FLUX.1-canny',
+        'black-forest-labs/FLUX.1-depth',
+        'black-forest-labs/FLUX.1-redux',
+        // These FLUX.2 models accept the single image_url sent by doGenerate.
+        'black-forest-labs/FLUX.2-pro',
+        'black-forest-labs/FLUX.2-flex',
+      ].includes(this.modelId)
     ) {
       return true;
     }
 
-    return this.modelId.startsWith('black-forest-labs/') ||
-      this.modelId.startsWith('stabilityai/')
+    return [
+      'stabilityai/stable-diffusion-xl-base-1.0',
+      'black-forest-labs/FLUX.1-dev',
+      'black-forest-labs/FLUX.1-dev-lora',
+      'black-forest-labs/FLUX.1-schnell',
+      'black-forest-labs/FLUX.1.1-pro',
+      'black-forest-labs/FLUX.1-pro',
+      'black-forest-labs/FLUX.1-schnell-Free',
+      // FLUX.2 Dev requires reference_images, which doGenerate does not send.
+      'black-forest-labs/FLUX.2-dev',
+    ].includes(this.modelId)
       ? false
       : undefined;
   }

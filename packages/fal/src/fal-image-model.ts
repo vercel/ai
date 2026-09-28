@@ -36,20 +36,42 @@ export class FalImageModel implements ImageModelV4 {
 
   get supportsFileInputs(): boolean | undefined {
     if (
-      this.modelId === 'fal-ai/flux-2/edit' ||
-      this.modelId === 'fal-ai/flux-pro/kontext' ||
-      this.modelId === 'fal-ai/flux-pro/kontext/max' ||
-      this.modelId.endsWith('/image-to-image') ||
-      this.modelId.endsWith('/inpainting')
+      [
+        'fal-ai/flux-2/edit',
+        'fal-ai/flux-pro/kontext',
+        'fal-ai/flux-pro/kontext/max',
+        'fal-ai/flux-general/image-to-image',
+        'fal-ai/flux-general/inpainting',
+        'fal-ai/flux-lora/image-to-image',
+        'fal-ai/flux-lora/inpainting',
+        'fal-ai/flux/dev/image-to-image',
+        'fal-ai/flux/krea/image-to-image',
+        'fal-ai/recraft/v3/image-to-image',
+      ].includes(this.modelId)
     ) {
       return true;
     }
 
-    return this.modelId.includes('/text-to-image') ? false : undefined;
+    return [
+      'bria/text-to-image/3.2',
+      'fal-ai/bria/text-to-image/base',
+      'fal-ai/bria/text-to-image/fast',
+      'fal-ai/bria/text-to-image/hd',
+      'fal-ai/bytedance/dreamina/v3.1/text-to-image',
+      'fal-ai/flux-kontext-lora/text-to-image',
+      'fal-ai/recraft/v3/text-to-image',
+      'fal-ai/wan/v2.2-5b/text-to-image',
+      'fal-ai/wan/v2.2-a14b/text-to-image',
+    ].includes(this.modelId)
+      ? false
+      : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {
-    if (this.modelId.endsWith('/inpainting')) {
+    if (
+      this.modelId === 'fal-ai/flux-general/inpainting' ||
+      this.modelId === 'fal-ai/flux-lora/inpainting'
+    ) {
       return true;
     }
 

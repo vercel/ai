@@ -103,6 +103,18 @@ describe('FalImageModel', () => {
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,
       },
+      ...[
+        'custom/image-to-image',
+        'custom/inpainting',
+        'custom/text-to-image',
+        'fal-ai/custom/image-to-image',
+        'fal-ai/custom/inpainting',
+        'fal-ai/custom/text-to-image',
+      ].map(modelId => ({
+        modelId,
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      })),
     ] as const)(
       'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
       ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
