@@ -31,7 +31,37 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
-  it('should return false when text follows the last tool result in the last step', () => {
+  it('should return true when completed text follows the last tool result in the last step', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_6iy0GxZ9R4VDI5MKohXxV48y',
+                state: 'output-available',
+                input: {
+                  city: 'New York',
+                },
+                output: 'windy',
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is windy.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
+  it('should return false when trailing text has no completed stream state', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -80,6 +110,11 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                   city: 'New York',
                 },
                 errorText: 'Unable to get weather information',
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is windy.',
+                state: 'done',
               },
             ],
           },
@@ -370,6 +405,11 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                   location: 'New York',
                 },
                 output: 'cloudy',
+              },
+              {
+                type: 'text',
+                text: 'The current weather in New York is cloudy.',
+                state: 'done',
               },
             ],
           },

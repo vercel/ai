@@ -2,8 +2,9 @@ import { isToolUIPart, type UIMessage } from './ui-messages';
 /**
  * Check if the last message is an assistant message with completed tool calls.
  * The last step of the message must have at least one tool invocation and
- * all tool invocations must have a result. A text part after the last tool
- * invocation indicates that the assistant already continued the response.
+ * all tool invocations must have a result. Completed model text may follow
+ * the tool invocation because client-side tool results update parts in place,
+ * but trailing text without a completed stream state prevents resubmission.
  */
 export function lastAssistantMessageIsCompleteWithToolCalls({
   messages,
@@ -40,7 +41,7 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
     lastStepToolInvocations.length > 0 &&
     !lastStepParts
       .slice(lastToolInvocationIndex + 1)
-      .some(part => part.type === 'text') &&
+      .some(part => part.type === 'text' && part.state !== 'done') &&
     lastStepToolInvocations.every(
       part =>
         (part.state === 'output-available' && part.preliminary !== true) ||
