@@ -4,7 +4,6 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
-import { InvalidResponseDataError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
@@ -230,13 +229,6 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
               },
               callbacks: [telemetryDispatcher.onEmbedEnd],
             });
-
-            if (embedding == null) {
-              throw new InvalidResponseDataError({
-                data: modelResponse.embeddings,
-                message: 'No embedding generated.',
-              });
-            }
 
             return {
               embeddings: modelResponse.embeddings,

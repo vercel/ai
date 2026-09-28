@@ -9,7 +9,6 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { InvalidResponseDataError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
 import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
@@ -59,10 +58,15 @@ describe('result.embedding', () => {
     });
 
     await expect(result).rejects.toSatisfy(error => {
-      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+      expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
-        data: [],
-        message: 'No embedding generated.',
+        name: 'AI_NoEmbeddingGeneratedError',
+        message: 'No embeddings generated: expected 1, received 0.',
+        values: [testValue],
+        embeddings: [],
+        expectedCount: 1,
+        actualCount: 0,
+        usage: { tokens: 5 },
       });
       return true;
     });
