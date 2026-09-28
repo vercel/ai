@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 14027,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14027-partial-static-tool-resume.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-14027-partial-static-tool-resume.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14027_REPRODUCED: hydrated input-streaming static tool calls fail to resume in both readUIMessageStream and Chat.resumeStream"
+  }
+}
