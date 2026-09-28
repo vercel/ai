@@ -2,6 +2,7 @@ import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { ProviderMetadata } from '../types';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,
@@ -97,34 +98,68 @@ export function smoothStream<TOOLS extends ToolSet>({
   return () => {
     let buffer = '';
     let id = '';
+    let providerMetadata: ProviderMetadata | undefined;
+
+    function flushBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (buffer.length > 0 || providerMetadata != null) {
+        controller.enqueue({
+          type: 'text-delta',
+          text: buffer,
+          id,
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        });
+        buffer = '';
+        providerMetadata = undefined;
+      }
+    }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type !== 'text-delta') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', text: buffer, id });
-            buffer = '';
-          }
-
+          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
 
-        if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text-delta', text: buffer, id });
-          buffer = '';
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
+          flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text-delta', text: match, id });
+          controller.enqueue({
+            type: 'text-delta',
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
           await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });
