@@ -530,8 +530,15 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             }
 
             if (delta.tool_calls != null) {
-              for (const toolCallDelta of delta.tool_calls) {
-                toolCallTracker.processDelta(toolCallDelta);
+              for (const [
+                fallbackIndex,
+                toolCallDelta,
+              ] of delta.tool_calls.entries()) {
+                // Some providers omit indices and identify parallel calls by position.
+                toolCallTracker.processDelta({
+                  ...toolCallDelta,
+                  index: toolCallDelta.index ?? fallbackIndex,
+                });
               }
             }
           },

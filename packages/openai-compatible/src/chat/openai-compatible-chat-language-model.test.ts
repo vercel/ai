@@ -1536,6 +1536,66 @@ describe('doStream', () => {
     ]);
   });
 
+  it.each([undefined, null])(
+    'assembles parallel tool calls by position when indices are %s',
+    async index => {
+      const toolCallDeltas = [
+        [
+          {
+            index,
+            id: 'weather_0',
+            function: { name: 'weather', arguments: '' },
+          },
+          {
+            index,
+            id: 'time_1',
+            function: { name: 'time', arguments: '' },
+          },
+        ],
+        [
+          { index, function: { arguments: '{"location":' } },
+          { index, function: { arguments: '{"zone":' } },
+        ],
+        [
+          { index, function: { arguments: '"San Francisco"}' } },
+          { index, function: { arguments: '"UTC"}' } },
+        ],
+      ];
+
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...toolCallDeltas.map(
+            tool_calls =>
+              `data: ${JSON.stringify({
+                choices: [{ delta: { tool_calls }, finish_reason: null }],
+              })}\n\n`,
+          ),
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'weather_0',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'time_1',
+          toolName: 'time',
+          input: '{"zone":"UTC"}',
+        },
+      ]);
+    },
+  );
+
   it('should stream tool deltas', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
