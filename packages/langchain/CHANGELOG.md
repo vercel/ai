@@ -1,5 +1,13 @@
 # @ai-sdk/langchain
 
+## 2.0.302
+
+### Patch Changes
+
+- e33fecc: fix(langchain): start bare messages-mode tool lifecycles before emitting outputs
+- Updated dependencies [16a04d7]
+  - ai@6.0.294
+
 ## 2.0.301
 
 ### Patch Changes

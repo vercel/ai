@@ -1,5 +1,11 @@
 # @ai-sdk/provider-utils
 
+## 4.0.56
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+
 ## 4.0.55
 
 ### Patch Changes
