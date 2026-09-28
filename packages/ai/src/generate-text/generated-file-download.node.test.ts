@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 
-// Use a fresh process: the Node fixture setup deliberately replaces node-fetch's
+// Use a fresh process: the Node fixture setup deliberately replaces the HTTP client's
 // transport, which would otherwise conceal regressions in DNS protection.
 describe('generated file download DNS protection', () => {
   it.each(['before', 'after'])(
@@ -43,7 +43,7 @@ describe('generated file download DNS protection', () => {
               abortSignal: AbortSignal.timeout(2000),
             });
           } catch (error) {
-            blocked = error.cause?.message.includes(
+            blocked = error.message.includes(
               'resolved to disallowed IP address 127.0.0.1'
             ) === true;
           }

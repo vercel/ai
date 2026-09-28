@@ -1,5 +1,5 @@
 import { createServer, type Server } from 'node:http';
-import { gzipSync } from 'node:zlib';
+import { gzipSync, deflateSync, brotliCompressSync } from 'node:zlib';
 import { once } from 'node:events';
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { getDefaultDownloadFetch } from './safe-node-fetch';
@@ -150,4 +150,96 @@ it('rejects when the response stream is truncated', async () => {
   const fetch = await getDefaultDownloadFetch();
   const response = await fetch(origin);
   await expect(response.text()).rejects.toThrow();
+});
+
+it.each([
+  ['deflate', deflateSync],
+  ['br', brotliCompressSync],
+] as const)('decodes %s responses', async (encoding, compress) => {
+  server.on('request', (_request, response) => {
+    response.writeHead(200, { 'Content-Encoding': encoding });
+    response.end(compress('decoded content'));
+  });
+  const fetch = await getDefaultDownloadFetch();
+  expect(await (await fetch(origin)).text()).toBe('decoded content');
+});
+
+it('rejects malformed compressed responses', async () => {
+  server.on('request', (_request, response) => {
+    response.writeHead(200, { 'Content-Encoding': 'gzip' });
+    response.end('not gzip');
+  });
+  const fetch = await getDefaultDownloadFetch();
+  await expect((await fetch(origin)).text()).rejects.toThrow();
+});
+
+it('cancels a compressed response and closes its socket', async () => {
+  let closed!: Promise<unknown>;
+  server.on('request', (_request, response) => {
+    closed = once(response, 'close');
+    response.writeHead(200, { 'Content-Encoding': 'gzip' });
+    response.write(gzipSync('first chunk'));
+  });
+  const fetch = await getDefaultDownloadFetch();
+  const response = await fetch(origin);
+  const reader = response.body!.getReader();
+  await reader.read();
+  await reader.cancel();
+  await closed;
+});
+
+it.each(['error', 'follow'] as const)(
+  'does not follow redirects in %s mode',
+  async redirect => {
+    let requests = 0;
+    server.on('request', (_request, response) => {
+      requests++;
+      response.writeHead(302, { Location: '/next' });
+      response.end();
+    });
+    const fetch = await getDefaultDownloadFetch();
+    await expect(fetch(origin, { redirect })).rejects.toThrow(
+      'validated redirect loop',
+    );
+    expect(requests).toBe(1);
+  },
+);
+
+it('rejects an already aborted request without opening a socket', async () => {
+  let connections = 0;
+  server.on('connection', () => connections++);
+  const controller = new AbortController();
+  const reason = new Error('cancelled before download');
+  controller.abort(reason);
+  const fetch = await getDefaultDownloadFetch();
+  await expect(fetch(origin, { signal: controller.signal })).rejects.toBe(
+    reason,
+  );
+  expect(connections).toBe(0);
+});
+
+it('uploads native FormData without an external encoder', async () => {
+  server.on('request', async (request, response) => {
+    const chunks = [];
+    for await (const chunk of request) chunks.push(chunk);
+    response.end(
+      `${request.headers['content-type']}\n${Buffer.concat(chunks).toString()}`,
+    );
+  });
+  const form = new FormData();
+  form.set('file', new Blob(['file content']), 'test.txt');
+  const fetch = await getDefaultDownloadFetch();
+  const text = await (
+    await fetch(origin, { method: 'POST', body: form })
+  ).text();
+  expect(text).toContain('multipart/form-data; boundary=');
+  expect(text).toContain('filename="test.txt"');
+  expect(text).toContain('file content');
+});
+
+it('supports inline data URLs without a socket', async () => {
+  const fetch = await getDefaultDownloadFetch();
+  expect(await (await fetch('data:text/plain;base64,aGVsbG8=')).text()).toBe(
+    'hello',
+  );
 });

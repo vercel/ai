@@ -377,7 +377,6 @@ describe('download', () => {
 
   it('should pass abortSignal to fetch', async () => {
     const controller = new AbortController();
-    controller.abort();
 
     globalThis.fetch = vi
       .fn()

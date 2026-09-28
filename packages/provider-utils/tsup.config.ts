@@ -19,9 +19,9 @@ export default defineConfig([
       dts: runtime === 'node',
       sourcemap: true,
       platform: runtime === 'node' ? 'node' : 'browser',
-      // Replace the transport before bundling so the portable output has no
-      // node-fetch dependency. A runtime guard around import('node-fetch') would prevent
-      // execution, but browser/edge bundlers would still try to resolve it.
+      // Replace the transport before bundling so the portable output excludes
+      // Node-only transport code. Export conditions select the implementation
+      // before a consumer bundles the package.
       esbuildPlugins:
         runtime === 'portable'
           ? [

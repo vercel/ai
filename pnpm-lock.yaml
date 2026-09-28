@@ -3796,9 +3796,6 @@ importers:
       eventsource-parser:
         specifier: ^3.0.8
         version: 3.0.8
-      node-fetch:
-        specifier: ^3.3.2
-        version: 3.3.2
     devDependencies:
       '@types/node':
         specifier: 22.19.19

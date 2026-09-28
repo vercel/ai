@@ -1,6 +1,7 @@
 import type { LookupAddress, LookupAllOptions } from 'node:dns';
 import type { LookupFunction } from 'node:net';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import type { Readable } from 'node:stream';
 import type { FetchFunction } from './fetch-function';
 import { isNodeRuntime } from './is-node-runtime';
 import { validateDownloadAddress } from './validate-download-url';
@@ -59,70 +60,143 @@ export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
 
 async function createSafeNodeFetch(): Promise<FetchFunction> {
   const { lookup } = process.getBuiltinModule('node:dns');
-  const { Agent: HttpAgent } = process.getBuiltinModule('node:http');
-  const { Agent: HttpsAgent } = process.getBuiltinModule('node:https');
-  const { Readable } = process.getBuiltinModule('node:stream');
-  // Keep this literal import visible to deployment bundlers, and out of the
-  // portable build. Using our own transport also bypasses patched global fetch.
-  const { default: fetch } = await import('node-fetch');
+  const http = process.getBuiltinModule('node:http');
+  const https = process.getBuiltinModule('node:https');
+  const { Readable, pipeline } = process.getBuiltinModule('node:stream');
+  const { createGunzip, createInflate, createBrotliDecompress } =
+    process.getBuiltinModule('node:zlib');
   const safeLookup = createSafeLookup(lookup);
-  const httpAgent = new HttpAgent({ keepAlive: true, lookup: safeLookup });
-  const httpsAgent = new HttpsAgent({ keepAlive: true, lookup: safeLookup });
+  const httpAgent = new http.Agent({ keepAlive: true, lookup: safeLookup });
+  const httpsAgent = new https.Agent({ keepAlive: true, lookup: safeLookup });
 
   return async (input, init) => {
-    // Normalize native Request/Headers/body inputs before crossing into
-    // node-fetch, which uses its own Fetch classes and Node streams.
-    // The request stream assertion bridges the same Node/DOM type mismatch.
     const request = new Request(input, init);
-    const response = await fetch(request.url, {
-      method: request.method,
-      headers: [...request.headers],
-      body:
-        request.body == null
-          ? undefined
-          : Readable.fromWeb(request.body as NodeReadableStream),
-      signal: init?.signal ?? request.signal,
-      redirect: request.redirect,
-      agent: url => (url.protocol === 'https:' ? httpsAgent : httpAgent),
-    });
+    const url = new URL(request.url);
+    const signal = init?.signal ?? request.signal;
+    signal.throwIfAborted();
 
-    // node-fetch types its body as the broader NodeJS.ReadableStream interface.
-    // Verify it is a Readable before using Node's Web Stream adapter.
-    if (response.body != null && !(response.body instanceof Readable)) {
-      throw new TypeError('Expected node-fetch to return a Node Readable');
+    // Inline data cannot initiate a network connection. Delegate its parsing to
+    // the runtime rather than implementing a second data-URL parser.
+    if (url.protocol === 'data:') {
+      return globalThis.fetch(request);
     }
-    // SDK consumers require Web Streams (getReader/cancel), not Node streams.
-    const body =
-      response.body == null ||
-      request.method === 'HEAD' ||
-      [204, 205, 304].includes(response.status)
-        ? null
-        : Readable.toWeb(response.body);
-    if (body == null) {
-      response.body?.resume();
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new TypeError(`Unsupported download protocol: ${url.protocol}`);
     }
-    // Node and DOM declarations disagree on Web Stream iterator methods;
-    // both adapters use the same native Web Streams at runtime.
-    const result = new Response(body as ReadableStream | null, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.entries(response.headers.raw()).flatMap(
-        ([name, values]) =>
-          values.map<[string, string]>(value => [name, value]),
-      ),
-    });
-    // Response's constructor cannot set fetch metadata. Preserve it on clones
-    // too, without replacing the native body consumption implementation.
-    function withMetadata(value: Response): Response {
-      const clone = value.clone.bind(value);
-      Object.defineProperties(value, {
-        url: { value: response.url },
-        redirected: { value: response.redirected },
-        type: { value: 'basic' },
-        clone: { value: () => withMetadata(clone()) },
+    if (request.integrity) {
+      throw new TypeError(
+        'The download transport does not support integrity checks',
+      );
+    }
+
+    const headers = new Headers(request.headers);
+    if (!headers.has('accept')) headers.set('accept', '*/*');
+    if (!headers.has('accept-encoding'))
+      headers.set('accept-encoding', 'gzip, deflate, br');
+
+    return new Promise<Response>((resolve, reject) => {
+      let body: Readable | undefined;
+      let upload: Readable | undefined;
+      const transport = url.protocol === 'https:' ? https : http;
+      const outgoing = transport.request(
+        url,
+        {
+          method: request.method,
+          headers: Object.fromEntries(headers),
+          agent: url.protocol === 'https:' ? httpsAgent : httpAgent,
+          signal,
+        },
+        incoming => {
+          try {
+            const status = incoming.statusCode;
+            if (status == null)
+              throw new TypeError('Missing HTTP response status');
+            // The SDK validates each redirect itself. Never follow a hop here,
+            // including when a caller accidentally leaves the default "follow".
+            if (
+              [301, 302, 303, 307, 308].includes(status) &&
+              request.redirect !== 'manual'
+            ) {
+              throw new TypeError(
+                'Download redirects must be handled by the validated redirect loop',
+              );
+            }
+            const responseHeaders = new Headers();
+            for (let i = 0; i < incoming.rawHeaders.length; i += 2) {
+              responseHeaders.append(
+                incoming.rawHeaders[i],
+                incoming.rawHeaders[i + 1],
+              );
+            }
+
+            const hasBody =
+              request.method !== 'HEAD' && ![204, 205, 304].includes(status);
+            if (hasBody) {
+              body = incoming;
+              const encoding = responseHeaders
+                .get('content-encoding')
+                ?.trim()
+                .toLowerCase();
+              const decoder =
+                encoding === 'gzip' || encoding === 'x-gzip'
+                  ? createGunzip()
+                  : encoding === 'deflate' || encoding === 'x-deflate'
+                    ? createInflate()
+                    : encoding === 'br'
+                      ? createBrotliDecompress()
+                      : undefined;
+              if (decoder) {
+                // pipeline propagates decoding errors and cancellation in both
+                // directions, so cancelling the Web Stream closes the socket.
+                body = decoder;
+                pipeline(incoming, decoder, error => {
+                  if (error) outgoing.destroy(error);
+                });
+              }
+            } else {
+              incoming.resume();
+            }
+            // Node and DOM declarations disagree on Web Stream iterator methods.
+            const response = new Response(
+              body == null ? null : (Readable.toWeb(body) as ReadableStream),
+              {
+                status,
+                statusText: incoming.statusMessage,
+                headers: responseHeaders,
+              },
+            );
+            resolve(withResponseUrl(response, request.url));
+          } catch (error) {
+            incoming.destroy();
+            outgoing.destroy();
+            reject(error);
+          }
+        },
+      );
+      outgoing.once('close', () => upload?.destroy());
+      outgoing.on('error', error => {
+        const failure = signal.aborted ? signal.reason : error;
+        upload?.destroy(error);
+        body?.destroy(failure);
+        reject(failure);
       });
-      return value;
-    }
-    return withMetadata(result);
+      if (request.body == null) {
+        outgoing.end();
+      } else {
+        upload = Readable.fromWeb(request.body as NodeReadableStream);
+        upload.on('error', error => outgoing.destroy(error));
+        upload.pipe(outgoing);
+      }
+    });
   };
+}
+
+function withResponseUrl(response: Response, url: string): Response {
+  const clone = response.clone.bind(response);
+  Object.defineProperties(response, {
+    url: { value: url },
+    type: { value: 'basic' },
+    clone: { value: () => withResponseUrl(clone(), url) },
+  });
+  return response;
 }

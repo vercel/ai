@@ -102,15 +102,13 @@ describe.each(['before', 'after'] as const)(
                       : undefined,
                 });
 
-        // node-fetch includes the validating lookup error in its FetchError.
+        // The HTTP client propagates the validating lookup error.
         const dnsError = {
           message: expect.stringContaining(
             'resolved to disallowed IP address 127.0.0.1',
           ),
         };
-        await expect(request).rejects.toMatchObject({
-          ...(entryPoint === 'blob' ? { cause: dnsError } : dnsError),
-        });
+        await expect(request).rejects.toMatchObject(dnsError);
         expect(lookup).toHaveBeenCalledExactlyOnceWith(
           'files.example.com',
           expect.objectContaining({ all: true }),

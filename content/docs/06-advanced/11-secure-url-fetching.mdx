@@ -95,7 +95,7 @@ is still validated before the redirected request is sent.
 ## DNS validation across runtimes
 
 On Node.js, the default validated download fetch uses `node:dns` and an
-`node-fetch` transport with a custom Node.js Agent lookup to validate every resolved address at connection time.
+built-in Node.js HTTP transport with a custom Agent lookup to validate every resolved address at connection time.
 The connector uses those exact results, closing both hostname-to-private-IP and
 DNS-rebinding bypasses.
 
