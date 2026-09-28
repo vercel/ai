@@ -1,5 +1,27 @@
 # @ai-sdk/azure
 
+## 4.0.83
+
+### Patch Changes
+
+- 354af1c: Add MAI-Transcribe-2 file transcription through `azure.transcription()` using the Azure Speech API, with diarization, word/segment timestamps, transcript styles, locale forcing, and phrase lists. Select the API with `providerOptions.azure.api` to override model-based routing, add a `speechBaseURL` setting for the Speech endpoint, and add `azure.transcriptionModel()` as an alias of `azure.transcription()`.
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/openai@4.0.79
+  - @ai-sdk/deepseek@3.0.55
+  - @ai-sdk/provider@4.0.19
+
 ## 4.0.82
 
 ### Patch Changes
