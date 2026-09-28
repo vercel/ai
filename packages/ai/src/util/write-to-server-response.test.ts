@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import type { ServerResponse } from 'node:http';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { writeToServerResponse } from './write-to-server-response';
 import { createMockServerResponse } from '../test/mock-server-response';
 
@@ -51,16 +51,6 @@ describe('writeToServerResponse', () => {
     expect(mockResponse.ended).toBe(true);
   });
 
-<<<<<<< HEAD
-  it('should respect backpressure and wait for drain event', async () => {
-    const mockResponse = createBackpressureMockResponse();
-    let drainEventCount = 0;
-    let readyToEnqueue: ((value: unknown) => void) | null = null;
-
-    // Track drain events
-    mockResponse.on('drain', () => {
-      drainEventCount++;
-=======
   describe('client disconnect handling', () => {
     it('should cancel the stream when the client disconnects before the stream ends', async () => {
       const mockResponse = createMockServerResponse();
@@ -135,10 +125,14 @@ describe('writeToServerResponse', () => {
     });
   });
 
-  describe('backpressure handling', () => {
-    beforeEach(() => {
-      vi.useFakeTimers();
->>>>>>> 33e94baaf4 (fix: settle response stream pipes and cancel their sources after client disconnects (#21578))
+  it('should respect backpressure and wait for drain event', async () => {
+    const mockResponse = createBackpressureMockResponse();
+    let drainEventCount = 0;
+    let readyToEnqueue: ((value: unknown) => void) | null = null;
+
+    // Track drain events
+    mockResponse.on('drain', () => {
+      drainEventCount++;
     });
 
     // Create stream that provides chunks on-demand (async)
@@ -163,7 +157,6 @@ describe('writeToServerResponse', () => {
       stream,
     });
 
-<<<<<<< HEAD
     // Wait for first chunk to be written
     await new Promise(resolve => setTimeout(resolve, 10));
     expect(mockResponse.writeCallCount).toBe(1);
@@ -196,38 +189,37 @@ describe('writeToServerResponse', () => {
     expect(drainEventCount).toBeGreaterThanOrEqual(1);
     // Verify all chunks were eventually written
     expect(mockResponse.writtenChunks).toHaveLength(3);
-=======
-    it('should stop waiting for drain when the client disconnects', async () => {
-      const mockResponse = createBackpressureMockResponse();
-      const cancel = vi.fn();
+  });
 
-      const stream = new ReadableStream<Uint8Array>({
-        start(controller) {
-          controller.enqueue(new TextEncoder().encode('chunk1'));
-          controller.enqueue(new TextEncoder().encode('chunk2'));
-          // stream stays open
-        },
-        cancel,
-      });
+  it('should stop waiting for drain when the client disconnects', async () => {
+    const mockResponse = createBackpressureMockResponse();
+    const cancel = vi.fn();
 
-      const writePromise = writeToServerResponse({
-        response: mockResponse,
-        stream,
-      });
-
-      // second write signals backpressure; now waiting for drain:
-      await vi.advanceTimersByTimeAsync(10);
-      expect(mockResponse.writeCallCount).toBe(2);
-
-      // simulate client disconnect while waiting for drain:
-      mockResponse.emit('close');
-
-      await writePromise;
-
-      expect(cancel).toHaveBeenCalledOnce();
-      expect(mockResponse.writeCallCount).toBe(2);
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('chunk1'));
+        controller.enqueue(new TextEncoder().encode('chunk2'));
+        // stream stays open
+      },
+      cancel,
     });
->>>>>>> 33e94baaf4 (fix: settle response stream pipes and cancel their sources after client disconnects (#21578))
+
+    const writePromise = writeToServerResponse({
+      response: mockResponse,
+      stream,
+    });
+
+    // second write signals backpressure; now waiting for drain:
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mockResponse.writeCallCount).toBe(2);
+
+    // simulate client disconnect while waiting for drain:
+    mockResponse.emit('close');
+
+    await writePromise;
+
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(mockResponse.writeCallCount).toBe(2);
   });
 
   it('should set headers correctly when statusText is undefined', async () => {
