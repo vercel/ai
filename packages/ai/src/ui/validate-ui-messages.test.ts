@@ -1,3 +1,4 @@
+import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { InferUITool, UIMessage } from './ui-messages';
 import {
@@ -1562,46 +1563,68 @@ describe('validateUIMessages', () => {
       );
     });
 
-    it('should represent schema-incompatible output-available empty input as a dynamic tool part', async () => {
-      const inputMessages: TestMessage[] = [
-        {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-foo',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {} as { foo: string },
-              output: { result: 'success' },
-            },
-          ],
-        },
-      ];
-
-      const messages = await validateUIMessages<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
+    it('should normalize persisted aborted tool history from issue #18425', async () => {
+      const createArtifactTool = tool({
+        inputSchema: z.object({
+          identifier: z.string(),
+          type: z.enum(['application/vnd.react', 'text/html']),
+          language: z.string(),
+          code: z.string(),
+        }),
+        execute: async () => 'ok',
       });
 
-      expect(messages).toEqual([
+      type CreateArtifactMessage = UIMessage<
+        never,
+        never,
         {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'dynamic-tool',
-              toolName: 'foo',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {},
-              output: { result: 'success' },
-            },
-          ],
-        },
-      ]);
+          create_artifact: InferUITool<typeof createArtifactTool>;
+        }
+      >;
+
+      const messages = await validateUIMessages<CreateArtifactMessage>({
+        messages: [
+          {
+            id: 'u1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'make me a chart' }],
+          },
+          {
+            id: 'a1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-create_artifact',
+                toolCallId: 'toolu_demo_aborted',
+                state: 'output-available',
+                input: {} as InferUITool<typeof createArtifactTool>['input'],
+                output: '{"error":"Tool was aborted by the user."}',
+              },
+            ],
+          },
+          {
+            id: 'u2',
+            role: 'user',
+            parts: [{ type: 'text', text: 'are you working?' }],
+          },
+        ],
+        tools: { create_artifact: createArtifactTool },
+      });
+
+      expect(messages[1].parts[1]).toEqual({
+        type: 'dynamic-tool',
+        toolName: 'create_artifact',
+        toolCallId: 'toolu_demo_aborted',
+        state: 'output-available',
+        input: {},
+        output: '{"error":"Tool was aborted by the user."}',
+      });
+      expect(messages[2]).toEqual({
+        id: 'u2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'are you working?' }],
+      });
     });
 
     it('should validate output when an output-available tool call has empty input', async () => {
