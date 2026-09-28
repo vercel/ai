@@ -22,14 +22,8 @@ export default defineConfig(
       // so a bare import would not resolve there. The runtime SDKs the bridge
       // imports are installed in-sandbox and stay external.
       deps: {
-        alwaysBundle: ['@ai-sdk/harness'],
-        neverBundle: [
-          'deepagents',
-          '@langchain/anthropic',
-          '@langchain/core',
-          '@langchain/langgraph',
-          '@langchain/mcp-adapters',
-        ],
+        alwaysBundle: [/^@ai-sdk\/harness(?:\/|$)/],
+        neverBundle: true,
       },
       define: {
         __PACKAGE_VERSION__: packageVersion,

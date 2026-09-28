@@ -25,12 +25,8 @@ export default defineConfig(
       // bundle them into bridge.mjs. ws and zod are also installed by the
       // bridge's pnpm install step so the host package's own copy is irrelevant.
       deps: {
-        alwaysBundle: ['@ai-sdk/harness'],
-        neverBundle: [
-          '@anthropic-ai/claude-agent-sdk',
-          '@anthropic-ai/claude-code',
-          '@modelcontextprotocol/sdk',
-        ],
+        alwaysBundle: [/^@ai-sdk\/harness(?:\/|$)/],
+        neverBundle: true,
       },
       define: {
         __PACKAGE_VERSION__: packageVersion,

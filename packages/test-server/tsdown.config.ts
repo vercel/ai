@@ -4,7 +4,9 @@ import { tsdownBaseConfig } from '../../tools/tsdown-config.mts';
 
 export default defineConfig(
   [
+    {},
     {
+      entry: ['src/with-vitest.ts'],
       deps: {
         neverBundle: [
           'chai',
@@ -17,9 +19,6 @@ export default defineConfig(
           'vitest/dist/node/chunks/*',
         ],
       },
-    },
-    {
-      entry: ['src/with-vitest.ts'],
     },
   ].map(config => mergeConfig(tsdownBaseConfig, config)),
 );

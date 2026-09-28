@@ -21,12 +21,8 @@ export default defineConfig(
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
       deps: {
-        alwaysBundle: ['@ai-sdk/harness'],
-        neverBundle: [
-          '@opencode-ai/sdk/v2',
-          '@modelcontextprotocol/sdk',
-          'opencode-ai',
-        ],
+        alwaysBundle: [/^@ai-sdk\/harness(?:\/|$)/],
+        neverBundle: true,
       },
       define: {
         __PACKAGE_VERSION__: packageVersion,

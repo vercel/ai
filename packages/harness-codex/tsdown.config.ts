@@ -22,8 +22,8 @@ export default defineConfig(
       // not resolve there. tsdown externalizes package.json deps by default, hence
       // the explicit override.
       deps: {
-        alwaysBundle: ['@ai-sdk/harness'],
-        neverBundle: ['@openai/codex'],
+        alwaysBundle: [/^@ai-sdk\/harness(?:\/|$)/],
+        neverBundle: true,
       },
       define: {
         __PACKAGE_VERSION__: packageVersion,

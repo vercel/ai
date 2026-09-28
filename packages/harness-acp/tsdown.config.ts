@@ -18,8 +18,11 @@ export default defineConfig(
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
       deps: {
-        alwaysBundle: ['@ai-sdk/harness', '@ai-sdk/provider-utils'],
-        neverBundle: ['@agentclientprotocol/sdk', '@modelcontextprotocol/sdk'],
+        alwaysBundle: [
+          /^@ai-sdk\/harness(?:\/|$)/,
+          /^@ai-sdk\/provider-utils(?:\/|$)/,
+        ],
+        neverBundle: true,
       },
       outputOptions: { codeSplitting: false },
       define: {
@@ -31,8 +34,11 @@ export default defineConfig(
       outExtensions: () => ({ js: '.mjs' }),
       dts: false,
       deps: {
-        alwaysBundle: ['@ai-sdk/harness', '@ai-sdk/provider-utils'],
-        neverBundle: ['@agentclientprotocol/sdk', '@modelcontextprotocol/sdk'],
+        alwaysBundle: [
+          /^@ai-sdk\/harness(?:\/|$)/,
+          /^@ai-sdk\/provider-utils(?:\/|$)/,
+        ],
+        neverBundle: true,
       },
       outputOptions: { codeSplitting: false },
       define: {
