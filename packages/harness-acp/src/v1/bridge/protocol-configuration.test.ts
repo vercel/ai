@@ -129,9 +129,13 @@ describe('ACP protocol configuration', () => {
             },
           },
         },
+        clientCapabilities: {
+          _meta: { parameterizedModelPicker: true },
+        },
         supportsBooleanSessionConfigOptions: true,
       }).clientCapabilities,
     ).toEqual({
+      _meta: { parameterizedModelPicker: true },
       session: {
         _meta: { direct: true },
         configOptions: {

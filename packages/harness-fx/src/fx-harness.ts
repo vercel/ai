@@ -3,18 +3,29 @@ import {
   type HarnessV1,
   type HarnessV1BuiltinTool,
   type HarnessV1CredentialForwarding,
+  type HarnessV1MintBridgeTokenCallback,
   type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
-import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import {
-  createACP,
-  type ACPProviderAuthenticationMode,
-} from '@ai-sdk/harness-acp';
+  createCredentialRequestTransformation,
+  isHarnessAuthenticationEnvironment,
+  type SandboxChannelReconnectOptions,
+} from '@ai-sdk/harness/utils';
+import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
+import {
+  createFxSubscriptionAuthenticationFiles,
+  FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
+  getFxSubscriptionRequestCredentials,
+  resolveFxSubscriptionEnvironment,
+} from './fx-subscription';
 
 const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
+
+export type FxAuthenticationMode = ACPAuthenticationMode;
 
 function sanitizeFxMcpToolNameSegment(value: string): string {
   if (value.length === 0) return 'server';
@@ -35,21 +46,17 @@ function sanitizeFxMcpToolNameSegment(value: string): string {
 
 export type FxHarnessSettings = {
   /**
-   * Selects direct or AI Gateway authentication. Both routes use AI Gateway
-   * because fx does not connect to model providers directly. Defaults to
-   * automatic environment-based selection.
+   * Selects direct native-subscription or AI Gateway authentication. Pass an
+   * authentication environment to supply credentials programmatically, or omit
+   * it for automatic host-environment selection.
    */
-  readonly auth?: ACPProviderAuthenticationMode;
+  readonly auth?: FxAuthenticationMode;
   /**
    * Customizes each credential value before it is forwarded into a sandbox
    * process. This does not restrict which credentials the harness adapter can
    * discover, read, or otherwise access in the host process.
    */
   readonly credentialForwarding?: HarnessV1CredentialForwarding;
-  /**
-   * Model id selected through ACP. Unset preserves fx's default.
-   */
-  readonly model?: string;
   /**
    * Overrides the sandbox port used by the ACP bridge.
    */
@@ -64,6 +71,13 @@ export type FxHarnessSettings = {
    */
   readonly startupTimeoutMs?: number;
   /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
+  /**
    * MCP server definitions keyed by server name. Each definition uses fx's
    * native ACP MCP server configuration format.
    */
@@ -72,7 +86,7 @@ export type FxHarnessSettings = {
    * Creates the authentication token used by the sandbox bridge. Defaults to
    * a random 32-byte hexadecimal token.
    */
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 const terminalShellSchema = z.looseObject({
@@ -225,6 +239,48 @@ const terminalRequestSchema = z.looseObject({
   close_policy: z.enum(['graceful', 'force']).nullable().optional(),
 });
 
+const shellExecutableSchema = z.looseObject({
+  kind: z.literal('executable'),
+  path: z.string(),
+  clean_start: z.boolean().nullish(),
+});
+
+const shellRunWithProfileSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  profile: z.enum(['clean', 'user']).nullish(),
+  tty: z.boolean().nullish(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellRunWithExecutableSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  shell: shellExecutableSchema,
+  tty: z.boolean(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellInputSchema = z.union([
+  shellRunWithProfileSchema,
+  shellRunWithExecutableSchema,
+  z.looseObject({
+    action: z.literal('interact'),
+    session_id: z.string(),
+    chars: z.string().nullish(),
+    yield_time_ms: z.number().int().nonnegative().nullish(),
+  }),
+  z.looseObject({
+    action: z.literal('stop'),
+    session_id: z.string(),
+    force: z.boolean().nullish(),
+  }),
+]);
+
 const subagentNotificationsSchema = z.looseObject({
   terminal: z
     .looseObject({
@@ -368,6 +424,10 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'bash',
   },
+  shell: {
+    ...tool({ inputSchema: shellInputSchema }),
+    toolUseKind: 'bash',
+  },
   skill: {
     ...tool({
       inputSchema: z.looseObject({
@@ -477,6 +537,15 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'readonly',
   },
+  capability_search: {
+    ...tool({
+      inputSchema: z.looseObject({
+        query: z.string().min(1),
+        server: z.string().min(1).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
   mcp_select_tool: {
     ...tool({ inputSchema: z.looseObject({ name: z.string() }) }),
     toolUseKind: 'readonly',
@@ -552,17 +621,22 @@ export function createFx(
 ): HarnessV1<typeof FX_BUILTIN_TOOLS> {
   const clientAppSegments = FX_CLIENT_APP.split('/');
   const clientAppVersion = clientAppSegments.pop()!;
+  const suppliedAuthenticationEnvironment = isHarnessAuthenticationEnvironment(
+    settings.auth,
+  );
   const mcpToolTitlePrefixes = Object.keys(settings.mcpServers ?? {}).map(
     serverName => `mcp_${sanitizeFxMcpToolNameSegment(serverName)}_`,
   );
 
   return createACP({
     auth: settings.auth,
+    resolveAuthenticationEnvironment: resolveFxSubscriptionEnvironment,
+    authenticationFiles: createFxSubscriptionAuthenticationFiles,
     credentialForwarding: settings.credentialForwarding,
-    modelId: settings.model,
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),
@@ -580,21 +654,61 @@ export function createFx(
     },
     executable: 'fx',
     args: ['acp'],
-    credentialEnv: ['VERCEL_OIDC_TOKEN', 'AI_GATEWAY_API_KEY'],
-    credentialBrokering: ({ env, sandboxEnv }) => {
-      const environmentVariableName = env.VERCEL_OIDC_TOKEN
-        ? 'VERCEL_OIDC_TOKEN'
-        : 'AI_GATEWAY_API_KEY';
+    modelMapping: {
+      type: 'session-config-option',
+      path: 'model',
+    },
+    instructionMapping: {
+      type: 'filesystem',
+      path: '.fx/AGENTS.md',
+    },
+    credentialEnv: [
+      'VERCEL_OIDC_TOKEN',
+      'AI_GATEWAY_API_KEY',
+      ...FX_SUBSCRIPTION_ENVIRONMENT_VARIABLES,
+    ],
+    credentialBrokering: ({ env, sandboxEnv, headers }) => {
+      const subscriptionTransformations = getFxSubscriptionRequestCredentials({
+        env,
+        sandboxEnv: sandboxEnv ?? {},
+      }).map(({ provider, accessToken, sandboxAccessToken }) =>
+        createCredentialRequestTransformation({
+          matchUrl:
+            provider === 'chatgpt'
+              ? 'https://chatgpt.com/backend-api/codex'
+              : 'https://api.x.ai/v1',
+          matchHeaders: {
+            Authorization: `Bearer ${sandboxAccessToken}`,
+          },
+          transformHeaders: {
+            ...headers,
+            Authorization: `Bearer ${accessToken}`,
+            'x-client-app': FX_CLIENT_APP,
+          },
+        }),
+      );
+      if (subscriptionTransformations.length > 0) {
+        return subscriptionTransformations;
+      }
+
+      const environmentVariableName = suppliedAuthenticationEnvironment
+        ? env.AI_GATEWAY_API_KEY
+          ? 'AI_GATEWAY_API_KEY'
+          : 'VERCEL_OIDC_TOKEN'
+        : env.VERCEL_OIDC_TOKEN
+          ? 'VERCEL_OIDC_TOKEN'
+          : 'AI_GATEWAY_API_KEY';
       const credential = env[environmentVariableName];
       const sandboxCredential = sandboxEnv?.[environmentVariableName];
       if (!credential || !sandboxCredential) return [];
       return [
         createCredentialRequestTransformation({
-          matchUrl: 'https://ai-gateway.vercel.sh',
+          matchUrl: env.AI_GATEWAY_BASE_URL ?? DEFAULT_AI_GATEWAY_BASE_URL,
           matchHeaders: {
             Authorization: `Bearer ${sandboxCredential}`,
           },
           transformHeaders: {
+            ...headers,
             Authorization: `Bearer ${credential}`,
             'x-client-app': FX_CLIENT_APP,
           },
@@ -605,6 +719,7 @@ export function createFx(
       gateway: {
         env: {
           AI_GATEWAY_API_KEY: { $source: 'gateway-api-key' },
+          AI_GATEWAY_BASE_URL: { $source: 'gateway-base-url' },
         },
       },
     },

@@ -6,8 +6,7 @@ import type {
 
 export type ACPPromptGuidanceLifecycleState = {
   readonly initialGuidanceApplied?: boolean;
-  readonly skillsMaterialized?: boolean;
-  readonly skillsFingerprint?: string;
+  readonly instructionsFingerprint?: string;
   readonly skillsDirectory?: string;
 };
 
@@ -45,33 +44,6 @@ export function resolveACPInitialGuidanceApplied({
 }): boolean {
   if (!isResume) return false;
   return lifecycleState?.initialGuidanceApplied ?? true;
-}
-
-export function shouldMaterializeACPSkills({
-  isResume,
-  lifecycleState,
-  skillsFingerprint,
-  skillsDirectory,
-}: {
-  isResume: boolean;
-  lifecycleState: ACPPromptGuidanceLifecycleState | undefined;
-  skillsFingerprint: string;
-  skillsDirectory: string;
-}): boolean {
-  if (
-    isResume &&
-    lifecycleState?.skillsFingerprint != null &&
-    lifecycleState.skillsFingerprint !== skillsFingerprint
-  ) {
-    throw new Error(
-      'ACP lifecycle state was created with a different set of skills.',
-    );
-  }
-  return (
-    !isResume ||
-    lifecycleState?.skillsMaterialized !== true ||
-    lifecycleState.skillsDirectory !== skillsDirectory
-  );
 }
 
 export function validateACPLifecycleCompatibility({

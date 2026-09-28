@@ -9,13 +9,16 @@ export type GoogleTokenDetail = {
 export type GoogleUsageMetadata = {
   promptTokenCount?: number | null;
   candidatesTokenCount?: number | null;
+  toolUsePromptTokenCount?: number | null;
   totalTokenCount?: number | null;
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
   serviceTier?: string | null;
   promptTokensDetails?: GoogleTokenDetail[] | null;
+  cacheTokensDetails?: GoogleTokenDetail[] | null;
   candidatesTokensDetails?: GoogleTokenDetail[] | null;
+  toolUsePromptTokensDetails?: GoogleTokenDetail[] | null;
 };
 
 export function convertGoogleUsage(
@@ -27,13 +30,15 @@ export function convertGoogleUsage(
 
   const promptTokens = usage.promptTokenCount ?? 0;
   const candidatesTokens = usage.candidatesTokenCount ?? 0;
+  const toolUsePromptTokens = usage.toolUsePromptTokenCount ?? 0;
   const cachedContentTokens = usage.cachedContentTokenCount ?? 0;
   const thoughtsTokens = usage.thoughtsTokenCount ?? 0;
+  const inputTokens = promptTokens + toolUsePromptTokens;
 
   return {
     inputTokens: {
-      total: promptTokens,
-      noCache: promptTokens - cachedContentTokens,
+      total: inputTokens,
+      noCache: inputTokens - cachedContentTokens,
       cacheRead: cachedContentTokens,
       cacheWrite: undefined,
     },

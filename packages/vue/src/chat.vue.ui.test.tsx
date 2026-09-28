@@ -126,7 +126,9 @@ describe('data protocol stream', () => {
     // expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
 
     await screen.findByTestId('error');
-    expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
+    expect(screen.getByTestId('error')).toHaveTextContent(
+      'AI_APICallError: Not found',
+    );
   });
 
   describe('status', () => {

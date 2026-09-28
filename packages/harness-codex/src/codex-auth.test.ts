@@ -1,40 +1,54 @@
-import { describe, expect, it, vi } from 'vitest';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type * as HarnessUtils from '@ai-sdk/harness/utils';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createCodexRequestTransformations,
   resolveCodexAuthenticationMode,
   resolveCodexEnv,
 } from './codex-auth';
+import {
+  createCodexSubscriptionRequestTransformations,
+  readCodexSubscription,
+  resolveCodexAuthentication,
+} from './codex-subscription';
+
+const credentialStoreMocks = vi.hoisted(() => ({
+  readLinuxSecretServicePassword: vi.fn(),
+  readMacOSKeychainPassword: vi.fn(),
+  readWindowsCredentialManagerPassword: vi.fn(),
+}));
+
+vi.mock('@ai-sdk/harness/utils', async importOriginal => {
+  const actual = await importOriginal<typeof HarnessUtils>();
+  return { ...actual, ...credentialStoreMocks };
+});
+
+beforeEach(() => {
+  credentialStoreMocks.readLinuxSecretServicePassword.mockReset();
+  credentialStoreMocks.readMacOSKeychainPassword.mockReset();
+  credentialStoreMocks.readWindowsCredentialManagerPassword.mockReset();
+});
+
+function jwt(expiresAt: number): string {
+  return `header.${Buffer.from(JSON.stringify({ exp: expiresAt })).toString('base64url')}.signature`;
+}
 
 describe('resolveCodexEnv', () => {
-  it('uses openai-compatible auth when given', () => {
-    const env = resolveCodexEnv(
-      {
-        openaiCompatible: {
-          apiKey: 'sk-x',
-          baseUrl: 'https://x.example.com',
-          modelProviderName: 'X',
-        },
-      },
-      {},
-    );
-    expect(env).toEqual({
-      CODEX_API_KEY: 'sk-x',
-      OPENAI_BASE_URL: 'https://x.example.com',
-      CODEX_MODEL_PROVIDER_NAME: 'X',
+  it('uses direct OpenAI auth when selected', () => {
+    const env = resolveCodexEnv('direct', {
+      OPENAI_API_KEY: 'sk-direct',
+      OPENAI_ORGANIZATION: 'org_1',
     });
-  });
-
-  it('uses explicit openai auth when given', () => {
-    const env = resolveCodexEnv(
-      { openai: { apiKey: 'sk-direct', organization: 'org_1' } },
-      { OPENAI_API_KEY: 'sk-env' },
-    );
     expect(env.CODEX_API_KEY).toBe('sk-direct');
     expect(env.OPENAI_ORGANIZATION).toBe('org_1');
   });
 
-  it('routes through the gateway when gateway option is given', () => {
-    const env = resolveCodexEnv({ gateway: { apiKey: 'gw-key' } }, {});
+  it('routes through the gateway when gateway mode is selected', () => {
+    const env = resolveCodexEnv('ai-gateway', {
+      AI_GATEWAY_API_KEY: 'gw-key',
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'gw-key',
       CODEX_API_KEY: 'gw-key',
@@ -44,10 +58,10 @@ describe('resolveCodexEnv', () => {
   });
 
   it('appends /v1 to gateway base URLs for Codex', () => {
-    const env = resolveCodexEnv(
-      { gateway: { baseUrl: 'https://gw.example' } },
-      { VERCEL_OIDC_TOKEN: 'oidc-env' },
-    );
+    const env = resolveCodexEnv('ai-gateway', {
+      AI_GATEWAY_BASE_URL: 'https://gw.example',
+      VERCEL_OIDC_TOKEN: 'oidc-env',
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'oidc-env',
       CODEX_API_KEY: 'oidc-env',
@@ -56,11 +70,11 @@ describe('resolveCodexEnv', () => {
     });
   });
 
-  it('uses env gateway auth when gateway option only sets base URL', () => {
-    const env = resolveCodexEnv(
-      { gateway: { baseUrl: 'https://gw.example/v1' } },
-      { VERCEL_OIDC_TOKEN: 'oidc-env' },
-    );
+  it('preserves /v1 on gateway base URLs', () => {
+    const env = resolveCodexEnv('ai-gateway', {
+      AI_GATEWAY_BASE_URL: 'https://gw.example/v1',
+      VERCEL_OIDC_TOKEN: 'oidc-env',
+    });
     expect(env).toEqual({
       AI_GATEWAY_API_KEY: 'oidc-env',
       CODEX_API_KEY: 'oidc-env',
@@ -94,6 +108,38 @@ describe('resolveCodexEnv', () => {
     expect(env).toEqual({ CODEX_API_KEY: 'sk-auto' });
   });
 
+  it('uses a supplied authentication environment instead of ambient credentials', () => {
+    const auth = { OPENAI_API_KEY: 'programmatic-openai-key' };
+
+    expect(
+      resolveCodexEnv(auth, { AI_GATEWAY_API_KEY: 'ambient-gateway-key' }),
+    ).toEqual({ CODEX_API_KEY: 'programmatic-openai-key' });
+    expect(
+      resolveCodexAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toBe('direct');
+  });
+
+  it('rejects nested authentication objects before reading ambient credentials', () => {
+    const auth = { openai: { apiKey: 'legacy-key' } } as never;
+
+    expect(() =>
+      resolveCodexEnv(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+    expect(() =>
+      resolveCodexAuthenticationMode(auth, {
+        AI_GATEWAY_API_KEY: 'ambient-gateway-key',
+      }),
+    ).toThrow(
+      'Invalid auth: expected an authentication mode or a flat record with string values.',
+    );
+  });
+
   it('forwards host OPENAI_BASE_URL alongside the api key', () => {
     const env = resolveCodexEnv(undefined, {
       OPENAI_API_KEY: 'sk-auto',
@@ -124,17 +170,6 @@ describe('resolveCodexEnv', () => {
       OPENAI_BASE_URL: 'https://ai-gateway.vercel.sh/v1',
     });
   });
-
-  it('warns when passing a legacy object shape', () => {
-    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    resolveCodexEnv({ openai: {} }, {});
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'Passing an object to auth options is deprecated',
-      ),
-    );
-    spy.mockRestore();
-  });
 });
 
 describe('resolveCodexAuthenticationMode', () => {
@@ -146,15 +181,6 @@ describe('resolveCodexAuthenticationMode', () => {
     ).toBe('direct');
   });
 
-  it('resolves legacy OpenAI-compatible auth to direct auth', () => {
-    expect(
-      resolveCodexAuthenticationMode(
-        { openaiCompatible: {} },
-        { AI_GATEWAY_API_KEY: 'gateway-key' },
-      ),
-    ).toBe('direct');
-  });
-
   it('resolves ambient Gateway credentials to Gateway auth', () => {
     expect(
       resolveCodexAuthenticationMode(undefined, {
@@ -163,6 +189,271 @@ describe('resolveCodexAuthenticationMode', () => {
     ).toBe('ai-gateway');
   });
 });
+
+describe('resolveCodexAuthentication', () => {
+  it('never reads native authentication for Gateway auth', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveCodexAuthentication({
+        auth: 'ai-gateway',
+        processEnv: { AI_GATEWAY_API_KEY: 'gateway' },
+        readSubscription,
+      }),
+    ).resolves.toMatchObject({
+      environment: { AI_GATEWAY_API_KEY: 'gateway' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('prefers a direct environment API key over native authentication', async () => {
+    const readSubscription = vi.fn();
+    await expect(
+      resolveCodexAuthentication({
+        auth: 'direct',
+        processEnv: { OPENAI_API_KEY: 'environment-key' },
+        readSubscription,
+      }),
+    ).resolves.toEqual({
+      environment: { CODEX_API_KEY: 'environment-key' },
+    });
+    expect(readSubscription).not.toHaveBeenCalled();
+  });
+
+  it('uses a fresh file-backed ChatGPT subscription', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'auth.json'),
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        tokens: {
+          access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+          refresh_token: 'refresh-token',
+          account_id: 'account-id',
+        },
+      }),
+    );
+
+    await expect(
+      readCodexSubscription({ env: { CODEX_HOME: codexHome } }),
+    ).resolves.toEqual({
+      environment: {
+        CODEX_API_KEY: expect.stringMatching(/^header\./),
+        OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+      },
+      requestHeaders: { 'ChatGPT-Account-ID': 'account-id' },
+    });
+  });
+
+  it('refreshes and persists an expiring subscription without losing fields', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    const authPath = join(codexHome, 'auth.json');
+    await writeFile(
+      authPath,
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        preserved: true,
+        tokens: {
+          id_token: 'id-token',
+          access_token: jwt(Math.floor(Date.now() / 1000) + 60),
+          refresh_token: 'old-refresh',
+          account_id: 'account-id',
+        },
+      }),
+    );
+    const fetch = vi.fn(async () =>
+      Response.json({
+        access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+        refresh_token: 'new-refresh',
+      }),
+    );
+
+    await readCodexSubscription({
+      env: { CODEX_HOME: codexHome },
+      fetch,
+    });
+    const persisted = JSON.parse(await readFile(authPath, 'utf8'));
+    expect(persisted).toMatchObject({
+      preserved: true,
+      tokens: {
+        id_token: 'id-token',
+        refresh_token: 'new-refresh',
+        account_id: 'account-id',
+      },
+    });
+  });
+
+  it('uses the configured Codex keyring before the auth file in auto mode', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'auth.json'),
+      JSON.stringify({
+        auth_mode: 'chatgpt',
+        tokens: {
+          access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+          refresh_token: 'file-refresh-token',
+          account_id: 'file-account',
+        },
+      }),
+    );
+    const keyringAccessToken = jwt(Math.floor(Date.now() / 1000) + 3600);
+    const keyring = {
+      read: vi.fn(async () =>
+        JSON.stringify({
+          auth_mode: 'chatgpt',
+          tokens: {
+            access_token: keyringAccessToken,
+            refresh_token: 'keyring-refresh-token',
+            account_id: 'keyring-account',
+          },
+        }),
+      ),
+      write: vi.fn(async () => {}),
+    };
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'auto',
+        keyring,
+      }),
+    ).resolves.toEqual({
+      environment: {
+        CODEX_API_KEY: keyringAccessToken,
+        OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+      },
+      requestHeaders: { 'ChatGPT-Account-ID': 'keyring-account' },
+    });
+  });
+
+  it('reads the Codex credential store mode from config.toml', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    await writeFile(
+      join(codexHome, 'config.toml'),
+      'cli_auth_credentials_store = "keyring"\n',
+    );
+    const keyringAccessToken = jwt(Math.floor(Date.now() / 1000) + 3600);
+    const keyring = {
+      read: vi.fn(async () =>
+        JSON.stringify({
+          auth_mode: 'chatgpt',
+          tokens: {
+            access_token: keyringAccessToken,
+            refresh_token: 'refresh-token',
+          },
+        }),
+      ),
+      write: vi.fn(async () => {}),
+    };
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        keyring,
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: keyringAccessToken },
+    });
+    expect(keyring.read).toHaveBeenCalledExactlyOnceWith({
+      service: 'Codex Auth',
+      account: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+    });
+  });
+
+  it('reads the Codex credential from the macOS Keychain', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readMacOSKeychainPassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'darwin',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readMacOSKeychainPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      service: 'Codex Auth',
+      account: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+    });
+  });
+
+  it('reads the Codex credential from Linux Secret Service', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readLinuxSecretServicePassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'linux',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readLinuxSecretServicePassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      attributes: {
+        service: 'Codex Auth',
+        username: expect.stringMatching(/^cli\|[0-9a-f]{16}$/),
+        target: 'default',
+      },
+    });
+  });
+
+  it('reads the Codex credential from Windows Credential Manager', async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), 'codex-auth-'));
+    credentialStoreMocks.readWindowsCredentialManagerPassword.mockResolvedValueOnce(
+      createCodexKeyringCredential(),
+    );
+
+    await expect(
+      readCodexSubscription({
+        env: { CODEX_HOME: codexHome },
+        authCredentialsStoreMode: 'keyring',
+        platform: 'win32',
+      }),
+    ).resolves.toMatchObject({
+      environment: { CODEX_API_KEY: expect.stringMatching(/^header\./) },
+    });
+    expect(
+      credentialStoreMocks.readWindowsCredentialManagerPassword,
+    ).toHaveBeenCalledExactlyOnceWith({
+      targetName: expect.stringMatching(/^cli\|[0-9a-f]{16}\.Codex Auth$/),
+    });
+  });
+
+  it('does not inspect persistent storage in ephemeral mode', async () => {
+    const keyring = {
+      read: vi.fn(),
+      write: vi.fn(),
+    };
+    await expect(
+      readCodexSubscription({
+        authCredentialsStoreMode: 'ephemeral',
+        keyring,
+      }),
+    ).resolves.toBeUndefined();
+    expect(keyring.read).not.toHaveBeenCalled();
+  });
+});
+
+function createCodexKeyringCredential(): string {
+  return JSON.stringify({
+    auth_mode: 'chatgpt',
+    tokens: {
+      access_token: jwt(Math.floor(Date.now() / 1000) + 3600),
+      refresh_token: 'refresh-token',
+    },
+  });
+}
 
 describe('createCodexRequestTransformations', () => {
   it('uses the configured OpenAI-compatible route for direct auth', () => {
@@ -228,5 +519,28 @@ describe('createCodexRequestTransformations', () => {
         auth: 'direct',
       }),
     ).toEqual([]);
+  });
+
+  it('adds the ChatGPT account header only at the host boundary', () => {
+    expect(
+      createCodexSubscriptionRequestTransformations({
+        env: {
+          CODEX_API_KEY: 'host-access-token',
+          OPENAI_BASE_URL: 'https://chatgpt.com/backend-api/codex',
+        },
+        sandboxEnv: { CODEX_API_KEY: 'sandbox-placeholder' },
+        auth: 'direct',
+        requestHeaders: { 'ChatGPT-Account-ID': 'account-id' },
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        transform: {
+          headers: {
+            Authorization: 'Bearer host-access-token',
+            'ChatGPT-Account-ID': 'account-id',
+          },
+        },
+      }),
+    ]);
   });
 });

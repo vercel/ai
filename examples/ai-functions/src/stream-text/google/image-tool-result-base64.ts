@@ -42,7 +42,7 @@ run(async () => {
   });
 
   const result = streamText({
-    model: google('gemini-3-flash-preview'),
+    model: google('gemini-3.8-flash'),
     prompt:
       'Please read the image using the tool provided and return the summary of that image',
     tools: {

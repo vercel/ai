@@ -1,7 +1,6 @@
 {
   "extends": "./node_modules/@vercel/ai-tsconfig/base.json",
   "compilerOptions": {
-    "target": "ES2018",
     "stripInternal": true,
     "lib": [
       "dom",
@@ -44,9 +43,6 @@
     },
     {
       "path": "../moonshotai"
-    },
-    {
-      "path": "../open-responses"
     },
     {
       "path": "../openai"

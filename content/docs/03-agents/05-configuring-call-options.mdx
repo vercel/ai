@@ -87,7 +87,9 @@ const agent = new ToolLoopAgent({
   prepareCall: ({ options, ...settings }) => ({
     ...settings,
     model:
-      options.complexity === 'simple' ? 'openai/gpt-4o-mini' : 'openai/o1-mini',
+      options.complexity === 'simple'
+        ? 'openai/gpt-6-luna'
+        : 'openai/gpt-6-astra',
   }),
 });
 
@@ -158,7 +160,7 @@ import { ToolLoopAgent } from 'ai';
 import { z } from 'zod';
 
 const agent = new ToolLoopAgent({
-  model: 'openai/o3',
+  model: 'openai/gpt-6-astra',
   callOptionsSchema: z.object({
     taskDifficulty: z.enum(['low', 'medium', 'high']),
   }),

@@ -27,6 +27,7 @@ function prepareJsonResponse({
     candidatesTokenCount: 100,
     totalTokenCount: 110,
   },
+  finishReason = 'STOP',
   headers,
   groundingMetadata,
 }: {
@@ -36,6 +37,7 @@ function prepareJsonResponse({
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  finishReason?: string;
   headers?: Record<string, string>;
   groundingMetadata?: Record<string, unknown>;
 } = {}) {
@@ -54,7 +56,7 @@ function prepareJsonResponse({
             })),
             role: 'model',
           },
-          finishReason: 'STOP',
+          finishReason,
           ...(groundingMetadata != null ? { groundingMetadata } : {}),
         },
       ],
@@ -120,8 +122,8 @@ describe('GoogleImageModel', () => {
   });
 
   describe('maxImagesPerCall', () => {
-    it('should return 10 by default', () => {
-      expect(model.maxImagesPerCall).toBe(10);
+    it('should default to a supported per-call limit', () => {
+      expect(model.maxImagesPerCall).toBe(1);
     });
 
     it('should respect a custom setting', () => {
@@ -189,6 +191,7 @@ describe('GoogleImageModel', () => {
         {
           "google": {
             "finishMessage": null,
+            "finishReason": "STOP",
             "groundingMetadata": null,
             "images": [
               {},
@@ -206,6 +209,107 @@ describe('GoogleImageModel', () => {
         }
       `);
     });
+
+    it('should preserve prompt feedback when a prompt block returns no candidates', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(result.providerMetadata?.google).toMatchObject({
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        images: [],
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        serviceTier: 'standard',
+      });
+    });
+
+    it('should expose the candidate finish reason in provider metadata', async () => {
+      prepareJsonResponse({
+        images: [],
+        finishReason: 'IMAGE_SAFETY',
+      });
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.providerMetadata?.google).toMatchObject({
+        finishReason: 'IMAGE_SAFETY',
+        images: [],
+      });
+    });
+
+    it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+      'should leave empty responses with default prompt block reason %j retryable',
+      async blockReason => {
+        server.urls[TEST_URL].response = {
+          type: 'json-value',
+          body: {
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          },
+        };
+
+        const result = await model.doGenerate({
+          prompt: 'An image prompt with an empty response',
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+        });
+
+        expect(result.images).toEqual([]);
+        expect(result.isRetryable).toBeUndefined();
+        expect(result.providerMetadata?.google).toMatchObject({
+          promptFeedback: {
+            blockReason,
+          },
+        });
+      },
+    );
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
       prepareJsonResponse({});
@@ -373,6 +477,7 @@ describe('GoogleImageModel', () => {
       expect(result.providerMetadata?.google).toMatchInlineSnapshot(`
         {
           "finishMessage": null,
+          "finishReason": "STOP",
           "groundingMetadata": {
             "groundingChunks": [
               {
@@ -438,7 +543,7 @@ describe('GoogleImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -453,21 +558,6 @@ describe('GoogleImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({

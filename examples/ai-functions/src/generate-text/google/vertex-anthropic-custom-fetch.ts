@@ -15,7 +15,7 @@ const vertexAnthropic = createVertexAnthropic({
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+    model: vertexAnthropic('claude-sonnet-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 

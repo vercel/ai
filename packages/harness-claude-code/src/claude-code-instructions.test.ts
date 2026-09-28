@@ -15,12 +15,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 const sentMessages: Array<Record<string, unknown>> = [];
 const openCalls: Array<{ resume?: boolean } | undefined> = [];
+let listenerAttachmentsStarted = 0;
+let listenerAttachmentsFinished = 0;
 
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
     async open(opts?: { resume?: boolean }): Promise<void> {
       openCalls.push(opts);
+    }
+    beginListenerAttachment(): () => void {
+      listenerAttachmentsStarted++;
+      return () => {
+        listenerAttachmentsFinished++;
+      };
     }
     on(): () => void {
       return () => {};
@@ -66,8 +74,13 @@ function emptyStream(): ReadableStream<Uint8Array> {
 function fakeNetworkSandboxSession(): HarnessV1NetworkSandboxSession {
   const port = 4319;
   const session = {
-    run: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+    run: async ({ command }: { command: string }) => ({
+      exitCode: 0,
+      stdout: command === 'printf "%s" "$HOME"' ? '/home/vercel-sandbox' : '',
+      stderr: '',
+    }),
     readTextFile: async () => null,
+    writeTextFile: async () => {},
     spawn: async () => ({
       stdout: readyStream(port),
       stderr: emptyStream(),
@@ -113,12 +126,16 @@ describe('claude-code adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
     openCalls.length = 0;
+    listenerAttachmentsStarted = 0;
+    listenerAttachmentsFinished = 0;
   });
 
   it('keeps instructions separate from every user message', async () => {
     const session = await startSession();
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'first turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -127,6 +144,8 @@ describe('claude-code adapter — instructions transport', () => {
     expect(lastStart().instructions).toBe(INSTRUCTIONS);
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'second turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -146,6 +165,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doPromptTurn({
+      skills: [],
+      tools: [],
       prompt: 'resumed turn',
       instructions: INSTRUCTIONS,
       emit: () => {},
@@ -165,6 +186,8 @@ describe('claude-code adapter — instructions transport', () => {
     });
 
     await session.doContinueTurn({
+      skills: [],
+      tools: [],
       instructions: INSTRUCTIONS,
       emit: () => {},
     });
@@ -191,7 +214,7 @@ describe('claude-code adapter — instructions transport', () => {
     });
     expect(openCalls.at(-1)).toBeUndefined();
 
-    await startSession({
+    const continuedSession = await startSession({
       continueFrom: {
         type: 'continue-turn',
         harnessId: 'claude-code',
@@ -206,5 +229,15 @@ describe('claude-code adapter — instructions transport', () => {
       },
     });
     expect(openCalls.at(-1)).toEqual({ resume: true });
+    expect(listenerAttachmentsStarted).toBe(1);
+    expect(listenerAttachmentsFinished).toBe(0);
+
+    const control = await continuedSession.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+    expect(listenerAttachmentsFinished).toBe(1);
   });
 });

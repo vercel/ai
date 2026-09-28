@@ -286,6 +286,8 @@ describe('getFromApi', () => {
         validateUrl: true,
         headers: {
           authorization: 'Bearer secret',
+          'x-key': 'provider-secret',
+          'x-custom-metadata': 'custom-value',
           'metadata-flavor': 'Google',
           'x-forwarded-for': '10.0.0.1',
           cookie: 'session=abc',
@@ -300,8 +302,10 @@ describe('getFromApi', () => {
       expect(sentHeaders.get('metadata-flavor')).toBeNull();
       expect(sentHeaders.get('x-forwarded-for')).toBeNull();
       expect(sentHeaders.get('cookie')).toBeNull();
-      // Authorization and user-agent are preserved on the initial hop.
+      // Preserve the existing first-hop contract when no credentialedOrigin is provided.
       expect(sentHeaders.get('authorization')).toBe('Bearer secret');
+      expect(sentHeaders.get('x-key')).toBe('provider-secret');
+      expect(sentHeaders.get('x-custom-metadata')).toBe('custom-value');
       expect(sentHeaders.get('user-agent')).toContain('ai-sdk/provider-utils');
     });
 

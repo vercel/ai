@@ -257,13 +257,27 @@ describe('GoogleVertexEmbeddingModel', () => {
       expect(result.usage).toStrictEqual({ tokens: 4 });
     });
 
-    it('should limit gemini-embedding-2 to one value per call', () => {
-      const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
-        'gemini-embedding-2',
-        mockConfig,
-      );
+    describe('maxEmbeddingsPerCall', () => {
+      it('should limit predict endpoint models to 250 values per call', () => {
+        const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+          'gemini-embedding-001',
+          mockConfig,
+        );
 
-      expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(1);
+        expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(250);
+      });
+
+      it.each(['gemini-embedding-2', 'gemini-embedding-2-preview'] as const)(
+        'should limit %s to one value per call',
+        modelId => {
+          const geminiEmbeddingModel = new GoogleVertexEmbeddingModel(
+            modelId,
+            mockConfig,
+          );
+
+          expect(geminiEmbeddingModel.maxEmbeddingsPerCall).toBe(1);
+        },
+      );
     });
   });
 
@@ -331,7 +345,7 @@ describe('GoogleVertexEmbeddingModel', () => {
   });
 
   it('should throw TooManyEmbeddingValuesForCallError when too many values provided', async () => {
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(251).fill('test');
 
     await expect(
       model.doEmbed({

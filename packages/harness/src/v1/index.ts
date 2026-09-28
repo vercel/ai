@@ -1,5 +1,10 @@
 export type { HarnessV1 } from './harness-v1';
+export type {
+  HarnessV1Authentication,
+  HarnessV1AuthenticationEnvironment,
+} from './harness-authentication';
 export type { HarnessV1CredentialForwarding } from './harness-v1-credential-forwarding';
+export type { HarnessV1MintBridgeTokenCallback } from './harness-v1-mint-bridge-token';
 export type {
   HarnessV1Bootstrap,
   HarnessV1BootstrapCommand,
@@ -24,6 +29,15 @@ export {
   HARNESS_V1_BUILTIN_TOOLS,
   commonTool,
 } from './harness-v1-builtin-tool';
+export type {
+  HarnessV1QuestionsTool,
+  HarnessV1QuestionsToolInput,
+  HarnessV1QuestionsToolOutput,
+} from './harness-v1-questions-tool';
+export {
+  harnessV1QuestionsToolInputSchema,
+  harnessV1QuestionsToolOutputSchema,
+} from './harness-v1-questions-tool';
 export type { HarnessV1Metadata } from './harness-v1-metadata';
 export type { HarnessV1Prompt } from './harness-v1-prompt';
 export type {
@@ -34,12 +48,16 @@ export type {
   HarnessV1ResponseFormat,
 } from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
+export type { HarnessV1SandboxTemplate } from './harness-v1-sandbox-template';
+export type { HarnessV1SandboxSessionCreateOptions } from './harness-v1-sandbox-session-create-options';
+export type { HarnessV1SandboxSessionResumeOptions } from './harness-v1-sandbox-session-resume-options';
 export type {
   HarnessV1ContinueTurnState,
   HarnessV1LifecycleState,
   HarnessV1PendingToolApproval,
   HarnessV1PendingToolResult,
   HarnessV1ResumeSessionState,
+  HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
 export type {
   HarnessV1NetworkPolicy,
@@ -48,6 +66,8 @@ export type {
   HarnessV1RequestTransformation,
   HarnessV1RequestTransformationSources,
 } from './harness-v1-network-sandbox-session';
+export { harnessStateDirectoryPath } from './harness-v1-network-sandbox-session';
+export { harnessSessionDataDirectoryPath } from './harness-session-data-directory-path';
 export type { HarnessV1Skill } from './harness-v1-skill';
 export type { HarnessV1StreamPart } from './harness-v1-stream-part';
 export {

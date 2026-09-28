@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: vertexAnthropic('claude-sonnet-4-5'),
+    model: vertexAnthropic('claude-sonnet-5'),
     prompt: 'Find out weather data in SF',
     stopWhen: isStepCount(10),
     onStepFinish: step => {

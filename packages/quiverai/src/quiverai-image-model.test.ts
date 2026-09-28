@@ -1,9 +1,7 @@
 import { APICallError } from '@ai-sdk/provider';
 import { describe, expect, it } from 'vitest';
-import {
-  QuiverAIImageModel,
-  quiveraiFailedResponseHandler,
-} from './quiverai-image-model';
+import { quiveraiFailedResponseHandler } from './quiverai-error';
+import { QuiverAIImageModel } from './quiverai-image-model';
 
 describe('QuiverAIImageModel', () => {
   describe('capabilities', () => {

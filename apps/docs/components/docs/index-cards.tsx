@@ -17,6 +17,8 @@ export const IndexCards = ({
         className="flex flex-col gap-1 rounded-lg border border-gray-alpha-400 p-4 hover:border-gray-alpha-600"
         href={resolveHref(card.href)}
         key={card.href}
+        // Fully prefetch static docs pages so navigation never shows a shell.
+        prefetch
       >
         <div className="font-medium text-gray-1000">{card.title}</div>
         <div className="text-gray-900 text-sm">{card.description}</div>

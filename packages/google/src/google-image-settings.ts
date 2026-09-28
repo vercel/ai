@@ -7,7 +7,7 @@ export type GoogleImageModelId =
 
 export interface GoogleImageSettings {
   /**
-   * Override the maximum number of images per call (default 10)
+   * Override the maximum number of images per call (default 1)
    */
   maxImagesPerCall?: number;
 }

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5'),
     prompt: 'Write a short story and end it with the word END.',
     stopSequences: ['END'],
   });

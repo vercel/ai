@@ -15,7 +15,7 @@ The bridge installs `@anthropic-ai/claude-agent-sdk` and `@anthropic-ai/claude-c
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 
@@ -30,10 +30,6 @@ const agent = new HarnessAgent({
     ],
   }),
   id: 'demo',
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   tools: {
     deploy: tool({
       description: 'Deploy a service.',
@@ -48,7 +44,12 @@ const agent = new HarnessAgent({
   },
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -58,10 +59,12 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
-The adapter requires a `HarnessV1SandboxProvider` whose handles expose at least one port — `@ai-sdk/sandbox-vercel` is the supported choice today. The agent calls `provider.createSession()` when a session starts. Use `session.detach()` to park the bridge and sandbox, `session.stop()` to save state and stop the sandbox, or `session.destroy()` to clean up without keeping resume state.
+The adapter needs a sandbox session with an exposed port. The caller owns the
+sandbox lifecycle: ending the harness session does not stop the sandbox.
 
 ## Runtime configuration
 

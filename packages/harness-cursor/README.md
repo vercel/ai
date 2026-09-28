@@ -8,24 +8,25 @@ The **[@ai-sdk/harness-cursor](https://www.npmjs.com/package/@ai-sdk/harness-cur
 npm install @ai-sdk/harness @ai-sdk/harness-cursor @ai-sdk/sandbox-vercel
 ```
 
-Create a Cursor user API key and set `CURSOR_API_KEY`. The key authenticates Cursor CLI in the sandbox regardless of how Cursor is configured to authenticate to the model provider.
+Create a Cursor user API key and set `CURSOR_API_KEY`, or pass it directly with `createCursor({ auth: { CURSOR_API_KEY: token } })`. The key authenticates Cursor CLI in the sandbox regardless of how Cursor is configured to authenticate to the model provider.
 
 ## Usage
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { cursor } from '@ai-sdk/harness-cursor';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 
 const agent = new HarnessAgent({
   harness: cursor,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 
 try {
   const result = await agent.generate({
@@ -35,6 +36,7 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 

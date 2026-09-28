@@ -17,7 +17,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = streamText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5'),
     messages: [
       {
         role: 'user',

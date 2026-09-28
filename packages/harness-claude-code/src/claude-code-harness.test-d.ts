@@ -2,9 +2,15 @@ import type {
   HarnessAgentAdapter,
   HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
-import type { InferToolInput } from '@ai-sdk/provider-utils';
+import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
-import { claudeCode, createClaudeCode } from './index';
+import {
+  claudeCode,
+  createClaudeCode,
+  type ClaudeCodeHarnessSettings,
+} from './index';
 
 /*
  * Regression guard for the harness Zod compatibility contract: a concrete
@@ -51,6 +57,12 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     });
   });
 
+  test('the question tool retains its output type', () => {
+    expectTypeOf<
+      InferToolOutput<typeof claudeCode.builtinTools.askUserQuestions>
+    >().toEqualTypeOf<HarnessV1QuestionsToolOutput>();
+  });
+
   test('canonical and legacy MCP names remain available', () => {
     assertType(claudeCode.builtinTools.ListMcpResources);
     assertType(claudeCode.builtinTools.ListMcpResourcesTool);
@@ -72,5 +84,19 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         credentialForwarding: async ({ credential }) => credential,
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 });

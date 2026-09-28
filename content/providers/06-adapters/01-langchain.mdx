@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const model = new ChatOpenAI({
-    model: 'gpt-4o-mini',
+    model: 'gpt-4.1-mini',
     temperature: 0,
   });
 
@@ -115,7 +115,7 @@ import { toBaseMessages, toUIMessageStream } from '@ai-sdk/langchain';
 export const maxDuration = 60;
 
 const model = new ChatOpenAI({
-  model: 'gpt-4o',
+  model: 'gpt-4.1',
   temperature: 0.7,
 });
 
@@ -164,7 +164,7 @@ import { StateGraph, MessagesAnnotation } from '@langchain/langgraph';
 export const maxDuration = 30;
 
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-4.1-mini',
   temperature: 0,
 });
 
@@ -211,7 +211,7 @@ import { createUIMessageStreamResponse, UIMessage } from 'ai';
 export const maxDuration = 30;
 
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-4.1-mini',
   temperature: 0,
 });
 
@@ -255,7 +255,7 @@ import { z } from 'zod';
 
 export const maxDuration = 60;
 
-const model = new ChatOpenAI({ model: 'gpt-4o-mini' });
+const model = new ChatOpenAI({ model: 'gpt-6-luna' });
 
 // Tool that emits progress updates during execution
 const analyzeDataTool = tool(

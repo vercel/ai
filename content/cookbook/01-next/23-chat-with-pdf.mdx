@@ -6,12 +6,12 @@ tags: ['next', 'pdf', 'multimodal']
 
 # Chat with PDFs
 
-Some language models like Anthropic's Claude Sonnet 3.5 and Google's Gemini 2.0 can understand PDFs and respond to questions about their contents. In this example, we'll show you how to build a chat interface that accepts PDF uploads.
+Some language models like Anthropic's Claude Sonnet 5 and Google's Gemini 3.8 Flash can understand PDFs and respond to questions about their contents. In this example, we'll show you how to build a chat interface that accepts PDF uploads.
 
 <Note>
   This example requires a provider that supports PDFs, such as Anthropic's
-  Claude 3.7, Google's Gemini 2.5, or OpenAI's GPT-4.1. Check the [provider
-  documentation](/providers/ai-sdk-providers) for up-to-date support
+  Claude Sonnet 5, Google's Gemini 3.8 Flash, or OpenAI's GPT-6 Astra. Check the
+  [provider documentation](/providers/ai-sdk-providers) for up-to-date support
   information.
 </Note>
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'anthropic/claude-sonnet-4',
+    model: 'anthropic/claude-sonnet-5',
     messages: await convertToModelMessages(messages),
   });
 

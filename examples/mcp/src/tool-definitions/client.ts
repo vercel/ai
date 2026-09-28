@@ -18,7 +18,7 @@ async function main() {
   const tools = mcpClient.toolsFromDefinitions(definitions);
 
   const { text: answer, steps } = await generateText({
-    model: openai('gpt-4o-mini'),
+    model: openai('gpt-6-luna'),
     tools,
     stopWhen: isStepCount(20),
     onStepFinish: async ({ toolResults }) => {

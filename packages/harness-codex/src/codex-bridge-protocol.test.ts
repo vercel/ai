@@ -3,6 +3,7 @@ import {
   bridgeReadySchema,
   inboundMessageSchema,
   outboundMessageSchema,
+  startMessageSchema,
 } from './codex-bridge-protocol';
 
 describe('outboundMessageSchema', () => {
@@ -69,6 +70,7 @@ describe('inboundMessageSchema', () => {
         type: 'start',
         prompt: 'hi',
         instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
@@ -112,6 +114,19 @@ describe('inboundMessageSchema', () => {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }
   });
+
+  it.each(['xhigh', 'max'] as const)(
+    'accepts %s reasoning effort in a start message',
+    reasoningEffort => {
+      expect(() =>
+        startMessageSchema.parse({
+          type: 'start',
+          prompt: 'Solve a difficult problem.',
+          reasoningEffort,
+        }),
+      ).not.toThrow();
+    },
+  );
 });
 
 describe('bridgeReadySchema', () => {
