@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   createOpenResponsesExtensionRegistry,
-  type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from './open-responses-extension';
 import { createOpenResponsesTools } from './open-responses-tools';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
@@ -99,7 +99,7 @@ export interface OpenResponsesProviderSettings {
    *
    * @experimental This API may change in a future release.
    */
-  experimental_extensions?: readonly OpenResponsesExtension[];
+  experimental_extensions?: readonly OpenResponsesExtensionRegistration[];
 }
 
 export function createOpenResponses(

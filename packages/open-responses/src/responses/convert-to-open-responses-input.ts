@@ -10,6 +10,8 @@ import {
   resolveFullMediaType,
 } from '@ai-sdk/provider-utils';
 import {
+  asOpenResponsesExtensionRecord,
+  getOpenResponsesExtensionItemTypes,
   isOpenResponsesExtensionItem,
   type OpenResponsesExtensionInputPart,
   type OpenResponsesExtensionItem,
@@ -182,7 +184,7 @@ export async function convertToOpenResponsesInput({
             if (replayItem != null) {
               const replayKey = `${replayItem.type}:${replayItem.id}`;
               if (!replayedExtensionItems.has(replayKey)) {
-                input.push(replayItem);
+                input.push(asOpenResponsesExtensionRecord(replayItem));
                 replayedExtensionItems.add(replayKey);
               }
             }
@@ -210,7 +212,7 @@ export async function convertToOpenResponsesInput({
                   feature: `provider-defined tool ${providerTool.id} ${part.type} history`,
                 });
               } else {
-                input.push(...encoded);
+                input.push(...encoded.map(asOpenResponsesExtensionRecord));
               }
               continue;
             }
@@ -356,7 +358,7 @@ export async function convertToOpenResponsesInput({
               if (replayItem != null) {
                 const replayKey = `${replayItem.type}:${replayItem.id}`;
                 if (!replayedExtensionItems.has(replayKey)) {
-                  input.push(replayItem);
+                  input.push(asOpenResponsesExtensionRecord(replayItem));
                   replayedExtensionItems.add(replayKey);
                 }
               }
@@ -382,7 +384,7 @@ export async function convertToOpenResponsesInput({
                   feature: `provider-defined tool ${providerTool.id} tool-result history`,
                 });
               } else {
-                input.push(...encoded);
+                input.push(...encoded.map(asOpenResponsesExtensionRecord));
               }
               continue;
             }
@@ -503,11 +505,12 @@ async function encodeExtensionInputPart({
   extensionRegistry: OpenResponsesExtensionRegistry | undefined;
   part: OpenResponsesExtensionInputPart;
   providerTool: LanguageModelV4ProviderTool;
-}): Promise<OpenResponsesExtensionItem[] | undefined> {
+}): Promise<OpenResponsesExtensionItem<string>[] | undefined> {
   const extension = extensionRegistry?.byProviderToolId.get(providerTool.id);
   const encodeInputItem = extension?.encodeInputItem;
-  const itemTypes = extension?.itemTypes;
-  if (encodeInputItem == null || itemTypes == null) {
+  const itemTypes =
+    extension == null ? [] : getOpenResponsesExtensionItemTypes(extension);
+  if (encodeInputItem == null || itemTypes.length === 0) {
     return undefined;
   }
 
@@ -546,7 +549,7 @@ function getExtensionReplay({
   };
   providerOptionsName: string;
   extensionRegistry: OpenResponsesExtensionRegistry | undefined;
-}): { item?: OpenResponsesExtensionItem } | undefined {
+}): { item?: OpenResponsesExtensionItem<string> } | undefined {
   const extensionData = getProviderData(
     part,
     providerOptionsName,
@@ -580,7 +583,7 @@ function getExtensionReplay({
 
   if (
     isOpenResponsesExtensionItem(item) &&
-    extension.itemTypes?.includes(item.type)
+    getOpenResponsesExtensionItemTypes(extension).includes(item.type)
   ) {
     return { item };
   }
