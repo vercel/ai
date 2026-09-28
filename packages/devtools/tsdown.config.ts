@@ -6,6 +6,9 @@ export default defineConfig(
   [
     // Middleware entry (main package export)
     {
+      deps: {
+        neverBundle: ['ai'],
+      },
       sourcemap: false,
       outDir: 'dist',
       clean: false,
