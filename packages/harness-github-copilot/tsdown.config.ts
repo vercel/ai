@@ -32,6 +32,5 @@ export default defineConfig(
       __GITHUB_COPILOT_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
         implementationPnpmWorkspaceYaml,
     },
-    clean: false,
   }),
 );

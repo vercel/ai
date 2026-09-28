@@ -31,6 +31,5 @@ export default defineConfig(
       __GROK_BUILD_IMPLEMENTATION_PNPM_WORKSPACE_YAML__:
         implementationPnpmWorkspaceYaml,
     },
-    clean: false,
   }),
 );

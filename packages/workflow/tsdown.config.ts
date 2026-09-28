@@ -7,6 +7,5 @@ export default defineConfig(
     entry: ['src/index.ts', 'src/client.ts', 'src/video.ts'],
     // Keep library target conservative for wide compatibility
     platform: 'node',
-    clean: false,
   }),
 );

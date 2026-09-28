@@ -11,6 +11,5 @@ export default defineConfig(
     define: {
       __PACKAGE_VERSION__: packageVersion,
     },
-    clean: false,
   }),
 );
