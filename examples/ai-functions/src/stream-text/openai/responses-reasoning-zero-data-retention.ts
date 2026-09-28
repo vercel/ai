@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result1 = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt:
       'Analyze the following encrypted data: U2VjcmV0UGFzc3dvcmQxMjM=. What type of encryption is this and what secret does it contain?',
     reasoning: 'medium',
@@ -33,7 +33,7 @@ run(async () => {
   );
 
   const result2 = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: [
       {
         role: 'user',

@@ -1,5 +1,5 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod/v4';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -57,13 +57,8 @@ function createPolicyTool(profile: Profile) {
 }
 
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    timeout: 10 * 60 * 1000,
-  });
   const agent = new HarnessAgent({
     harness: createPi(),
-    sandbox,
     tools: { getPolicy: createPolicyTool('frontend') },
     callOptionsSchema: z.object({
       profile: z.enum(['frontend', 'backend']),
@@ -87,8 +82,14 @@ run(async () => {
     },
   });
 
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     for (const turn of turns) {
       console.log(`--- ${turn.label} turn ---`);
       const result = await agent.stream({
@@ -121,6 +122,7 @@ run(async () => {
       }
     }
   } finally {
-    await session.destroy();
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

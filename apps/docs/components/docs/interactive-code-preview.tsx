@@ -46,15 +46,11 @@ const cx = (...classes: (string | false | null | undefined)[]): string =>
 
 const identityHref: ResolveHref = href => href;
 
-const STORAGE_KEY = 'ai-sdk-code-preview';
-
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
 
-const TAB_TYPES: TabType[] = ['gateway', 'provider', 'custom'];
-
 const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
-  text: 'anthropic/claude-sonnet-4.5',
-  image: 'openai/gpt-image-1',
+  text: 'anthropic/claude-sonnet-5',
+  image: 'openai/gpt-image-2.5-sunburst',
   video: 'google/veo-3.1-generate-001',
 };
 
@@ -78,54 +74,11 @@ const MODEL_KIND_FACTORY_SUFFIX: Record<ModelKind, string> = {
 
 const MODEL_KINDS = Object.keys(MODEL_KIND_PLACEHOLDERS) as ModelKind[];
 
-type PersistedStorageState = {
-  modelId?: string;
-  modelIds?: Partial<Record<ModelKind, string>>;
-  tab?: TabType;
-};
-
-type StorageState = {
-  modelIds: Record<ModelKind, string>;
-  tab: TabType;
-};
-
 const EXCLUDED_MODEL_IDS = [
   'openai/gpt-oss-safeguard-20b',
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
 ];
-
-const safeLocalStorage = {
-  getItem: (): PersistedStorageState | null => {
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    try {
-      const item = localStorage.getItem(STORAGE_KEY);
-      return item ? (JSON.parse(item) as PersistedStorageState) : null;
-    } catch {
-      return null;
-    }
-  },
-  setItem: (state: StorageState): void => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      // Dispatch storage event so other instances on the page stay in sync
-      // (the native event only fires in other tabs).
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: STORAGE_KEY,
-          newValue: JSON.stringify(state),
-        }),
-      );
-    } catch {
-      // Storage unavailable (private mode, quota); selection stays in memory.
-    }
-  },
-};
 
 const getDefaultModelIds = (
   defaultTextModelId: string,
@@ -133,24 +86,6 @@ const getDefaultModelIds = (
   ...DEFAULT_MODEL_IDS,
   text: defaultTextModelId,
 });
-
-const getStorageState = (
-  state: PersistedStorageState | null,
-  defaultTextModelId: string,
-): StorageState | null => {
-  if (!(state?.tab && TAB_TYPES.includes(state.tab))) {
-    return null;
-  }
-
-  return {
-    tab: state.tab,
-    modelIds: {
-      ...getDefaultModelIds(defaultTextModelId),
-      ...state.modelIds,
-      ...(state.modelId ? { text: state.modelId } : {}),
-    },
-  };
-};
 
 type ModelOption = {
   id: string;
@@ -247,15 +182,17 @@ const providerPreferredModels: Partial<
   Record<ModelKind, Record<string, string>>
 > = {
   text: {
-    google: 'google/gemini-3-pro-preview',
+    openai: 'openai/gpt-6-astra',
+    google: 'google/gemini-3.1-pro-preview',
+    xai: 'spacexai/grok-4.7',
   },
   image: {
-    openai: 'openai/gpt-image-1',
-    xai: 'xai/grok-imagine-image-pro',
+    openai: 'openai/gpt-image-2.5-sunburst',
+    xai: 'spacexai/grok-imagine-image-2.0',
   },
   video: {
     google: 'google/veo-3.1-generate-001',
-    xai: 'xai/grok-imagine-video',
+    xai: 'spacexai/grok-imagine-video-1.5',
   },
 };
 
@@ -323,10 +260,10 @@ const getDefaultModelOption = (kind: ModelKind): ModelOption => {
     kind,
     name:
       kind === 'image'
-        ? 'GPT Image 1'
+        ? 'GPT Image 2.5 Sunburst'
         : kind === 'video'
           ? 'Veo 3.1'
-          : 'Claude Sonnet 4.5',
+          : 'Claude Sonnet 5',
     provider,
     providerTitle: providerTitles[provider] ?? provider,
     code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],
@@ -349,15 +286,17 @@ function parseModels(data: GatewayResponse | null): ModelOption[] {
       continue;
     }
 
+    // Gateway lists xAI models under spacexai; the SDK package is @ai-sdk/xai.
+    const provider = model.owned_by === 'spacexai' ? 'xai' : model.owned_by;
     const code = model.id.split('/')[1] || model.id;
     models.push({
       id: model.id,
       kind,
       name: model.name,
-      provider: model.owned_by,
-      providerTitle: providerTitles[model.owned_by] || model.owned_by,
+      provider,
+      providerTitle: providerTitles[provider] || provider,
       code,
-      icon: <ProviderLogo provider={model.owned_by} />,
+      icon: <ProviderLogo provider={provider} />,
       created: model.created,
     });
   }
@@ -414,38 +353,18 @@ const loadHighlighter = (): Promise<ShikiHighlighter> => {
 };
 
 /**
- * Highlight code with the Geist css-variables shiki theme and return the
- * inner HTML of the generated `<code>` element (shiki `.line` spans, with
- * `highlighted` added to the requested 1-based lines). The Geistdocs
- * CodeBlock supplies the surrounding `<pre>`, mirroring the DOM shape the
- * MDX pipeline produces at build time.
+ * Highlight code with the Geist css-variables shiki theme. Geistdocs owns the
+ * surrounding pre/code elements, so return tokens that can be rendered as
+ * React children and copied as plain text.
  */
 const highlightCode = async (
   code: string,
-  highlightedLines: number[],
-): Promise<string> => {
+): Promise<Awaited<ReturnType<ShikiHighlighter['codeToTokensBase']>>> => {
   const highlighter = await loadHighlighter();
-  const html = highlighter.codeToHtml(code, {
+  return highlighter.codeToTokensBase(code, {
     lang: 'typescript',
     theme: geistShikiTheme,
-    transformers: [
-      {
-        line(node, line) {
-          if (highlightedLines.includes(line)) {
-            this.addClassToHast(node, 'highlighted');
-          }
-        },
-      },
-    ],
   });
-
-  const codeTagStart = html.indexOf('<code');
-  const contentStart = html.indexOf('>', codeTagStart) + 1;
-  const contentEnd = html.lastIndexOf('</code>');
-  if (codeTagStart === -1 || contentEnd === -1 || contentStart === 0) {
-    return '';
-  }
-  return html.slice(contentStart, contentEnd);
 };
 
 function ModelDropdown({
@@ -656,52 +575,6 @@ export const InteractiveCodePreview = ({
   >(() => getDefaultModelIds(defaultModelId));
   const [showProviderOnly, setShowProviderOnly] = useState<string | null>(null);
 
-  // Load saved state from localStorage after mount to avoid hydration mismatch
-  useEffect(() => {
-    const saved = getStorageState(safeLocalStorage.getItem(), defaultModelId);
-    if (saved) {
-      setActiveTab(saved.tab);
-      setSelectedModelIds(saved.modelIds);
-    }
-  }, [defaultModelId]);
-
-  // Listen for changes from other instances via storage event
-  useEffect(() => {
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key !== STORAGE_KEY || !event.newValue) {
-        return;
-      }
-      try {
-        const saved = getStorageState(
-          JSON.parse(event.newValue) as PersistedStorageState,
-          defaultModelId,
-        );
-        if (!saved) {
-          return;
-        }
-
-        setActiveTab(saved.tab);
-        setSelectedModelIds(saved.modelIds);
-        setShowProviderOnly(null);
-      } catch {
-        // Ignore invalid JSON
-      }
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [defaultModelId]);
-
-  // Save and broadcast when selection changes
-  const updateSelection = (
-    modelIds: Record<ModelKind, string>,
-    tab: TabType,
-  ) => {
-    safeLocalStorage.setItem({ modelIds, tab });
-  };
-
   // Fetch the gateway model list client-side; fall back to the default
   // options when the request fails or is blocked.
   const [gatewayData, setGatewayData] = useState<GatewayResponse | null>(null);
@@ -854,7 +727,6 @@ export const InteractiveCodePreview = ({
       };
       setSelectedModelIds(nextModelIds);
       setShowProviderOnly(providerName);
-      updateSelection(nextModelIds, activeTab);
       onModelChange?.();
     }
   };
@@ -862,7 +734,6 @@ export const InteractiveCodePreview = ({
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
     setShowProviderOnly(null);
-    updateSelection(selectedModelIds, tab);
   };
 
   const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -893,7 +764,6 @@ export const InteractiveCodePreview = ({
     };
     setSelectedModelIds(nextModelIds);
     setShowProviderOnly(null);
-    updateSelection(nextModelIds, activeTab);
     onModelChange?.();
   };
 
@@ -965,18 +835,18 @@ export const InteractiveCodePreview = ({
   const highlightKey = `${activeHighlightedLines.join(',')}|${processedCode}`;
   const [highlighted, setHighlighted] = useState<{
     key: string;
-    html: string;
+    tokens: Awaited<ReturnType<ShikiHighlighter['codeToTokensBase']>>;
   } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    highlightCode(processedCode, activeHighlightedLines)
-      .then(html => {
-        if (!cancelled && html) {
+    highlightCode(processedCode)
+      .then(tokens => {
+        if (!cancelled) {
           setHighlighted({
             key: `${activeHighlightedLines.join(',')}|${processedCode}`,
-            html,
+            tokens,
           });
         }
       })
@@ -989,8 +859,8 @@ export const InteractiveCodePreview = ({
     };
   }, [processedCode, activeHighlightedLines]);
 
-  const highlightedHtml =
-    highlighted?.key === highlightKey ? highlighted.html : null;
+  const highlightedTokens =
+    highlighted?.key === highlightKey ? highlighted.tokens : null;
 
   const plainLines = processedCode.split('\n');
 
@@ -1066,20 +936,28 @@ export const InteractiveCodePreview = ({
         id={`${id}-panel`}
         role="tabpanel"
       >
-        <CodeBlock
-          className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4"
-          tabIndex={0}
-        >
-          {highlightedHtml ? (
-            <code
-              // Shiki output rendered inside the Geistdocs CodeBlock pre,
-              // mirroring the DOM shape the MDX pipeline emits at build time.
-              // eslint-disable-next-line react/no-danger
-              dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-            />
-          ) : (
-            <code>
-              {plainLines.map((line, index) => (
+        <CodeBlock className="shiki geist line-numbers rounded-none border-0 bg-transparent py-4">
+          {highlightedTokens
+            ? highlightedTokens.map((line, lineIndex) => (
+                <span
+                  className={cx(
+                    'line',
+                    activeHighlightedLines.includes(lineIndex + 1) &&
+                      'highlighted',
+                  )}
+                  // Shiki output is position-stable for the current code string.
+                  // eslint-disable-next-line react/no-array-index-key
+                  key={lineIndex}
+                >
+                  {line.map(token => (
+                    <span key={token.offset} style={{ color: token.color }}>
+                      {token.content}
+                    </span>
+                  ))}
+                  {'\n'}
+                </span>
+              ))
+            : plainLines.map((line, index) => (
                 <span
                   className={cx(
                     'line',
@@ -1092,8 +970,6 @@ export const InteractiveCodePreview = ({
                   {'\n'}
                 </span>
               ))}
-            </code>
-          )}
         </CodeBlock>
       </div>
 

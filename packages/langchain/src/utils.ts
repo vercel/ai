@@ -631,8 +631,6 @@ export function getMessageId(msg: unknown): string | undefined {
       return kwargs.id;
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -875,8 +873,6 @@ export function extractReasoningId(msg: unknown): string | undefined {
       }
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -946,8 +942,6 @@ export function extractReasoningFromContentBlocks(
       return reasoningParts.join('');
     }
   }
-
-  return undefined;
 }
 
 /**
@@ -1016,8 +1010,6 @@ export function extractReasoningFromValuesMessage(
       return reasoningParts.join('');
     }
   }
-
-  return undefined;
 }
 
 export function isCitationContentBlock(
@@ -1290,6 +1282,28 @@ function markToolCallEmitted(
   }
 }
 
+function markToolCallStarted(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): void {
+  markToolCallEmitted(state, toolCallId, namespace);
+  getOrCreateNamespaceSet(state.unfinishedToolCallsByNamespace, namespace).add(
+    toolCallId,
+  );
+}
+
+function hasUnfinishedToolCall(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return (
+    state.unfinishedToolCallsByNamespace.get(namespace)?.has(toolCallId) ===
+    true
+  );
+}
+
 function hasEmittedToolInputInCurrentStep(
   state: LangGraphEventState,
   toolCallId: string,
@@ -1316,6 +1330,33 @@ function markToolInputEmitted(
   }
 }
 
+function hasEmittedToolOutputInCurrentStep(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): boolean {
+  return !state.currentStepsByNamespace.has(namespace)
+    ? state.emittedToolOutputCallIds.has(toolCallId)
+    : state.emittedToolOutputsInCurrentStepByNamespace
+        .get(namespace)
+        ?.has(toolCallId) === true;
+}
+
+function markToolOutputEmitted(
+  state: LangGraphEventState,
+  toolCallId: string,
+  namespace: string,
+): void {
+  state.emittedToolOutputCallIds.add(toolCallId);
+  state.unfinishedToolCallsByNamespace.get(namespace)?.delete(toolCallId);
+  if (state.currentStepsByNamespace.has(namespace)) {
+    getOrCreateNamespaceSet(
+      state.emittedToolOutputsInCurrentStepByNamespace,
+      namespace,
+    ).add(toolCallId);
+  }
+}
+
 function findMessageCurrentStepNamespace(
   state: LangGraphEventState,
   messageId: string,
@@ -1328,7 +1369,6 @@ function findMessageCurrentStepNamespace(
       return namespace;
     }
   }
-  return undefined;
 }
 
 /**
@@ -1458,6 +1498,7 @@ export function processLangGraphEvent(
        * active UI text/reasoning part, so omit it when another namespace is
        * still active.
        */
+      let startedUIReducerStep = false;
       const langgraphStep =
         typeof metadata?.langgraph_step === 'number'
           ? metadata.langgraph_step
@@ -1468,6 +1509,7 @@ export function processLangGraphEvent(
         if (currentStep === null) {
           if (state.currentStepsByNamespace.size === 0) {
             controller.enqueue({ type: 'start-step' });
+            startedUIReducerStep = true;
           }
           state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
           state.messageIdsInCurrentStepByNamespace.set(
@@ -1479,6 +1521,10 @@ export function processLangGraphEvent(
             new Set(),
           );
           state.emittedToolInputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolOutputsInCurrentStepByNamespace.set(
             eventNamespace,
             new Set(),
           );
@@ -1499,6 +1545,7 @@ export function processLangGraphEvent(
            * scope while the concurrent message lifecycle remains active.
            */
           controller.enqueue({ type: 'start-step' });
+          startedUIReducerStep = true;
           state.currentStepsByNamespace.set(eventNamespace, langgraphStep);
           state.messageIdsInCurrentStepByNamespace.set(
             eventNamespace,
@@ -1509,6 +1556,10 @@ export function processLangGraphEvent(
             new Set(),
           );
           state.emittedToolInputsInCurrentStepByNamespace.set(
+            eventNamespace,
+            new Set(),
+          );
+          state.emittedToolOutputsInCurrentStepByNamespace.set(
             eventNamespace,
             new Set(),
           );
@@ -1651,7 +1702,7 @@ export function processLangGraphEvent(
                   eventNamespace,
                 )
               ) {
-                markToolCallEmitted(state, toolCallId, eventNamespace);
+                markToolCallStarted(state, toolCallId, eventNamespace);
                 controller.enqueue({
                   type: 'tool-input-start',
                   toolCallId: toolCallId,
@@ -1765,6 +1816,47 @@ export function processLangGraphEvent(
         const status = dataSource.status as string | undefined;
 
         if (toolCallId) {
+          const wasEmittedInCurrentStep = hasEmittedToolCallInCurrentStep(
+            state,
+            toolCallId,
+            eventNamespace,
+          );
+          const isDelayedOutputForPreviousLifecycle =
+            !wasEmittedInCurrentStep &&
+            hasUnfinishedToolCall(state, toolCallId, eventNamespace);
+
+          if (
+            !wasEmittedInCurrentStep &&
+            !isDelayedOutputForPreviousLifecycle
+          ) {
+            /**
+             * A newly observed namespace does not normally start another global
+             * reducer step while another namespace is active. Reused provider
+             * IDs need a distinct reducer scope, however, or the new output
+             * overwrites the prior namespace's tool part.
+             */
+            if (
+              !startedUIReducerStep &&
+              state.currentStepsByNamespace.has(eventNamespace) &&
+              emittedToolCalls.has(toolCallId)
+            ) {
+              controller.enqueue({ type: 'start-step' });
+            }
+
+            markToolCallStarted(state, toolCallId, eventNamespace);
+            controller.enqueue({
+              type: 'tool-input-start',
+              toolCallId,
+              toolName:
+                typeof dataSource.name === 'string'
+                  ? dataSource.name
+                  : 'unknown',
+              dynamic: true,
+            });
+          }
+
+          state.emittedToolOutputMessageIds.add(msgId);
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           if (status === 'error') {
             // Tool execution failed
             controller.enqueue({
@@ -1818,11 +1910,14 @@ export function processLangGraphEvent(
         if (
           !hasEmittedToolCallInCurrentStep(state, toolCallId, eventNamespace)
         ) {
-          if (allowPreviousStep && emittedToolCalls.has(toolCallId)) {
+          if (
+            allowPreviousStep &&
+            hasUnfinishedToolCall(state, toolCallId, eventNamespace)
+          ) {
             return;
           }
 
-          markToolCallEmitted(state, toolCallId, eventNamespace);
+          markToolCallStarted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-input-start',
             toolCallId,
@@ -1867,6 +1962,7 @@ export function processLangGraphEvent(
 
         case 'on_tool_end': {
           ensureToolInputLifecycle({ allowPreviousStep: true });
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-output-available',
             toolCallId,
@@ -1877,6 +1973,7 @@ export function processLangGraphEvent(
 
         case 'on_tool_error': {
           ensureToolInputLifecycle({ allowPreviousStep: true });
+          markToolOutputEmitted(state, toolCallId, eventNamespace);
           controller.enqueue({
             type: 'tool-output-error',
             toolCallId,
@@ -1948,11 +2045,28 @@ export function processLangGraphEvent(
         const messages = (data as { messages?: unknown[] }).messages;
         if (Array.isArray(messages)) {
           /**
-           * First pass: Collect all tool call IDs that have been responded to by ToolMessages.
-           * These are historical tool calls that are already complete.
+           * First pass: Collect all tool call IDs that have been responded to by
+           * ToolMessages. Calls followed by another non-tool message are historical,
+           * while trailing ToolMessages can be the only evidence of a completed call
+           * when the node is tagged with `nostream`.
            */
           const completedToolCallIds = new Set<string>();
-          for (const msg of messages) {
+          const trailingToolMessages = new Map<
+            string,
+            {
+              data: Record<string, unknown>;
+              outputId: string;
+            }
+          >();
+          let trailingToolMessageStart = messages.length;
+          while (
+            trailingToolMessageStart > 0 &&
+            isToolMessageType(messages[trailingToolMessageStart - 1])
+          ) {
+            trailingToolMessageStart--;
+          }
+
+          for (const [index, msg] of messages.entries()) {
             if (!msg || typeof msg !== 'object') continue;
 
             if (isToolMessageType(msg)) {
@@ -1968,13 +2082,19 @@ export function processLangGraphEvent(
               const toolCallId = dataSource.tool_call_id as string | undefined;
               if (toolCallId) {
                 completedToolCallIds.add(toolCallId);
+                if (index >= trailingToolMessageStart) {
+                  trailingToolMessages.set(toolCallId, {
+                    data: dataSource,
+                    outputId: getMessageId(msg) ?? `${toolCallId}:${index}`,
+                  });
+                }
               }
             }
           }
 
           /**
-           * Second pass: Process messages and emit tool events only for NEW tool calls
-           * (those not already completed by a ToolMessage in the history)
+           * Second pass: Process messages and emit tool events for new tool calls,
+           * including calls completed by trailing ToolMessages that were not streamed.
            */
           for (const msg of messages) {
             if (!msg || typeof msg !== 'object') continue;
@@ -2068,24 +2188,33 @@ export function processLangGraphEvent(
                 );
                 const lifecycleNamespace = messageNamespace ?? eventNamespace;
                 const wasObservedInCurrentStep = messageNamespace !== undefined;
+                const wasToolCallEmittedInCurrentStep = toolCall.id
+                  ? hasEmittedToolCallInCurrentStep(
+                      state,
+                      toolCall.id,
+                      lifecycleNamespace,
+                    )
+                  : false;
+                const trailingToolMessageInfo = toolCall.id
+                  ? trailingToolMessages.get(toolCall.id)
+                  : undefined;
+                const canRecoverCompletedToolCall =
+                  wasObservedInCurrentStep || wasToolCallEmittedInCurrentStep;
                 /**
                  * Emit tool calls recovered from a message in the current step,
                  * even when a prior step used the same provider-scoped ID.
-                 * Otherwise, preserve stream-wide suppression for historical
-                 * completed calls and values-only streams without step metadata.
+                 * Otherwise, preserve stream-wide suppression for historical calls
+                 * while recovering completed calls observed in the current step or
+                 * an earlier values snapshot before their trailing ToolMessage arrived.
                  */
                 if (
                   toolCall.id &&
-                  !hasEmittedToolCallInCurrentStep(
-                    state,
-                    toolCall.id,
-                    lifecycleNamespace,
-                  ) &&
+                  !wasToolCallEmittedInCurrentStep &&
                   (wasObservedInCurrentStep ||
                     (!emittedToolCalls.has(toolCall.id) &&
                       !completedToolCallIds.has(toolCall.id)))
                 ) {
-                  markToolCallEmitted(state, toolCall.id, lifecycleNamespace);
+                  markToolCallStarted(state, toolCall.id, lifecycleNamespace);
                   // Store mapping for HITL interrupt lookup
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
@@ -2113,6 +2242,42 @@ export function processLangGraphEvent(
                   // so that __interrupt__ handling can match them by key
                   const toolCallKey = `${toolCall.name}:${JSON.stringify(toolCall.args)}`;
                   emittedToolCallsByKey.set(toolCallKey, toolCall.id);
+                }
+
+                if (
+                  toolCall.id &&
+                  trailingToolMessageInfo != null &&
+                  !state.emittedToolOutputMessageIds.has(
+                    trailingToolMessageInfo.outputId,
+                  ) &&
+                  !hasEmittedToolOutputInCurrentStep(
+                    state,
+                    toolCall.id,
+                    lifecycleNamespace,
+                  ) &&
+                  canRecoverCompletedToolCall
+                ) {
+                  state.emittedToolOutputMessageIds.add(
+                    trailingToolMessageInfo.outputId,
+                  );
+                  markToolOutputEmitted(state, toolCall.id, lifecycleNamespace);
+                  const trailingToolMessage = trailingToolMessageInfo.data;
+                  if (trailingToolMessage.status === 'error') {
+                    controller.enqueue({
+                      type: 'tool-output-error',
+                      toolCallId: toolCall.id,
+                      errorText:
+                        typeof trailingToolMessage.content === 'string'
+                          ? trailingToolMessage.content
+                          : 'Tool execution failed',
+                    });
+                  } else {
+                    controller.enqueue({
+                      type: 'tool-output-available',
+                      toolCallId: toolCall.id,
+                      output: trailingToolMessage.content,
+                    });
+                  }
                 }
               }
             }
@@ -2226,7 +2391,7 @@ export function processLangGraphEvent(
                * so the UI knows what tool is being called with proper lifecycle
                */
               if (!emittedToolCalls.has(toolCallId)) {
-                markToolCallEmitted(state, toolCallId, eventNamespace);
+                markToolCallStarted(state, toolCallId, eventNamespace);
                 emittedToolCallsByKey.set(toolCallKey, toolCallId);
                 controller.enqueue({
                   type: 'tool-input-start',

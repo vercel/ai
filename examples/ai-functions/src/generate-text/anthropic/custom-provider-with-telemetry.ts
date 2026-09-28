@@ -21,7 +21,7 @@ run(async () => {
   });
 
   await generateText({
-    model: myCustomProvider('claude-sonnet-4-20250514'),
+    model: myCustomProvider('claude-sonnet-5'),
     prompt: 'Say hello in 5 words',
     telemetry: {
       functionId: 'anthropic-custom-provider-demo',

@@ -36,7 +36,7 @@ import { generateText } from 'ai';
 const anthropicAws = createAnthropicAws();
 
 const { text } = await generateText({
-  model: anthropicAws('claude-sonnet-4-6'),
+  model: anthropicAws('claude-sonnet-5'),
   prompt: 'Invent a new holiday and describe its traditions.',
 });
 ```

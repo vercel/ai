@@ -6,7 +6,7 @@ import { weatherTool } from '../../tools/weather-tool';
 
 run(async () => {
   const { partialOutputStream } = streamText({
-    model: amazonBedrock('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+    model: amazonBedrock('us.anthropic.claude-sonnet-5'),
     stopWhen: isStepCount(20),
     output: Output.array({
       element: z.object({

@@ -17,6 +17,10 @@ import type {
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
 import type { GenerateTextInclude } from '../generate-text/generate-text';
+import type {
+  OnLanguageModelCallEndCallback,
+  OnLanguageModelCallStartCallback,
+} from '../generate-text/language-model-events';
 import type { Output } from '../generate-text/output';
 import type { PrepareStepFunction } from '../generate-text/prepare-step';
 import type { StopCondition } from '../generate-text/stop-condition';
@@ -211,6 +215,17 @@ export type ToolLoopAgentSettings<
       NoInfer<RUNTIME_CONTEXT>,
       NoInfer<OUTPUT>
     >;
+
+    /**
+     * Callback that is called immediately before the provider model call begins.
+     */
+    onLanguageModelCallStart?: OnLanguageModelCallStartCallback;
+
+    /**
+     * Callback that is called after the model response has been normalized and parsed,
+     * but before any client-side tool execution begins.
+     */
+    onLanguageModelCallEnd?: OnLanguageModelCallEndCallback<NoInfer<TOOLS>>;
 
     /**
      * Callback that is called before each tool execution begins.

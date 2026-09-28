@@ -294,7 +294,7 @@ export type GenerateTextEndEvent<
 };
 
 /**
- * Event passed to the telemetry `onAbort` callback.
+ * Event passed to an `onAbort` callback for text generation.
  *
  * Called when a streaming text generation operation is aborted before it
  * completes.

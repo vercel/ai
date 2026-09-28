@@ -50,6 +50,27 @@ type MistralChatConfig = {
   generateId?: () => string;
 };
 
+// https://api.mistral.ai/v1/models (2026-09-10)
+const reasoningEffortModelIds = new Set<MistralChatModelId>([
+  'glm-5-2',
+  'labs-leanstral-1-5',
+  'labs-leanstral-1-5-1',
+  'magistral-medium-latest',
+  'magistral-small-latest',
+  'mistral-medium',
+  'mistral-medium-2604',
+  'mistral-medium-3',
+  'mistral-medium-3-5',
+  'mistral-medium-3.5',
+  'mistral-medium-latest',
+  'mistral-small-2603',
+  'mistral-small-latest',
+  'mistral-vibe-cli-fast',
+  'mistral-vibe-cli-latest',
+  'mistral-vibe-cli-with-tools',
+  'zai-glm-5-2',
+]);
+
 export class MistralChatLanguageModel implements LanguageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -115,11 +136,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const supportsReasoningEffort =
-      this.modelId === 'mistral-small-latest' ||
-      this.modelId === 'mistral-small-2603' ||
-      this.modelId === 'mistral-medium-3' ||
-      this.modelId === 'mistral-medium-3.5';
+    const supportsReasoningEffort = reasoningEffortModelIds.has(this.modelId);
 
     let resolvedReasoningEffort: string | undefined;
     if (supportsReasoningEffort) {

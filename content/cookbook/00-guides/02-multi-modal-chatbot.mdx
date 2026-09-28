@@ -15,7 +15,7 @@ Multi-modal refers to the ability of the agent to understand and generate respon
   [providers documentation](/providers/ai-sdk-providers).
 </Note>
 
-We'll build this agent using OpenAI's GPT-4o, but the same code works seamlessly with other providers - you can switch between them by changing just one line of code.
+We'll build this agent using OpenAI's GPT-6 Astra, but the same code works seamlessly with other providers - you can switch between them by changing just one line of code.
 
 ## Prerequisites
 
@@ -106,7 +106,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
   });
 
@@ -355,13 +355,13 @@ With the AI SDK's unified provider interface you can easily switch to other prov
 ```tsx filename="app/api/chat/route.ts"
 // Using Anthropic
 const result = streamText({
-  model: 'anthropic/claude-sonnet-4-20250514',
+  model: 'anthropic/claude-sonnet-5',
   messages: await convertToModelMessages(messages),
 });
 
 // Using Google
 const result = streamText({
-  model: 'google/gemini-2.5-flash',
+  model: 'google/gemini-3.8-flash',
   messages: await convertToModelMessages(messages),
 });
 ```

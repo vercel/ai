@@ -28,6 +28,9 @@ function makeSession(): {
       if (args.command === 'pwd') {
         return { exitCode: 0, stdout: '/work\n', stderr: '' };
       }
+      if (args.command === 'printf "%s" "$HOME"') {
+        return { exitCode: 0, stdout: '/home/agent', stderr: '' };
+      }
       return { exitCode: 0, stdout: '', stderr: '' };
     },
   );
@@ -131,6 +134,23 @@ describe('resolveSessionWorkDir', () => {
     ).toBe('/work/mock-s1');
   });
 
+  it('keeps caller-controlled IDs within the default working directory', () => {
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: 'mock',
+        sessionId: '../../../../project',
+      }),
+    ).toBe('/work/mock-..%2F..%2F..%2F..%2Fproject');
+    expect(
+      resolveSessionWorkDir({
+        defaultWorkingDirectory: '/work',
+        harnessId: '../mock',
+        sessionId: 's1',
+      }),
+    ).toBe('/work/..%2Fmock-s1');
+  });
+
   it('uses the stable workDir when provided', () => {
     expect(
       resolveSessionWorkDir({
@@ -163,19 +183,20 @@ describe('runSandboxBootstrap', () => {
       abortSignal: undefined,
     });
     expect(run.mock.calls.map(([args]) => args.command)).toEqual([
-      'pwd',
+      'printf "%s" "$HOME"',
       'mkdir -p "$BOOTSTRAP_DIR"',
       'echo ok',
+      'pwd',
       'mkdir -p "$WORK_DIR"',
     ]);
     expect(readTextFile).toHaveBeenCalledWith({
       path: expect.stringMatching(
-        /^\/work\/\.harness-bootstrap\/demo\/\.bootstrap-[0-9a-f]{16}\.ok$/,
+        /^\/home\/agent\/\.ai-sdk-harness\/\.harness-bootstrap\/demo\/\.bootstrap-[0-9a-f]{16}\.ok$/,
       ),
       abortSignal: undefined,
     });
     expect(writeTextFile).toHaveBeenCalledWith({
-      path: '/work/.harness-bootstrap/demo/a.txt',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/demo/a.txt',
       content: 'one',
       abortSignal: undefined,
     });

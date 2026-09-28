@@ -9,6 +9,8 @@ metadata:
 
 This guide covers creating a new `@ai-sdk/harness-<name>` package for an agent harness.
 
+Before evaluating a runtime, read [Harness Requirements](references/harness-requirements.md) for feasibility criteria and capability gaps to document. Follow the requirements while implementing the harness package.
+
 A harness can be **host-driven**, where the runtime runs in the host process and uses the sandbox remotely, or **bridge-backed**, where a small bridge runs inside the sandbox because the runtime needs local access to the sandbox filesystem or process environment.
 Prefer host-driven when the runtime supports it.
 
@@ -170,8 +172,7 @@ Link to the main harness docs for broader concepts.
 
 Add relevant examples for the new harness.
 
-- Add API/function examples under `examples/ai-functions` when the harness package needs a scriptable provider-behavior example.
-- Add interactive examples mirroring the existing harness examples in `examples/harness-e2e-next` (Next.js) and `examples/harness-e2e-tui` (TUI).
+- Add required API/function examples under `examples/ai-functions/src/harness-agent` and interactive examples under `examples/harness-e2e-next`.
 
 ### 9. Add Documentation
 

@@ -44,7 +44,7 @@ it('should correctly prepare function tools', () => {
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
@@ -323,7 +323,7 @@ it('should use newest tool support for an unknown future Gemini model', () => {
           {
             name: 'getWeather',
             description: 'Get the weather',
-            parameters: {
+            parametersJsonSchema: {
               type: 'object',
               properties: { location: { type: 'string' } },
             },
@@ -394,7 +394,7 @@ it('should handle tool choice "none"', () => {
         {
           name: 'testFunction',
           description: 'Test',
-          parameters: {},
+          parametersJsonSchema: {},
         },
       ],
     },
@@ -518,7 +518,7 @@ it('should combine function and provider-defined tools on Gemini 3 models', () =
         {
           name: 'testFunction',
           description: 'A test function',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },
@@ -569,7 +569,10 @@ it('should omit server-side tool invocation flag for Vertex Gemini 3', () => {
             {
               "description": "A test function",
               "name": "testFunction",
-              "parameters": undefined,
+              "parametersJsonSchema": {
+                "properties": {},
+                "type": "object",
+              },
             },
           ],
         },
@@ -617,12 +620,12 @@ it('should combine multiple provider tools with function tools on Gemini 3', () 
         {
           name: 'getWeather',
           description: 'Get weather',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
         {
           name: 'bookVenue',
           description: 'Book a venue',
-          parameters: undefined,
+          parametersJsonSchema: { type: 'object', properties: {} },
         },
       ],
     },

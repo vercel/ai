@@ -1,6 +1,7 @@
 import {
   tool,
   type Experimental_SandboxSession,
+  type ToolApprovalResponse,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import {
@@ -13,12 +14,15 @@ import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
+  HarnessV1PendingToolApproval,
+  HarnessV1PendingToolResult,
   HarnessV1PromptControl,
   HarnessV1PromptTurnOptions,
   HarnessV1Session,
   HarnessV1StreamPart,
 } from '../../v1';
 import { runPrompt } from './run-prompt';
+import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 
 const WORK_DIR = '/vercel/sandbox/claude-code-abc123';
 const sandboxSession = {} as Experimental_SandboxSession;
@@ -29,6 +33,9 @@ function fakeSession(
     toolCallId: string;
     output: unknown;
     isError?: boolean;
+    toolResult?: Parameters<
+      HarnessV1PromptControl['submitToolResult']
+    >[0]['toolResult'];
   }) => void,
 ): HarnessV1Session {
   const emitScript = (emit: (event: HarnessV1StreamPart) => void) => {
@@ -79,6 +86,17 @@ const harness: HarnessV1 = {
   doStart: async () => fakeSession([]),
 };
 
+const questionsHarness: HarnessV1 = {
+  ...harness,
+  builtinTools: {
+    askUserQuestions: tool({
+      inputSchema: z.object({
+        questions: z.array(z.object({ id: z.string(), question: z.string() })),
+      }),
+    }),
+  },
+};
+
 const finishEvents: HarnessV1StreamPart[] = [
   {
     type: 'finish-step',
@@ -115,6 +133,69 @@ const resumableFinishStep: HarnessV1StreamPart = {
   >),
   finishReason: { unified: 'tool-calls', raw: 'tool_use' },
 };
+
+describe('runPrompt client-side built-in tools', () => {
+  test('pauses for askUserQuestions and persists adapter metadata as provider options', async () => {
+    const submitted: Parameters<
+      HarnessV1PromptControl['submitToolResult']
+    >[0][] = [];
+    const providerMetadata = {
+      fake: {
+        nativeRequest: {
+          questions: [{ prompt: 'Which framework?' }],
+        },
+      },
+    };
+    const pendingResults: unknown[] = [];
+    const { result, done } = runPrompt({
+      harness: questionsHarness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'question-call',
+            toolName: 'askUserQuestions',
+            input: JSON.stringify({
+              allowPartialAnswers: true,
+              questions: [{ id: 'question-1', question: 'Which framework?' }],
+            }),
+            providerExecuted: false,
+            providerMetadata,
+          },
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'go',
+      instructions: undefined,
+      tools: questionsHarness.builtinTools,
+      activeTools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      onPendingToolResult: pendingResult => {
+        pendingResults.push(pendingResult);
+      },
+    });
+
+    await result.consumeStream();
+    await done;
+
+    expect(submitted).toEqual([]);
+    expect(pendingResults).toEqual([
+      {
+        toolCallId: 'question-call',
+        toolName: 'askUserQuestions',
+        input: JSON.stringify({
+          allowPartialAnswers: true,
+          questions: [{ id: 'question-1', question: 'Which framework?' }],
+        }),
+        providerOptions: providerMetadata,
+      },
+    ]);
+  });
+});
 
 describe('runPrompt workDir stripping', () => {
   test('strips the workDir for consumers but executes host tools with the absolute path', async () => {
@@ -963,6 +1044,55 @@ type SubmittedResult = {
   isError?: boolean;
 };
 
+async function runHostToolScript(options: {
+  events: HarnessV1StreamPart[];
+  tools: ToolSet;
+  mode?: 'prompt' | 'continue';
+  toolApproval?: HarnessAgentToolApprovalConfiguration;
+  pendingToolApprovals?: readonly HarnessV1PendingToolApproval[];
+  toolApprovalContinuations?: readonly ToolApprovalResponse[];
+}): Promise<{
+  parts: TextStreamPart<ToolSet>[];
+  submitted: SubmittedResult[];
+}> {
+  const submitted: SubmittedResult[] = [];
+  const session = fakeSession(options.events);
+  const wrapControl = (control: HarnessV1PromptControl) => ({
+    ...control,
+    submitToolResult: async (submission: SubmittedResult) => {
+      submitted.push(submission);
+      await control.submitToolResult(submission);
+    },
+  });
+  const doPromptTurn = session.doPromptTurn;
+  const doContinueTurn = session.doContinueTurn;
+  session.doPromptTurn = async settings =>
+    wrapControl(await doPromptTurn(settings));
+  session.doContinueTurn = async settings =>
+    wrapControl(await doContinueTurn(settings));
+
+  const { result, done } = runPrompt({
+    harness,
+    session,
+    mode: options.mode,
+    prompt: options.mode === 'continue' ? undefined : 'go',
+    instructions: undefined,
+    tools: options.tools,
+    toolSpecs: [],
+    sandboxSession,
+    sessionWorkDir: WORK_DIR,
+    runtimeContext: {} as never,
+    abortSignal: undefined,
+    toolApproval: options.toolApproval,
+    pendingToolApprovals: options.pendingToolApprovals,
+    toolApprovalContinuations: options.toolApprovalContinuations,
+  });
+  const parts: TextStreamPart<ToolSet>[] = [];
+  for await (const part of result.fullStream) parts.push(part);
+  await done;
+  return { parts, submitted };
+}
+
 function toolResultParts(
   parts: TextStreamPart<ToolSet>[],
 ): Extract<TextStreamPart<ToolSet>, { type: 'tool-result' }>[] {
@@ -971,6 +1101,684 @@ function toolResultParts(
     { type: 'tool-result' }
   >[];
 }
+
+describe('runPrompt host tool input validation', () => {
+  const inputSchema = z.object({
+    city: z.string().min(3),
+    mode: z.enum(['read']),
+    values: z.array(z.number()).max(2),
+  });
+
+  test.each([
+    ['wrong primitive type', '{"city":1,"mode":"read","values":[1]}'],
+    ['rejected enum', '{"city":"Paris","mode":"write","values":[1]}'],
+    ['short string', '{"city":"X","mode":"read","values":[1]}'],
+    ['long array', '{"city":"Paris","mode":"read","values":[1,2,3]}'],
+    ['malformed JSON', '{"city":'],
+  ])('rejects %s before executing or requesting approval', async (_, input) => {
+    const execute = vi.fn(async () => 'not reached');
+    const restricted = tool({ inputSchema, execute });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        { type: 'tool-call', toolCallId: 'c1', toolName: 'restricted', input },
+        { type: 'tool-approval-request', approvalId: 'a1', toolCallId: 'c1' },
+        ...finishEvents,
+      ],
+      tools: { restricted },
+      toolApproval: { restricted: 'user-approval' },
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'c1',
+        invalid: true,
+      }),
+    );
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool input validation failed.',
+        }),
+      }),
+    ]);
+    expect(parts.some(part => part.type === 'tool-result')).toBe(false);
+    expect(parts.some(part => part.type === 'tool-approval-request')).toBe(
+      false,
+    );
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool input validation failed.' },
+        isError: true,
+      },
+    ]);
+  });
+
+  test('reports a rejected host call without an adapter echo in the step and UI stream', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const restricted = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute,
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'restricted',
+          input: '{"city":42}',
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { restricted },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+    const uiChunksPromise = (async () => {
+      const chunks: Array<{ type: string }> = [];
+      for await (const chunk of result.toUIMessageStream({
+        onError: () => 'Tool failed',
+      })) {
+        chunks.push(chunk);
+      }
+      return chunks;
+    })();
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    const uiChunks = await uiChunksPromise;
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        error: expect.objectContaining({
+          message: 'Tool input validation failed.',
+        }),
+      }),
+    ]);
+    expect(parts.some(part => part.type === 'tool-result')).toBe(false);
+    expect((await result.steps)[0]!.content).toContainEqual(
+      expect.objectContaining({ type: 'tool-error', toolCallId: 'c1' }),
+    );
+    expect(await result.toolResults).toEqual([]);
+    expect(
+      uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+    ).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        errorText: 'Tool failed',
+      }),
+    ]);
+    expect(uiChunks.some(chunk => chunk.type === 'tool-output-available')).toBe(
+      false,
+    );
+  });
+
+  test.each([true, false])(
+    'surfaces an echoed rejected host result as a tool error when isError is %s',
+    async isError => {
+      const execute = vi.fn(async () => 'not reached');
+      const restricted = tool({
+        inputSchema: z.object({ city: z.string() }),
+        execute,
+      });
+      const submitted: SubmittedResult[] = [];
+      let finishTurn!: () => void;
+      const turnDone = new Promise<void>(resolve => {
+        finishTurn = resolve;
+      });
+      const session = fakeSession([]);
+      session.doPromptTurn = async ({ emit }) => {
+        queueMicrotask(() =>
+          emit({
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'restricted',
+            input: '{"city":42}',
+          }),
+        );
+        return {
+          submitToolResult: async submission => {
+            submitted.push(submission);
+            const echoedResult: HarnessV1StreamPart = {
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'restricted',
+              result: submission.output as Extract<
+                HarnessV1StreamPart,
+                { type: 'tool-result' }
+              >['result'],
+              isError,
+            };
+            emit(echoedResult);
+            emit(echoedResult);
+            for (const event of finishEvents) emit(event);
+            finishTurn();
+          },
+          done: turnDone,
+        };
+      };
+
+      const { result, done } = runPrompt({
+        harness,
+        session,
+        prompt: 'go',
+        instructions: undefined,
+        tools: { restricted },
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+      });
+      const uiChunksPromise = (async () => {
+        const chunks: Array<{ type: string }> = [];
+        for await (const chunk of result.toUIMessageStream({
+          onError: () => 'Tool failed',
+        })) {
+          chunks.push(chunk);
+        }
+        return chunks;
+      })();
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      const uiChunks = await uiChunksPromise;
+      await done;
+
+      expect(execute).not.toHaveBeenCalled();
+      expect(submitted).toEqual([
+        {
+          toolCallId: 'c1',
+          output: { error: 'Tool input validation failed.' },
+          isError: true,
+        },
+      ]);
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'c1',
+          invalid: true,
+        }),
+      );
+      expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+        expect.objectContaining({
+          type: 'tool-error',
+          toolCallId: 'c1',
+          error: expect.objectContaining({
+            message: 'Tool input validation failed.',
+          }),
+        }),
+      ]);
+      expect(
+        (await result.steps)[0]!.content.filter(
+          part => part.type === 'tool-error',
+        ),
+      ).toHaveLength(1);
+      expect(parts.some(part => part.type === 'tool-result')).toBe(false);
+      expect(
+        uiChunks.filter(chunk => chunk.type === 'tool-output-error'),
+      ).toEqual([
+        expect.objectContaining({
+          type: 'tool-output-error',
+          toolCallId: 'c1',
+          errorText: 'Tool failed',
+        }),
+      ]);
+      expect(
+        uiChunks.some(chunk => chunk.type === 'tool-output-available'),
+      ).toBe(false);
+    },
+  );
+
+  test('reports a rejected host call once when the turn is suspending', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const restricted = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute,
+    });
+    const pending: HarnessV1PendingToolResult[] = [];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'restricted',
+          input: '{"city":42}',
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { restricted },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      isTurnSuspending: () => true,
+      onPendingToolResult: pendingResult => pending.push(pendingResult),
+    });
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(pending).toEqual([
+      expect.objectContaining({
+        toolCallId: 'c1',
+        completedResult: {
+          output: { error: 'Tool input validation failed.' },
+          isError: true,
+        },
+      }),
+    ]);
+    expect(parts.filter(part => part.type === 'tool-error')).toEqual([
+      expect.objectContaining({ toolCallId: 'c1' }),
+    ]);
+    expect((await result.steps)[0]!.content).toContainEqual(
+      expect.objectContaining({ type: 'tool-error', toolCallId: 'c1' }),
+    );
+  });
+
+  test('executes with defaults and transformations from the schema', async () => {
+    const execute = vi.fn(
+      async (input: { city: string; unit: string }) => input,
+    );
+    const weather = tool({
+      inputSchema: z.object({
+        city: z
+          .string()
+          .trim()
+          .transform(city => city.toUpperCase()),
+        unit: z.enum(['metric', 'imperial']).default('metric'),
+      }),
+      execute,
+    });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: '{"city":" Paris "}',
+        },
+        ...finishEvents,
+      ],
+      tools: { weather },
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute.mock.calls[0]![0]).toEqual({
+      city: 'PARIS',
+      unit: 'metric',
+    });
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'c1',
+        input: { city: 'PARIS', unit: 'metric' },
+      }),
+    );
+    expect(submitted).toEqual([
+      { toolCallId: 'c1', output: { city: 'PARIS', unit: 'metric' } },
+    ]);
+  });
+
+  test('validates empty input as an object', async () => {
+    const execute = vi.fn(async (input: object) => input);
+    const empty = tool({ inputSchema: z.object({}), execute });
+    const { submitted } = await runHostToolScript({
+      events: [
+        { type: 'tool-call', toolCallId: 'c1', toolName: 'empty', input: '' },
+        ...finishEvents,
+      ],
+      tools: { empty },
+    });
+
+    expect(execute.mock.calls[0]![0]).toEqual({});
+    expect(submitted).toEqual([{ toolCallId: 'c1', output: {} }]);
+  });
+
+  test('awaits asynchronous validation for accepted and rejected inputs', async () => {
+    const execute = vi.fn(async (input: { city: string }) => input);
+    const weather = tool({
+      inputSchema: z.object({
+        city: z.string().refine(async city => {
+          await Promise.resolve();
+          return city !== 'rejected';
+        }),
+      }),
+      execute,
+    });
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: '{"city":"rejected"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'weather',
+          input: '{"city":"accepted"}',
+        },
+        ...finishEvents,
+      ],
+      tools: { weather },
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute.mock.calls[0]![0]).toEqual({ city: 'accepted' });
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool input validation failed.' },
+        isError: true,
+      },
+      { toolCallId: 'c2', output: { city: 'accepted' } },
+    ]);
+  });
+
+  test('validates raw paths while keeping the stream input relative', async () => {
+    const execute = vi.fn(async (input: { path: string }) => input);
+    const readFile = tool({
+      inputSchema: z.object({ path: z.string().startsWith(WORK_DIR) }),
+      execute,
+    });
+    const { parts } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'readFile',
+          input: JSON.stringify({ path: `${WORK_DIR}/src/foo.ts` }),
+        },
+        ...finishEvents,
+      ],
+      tools: { readFile },
+    });
+
+    expect(execute.mock.calls[0]![0]).toEqual({
+      path: `${WORK_DIR}/src/foo.ts`,
+    });
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        input: { path: 'src/foo.ts' },
+      }),
+    );
+  });
+
+  test('executes deeply nested validated input without recursively projecting it', async () => {
+    const depth = 12_000;
+    const execute = vi.fn(async (_input: unknown) => 'done');
+    const inspect = tool({ inputSchema: z.unknown(), execute });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'inspect',
+          input:
+            '{"next":'.repeat(depth) +
+            JSON.stringify({ path: `${WORK_DIR}/deep.ts` }) +
+            '}'.repeat(depth),
+        },
+        ...finishEvents,
+      ],
+      tools: { inspect },
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    const call = parts.find(part => part.type === 'tool-call');
+    expect(call?.type).toBe('tool-call');
+    let original = execute.mock.calls[0]![0] as unknown;
+    let displayed = call?.type === 'tool-call' ? call.input : undefined;
+    for (let index = 0; index < depth; index++) {
+      original = (original as { next: unknown }).next;
+      displayed = (displayed as { next: unknown }).next;
+    }
+    expect(original).toEqual({ path: `${WORK_DIR}/deep.ts` });
+    expect(displayed).toEqual({ path: 'deep.ts' });
+    expect(submitted).toEqual([{ toolCallId: 'c1', output: 'done' }]);
+    expect(parts.at(-1)?.type).toBe('finish');
+  });
+
+  test('executes cyclic schema output while projecting a separate cyclic display input', async () => {
+    const execute = vi.fn(async (_input: unknown) => 'done');
+    const inspect = tool({
+      inputSchema: z.object({ path: z.string() }).transform(({ path }) => {
+        const value: { path: string; self?: unknown } = { path };
+        value.self = value;
+        return value;
+      }),
+      execute,
+    });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'inspect',
+          input: JSON.stringify({ path: `${WORK_DIR}/cyclic.ts` }),
+        },
+        ...finishEvents,
+      ],
+      tools: { inspect },
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    const executed = execute.mock.calls[0]![0] as {
+      path: string;
+      self: unknown;
+    };
+    const call = parts.find(part => part.type === 'tool-call');
+    expect(call?.type).toBe('tool-call');
+    const displayed =
+      call?.type === 'tool-call'
+        ? (call.input as { path: string; self: unknown })
+        : undefined;
+    expect(executed.path).toBe(`${WORK_DIR}/cyclic.ts`);
+    expect(executed.self).toBe(executed);
+    expect(displayed?.path).toBe('cyclic.ts');
+    expect(displayed?.self).toBe(displayed);
+    expect(displayed).not.toBe(executed);
+    expect(submitted).toEqual([{ toolCallId: 'c1', output: 'done' }]);
+    expect(parts.at(-1)?.type).toBe('finish');
+  });
+
+  test('rejects raw paths that only satisfy the schema after display stripping', async () => {
+    const execute = vi.fn(async () => 'not reached');
+    const readFile = tool({
+      inputSchema: z.object({ path: z.string().startsWith('src/') }),
+      execute,
+    });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'readFile',
+          input: JSON.stringify({ path: `${WORK_DIR}/src/foo.ts` }),
+        },
+        ...finishEvents,
+      ],
+      tools: { readFile },
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'c1',
+        input: { path: 'src/foo.ts' },
+        invalid: true,
+        error: expect.objectContaining({
+          message: 'Tool input validation failed.',
+        }),
+      }),
+    );
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { error: 'Tool input validation failed.' },
+        isError: true,
+      },
+    ]);
+  });
+
+  test('keeps concurrent calls with identical input isolated by toolCallId', async () => {
+    const upperExecute = vi.fn(async (input: { city: string }) => input);
+    const lowerExecute = vi.fn(async (input: { city: string }) => input);
+    const invalidExecute = vi.fn(async () => 'not reached');
+    const upper = tool({
+      inputSchema: z.object({
+        city: z.string().transform(city => city.toUpperCase()),
+      }),
+      execute: upperExecute,
+    });
+    const lower = tool({
+      inputSchema: z.object({
+        city: z.string().transform(city => city.toLowerCase()),
+      }),
+      execute: lowerExecute,
+    });
+    const invalid = tool({
+      inputSchema: z.object({ city: z.number() }),
+      execute: invalidExecute,
+    });
+    const { submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'upper',
+          input: '{"city":"Paris"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c2',
+          toolName: 'lower',
+          input: '{"city":"Paris"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'c3',
+          toolName: 'invalid',
+          input: '{"city":"Paris"}',
+        },
+        ...finishEvents,
+      ],
+      tools: { upper, lower, invalid },
+    });
+
+    expect(upperExecute.mock.calls[0]![0]).toEqual({ city: 'PARIS' });
+    expect(lowerExecute.mock.calls[0]![0]).toEqual({ city: 'paris' });
+    expect(invalidExecute).not.toHaveBeenCalled();
+    expect(submitted).toContainEqual({
+      toolCallId: 'c3',
+      output: { error: 'Tool input validation failed.' },
+      isError: true,
+    });
+  });
+
+  test('preserves generator results with transformed input', async () => {
+    const weather = tool({
+      inputSchema: z.object({
+        city: z.string().transform(city => city.toUpperCase()),
+      }),
+      async *execute(input: { city: string }) {
+        yield { city: input.city, state: 'loading' };
+        yield { city: input.city, state: 'done' };
+      },
+    });
+    const { parts, submitted } = await runHostToolScript({
+      events: [
+        {
+          type: 'tool-call',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input: '{"city":"Paris"}',
+        },
+        ...finishEvents,
+      ],
+      tools: { weather },
+    });
+
+    expect(toolResultParts(parts).map(part => part.output)).toEqual([
+      { city: 'PARIS', state: 'loading' },
+      { city: 'PARIS', state: 'done' },
+    ]);
+    expect(toolResultParts(parts).every(part => part.preliminary)).toBe(true);
+    expect(submitted).toEqual([
+      { toolCallId: 'c1', output: { city: 'PARIS', state: 'done' } },
+    ]);
+  });
+
+  test.each([
+    ['valid', '{"city":" Paris "}', true],
+    ['invalid', '{"city":42}', false],
+  ])('revalidates %s approved continuation input', async (_, input, valid) => {
+    const execute = vi.fn(async (args: { city: string }) => args);
+    const weather = tool({
+      inputSchema: z.object({
+        city: z
+          .string()
+          .trim()
+          .transform(city => city.toUpperCase()),
+      }),
+      execute,
+    });
+    const { parts, submitted } = await runHostToolScript({
+      events: [],
+      tools: { weather },
+      mode: 'continue',
+      pendingToolApprovals: [
+        {
+          approvalId: 'a1',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          input,
+          kind: 'custom',
+          providerExecuted: false,
+        },
+      ],
+      toolApprovalContinuations: [
+        { type: 'tool-approval-response', approvalId: 'a1', approved: true },
+      ],
+    });
+
+    expect(execute).toHaveBeenCalledTimes(valid ? 1 : 0);
+    expect(submitted).toEqual([
+      valid
+        ? { toolCallId: 'c1', output: { city: 'PARIS' } }
+        : {
+            toolCallId: 'c1',
+            output: { error: 'Tool input validation failed.' },
+            isError: true,
+          },
+    ]);
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: valid ? 'tool-result' : 'tool-error',
+        toolCallId: 'c1',
+      }),
+    );
+  });
+});
 
 describe('runPrompt host tool generator results', () => {
   test('suppresses replayed tool input for settled host calls', async () => {
@@ -1018,8 +1826,13 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolResultContinuations: [
         {
+          type: 'tool-result',
           toolCallId: 'c1',
-          output: { city: 'SF', temperature: 72 },
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'SF', temperature: 72 },
+          },
         },
       ],
     });
@@ -1033,6 +1846,15 @@ describe('runPrompt host tool generator results', () => {
         toolCallId: 'c1',
         output: { city: 'SF', temperature: 72 },
         isError: undefined,
+        toolResult: {
+          type: 'tool-result',
+          toolCallId: 'c1',
+          toolName: 'weather',
+          output: {
+            type: 'json',
+            value: { city: 'SF', temperature: 72 },
+          },
+        },
       },
     ]);
     expect(
@@ -1519,18 +2341,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
@@ -1546,9 +2359,9 @@ describe('runPrompt host tool generator results', () => {
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);
     expect(telemetryEvents).toEqual([
-      'tool-start',
       'wrapper-start',
       'wrapper-end',
+      'tool-start',
       'tool-end',
     ]);
     expect(parts).toContainEqual(
@@ -1652,18 +2465,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'bash',
-            input: { command: 'printf ok' },
-            providerExecuted: true,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
     });
@@ -1727,18 +2531,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
     });
@@ -1817,18 +2612,9 @@ describe('runPrompt host tool generator results', () => {
       ],
       toolApprovalContinuations: [
         {
-          approvalResponse: {
-            type: 'tool-approval-response',
-            approvalId: 'approval-1',
-            approved: true,
-          },
-          toolCall: {
-            type: 'tool-call',
-            toolCallId: 'c1',
-            toolName: 'weather',
-            input: { city: 'SF' },
-            providerExecuted: false,
-          },
+          type: 'tool-approval-response',
+          approvalId: 'approval-1',
+          approved: true,
         },
       ],
       onPendingToolApproval: approval => pending.push(approval),
@@ -2013,10 +2799,10 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(events).toEqual([
-      'tool-start',
       'wrapper-start',
       'execute',
       'wrapper-end',
+      'tool-start',
     ]);
     expect(new Set(callIds).size).toBe(1);
   });

@@ -6,7 +6,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-sonnet-4-5'),
+    model: anthropic('claude-sonnet-5'),
     tools: {
       updateIssueList: tool({
         inputSchema: z.object({}), // empty input schema

@@ -48,6 +48,7 @@ export type {
   CodeModeTool,
   CodeModeToolExecutionOptions,
   CodeModeToolInput,
+  CodeModeToolOptions,
   CodeModeToolSet,
   CodeModeUnwrappedResult,
   RunCodeModeInput,

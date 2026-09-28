@@ -22,7 +22,7 @@ run(async () => {
 
     const { text, toolCalls, toolResults, responseMessages } =
       await generateText({
-        model: vertexAnthropic('claude-3-5-sonnet-v2@20241022'),
+        model: vertexAnthropic('claude-sonnet-5'),
         tools: { weatherTool },
         instructions: `You are a helpful, respectful and honest assistant.`,
         messages,

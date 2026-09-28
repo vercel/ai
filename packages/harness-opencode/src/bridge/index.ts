@@ -4,8 +4,10 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
+import { isDeepStrictEqual } from 'node:util';
 import type { StartMessage } from '../opencode-bridge-protocol';
 
 import {
@@ -16,6 +18,7 @@ import {
   createTranslationState,
   emitOpenCodeStreamStart,
   getOpenCodeEventSessionId,
+  openCodeMessageInfoFromValue,
   type TranslationState,
   unwrapOpenCodeEvent,
 } from './opencode-events';
@@ -43,6 +46,12 @@ import {
   type OpenCodeObject,
 } from './opencode-types';
 import { startAuthorizedToolRelay, type ToolRelay } from './tool-relay';
+import {
+  openCodeQuestionKey,
+  toHarnessQuestionsInput,
+  toOpenCodeQuestionResponse,
+  type OpenCodeQuestionRequest,
+} from './question-tool';
 
 type Emit = (msg: Record<string, unknown>) => void;
 
@@ -54,6 +63,7 @@ type RuntimeState = {
   client?: OpenCodeClient;
   sessionId?: string;
   relay?: ToolRelay;
+  openCodeConfig?: Record<string, unknown>;
   toolNames: Set<string>;
   mcpToolPrefixes: Set<string>;
 };
@@ -64,7 +74,8 @@ type CommonBuiltinToolName =
   | 'edit'
   | 'bash'
   | 'glob'
-  | 'grep';
+  | 'grep'
+  | 'askUserQuestions';
 
 const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   view: 'read',
@@ -74,6 +85,7 @@ const NATIVE_TO_COMMON: Readonly<Record<string, CommonBuiltinToolName>> = {
   bash: 'bash',
   glob: 'glob',
   grep: 'grep',
+  question: 'askUserQuestions',
 };
 
 const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
@@ -82,6 +94,7 @@ const OPENCODE_TO_WIRE: Readonly<Record<string, string>> = {
   webfetch: 'webfetch',
   task: 'agent',
   agent: 'agent',
+  askUserQuestions: 'question',
   subtask: 'agent',
 };
 
@@ -193,44 +206,68 @@ async function ensureRuntime({
   turn: BridgeTurn;
   emit: Emit;
 }): Promise<void> {
-  if (runtime.client) return;
-
-  if (start.tools && start.tools.length > 0) {
-    runtime.toolNames = new Set(start.tools.map(tool => tool.name));
-    runtime.relay = await startToolRelay({
-      tools: start.tools,
-      emit,
-      requestToolResult: turn.requestToolResult,
-    });
+  if (
+    runtime.client &&
+    isDeepStrictEqual(runtime.openCodeConfig, start.openCodeConfig)
+  ) {
+    return;
   }
 
-  const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
-  const server = await createOpencodeServer({
-    hostname: '127.0.0.1',
-    port: 0,
-    timeout: 30_000,
-    config: buildOpenCodeConfig({
-      start,
-      relayPort: runtime.relay?.port,
-    }) as never,
-  });
-  runtime.server = server;
-  runtime.client = createOpencodeClient({
-    baseUrl: server.url,
-    directory: workdir,
-    headers: serverAuthHeaders,
-  });
-  const mcpStatus = await runtime.client.mcp.status();
-  const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
-  runtime.mcpToolPrefixes = new Set(
-    Object.entries(mcpServers)
-      .filter(
-        ([serverName, status]) =>
-          serverName !== 'harness-tools' &&
-          asOpenCodeObject(status)?.status === 'connected',
-      )
-      .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
-  );
+  closeRuntime();
+
+  try {
+    if (start.tools && start.tools.length > 0) {
+      runtime.toolNames = new Set(start.tools.map(tool => tool.name));
+      runtime.relay = await startToolRelay({
+        tools: start.tools,
+        emit,
+        requestToolResult: turn.requestToolResult,
+      });
+    }
+
+    const serverAuthHeaders = configureOpenCodeServerAuth({ env: procEnv });
+    const server = await createOpencodeServer({
+      hostname: '127.0.0.1',
+      port: 0,
+      timeout: 30_000,
+      config: buildOpenCodeConfig({
+        start,
+        relayPort: runtime.relay?.port,
+      }) as never,
+    });
+    runtime.server = server;
+    runtime.client = createOpencodeClient({
+      baseUrl: server.url,
+      directory: workdir,
+      headers: serverAuthHeaders,
+    });
+    const mcpStatus = await runtime.client.mcp.status();
+    const mcpServers = asOpenCodeObject(mcpStatus.data) ?? {};
+    runtime.mcpToolPrefixes = new Set(
+      Object.entries(mcpServers)
+        .filter(
+          ([serverName, status]) =>
+            serverName !== 'harness-tools' &&
+            asOpenCodeObject(status)?.status === 'connected',
+        )
+        .map(([serverName]) => `${sanitizeMcpToolName(serverName)}_`),
+    );
+    runtime.openCodeConfig = structuredClone(start.openCodeConfig);
+  } catch (error) {
+    closeRuntime();
+    throw error;
+  }
+}
+
+function closeRuntime(): void {
+  runtime.relay?.close();
+  runtime.server?.close();
+  runtime.server = undefined;
+  runtime.client = undefined;
+  runtime.relay = undefined;
+  runtime.openCodeConfig = undefined;
+  runtime.toolNames = new Set();
+  runtime.mcpToolPrefixes = new Set();
 }
 
 function buildOpenCodeConfig({
@@ -255,7 +292,7 @@ function buildOpenCodeConfig({
       webfetch: 'ask',
       doom_loop: 'ask',
       task: 'ask',
-      question: 'deny',
+      question: 'allow',
     },
   };
   if (start.model) config.model = start.model;
@@ -274,7 +311,7 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  const mcp = { ...(start.mcpServers ?? {}) };
+  const mcp = { ...start.mcpServers };
   if (relayPort && start.tools && start.tools.length > 0) {
     mcp['harness-tools'] = {
       type: 'local',
@@ -332,8 +369,15 @@ function buildProviderConfig(
           apiKey: procEnv.AI_GATEWAY_API_KEY,
           baseURL: toOpenCodeGatewayBaseUrl(procEnv.AI_GATEWAY_BASE_URL),
           ...(HARNESS_CLIENT_APP
-            ? { headers: { 'x-client-app': HARNESS_CLIENT_APP } }
-            : {}),
+            ? {
+                headers: {
+                  ...start.headers,
+                  'x-client-app': HARNESS_CLIENT_APP,
+                },
+              }
+            : start.headers
+              ? { headers: start.headers }
+              : {}),
         },
         ...(modelID
           ? {
@@ -359,6 +403,7 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_BASE_URL
             ? { baseURL: procEnv.OPENAI_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
         ...(modelID
@@ -390,6 +435,7 @@ function buildProviderConfig(
           ...(procEnv.ANTHROPIC_BASE_URL
             ? { baseURL: procEnv.ANTHROPIC_BASE_URL }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
         },
       },
     };
@@ -412,13 +458,12 @@ function buildProviderConfig(
           ...(procEnv.OPENAI_PROJECT
             ? { project: procEnv.OPENAI_PROJECT }
             : {}),
+          ...(start.headers ? { headers: start.headers } : {}),
           ...parseOpenAIQueryParams(),
         },
       },
     };
   }
-
-  return undefined;
 }
 
 function parseOpenAIQueryParams(): Record<string, unknown> {
@@ -523,7 +568,6 @@ function readSessionId(data: unknown): string | undefined {
   const record = data as { id?: unknown; data?: { id?: unknown } };
   if (typeof record.id === 'string') return record.id;
   if (typeof record.data?.id === 'string') return record.data.id;
-  return undefined;
 }
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
@@ -965,9 +1009,33 @@ async function consumeEvents({
     let processEvent = descendantEventProcessors.get(descendantSessionId);
     if (!processEvent) {
       const descendantState = createTranslationState();
+      let currentEvent: OpenCodeEvent | undefined;
+      let modelId: string | undefined;
+      const emittedUsageStepIds = new Set<string>();
       processEvent = createEmitStreamEvent({
         state: descendantState,
-        emit: () => undefined,
+        emit: message => {
+          if (message.type !== 'finish-step') return;
+          const stepId = getSubagentStepId(currentEvent);
+          if (!stepId || emittedUsageStepIds.has(stepId)) return;
+          emittedUsageStepIds.add(stepId);
+          const opencodeMetadata = asOpenCodeObject(
+            message.harnessMetadata,
+          )?.opencode;
+          const cost = asOpenCodeObject(opencodeMetadata)?.cost;
+          emit({
+            type: 'raw',
+            rawValue: {
+              type: 'opencode.subagent-usage',
+              version: 1,
+              sessionId: descendantSessionId,
+              stepId,
+              ...(modelId ? { modelId } : {}),
+              usage: message.usage,
+              ...(typeof cost === 'number' ? { cost } : {}),
+            },
+          });
+        },
         emitWarning: () => undefined,
         emitError: () => undefined,
         toWireToolName,
@@ -980,6 +1048,19 @@ async function consumeEvents({
         stripWorkDir,
         formatError,
       });
+      const emitDescendantEvent = processEvent;
+      processEvent = descendantEvent => {
+        currentEvent = descendantEvent;
+        if (descendantEvent.type === 'message.updated') {
+          const info = openCodeMessageInfoFromValue(
+            descendantEvent.properties?.info,
+          );
+          const providerID = stringValue(info?.providerID);
+          const modelID = stringValue(info?.modelID);
+          if (providerID && modelID) modelId = `${providerID}/${modelID}`;
+        }
+        emitDescendantEvent(descendantEvent);
+      };
       descendantEventProcessors.set(descendantSessionId, processEvent);
     }
     processEvent(event);
@@ -997,7 +1078,14 @@ async function consumeEvents({
           : undefined;
     if (!scopedSessionId) continue;
     const isDescendant = scopedSessionId !== sessionId;
-    if (event.type === 'permission.v2.asked') {
+    if (event.type === 'question.asked') {
+      await handleQuestion({
+        client,
+        turn,
+        emit,
+        event,
+      });
+    } else if (event.type === 'permission.v2.asked') {
       await handlePermissionV2({
         client,
         sessionId: scopedSessionId,
@@ -1024,6 +1112,89 @@ async function consumeEvents({
     }
     if (isDescendant) continue;
     if (onEvent?.(event)) break;
+  }
+}
+
+function getSubagentStepId(event: OpenCodeEvent | undefined) {
+  if (event?.type === 'message.part.updated') {
+    const part = asOpenCodeObject(event.properties?.part);
+    if (part?.type !== 'step-finish') return undefined;
+    return stringValue(part.id) ?? stringValue(part.messageID) ?? event.id;
+  }
+  if (event?.type !== 'session.next.step.ended') return undefined;
+  return stringValue(event.properties?.stepID) ?? event.id;
+}
+
+async function handleQuestion({
+  client,
+  turn,
+  emit,
+  event,
+}: {
+  client: OpenCodeClient;
+  turn: BridgeTurn;
+  emit: Emit;
+  event: OpenCodeEvent;
+}): Promise<void> {
+  const nativeRequest = event.properties as OpenCodeQuestionRequest | undefined;
+  if (
+    nativeRequest == null ||
+    typeof nativeRequest.id !== 'string' ||
+    typeof nativeRequest.sessionID !== 'string' ||
+    !Array.isArray(nativeRequest.questions)
+  ) {
+    return;
+  }
+  const toolCallId = nativeRequest.tool?.callID ?? nativeRequest.id;
+
+  emit({
+    type: 'tool-call',
+    toolCallId,
+    toolName: 'askUserQuestions',
+    nativeName: 'question',
+    input: JSON.stringify(toHarnessQuestionsInput(nativeRequest)),
+    providerExecuted: false,
+    providerMetadata: {
+      opencode: {
+        nativeRequest,
+      },
+    },
+  });
+
+  const questionKey = openCodeQuestionKey(nativeRequest);
+  const result = await turn.requestToolResult({
+    toolCallId,
+    matches: candidate => {
+      const continuedRequest = candidate.toolResult?.providerOptions?.opencode
+        ?.nativeRequest as OpenCodeQuestionRequest | undefined;
+      return (
+        continuedRequest != null &&
+        openCodeQuestionKey(continuedRequest) === questionKey
+      );
+    },
+  });
+  const nativeResponse = toOpenCodeQuestionResponse({
+    nativeRequest,
+    output: result.output as Parameters<
+      typeof toOpenCodeQuestionResponse
+    >[0]['output'],
+  });
+
+  const response =
+    nativeResponse.action === 'reject'
+      ? await client.question.reject({
+          requestID: nativeRequest.id,
+          directory: workdir,
+        })
+      : await client.question.reply({
+          requestID: nativeRequest.id,
+          directory: workdir,
+          answers: nativeResponse.answers,
+        });
+  if (response.error != null) {
+    throw new Error(
+      `OpenCode question response failed: ${formatError(response.error)}`,
+    );
   }
 }
 
@@ -1131,9 +1302,6 @@ async function selectPermissionReply({
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
-  if (resources.some(resource => isExternalPath(resource))) {
-    return { reply: 'reject', message: 'External directory access rejected.' };
-  }
   if (
     isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
   ) {
@@ -1152,6 +1320,9 @@ async function selectPermissionReply({
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
+  }
+  if (resources.some(resource => isExternalPath(resource))) {
+    return { reply: 'reject', message: 'External directory access rejected.' };
   }
   const kind = TOOL_KIND[toolName] ?? 'bash';
   const allowed =
@@ -1214,16 +1385,38 @@ function isBuiltinToolInactive(input: {
 
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
-  const normalized = path.resolve(resource);
   return (
-    !isPathInsideOrEqual(normalized, workdir) &&
-    (!skillsDir || !isPathInsideOrEqual(normalized, skillsDir))
+    !isPathInsideOrEqual(resource, workdir) &&
+    (!skillsDir || !isPathInsideOrEqual(resource, skillsDir))
   );
 }
 
 function isPathInsideOrEqual(file: string, root: string): boolean {
-  const normalizedRoot = path.resolve(root);
-  return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
+  const relative = path.relative(
+    canonicalizeForContainment(root),
+    canonicalizeForContainment(file),
+  );
+  return (
+    relative === '' ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function canonicalizeForContainment(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
+  try {
+    return realpathSync.native(normalized);
+  } catch {
+    const parent = path.dirname(normalized);
+    return parent === normalized
+      ? normalized
+      : path.join(
+          canonicalizeForContainment(parent),
+          path.basename(normalized),
+        );
+  }
 }
 
 function toWireToolName(nativeName: string): string {
@@ -1258,7 +1451,6 @@ function getHostToolName(
   ) {
     return rawToolName.slice('harness-tools_'.length);
   }
-  return undefined;
 }
 
 function authorizeHostToolCall({
@@ -1397,7 +1589,6 @@ function latestLegacyAssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function latestV2AssistantMessage(
@@ -1427,7 +1618,6 @@ function latestV2AssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function emitAssistantContentPart(part: unknown, emit: Emit): void {

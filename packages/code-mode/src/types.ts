@@ -199,6 +199,23 @@ export interface CodeModeOptions {
   };
 }
 
+/**
+ * Options for the code-mode tool caller used with `experimental_toolCallers`.
+ */
+export interface CodeModeToolOptions extends CodeModeOptions {
+  /**
+   * Controls how host tools are presented to the model.
+   *
+   * - `'description'`: include host-tool signatures in the provider-visible
+   *   code-mode tool description.
+   * - `'conversation'`: keep the code-mode tool definition stable and announce
+   *   the current host-tool catalog in a user message.
+   *
+   * @defaultValue `'description'`
+   */
+  toolDiscovery?: 'description' | 'conversation';
+}
+
 export interface CodeModeContinuationSecurityOptions {
   signingKey?: string | Uint8Array;
   /**

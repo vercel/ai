@@ -858,6 +858,29 @@ describe('doGenerate', () => {
         }),
       );
     });
+
+    it.each([
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should not warn about reasoning for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      const result = await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({
+          type: 'unsupported',
+          feature: 'reasoning',
+        }),
+      );
+    });
   });
 
   describe('reasoning_effort', () => {
@@ -932,6 +955,26 @@ describe('doGenerate', () => {
 
       const body = await server.calls[0].requestBodyJson;
       expect(body).not.toHaveProperty('reasoning_effort');
+    });
+
+    it.each([
+      'mistral-medium-3-5',
+      'mistral-medium-latest',
+      'mistral-vibe-cli-fast',
+      'zai-glm-5-2',
+      'glm-5-2',
+      'labs-leanstral-1-5',
+    ] as const)('should send reasoning_effort for %s', async modelId => {
+      const reasoningModel = provider.chat(modelId);
+
+      await reasoningModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
     });
   });
 });

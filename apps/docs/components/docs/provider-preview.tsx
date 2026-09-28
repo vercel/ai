@@ -60,7 +60,7 @@ export const PreviewSwitchProviders = ({
       <InteractiveCodePreview
         allowedProviders={FIRST_PARTY_PROVIDERS}
         code={CODE_TEMPLATE}
-        defaultModelId="anthropic/claude-sonnet-4.5"
+        defaultModelId="anthropic/claude-sonnet-5"
         highlightedLines={HIGHLIGHTED_LINES}
         highlightedLinesWithImport={HIGHLIGHTED_LINES_WITH_IMPORT}
         language="typescript"

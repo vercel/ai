@@ -253,7 +253,11 @@ export class ByteDanceVideoModel implements VideoModelV4 {
       content.push({
         type: 'image_url',
         image_url: { url: convertImageModelFileToDataUri(startImage) },
-        ...(lastFrameImageUrl != null ? { role: 'first_frame' } : {}),
+        ...(lastFrameImageUrl != null
+          ? { role: 'first_frame' }
+          : referenceContent.length > 0
+            ? { role: 'reference_image' }
+            : {}),
       });
     }
 
@@ -349,6 +353,12 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.buildRequestBody(options);
 
+    // Progress notifications require a protocol-aware receiver, so omit handleWebhookOption.
+    // Forward webhookUrl for a caller-owned receiver that filters progress notifications.
+    if (options.webhookUrl != null) {
+      body.callback_url = options.webhookUrl;
+    }
+
     const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/contents/generations/tasks`,
       headers: combineHeaders(
@@ -392,7 +402,8 @@ export class ByteDanceVideoModel implements VideoModelV4 {
 
     const { value: statusResponse, responseHeaders } = await getFromApi({
       url: `${this.config.baseURL}/contents/generations/tasks/${taskId}`,
-      validateUrl: false,
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       headers: combineHeaders(
         await resolve(this.config.headers),
         options.headers,
@@ -445,6 +456,7 @@ export class ByteDanceVideoModel implements VideoModelV4 {
     // ModelArk documents `cancelled`; `canceled` is handled defensively.
     if (
       statusResponse.status === 'failed' ||
+      statusResponse.status === 'expired' ||
       statusResponse.status === 'cancelled' ||
       statusResponse.status === 'canceled'
     ) {

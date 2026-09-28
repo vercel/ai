@@ -4,12 +4,12 @@ import { presentVideos } from '../../lib/present-video';
 import { run } from '../../lib/run';
 import { withSpinner } from '../../lib/spinner';
 
-// Note: KlingAI does not support webhooks natively. The SDK will log an
-// unsupported-webhook warning and automatically fall back to polling.
+// KlingAI callbacks need a progress-aware receiver. This example demonstrates
+// the generic webhook option falling back to polling without calling the factory.
 run(async () => {
   const { videos, warnings } = await withSpinner('Generating video...', () =>
     generateVideo({
-      model: klingai.video('kling-v2.6-t2v'),
+      model: klingai.video('kling-v3.0-t2v'),
       prompt: 'A chicken flying into the sunset in the style of 90s anime.',
       aspectRatio: '16:9',
       duration: 5,
@@ -21,7 +21,7 @@ run(async () => {
       },
       webhook: async () => {
         throw new Error(
-          'Webhooks are not supported by KlingAI. This callback should not be invoked',
+          'KlingAI requires a progress-aware receiver. This factory should not be invoked.',
         );
       },
     }),

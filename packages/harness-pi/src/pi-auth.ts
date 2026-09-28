@@ -12,7 +12,10 @@ import { access } from 'node:fs/promises';
 import { VERSION } from './version';
 
 type ProviderConfigInput = Parameters<ModelRegistry['registerProvider']>[1];
-type PiCredentialStore = NonNullable<CreateModelRuntimeOptions['credentials']>;
+/** Persistent credential storage consumed by Pi's model runtime. */
+export type PiCredentialStore = NonNullable<
+  CreateModelRuntimeOptions['credentials']
+>;
 type PiCredential = Exclude<
   Awaited<ReturnType<PiCredentialStore['read']>>,
   undefined
@@ -116,24 +119,27 @@ function scopePiProviderEnvironment({
 
 export async function createPiModelRuntime({
   auth,
+  credentials,
   authPath,
   modelsPath,
 }: {
   auth: PiAuthenticationMode | undefined;
+  credentials?: PiCredentialStore;
   authPath: string;
   modelsPath: string;
 }): Promise<ModelRuntime> {
   if (!isHarnessAuthenticationEnvironment(auth)) {
     return ModelRuntime.create({
-      authPath,
+      ...(credentials ? { credentials } : { authPath }),
       modelsPath,
       allowModelNetwork: false,
     });
   }
 
-  const isolatedCredentials = createIsolatedPiCredentialStore();
+  const isolatedCredentials =
+    credentials == null ? createIsolatedPiCredentialStore() : undefined;
   const modelRuntime = await ModelRuntime.create({
-    credentials: isolatedCredentials.credentials,
+    credentials: credentials ?? isolatedCredentials!.credentials,
     modelsPath: null,
     allowModelNetwork: false,
   });
@@ -164,7 +170,7 @@ export async function createPiModelRuntime({
     modelRuntime,
     authenticationEnvironment: auth,
   });
-  isolatedCredentials.finishInitialization();
+  isolatedCredentials?.finishInitialization();
   await modelRuntime.refresh({ allowNetwork: false });
 
   return modelRuntime;
@@ -174,16 +180,19 @@ function createGatewayProviderConfig({
   apiKey,
   baseUrl,
   clientApp,
+  headers,
 }: {
   apiKey: string;
   baseUrl: string;
   clientApp: string;
+  headers?: Readonly<Record<string, string>>;
 }): ProviderConfigInput {
   return {
     apiKey,
     baseUrl,
     authHeader: true,
     headers: {
+      ...headers,
       'User-Agent': clientApp,
       'x-client-app': clientApp,
     },
@@ -311,11 +320,13 @@ export async function registerPiProviders({
   resolvedEnv,
   registries,
   clientApp = HARNESS_CLIENT_APP,
+  headers,
 }: {
   options: PiAuthenticationMode | undefined;
   resolvedEnv: Record<string, string>;
   registries: PiRegistries;
   clientApp?: string;
+  headers?: Readonly<Record<string, string>>;
 }): Promise<void> {
   const suppliedEnvironment = isHarnessAuthenticationEnvironment(options);
   const authenticationEnvironment = suppliedEnvironment ? options : process.env;
@@ -328,6 +339,7 @@ export async function registerPiProviders({
         customEnv: { ...pickOpenAIEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
+        headers,
       });
       return;
     }
@@ -337,6 +349,7 @@ export async function registerPiProviders({
         customEnv: { ...pickAnthropicEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
+        headers,
       });
       return;
     }
@@ -347,6 +360,7 @@ export async function registerPiProviders({
         customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
+        headers,
       });
       return;
     }
@@ -367,6 +381,7 @@ export async function registerPiProviders({
           apiKey: gatewayApiKey,
           baseUrl: gatewayBaseUrl,
           clientApp,
+          headers,
         }),
       });
       return;
@@ -391,6 +406,7 @@ export async function registerPiProviders({
             apiKey: gatewayApiKey,
             baseUrl: gatewayBaseUrl,
             clientApp,
+            headers,
           }),
         });
         return;
@@ -400,8 +416,8 @@ export async function registerPiProviders({
         customEnv: { ...pickProviderEnv(authenticationEnvironment), ...env },
         registries,
         clientApp,
+        headers,
       });
-      return;
     }
   }
 }
@@ -455,10 +471,12 @@ async function registerCustomProviders({
   customEnv,
   registries,
   clientApp,
+  headers,
 }: {
   customEnv: Record<string, string>;
   registries: PiRegistries;
   clientApp: string;
+  headers?: Readonly<Record<string, string>>;
 }): Promise<void> {
   const gatewayKey = customEnv.AI_GATEWAY_API_KEY;
   if (gatewayKey) {
@@ -471,6 +489,7 @@ async function registerCustomProviders({
         apiKey: gatewayKey,
         baseUrl,
         clientApp,
+        headers,
       }),
     });
   }
@@ -485,6 +504,7 @@ async function registerCustomProviders({
         apiKey: customEnv.OPENAI_API_KEY,
         baseUrl,
         authHeader: true,
+        ...(headers ? { headers } : {}),
       },
     });
   }
@@ -498,10 +518,15 @@ async function registerCustomProviders({
       config: {
         apiKey: customEnv.ANTHROPIC_API_KEY,
         baseUrl,
-        ...(customEnv.ANTHROPIC_AUTH_TOKEN
+        ...(headers || customEnv.ANTHROPIC_AUTH_TOKEN
           ? {
               headers: {
-                authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
+                ...headers,
+                ...(customEnv.ANTHROPIC_AUTH_TOKEN
+                  ? {
+                      authorization: `Bearer ${customEnv.ANTHROPIC_AUTH_TOKEN}`,
+                    }
+                  : {}),
               },
             }
           : {}),
@@ -534,6 +559,7 @@ async function registerCustomProviders({
         apiKey,
         baseUrl,
         authHeader: true,
+        ...(headers ? { headers } : {}),
       },
     });
   }

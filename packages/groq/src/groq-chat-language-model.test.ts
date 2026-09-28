@@ -1,4 +1,7 @@
-import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import fs from 'node:fs';
@@ -66,6 +69,34 @@ describe('doGenerate', () => {
         }
       `);
     });
+  });
+
+  it('should reject a response without choices', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gemma2-9b-it',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
   });
 
   describe('tool call', () => {
@@ -1076,6 +1107,36 @@ describe('doStream', () => {
   describe('reasoning', () => {
     beforeEach(() => {
       prepareChunksFixtureResponse('groq-reasoning');
+    });
+
+    it('should keep reasoning active when deltas include empty tool calls', async () => {
+      server.urls[CHAT_COMPLETIONS_URL].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"","reasoning":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+            `"choices":[{"index":0,"delta":{"content":"Hello","reasoning":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(
+        events.filter(({ type }) => type.startsWith('reasoning-')),
+      ).toStrictEqual([
+        { type: 'reasoning-start', id: 'reasoning-0' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+        { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+      ]);
     });
 
     it('should stream reasoning', async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPi } from './pi-harness';
+import type { PiCredentialStore } from './pi-auth';
 import type * as PiSessionModule from './pi-session';
 
 const mocks = vi.hoisted(() => ({
@@ -50,19 +51,48 @@ describe('createPi adapter', () => {
     expect(harness.getBootstrap).toBeUndefined();
   });
 
-  it('passes the deprecated adapter model to the session as a fallback', async () => {
-    const harness = createPi({ model: 'legacy-model' });
+  it.each(['continue-turn', 'resume-session'] as const)(
+    'forwards %s lifecycle state and stateless runtime settings',
+    async resumeStateType => {
+      mocks.createPiSession.mockClear();
+      const credentials = {} as PiCredentialStore;
+      const harness = createPi({
+        credentials,
+        reattachInProcess: false,
+      });
+      const lifecycleState = {
+        harnessId: 'pi',
+        specificationVersion: 'harness-v1',
+        data: {},
+      } as const;
 
-    await harness.doStart({
-      sessionId: 'session-1',
-      sandboxSession: {} as never,
-      sessionWorkDir: '/workspace/project',
-    });
+      const startOptions = {
+        sessionId: `session-${resumeStateType}`,
+        sandboxSession: {} as never,
+        sessionWorkDir: '/sandbox/work',
+      };
+      if (resumeStateType === 'continue-turn') {
+        await harness.doStart({
+          ...startOptions,
+          continueFrom: { ...lifecycleState, type: 'continue-turn' },
+        });
+      } else {
+        await harness.doStart({
+          ...startOptions,
+          resumeFrom: { ...lifecycleState, type: 'resume-session' },
+        });
+      }
 
-    expect(mocks.createPiSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        settings: expect.objectContaining({ model: 'legacy-model' }),
-      }),
-    );
-  });
+      expect(mocks.createPiSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          isResume: true,
+          resumeStateType,
+          settings: expect.objectContaining({
+            credentials,
+            reattachInProcess: false,
+          }),
+        }),
+      );
+    },
+  );
 });

@@ -1,6 +1,6 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
 import { createOpenCode } from './_create';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSessionFromNativeSandbox } from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
@@ -18,10 +18,11 @@ run(async () => {
     harness: openCode,
   });
 
-  const sandboxProvider = createVercelSandbox({ sandbox });
-  const sandboxSession = await sandboxProvider.createSession();
-  const session = await agent.createSession({ sandboxSession });
+  const sandboxSession =
+    createVercelNetworkSandboxSessionFromNativeSandbox(sandbox);
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt: 'In one sentence, what is the capital of France?',
@@ -32,7 +33,7 @@ run(async () => {
     console.log('finishReason:', await result.finishReason);
     console.log('usage:', await result.usage);
   } finally {
-    await session.destroy();
-    await sandbox.stop().catch(() => {});
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

@@ -10,7 +10,7 @@ run(async () => {
     'Generating xAI reference-to-video with explicit mediaType...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt:
           '<IMAGE_1> and <IMAGE_2> ' +
           'are having a playful chase through a sunlit park. ' +

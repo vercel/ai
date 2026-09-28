@@ -1,4 +1,9 @@
-import type { HarnessV1Bootstrap, HarnessV1SandboxProvider } from '../v1';
+import {
+  harnessStateDirectoryPath,
+  type HarnessV1Bootstrap,
+  type HarnessV1SandboxProvider,
+} from '../v1';
+import { resolveSandboxHomeDir } from '../utils/sandbox-home-dir';
 import type { HarnessAgentAdapter } from './harness-agent-types';
 import type { HarnessAgentSandboxConfig } from './harness-agent-settings';
 import { applyBootstrapRecipe } from './internal/bootstrap-recipe';
@@ -20,8 +25,8 @@ type SandboxBootstrapSettings = Omit<HarnessAgentSandboxConfig, 'onSession'>;
  *
  * The temporary network sandbox session created during preparation is stopped
  * before the function resolves; the snapshot/template state persists in the
- * provider's native storage (for Vercel: as the `currentSnapshotId` of the
- * named template sandbox).
+ * provider's native storage.
+ * @deprecated Use `createHarnessSandboxTemplate` and pass its template to a sandbox session creator instead.
  */
 export async function prepareHarnessSandboxTemplate(options: {
   readonly harness: HarnessAgentAdapter;
@@ -29,6 +34,9 @@ export async function prepareHarnessSandboxTemplate(options: {
   readonly sandboxConfig?: SandboxBootstrapSettings;
   readonly abortSignal?: AbortSignal;
 }): Promise<void> {
+  console.warn(
+    'prepareHarnessSandboxTemplate (prewarmHarness) is deprecated. Use createHarnessSandboxTemplate and a sandbox session creator instead.',
+  );
   const sandboxConfig = options.sandboxConfig ?? {};
   validateSandboxBootstrapSettings(sandboxConfig);
 
@@ -58,11 +66,19 @@ export async function prepareHarnessSandboxTemplate(options: {
   // general harness utility, not for a concrete agent.
   try {
     if (bootstrapPlan.recipe != null && bootstrapPlan.recipeIdentity != null) {
+      const restrictedSession = sandboxSession.restricted();
       await applyBootstrapRecipe({
-        session: sandboxSession.restricted(),
+        session: restrictedSession,
         recipe: bootstrapPlan.recipe,
         identity: bootstrapPlan.recipeIdentity,
-        defaultWorkingDirectory: sandboxSession.defaultWorkingDirectory,
+        // Harness infrastructure always lives under the sandbox's own HOME,
+        // never the working directory.
+        stateDirectory: harnessStateDirectoryPath({
+          sandboxHomeDir: await resolveSandboxHomeDir({
+            sandbox: restrictedSession,
+            abortSignal,
+          }),
+        }),
         abortSignal,
       });
     }

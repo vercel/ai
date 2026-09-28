@@ -5,4 +5,3 @@ const markdownRoute = createDocsMarkdownRoute({ source: providersV7Source });
 
 export const GET = markdownRoute.GET;
 export const generateStaticParams = markdownRoute.generateStaticParams;
-export const revalidate = false;

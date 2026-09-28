@@ -20,7 +20,7 @@ describe('writeToServerResponse', () => {
       response: mockResponse,
       status: 200,
       statusText: 'OK',
-      headers: { 'Content-Type': 'text/plain' },
+      headers: new Headers({ 'Content-Type': 'text/plain' }),
       stream,
     });
 
@@ -157,15 +157,15 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Chat-Title': 'My Conversation',
+      'x-example-header': 'example-value',
+      'x-example-chat-title': 'My Conversation',
     };
 
     writeToServerResponse({
       response: mockResponse,
       status: 200,
       statusText: undefined,
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 
@@ -188,15 +188,15 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Chat-Title': 'New Chat Session',
+      'x-example-header': 'example-value',
+      'x-example-chat-title': 'New Chat Session',
     };
 
     writeToServerResponse({
       response: mockResponse,
       status: 201,
       statusText: 'Created',
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 
@@ -220,13 +220,13 @@ describe('writeToServerResponse', () => {
     });
 
     const expectedHeaders = {
-      'X-Example-Header': 'example-value',
-      'X-Example-Message': 'Hello World',
+      'x-example-header': 'example-value',
+      'x-example-message': 'Hello World',
     };
 
     writeToServerResponse({
       response: mockResponse,
-      headers: expectedHeaders,
+      headers: new Headers(expectedHeaders),
       stream,
     });
 

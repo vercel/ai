@@ -6,7 +6,13 @@ import {
   type UIMessage,
   DefaultChatTransport,
 } from 'ai';
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -121,40 +127,37 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       latestRef.current.sendAutomaticallyWhen?.(arg) ?? false,
   };
 
-  const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(chatOptions),
+  const chatKey = 'chat' in options ? options.chat : options.id;
+  const { chat, isExternallyManaged } = useMemo(
+    () => ({
+      chat: 'chat' in options ? options.chat : new Chat(chatOptions),
+      isExternallyManaged: 'chat' in options,
+    }),
+    [chatKey],
   );
 
-  const shouldRecreateChat =
-    ('chat' in options && options.chat !== chatRef.current) ||
-    ('id' in options &&
-      options.id != null &&
-      chatRef.current.id !== options.id);
+  useEffect(() => {
+    if (isExternallyManaged) {
+      return;
+    }
 
-  if (shouldRecreateChat) {
-    chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
-  }
+    return () => {
+      void chat.stop();
+    };
+  }, [chat, isExternallyManaged]);
 
-  const chat = chatRef.current;
-  const messagesSnapshotRef = useRef({
-    chat,
-    messages: chat.messages,
-  });
-
-  if (messagesSnapshotRef.current.chat !== chat) {
-    messagesSnapshotRef.current = { chat, messages: chat.messages };
-  }
+  const messagesSnapshot = useMemo(() => ({ messages: chat.messages }), [chat]);
 
   const subscribeToMessages = useCallback(
     (update: () => void) => {
       let isSubscribed = true;
 
       const updateMessages = () => {
-        if (!isSubscribed || messagesSnapshotRef.current.chat !== chat) {
+        if (!isSubscribed) {
           return;
         }
 
-        messagesSnapshotRef.current = { chat, messages: chat.messages };
+        messagesSnapshot.messages = chat.messages;
         update();
       };
 
@@ -166,19 +169,19 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       // Synchronize changes that may have happened between render and
       // subscription. useSyncExternalStore checks the snapshot after
       // subscribing and schedules a render when it changed.
-      messagesSnapshotRef.current = { chat, messages: chat.messages };
+      messagesSnapshot.messages = chat.messages;
 
       return () => {
         isSubscribed = false;
         unsubscribe();
       };
     },
-    [chat, throttleWaitMs],
+    [chat, messagesSnapshot, throttleWaitMs],
   );
 
   const getMessagesSnapshot = useCallback(
-    () => messagesSnapshotRef.current.messages,
-    [],
+    () => messagesSnapshot.messages,
+    [messagesSnapshot],
   );
 
   const messages = useSyncExternalStore(
@@ -190,18 +193,14 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   const subscribeToStatus = useCallback(
     (update: () => void) =>
       chat['~registerStatusCallback'](() => {
-        if (messagesSnapshotRef.current.chat !== chat) {
-          return;
-        }
-
         if (chat.status === 'ready' || chat.status === 'error') {
           // Publish the latest messages before the terminal status can render.
-          messagesSnapshotRef.current = { chat, messages: chat.messages };
+          messagesSnapshot.messages = chat.messages;
         }
 
         update();
       }),
-    [chat],
+    [chat, messagesSnapshot],
   );
 
   const getStatusSnapshot = useCallback(() => chat.status, [chat]);
@@ -213,9 +212,9 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   );
 
   const error = useSyncExternalStore(
-    chatRef.current['~registerErrorCallback'],
-    () => chatRef.current.error,
-    () => chatRef.current.error,
+    chat['~registerErrorCallback'],
+    () => chat.error,
+    () => chat.error,
   );
 
   const setMessages = useCallback(
@@ -223,35 +222,35 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       messagesParam: UI_MESSAGE[] | ((messages: UI_MESSAGE[]) => UI_MESSAGE[]),
     ) => {
       if (typeof messagesParam === 'function') {
-        messagesParam = messagesParam(chatRef.current.messages);
+        messagesParam = messagesParam(chat.messages);
       }
-      chatRef.current.messages = messagesParam;
+      chat.messages = messagesParam;
     },
-    [chatRef],
+    [chat],
   );
 
   useEffect(() => {
     if (resume) {
-      chatRef.current.resumeStream();
+      chat.resumeStream();
     }
-  }, [resume, chatRef]);
+  }, [resume, chat]);
 
   return {
-    id: chatRef.current.id,
+    id: chat.id,
     messages,
     setMessages,
-    sendMessage: chatRef.current.sendMessage,
-    regenerate: chatRef.current.regenerate,
-    clearError: chatRef.current.clearError,
-    stop: chatRef.current.stop,
+    sendMessage: chat.sendMessage,
+    regenerate: chat.regenerate,
+    clearError: chat.clearError,
+    stop: chat.stop,
     error,
-    resumeStream: chatRef.current.resumeStream,
+    resumeStream: chat.resumeStream,
     status,
     /**
      * @deprecated Use `addToolOutput` instead.
      */
-    addToolResult: chatRef.current.addToolOutput,
-    addToolOutput: chatRef.current.addToolOutput,
-    addToolApprovalResponse: chatRef.current.addToolApprovalResponse,
+    addToolResult: chat.addToolOutput,
+    addToolOutput: chat.addToolOutput,
+    addToolApprovalResponse: chat.addToolApprovalResponse,
   };
 }

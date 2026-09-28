@@ -6,23 +6,28 @@ import { TogetherAIImageModel } from './togetherai-image-model';
 const prompt = 'A cute baby sea otter';
 
 function createBasicModel({
+  modelId,
   headers,
   fetch,
   currentDate,
 }: {
+  modelId?: string;
   headers?: () => Record<string, string>;
   fetch?: FetchFunction;
   currentDate?: () => Date;
 } = {}) {
-  return new TogetherAIImageModel('stabilityai/stable-diffusion-xl', {
-    provider: 'togetherai',
-    baseURL: 'https://api.example.com',
-    headers: headers ?? (() => ({ 'api-key': 'test-key' })),
-    fetch,
-    _internal: {
-      currentDate,
+  return new TogetherAIImageModel(
+    modelId ?? 'stabilityai/stable-diffusion-xl',
+    {
+      provider: 'togetherai',
+      baseURL: 'https://api.example.com',
+      headers: headers ?? (() => ({ 'api-key': 'test-key' })),
+      fetch,
+      _internal: {
+        currentDate,
+      },
     },
-  });
+  );
 }
 
 const server = createTestServer({
@@ -86,6 +91,54 @@ describe('doGenerate', () => {
       prompt,
       response_format: 'base64',
     });
+  });
+
+  it('should omit diffusion options for non-diffusion models', async () => {
+    const model = createBasicModel({
+      modelId: 'google/gemini-3-pro-image',
+    });
+
+    const result = await model.doGenerate({
+      prompt,
+      files: undefined,
+      mask: undefined,
+      n: 1,
+      size: '1264x848',
+      seed: 42,
+      providerOptions: {
+        togetherai: {
+          steps: 20,
+          guidance: 3.5,
+          negative_prompt: 'blurry',
+          disable_safety_checker: true,
+          additional_param: 'value',
+        },
+      },
+      aspectRatio: undefined,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'google/gemini-3-pro-image',
+      prompt,
+      width: 1264,
+      height: 848,
+      response_format: 'base64',
+      additional_param: 'value',
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          'This model does not support the `aspectRatio` option. Use `size` instead.',
+      },
+      {
+        type: 'unsupported',
+        feature: 'seed',
+        details:
+          'The google/gemini-3-pro-image model does not support the `seed` option.',
+      },
+    ]);
   });
 
   it('should include n parameter when requesting multiple images', async () => {

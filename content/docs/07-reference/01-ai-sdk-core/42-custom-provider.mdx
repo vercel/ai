@@ -24,8 +24,8 @@ import { customProvider } from 'ai';
 export const myOpenAI = customProvider({
   languageModels: {
     // replacement model with custom settings:
-    'gpt-5': wrapLanguageModel({
-      model: openai('gpt-5'),
+    'gpt-6-astra': wrapLanguageModel({
+      model: openai('gpt-6-astra'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -37,8 +37,8 @@ export const myOpenAI = customProvider({
       }),
     }),
     // alias model with custom settings:
-    'gpt-4o-reasoning-high': wrapLanguageModel({
-      model: openai('gpt-4o'),
+    'gpt-6-astra-reasoning-high': wrapLanguageModel({
+      model: openai('gpt-6-astra'),
       middleware: defaultSettingsMiddleware({
         settings: {
           providerOptions: {
@@ -201,3 +201,21 @@ The `customProvider` function returns a `Provider` instance. It has the followin
     },
   ]}
 />
+
+## Experimental evaluation models
+
+Pass `evaluationModels: Record<string, Experimental_EvaluationModel>` to define
+aliases for evaluation model instances or string IDs. The returned provider adds
+`evaluationModel(alias): Experimental_EvaluationModelV4`. String aliases resolve
+through Gateway by default, or an explicitly configured default provider with
+an `evaluationModel` method. Unknown aliases use the fallback provider's evaluation
+factory when available; model failures and unsupported questions do not trigger
+substitution.
+
+Unavailable evaluation capabilities or models throw `NoSuchModelError` with
+`modelType: 'evaluationModel'`; unknown registry providers throw
+`NoSuchProviderError`. These capabilities are structural extensions and are not
+added to the stable `ProviderV4` contract. Direct evaluation string IDs default
+to Gateway when no default provider is configured.
+See [Evaluation](/docs/ai-sdk-core/evaluation#model-aliases-and-registries)
+for runnable usage patterns.

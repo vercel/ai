@@ -7,6 +7,252 @@ import {
 } from './create-emit-stream-event';
 
 describe('createEmitStreamEvent', () => {
+  const mcpImageBlock = {
+    type: 'image',
+    source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
+  };
+
+  it('ignores user messages with string content', () => {
+    const state = createClaudeStreamEventState();
+    state.stepOpen = true;
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'user',
+      message: { content: 'Compacted conversation context' },
+    });
+
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+    expect(state.stepOpen).toBe(true);
+  });
+
+  it.each([
+    {
+      name: 'TaskCreate object output',
+      nativeName: 'TaskCreate',
+      content: 'Task #1 created successfully: probe-task',
+      toolUseResult: { task: { id: '1', subject: 'probe-task' } },
+      isError: false,
+      expectedResult: { task: { id: '1', subject: 'probe-task' } },
+    },
+    {
+      name: 'Read object output',
+      nativeName: 'Read',
+      content: '1\talpha\n2\tbeta\n3\tgamma\n4\t',
+      toolUseResult: {
+        type: 'text',
+        file: {
+          filePath: '/tmp/sample.txt',
+          content: 'alpha\nbeta\ngamma\n',
+          numLines: 4,
+          startLine: 1,
+          totalLines: 4,
+        },
+      },
+      isError: false,
+      expectedResult: {
+        type: 'text',
+        file: {
+          filePath: '/tmp/sample.txt',
+          content: 'alpha\nbeta\ngamma\n',
+          numLines: 4,
+          startLine: 1,
+          totalLines: 4,
+        },
+      },
+    },
+    {
+      name: 'successful Bash object output',
+      nativeName: 'Bash',
+      content: 'hello-stdouthello-stderr',
+      toolUseResult: {
+        stdout: 'hello-stdouthello-stderr',
+        stderr: '',
+        interrupted: false,
+        isImage: false,
+        noOutputExpected: false,
+      },
+      isError: false,
+      expectedResult: {
+        stdout: 'hello-stdouthello-stderr',
+        stderr: '',
+        interrupted: false,
+        isImage: false,
+        noOutputExpected: false,
+      },
+    },
+    {
+      name: 'failed Bash string output',
+      nativeName: 'Bash',
+      content: 'Exit code 2\nmissing',
+      toolUseResult: 'Error: Exit code 2\nmissing',
+      isError: true,
+      expectedResult: 'Error: Exit code 2\nmissing',
+    },
+  ])(
+    'uses the Claude Agent SDK output for $name',
+    ({ nativeName, content, toolUseResult, isError, expectedResult }) => {
+      const state = createClaudeStreamEventState();
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => (name === 'Bash' ? 'bash' : name),
+      });
+
+      emitStreamEvent({
+        type: 'assistant',
+        message: {
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool-1',
+              name: nativeName,
+              input: {},
+            },
+          ],
+        },
+      });
+      emitStreamEvent({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-1',
+              content,
+              is_error: isError,
+            },
+          ],
+        },
+        tool_use_result: toolUseResult,
+      });
+
+      expect(emitted.find(event => event.type === 'tool-result')).toEqual({
+        type: 'tool-result',
+        toolCallId: 'tool-1',
+        toolName: nativeName === 'Bash' ? 'bash' : nativeName,
+        result: expectedResult,
+        isError,
+      });
+    },
+  );
+
+  it('falls back to model-facing content when the SDK does not provide an output', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Read',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: 'file contents',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.find(event => event.type === 'tool-result')).toEqual({
+      type: 'tool-result',
+      toolCallId: 'tool-1',
+      toolName: 'Read',
+      result: 'file contents',
+      isError: false,
+    });
+  });
+
+  it('falls back to model-facing content when a singular output cannot be paired with multiple results', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Read',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'tool-2',
+            name: 'Glob',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: 'file contents',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-2',
+            content: 'sample.txt',
+          },
+        ],
+      },
+      tool_use_result: { filenames: ['sample.txt'] },
+    });
+
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-result')
+        .map(event => event.result),
+    ).toEqual(['file contents', 'sample.txt']);
+  });
+
   it('streams native tool input before the complete tool call', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
@@ -185,7 +431,7 @@ describe('createEmitStreamEvent', () => {
           "type": "stream-start",
         },
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "tool-1",
@@ -223,6 +469,156 @@ describe('createEmitStreamEvent', () => {
         },
       ]
     `);
+  });
+
+  it.each(['before', 'after'] as const)(
+    'uses message delta usage when it arrives $order the assistant message',
+    order => {
+      const state = createClaudeStreamEventState();
+      const emitted: Record<string, unknown>[] = [];
+      const emitStreamEvent = createEmitStreamEvent({
+        state,
+        emit: event => emitted.push(event),
+        emitWarning: () => {},
+        emitTerminalError: () => {},
+        onCompactionBoundary: () => {},
+        toCommonName: name => (name === 'Bash' ? 'bash' : name),
+      });
+      const assistantMessage: ClaudeMessage = {
+        type: 'assistant',
+        message: {
+          usage: {
+            input_tokens: 10,
+            cache_creation_input_tokens: 20,
+            cache_read_input_tokens: 30,
+            output_tokens: 0,
+          },
+          content: [
+            {
+              type: 'tool_use',
+              id: 'tool-1',
+              name: 'Bash',
+              input: { command: 'pwd' },
+            },
+          ],
+        },
+      };
+      const messageDelta: ClaudeMessage = {
+        type: 'stream_event',
+        event: {
+          type: 'message_delta',
+          usage: {
+            output_tokens: 40,
+          },
+        },
+      };
+
+      for (const message of order === 'before'
+        ? [messageDelta, assistantMessage]
+        : [assistantMessage, messageDelta]) {
+        emitStreamEvent(message);
+      }
+      emitStreamEvent({
+        type: 'user',
+        message: {
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'tool-1',
+              content: '/tmp',
+            },
+          ],
+        },
+      });
+
+      expect(
+        emitted.find(event => event.type === 'finish-step')?.usage,
+      ).toEqual({
+        inputTokens: {
+          total: 60,
+          noCache: 10,
+          cacheRead: 30,
+          cacheWrite: 20,
+        },
+        outputTokens: { total: 40, text: 40 },
+      });
+    },
+  );
+
+  it('merges non-null usage fields across successive message deltas', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => (name === 'Bash' ? 'bash' : name),
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        usage: {
+          input_tokens: 1,
+          cache_creation_input_tokens: 2,
+          cache_read_input_tokens: 3,
+          output_tokens: 4,
+        },
+        content: [
+          {
+            type: 'tool_use',
+            id: 'tool-1',
+            name: 'Bash',
+            input: { command: 'pwd' },
+          },
+        ],
+      },
+    });
+    for (const usage of [
+      {
+        input_tokens: 10,
+        output_tokens: 30,
+      },
+      {
+        cache_creation_input_tokens: 20,
+        output_tokens: 50,
+      },
+      {
+        input_tokens: null,
+        cache_creation_input_tokens: null,
+        cache_read_input_tokens: null,
+        output_tokens: 60,
+      },
+    ]) {
+      emitStreamEvent({
+        type: 'stream_event',
+        event: { type: 'message_delta', usage },
+      });
+    }
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'tool-1',
+            content: '/tmp',
+          },
+        ],
+      },
+    });
+
+    expect(emitted.find(event => event.type === 'finish-step')?.usage).toEqual({
+      inputTokens: {
+        total: 33,
+        noCache: 10,
+        cacheRead: 3,
+        cacheWrite: 20,
+      },
+      outputTokens: { total: 60, text: 60 },
+    });
   });
 
   it('keeps subagent messages out of the main Agent-tool step', () => {
@@ -463,7 +859,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryId\":\"/vercel/next.js\"}",
+          "input": "{"libraryId":"/vercel/next.js"}",
           "nativeName": "mcp__context7__query-docs",
           "providerExecuted": true,
           "toolCallId": "external-tool",
@@ -482,7 +878,38 @@ describe('createEmitStreamEvent', () => {
     `);
   });
 
-  it('parses external MCP JSON results without parsing native tool results', () => {
+  it('suppresses native question tool calls', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'question-tool',
+            name: 'AskUserQuestion',
+            input: {
+              questions: [{ question: 'Which framework?' }],
+            },
+          },
+        ],
+      },
+    });
+
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+  });
+
+  it('parses external MCP JSON objects while leaving scalars and native tool results as strings', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
@@ -518,6 +945,24 @@ describe('createEmitStreamEvent', () => {
           },
           {
             type: 'tool_use',
+            id: 'mcp-number',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-boolean',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-null',
+            name: 'mcp__context7__query-docs',
+            input: {},
+          },
+          {
+            type: 'tool_use',
             id: 'native-tool',
             name: 'Read',
             input: {},
@@ -546,6 +991,21 @@ describe('createEmitStreamEvent', () => {
           },
           {
             type: 'tool_result',
+            tool_use_id: 'mcp-number',
+            content: '42',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-boolean',
+            content: 'true',
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-null',
+            content: 'null',
+          },
+          {
+            type: 'tool_result',
             tool_use_id: 'native-tool',
             content: '{"path":"README.md"}',
           },
@@ -555,45 +1015,189 @@ describe('createEmitStreamEvent', () => {
 
     expect(emitted.filter(event => event.type === 'tool-result'))
       .toMatchInlineSnapshot(`
-      [
-        {
-          "dynamic": true,
-          "isError": false,
-          "result": {
-            "library": "next.js",
-            "version": 16,
+        [
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": {
+              "library": "next.js",
+              "version": 16,
+            },
+            "toolCallId": "mcp-object",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
           },
-          "toolCallId": "mcp-object",
-          "toolName": "mcp__context7__query-docs",
-          "type": "tool-result",
-        },
-        {
-          "dynamic": true,
-          "isError": false,
-          "result": [
-            "docs",
-            "examples",
-          ],
-          "toolCallId": "mcp-array",
-          "toolName": "mcp__context7__query-docs",
-          "type": "tool-result",
-        },
-        {
-          "dynamic": true,
-          "isError": false,
-          "result": "not JSON",
-          "toolCallId": "mcp-text",
-          "toolName": "mcp__context7__query-docs",
-          "type": "tool-result",
-        },
-        {
-          "isError": false,
-          "result": "{\"path\":\"README.md\"}",
-          "toolCallId": "native-tool",
-          "toolName": "Read",
-          "type": "tool-result",
-        },
-      ]
-    `);
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": [
+              "docs",
+              "examples",
+            ],
+            "toolCallId": "mcp-array",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
+          },
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": "not JSON",
+            "toolCallId": "mcp-text",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
+          },
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": "42",
+            "toolCallId": "mcp-number",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
+          },
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": "true",
+            "toolCallId": "mcp-boolean",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
+          },
+          {
+            "dynamic": true,
+            "isError": false,
+            "result": "null",
+            "toolCallId": "mcp-null",
+            "toolName": "mcp__context7__query-docs",
+            "type": "tool-result",
+          },
+          {
+            "isError": false,
+            "result": "{"path":"README.md"}",
+            "toolCallId": "native-tool",
+            "toolName": "Read",
+            "type": "tool-result",
+          },
+        ]
+      `);
+  });
+
+  it('passes non-text tool result content through unparsed', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    const imageContent = [
+      { type: 'text', text: 'chart for 2026' },
+      mcpImageBlock,
+    ];
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'mcp-image',
+            name: 'mcp__charts__render',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'native-image',
+            name: 'Read',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-image',
+            content: imageContent,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'native-image',
+            content: imageContent,
+          },
+        ],
+      },
+    });
+
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-result')
+        .map(event => event.result),
+    ).toEqual([imageContent, imageContent]);
+  });
+
+  it('resolves content when a structured output cannot be paired with parallel MCP results', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    const imageContent = [mcpImageBlock];
+
+    emitStreamEvent({
+      type: 'assistant',
+      message: {
+        content: [
+          {
+            type: 'tool_use',
+            id: 'mcp-image',
+            name: 'mcp__charts__render',
+            input: {},
+          },
+          {
+            type: 'tool_use',
+            id: 'mcp-scalar',
+            name: 'mcp__charts__count',
+            input: {},
+          },
+        ],
+      },
+    });
+    emitStreamEvent({
+      type: 'user',
+      message: {
+        content: [
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-image',
+            content: imageContent,
+          },
+          {
+            type: 'tool_result',
+            tool_use_id: 'mcp-scalar',
+            content: '42',
+          },
+        ],
+      },
+      tool_use_result: { unpairable: true },
+    });
+
+    expect(
+      emitted
+        .filter(event => event.type === 'tool-result')
+        .map(event => event.result),
+    ).toEqual([imageContent, '42']);
   });
 });

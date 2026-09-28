@@ -57,8 +57,8 @@ function prepareJsonResponse({
 }
 
 describe('GoogleVertexImageModel', () => {
-  it('should return 10 for maxImagesPerCall', () => {
-    expect(model.maxImagesPerCall).toBe(10);
+  it('should return 1 for maxImagesPerCall', () => {
+    expect(model.maxImagesPerCall).toBe(1);
   });
 
   describe('doGenerate', () => {
@@ -107,6 +107,36 @@ describe('GoogleVertexImageModel', () => {
         googleVertex: { images: [{}] },
         vertex: { images: [{}] },
       });
+    });
+
+    it('should classify prompt blocks as terminal', async () => {
+      server.urls[TEST_URL].response = {
+        type: 'json-value',
+        body: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: 'A blocked image prompt',
+        files: undefined,
+        mask: undefined,
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(result.images).toEqual([]);
+      expect(result.isRetryable).toBe(false);
+      expect(server.calls).toHaveLength(1);
     });
 
     it('should send response modalities, aspect ratio, seed, and headers', async () => {
@@ -313,7 +343,7 @@ describe('GoogleVertexImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -328,21 +358,6 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({

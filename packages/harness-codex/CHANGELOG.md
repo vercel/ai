@@ -1,5 +1,298 @@
 # @ai-sdk/harness-codex
 
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.129
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.128
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.127
+
+### Patch Changes
+
+- d17ead7: feat(harness-codex): migrate adapter to use Codex app server, unlocking more granular tool call emissions, built-in tool filtering, and mid-turn steering
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.125
+
+### Patch Changes
+
+- 9c8c0c1: feat (harness): keep harness-generated state out of the sandbox workspace. The framework and every bridge adapter now resolve their generated state — bootstrap recipes and their dependencies (`.harness-bootstrap/…`) and per-session run state (`.agent-runs/…`) — through the new `harnessV1StateDirectory()` helper, which always resolves to a fixed directory (`~/.ai-sdk-harness`) under the sandbox's own HOME, never the sandbox's working directory. This is not configurable: every sandbox provider gets the same layout, so harness infrastructure never lands in a user-owned workspace. This changes the on-disk layout for every provider (a breaking change, acceptable given the experimental nature of this API) — sandboxes bootstrapped under the previous layout re-bootstrap once under the new path.
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.124
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.123
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.122
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.120
+
+## 1.0.121
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.120
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 7040da0: fix(harness-codex): fix empty `query` value for `web_search` tool calls
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.119
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.118
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
+## 1.0.117
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.115
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/harness@1.0.114
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/harness@1.0.113
+
+## 1.0.114
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.112
+- @ai-sdk/provider-utils@5.0.41
+
+## 1.0.113
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.111
+
+## 1.0.112
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.110
+
+## 1.0.111
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.109
+
+## 1.0.110
+
+### Patch Changes
+
+- 65666b6: fix(harness-codex): preserve web search query and action metadata in the Codex bridge
+- cdc12a1: feat(harness): add support for using adapter-native subscriptions where available
+- Updated dependencies [4d1bf28]
+- Updated dependencies [cdc12a1]
+- Updated dependencies [d70a334]
+- Updated dependencies [81ba84c]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/harness@1.0.108
+  - @ai-sdk/provider-utils@5.0.40
+
+## 1.0.109
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.107
+- @ai-sdk/provider-utils@5.0.39
+
+## 1.0.108
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.106
+- @ai-sdk/provider-utils@5.0.38
+
+## 1.0.107
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.105
+
+## 1.0.106
+
+### Patch Changes
+
+- c04ded8: chore(harness): remove formerly deprecated `model` and `modelId` config on harness adapter settings
+- Updated dependencies [c04ded8]
+  - @ai-sdk/harness@1.0.104
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [9e1d1b2]
+- Updated dependencies [a495511]
+  - @ai-sdk/provider-utils@5.0.37
+  - @ai-sdk/harness@1.0.103
+
+## 1.0.104
+
+### Patch Changes
+
+- eeed977: feat(harness): allow passing arbitrary headers with inference requests via `headers` property in `HarnessAgentSettings`
+- a39c8bf: chore(harness): clarify `writeSkills` helper intent to require materializing skills in HOME directory
+- Updated dependencies [fe86f8f]
+- Updated dependencies [255cccf]
+- Updated dependencies [eeed977]
+- Updated dependencies [a39c8bf]
+  - @ai-sdk/harness@1.0.102
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [951c54d]
+  - @ai-sdk/harness@1.0.101
+
+## 1.0.102
+
+### Patch Changes
+
+- 0c37bf0: fix(harness): avoid warning about lack of credential brokering support when `credentialForwarding` callback is used to replace all credentials with ephemeral fake secrets
+- Updated dependencies [0c37bf0]
+  - @ai-sdk/harness@1.0.100
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6bcc0f8]
+  - @ai-sdk/provider-utils@5.0.36
+  - @ai-sdk/harness@1.0.99
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [5190b67]
+  - @ai-sdk/provider-utils@5.0.35
+  - @ai-sdk/harness@1.0.98
+
+## 1.0.99
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.97
+
+## 1.0.98
+
+### Patch Changes
+
+- c0c7fac: feat(harness): add reusable `createReadBridgeAsset()` helper function
+- Updated dependencies [c0c7fac]
+  - @ai-sdk/harness@1.0.96
+
+## 1.0.97
+
+### Patch Changes
+
+- 371e954: feat(harness): add `createBridgeToken()` and `withBridgeToken()` helpers for bridge backed harness adapters
+- 62f481f: fix(harness): fix bridge resolution to no longer look for an alternative path which could cause Turbopack errors
+- Updated dependencies [371e954]
+- Updated dependencies [87b4858]
+  - @ai-sdk/harness@1.0.95
+
+## 1.0.96
+
+### Patch Changes
+
+- 8961fde: feat(harness): allow changing `model` between turns via call options
+- 29786f0: fix(harness-codex): support Codex `xhigh` and `max` reasoning levels
+- Updated dependencies [8961fde]
+- Updated dependencies [eb59f2a]
+  - @ai-sdk/harness@1.0.94
+  - @ai-sdk/provider-utils@5.0.34
+
 ## 1.0.95
 
 ### Patch Changes

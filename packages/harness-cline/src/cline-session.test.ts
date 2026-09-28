@@ -94,6 +94,62 @@ vi.mock('@cline/core', async importOriginal => {
   };
   return {
     ...original,
+    createDefaultTools: vi.fn(
+      (options: {
+        executors?: {
+          askQuestion?: (
+            question: string,
+            answers: string[],
+            context: Parameters<AgentTool['execute']>[1],
+          ) => Promise<string>;
+          skills?: (...args: unknown[]) => Promise<string>;
+        };
+        enableAskQuestion?: boolean;
+        enableSkills?: boolean;
+      }) => [
+        ...(options.enableAskQuestion
+          ? [
+              {
+                name: 'ask_question',
+                inputSchema: {},
+                execute: (
+                  input: { question: string; options: string[] },
+                  context: Parameters<AgentTool['execute']>[1],
+                ) =>
+                  options.executors?.askQuestion?.(
+                    input.question,
+                    input.options,
+                    context,
+                  ),
+              },
+            ]
+          : []),
+        ...(options.enableSkills
+          ? [
+              {
+                name: 'skills',
+                description: `Available skills: ${
+                  (
+                    options.executors?.skills as
+                      | {
+                          configuredSkills?: Array<{ name: string }>;
+                        }
+                      | undefined
+                  )?.configuredSkills
+                    ?.map(skill => skill.name)
+                    .join(', ') ?? ''
+                }.`,
+                inputSchema: {},
+                execute: (
+                  input: { skill: string; args?: string },
+                  context: Parameters<AgentTool['execute']>[1],
+                ) =>
+                  options.executors?.skills?.(input.skill, input.args, context),
+              },
+            ]
+          : []),
+      ],
+    ),
     Llms: {
       ...original.Llms,
       createGateway: vi.fn(
@@ -603,23 +659,45 @@ describe('createClineSession model configuration', () => {
       settings: {
         authEnv: { CLINE_API_KEY: 'cline-key' },
         providerId: 'anthropic',
-        modelId: 'claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
         {
           providerId: 'anthropic',
           apiKey: 'anthropic-key',
           baseUrl: 'https://anthropic.example',
-          headers: { 'x-custom': 'custom' },
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
+        },
+        {
+          providerId: 'anthropic',
+          apiKey: 'anthropic-key',
+          baseUrl: 'https://anthropic.example',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
+          },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'anthropic' },
         { providerId: 'anthropic', modelId: 'claude-opus-5' },
       ]);
     } finally {
@@ -635,14 +713,23 @@ describe('createClineSession model configuration', () => {
           AI_GATEWAY_BASE_URL: 'https://gateway.example/',
         },
         providerId: 'anthropic',
-        modelId: 'anthropic/claude-opus-5',
         apiKey: 'anthropic-key',
         baseUrl: 'https://anthropic.example',
         headers: { 'x-custom': 'custom' },
+        agentHeaders: { 'x-agent': 'agent' },
       },
     });
 
     try {
+      const control = await session.doPromptTurn({
+        model: 'anthropic/claude-opus-5',
+        skills: [],
+        tools: [],
+        prompt: 'Hello',
+        emit: vi.fn(),
+      });
+      await control.done;
+
       expect(clineMock.providerConfigs).toEqual([
         {
           providerId: 'cline',
@@ -651,12 +738,26 @@ describe('createClineSession model configuration', () => {
           baseUrl: 'https://gateway.example/v1',
           headers: {
             'x-custom': 'custom',
+            'x-agent': 'agent',
+            'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
+            'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
+          },
+        },
+        {
+          providerId: 'cline',
+          apiKey: 'gateway-key',
+          apiKeyEnv: [],
+          baseUrl: 'https://gateway.example/v1',
+          headers: {
+            'x-custom': 'custom',
+            'x-agent': 'agent',
             'User-Agent': 'ai-sdk/harness-cline/0.0.0-test',
             'x-client-app': 'ai-sdk/harness-cline/0.0.0-test',
           },
         },
       ]);
       expect(clineMock.modelSelections).toEqual([
+        { providerId: 'cline' },
         { providerId: 'cline', modelId: 'anthropic/claude-opus-5' },
       ]);
     } finally {
