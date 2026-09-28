@@ -19,13 +19,15 @@ export const gatewayEvaluationProviderOptionsSchema = lazySchema(() =>
 
 /**
  * A condition on the primary model's answers. `QUESTION_ID` narrows
- * `question` to your question IDs. Groups nest at most five levels deep,
- * which the SDK checks at runtime.
+ * `question` to your question IDs. Without `question`, `confidenceBelow`
+ * checks every Choice and Score question and `probabilityBetween` every
+ * Boolean question. Groups nest at most five levels deep, which the SDK
+ * checks at runtime.
  */
 export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
-  | ExclusiveCondition<{ question: QUESTION_ID; confidenceBelow: number }>
+  | ExclusiveCondition<{ question?: QUESTION_ID; confidenceBelow: number }>
   | ExclusiveCondition<{
-      question: QUESTION_ID;
+      question?: QUESTION_ID;
       probabilityBetween: [number, number];
     }>
   | ExclusiveCondition<{ any: EvaluationFallbackConditionList<QUESTION_ID> }>
@@ -162,13 +164,13 @@ const questionSchema = z
 const directConditionSchema = z.union([
   z
     .object({
-      question: questionSchema,
+      question: questionSchema.optional(),
       confidenceBelow: probabilitySchema,
     })
     .strict(),
   z
     .object({
-      question: questionSchema,
+      question: questionSchema.optional(),
       probabilityBetween: z
         .array(probabilitySchema)
         .length(2)
