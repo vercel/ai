@@ -32,6 +32,8 @@ export interface LangGraphEventState {
   emittedToolOutputCallIds: Set<string>;
   /** Tracks terminal tool outputs emitted in each namespace's current step */
   emittedToolOutputsInCurrentStepByNamespace: Map<string, Set<string>>;
+  /** Tracks tool calls still awaiting a terminal output in each namespace */
+  unfinishedToolCallsByNamespace: Map<string, Set<string>>;
   /** Maps image IDs to their message IDs (for chunks that don't include the ID) */
   emittedImages: Set<string>;
   /** Maps reasoning block IDs to their message IDs (for chunks that don't include the ID) */
