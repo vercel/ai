@@ -51,6 +51,41 @@ function createMockModel() {
 }
 
 describe('createAgentUIStream', () => {
+  it('should use original messages as input when UI messages are omitted', async () => {
+    const model = createMockModel();
+    const agent = new ToolLoopAgent({ model });
+    let finishMessageIds: string[] | undefined;
+    const originalMessages = [
+      {
+        id: 'user-1',
+        role: 'user' as const,
+        parts: [{ type: 'text' as const, text: 'Persisted question' }],
+      },
+    ];
+
+    const stream = await createAgentUIStream({
+      agent,
+      originalMessages,
+      generateMessageId: () => 'assistant-1',
+      onFinish: ({ messages }) => {
+        finishMessageIds = messages.map(message => message.id);
+      },
+    });
+
+    const chunks = await convertReadableStreamToArray(stream);
+
+    expect(model.doStreamCalls[0].prompt).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'Persisted question' }],
+      },
+    ]);
+    expect(chunks.find(chunk => chunk.type === 'start')?.messageId).toBe(
+      'assistant-1',
+    );
+    expect(finishMessageIds).toEqual(['user-1', 'assistant-1']);
+  });
+
   it('should reject stale terminal input for a currently available tool', async () => {
     const agent = new ToolLoopAgent({
       model: createMockModel(),
