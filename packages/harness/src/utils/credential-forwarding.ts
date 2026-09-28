@@ -37,12 +37,42 @@ export async function createSandboxCredentialEnvironment({
   credentialEnvironmentVariables: ReadonlyArray<string>;
   credentialForwarding: HarnessV1CredentialForwarding | undefined;
 }): Promise<Record<string, string>> {
+  return resolveSandboxCredentialEnvironment({
+    environment,
+    credentialEnvironmentVariables,
+    credentialForwarding,
+  });
+}
+
+export async function resolveSandboxCredentialEnvironment({
+  environment,
+  credentialEnvironmentVariables,
+  credentialForwarding,
+  previousSandboxCredentialEnvironment,
+}: {
+  environment: Readonly<Record<string, string>>;
+  credentialEnvironmentVariables: ReadonlyArray<string>;
+  credentialForwarding: HarnessV1CredentialForwarding | undefined;
+  previousSandboxCredentialEnvironment?: Readonly<Record<string, string>>;
+}): Promise<Record<string, string>> {
   const sandboxCredentialEnvironment: Record<string, string> = {};
 
   for (const environmentVariableName of new Set(
     credentialEnvironmentVariables,
   )) {
     if (environment[environmentVariableName] == null) continue;
+
+    if (
+      previousSandboxCredentialEnvironment != null &&
+      Object.prototype.hasOwnProperty.call(
+        previousSandboxCredentialEnvironment,
+        environmentVariableName,
+      )
+    ) {
+      sandboxCredentialEnvironment[environmentVariableName] =
+        previousSandboxCredentialEnvironment[environmentVariableName];
+      continue;
+    }
 
     const placeholder = generateSandboxCredentialPlaceholder();
     sandboxCredentialEnvironment[environmentVariableName] =
