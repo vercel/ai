@@ -1,5 +1,11 @@
 # ai
 
+## 5.0.269
+
+### Patch Changes
+
+- 11f5cda: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+
 ## 5.0.268
 
 ### Patch Changes
