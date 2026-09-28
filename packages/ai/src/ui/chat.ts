@@ -538,29 +538,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
-<<<<<<< HEAD
-=======
-    const responseMessageIndex =
-      trigger === 'submit-message' && messageId != null
-        ? this.state.messages.findIndex(message => message.id === messageId)
-        : this.state.messages.length - 1;
-    const responseMessage =
-      responseMessageIndex === -1
-        ? lastMessage
-        : this.state.messages[responseMessageIndex];
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
-      responseMessage?.role === 'assistant' &&
-      responseMessage.parts.some(
-        part => isToolUIPart(part) && part.state === 'input-streaming',
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part =>
+          isToolOrDynamicToolUIPart(part) && part.state === 'input-streaming',
       )
-        ? this.state.snapshot(responseMessage)
+        ? this.state.snapshot(lastMessage)
         : undefined;
-    const usesEarlierAssistantMessage =
-      responseMessageIndex !== -1 &&
-      responseMessageIndex < this.state.messages.length - 1 &&
-      responseMessage?.role === 'assistant';
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
 
     let isAbort = false;
     let isDisconnect = false;
@@ -575,15 +561,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             : createStreamingUIMessageState({
                 lastMessage:
                   trigger === 'resume-stream'
-<<<<<<< HEAD
-                    ? undefined
-                    : this.state.snapshot(lastMessage),
-=======
                     ? resumableResponseMessage
-                    : trigger === 'regenerate-message'
-                      ? undefined
-                      : this.state.snapshot(responseMessage),
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
+                    : this.state.snapshot(lastMessage),
                 messageId: this.generateId(),
               }),
         abortController,

@@ -29,6 +29,8 @@ import {
   type UIMessage,
   type UIMessagePart,
   getToolName,
+  isDynamicToolUIPart,
+  isToolOrDynamicToolUIPart,
   isToolUIPart,
 } from './ui-messages';
 
@@ -74,12 +76,12 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
   let staticToolIndex = 0;
 
   for (const part of message.parts.slice(lastStepStartIndex + 1)) {
-    if (!isToolUIPart(part)) {
+    if (!isToolOrDynamicToolUIPart(part)) {
       continue;
     }
 
     const index = staticToolIndex;
-    if (isStaticToolUIPart(part)) {
+    if (isToolUIPart(part)) {
       staticToolIndex++;
     }
 
@@ -90,11 +92,8 @@ export function createStreamingUIMessageState<UI_MESSAGE extends UIMessage>({
     partialToolCalls[part.toolCallId] = {
       text: part.rawInput ?? '',
       index,
-      toolName:
-        part.type === 'dynamic-tool' ? part.toolName : getStaticToolName(part),
-      dynamic: part.type === 'dynamic-tool',
-      title: part.title,
-      toolMetadata: part.toolMetadata,
+      toolName: isDynamicToolUIPart(part) ? part.toolName : getToolName(part),
+      dynamic: isDynamicToolUIPart(part),
     };
   }
 
@@ -307,11 +306,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-streaming';
                   input: unknown;
-<<<<<<< HEAD
-=======
                   rawInput?: string;
-                  providerMetadata?: ProviderMetadata;
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
                 }
               | {
                   state: 'input-available';
@@ -554,12 +549,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
                   input: partialArgs,
-<<<<<<< HEAD
-=======
                   rawInput: partialToolCall.text,
-                  title: partialToolCall.title,
-                  toolMetadata: partialToolCall.toolMetadata,
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
                 });
               } else {
                 updateToolPart({
@@ -567,12 +557,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   toolName: partialToolCall.toolName,
                   state: 'input-streaming',
                   input: partialArgs,
-<<<<<<< HEAD
-=======
                   rawInput: partialToolCall.text,
-                  title: partialToolCall.title,
-                  toolMetadata: partialToolCall.toolMetadata,
->>>>>>> c5e90bb137 (fix: resume hydrated partial static tool calls without losing streaming state (#21480))
                 });
               }
 
