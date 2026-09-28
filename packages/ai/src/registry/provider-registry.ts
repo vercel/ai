@@ -213,7 +213,7 @@ class DefaultProviderRegistry<
       keyof PROVIDERS,
       ProviderV4 & ProviderWithOptionalVideoModel & EvaluationProvider
     >
-  > = {};
+  > = Object.create(null);
   private separator: SEPARATOR;
   private languageModelMiddleware?:
     | LanguageModelMiddleware
