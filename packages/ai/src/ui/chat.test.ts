@@ -2065,6 +2065,157 @@ describe('Chat', () => {
     `);
   });
 
+  describe('resume stream', () => {
+    function createResumeStream(messageId?: string) {
+      return new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({
+            type: 'start',
+            ...(messageId == null ? {} : { messageId }),
+          });
+          controller.enqueue({ type: 'start-step' });
+          controller.enqueue({ type: 'text-start', id: 'text-1' });
+          controller.enqueue({
+            type: 'text-delta',
+            id: 'text-1',
+            delta: 'resumed',
+          });
+          controller.enqueue({ type: 'text-end', id: 'text-1' });
+          controller.enqueue({ type: 'finish-step' });
+          controller.enqueue({ type: 'finish', finishReason: 'stop' });
+          controller.close();
+        },
+      });
+    }
+
+    function createChat({
+      messages,
+      messageId,
+    }: {
+      messages: UIMessage[];
+      messageId?: string;
+    }) {
+      const state = new TestChatState(messages);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+
+      return new TestChatWithState({
+        id: '123',
+        state,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () => createResumeStream(messageId),
+        },
+      });
+    }
+
+    it('should not adopt an assistant message from a different turn', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-0',
+            role: 'user',
+            parts: [{ type: 'text', text: 'first question' }],
+          },
+          {
+            id: 'turn-0:reply',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'first answer' }],
+          },
+        ],
+        messageId: 'turn-1:reply',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(3);
+      expect(chat.messages[1]).toMatchObject({
+        id: 'turn-0:reply',
+        parts: [{ type: 'text', text: 'first answer' }],
+        role: 'assistant',
+      });
+      expect(chat.messages[2]).toMatchObject({
+        id: 'turn-1:reply',
+        parts: [{ type: 'step-start' }, { type: 'text', text: 'resumed' }],
+        role: 'assistant',
+      });
+    });
+
+    it('should preserve earlier text and approved tool call when its id matches', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-1',
+            role: 'user',
+            parts: [{ type: 'text', text: 'Delete old files' }],
+          },
+          {
+            id: 'turn-1:reply',
+            role: 'assistant',
+            parts: [
+              { type: 'text', text: 'I will delete them.', state: 'done' },
+              {
+                type: 'tool-deleteFiles',
+                toolCallId: 'call-1',
+                state: 'approval-responded',
+                input: {},
+                approval: { id: 'approval-1', approved: true },
+              },
+            ],
+          },
+        ],
+        messageId: 'turn-1:reply',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1].parts).toHaveLength(4);
+      expect(chat.messages[1]).toMatchObject({
+        id: 'turn-1:reply',
+        parts: [
+          { type: 'text', text: 'I will delete them.' },
+          {
+            type: 'tool-deleteFiles',
+            toolCallId: 'call-1',
+            state: 'approval-responded',
+            approval: { id: 'approval-1', approved: true },
+          },
+          { type: 'step-start' },
+          { type: 'text', text: 'resumed' },
+        ],
+        role: 'assistant',
+      });
+    });
+
+    it('should preserve the assistant message when the stream has no message id', async () => {
+      const chat = createChat({
+        messages: [
+          {
+            id: 'turn-0:reply',
+            role: 'assistant',
+            parts: [{ type: 'text', text: 'existing response' }],
+          },
+        ],
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.messages).toHaveLength(1);
+      expect(chat.messages[0]).toMatchObject({
+        id: 'turn-0:reply',
+        parts: [
+          { type: 'text', text: 'existing response' },
+          { type: 'step-start' },
+          { type: 'text', text: 'resumed' },
+        ],
+        role: 'assistant',
+      });
+    });
+  });
+
   it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
     let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
     const resumeStream = new ReadableStream<UIMessageChunk>({

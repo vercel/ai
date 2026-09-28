@@ -822,7 +822,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       const response = {
         state: createStreamingUIMessageState({
           lastMessage:
-            trigger === 'resume-stream' || trigger === 'regenerate-message'
+            trigger === 'regenerate-message'
               ? undefined
               : this.state.snapshot(responseMessage),
           messageId: this.generateId(),
@@ -903,6 +903,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           messageMetadataSchema: this.messageMetadataSchema,
           dataPartSchemas: this.dataPartSchemas,
           runUpdateMessageJob,
+          isResume: trigger === 'resume-stream',
           onError: error => {
             throw error;
           },
