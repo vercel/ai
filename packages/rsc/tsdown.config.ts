@@ -19,8 +19,11 @@ export default defineConfig(
     },
     // RSC APIs - types
     {
-      entry: ['src/types/index.ts'],
+      entry: ['src/index.ts'],
       outDir: 'dist',
+      dts: {
+        emitDtsOnly: true,
+      },
       sourcemap: false,
     },
   ].map(config => mergeConfig(tsdownBaseConfig, config)),
