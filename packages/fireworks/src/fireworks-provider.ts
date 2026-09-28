@@ -147,6 +147,7 @@ export function createFireworks(
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
       supportsStructuredOutputs: true,
+      supportsMultipartToolResults: true,
       transformRequestBody: args => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }

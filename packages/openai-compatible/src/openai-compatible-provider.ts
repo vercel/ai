@@ -92,6 +92,11 @@ export interface OpenAICompatibleProviderSettings {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the endpoint accepts multipart tool results. Defaults to false.
+   */
+  supportsMultipartToolResults?: boolean;
+
+  /**
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
@@ -172,6 +177,7 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      supportsMultipartToolResults: options.supportsMultipartToolResults,
       supportedUrls: options.supportedUrls,
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,

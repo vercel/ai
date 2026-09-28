@@ -1,3 +1,4 @@
+import type { LanguageModelV4ToolResultOutput } from '@ai-sdk/provider';
 import { convertToOpenAICompatibleChatMessages } from './convert-to-openai-compatible-chat-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -1635,5 +1636,238 @@ describe('top-level-only media type resolution', () => {
       type: 'image_url',
       image_url: { url: `data:image/png;base64,${pngBase64}` },
     });
+  });
+});
+
+describe('multipart tool results', () => {
+  function convert(output: LanguageModelV4ToolResultOutput, enabled = true) {
+    return convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'getImage',
+              output,
+              providerOptions: {
+                openaiCompatible: { cache_control: { type: 'ephemeral' } },
+              },
+            },
+          ],
+        },
+      ],
+      { supportsMultipartToolResults: enabled },
+    );
+  }
+
+  it.each([
+    { type: 'data', data: 'AAECAw==' },
+    { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
+    { type: 'url', url: new URL('https://example.com/image.png') },
+  ] as const)('preserves images with $type data', data => {
+    expect(
+      convert({
+        type: 'content',
+        value: [
+          { type: 'text', text: 'Screenshot' },
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data,
+            providerOptions: { openaiCompatible: { detail: 'high' } },
+          },
+        ],
+      }),
+    ).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        cache_control: { type: 'ephemeral' },
+        content: [
+          { type: 'text', text: 'Screenshot' },
+          {
+            type: 'image_url',
+            image_url: {
+              url:
+                data.type === 'url'
+                  ? data.url.toString()
+                  : 'data:image/png;base64,AAECAw==',
+            },
+            detail: 'high',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it.each([
+    [
+      'video/mp4',
+      {
+        type: 'video_url',
+        video_url: { url: 'data:video/mp4;base64,AAECAw==' },
+      },
+    ],
+    [
+      'audio/wav',
+      { type: 'input_audio', input_audio: { data: 'AAECAw==', format: 'wav' } },
+    ],
+    [
+      'application/pdf',
+      {
+        type: 'file',
+        file: {
+          filename: 'document.pdf',
+          file_data: 'data:application/pdf;base64,AAECAw==',
+        },
+      },
+    ],
+  ] as const)('converts %s tool files', (mediaType, expected) => {
+    expect(
+      convert({
+        type: 'content',
+        value: [
+          { type: 'file', mediaType, data: { type: 'data', data: 'AAECAw==' } },
+        ],
+      })[0].content,
+    ).toEqual([expected]);
+  });
+
+  it('preserves empty and text-only content arrays', () => {
+    expect(convert({ type: 'content', value: [] })[0].content).toEqual([]);
+    expect(
+      convert({ type: 'content', value: [{ type: 'text', text: 'ok' }] })[0]
+        .content,
+    ).toEqual([{ type: 'text', text: 'ok' }]);
+  });
+
+  it.each([
+    { type: 'text', value: 'ok' },
+    { type: 'json', value: { ok: true } },
+    { type: 'error-text', value: 'failed' },
+    { type: 'error-json', value: { error: 'failed' } },
+    { type: 'execution-denied', reason: 'denied' },
+  ] satisfies LanguageModelV4ToolResultOutput[])(
+    'preserves $type outputs',
+    output => {
+      expect(convert(output)).toEqual(convert(output, false));
+    },
+  );
+
+  it('retains JSON serialization when capability is disabled or omitted', () => {
+    const output = {
+      type: 'content',
+      value: [
+        {
+          type: 'file',
+          mediaType: 'image/png',
+          data: { type: 'data', data: 'AAECAw==' },
+        },
+      ],
+    } as const;
+    const value: LanguageModelV4ToolResultOutput = {
+      ...output,
+      value: [...output.value],
+    };
+    expect(convert(value, false)[0].content).toBe(JSON.stringify(output.value));
+    expect(
+      convertToOpenAICompatibleChatMessages([
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'getImage',
+              output: value,
+            },
+          ],
+        },
+      ])[0].content,
+    ).toBe(JSON.stringify(output.value));
+  });
+
+  it.each([
+    { type: 'custom' },
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: { type: 'reference', reference: { test: 'file-1' } },
+    },
+    {
+      type: 'file',
+      mediaType: 'application/zip',
+      data: { type: 'data', data: 'AAECAw==' },
+    },
+    {
+      type: 'file',
+      mediaType: 'audio/wav',
+      data: { type: 'url', url: new URL('https://example.com/audio.wav') },
+    },
+  ] satisfies Extract<
+    LanguageModelV4ToolResultOutput,
+    { type: 'content' }
+  >['value'])(
+    'rejects unsupported content instead of stringifying it: $type',
+    part => {
+      expect(() => convert({ type: 'content', value: [part] })).toThrow(
+        'functionality not supported',
+      );
+    },
+  );
+
+  it('keeps multiple tool results associated with their calls and skips approvals', () => {
+    expect(
+      convertToOpenAICompatibleChatMessages(
+        [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'first',
+                toolName: 'one',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'AAECAw==' },
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'tool-approval-response',
+                approvalId: 'approval-1',
+                approved: true,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'second',
+                toolName: 'two',
+                output: { type: 'text', value: 'ok' },
+              },
+            ],
+          },
+        ],
+        { supportsMultipartToolResults: true },
+      ),
+    ).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'first',
+        content: [
+          {
+            type: 'image_url',
+            image_url: { url: 'data:image/png;base64,AAECAw==' },
+          },
+        ],
+      },
+      { role: 'tool', tool_call_id: 'second', content: 'ok' },
+    ]);
   });
 });

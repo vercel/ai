@@ -4493,3 +4493,61 @@ describe('transformRequestBody', () => {
     expect(requestBody).not.toHaveProperty('custom_field');
   });
 });
+
+describe('multipart tool result requests', () => {
+  it.each(['doGenerate', 'doStream'] as const)(
+    'sends structured tool images through %s',
+    async method => {
+      if (method === 'doGenerate') {
+        prepareJsonFixtureResponse('xai-text');
+      } else {
+        server.urls['https://my.api.com/v1/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: ['data: [DONE]\n\n'],
+        };
+      }
+      const model = createOpenAICompatible({
+        baseURL: 'https://my.api.com/v1',
+        name: 'test-provider',
+        supportsMultipartToolResults: true,
+      })('test-model');
+      const result = await model[method]({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-image',
+                toolName: 'getImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: { type: 'data', data: 'AAECAw==' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+      if ('stream' in result) await convertReadableStreamToArray(result.stream);
+      expect((await server.calls[0].requestBodyJson).messages).toEqual([
+        {
+          role: 'tool',
+          tool_call_id: 'call-image',
+          content: [
+            {
+              type: 'image_url',
+              image_url: { url: 'data:image/png;base64,AAECAw==' },
+            },
+          ],
+        },
+      ]);
+    },
+  );
+});

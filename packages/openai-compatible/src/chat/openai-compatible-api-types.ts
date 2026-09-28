@@ -85,8 +85,8 @@ export interface OpenAICompatibleMessageToolCall extends JsonRecord {
   };
 }
 
-export interface OpenAICompatibleToolMessage extends JsonRecord {
+export interface OpenAICompatibleToolMessage extends JsonRecord<OpenAICompatibleContentPart> {
   role: 'tool';
-  content: string;
+  content: string | Array<OpenAICompatibleContentPart>;
   tool_call_id: string;
 }
