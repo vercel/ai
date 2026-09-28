@@ -23,12 +23,18 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
     return part.type === 'step-start' ? index : lastIndex;
   }, -1);
 
-  const lastStepToolInvocations = message.parts
-    .slice(lastStepStartIndex + 1)
+  const lastStepParts = message.parts.slice(lastStepStartIndex + 1);
+  const lastStepToolInvocations = lastStepParts
     .filter(isToolUIPart)
     .filter(part => !part.providerExecuted);
 
+  // If the last step already contains a text part the model has finished its
+  // turn and there is nothing to continue — return false to prevent useChat
+  // from issuing a spurious continuation request.
+  const hasTextInLastStep = lastStepParts.some(part => part.type === 'text');
+
   return (
+    !hasTextInLastStep &&
     lastStepToolInvocations.length > 0 &&
     lastStepToolInvocations.every(
       part =>

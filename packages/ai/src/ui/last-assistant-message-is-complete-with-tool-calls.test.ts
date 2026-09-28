@@ -31,7 +31,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
-  it('should return true when there is a text part after the last tool result in the last step', () => {
+  it('should return false when there is a text part after the last tool result in the last step', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -58,10 +58,10 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
           },
         ],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
-  it('should return true when the tool has a output-error state', () => {
+  it('should return false when the tool has a output-error state and a text part follows', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -88,7 +88,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
           },
         ],
       }),
-    ).toBe(true);
+    ).toBe(false);
   });
 
   it('should return true when dynamic tool call is complete', () => {
@@ -315,7 +315,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
-  it('should return true for multi-step sequence where last step has complete dynamic tool calls', () => {
+  it('should return false for multi-step sequence where last step has complete dynamic tool calls and a text part', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({
         messages: [
@@ -332,7 +332,7 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                 input: {},
                 output: 'New York',
               },
-              // Second step with dynamic tool
+              // Second step with dynamic tool and a final text response
               { type: 'step-start' },
               {
                 type: 'dynamic-tool',
@@ -348,6 +348,42 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
                 type: 'text',
                 text: 'The current weather in New York is cloudy.',
                 state: 'done',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return true for multi-step sequence where last step has complete dynamic tool calls and no text', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              // First step with regular tool
+              { type: 'step-start' },
+              {
+                type: 'tool-getLocation',
+                toolCallId: 'call_location_123',
+                state: 'output-available',
+                input: {},
+                output: 'New York',
+              },
+              // Second step with dynamic tool only — needs continuation
+              { type: 'step-start' },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_dynamic_456',
+                state: 'output-available',
+                input: {
+                  location: 'New York',
+                },
+                output: 'cloudy',
               },
             ],
           },
