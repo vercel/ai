@@ -104,7 +104,10 @@ export class GoogleRealtimeEventMapper {
     itemId: string;
     transcript: string;
   } {
-    if (this.inputTranscriptionBoundary && this.inputTranscriptionBuffer !== '') {
+    if (
+      this.inputTranscriptionBoundary &&
+      this.inputTranscriptionBuffer !== ''
+    ) {
       this.inputTranscriptionCounter++;
       this.inputTranscriptionBuffer = '';
     }
