@@ -2509,6 +2509,40 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('workDir dot uses the sandbox default working directory for the session and harness', async () => {
+    const { harness, doStart } = mockHarness({ script: () => [] });
+    const run = vi.fn(async () => ({ exitCode: 0, stdout: '', stderr: '' }));
+    const restrictedSession = { label: 'restricted', run };
+    const sandboxSession = makeSandboxSession({
+      run,
+      restricted: () => restrictedSession as never,
+    });
+    const onSandboxSession = vi.fn(async () => {});
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(sandboxSession),
+      sandboxConfig: { workDir: '.', onSession: onSandboxSession },
+    });
+
+    const session = await agent.createSession({ sessionId: 's1' });
+
+    expect(run).toHaveBeenCalledWith({
+      command: 'mkdir -p "$WORK_DIR"',
+      env: { WORK_DIR: '/work' },
+      abortSignal: undefined,
+    });
+    expect(onSandboxSession).toHaveBeenCalledWith({
+      session: restrictedSession,
+      sessionWorkDir: '/work',
+      abortSignal: undefined,
+    });
+    expect(doStart.mock.calls[0]?.[0]).toMatchObject({
+      sessionWorkDir: '/work',
+    });
+
+    await session.destroy();
+  });
+
   test('deprecated top-level onSandboxSession warns and still runs', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {

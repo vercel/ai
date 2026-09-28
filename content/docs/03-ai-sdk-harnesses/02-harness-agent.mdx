@@ -481,9 +481,10 @@ const agent = new HarnessAgent({
 ```
 
 `workDir` is optional. When provided, it must be relative to the sandbox's
-default working directory and is used as the session working directory. When
-omitted, regular sessions use the default `<harnessId>-<sessionId>` directory,
-while `onBootstrap` receives the sandbox's default working directory.
+default working directory and is used as the session working directory. Set it
+to `'.'` to use the sandbox's default working directory itself. When omitted,
+regular sessions use the default `<harnessId>-<sessionId>` directory, while
+`onBootstrap` receives the sandbox's default working directory.
 
 ## Prepare Reusable Sandboxes
 
