@@ -1001,53 +1001,11 @@ generic error:
 
 `Request contains an invalid argument.`
 
-You can work around this by simplifying the schema while
-retaining stricter client-side validation. Pass the simplified schema to
-`jsonSchema` and validate the result with the original Zod schema:
-
-```ts
-import { google } from '@ai-sdk/google';
-import { generateText, jsonSchema, Output } from 'ai';
-import { z } from 'zod';
-
-const strictSchema = z.object({
-  users: z.array(z.object({ name: z.string() })).max(12),
-});
-
-const schema = jsonSchema<z.infer<typeof strictSchema>>(
-  {
-    type: 'object',
-    properties: {
-      users: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: { name: { type: 'string' } },
-          required: ['name'],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ['users'],
-    additionalProperties: false,
-  },
-  {
-    validate: async value => {
-      const result = await strictSchema.safeParseAsync(value);
-
-      return result.success
-        ? { success: true, value: result.data }
-        : { success: false, error: result.error };
-    },
-  },
-);
-
-const { output } = await generateText({
-  model: google('gemini-3.8-flash'),
-  output: Output.object({ schema }),
-  prompt: 'Generate some users.',
-});
-```
+You can work around this by simplifying the schema sent to Google. For example,
+remove unnecessary constraints or reduce nesting while preserving the fields
+and types the model needs to generate. If you need stricter client-side
+validation than the schema sent to Google, use [`jsonSchema`](/docs/reference/ai-sdk-core/json-schema)
+with a custom validation function or validate the generated output separately.
 
 By default, structured outputs are enabled (and for tool calling they are required).
 You can also disable provider-enforced structured outputs for object generation:
