@@ -7,7 +7,11 @@ import {
   type StreamingUIMessageState,
   type UIMessageStreamWriteOptions,
 } from './process-ui-message-stream';
-import type { InferUIMessageData, UIMessage } from './ui-messages';
+import {
+  isToolUIPart,
+  type InferUIMessageData,
+  type UIMessage,
+} from './ui-messages';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
