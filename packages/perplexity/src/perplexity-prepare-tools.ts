@@ -35,6 +35,12 @@ export function preparePerplexityTools({
     });
   }
 
+  // The Agent API has no tool choice parameter. For `none`, omit the AI SDK
+  // function tools so that the model cannot call them.
+  if (toolChoice?.type === 'none') {
+    return { tools: [], warnings };
+  }
+
   if (toolChoice != null && toolChoice.type !== 'auto') {
     warnings.push({
       type: 'unsupported',
