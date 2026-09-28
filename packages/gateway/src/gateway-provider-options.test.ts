@@ -38,6 +38,15 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
         ],
       },
     },
+    { confidenceBelow: 0.6 },
+    { probabilityBetween: [0.4, 0.6] },
+    {
+      any: [
+        { confidenceBelow: 0.6 },
+        { question: 'intent', confidenceBelow: 0.8 },
+        { probabilityBetween: [0.4, 0.6] },
+      ],
+    },
   ])('accepts condition %#', async when => {
     const result = await safeValidateTypes({
       value: {
@@ -112,6 +121,10 @@ describe('gatewayEvaluationProviderOptionsSchema', () => {
       any: [{ question: 'severity', confidenceBelow: 0.7 }],
     },
     { question: 'intent', confidenceBelow: 0.5, extra: true },
+    {},
+    { question: 'intent' },
+    { confidenceBelow: 0.5, probabilityBetween: [0.4, 0.6] },
+    { confidenceBelow: 0.5, extra: true },
   ])('rejects condition %#', async when => {
     const result = await safeValidateTypes({
       value: {
