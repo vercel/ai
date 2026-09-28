@@ -24,8 +24,8 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsdown --watch --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "cp -r ../../content/docs ./docs",
     "postpack": "del-cli docs",

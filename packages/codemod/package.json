@@ -17,7 +17,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
     "clean": "del-cli dist *.tsbuildinfo",
     "dev": "tsdown --watch",
     "type-check": "tsc --build",

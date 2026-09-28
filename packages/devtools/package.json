@@ -31,7 +31,7 @@
     "start": "node dist/viewer/server.js",
     "build": "pnpm build:client && pnpm build:server",
     "build:client": "vite build",
-    "build:server": "tsdown --tsconfig tsconfig.build.json",
+    "build:server": "tsdown",
     "test": "pnpm test:unit",
     "test:e2e": "pnpm build:client && playwright test",
     "test:unit": "vitest --config vitest.node.config.js --run",

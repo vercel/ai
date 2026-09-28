@@ -7,7 +7,7 @@
   "main": "./dist/rsc-client.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsdown --tsconfig tsconfig.build.json",
+    "build": "tsdown",
     "build:watch": "pnpm build --watch",
     "clean": "del-cli dist",
     "type-check": "tsc --noEmit",

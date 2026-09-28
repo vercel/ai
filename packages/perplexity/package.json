@@ -21,7 +21,7 @@
     "doc": "./docs"
   },
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist docs *.tsbuildinfo",
     "prepack": "mkdir -p docs && cp ../../content/providers/01-ai-sdk-providers/70-perplexity.mdx ./docs/",

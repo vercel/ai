@@ -18,8 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsdown --watch --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",

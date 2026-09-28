@@ -18,7 +18,7 @@
     "internal.d.ts"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json",
+    "build": "pnpm clean && tsdown",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",

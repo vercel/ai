@@ -18,7 +18,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsdown --tsconfig tsconfig.build.json && pnpm copy-bridge-assets",
+    "build": "pnpm clean && tsdown && pnpm copy-bridge-assets",
     "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "copy-bridge-assets": "node -e \"import('node:fs/promises').then(async fs => { await fs.copyFile('src/v1/bridge/package.json', 'dist/bridge/package.json'); await fs.copyFile('src/v1/bridge/pnpm-lock.yaml', 'dist/bridge/pnpm-lock.yaml'); })\"",
