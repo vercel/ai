@@ -473,6 +473,132 @@ describe('GoogleRealtimeEventMapper', () => {
       });
     });
 
+    describe.each(['serverContent', 'top-level'] as const)(
+      '%s input transcription boundaries',
+      location => {
+        const wrap = (inputTranscription: {
+          text?: string;
+          finished?: boolean;
+        }) =>
+          location === 'serverContent'
+            ? { serverContent: { inputTranscription } }
+            : { inputTranscription };
+
+        it.each([{ finished: true }, { text: '', finished: true }])(
+          'honors a standalone completion marker %j after turnComplete',
+          completion => {
+            const mapper = new GoogleRealtimeEventMapper();
+            mapper.parseServerEvent(wrap({ text: 'First', finished: false }));
+            mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+
+            // Completion-only messages must not create an empty user message.
+            expect(mapper.parseServerEvent(wrap(completion))).toMatchObject({
+              type: 'custom',
+            });
+
+            const next = wrap({ text: 'Second', finished: true });
+            expect(mapper.parseServerEvent(next)).toEqual({
+              type: 'input-transcription-completed',
+              itemId: 'google-input-1',
+              transcript: 'Second',
+              raw: next,
+            });
+          },
+        );
+
+        it('separates utterances using standalone completion markers without response events', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent(wrap({ finished: true }));
+          // Empty or repeated markers must not consume another ID or reopen
+          // the completed utterance.
+          mapper.parseServerEvent(wrap({ finished: true }));
+          mapper.parseServerEvent(wrap({ text: '', finished: false }));
+
+          const next = wrap({ text: 'Second' });
+          expect(mapper.parseServerEvent(next)).toEqual({
+            type: 'input-transcription-completed',
+            itemId: 'google-input-1',
+            transcript: 'Second',
+            raw: next,
+          });
+        });
+
+        it('does not allocate an utterance for empty input', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          for (const transcription of [
+            {},
+            { finished: false },
+            { finished: true },
+            { text: '', finished: true },
+          ]) {
+            expect(mapper.parseServerEvent(wrap(transcription))).toMatchObject({
+              type: 'custom',
+            });
+          }
+
+          expect(
+            mapper.parseServerEvent(wrap({ text: 'First' })),
+          ).toMatchObject({
+            itemId: 'google-input-0',
+            transcript: 'First',
+          });
+        });
+
+        it('preserves an interrupting utterance until its standalone completion marker', () => {
+          const mapper = new GoogleRealtimeEventMapper();
+          mapper.parseServerEvent(wrap({ text: 'First' }));
+          mapper.parseServerEvent({ serverContent: { interrupted: true } });
+          mapper.parseServerEvent(wrap({ text: 'Stop' }));
+          mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+          expect(mapper.parseServerEvent(wrap({ text: ' now' }))).toMatchObject(
+            {
+              itemId: 'google-input-1',
+              transcript: 'Stop now',
+            },
+          );
+          mapper.parseServerEvent(wrap({ finished: true }));
+          expect(mapper.parseServerEvent(wrap({ text: 'Next' }))).toMatchObject(
+            {
+              itemId: 'google-input-2',
+              transcript: 'Next',
+            },
+          );
+        });
+      },
+    );
+
+    it('starts a new response after interruption without a trailing turnComplete', () => {
+      const mapper = new GoogleRealtimeEventMapper();
+      mapper.parseServerEvent({
+        serverContent: {
+          inputTranscription: { text: 'Tell me a story.' },
+          modelTurn: { parts: [{ text: 'Once upon a time' }] },
+        },
+      });
+      mapper.parseServerEvent({ serverContent: { interrupted: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Stop.' } },
+        }),
+      ).toMatchObject({ itemId: 'google-input-1', transcript: 'Stop.' });
+
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { modelTurn: { parts: [{ text: 'OK.' }] } },
+        }),
+      ).toMatchObject({ responseId: 'google-resp-1', itemId: 'google-item-1' });
+      mapper.parseServerEvent({ serverContent: { turnComplete: true } });
+      expect(
+        mapper.parseServerEvent({
+          serverContent: { inputTranscription: { text: 'Next question.' } },
+        }),
+      ).toMatchObject({
+        itemId: 'google-input-2',
+        transcript: 'Next question.',
+      });
+    });
+
     it('accumulates consecutive input transcription fragments into one utterance', () => {
       const mapper = new GoogleRealtimeEventMapper();
 

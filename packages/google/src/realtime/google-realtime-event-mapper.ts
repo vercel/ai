@@ -60,7 +60,6 @@ export class GoogleRealtimeEventMapper {
   private inputTranscriptionBuffer = '';
   private inputTranscriptionBoundary: 'none' | 'interrupted' | 'turn-complete' =
     'none';
-  private inputTranscriptionFinished = false;
   private preserveInputTranscriptionAcrossTurnComplete = false;
   private hasAudio = false;
   private hasText = false;
@@ -90,6 +89,9 @@ export class GoogleRealtimeEventMapper {
     this.hasText = false;
     this.hasTranscript = false;
     this.turnClosed = false;
+    // Once the next response starts, its completion must delimit its own
+    // input even if the interrupted response never sent a turnComplete.
+    this.preserveInputTranscriptionAcrossTurnComplete = false;
   }
 
   // Google streams input transcription as a sequence of non-accumulating
@@ -107,30 +109,43 @@ export class GoogleRealtimeEventMapper {
     text,
     finished,
   }: {
-    text: string;
+    text?: string;
     finished?: boolean;
-  }): {
-    itemId: string;
-    transcript: string;
-  } {
+  }): { itemId: string; transcript: string } | undefined {
+    // Google can send `finished` separately from text. Process it even when
+    // text is absent or empty, without emitting an empty user message.
+    if (!text) {
+      if (finished === true) {
+        this.finishInputTranscription();
+      }
+      return undefined;
+    }
+
     const hasFinishedSignal = finished != null;
     if (
       this.inputTranscriptionBuffer !== '' &&
-      (this.inputTranscriptionFinished ||
-        this.inputTranscriptionBoundary === 'interrupted' ||
+      (this.inputTranscriptionBoundary === 'interrupted' ||
         (this.inputTranscriptionBoundary === 'turn-complete' &&
           !hasFinishedSignal))
     ) {
-      this.inputTranscriptionCounter++;
-      this.inputTranscriptionBuffer = '';
+      this.finishInputTranscription();
     }
     this.inputTranscriptionBoundary = 'none';
     this.inputTranscriptionBuffer += text;
-    this.inputTranscriptionFinished = finished === true;
-    return {
+    const result = {
       itemId: `google-input-${this.inputTranscriptionCounter}`,
       transcript: this.inputTranscriptionBuffer,
     };
+    if (finished === true) {
+      this.finishInputTranscription();
+    }
+    return result;
+  }
+
+  private finishInputTranscription(): void {
+    if (this.inputTranscriptionBuffer === '') return;
+    this.inputTranscriptionCounter++;
+    this.inputTranscriptionBuffer = '';
   }
 
   parseServerEvent(
@@ -197,17 +212,17 @@ export class GoogleRealtimeEventMapper {
       return this.parseServerContent(data.serverContent, raw);
     }
 
-    if (data.inputTranscription?.text != null) {
-      const { itemId, transcript } = this.accumulateInputTranscription({
-        text: data.inputTranscription.text,
-        finished: data.inputTranscription.finished,
-      });
-      return {
-        type: 'input-transcription-completed',
-        itemId,
-        transcript,
-        raw,
-      };
+    if (data.inputTranscription != null) {
+      const transcription = this.accumulateInputTranscription(
+        data.inputTranscription,
+      );
+      if (transcription != null) {
+        return {
+          type: 'input-transcription-completed',
+          ...transcription,
+          raw,
+        };
+      }
     }
 
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
@@ -225,6 +240,7 @@ export class GoogleRealtimeEventMapper {
       // response's trailing turnComplete must not split that new utterance.
       this.inputTranscriptionBoundary = 'interrupted';
       this.preserveInputTranscriptionAcrossTurnComplete = true;
+      this.turnClosed = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -269,17 +285,17 @@ export class GoogleRealtimeEventMapper {
       });
     }
 
-    if (serverContent.inputTranscription?.text) {
-      const { itemId, transcript } = this.accumulateInputTranscription({
-        text: serverContent.inputTranscription.text,
-        finished: serverContent.inputTranscription.finished,
-      });
-      events.push({
-        type: 'input-transcription-completed',
-        itemId,
-        transcript,
-        raw,
-      });
+    if (serverContent.inputTranscription != null) {
+      const transcription = this.accumulateInputTranscription(
+        serverContent.inputTranscription,
+      );
+      if (transcription != null) {
+        events.push({
+          type: 'input-transcription-completed',
+          ...transcription,
+          raw,
+        });
+      }
     }
 
     // `generationComplete` means generation has stopped, but playback and the
