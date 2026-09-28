@@ -2052,6 +2052,98 @@ describe('Chat', () => {
   });
 
   describe('sendAutomaticallyWhen', () => {
+    it('should submit a client tool output when completed text follows the tool call', async () => {
+      server.urls['http://localhost:3000/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'start' }),
+          formatChunk({ type: 'start-step' }),
+          formatChunk({ type: 'finish-step' }),
+          formatChunk({ type: 'finish' }),
+        ],
+      };
+
+      const onFinishPromise = createResolvablePromise<void>();
+
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+              {
+                type: 'text',
+                text: 'I can help with anything else.',
+                state: 'done',
+              },
+            ],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+        onFinish: () => onFinishPromise.resolve(),
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+      await onFinishPromise.promise;
+
+      expect(server.calls.length).toBe(1);
+    });
+
+    it('should not submit a client tool output when terminal text has no completed stream state', async () => {
+      const chat = new TestChat({
+        id: '123',
+        generateId: mockId(),
+        messages: [
+          {
+            id: 'id-0',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-test-tool',
+                toolCallId: 'tool-call-0',
+                state: 'input-available',
+                input: { testArg: 'test-value' },
+              },
+              {
+                type: 'text',
+                text: 'Prompt is too long',
+              },
+            ],
+          },
+        ],
+        transport: new DefaultChatTransport({
+          api: 'http://localhost:3000/api/chat',
+        }),
+        sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      });
+
+      await chat.addToolOutput({
+        tool: 'test-tool',
+        toolCallId: 'tool-call-0',
+        output: 'test-output',
+      });
+      await delay();
+
+      expect(server.calls.length).toBe(0);
+    });
+
     it('should delay tool output submission until the stream is finished', async () => {
       const controller1 = new TestResponseController();
 
