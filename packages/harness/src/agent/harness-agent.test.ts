@@ -379,6 +379,115 @@ function makeLifecycleSession(options: {
 }
 
 describe('HarnessAgent', () => {
+  test('forwards configured runtime context through every public turn entry point', async () => {
+    type RuntimeContext = { conversationId: string };
+    const runtimeContext = { conversationId: 'conversation-1' };
+    const lifecycleContexts: RuntimeContext[] = [];
+    const telemetryContexts: RuntimeContext[] = [];
+    const completedTurn = () => [
+      { type: 'stream-start' as const, modelId: 'mock-model' },
+      { type: 'text-start' as const, id: 'text-1' },
+      {
+        type: 'text-delta' as const,
+        id: 'text-1',
+        delta: 'completed',
+      },
+      { type: 'text-end' as const, id: 'text-1' },
+      {
+        type: 'finish-step' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: zeroUsage(),
+      },
+      {
+        type: 'finish' as const,
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        totalUsage: zeroUsage(),
+      },
+    ];
+    const { harness } = mockHarness({
+      script: completedTurn,
+      continueScript: completedTurn,
+    });
+    const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext,
+      telemetry: {
+        includeRuntimeContext: { conversationId: true },
+        integrations: [
+          {
+            onEnd: event => {
+              telemetryContexts.push(
+                (event as unknown as { runtimeContext: RuntimeContext })
+                  .runtimeContext,
+              );
+            },
+          },
+        ],
+      },
+      onEnd: event => {
+        lifecycleContexts.push(event.runtimeContext);
+      },
+    });
+
+    const generateSession = await agent.createSession();
+    const generated = await agent.generate({
+      session: generateSession,
+      prompt: 'generate',
+    });
+    expect(generated.finalStep.runtimeContext).toBe(runtimeContext);
+    await generateSession.destroy();
+
+    const streamSession = await agent.createSession();
+    const streamed = await agent.stream({
+      session: streamSession,
+      prompt: 'stream',
+    });
+    await streamed.consumeStream();
+    expect((await streamed.finalStep).runtimeContext).toBe(runtimeContext);
+    await streamSession.destroy();
+
+    const continueState = {
+      type: 'continue-turn' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    };
+    const continueGenerateSession = await agent.createSession({
+      continueFrom: continueState,
+    });
+    const continuedGeneration = await agent.continueGenerate({
+      session: continueGenerateSession,
+    });
+    expect(continuedGeneration.finalStep.runtimeContext).toBe(runtimeContext);
+    await continueGenerateSession.destroy();
+
+    const continueStreamSession = await agent.createSession({
+      continueFrom: continueState,
+    });
+    const continuedStream = await agent.continueStream({
+      session: continueStreamSession,
+    });
+    await continuedStream.consumeStream();
+    expect((await continuedStream.finalStep).runtimeContext).toBe(
+      runtimeContext,
+    );
+    await continueStreamSession.destroy();
+
+    expect(lifecycleContexts).toEqual([
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+    ]);
+    expect(telemetryContexts).toEqual([
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+      runtimeContext,
+    ]);
+  });
+
   test('runs lifecycle callbacks in order and merges settings before call callbacks', async () => {
     const builtinTools = {
       bash: tool({
