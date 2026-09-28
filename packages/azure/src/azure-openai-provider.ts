@@ -123,6 +123,7 @@ export interface AzureOpenAIProviderSettings {
    * Name of the Azure OpenAI resource. Either this or `baseURL` can be used.
    *
    * The resource name is used in the assembled URL: `https://{resourceName}.openai.azure.com/openai/v1{path}`.
+   * It must be a single DNS label (letters, digits, and hyphens).
    */
   resourceName?: string;
 
@@ -259,13 +260,26 @@ export function createAzure(
       }
     : options.fetch;
 
-  const getResourceName = () =>
-    loadSetting({
+  const getResourceName = () => {
+    const resourceName = loadSetting({
       settingValue: options.resourceName,
       settingName: 'resourceName',
       environmentVariableName: 'AZURE_RESOURCE_NAME',
       description: 'Azure OpenAI resource name',
     });
+
+    // The resource name becomes part of the request host, so only a DNS label
+    // is accepted (e.g. `user@internal:8080/#` would rewrite the host).
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(resourceName)) {
+      throw new InvalidArgumentError({
+        argument: 'resourceName',
+        message:
+          'Invalid Azure resource name. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+
+    return resourceName;
+  };
 
   const apiVersion = options.apiVersion ?? 'v1';
   const {
