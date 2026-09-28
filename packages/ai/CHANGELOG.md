@@ -1,5 +1,14 @@
 # ai
 
+## 6.0.294
+
+### Patch Changes
+
+- 16a04d7: fix(ai): cancel response streams when clients disconnect
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/gateway@3.0.204
+
 ## 6.0.293
 
 ### Patch Changes
