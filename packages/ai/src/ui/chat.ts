@@ -263,6 +263,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private pendingApprovalMessageId: string | undefined;
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
+  private resumableStreamState:
+    | StreamingUIMessageState<UI_MESSAGE>
+    | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -723,6 +726,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    if (trigger !== 'resume-stream') {
+      this.resumableStreamState = undefined;
+    }
+
     const abortController = new AbortController();
     const activeResumeRequest =
       trigger === 'resume-stream' ? { abortController } : undefined;
@@ -760,6 +767,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           await reconnect?.cancel().catch(() => {});
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           clearActiveResumeRequest();
           return;
@@ -767,6 +775,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
         if (reconnect == null) {
           this.setStatus({ status: 'ready' });
+          this.resumableStreamState = undefined;
           clearActiveResumeRequest();
           return; // no active stream found, so we do not resume
         }
@@ -779,6 +788,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ) {
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           clearActiveResumeRequest();
           return;
@@ -828,6 +838,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     try {
       const response = {
+<<<<<<< HEAD
         state: createStreamingUIMessageState({
           lastMessage:
             trigger === 'resume-stream'
@@ -837,6 +848,19 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
                 : this.state.snapshot(responseMessage),
           messageId: this.generateId(),
         }),
+=======
+        state:
+          trigger === 'resume-stream' && this.resumableStreamState != null
+            ? this.resumableStreamState
+            : createStreamingUIMessageState({
+                lastMessage:
+                  trigger === 'resume-stream' ||
+                  trigger === 'regenerate-message'
+                    ? undefined
+                    : this.state.snapshot(responseMessage),
+                messageId: this.generateId(),
+              }),
+>>>>>>> origin/main
         abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
@@ -926,12 +950,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (isAbort) {
         if (isCurrentRequest()) {
           this.setStatus({ status: 'ready' });
+          if (this.resumableStreamState === response.state) {
+            this.resumableStreamState = undefined;
+          }
         }
         return null;
       }
 
       if (isCurrentRequest()) {
         this.setStatus({ status: 'ready' });
+        if (this.resumableStreamState === response.state) {
+          this.resumableStreamState = undefined;
+        }
       }
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -939,6 +969,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         isAbort = true;
         if (isCurrentRequest()) {
           this.setStatus({ status: 'ready' });
+          if (this.resumableStreamState === activeResponse?.state) {
+            this.resumableStreamState = undefined;
+          }
         }
         return null;
       }
@@ -956,6 +989,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           err.message.toLowerCase().includes('network'))
       ) {
         isDisconnect = true;
+      }
+
+      if (isDisconnect) {
+        this.resumableStreamState = activeResponse?.state;
+      } else if (this.resumableStreamState === activeResponse?.state) {
+        this.resumableStreamState = undefined;
       }
 
       if (this.onError && err instanceof Error) {

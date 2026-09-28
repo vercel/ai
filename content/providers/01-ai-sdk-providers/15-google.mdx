@@ -1147,6 +1147,18 @@ emitted as custom events. Inspect `rawType` for `goAway`,
 `sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
 payload for provider-specific details.
 
+With input audio transcription enabled, `parseServerEvent` emits
+`input-transcription-completed` events with a stable `itemId` for each user
+utterance. Each `transcript` contains the accumulated text so far. If you consume
+these events directly, replace the text for that `itemId` with `transcript` on
+each event. The realtime session handles this automatically.
+
+Google's `finished` transcription marker ends an utterance even when the marker
+contains no text. For payloads without this marker, response completion and
+interruption provide fallback boundaries. These fallback boundaries cannot
+unambiguously associate all delayed transcription fragments. Input item IDs use
+their own sequence and need not match the model's response IDs.
+
 ### Live Translation
 
 Use `gemini-3.5-live-translate-preview` for low-latency speech-to-speech

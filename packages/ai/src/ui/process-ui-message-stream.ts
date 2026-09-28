@@ -856,7 +856,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
@@ -872,7 +873,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     preliminary: chunk.preliminary,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
@@ -896,7 +898,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation,
                 );
@@ -912,7 +915,8 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     providerExecuted: chunk.providerExecuted,
                     providerMetadata: chunk.providerMetadata,
                     title: toolInvocation.title,
-                    toolMetadata: toolInvocation.toolMetadata,
+                    toolMetadata:
+                      chunk.toolMetadata ?? toolInvocation.toolMetadata,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
