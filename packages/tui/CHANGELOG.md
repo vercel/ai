@@ -1,5 +1,14 @@
 # @ai-sdk/tui
 
+## 1.0.121
+
+### Patch Changes
+
+- 8e0fbcc: Escape untrusted terminal control characters in agent output, tool content, errors, titles, and prompts before rendering, preventing terminal escape sequence injection while preserving TUI formatting.
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
 ## 1.0.120
 
 ### Patch Changes
