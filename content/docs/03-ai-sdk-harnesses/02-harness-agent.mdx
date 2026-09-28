@@ -546,6 +546,10 @@ supplied, their values must match.
 - `id`: optional stable agent identifier.
 - `instructions`: instructions appended to the runtime's system or developer
   prompt when supported, or prepended to the user prompt otherwise.
+- `runtimeContext`: typed context forwarded to lifecycle callbacks, step
+  results, and telemetry events. Select the properties that may appear in
+  telemetry with `telemetry.includeRuntimeContext`; unlisted properties are
+  omitted.
 - `headers`: additional headers sent with model requests. Headers are fixed at
   construction time. `authorization`, `x-api-key`, `user-agent`, and
   `x-client-app` are not allowed.
@@ -568,6 +572,8 @@ supplied, their values must match.
 Telemetry reports each turn's resolved model, instructions, and active
 host-defined tools. Skills are adapter context and do not have a corresponding
 AI SDK telemetry field, so they are not included in standard telemetry events.
+`runtimeContext` values are also omitted unless the specific keys are listed in
+`telemetry.includeRuntimeContext`.
 
 Adapter-specific settings belong on the adapter factory, for example
 `createCodex({ reasoningEffort: 'high' })`.

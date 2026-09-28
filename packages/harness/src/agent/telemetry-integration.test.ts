@@ -738,6 +738,52 @@ describe('HarnessAgent telemetry integration', () => {
     expect(chatSpan.attributes).not.toHaveProperty('gen_ai.tool.definitions');
   });
 
+  test('emits settings runtimeContext via includeRuntimeContext', async () => {
+    const harness = scriptedHarness([
+      { type: 'stream-start', modelId: 'ctx-model' },
+      { type: 'text-start', id: 't1' },
+      { type: 'text-delta', id: 't1', delta: 'hi' },
+      { type: 'text-end', id: 't1' },
+      {
+        type: 'finish-step',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        usage,
+      },
+      {
+        type: 'finish',
+        finishReason: { unified: 'stop', raw: 'stop' },
+        totalUsage: usage,
+      },
+    ]);
+    const { exporter, tracer } = createSdkTracer();
+    const agent = new HarnessAgent({
+      harness,
+      model: 'ctx-model',
+      sandbox: makeSandboxProvider(),
+      runtimeContext: {
+        conversationId: 'conv-1',
+        secret: 'should-not-be-emitted',
+      },
+      telemetry: {
+        isEnabled: true,
+        includeRuntimeContext: { conversationId: true },
+        integrations: [new OpenTelemetry({ tracer, runtimeContext: true })],
+      },
+    });
+
+    const session = await agent.createSession();
+    await agent.generate({ session, prompt: 'go' });
+    await session.destroy();
+
+    const rootSpan = getExportedSpan(exporter, 'ai.harness ctx-model');
+    expect(rootSpan.attributes['ai.settings.context.conversationId']).toBe(
+      'conv-1',
+    );
+    expect(rootSpan.attributes).not.toHaveProperty(
+      'ai.settings.context.secret',
+    );
+  });
+
   test('fires no telemetry when settings.telemetry is unset', async () => {
     const harness = scriptedHarness([
       { type: 'stream-start' },

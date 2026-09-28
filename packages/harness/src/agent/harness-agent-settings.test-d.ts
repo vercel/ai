@@ -147,6 +147,50 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
   });
 
+  test('runtimeContext is typed and drives telemetry includeRuntimeContext', () => {
+    type RuntimeContext = {
+      conversationId: string;
+      tenantId: string;
+    };
+    type RuntimeSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const settings: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      runtimeContext: { conversationId: 'conv-1', tenantId: 'tenant-1' },
+      telemetry: {
+        includeRuntimeContext: {
+          conversationId: true,
+        },
+      },
+    };
+
+    const wrongContext: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      // @ts-expect-error runtimeContext must match the configured generic
+      runtimeContext: { conversationId: 123, tenantId: 'tenant-1' },
+    };
+
+    const wrongTelemetryKey: RuntimeSettings = {
+      harness,
+      tools: userTools,
+      telemetry: {
+        includeRuntimeContext: {
+          // @ts-expect-error includeRuntimeContext only supports runtime context keys
+          unknownKey: true,
+        },
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<RuntimeSettings>();
+    expectTypeOf(wrongContext).toMatchTypeOf<RuntimeSettings>();
+    expectTypeOf(wrongTelemetryKey).toMatchTypeOf<RuntimeSettings>();
+  });
+
   test('deprecated lifecycle aliases are not settings', () => {
     const settings: Settings = {
       harness,

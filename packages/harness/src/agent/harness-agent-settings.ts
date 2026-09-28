@@ -160,6 +160,13 @@ export type HarnessAgentSettings<
   readonly toolsContext?: InferToolSetContext<TUserTools>;
 
   /**
+   * Runtime context for this agent. Treat runtime context as immutable.
+   * It is forwarded to lifecycle callbacks, step results, and telemetry
+   * events (`includeRuntimeContext`).
+   */
+  readonly runtimeContext?: RUNTIME_CONTEXT;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -374,7 +381,7 @@ export type HarnessAgentSettings<
    * Register an integration here (e.g. `@ai-sdk/otel`) or globally via
    * `registerTelemetry`. The harness itself stays OpenTelemetry-agnostic.
    */
-  readonly telemetry?: TelemetryOptions;
+  readonly telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Diagnostics configuration. Enables bridge log forwarding (sandbox

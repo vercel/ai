@@ -4,7 +4,7 @@ import type {
   ModelMessage,
   ToolSet,
 } from '@ai-sdk/provider-utils';
-import { createTelemetryDispatcher } from 'ai/internal';
+import { createRestrictedTelemetryDispatcher } from 'ai/internal';
 import type {
   ContentPart,
   GenerateTextOnEndCallback,
@@ -42,7 +42,13 @@ export type HarnessAgentLifecycleCallbacks<
   onEnd?: GenerateTextOnEndCallback<TOOLS, RUNTIME_CONTEXT>;
 };
 
-type Dispatcher = ReturnType<typeof createTelemetryDispatcher>;
+type Dispatcher<
+  TOOLS extends ToolSet,
+  RUNTIME_CONTEXT extends Context,
+  OUTPUT extends Output,
+> = ReturnType<
+  typeof createRestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT>
+>;
 
 export interface TurnLifecycle<
   TOOLS extends ToolSet,
@@ -106,8 +112,12 @@ export function createTurnLifecycle<
 }): TurnLifecycle<TOOLS, RUNTIME_CONTEXT> {
   const telemetry =
     options.telemetry == null
-      ? ({} as Dispatcher)
-      : createTelemetryDispatcher({ telemetry: options.telemetry });
+      ? ({} as Dispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT>)
+      : createRestrictedTelemetryDispatcher<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
+          telemetry: options.telemetry,
+          includeRuntimeContext: options.telemetry.includeRuntimeContext,
+          includeToolsContext: options.telemetry.includeToolsContext,
+        });
   const provider = `harness:${options.harnessId}`;
   let modelId = options.modelId ?? '';
   let started = false;

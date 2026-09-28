@@ -3295,6 +3295,95 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
+  test('forwards settings runtimeContext to lifecycle callbacks and step results', async () => {
+    const { harness } = mockHarness({ script: () => finishEvents() });
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { conversationId: 'conv-1' },
+      onStart,
+      onEnd,
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.generate({ session, prompt: 'go' });
+
+    expect(result.steps[0]?.runtimeContext).toEqual({
+      conversationId: 'conv-1',
+    });
+    expect(onStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeContext: { conversationId: 'conv-1' },
+      }),
+    );
+    expect(onEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtimeContext: { conversationId: 'conv-1' },
+        finalStep: expect.objectContaining({
+          runtimeContext: { conversationId: 'conv-1' },
+        }),
+      }),
+    );
+
+    await session.destroy();
+  });
+
+  test('forwards settings runtimeContext when streaming', async () => {
+    const { harness } = mockHarness({ script: () => finishEvents() });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { conversationId: 'conv-stream' },
+    });
+    const session = await agent.createSession();
+
+    const result = await agent.stream({ session, prompt: 'go' });
+    await result.consumeStream();
+
+    expect((await result.steps)[0]?.runtimeContext).toEqual({
+      conversationId: 'conv-stream',
+    });
+
+    await session.destroy();
+  });
+
+  test('forwards settings runtimeContext across continueGenerate and continueStream', async () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      continueScript: () => finishEvents(),
+    });
+    const agent = new HarnessAgent({
+      harness,
+      sandbox: makeSandboxProvider(),
+      runtimeContext: { conversationId: 'conv-continue' },
+    });
+    const continueFrom = {
+      type: 'continue-turn' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    };
+
+    const generatedSession = await agent.createSession({ continueFrom });
+    const generated = await agent.continueGenerate({
+      session: generatedSession,
+    });
+    expect(generated.steps[0]?.runtimeContext).toEqual({
+      conversationId: 'conv-continue',
+    });
+    await generatedSession.destroy();
+
+    const streamedSession = await agent.createSession({ continueFrom });
+    const streamed = await agent.continueStream({ session: streamedSession });
+    await streamed.consumeStream();
+    expect((await streamed.steps)[0]?.runtimeContext).toEqual({
+      conversationId: 'conv-continue',
+    });
+    await streamedSession.destroy();
+  });
+
   test('validates host tool context without disclosing it to the model', async () => {
     const { harness, toolResults } = mockHarness({
       script: () => [

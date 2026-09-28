@@ -646,7 +646,8 @@ export class HarnessAgent<
     >
   > {
     const continueTurnInput = this._resolveContinueTurnInput(options);
-    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const runtimeContext =
+      this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, done } =
       continueTurnInput == null
         ? await this._startPromptTurn({ options, runtimeContext })
@@ -675,7 +676,8 @@ export class HarnessAgent<
     >
   > {
     const continueTurnInput = this._resolveContinueTurnInput(options);
-    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const runtimeContext =
+      this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, ready } =
       continueTurnInput == null
         ? await this._startPromptTurn({ options, runtimeContext })
@@ -706,7 +708,8 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const runtimeContext =
+      this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, done } = await this._startContinueTurn({
       session: options.session,
       turnInput: {
@@ -740,7 +743,8 @@ export class HarnessAgent<
       OUTPUT
     >
   > {
-    const runtimeContext = {} as RUNTIME_CONTEXT;
+    const runtimeContext =
+      this.settings.runtimeContext ?? ({} as RUNTIME_CONTEXT);
     const { result, ready } = await this._startContinueTurn({
       session: options.session,
       turnInput: {
