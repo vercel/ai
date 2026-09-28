@@ -92,6 +92,14 @@ export async function loadChat(id: string): Promise<UIMessage[]> {
 
 When processing messages on the server that contain tool calls, custom metadata, or data parts, you should validate them using `validateUIMessages` before sending them to the model.
 
+### Persisting streaming tool input
+
+An `input-streaming` tool part includes `rawInput` while tool arguments are
+still arriving. Persist the complete UI message, including this field, so a
+resumed stream can append later tool-input deltas to the exact text received
+before the interruption. AI SDK updates `rawInput` as each delta arrives and
+removes it when the tool input becomes available.
+
 ### Migrating deprecated tool `rawInput`
 
 Older persisted tool parts in the `output-error` state may contain `rawInput`.
