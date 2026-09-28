@@ -1,9 +1,17 @@
 import { isToolOrDynamicToolUIPart, type UIMessage } from './ui-messages';
 
 /**
+<<<<<<< HEAD
 Check if the message is an assistant message with completed tool calls.
 The last step of the message must have at least one tool invocation and
 all tool invocations must have a result.
+=======
+ * Check if the last message is an assistant message with completed tool calls.
+ * The last step of the message must have at least one tool invocation and
+ * all tool invocations must have a result. Completed model text may follow
+ * the tool invocation because client-side tool results update parts in place,
+ * but trailing text without a completed stream state prevents resubmission.
+>>>>>>> 9941f32ab9 (fix: prevent unexpected chat resumption after terminal text follows a completed tool call (#21622))
  */
 export function lastAssistantMessageIsCompleteWithToolCalls({
   messages,
@@ -24,13 +32,29 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
     return part.type === 'step-start' ? index : lastIndex;
   }, -1);
 
+<<<<<<< HEAD
   const lastStepToolInvocations = message.parts
     .slice(lastStepStartIndex + 1)
     .filter(isToolOrDynamicToolUIPart)
+=======
+  const lastStepParts = message.parts.slice(lastStepStartIndex + 1);
+
+  const lastStepToolInvocations = lastStepParts
+    .filter(isToolUIPart)
+>>>>>>> 9941f32ab9 (fix: prevent unexpected chat resumption after terminal text follows a completed tool call (#21622))
     .filter(part => !part.providerExecuted);
+
+  const lastToolInvocationIndex = lastStepParts.reduce(
+    (lastIndex, part, index) =>
+      isToolUIPart(part) && !part.providerExecuted ? index : lastIndex,
+    -1,
+  );
 
   return (
     lastStepToolInvocations.length > 0 &&
+    !lastStepParts
+      .slice(lastToolInvocationIndex + 1)
+      .some(part => part.type === 'text' && part.state !== 'done') &&
     lastStepToolInvocations.every(
       part =>
         part.state === 'output-available' || part.state === 'output-error',
