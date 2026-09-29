@@ -52,6 +52,73 @@ describe('createUIMessageStreamResponse', () => {
     `);
   });
 
+<<<<<<< HEAD
+=======
+  it('should send opening and keep-alive comments for an idle stream', async () => {
+    const response = createUIMessageStreamResponse({
+      stream: new ReadableStream(),
+      keepAliveMs: 100,
+    });
+    const reader = response
+      .body!.pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: false,
+      value: ': stream-open\n\n',
+    });
+
+    const keepAlive = reader.read();
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(keepAlive).resolves.toEqual({
+      done: false,
+      value: ': keep-alive\n\n',
+    });
+
+    await reader.cancel();
+  });
+
+  it('can respond with a stream created by toUIMessageStream', async () => {
+    const response = createUIMessageStreamResponse({
+      status: 200,
+      stream: toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'text-start', id: 't1' },
+          { type: 'text-delta', id: 't1', text: 'Hello' },
+          { type: 'text-end', id: 't1' },
+        ] satisfies TextStreamPart<{}>[]),
+        generateMessageId: () => 'msg-123',
+      }),
+    });
+
+    expect(
+      await convertReadableStreamToArray(
+        response.body!.pipeThrough(new TextDecoderStream()),
+      ),
+    ).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"start","messageId":"msg-123"}
+
+      ",
+        "data: {"type":"text-start","id":"t1"}
+
+      ",
+        "data: {"type":"text-delta","id":"t1","delta":"Hello"}
+
+      ",
+        "data: {"type":"text-end","id":"t1"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
+  });
+
+>>>>>>> 05cdac6c32 (fix: idle UI message streams failing to flush promptly or remain open behind reverse proxies (#21672))
   it('should handle errors in the stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,

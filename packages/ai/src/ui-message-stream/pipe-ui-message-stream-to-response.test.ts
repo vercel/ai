@@ -60,6 +60,45 @@ describe('pipeUIMessageStreamToResponse', () => {
     `);
   });
 
+<<<<<<< HEAD
+=======
+  it('should write an opening comment when keep-alives are enabled', async () => {
+    const mockResponse = createMockServerResponse();
+
+    pipeUIMessageStreamToResponse({
+      response: mockResponse,
+      keepAliveMs: 100,
+      stream: convertArrayToReadableStream([
+        { type: 'text-delta', id: '1', delta: 'test-data' },
+      ]),
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()[0]).toBe(': stream-open\n\n');
+  });
+
+  it.each(multipleCookieHeaderInputs)(
+    'should preserve multiple Set-Cookie headers with $name',
+    async ({ headers }) => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        headers,
+        stream: convertArrayToReadableStream([
+          { type: 'start', messageId: 'message-id' },
+          { type: 'finish' },
+        ]),
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.headers['set-cookie']).toStrictEqual(cookies);
+    },
+  );
+
+>>>>>>> 05cdac6c32 (fix: idle UI message streams failing to flush promptly or remain open behind reverse proxies (#21672))
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
