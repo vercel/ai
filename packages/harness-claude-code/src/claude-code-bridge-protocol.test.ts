@@ -56,6 +56,14 @@ describe('outboundMessageSchema', () => {
     },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
+    {
+      type: 'raw',
+      rawValue: {
+        type: 'stream_event',
+        event: { type: 'message_stop' },
+        usage: { input_tokens: 1, output_tokens: 2 },
+      },
+    },
   ];
 
   for (const sample of cases) {

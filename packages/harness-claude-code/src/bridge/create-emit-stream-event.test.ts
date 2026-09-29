@@ -12,6 +12,115 @@ describe('createEmitStreamEvent', () => {
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
   };
 
+  it('forwards tool progress as a raw stream part', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const progressMessage: ClaudeMessage = {
+      type: 'tool_progress',
+      parent_tool_use_id: 'tool-1',
+    };
+
+    emitStreamEvent(progressMessage);
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: progressMessage },
+    ]);
+  });
+
+  it('forwards a usage-bearing raw message_stop for each response', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_start',
+        message: {
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+          },
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { output_tokens: 7 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { input_tokens: 11, output_tokens: 13 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+
+    expect(
+      emitted.filter(
+        event =>
+          event.type === 'raw' &&
+          (event.rawValue as ClaudeMessage).event?.type === 'message_stop',
+      ),
+    ).toEqual([
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        },
+      },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 11,
+            output_tokens: 13,
+          },
+        },
+      },
+    ]);
+    expect(emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish-step' }),
+    );
+  });
+
   it('ignores user messages with string content', () => {
     const state = createClaudeStreamEventState();
     state.stepOpen = true;

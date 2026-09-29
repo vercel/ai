@@ -22,6 +22,9 @@ export type ClaudeMessage = {
     type?: string;
     index?: number;
     usage?: Record<string, unknown>;
+    message?: {
+      usage?: Record<string, unknown>;
+    };
     content_block?: {
       type?: string;
       id?: string;
@@ -76,6 +79,7 @@ export type ClaudeStreamEventState = {
   pendingStepAssistantUsage: Record<string, unknown> | undefined;
   pendingStepDeltaUsage: Record<string, unknown> | undefined;
   pendingStepUsage: Record<string, unknown> | undefined;
+  pendingResponseUsage: Record<string, unknown> | undefined;
   stepOpen: boolean;
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
@@ -103,6 +107,7 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     pendingStepAssistantUsage: undefined,
     pendingStepDeltaUsage: undefined,
     pendingStepUsage: undefined,
+    pendingResponseUsage: undefined,
     stepOpen: false,
     mcpToolUseIds: new Set(),
     externalMcpToolUseIds: new Set(),
@@ -223,9 +228,10 @@ export function createEmitStreamEvent({
     }
 
     if (
-      type === 'system' &&
-      msg.subtype != null &&
-      RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype)
+      type === 'tool_progress' ||
+      (type === 'system' &&
+        msg.subtype != null &&
+        RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype))
     ) {
       emit({ type: 'raw', rawValue: msg });
       return;
@@ -242,6 +248,7 @@ export function createEmitStreamEvent({
     if (type === 'stream_event') {
       handleStreamEvent({
         event: msg.event,
+        message: msg,
         state,
         send: emit,
         toCommonName,
@@ -431,26 +438,49 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent({
   event,
+  message,
   state,
   send,
   toCommonName,
 }: {
   event: ClaudeMessage['event'] | undefined;
+  message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
 }): void {
   if (!event) return;
 
+  if (event.type === 'message_start') {
+    state.pendingResponseUsage = toUsageRecord(event.message?.usage);
+    return;
+  }
+
   if (event.type === 'message_delta') {
     const usage = toUsageRecord(event.usage);
     if (usage) {
+      state.pendingResponseUsage = mergeNonNullUsage(
+        state.pendingResponseUsage,
+        usage,
+      );
       state.pendingStepDeltaUsage = mergeNonNullUsage(
         state.pendingStepDeltaUsage,
         usage,
       );
       updatePendingStepUsage(state);
     }
+    return;
+  }
+
+  if (event.type === 'message_stop') {
+    send({
+      type: 'raw',
+      rawValue: {
+        ...message,
+        usage: state.pendingResponseUsage ?? {},
+      },
+    });
+    state.pendingResponseUsage = undefined;
     return;
   }
 
