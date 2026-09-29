@@ -7,6 +7,12 @@ export const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
   video: 'google/veo-3.1-generate-001',
 };
 
+export const MODEL_KIND_PLACEHOLDERS: Record<ModelKind, string[]> = {
+  text: ['__TEXT_MODEL__', '__MODEL__'],
+  image: ['__IMAGE_MODEL__'],
+  video: ['__VIDEO_MODEL__'],
+};
+
 const modelPlaceholders: [RegExp, ModelKind][] = [
   [/__TEXT_MODEL__/g, 'text'],
   [/__MODEL__/g, 'text'],

@@ -10,6 +10,7 @@ import { InlinePrompt } from '@/components/docs/inline-prompt';
 import { Browser } from '@/components/docs/browser';
 import { BrowserIllustration } from '@/components/docs/browser-illustration';
 import { ChatGeneration } from '@/components/docs/chat-generation';
+import { CodeTemplate } from '@/components/docs/code-template';
 import { ObjectGeneration } from '@/components/docs/object-generation';
 import { TextGeneration } from '@/components/docs/text-generation';
 import { WeatherCard } from '@/components/docs/weather-card';
@@ -58,6 +59,9 @@ export const getMdxComponents = ({
 
   return {
     ...createMdxComponents({ a: VersionedLink }),
+    CodeTemplate: props => (
+      <CodeTemplate {...props} versionPrefix={versionPrefix} />
+    ),
     Note,
     Check,
     Cross,
