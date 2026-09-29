@@ -25,6 +25,7 @@ import type { ToolLoopAgentOnStepFinishCallback } from './tool-loop-agent-settin
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
+ * @param keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param consumeSseStream - Whether to consume the SSE stream. Optional.
  *
  * @returns The response object.
@@ -38,6 +39,7 @@ export async function createAgentUIStreamResponse<
   headers,
   status,
   statusText,
+  keepAliveMs,
   consumeSseStream,
   ...options
 }: {
@@ -58,6 +60,7 @@ export async function createAgentUIStreamResponse<
     headers,
     status,
     statusText,
+    keepAliveMs,
     consumeSseStream,
     stream: await createAgentUIStream(options),
   });
