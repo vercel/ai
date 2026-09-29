@@ -1,5 +1,16 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.137
+
+### Patch Changes
+
+- b2049fa: fix(harness): expose `resolveSandboxCredentialEnvironment()` helper in favor of `createSandboxCredentialEnvironment()` and use it across bridge backed adapters
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
 ## 1.0.136
 
 ### Patch Changes

@@ -48,6 +48,7 @@ function mockHarness(options: {
   supportsSteering?: boolean;
   onSuspendTurn?: () => void | Promise<void>;
   onSubmitToolResult?: HarnessV1PromptControl['submitToolResult'];
+  doReadHistory?: HarnessV1Session['doReadHistory'];
   continueScript?: (
     submitToolResult: (input: {
       toolCallId: string;
@@ -171,6 +172,9 @@ function mockHarness(options: {
     doDestroy,
     doContinueTurn,
     doSuspendTurn,
+    ...(options.doReadHistory != null
+      ? { doReadHistory: options.doReadHistory }
+      : {}),
   };
 
   return {
@@ -809,11 +813,11 @@ describe('HarnessAgent', () => {
       'settings:step-start',
       'call:step-start',
       'model-start:resolved-model',
-      'model-end:tool-result',
       'settings:tool-start',
       'call:tool-start',
       'settings:tool-end:tool-result',
       'call:tool-end',
+      'model-end:tool-result',
       'settings:step-end',
       'call:step-end',
       'settings:end',
@@ -3391,60 +3395,76 @@ describe('HarnessAgent', () => {
     await session.destroy();
   });
 
-  test('resolves harness state under the sandbox HOME, never the working directory', async () => {
-    const base = mockHarness({ script: () => [] });
-    const recipe: HarnessV1Bootstrap = {
-      harnessId: 'mock',
-      bootstrapDir: '.harness-bootstrap/mock',
-      files: [{ path: '.harness-bootstrap/mock/bridge.mjs', content: 'x' }],
-      commands: [],
+  test('readHistory() reads the runtime history through the adapter', async () => {
+    const history = {
+      messages: [
+        {
+          role: 'user' as const,
+          content: [{ type: 'text' as const, text: 'hello' }],
+        },
+        {
+          role: 'assistant' as const,
+          at: '2026-09-29T12:00:00.000Z',
+          harnessMetadata: {
+            mock: { raw: { messageId: 'assistant-1' } },
+          },
+          content: [
+            { type: 'reasoning' as const, text: 'thinking it over' },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tool-1',
+              toolName: 'bash',
+              nativeName: 'Bash',
+              input: { command: 'ls' },
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'tool-1',
+              toolName: 'bash',
+              output: { type: 'text' as const, value: 'README.md' },
+            },
+            { type: 'text' as const, text: 'done' },
+          ],
+        },
+      ],
+      cursor: 'cursor-1',
     };
-    const harness: HarnessV1 = {
-      ...base.harness,
-      getBootstrap: vi.fn(async () => recipe),
-    };
-    const readTextFile = vi.fn(async () => null);
-    const writeTextFile = vi.fn(async () => {});
-    const run = vi.fn(async (args: { command: string }) => ({
-      exitCode: 0,
-      stdout:
-        args.command === 'pwd'
-          ? '/work\n'
-          : args.command === 'printf "%s" "$HOME"'
-            ? '/home/agent'
-            : '',
-      stderr: '',
-    }));
-    const restrictedSession = { run, readTextFile, writeTextFile };
-    const sandboxSession = makeSandboxSession({
-      run,
-      restricted: () => restrictedSession as never,
-    });
-    const agent = new HarnessAgent({
-      harness,
-      sandbox: makeSandboxProvider(sandboxSession),
-      sandboxConfig: { workDir: 'ai-sdk' },
-    });
+    const doReadHistory = vi.fn(async () => history);
+    const { harness } = mockHarness({ script: () => [], doReadHistory });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
 
-    const session = await agent.createSession({ sessionId: 's1' });
-
-    // All harness-generated state resolves under the sandbox's own HOME,
-    // not `defaultWorkingDirectory` (`/work`) …
-    const writtenPaths = (
-      writeTextFile.mock.calls as unknown as Array<[{ path: string }]>
-    ).map(call => call[0].path);
-    expect(writtenPaths).toContain(
-      '/home/agent/.ai-sdk-harness/.harness-bootstrap/mock/bridge.mjs',
-    );
-    for (const path of writtenPaths) {
-      expect(path).toMatch(/^\/home\/agent\/\.ai-sdk-harness\//);
-    }
-    // … while the session still works in the sandbox working directory.
-    expect(base.doStart.mock.calls[0]![0]).toMatchObject({
-      sessionWorkDir: '/work/ai-sdk',
-    });
+    await expect(session.readHistory()).resolves.toEqual(history);
+    await session.readHistory({ since: 'cursor-1' });
+    expect(doReadHistory).toHaveBeenLastCalledWith({ since: 'cursor-1' });
 
     await session.destroy();
+  });
+
+  test('readHistory() throws HarnessCapabilityUnsupportedError when the adapter lacks it', async () => {
+    const { harness } = mockHarness({ script: () => [] });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+
+    await expect(session.readHistory()).rejects.toSatisfy(error =>
+      HarnessCapabilityUnsupportedError.isInstance(error),
+    );
+
+    await session.destroy();
+  });
+
+  test('readHistory() rejects once the session is no longer active', async () => {
+    const { harness } = mockHarness({
+      script: () => [],
+      doReadHistory: async () => ({ messages: [], cursor: 'c' }),
+    });
+    const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
+    const session = await agent.createSession();
+    await session.destroy();
+
+    await expect(session.readHistory()).rejects.toThrow(
+      /not active and cannot read history/,
+    );
   });
 
   test('ensures the harness bootstrap recipe on resumed sessions', async () => {
@@ -4442,6 +4462,30 @@ describe('HarnessAgent', () => {
     expect(doDestroy).not.toHaveBeenCalled();
     expect(sandboxStop).not.toHaveBeenCalled();
     expect(sandboxDestroy).not.toHaveBeenCalled();
+  });
+
+  test('session.detach() keeps the local handle active when detaching fails', async () => {
+    const doDetach = vi.fn(async () => {
+      throw new Error('could not persist resume state');
+    });
+    const doStop = vi.fn(async () => ({
+      type: 'resume-session' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: {},
+    }));
+    const { session } = makeLifecycleSession({
+      underlyingSession: { doDetach, doStop },
+    });
+
+    await expect(session.detach()).rejects.toThrow(
+      'could not persist resume state',
+    );
+    await expect(session.stop()).resolves.toMatchObject({
+      type: 'resume-session',
+    });
+    expect(doDetach).toHaveBeenCalledTimes(1);
+    expect(doStop).toHaveBeenCalledTimes(1);
   });
 
   test('session.stop() saves state and stops the sandbox', async () => {

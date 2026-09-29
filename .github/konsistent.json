@@ -311,6 +311,10 @@
               {
                 "name": "withBridgeToken",
                 "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "resolveSandboxCredentialEnvironment",
+                "from": "@ai-sdk/harness/utils"
               }
             ],
             "importTypes": [
