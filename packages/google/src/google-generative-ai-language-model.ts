@@ -734,6 +734,13 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'response-metadata',
                 id: value.responseId,
+                ...(value.usageMetadata != null
+                  ? {
+                      usage: convertGoogleGenerativeAIUsage(
+                        value.usageMetadata,
+                      ),
+                    }
+                  : {}),
               });
             }
 
