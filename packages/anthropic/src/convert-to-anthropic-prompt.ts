@@ -15,11 +15,13 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   secureJsonParse,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicFallbackContentSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
@@ -824,6 +826,33 @@ export async function convertToAnthropicPrompt({
                 break;
               }
 
+              case 'custom': {
+                if (part.kind !== 'anthropic.fallback') {
+                  break;
+                }
+
+                const fallbackMetadata = await safeValidateTypes({
+                  value: part.providerOptions?.anthropic,
+                  schema: anthropicFallbackContentSchema,
+                });
+
+                if (!fallbackMetadata.success) {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'anthropic fallback metadata must include from.model and to.model',
+                  });
+                  break;
+                }
+
+                anthropicContent.push({
+                  type: 'fallback',
+                  from: fallbackMetadata.value.from,
+                  to: fallbackMetadata.value.to,
+                });
+                break;
+              }
+
               case 'tool-call': {
                 const caller = getAnthropicCaller(part.providerOptions);
 
@@ -1571,7 +1600,11 @@ function moveToolUseBlocksToEnd(
   }
 
   for (const part of content) {
-    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+    if (
+      part.type === 'thinking' ||
+      part.type === 'redacted_thinking' ||
+      part.type === 'fallback'
+    ) {
       flushSegment();
       result.push(part);
     } else {
