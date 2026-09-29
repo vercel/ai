@@ -89,6 +89,8 @@ export type ToolLoopAgentSettings<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When an output is specified, the model gets one additional call without tools
+     * to generate the output after a stop condition is met.
      *
      * @default isStepCount(20)
      */
