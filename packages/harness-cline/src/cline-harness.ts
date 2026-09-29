@@ -16,7 +16,7 @@ import { VERSION } from './version';
 /**
  * Value used to identify the harness in provider request headers.
  */
-const CLINE_CLIENT_APP = `ai-sdk/harness-cline/${VERSION}`;
+const CLINE_CLIENT_APP = `ai-sdk-harness-cline/${VERSION}`;
 
 /**
  * Configuration knobs for `createCline`. The Cline runtime

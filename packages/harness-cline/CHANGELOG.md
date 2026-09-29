@@ -1,5 +1,38 @@
 # @ai-sdk/harness-cline
 
+## 1.0.59
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.58
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.57
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+  - @ai-sdk/provider@4.0.19
+
 ## 1.0.55
 
 ### Patch Changes

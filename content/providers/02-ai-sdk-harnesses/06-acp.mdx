@@ -149,7 +149,7 @@ try {
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 - `clientApp`: optional client attribution with `name` and `version`. It
-  defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
+  defaults to the installed `ai-sdk-harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
 
 Runtime-specific package names, environment variables, modes, and session
@@ -548,7 +548,7 @@ modes enable Codex's internal sandbox, which must not run inside the sandbox
 already provided to `HarnessAgent`.
 
 The `client-app` placeholder resolves to the versioned
-`ai-sdk/harness-acp/<version>` identifier and sends it as both `User-Agent` and
+`ai-sdk-harness-acp/<version>` identifier and sends it as both `User-Agent` and
 `x-client-app`.
 Without Gateway credentials, this profile uses direct `CODEX_API_KEY` or
 `OPENAI_API_KEY` authentication. Gateway `env` values are added to the

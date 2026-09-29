@@ -54,7 +54,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
         }),
         ...options.headers,
       },
-      `ai-sdk/hume/${VERSION}`,
+      `ai-sdk-hume/${VERSION}`,
     );
 
   const createSpeechModel = () =>

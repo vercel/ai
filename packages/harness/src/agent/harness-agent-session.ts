@@ -67,6 +67,7 @@ type ActiveTurnSettings = {
   readonly persisted: HarnessV1TurnSettings;
   readonly tools: ToolSet;
   readonly toolsContext: Record<string, Context | undefined>;
+  readonly runtimeContext: Context;
   readonly activeTools: ToolSet;
   readonly builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
 };
@@ -124,6 +125,7 @@ export class HarnessAgentSession {
   private readonly resumedToolsContext:
     | Record<string, Context | undefined>
     | undefined;
+  private readonly resumedRuntimeContext: Context | undefined;
 
   /**
    * Whether this session was created from `resumeFrom` or `continueFrom`.
@@ -143,6 +145,7 @@ export class HarnessAgentSession {
     pendingToolResults?: readonly HarnessAgentPendingToolResult[];
     turnSettings?: HarnessV1TurnSettings;
     resumedToolsContext?: Record<string, Context | undefined>;
+    resumedRuntimeContext?: Context;
     turnState?: HarnessAgentTurnState;
   }) {
     this.sessionId = options.sessionId;
@@ -160,6 +163,7 @@ export class HarnessAgentSession {
     }
     this.persistedTurnSettings = options.turnSettings;
     this.resumedToolsContext = options.resumedToolsContext;
+    this.resumedRuntimeContext = options.resumedRuntimeContext;
     this.turnState =
       options.turnState ??
       (this.pendingToolApprovals.size > 0
@@ -234,6 +238,7 @@ export class HarnessAgentSession {
       persisted: this.persistedTurnSettings,
       tools: options.tools,
       toolsContext: options.toolsContext,
+      runtimeContext: options.runtimeContext,
       activeTools: options.activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };
@@ -334,6 +339,7 @@ export class HarnessAgentSession {
       instructions: options.instructions,
       tools: options.tools,
       toolsContext: options.toolsContext,
+      runtimeContext: options.runtimeContext,
       activeTools: options.activeTools,
       toolSpecs: options.toolSpecs,
       builtinToolFiltering: options.builtinToolFiltering,
@@ -355,7 +361,7 @@ export class HarnessAgentSession {
         builtinToolFiltering: turnSettings.builtinToolFiltering,
         sandboxSession: getRestrictedSandboxSession(sandboxSession),
         sessionWorkDir: this.sessionWorkDir,
-        runtimeContext: options.runtimeContext,
+        runtimeContext: turnSettings.runtimeContext as RUNTIME_CONTEXT,
         abortSignal: options.abortSignal,
         responseFormat: options.responseFormat,
         output: options.output,
@@ -788,6 +794,7 @@ export class HarnessAgentSession {
     instructions: string | undefined;
     tools: ToolSet;
     toolsContext: Record<string, Context | undefined>;
+    runtimeContext: Context;
     activeTools: ToolSet;
     toolSpecs: HarnessAgentToolSpec[];
     builtinToolFiltering: HarnessV1BuiltinToolFiltering | undefined;
@@ -822,6 +829,7 @@ export class HarnessAgentSession {
       persisted,
       tools: options.tools,
       toolsContext: this.resumedToolsContext ?? options.toolsContext,
+      runtimeContext: this.resumedRuntimeContext ?? options.runtimeContext,
       activeTools,
       builtinToolFiltering: options.builtinToolFiltering,
     };

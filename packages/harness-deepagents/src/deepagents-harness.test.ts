@@ -256,7 +256,7 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-deepagents/0.0.0-test',
+      'ai-sdk-harness-deepagents/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(

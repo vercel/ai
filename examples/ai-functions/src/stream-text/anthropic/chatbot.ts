@@ -18,7 +18,7 @@ run(async () => {
     messages.push({ role: 'user', content: userInput });
 
     const result = streamText({
-      model: anthropic('claude-sonnet-5'),
+      model: anthropic('claude-sonnet-5-5'),
       tools: {
         weather: tool({
           description: 'Get the weather in a location',

@@ -544,7 +544,7 @@ const cyberpunkAnalysis =
   '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = await generateText({
-  model: amazonBedrock('us.anthropic.claude-sonnet-5'),
+  model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',
@@ -580,7 +580,7 @@ const cyberpunkAnalysis =
   '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = streamText({
-  model: amazonBedrock('us.anthropic.claude-sonnet-5'),
+  model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'assistant',
@@ -1590,10 +1590,10 @@ You can use the following optional settings to customize the Bedrock Anthropic p
 ### Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `us.anthropic.claude-sonnet-5`.
+The first argument is the model id, e.g. `us.anthropic.claude-sonnet-5-5`.
 
 ```ts
-const model = bedrockAnthropic('us.anthropic.claude-sonnet-5');
+const model = bedrockAnthropic('us.anthropic.claude-sonnet-5-5');
 ```
 
 You can use Bedrock Anthropic language models to generate text with the `generateText` function:
@@ -1603,7 +1603,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1627,7 +1627,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-sonnet-5'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',
@@ -1756,6 +1756,7 @@ const result = await generateText({
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
 - `us.anthropic.claude-fable-5-1`
+- `us.anthropic.claude-sonnet-5-5`
 - `us.anthropic.claude-sonnet-5`
 - `us.anthropic.claude-fable-5`
 - `us.anthropic.claude-opus-4-8`
@@ -1802,6 +1803,7 @@ on how to integrate reasoning into your chatbot.
 | Model                                          | Image Input | Object Generation | Tool Usage | Computer Use | Reasoning |
 | ---------------------------------------------- | ----------- | ----------------- | ---------- | ------------ | --------- |
 | `us.anthropic.claude-fable-5-1`                | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
+| `us.anthropic.claude-sonnet-5-5`               | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-sonnet-5`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-fable-5`                  | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-opus-4-8`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
