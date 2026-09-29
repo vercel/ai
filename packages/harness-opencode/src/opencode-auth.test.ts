@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createSandboxCredentialEnvironment } from '@ai-sdk/harness/utils';
+import { resolveSandboxCredentialEnvironment } from '@ai-sdk/harness/utils';
 import {
   createOpenCodeRequestTransformations,
   OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
@@ -416,7 +416,7 @@ describe('createOpenCodeRequestTransformations', () => {
     const environment = {
       GOOGLE_GENERATIVE_AI_API_KEY: 'google-secret',
     };
-    const sandboxEnvironment = await createSandboxCredentialEnvironment({
+    const sandboxEnvironment = await resolveSandboxCredentialEnvironment({
       environment,
       credentialEnvironmentVariables: OPENCODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
       credentialForwarding: () => 'sandbox-google-secret',

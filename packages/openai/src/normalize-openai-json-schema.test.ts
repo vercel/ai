@@ -181,4 +181,98 @@ describe('normalizeOpenAIJsonSchema', () => {
       warnings: [],
     });
   });
+
+  it('unwraps singleton reference allOf schemas from recursive Zod schemas', () => {
+    const schema: JSONSchema7 = {
+      type: 'object',
+      properties: {
+        relatives: {
+          type: 'array',
+          items: {
+            allOf: [{ $ref: '#/definitions/person' }],
+          },
+        },
+      },
+      definitions: {
+        person: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string' },
+          },
+          required: ['firstName'],
+          additionalProperties: false,
+        },
+      },
+      required: ['relatives'],
+      additionalProperties: false,
+    };
+
+    expect(normalizeOpenAIJsonSchema(schema)).toStrictEqual({
+      schema: {
+        type: 'object',
+        properties: {
+          relatives: {
+            type: 'array',
+            items: { $ref: '#/definitions/person' },
+          },
+        },
+        definitions: schema.definitions,
+        required: ['relatives'],
+        additionalProperties: false,
+      },
+      warnings: [],
+    });
+  });
+
+  it('expands a singleton local reference allOf at the root', () => {
+    const schema: JSONSchema7 = {
+      default: { firstName: 'John' },
+      allOf: [{ $ref: '#/definitions/person' }],
+      definitions: {
+        person: {
+          type: 'object',
+          properties: {
+            firstName: { type: 'string' },
+            relatives: {
+              type: 'array',
+              items: { allOf: [{ $ref: '#/definitions/person' }] },
+            },
+          },
+          required: ['firstName', 'relatives'],
+          additionalProperties: false,
+        },
+      },
+    };
+
+    expect(normalizeOpenAIJsonSchema(schema)).toStrictEqual({
+      schema: {
+        type: 'object',
+        properties: {
+          firstName: { type: 'string' },
+          relatives: {
+            type: 'array',
+            items: { $ref: '#/definitions/person' },
+          },
+        },
+        required: ['firstName', 'relatives'],
+        additionalProperties: false,
+        default: { firstName: 'John' },
+        definitions: {
+          person: {
+            type: 'object',
+            properties: {
+              firstName: { type: 'string' },
+              relatives: {
+                type: 'array',
+                items: { $ref: '#/definitions/person' },
+              },
+            },
+            required: ['firstName', 'relatives'],
+            additionalProperties: false,
+          },
+        },
+      },
+      warnings: [],
+    });
+  });
 });

@@ -30,7 +30,8 @@ import type { ResolveHref } from '@/components/docs/resolve-href';
 import {
   DEFAULT_MODEL_IDS,
   MODEL_KIND_PLACEHOLDERS,
-} from '@/lib/code-template.mjs';
+  type ModelKind,
+} from '@/lib/geistdocs/model-placeholders';
 
 /**
  * Faithful port of production ai-sdk.dev's InteractiveCodePreview
@@ -43,7 +44,6 @@ import {
  */
 
 type TabType = 'gateway' | 'provider' | 'custom';
-type ModelKind = 'text' | 'image' | 'video';
 
 const cx = (...classes: (string | false | null | undefined)[]): string =>
   classes.filter(Boolean).join(' ');

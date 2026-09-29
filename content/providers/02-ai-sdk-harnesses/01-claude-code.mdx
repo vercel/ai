@@ -106,6 +106,10 @@ Settings:
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `maxTurns`: maximum internal turns before yielding.
+- `agentProgressSummaries`: enables periodic AI-generated summaries for running
+  sub-agents. Summaries are available on raw `task_progress` stream parts.
+- `forwardSubagentText`: forwards sub-agent text and thinking messages as raw
+  stream parts, in addition to the tool activity forwarded by default.
 - `env`: environment variables for the Claude Code process. Values are merged
   over the sandbox bridge process environment and take precedence.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,

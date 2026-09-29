@@ -720,6 +720,62 @@ describe('createCodex adapter', () => {
     warn.mockRestore();
   });
 
+  it('adds a Gateway placeholder when resuming direct authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      runs: [],
+      spawns: [],
+      spawnEnvs,
+      writes: [],
+      addRequestTransformations,
+    });
+    const session = await createCodex({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/codex-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            CODEX_API_KEY: 'saved-codex-placeholder',
+          },
+        },
+      },
+    });
+
+    expect(spawnEnvs[0]?.CODEX_API_KEY).toBe('saved-codex-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer saved-codex-placeholder' },
+            },
+          ],
+        },
+        transform: {
+          headers: { Authorization: 'Bearer current-gateway-secret' },
+        },
+      },
+    ]);
+    await session.doDestroy();
+  });
+
   it('configures the standard OpenAI URL for brokered direct auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const addRequestTransformations = vi.fn(async () => {});

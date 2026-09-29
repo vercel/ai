@@ -1,14 +1,7 @@
-export const DEFAULT_MODEL_IDS = {
-  text: 'anthropic/claude-sonnet-5.5',
-  image: 'openai/gpt-image-2.5-sunburst',
-  video: 'google/veo-3.1-generate-001',
-};
-
-export const MODEL_KIND_PLACEHOLDERS = {
-  text: ['__TEXT_MODEL__', '__MODEL__'],
-  image: ['__IMAGE_MODEL__'],
-  video: ['__VIDEO_MODEL__'],
-};
+import {
+  DEFAULT_MODEL_IDS,
+  MODEL_KIND_PLACEHOLDERS,
+} from './geistdocs/model-placeholders.ts';
 
 export const hasCodeTemplate = code =>
   /__(?:MODEL|TEXT_MODEL|IMAGE_MODEL|VIDEO_MODEL|PROVIDER_IMPORT)__/.test(code);
