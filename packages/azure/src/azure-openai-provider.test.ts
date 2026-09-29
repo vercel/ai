@@ -4,7 +4,10 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
-import { EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from '@ai-sdk/provider-utils';
+import {
+  EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import {
   convertReadableStreamToArray,
   mockId,
@@ -13,6 +16,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { OpenAIResponsesLanguageModel } from '@ai-sdk/openai/internal';
+import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import { createAzure, type AzureDeepSeekLanguageModelOptions } from './index';
 
 vi.mock('./version', () => ({
@@ -558,6 +562,126 @@ describe('chat', () => {
 });
 
 describe('deepseek', () => {
+  const cacheUsage = {
+    prompt_tokens: 100,
+    completion_tokens: 10,
+    total_tokens: 110,
+    prompt_tokens_details: { cached_tokens: 80 },
+  };
+
+  function prepareCacheUsageResponse(
+    usage: typeof cacheUsage & { prompt_cache_hit_tokens?: number },
+  ) {
+    server.urls[
+      'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        choices: [
+          {
+            finish_reason: 'stop',
+            index: 0,
+            message: { content: 'Hello', role: 'assistant' },
+          },
+        ],
+        created: 0,
+        id: 'chatcmpl-cache-usage',
+        model: 'deepseek-v4-flash',
+        object: 'chat.completion',
+        usage,
+      },
+    };
+  }
+
+  it('should normalize OpenAI-compatible cache usage for generate', async () => {
+    prepareCacheUsageResponse(cacheUsage);
+
+    const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage.inputTokens).toStrictEqual({
+      total: 100,
+      noCache: 20,
+      cacheRead: 80,
+      cacheWrite: undefined,
+    });
+    expect(result.usage.raw).toStrictEqual(cacheUsage);
+    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+  });
+
+  it('should prefer native DeepSeek cache usage for generate', async () => {
+    prepareCacheUsageResponse({
+      ...cacheUsage,
+      prompt_cache_hit_tokens: 60,
+    });
+
+    const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage.inputTokens).toStrictEqual({
+      total: 100,
+      noCache: 40,
+      cacheRead: 60,
+      cacheWrite: undefined,
+    });
+    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(60);
+  });
+
+  it('should normalize OpenAI-compatible cache usage for stream', async () => {
+    server.urls[
+      'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+    ].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          choices: [
+            {
+              delta: { content: 'Hello', role: 'assistant' },
+              finish_reason: 'stop',
+              index: 0,
+            },
+          ],
+          created: 0,
+          id: 'chatcmpl-cache-usage',
+          model: 'deepseek-v4-flash',
+          object: 'chat.completion.chunk',
+          usage: cacheUsage,
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await provider.deepseek('deepseek-v4-flash').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(part => part.type === 'finish');
+
+    expect(finish?.usage.inputTokens).toStrictEqual({
+      total: 100,
+      noCache: 20,
+      cacheRead: 80,
+      cacheWrite: undefined,
+    });
+    expect(finish?.usage.raw).toStrictEqual(cacheUsage);
+    expect(finish?.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+  });
+
+  it('should serialize the OpenAI-compatible cache usage format', () => {
+    const model = provider.deepseek('deepseek-v4-flash');
+
+    expect(
+      DeepSeekChatLanguageModel[WORKFLOW_SERIALIZE](
+        model as DeepSeekChatLanguageModel,
+      ).config,
+    ).toMatchObject({
+      cacheUsageFormat: 'openai-compatible',
+      provider: 'azure.deepseek',
+    });
+  });
+
   it('should map top-level reasoning to Azure DeepSeek reasoning effort', async () => {
     prepareJsonFixtureResponse('azure-deepseek-reasoning.1', undefined, 'chat');
 

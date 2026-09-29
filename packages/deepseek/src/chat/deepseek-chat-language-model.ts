@@ -31,7 +31,11 @@ import {
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { convertToDeepSeekChatMessages } from './convert-to-deepseek-chat-messages';
-import { convertDeepSeekUsage } from './convert-to-deepseek-usage';
+import {
+  convertDeepSeekUsage,
+  getDeepSeekCacheReadTokens,
+  type DeepSeekCacheUsageFormat,
+} from './convert-to-deepseek-usage';
 import {
   deepseekChatChunkSchema,
   deepseekChatResponseSchema,
@@ -50,6 +54,7 @@ import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
   provider: string;
+  cacheUsageFormat?: DeepSeekCacheUsageFormat;
   headers?: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -471,16 +476,24 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
       content.push({ type: 'text', text });
     }
 
+    const cacheReadTokens = getDeepSeekCacheReadTokens(
+      responseBody.usage,
+      this.config.cacheUsageFormat,
+    );
+
     return {
       content,
       finishReason: {
         unified: mapDeepSeekFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
-      usage: convertDeepSeekUsage(responseBody.usage),
+      usage: convertDeepSeekUsage(
+        responseBody.usage,
+        this.config.cacheUsageFormat,
+      ),
       providerMetadata: {
         [this.providerOptionsName]: {
-          promptCacheHitTokens: responseBody.usage?.prompt_cache_hit_tokens,
+          promptCacheHitTokens: cacheReadTokens,
           promptCacheMissTokens: responseBody.usage?.prompt_cache_miss_tokens,
           ...(responseBody.object != null && {
             responseObject: responseBody.object,
@@ -546,6 +559,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    const cacheUsageFormat = this.config.cacheUsageFormat;
     let isActiveReasoning = false;
     let isActiveText = false;
     let responseObject: 'chat.completion.chunk' | undefined;
@@ -719,11 +733,13 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
             controller.enqueue({
               type: 'finish',
               finishReason,
-              usage: convertDeepSeekUsage(usage),
+              usage: convertDeepSeekUsage(usage, cacheUsageFormat),
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens:
-                    usage?.prompt_cache_hit_tokens ?? undefined,
+                  promptCacheHitTokens: getDeepSeekCacheReadTokens(
+                    usage,
+                    cacheUsageFormat,
+                  ),
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? undefined,
                   ...(responseObject != null && { responseObject }),
