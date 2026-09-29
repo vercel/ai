@@ -100,6 +100,8 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
+        agentProgressSummaries: true,
+        forwardSubagentText: true,
         env: { DEPLOYMENT_ENV: 'staging' },
         thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],

@@ -803,6 +803,76 @@ describe('createEmitStreamEvent', () => {
     expect(leakedSubagentEvents).toEqual([]);
   });
 
+  it('forwards subagent and task activity as raw parts', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/subagent-task-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ClaudeMessage[];
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    for (const message of messages) {
+      emitStreamEvent(message);
+    }
+
+    const rawValues = emitted
+      .filter(event => event.type === 'raw')
+      .map(event => event.rawValue);
+    const expectedRawValues = messages.filter(
+      message =>
+        message.parent_tool_use_id != null ||
+        (message.type === 'system' &&
+          [
+            'background_tasks_changed',
+            'task_started',
+            'task_progress',
+            'task_updated',
+            'task_notification',
+          ].includes(message.subtype ?? '')),
+    );
+
+    expect(
+      emitted.some(
+        event =>
+          event.type === 'tool-call' &&
+          event.toolCallId === 'toolu_parent_agent',
+      ),
+    ).toBe(true);
+    expect(rawValues).toEqual(expectedRawValues);
+  });
+
+  it('preserves failed task terminal error handling', () => {
+    const terminalErrors: Array<string | undefined> = [];
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: error => terminalErrors.push(error),
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'task_updated',
+      patch: { status: 'failed', error: 'subagent failed' },
+    });
+
+    expect(terminalErrors).toEqual(['subagent failed']);
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+  });
+
   it('preserves retry and compaction handling', () => {
     const state = createClaudeStreamEventState();
     const warnings: unknown[] = [];
