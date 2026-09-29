@@ -14,6 +14,7 @@
   "references": [
     { "path": "../harness" },
     { "path": "../harness-acp" },
+    { "path": "../provider" },
     { "path": "../provider-utils" }
   ]
 }

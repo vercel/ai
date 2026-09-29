@@ -2916,6 +2916,9 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../harness
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -2987,6 +2990,9 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../harness
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3024,6 +3030,9 @@ importers:
       '@ai-sdk/harness-acp':
         specifier: workspace:*
         version: link:../harness-acp
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3104,6 +3113,9 @@ importers:
       '@ai-sdk/harness-acp':
         specifier: workspace:*
         version: link:../harness-acp
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3132,6 +3144,9 @@ importers:
       '@ai-sdk/harness-acp':
         specifier: workspace:*
         version: link:../harness-acp
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3166,6 +3181,9 @@ importers:
       '@ai-sdk/harness-acp':
         specifier: workspace:*
         version: link:../harness-acp
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils
@@ -3194,6 +3212,9 @@ importers:
       '@ai-sdk/harness':
         specifier: workspace:*
         version: link:../harness
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
       '@ai-sdk/provider-utils':
         specifier: workspace:*
         version: link:../provider-utils

@@ -13,6 +13,7 @@
   ],
   "references": [
     { "path": "../harness" },
+    { "path": "../provider" },
     { "path": "../provider-utils" }
   ]
 }
