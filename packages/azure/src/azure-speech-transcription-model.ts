@@ -36,9 +36,9 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
       'audio',
       new Blob(
         [
-          (typeof options.audio === 'string'
+          typeof options.audio === 'string'
             ? convertBase64ToUint8Array(options.audio)
-            : options.audio) as Uint8Array<ArrayBuffer>,
+            : (options.audio as Uint8Array<ArrayBuffer>),
         ],
         { type: options.mediaType },
       ),

@@ -88,9 +88,7 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
     const blob =
       audio instanceof Uint8Array
         ? new Blob([audio as Uint8Array<ArrayBuffer>])
-        : new Blob([
-            convertBase64ToUint8Array(audio) as Uint8Array<ArrayBuffer>,
-          ]);
+        : new Blob([convertBase64ToUint8Array(audio)]);
 
     formData.append('model', this.modelId);
     formData.append(

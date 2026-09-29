@@ -311,7 +311,7 @@ export class BrowserRealtimeTransport {
     if (this.epoch !== epoch || this.ws !== ws || !this.isOpen)
       throw new Error('Realtime connection is closed');
     if (this.continuous) assertRealtimeFrameBudget(frame, ws.bufferedAmount);
-    ws.send(frame.data as string | Blob | BufferSource);
+    ws.send(frame.data);
   }
 
   dispose(): void {
