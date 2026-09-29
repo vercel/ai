@@ -36,7 +36,7 @@ describe('createEmitStreamEvent', () => {
     ]);
   });
 
-  it('emits a usage-bearing boundary for each provider response', () => {
+  it('forwards a usage-bearing raw message_stop for each response', () => {
     const state = createClaudeStreamEventState();
     const emitted: Record<string, unknown>[] = [];
     const emitStreamEvent = createEmitStreamEvent({
@@ -84,29 +84,35 @@ describe('createEmitStreamEvent', () => {
       event: { type: 'message_stop' },
     });
 
-    expect(emitted.filter(event => event.type === 'response-end')).toEqual([
+    expect(
+      emitted.filter(
+        event =>
+          event.type === 'raw' &&
+          (event.rawValue as ClaudeMessage).event?.type === 'message_stop',
+      ),
+    ).toEqual([
       {
-        type: 'response-end',
-        usage: {
-          inputTokens: {
-            total: 10,
-            noCache: 2,
-            cacheRead: 5,
-            cacheWrite: 3,
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
           },
-          outputTokens: { total: 7, text: 7 },
         },
       },
       {
-        type: 'response-end',
-        usage: {
-          inputTokens: {
-            total: 11,
-            noCache: 11,
-            cacheRead: 0,
-            cacheWrite: 0,
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 11,
+            output_tokens: 13,
           },
-          outputTokens: { total: 13, text: 13 },
         },
       },
     ]);

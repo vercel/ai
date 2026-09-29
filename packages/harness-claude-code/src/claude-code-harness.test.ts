@@ -1510,7 +1510,7 @@ describe('createClaudeCode adapter', () => {
       await session.doDestroy();
     });
 
-    it('forwards response boundaries without ending the turn', async () => {
+    it('forwards raw response boundaries without ending the turn', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
           socket.emit('open');
@@ -1526,14 +1526,21 @@ describe('createClaudeCode adapter', () => {
         prompt: 'Continue',
         emit: event => events.push(event),
       });
-      const usage = {
-        inputTokens: { total: 10, noCache: 10 },
-        outputTokens: { total: 2, text: 2 },
+      const boundary = {
+        type: 'raw' as const,
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 10,
+            output_tokens: 2,
+          },
+        },
       };
 
-      expect(subscribedEventTypes).toContain('response-end');
-      dispatchChannelEvent({ type: 'response-end', usage });
-      expect(events).toEqual([{ type: 'response-end', usage }]);
+      expect(subscribedEventTypes).toContain('raw');
+      dispatchChannelEvent(boundary);
+      expect(events).toEqual([boundary]);
 
       dispatchChannelEvent({ type: 'finish' });
       await expect(control.done).resolves.toBeUndefined();

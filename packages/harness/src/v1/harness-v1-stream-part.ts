@@ -88,15 +88,6 @@ export type HarnessV1StreamPart =
   | LanguageModelV4ToolApprovalRequest
   | LanguageModelV4ToolResult
 
-  // Provider response boundary inside a step. A single harness step may span
-  // multiple provider responses when the runtime executes tools between model
-  // calls, so this is distinct from `finish-step`.
-  | {
-      type: 'response-end';
-      usage: LanguageModelV4Usage;
-      harnessMetadata?: HarnessV1Metadata;
-    }
-
   // Step boundary inside a multi-step turn.
   | {
       type: 'finish-step';
@@ -341,12 +332,6 @@ export const harnessV1FinishStepPartSchema = z.object({
   harnessMetadata: harnessV1MetadataSchema.optional(),
 });
 
-export const harnessV1ResponseEndPartSchema = z.object({
-  type: z.literal('response-end'),
-  usage: harnessV1UsageSchema,
-  harnessMetadata: harnessV1MetadataSchema.optional(),
-});
-
 export const harnessV1FinishPartSchema = z.object({
   type: z.literal('finish'),
   finishReason: harnessV1FinishReasonSchema,
@@ -400,7 +385,6 @@ export const harnessV1StreamPartSchema = z.discriminatedUnion('type', [
   harnessV1ToolCallPartSchema,
   harnessV1ToolApprovalRequestPartSchema,
   harnessV1ToolResultPartSchema,
-  harnessV1ResponseEndPartSchema,
   harnessV1FinishStepPartSchema,
   harnessV1FinishPartSchema,
   harnessV1FileChangePartSchema,

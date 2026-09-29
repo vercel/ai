@@ -235,6 +235,7 @@ export function createEmitStreamEvent({
     if (type === 'stream_event') {
       handleStreamEvent({
         event: msg.event,
+        message: msg,
         state,
         send: emit,
         toCommonName,
@@ -424,11 +425,13 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent({
   event,
+  message,
   state,
   send,
   toCommonName,
 }: {
   event: ClaudeMessage['event'] | undefined;
+  message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
@@ -458,8 +461,11 @@ function handleStreamEvent({
 
   if (event.type === 'message_stop') {
     send({
-      type: 'response-end',
-      usage: mapUsage(state.pendingResponseUsage) ?? defaultUsage(),
+      type: 'raw',
+      rawValue: {
+        ...message,
+        usage: state.pendingResponseUsage ?? {},
+      },
     });
     state.pendingResponseUsage = undefined;
     return;

@@ -96,7 +96,6 @@ export {
   harnessV1ReasoningDeltaPartSchema,
   harnessV1ReasoningEndPartSchema,
   harnessV1ReasoningStartPartSchema,
-  harnessV1ResponseEndPartSchema,
   harnessV1StreamPartSchema,
   harnessV1StreamStartPartSchema,
   harnessV1TextDeltaPartSchema,

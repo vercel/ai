@@ -896,7 +896,6 @@ export function runPrompt<
         // Open a step span lazily before the first content of each step.
         if (
           value.type !== 'stream-start' &&
-          value.type !== 'response-end' &&
           value.type !== 'finish-step' &&
           value.type !== 'finish' &&
           value.type !== 'error'
