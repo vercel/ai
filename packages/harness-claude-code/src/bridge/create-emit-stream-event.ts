@@ -227,15 +227,12 @@ export function createEmitStreamEvent({
       return;
     }
 
-<<<<<<< HEAD
-    if (type === 'tool_progress') {
-=======
     if (
-      type === 'system' &&
-      msg.subtype != null &&
-      RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype)
+      type === 'tool_progress' ||
+      (type === 'system' &&
+        msg.subtype != null &&
+        RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype))
     ) {
->>>>>>> origin/main
       emit({ type: 'raw', rawValue: msg });
       return;
     }
