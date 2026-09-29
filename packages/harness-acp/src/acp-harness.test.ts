@@ -65,7 +65,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
     readonly sent: unknown[] = [];
     readonly options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     };
     openOptions: { resume?: boolean } | undefined;
     private readonly listeners = new Map<
@@ -83,7 +88,12 @@ const harnessUtilsMocks = vi.hoisted(() => {
 
     constructor(options: {
       initialLastSeenEventId?: number;
-      connect: () => Promise<unknown>;
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: {
+        readonly maxElapsedMs?: number;
+        readonly initialDelayMs?: number;
+        readonly maxDelayMs?: number;
+      };
     }) {
       this.options = options;
       channels.push(this);
@@ -93,7 +103,11 @@ const harnessUtilsMocks = vi.hoisted(() => {
       this.openOptions = options;
       const error = harnessUtilsMocks.openErrors.shift();
       if (error != null) throw error;
-      if (harnessUtilsMocks.connectOnOpen) await this.options.connect();
+      if (harnessUtilsMocks.connectOnOpen) {
+        await this.options.connect({
+          abortSignal: new AbortController().signal,
+        });
+      }
     }
     on(
       type: string,
@@ -193,7 +207,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
-        return '{"name":"@ai-sdk/harness-acp-bridge"}\n';
+        return '{"name":"@ai-sdk-harness-acp-bridge"}\n';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       const readFile = actual.readFile as unknown as (
@@ -1749,7 +1763,7 @@ describe('createACP', () => {
     ]);
     expect(
       first.files.find(file => file.path.endsWith('/package.json'))?.content,
-    ).toContain('@ai-sdk/harness-acp-bridge');
+    ).toContain('@ai-sdk-harness-acp-bridge');
     expect(
       first.files.find(file =>
         file.path.endsWith('/implementation/package.json'),
@@ -1895,22 +1909,22 @@ describe('createACP', () => {
     });
 
     expect(runs[0]).toBe('printf "%s" "$HOME"');
-    expect(runs[1]).toMatch(
-      /^mkdir -p '\/workspace\/user-project' '\/home\/agent\/\.ai-sdk\/harness-acp\/codex-acp\/[a-f0-9]{64}\/bridge'$/,
+    expect(runs[1]).toBe(
+      "mkdir -p '/workspace/user-project' '/home/agent/.ai-sdk-harness/.agent-runs/session-1/bridge'",
     );
     expect(runs[1]).not.toContain("'/workspace/user-project/.ai-sdk");
     expect(spawns[0].command).toContain("--workdir '/workspace/user-project'");
     expect(spawns[0].command).toContain(
-      "node '/workspace/.harness-bootstrap/codex-acp/bridge.mjs'",
+      "node '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/bridge.mjs'",
     );
     expect(spawns[0].command).toContain(
-      "--implementation-dir '/workspace/.harness-bootstrap/codex-acp/implementation'",
+      "--implementation-dir '/home/agent/.ai-sdk-harness/.harness-bootstrap/codex-acp/implementation'",
     );
     expect(spawns[0].env.CODEX_API_KEY).toBe('test-key');
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk/harness-acp');
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk-harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(stop).not.toHaveBeenCalled();
 
@@ -1969,7 +1983,7 @@ describe('createACP', () => {
       sessionWorkDir: '/workspace/user-project',
     });
 
-    expect(runs[0]).toBe('pwd');
+    expect(runs[0]).toBe('printf "%s" "$HOME"');
     const resumeFrom = await session.doDetach();
     expect(resumeFrom.data).toMatchObject({
       bridge: {
@@ -2018,11 +2032,17 @@ describe('createACP', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     const harness = createACP({
       harnessId: 'codex-acp',
       ...agentSettings,
       mintBridgeToken,
       portEndpoint,
+      reconnect,
     });
     const sandboxSession = fakeSandbox({
       runs: [],
@@ -2051,6 +2071,9 @@ describe('createACP', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(
+      harnessUtilsMocks.channels.map(channel => channel.options.reconnect),
+    ).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-sandbox-1',
@@ -2353,7 +2376,7 @@ describe('createACP', () => {
     });
 
     expect(writes).toContainEqual({
-      path: '/workspace/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
+      path: '/home/agent/.ai-sdk-harness/.harness-bootstrap/cursor-skills-acp/implementation/home/.agents/skills/release-notes/SKILL.md',
       content:
         '---\n' +
         'name: release-notes\n' +
@@ -2902,7 +2925,7 @@ describe('createACP', () => {
       'https://gateway.example/custom',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_NAME).toBe(
-      'ai-sdk/harness-acp',
+      'ai-sdk-harness-acp',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(writes).toHaveLength(writeCount);

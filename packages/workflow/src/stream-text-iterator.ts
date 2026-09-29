@@ -19,7 +19,10 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { createRestrictedTelemetryDispatcher } from 'ai/internal';
+import {
+  createRestrictedTelemetryDispatcher,
+  createToolSearchState,
+} from 'ai/internal';
 import {
   type DoStreamStepRawResult,
   doStreamStep,
@@ -86,6 +89,8 @@ function mergePrepareStepGenerationSettings(
 export interface StreamTextIteratorYieldValue {
   /** The tool calls requested by the model (parsed with typed inputs) */
   toolCalls: ParsedToolCall[];
+  /** The tools available for execution in the current step. */
+  tools?: ToolSet;
   /** The conversation messages up to (and including) the tool call request */
   messages: LanguageModelV4Prompt;
   /** The step result from the current step */
@@ -186,6 +191,10 @@ export async function* streamTextIterator({
   let wasAborted = false;
   let terminalError: unknown;
   let hasTerminalError = false;
+  const prepareToolSearch = createToolSearchState({
+    tools,
+    toolCallers: undefined,
+  });
 
   // TODO(#12164): replace this AI-core telemetry bridge with a
   // WorkflowAgent-specific typed dispatcher. `streamTextIterator` widens
@@ -306,14 +315,15 @@ export async function* streamTextIterator({
     });
 
     try {
-      // Filter tools if activeTools is specified
+      const stepActiveTools = filterActiveTools({
+        tools,
+        activeTools: currentActiveTools,
+      });
       const effectiveTools =
-        currentActiveTools !== undefined
-          ? (filterActiveTools({
-              tools,
-              activeTools: currentActiveTools,
-            }) ?? tools)
-          : tools;
+        prepareToolSearch(stepActiveTools, {
+          toolsContext: currentToolsContext as never,
+          experimental_sandbox: stepSandbox,
+        }) ?? {};
 
       // Serialize tools before crossing the step boundary — zod schemas
       // contain functions that can't be serialized by the workflow runtime.
@@ -484,6 +494,7 @@ export async function* streamTextIterator({
         // Also include provider-executed tool results so they can be used instead of local execution
         const toolResults = yield {
           toolCalls,
+          tools: effectiveTools,
           messages: conversationPrompt,
           step,
           runtimeContext: currentRuntimeContext,

@@ -29,7 +29,7 @@ import {
 import { LATEST_PROTOCOL_VERSION } from './types';
 import {
   fetchWithValidatedEndpoint,
-  fetchWithValidatedRedirects,
+  fetchUntrustedUrl,
   parseJSON,
   validateDownloadUrl,
   type FetchFunction,
@@ -91,6 +91,16 @@ export interface OAuthClientProvider {
     | OAuthClientInformation
     | undefined
     | Promise<OAuthClientInformation | undefined>;
+  /**
+   * Returns whether the current client information was obtained through
+   * dynamic client registration.
+   *
+   * Return `true` only when the current client information was saved after a
+   * dynamic registration response. When this method is omitted or returns
+   * `false`, the client information is treated as pre-registered and is not
+   * automatically invalidated after client authentication errors.
+   */
+  isClientInformationDynamicallyRegistered?(): boolean | Promise<boolean>;
   saveClientInformation?(
     clientInformation: OAuthClientInformation,
   ): void | Promise<void>;
@@ -439,7 +449,7 @@ async function fetchWithCorsRetry(
   trustedOrigin?: string,
 ): Promise<Response | undefined> {
   try {
-    return await fetchWithValidatedRedirects({
+    return await fetchUntrustedUrl({
       url: url.href,
       fetch: async (input, init) =>
         fetchWithValidatedEndpoint({
@@ -456,6 +466,7 @@ async function fetchWithCorsRetry(
         }),
       headers,
       trustedOrigin,
+      untrustedFirstHopHeaders: ['mcp-protocol-version'],
     });
   } catch (error) {
     if (error instanceof TypeError) {
@@ -727,8 +738,6 @@ export async function discoverAuthorizationServerMetadata(
       return metadata;
     }
   }
-
-  return undefined;
 }
 
 export async function startAuthorization(
@@ -1259,6 +1268,13 @@ export async function auth(
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
     ) {
+      if (
+        options.authorizationCode !== undefined ||
+        !(await provider.isClientInformationDynamicallyRegistered?.())
+      ) {
+        throw error;
+      }
+
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
@@ -1323,6 +1339,10 @@ async function authInternal(
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
+  let clientInformation: OAuthClientInformation | undefined;
+  let callbackAuthorizationServerInformation:
+    | OAuthAuthorizationServerInformation
+    | undefined;
 
   /** Reject Protected Resource Metadata URLs outside the configured MCP server origin. */
   assertResourceMetadataUrlSameOrigin(serverUrl, resourceMetadataUrl);
@@ -1342,9 +1362,27 @@ async function authInternal(
     }
   } catch {}
 
-  /** Fall back to legacy MCP behavior where the MCP server is the Authorization Server */
+  /**
+   * A callback may not have the original PRM URL from the authentication
+   * challenge. Use the authorization server pinned before redirecting when
+   * rediscovery does not select one.
+   */
+  if (authorizationCode !== undefined) {
+    clientInformation = await Promise.resolve(provider.clientInformation());
+    if (clientInformation) {
+      callbackAuthorizationServerInformation =
+        await getStoredAuthorizationServerInformation({
+          provider,
+          clientInformation,
+        });
+    }
+  }
+
+  /** Reuse the callback pin, then fall back to the legacy MCP-as-AS behavior. */
   if (!authorizationServerUrl) {
-    authorizationServerUrl = serverUrl;
+    authorizationServerUrl =
+      callbackAuthorizationServerInformation?.authorizationServerUrl ??
+      serverUrl;
   }
 
   const parsedServerUrl = new URL(serverUrl);
@@ -1396,13 +1434,16 @@ async function authInternal(
   });
 
   /** Load or register client credentials with the AS pin attached. */
-  let clientInformation = await Promise.resolve(provider.clientInformation());
+  if (authorizationCode === undefined) {
+    clientInformation = await Promise.resolve(provider.clientInformation());
+  }
   if (clientInformation?.issuer != null) {
     const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
+      callbackAuthorizationServerInformation ??
+      (await getStoredAuthorizationServerInformation({
         provider,
         clientInformation,
-      });
+      }));
     if (storedAuthorizationServerInformation) {
       assertAuthorizationServerInformationMatches({
         storedAuthorizationServerInformation,
@@ -1452,10 +1493,11 @@ async function authInternal(
     }
 
     const storedAuthorizationServerInformation =
-      await getStoredAuthorizationServerInformation({
+      callbackAuthorizationServerInformation ??
+      (await getStoredAuthorizationServerInformation({
         provider,
         clientInformation,
-      });
+      }));
     if (!storedAuthorizationServerInformation) {
       throw new MCPClientOAuthError({
         message:

@@ -405,6 +405,7 @@ describe('toUIMessageStream', () => {
   });
 
   it('releases the source reader lock after cancellation', async () => {
+    const onEnd = vi.fn();
     const sourceStream = new ReadableStream<TextStreamPart<{}>>({
       start(controller) {
         controller.enqueue({ type: 'start' });
@@ -413,12 +414,19 @@ describe('toUIMessageStream', () => {
     const reader = toUIMessageStream({
       stream: sourceStream,
       tools: undefined,
+      onEnd,
     }).getReader();
 
     await reader.read();
     await reader.cancel('consumer cancelled');
 
     await vi.waitFor(() => expect(sourceStream.locked).toBe(false));
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      isCancelled: true,
+      outcome: { status: 'unknown' },
+    });
   });
 
   it('does not let an earlier finish part hide a source stream failure', async () => {

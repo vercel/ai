@@ -24,6 +24,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_evaluate,
   generateObject,
   generateText,
   isStepCount,
@@ -37,6 +38,7 @@ import {
 } from 'ai';
 import {
   MockEmbeddingModelV4,
+  Experimental_EvaluationMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2510,6 +2512,64 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
           },
           "events": [],
           "name": "ai.rerank.doRerank",
+        },
+      ]
+    `);
+  });
+});
+
+describe('LegacyOpenTelemetry integration with evaluate', () => {
+  it('records evaluation inputs, outputs, and usage', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    await experimental_evaluate({
+      model: new Experimental_EvaluationMockModelV4({
+        doEvaluate: async () => ({
+          answers: { refund: { type: 'boolean', probability: 0.9 } },
+          usage: { inputTokens: 12, outputTokens: 2 },
+          warnings: [],
+        }),
+      }),
+      state: { message: 'Please refund me' },
+      questions: {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      },
+      telemetry: {
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.evaluate",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.evaluate",
+          },
+          "events": [],
+          "name": "ai.evaluate",
+        },
+        {
+          "attributes": {
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.evaluate.doEvaluate",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokens": 12,
+            "ai.usage.outputTokens": 2,
+            "operation.name": "ai.evaluate.doEvaluate",
+          },
+          "events": [],
+          "name": "ai.evaluate.doEvaluate",
         },
       ]
     `);

@@ -17,7 +17,7 @@ run(async () => {
   console.log('Provider metadata:', providerMetadata);
 
   const result = await generateText({
-    model: xai.responses('grok-4.5'),
+    model: xai.responses('grok-4.7'),
     messages: [
       {
         role: 'user',

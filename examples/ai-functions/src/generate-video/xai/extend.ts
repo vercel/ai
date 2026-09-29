@@ -12,7 +12,7 @@ run(async () => {
   // Step 1: Generate a short source video.
   const source = await withSpinner('Step 1: Generating source video...', () =>
     generateVideo({
-      model: xai.video('grok-imagine-video'),
+      model: xai.video('grok-imagine-video-1.5'),
       prompt: 'A cat sitting on a sunlit windowsill, tail gently swishing.',
       duration: 5,
       aspectRatio: '16:9',
@@ -37,7 +37,7 @@ run(async () => {
     'Step 2: Extending video with a new scene...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt:
           'The cat slowly turns its head, notices a butterfly, and leaps off the windowsill.',
         duration: 6,

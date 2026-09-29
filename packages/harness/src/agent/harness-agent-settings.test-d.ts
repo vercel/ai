@@ -1,12 +1,19 @@
 import type { HarnessV1, HarnessV1SandboxProvider } from '../v1';
 import type { HarnessAgentSettings } from './harness-agent-settings';
+import { HarnessAgent } from './harness-agent';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import {
   tool,
+<<<<<<< HEAD
   type Context,
   type SystemModelMessage,
 } from '@ai-sdk/provider-utils';
 import type { GenericToolApprovalFunction } from 'ai';
+=======
+  type SystemModelMessage,
+  type Tool,
+} from '@ai-sdk/provider-utils';
+>>>>>>> origin/main
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
@@ -29,11 +36,29 @@ const userTools = {
   }),
 };
 
+const contextualTools = {
+  lookupAccount: tool({
+    inputSchema: z.object({}),
+    contextSchema: z.object({ userId: z.string() }),
+  }),
+};
+
+type OptionalContextTools = {
+  lookupAccount: Tool<
+    Record<string, never>,
+    never,
+    { userId: string } | undefined
+  >;
+};
+
+const optionalContextTools = {} as OptionalContextTools;
+
 const sandbox = undefined as never as HarnessV1SandboxProvider;
 
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
+<<<<<<< HEAD
   test('toolApproval accepts a generic approval callback for user tools', () => {
     type RuntimeContext = { tenantId: string };
     const toolApproval: GenericToolApprovalFunction<
@@ -66,6 +91,56 @@ describe('HarnessAgentSettings tool filtering types', () => {
 
     expectTypeOf(settings).toMatchTypeOf<
       HarnessAgentSettings<typeof harness, typeof userTools, RuntimeContext>
+=======
+  test('rejects toolsContext when no tool declares context', () => {
+    const settings: Settings = {
+      harness,
+      tools: userTools,
+      // @ts-expect-error toolsContext is not accepted when no tool requires it
+      toolsContext: {},
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<Settings>();
+  });
+
+  test('requires context for contextual tools', () => {
+    // @ts-expect-error toolsContext is required when a tool has contextSchema
+    const settings: HarnessAgentSettings<
+      typeof harness,
+      typeof contextualTools
+    > = {
+      harness,
+      tools: contextualTools,
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof contextualTools>
+    >();
+  });
+
+  test('allows optional context objects to omit toolsContext', () => {
+    const withoutContext: HarnessAgentSettings<
+      typeof harness,
+      typeof optionalContextTools
+    > = {
+      harness,
+      tools: optionalContextTools,
+    };
+    const withUndefinedContext: HarnessAgentSettings<
+      typeof harness,
+      typeof optionalContextTools
+    > = {
+      harness,
+      tools: optionalContextTools,
+      toolsContext: { lookupAccount: undefined },
+    };
+
+    expectTypeOf(withoutContext).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof optionalContextTools>
+    >();
+    expectTypeOf(withUndefinedContext).toMatchTypeOf<
+      HarnessAgentSettings<typeof harness, typeof optionalContextTools>
+>>>>>>> origin/main
     >();
   });
 
@@ -115,6 +190,37 @@ describe('HarnessAgentSettings tool filtering types', () => {
     expectTypeOf(settings).toMatchTypeOf<LifecycleSettings>();
   });
 
+  test('accepts runtime context without narrowing telemetry context keys', () => {
+    type RuntimeContext = { tenantId: string; requestId: string };
+    type RuntimeContextSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext
+    >;
+    const settings: RuntimeContextSettings = {
+      harness,
+      tools: userTools,
+      runtimeContext: {
+        tenantId: 'tenant-1',
+        requestId: 'request-1',
+      },
+      telemetry: {
+        includeRuntimeContext: {
+          tenantId: true,
+          requestId: false,
+          unknown: true,
+        },
+        includeToolsContext: {
+          unknownTool: {
+            unknownProperty: true,
+          },
+        },
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<RuntimeContextSettings>();
+  });
+
   test('deprecated lifecycle aliases are not settings', () => {
     const settings: Settings = {
       harness,
@@ -150,6 +256,74 @@ describe('HarnessAgentSettings tool filtering types', () => {
       },
     };
 
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('prepareCall can derive typed tool context from call options', () => {
+    type CallOptions = { userId: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof contextualTools,
+      Record<string, never>,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: contextualTools,
+      toolsContext: {
+        lookupAccount: { userId: 'initial-user' },
+      },
+      callOptionsSchema: z.object({ userId: z.string() }),
+      prepareCall: ({ options, toolsContext, ...rest }) => {
+        expectTypeOf(toolsContext).toEqualTypeOf<{
+          lookupAccount: { userId: string };
+        }>();
+        return {
+          ...rest,
+          toolsContext: {
+            lookupAccount: { userId: options.userId },
+          },
+        };
+      },
+    };
+
+    expectTypeOf(settings).toMatchTypeOf<CallSettings>();
+  });
+
+  test('prepareCall can derive typed runtime context from call options', () => {
+    type RuntimeContext = { tenantId: string; requestId: string };
+    type CallOptions = { requestId: string };
+    type CallSettings = HarnessAgentSettings<
+      typeof harness,
+      typeof userTools,
+      RuntimeContext,
+      never,
+      CallOptions
+    >;
+    const settings: CallSettings = {
+      harness,
+      tools: userTools,
+      runtimeContext: { tenantId: 'tenant-1', requestId: 'initial' },
+      callOptionsSchema: z.object({ requestId: z.string() }),
+      prepareCall: ({ options, runtimeContext, ...rest }) => {
+        expectTypeOf(runtimeContext).toEqualTypeOf<
+          RuntimeContext | undefined
+        >();
+        return {
+          ...rest,
+          runtimeContext: {
+            tenantId: runtimeContext?.tenantId ?? 'tenant-1',
+            requestId: options.requestId,
+          },
+        };
+      },
+    };
+
+    const agent = new HarnessAgent(settings);
+    expectTypeOf<
+      NonNullable<Parameters<typeof agent.createSession>[0]>['runtimeContext']
+    >().toEqualTypeOf<RuntimeContext | undefined>();
     expectTypeOf(settings).toMatchTypeOf<CallSettings>();
   });
 

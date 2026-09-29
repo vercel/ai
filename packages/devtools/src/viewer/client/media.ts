@@ -153,8 +153,6 @@ function detectInlineMediaType({
     if (hasBytes(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return 'video/webm';
     if (hasBytes(bytes, [0x66, 0x74, 0x79, 0x70], 4)) return 'video/mp4';
   }
-
-  return undefined;
 }
 
 function inferMediaTypeFromUrl(source: unknown): string | undefined {
@@ -383,8 +381,6 @@ function parseMediaPart(
       ...getSafeSource({ source: value.url, mediaType, maxInlineBytes }),
     };
   }
-
-  return undefined;
 }
 
 export function findMediaPreviews(

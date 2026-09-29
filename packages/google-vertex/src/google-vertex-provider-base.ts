@@ -271,7 +271,7 @@ export function createGoogleVertex(
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
         originalHeaders,
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
       );
     };
 
@@ -307,6 +307,7 @@ export function createGoogleVertex(
       }),
       downloadToolResultFiles: {
         maxBytes: options.toolResultDownloads?.maxBytes ?? 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
       },
     });
   };

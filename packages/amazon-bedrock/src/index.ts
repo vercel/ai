@@ -6,6 +6,7 @@ export type {
 } from './amazon-bedrock-embedding-model-options';
 export type { AmazonBedrockImageModelOptions } from './amazon-bedrock-image-model-options';
 export type {
+  AmazonBedrockChatModelSettings,
   AmazonBedrockLanguageModelChatOptions,
   /** @deprecated Use `AmazonBedrockLanguageModelChatOptions` instead. */
   AmazonBedrockLanguageModelChatOptions as AmazonBedrockLanguageModelOptions,

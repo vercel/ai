@@ -161,7 +161,7 @@ import {
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   instructions: {
     role: 'system',
     content: 'Help the customer plan a short trip.',
@@ -213,7 +213,7 @@ import {
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   messages: [
     {
       role: 'user',
@@ -326,7 +326,7 @@ const deepSeek = createDeepSeek({
 });
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     weather: tool({

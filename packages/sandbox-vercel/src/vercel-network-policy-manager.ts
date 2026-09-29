@@ -442,7 +442,6 @@ function intersectHostPatterns({
   if (isHostPatternSubset({ candidate: second, container: first })) {
     return second;
   }
-  return undefined;
 }
 
 function isHostPatternSubset({

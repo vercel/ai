@@ -36,8 +36,6 @@ function findNetworkError(
 
     current = (current as Error & { cause?: unknown }).cause;
   }
-
-  return undefined;
 }
 
 export function handleFetchError({

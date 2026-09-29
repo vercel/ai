@@ -47,12 +47,50 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
+  it('allows resumable input-streaming tool parts with raw input text', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'input-streaming';
+      toolCallId: 'static-call';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Static = AssertAssignable<ToolUIPart<TestTools>, StaticPart>;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      state: 'input-streaming';
+      toolCallId: 'dynamic-call';
+      toolName: 'weather';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Dynamic = AssertAssignable<DynamicToolUIPart, DynamicPart>;
+  });
+
   it('allows static input-streaming tool parts with explicit undefined input', () => {
     type Part = {
       type: 'tool-weather';
       state: 'input-streaming';
       toolCallId: 'call-1';
       input: undefined;
+    };
+
+    type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
+  });
+
+  it('keeps deprecated rawInput assignable on static output-error tool parts', () => {
+    type Part = {
+      type: 'tool-weather';
+      state: 'output-error';
+      toolCallId: 'call-1';
+      input: undefined;
+      rawInput: '{"city":';
+      errorText: 'Invalid tool input';
     };
 
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;

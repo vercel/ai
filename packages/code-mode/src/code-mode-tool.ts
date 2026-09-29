@@ -5,11 +5,15 @@ import {
   type Experimental_ToolCallerTool,
 } from 'ai';
 import { runCodeMode } from './run-code-mode.js';
-import { buildCodeModeToolDescription } from './tool-prompt.js';
+import {
+  buildCodeModeToolCatalogMessage,
+  buildCodeModeToolDescription,
+} from './tool-prompt.js';
 import type {
   CodeModeOptions,
   CodeModeTool,
   CodeModeToolInput,
+  CodeModeToolOptions,
   CodeModeToolSet,
 } from './types.js';
 
@@ -21,15 +25,23 @@ export function createCodeModeTool(
   tools: CodeModeToolSet,
   options: CodeModeOptions = {},
 ): CodeModeTool {
+  return createCodeModeToolWithDiscovery(tools, options, 'description');
+}
+
+function createCodeModeToolWithDiscovery(
+  tools: CodeModeToolSet,
+  options: CodeModeOptions,
+  toolDiscovery: 'description' | 'conversation',
+): CodeModeTool {
   return tool<CodeModeToolInput, unknown, Record<string, unknown>>({
-    description: buildCodeModeToolDescription(tools),
+    description: buildCodeModeToolDescription(tools, toolDiscovery),
     inputSchema: jsonSchema<CodeModeToolInput>({
       type: 'object',
       properties: {
         js: {
           type: 'string',
           description:
-            'Code-mode TypeScript source to execute. The tool description lists the available global `tools` API, input types, and call examples.',
+            'Code-mode TypeScript source to execute. The code-mode context lists the available global `tools` API, input types, and call examples.',
         },
       },
       required: ['js'],
@@ -50,11 +62,28 @@ export function createCodeModeTool(
  * AI SDK generation call.
  */
 export function codeModeTool(
-  options: CodeModeOptions = {},
+  options: CodeModeToolOptions = {},
 ): Experimental_ToolCallerTool<CodeModeTool> {
-  return experimental_toolCaller(createCodeModeTool({}, options), {
-    type: 'local',
-    bind: tools =>
-      createCodeModeTool(tools as unknown as CodeModeToolSet, options),
-  });
+  const { toolDiscovery = 'description', ...codeModeOptions } = options;
+
+  return experimental_toolCaller(
+    createCodeModeToolWithDiscovery({}, codeModeOptions, toolDiscovery),
+    {
+      type: 'local',
+      bind: tools =>
+        createCodeModeToolWithDiscovery(
+          tools as unknown as CodeModeToolSet,
+          codeModeOptions,
+          toolDiscovery,
+        ),
+      ...(toolDiscovery === 'conversation'
+        ? {
+            prepareModelMessage: tools =>
+              buildCodeModeToolCatalogMessage(
+                tools as unknown as CodeModeToolSet,
+              ),
+          }
+        : {}),
+    },
+  );
 }

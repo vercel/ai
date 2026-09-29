@@ -6,8 +6,6 @@ export default defineConfig([
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    // Keep library target conservative for wide compatibility
-    target: 'es2018',
     platform: 'node',
     define: {
       __PACKAGE_VERSION__: JSON.stringify(
@@ -17,13 +15,20 @@ export default defineConfig([
     },
   },
   {
+    entry: ['src/experimental-evaluation/index.ts'],
+    outDir: 'dist/experimental-evaluation',
+    format: ['esm'],
+    dts: true,
+    sourcemap: true,
+    platform: 'node',
+  },
+  {
     entry: ['src/test/index.ts'],
     outDir: 'dist/test',
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    // Chai uses BigInt literals; ensure the target supports it and avoid bundling chai
-    target: 'es2020',
+    // Avoid bundling Chai and other test dependencies.
     platform: 'node',
     external: [
       'chai',

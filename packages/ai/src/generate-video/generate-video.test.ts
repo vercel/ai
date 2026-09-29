@@ -612,6 +612,37 @@ describe('experimental_generateVideo', () => {
   });
 
   describe('provider metadata merging', () => {
+    it.each(['__proto__', 'constructor', 'toString'])(
+      'merges metadata for provider %s as an own property',
+      async providerName => {
+        let callCount = 0;
+        const result = await experimental_generateVideo({
+          model: new MockVideoModelV4({
+            maxVideosPerCall: 1,
+            doGenerate: async () =>
+              createMockResponse({
+                videos: [
+                  { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                ],
+                providerMetadata: {
+                  [providerName]: { videos: [{ seed: ++callCount }] },
+                },
+              }),
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(Object.getPrototypeOf(result.providerMetadata)).toBe(
+          Object.prototype,
+        );
+        expect(Object.hasOwn(result.providerMetadata, providerName)).toBe(true);
+        expect(Object.entries(result.providerMetadata)).toStrictEqual([
+          [providerName, { videos: [{ seed: 1 }, { seed: 2 }] }],
+        ]);
+      },
+    );
+
     it('should merge provider metadata from multiple calls', async () => {
       let callCount = 0;
 
@@ -1471,6 +1502,126 @@ describe('experimental_generateVideo', () => {
       ).rejects.toThrow('Video generation timed out after 50ms.');
     });
 
+    it('should abort an in-flight status request when polling times out', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-stalled-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+
+              return new Promise((_resolve, reject) => {
+                abortSignal?.addEventListener(
+                  'abort',
+                  () => reject(abortSignal.reason),
+                  { once: true },
+                );
+              });
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+        expect(statusSignal?.reason).toHaveProperty(
+          'message',
+          'Video generation timed out after 50ms.',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('should reject a completed status result returned after the polling timeout', async () => {
+      vi.useFakeTimers();
+
+      try {
+        let statusSignal: AbortSignal | undefined;
+        let resolveStatusEntered!: () => void;
+        const statusEntered = new Promise<void>(resolve => {
+          resolveStatusEntered = resolve;
+        });
+
+        const result = experimental_generateVideo({
+          model: new MockVideoModelV4({
+            doGenerate: undefined,
+            doStart: async () => ({
+              operation: 'op-late-completed-status',
+              warnings: [],
+              response: {
+                timestamp: new Date(),
+                modelId: 'test-model-id',
+                headers: {},
+              },
+            }),
+            doStatus: async ({ abortSignal }) => {
+              statusSignal = abortSignal;
+              resolveStatusEntered();
+              await new Promise(resolve => setTimeout(resolve, 300));
+
+              return {
+                status: 'completed' as const,
+                videos: [
+                  { type: 'base64', data: mp4Base64, mediaType: 'video/mp4' },
+                ],
+                warnings: [],
+                response: {
+                  timestamp: new Date(),
+                  modelId: 'test-model-id',
+                  headers: {},
+                },
+              };
+            },
+          }),
+          prompt,
+          maxRetries: 0,
+          poll: { intervalMs: 0, timeoutMs: 50 },
+        });
+        const resultAssertion = expect(result).rejects.toThrow(
+          'Video generation timed out after 50ms.',
+        );
+
+        await vi.advanceTimersByTimeAsync(0);
+        await statusEntered;
+        await vi.advanceTimersByTimeAsync(50);
+
+        await resultAssertion;
+        expect(statusSignal?.aborted).toBe(true);
+
+        await vi.advanceTimersByTimeAsync(250);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('should merge warnings from doStart and doStatus', async () => {
       const result = await experimental_generateVideo({
         model: new MockVideoModelV4({
@@ -2238,7 +2389,12 @@ describe('experimental_generateVideo', () => {
       });
 
       expect(capturedStatusOptions.operation).toBe('op-1');
-      expect(capturedStatusOptions.abortSignal).toBe(abortController.signal);
+      expect(capturedStatusOptions.abortSignal).not.toBe(
+        abortController.signal,
+      );
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(false);
+      abortController.abort();
+      expect(capturedStatusOptions.abortSignal.aborted).toBe(true);
       expect(capturedStatusOptions.headers).toStrictEqual({
         'x-custom': 'value',
         'user-agent': 'ai/0.0.0-test',

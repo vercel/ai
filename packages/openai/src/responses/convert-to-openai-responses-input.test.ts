@@ -133,7 +133,7 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           type: 'message',
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hi!' }],
+          content: 'Hi!',
         },
       ]);
     });
@@ -1315,7 +1315,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
+          content: 'Hello',
         },
       ]);
     });
@@ -1348,8 +1348,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'I will search for that' }],
-          id: 'msg_001',
+          content: 'I will search for that',
           phase: 'commentary',
         },
       ]);
@@ -1383,10 +1382,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [
-            { type: 'output_text', text: 'The capital of France is Paris.' },
-          ],
-          id: 'msg_002',
+          content: 'The capital of France is Paris.',
           phase: 'final_answer',
         },
       ]);
@@ -1419,8 +1415,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [{ type: 'output_text', text: 'Hello' }],
-          id: 'msg_003',
+          content: 'Hello',
         },
       ]);
     });
@@ -1450,12 +1445,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toEqual([
         {
           role: 'assistant',
-          content: [
-            {
-              type: 'output_text',
-              text: 'I will search for that information.',
-            },
-          ],
+          content: 'I will search for that information.',
         },
         {
           type: 'function_call',
@@ -2404,13 +2394,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "First response",
                 "role": "assistant",
               },
               {
@@ -2427,13 +2411,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "item_reference",
               },
               {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "Second response",
                 "role": "assistant",
               },
             ]
@@ -2528,13 +2506,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "reasoning",
               },
               {
-                "content": [
-                  {
-                    "text": "First response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "First response",
                 "role": "assistant",
               },
               {
@@ -2558,13 +2530,7 @@ describe('convertToOpenAIResponsesInput', () => {
                 "type": "reasoning",
               },
               {
-                "content": [
-                  {
-                    "text": "Second response",
-                    "type": "output_text",
-                  },
-                ],
-                "id": undefined,
+                "content": "Second response",
                 "role": "assistant",
               },
             ]
@@ -2765,12 +2731,8 @@ describe('convertToOpenAIResponsesInput', () => {
             // Final text output
             {
               role: 'assistant',
-              content: [
-                {
-                  type: 'output_text',
-                  text: 'Based on my analysis and calculations, here is the final answer.',
-                },
-              ],
+              content:
+                'Based on my analysis and calculations, here is the final answer.',
             },
           ]);
 
@@ -3500,6 +3462,87 @@ describe('convertToOpenAIResponsesInput', () => {
       `);
     });
 
+    it('should convert provider references in tool result content', async () => {
+      const promptCacheBreakpoint = { mode: 'explicit' } as const;
+      const result = await convertToOpenAIResponsesInput({
+        toolNameMapping: testToolNameMapping,
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call_123',
+                toolName: 'search',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'text',
+                      text: 'Referenced files:',
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'application/pdf',
+                      data: {
+                        type: 'reference',
+                        reference: { openai: 'file-pdf-123' },
+                      },
+                      providerOptions: {
+                        openai: { promptCacheBreakpoint },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      mediaType: 'image/png',
+                      data: {
+                        type: 'reference',
+                        reference: { openai: 'file-image-123' },
+                      },
+                      providerOptions: {
+                        openai: {
+                          imageDetail: 'high',
+                          promptCacheBreakpoint,
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        systemMessageMode: 'system',
+        providerOptionsName: 'openai',
+        store: true,
+      });
+
+      expect(result.input).toEqual([
+        {
+          type: 'function_call_output',
+          call_id: 'call_123',
+          output: [
+            {
+              type: 'input_text',
+              text: 'Referenced files:',
+            },
+            {
+              type: 'input_file',
+              file_id: 'file-pdf-123',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+            {
+              type: 'input_image',
+              file_id: 'file-image-123',
+              detail: 'high',
+              prompt_cache_breakpoint: promptCacheBreakpoint,
+            },
+          ],
+        },
+      ]);
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should convert single tool result part with multipart that contains file (PDF)', async () => {
       const base64Data = 'AQIDBAU=';
       const result = await convertToOpenAIResponsesInput({
@@ -4150,23 +4193,11 @@ describe('convertToOpenAIResponsesInput', () => {
         {
           "input": [
             {
-              "content": [
-                {
-                  "text": "Let me search for recent news from San Francisco.",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
+              "content": "Let me search for recent news from San Francisco.",
               "role": "assistant",
             },
             {
-              "content": [
-                {
-                  "text": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
-                  "type": "output_text",
-                },
-              ],
-              "id": undefined,
+              "content": "Based on the search results, several significant events took place in San Francisco yesterday (June 22, 2025).",
               "role": "assistant",
             },
           ],
@@ -4216,23 +4247,11 @@ describe('convertToOpenAIResponsesInput', () => {
         input: [
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'I need approval before running that tool.',
-              },
-            ],
-            id: undefined,
+            content: 'I need approval before running that tool.',
           },
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'The tool was not run.',
-              },
-            ],
-            id: undefined,
+            content: 'The tool was not run.',
           },
         ],
         warnings: [],
@@ -4278,23 +4297,11 @@ describe('convertToOpenAIResponsesInput', () => {
         input: [
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'I need approval before running that tool.',
-              },
-            ],
-            id: undefined,
+            content: 'I need approval before running that tool.',
           },
           {
             role: 'assistant',
-            content: [
-              {
-                type: 'output_text',
-                text: 'The tool was not run.',
-              },
-            ],
-            id: undefined,
+            content: 'The tool was not run.',
           },
         ],
         warnings: [],
@@ -5430,13 +5437,7 @@ describe('convertToOpenAIResponsesInput', () => {
             "role": "user",
           },
           {
-            "content": [
-              {
-                "text": "Hi there!",
-                "type": "output_text",
-              },
-            ],
-            "id": undefined,
+            "content": "Hi there!",
             "role": "assistant",
           },
         ]
@@ -5835,13 +5836,7 @@ describe('convertToOpenAIResponsesInput', () => {
       expect(result.input).toMatchInlineSnapshot(`
         [
           {
-            "content": [
-              {
-                "text": "Here is my response.",
-                "type": "output_text",
-              },
-            ],
-            "id": "msg_001",
+            "content": "Here is my response.",
             "role": "assistant",
           },
           {

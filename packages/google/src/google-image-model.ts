@@ -32,6 +32,12 @@ interface GoogleImageModelConfig {
   };
 }
 
+const googleImageModelsWithFileInputSupport = new Set<string>([
+  'gemini-2.5-flash-image',
+  'gemini-3-pro-image-preview',
+  'gemini-3.1-flash-image-preview',
+]);
+
 export class GoogleImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
 
@@ -53,7 +59,17 @@ export class GoogleImageModel implements ImageModelV4 {
     if (this.settings.maxImagesPerCall != null) {
       return this.settings.maxImagesPerCall;
     }
-    return 10;
+    return 1;
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    return googleImageModelsWithFileInputSupport.has(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
   }
 
   get provider(): string {
@@ -77,7 +93,6 @@ export class GoogleImageModel implements ImageModelV4 {
 
     const {
       prompt,
-      n,
       size,
       aspectRatio,
       seed,
@@ -93,13 +108,6 @@ export class GoogleImageModel implements ImageModelV4 {
     if (mask != null) {
       throw new Error(
         'Gemini image models do not support mask-based image editing.',
-      );
-    }
-
-    // Gemini does not support generating multiple images per call via n parameter
-    if (n != null && n > 1) {
-      throw new Error(
-        'Gemini image models do not support generating a set number of images per call. Use n=1 or omit the n parameter.',
       );
     }
 
@@ -250,6 +258,7 @@ export class GoogleImageModel implements ImageModelV4 {
       providerMetadata: {
         google: {
           ...languageModelGoogleMetadata,
+          finishReason: result.finishReason.raw ?? null,
           images: images.map(() => ({})),
         },
       },

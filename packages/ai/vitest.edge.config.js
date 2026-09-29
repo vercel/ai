@@ -1,3 +1,8 @@
+import { mergeConfig } from 'vitest/config';
 import { createVitestConfig } from './vitest.config.js';
 
-export default createVitestConfig('edge-runtime');
+export default mergeConfig(createVitestConfig('edge-runtime'), {
+  test: {
+    exclude: ['**/*.node.test.ts'],
+  },
+});

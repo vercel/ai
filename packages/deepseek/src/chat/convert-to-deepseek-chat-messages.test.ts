@@ -691,6 +691,125 @@ describe('convertToDeepSeekChatMessages', () => {
       `);
     });
 
+    it('should convert inline, URL, and referenced images in tool results to content parts', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'inspectImage',
+                output: {
+                  type: 'content',
+                  value: [
+                    { type: 'text', text: 'Screenshot captured.' },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'data',
+                        data: new Uint8Array([0, 1, 2, 3]),
+                      },
+                      mediaType: 'image/png',
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('https://example.com/image.webp'),
+                      },
+                      mediaType: 'image/webp',
+                      providerOptions: {
+                        deepseek: { imageDetail: 'low' },
+                      },
+                    },
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'reference',
+                        reference: {
+                          deepseek: 'file-api-deepseek',
+                          openai: 'file-openai',
+                        },
+                      },
+                      mediaType: 'image/png',
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-flash',
+      });
+
+      expect(result).toEqual({
+        messages: [
+          {
+            role: 'tool',
+            tool_call_id: 'call-1',
+            content: [
+              {
+                type: 'text',
+                text: 'Screenshot captured.',
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'data:image/png;base64,AAECAw==',
+                },
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: 'https://example.com/image.webp',
+                  detail: 'low',
+                },
+              },
+              {
+                type: 'file',
+                file_id: 'file-api-deepseek',
+              },
+            ],
+          },
+        ],
+        warnings: [],
+      });
+    });
+
+    it('should keep tool result content without images JSON-stringified', async () => {
+      const result = await convertToDeepSeekChatMessages({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'getWeather',
+                output: {
+                  type: 'content',
+                  value: [{ type: 'text', text: 'It is sunny today' }],
+                },
+              },
+            ],
+          },
+        ],
+        responseFormat: undefined,
+        modelId: 'deepseek-chat',
+      });
+
+      expect(result.messages).toEqual([
+        {
+          role: 'tool',
+          tool_call_id: 'call-1',
+          content: '[{"type":"text","text":"It is sunny today"}]',
+        },
+      ]);
+    });
+
     it('should support reasoning content in tool calls', async () => {
       const result = await convertToDeepSeekChatMessages({
         prompt: [

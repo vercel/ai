@@ -1,4 +1,5 @@
 import { commonTool } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
 import type { ToolCall } from '@agentclientprotocol/sdk';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
@@ -25,6 +26,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'reconnect'
         | 'clientApp'
       >
     >().toEqualTypeOf<never>();
@@ -35,6 +37,7 @@ describe('createACP built-in tool inference', () => {
         | 'port'
         | 'portEndpoint'
         | 'startupTimeoutMs'
+        | 'reconnect'
         | 'clientApp'
       >
     >().toEqualTypeOf<ACPV1Settings>();
@@ -50,6 +53,20 @@ describe('createACP built-in tool inference', () => {
       },
       executable: 'acp-agent',
     });
+  });
+
+  test('accepts sandbox bridge reconnect settings', () => {
+    const settings: Pick<ACPHarnessSettings, 'reconnect'> = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 
   test('preserves the supplied tool set type', () => {
