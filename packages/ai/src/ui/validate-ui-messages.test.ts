@@ -650,6 +650,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 'bar' },
+                rawInput: '{"foo":"bar',
               },
             ],
           },
@@ -667,6 +668,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "rawInput": "{"foo":"bar",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "toolName": "foo",
@@ -2005,6 +2007,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 123 }, // wrong type but should not be validated
+                rawInput: '{"foo":123',
                 providerExecuted: true,
               },
             ],
@@ -2026,6 +2029,7 @@ describe('validateUIMessages', () => {
                   "foo": 123,
                 },
                 "providerExecuted": true,
+                "rawInput": "{"foo":123",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
