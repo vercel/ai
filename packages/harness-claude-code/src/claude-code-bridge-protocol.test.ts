@@ -44,6 +44,7 @@ describe('outboundMessageSchema', () => {
       toolName: 'bash',
       result: { exitCode: 0, output: 'ok' },
     },
+    { type: 'response-end', usage },
     {
       type: 'finish-step',
       finishReason: { unified: 'stop', raw: 'stop' },

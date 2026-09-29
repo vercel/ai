@@ -215,8 +215,17 @@ describe('translateStreamPart', () => {
     expect(result.output).toEqual({ trigger: 'manual', summary: 'Compacted.' });
   });
 
-  it('returns empty for events consumed internally (stream-start, finish-step, finish)', () => {
+  it('returns empty for events consumed internally (stream-start, response-end, finish-step, finish)', () => {
     expect(translateStreamPart<ToolSet>({ type: 'stream-start' })).toEqual([]);
+    expect(
+      translateStreamPart<ToolSet>({
+        type: 'response-end',
+        usage: {
+          inputTokens: { total: 0 },
+          outputTokens: { total: 0 },
+        } as never,
+      } as never),
+    ).toEqual([]);
     expect(
       translateStreamPart<ToolSet>({
         type: 'finish-step',

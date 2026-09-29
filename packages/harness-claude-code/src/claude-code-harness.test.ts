@@ -1444,6 +1444,36 @@ describe('createClaudeCode adapter', () => {
       await session.doDestroy();
     });
 
+    it('forwards response boundaries without ending the turn', async () => {
+      wsMock.scripts.push(socket => {
+        queueMicrotask(() => {
+          socket.emit('open');
+          socket.emit('message', JSON.stringify({ type: 'bridge-hello' }));
+        });
+      });
+
+      const session = await startWithFakeBridgeSocket();
+      const events: Array<Record<string, unknown>> = [];
+      const control = await session.doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Continue',
+        emit: event => events.push(event),
+      });
+      const usage = {
+        inputTokens: { total: 10, noCache: 10 },
+        outputTokens: { total: 2, text: 2 },
+      };
+
+      expect(subscribedEventTypes).toContain('response-end');
+      dispatchChannelEvent({ type: 'response-end', usage });
+      expect(events).toEqual([{ type: 'response-end', usage }]);
+
+      dispatchChannelEvent({ type: 'finish' });
+      await expect(control.done).resolves.toBeUndefined();
+      await session.doDestroy();
+    });
+
     it('rejects when the socket opens but bridge-hello never arrives', async () => {
       wsMock.scripts.push(socket => {
         queueMicrotask(() => {
