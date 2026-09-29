@@ -31,7 +31,7 @@ test('renders usable default code while retaining the template and fence metadat
   assert.equal(code.value, `import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: "anthropic/claude-sonnet-5",
+  model: "anthropic/claude-sonnet-5.5",
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });`);
   assert.equal(code.data.hProperties['data-code-template'], template);
@@ -58,7 +58,7 @@ test('resolves every model kind, including mixed and repeated placeholders', () 
 text: __MODEL__, __TEXT_MODEL__
 image: __IMAGE_MODEL__, __IMAGE_MODEL__
 video: __VIDEO_MODEL__`);
-  assert.equal(code, `text: "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-5"
+  assert.equal(code, `text: "anthropic/claude-sonnet-5.5", "anthropic/claude-sonnet-5.5"
 image: "openai/gpt-image-2.5-sunburst", "openai/gpt-image-2.5-sunburst"
 video: "google/veo-3.1-generate-001"`);
 });

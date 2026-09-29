@@ -271,7 +271,7 @@ export function createGoogleVertex(
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
         originalHeaders,
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
       );
     };
 

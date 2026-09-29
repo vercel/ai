@@ -407,6 +407,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       rejectsThinkingDisabledAboveHighEffort,
       rejectsThinkingDisabled,
       rejectsForcedToolUse,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(modelId);
 
@@ -573,6 +574,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
         supportsAdaptiveThinking,
         supportsXhighEffort,
         rejectsThinkingDisabled,
+        supportsBetweenToolsThinking,
         maxOutputTokensForModel,
         warnings,
       });
@@ -595,7 +597,16 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
     if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
       const thinking = anthropicOptions.thinking;
 
-      if (thinking.type === 'disabled') {
+      if (thinking.type === 'disabled' && supportsBetweenToolsThinking) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${modelId}. ` +
+            `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+        });
+        anthropicOptions.thinking = { type: 'between_tools' };
+      } else if (thinking.type === 'disabled') {
         warnings.push({
           type: 'unsupported',
           feature: 'providerOptions.anthropic.thinking',
@@ -635,9 +646,28 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       anthropicOptions.effort = 'high';
     }
 
+    // `between_tools` thinking is only accepted at `low`, `medium`, and
+    // `high` effort. Lower the effort to `high` to keep the minimal thinking
+    // setting instead of sending a request that the API would reject.
+    if (
+      anthropicOptions?.thinking?.type === 'between_tools' &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported with 'between_tools' thinking. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
+
     const thinkingType = anthropicOptions?.thinking?.type;
     const isThinking =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
     const thinkingBlockBinding =
       anthropicOptions?.thinking != null &&
       'blockBinding' in anthropicOptions.thinking
@@ -3127,9 +3157,14 @@ export function getModelCapabilities(modelId: string): {
    * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
    */
   rejectsForcedToolUse: boolean;
+  /**
+   * Supports `thinking.type` `between_tools`, the lowest thinking setting on
+   * models that reject disabled thinking.
+   */
+  supportsBetweenToolsThinking: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-5-5')) {
+  if (modelId.includes('claude-sonnet-5-5')) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
@@ -3139,6 +3174,20 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-5-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      supportsAdaptiveThinking: true,
+      rejectsSamplingParameters: true,
+      supportsXhighEffort: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-5')) {
@@ -3151,6 +3200,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-fable-5-1')) {
@@ -3163,6 +3213,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-fable-5')) {
@@ -3175,6 +3226,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: true,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -3191,6 +3243,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -3206,6 +3259,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -3222,6 +3276,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -3234,6 +3289,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (/claude-sonnet-4(?:-|@)/.test(modelId)) {
@@ -3246,6 +3302,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (/claude-opus-4(?:-|@)/.test(modelId)) {
@@ -3258,6 +3315,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -3270,6 +3328,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -3284,6 +3343,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -3299,6 +3359,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: true,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else {
@@ -3313,6 +3374,7 @@ export function getModelCapabilities(modelId: string): {
       rejectsThinkingDisabledAboveHighEffort: false,
       rejectsThinkingDisabled: false,
       rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   }
@@ -3356,6 +3418,7 @@ function resolveAnthropicReasoningConfig({
   supportsAdaptiveThinking,
   supportsXhighEffort,
   rejectsThinkingDisabled,
+  supportsBetweenToolsThinking,
   maxOutputTokensForModel,
   warnings,
 }: {
@@ -3364,6 +3427,7 @@ function resolveAnthropicReasoningConfig({
   supportsAdaptiveThinking: boolean;
   supportsXhighEffort: boolean;
   rejectsThinkingDisabled: boolean;
+  supportsBetweenToolsThinking: boolean;
   maxOutputTokensForModel: number;
   warnings: SharedV4Warning[];
 }): Pick<AnthropicLanguageModelOptions, 'thinking' | 'effort'> | undefined {
@@ -3372,6 +3436,12 @@ function resolveAnthropicReasoningConfig({
   }
 
   if (reasoning === 'none') {
+    // `between_tools` is the lowest thinking setting on models that support
+    // it: no upfront thinking, only short progress notes between tool calls.
+    if (supportsBetweenToolsThinking) {
+      return { thinking: { type: 'between_tools' } };
+    }
+
     // Models that always run adaptive thinking cannot disable it. Use low
     // effort to keep thinking short instead of sending a request that the
     // API would reject.

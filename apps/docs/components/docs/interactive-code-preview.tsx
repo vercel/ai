@@ -255,7 +255,7 @@ const getDefaultModelOption = (kind: ModelKind): ModelOption => {
         ? 'GPT Image 2.5 Sunburst'
         : kind === 'video'
           ? 'Veo 3.1'
-          : 'Claude Sonnet 5',
+          : 'Claude Sonnet 5.5',
     provider,
     providerTitle: providerTitles[provider] ?? provider,
     code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],

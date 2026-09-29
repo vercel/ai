@@ -164,7 +164,7 @@ export function createAnthropic(
         ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/anthropic/${VERSION}`,
+      `ai-sdk-anthropic/${VERSION}`,
     );
   };
 

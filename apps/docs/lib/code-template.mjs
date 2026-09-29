@@ -1,5 +1,5 @@
 export const DEFAULT_MODEL_IDS = {
-  text: 'anthropic/claude-sonnet-5',
+  text: 'anthropic/claude-sonnet-5.5',
   image: 'openai/gpt-image-2.5-sunburst',
   video: 'google/veo-3.1-generate-001',
 };

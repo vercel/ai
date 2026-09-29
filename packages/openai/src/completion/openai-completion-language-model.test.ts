@@ -815,7 +815,7 @@ describe('doStream', () => {
       'openai-project': 'test-project',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/openai/0.0.0-test`,
+      `ai-sdk-openai/0.0.0-test`,
     );
   });
 });

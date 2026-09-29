@@ -758,6 +758,15 @@ With `streamText`, you can control how error messages and usage information are 
 
 By default, the error message is masked for security reasons.
 The default error message is "An error occurred."
+
+Tool execution errors marked `providerExecuted: true` are an exception. They
+bypass the UI stream's `onError` callback: strings are forwarded unchanged, and
+other error values are serialized with `JSON.stringify`. This preserves provider
+error codes when chat history is converted back into model messages, as well as
+error messages from harness runtimes. Stream errors and invalid tool calls still
+use `onError`, even for provider-executed tools. Do not rely on this callback to
+redact provider-executed tool execution errors before they reach the client.
+
 You can forward error messages or send your own error message by providing an `onError` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="21-35"
@@ -947,7 +956,7 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 ## Reasoning
 
 Some models such as DeepSeek `deepseek-r1`
-and Anthropic `claude-sonnet-5` support reasoning tokens.
+and Anthropic `claude-sonnet-5-5` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 
@@ -1009,10 +1018,12 @@ These are available as `reasoning-file` parts (`ReasoningFileUIPart`) with
 Some providers such as [Perplexity](/providers/ai-sdk-providers/perplexity#sources) and
 [Google](/providers/ai-sdk-providers/google#sources) include sources in the response.
 
-Currently sources are limited to web pages that ground the response.
-You can forward them to the client with the `sendSources` option:
+You can forward sources to the client with the `sendSources` option. This example uses the Perplexity Agent API's `fast` preset to search the web. Install `@ai-sdk/perplexity` and set `PERPLEXITY_API_KEY` in your environment:
 
-```ts filename="app/api/chat/route.ts" highlight="20"
+<InstallPackages packages="@ai-sdk/perplexity" />
+
+```ts filename="app/api/chat/route.ts" highlight="21"
+import { perplexity } from '@ai-sdk/perplexity';
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
@@ -1025,7 +1036,7 @@ export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: 'perplexity/sonar-pro',
+    model: perplexity('fast'),
     messages: await convertToModelMessages(messages),
   });
 
@@ -1051,7 +1062,7 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-url')
       .map(part => (
-        <span key={`source-${part.id}`}>
+        <span key={`source-${part.sourceId}`}>
           [
           <a href={part.url} target="_blank">
             {part.title ?? new URL(part.url).hostname}
@@ -1064,8 +1075,8 @@ messages.map(message => (
     {message.parts
       .filter(part => part.type === 'source-document')
       .map(part => (
-        <span key={`source-${part.id}`}>
-          [<span>{part.title ?? `Document ${part.id}`}</span>]
+        <span key={`source-${part.sourceId}`}>
+          [<span>{part.title ?? `Document ${part.sourceId}`}</span>]
         </span>
       ))}
   </div>

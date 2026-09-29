@@ -1549,11 +1549,11 @@ You can use the following optional settings to customize the provider instance:
 ### Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-sonnet-5`.
+The first argument is the model id, e.g. `claude-sonnet-5-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = vertexAnthropic('claude-sonnet-5');
+const model = vertexAnthropic('claude-sonnet-5-5');
 ```
 
 You can use Anthropic language models to generate text with the `generateText` function:
@@ -1563,7 +1563,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1648,7 +1648,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'user',
@@ -1682,7 +1682,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,7-9"
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',

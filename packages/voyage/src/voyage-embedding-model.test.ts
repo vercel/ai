@@ -168,7 +168,7 @@ describe('doEmbed', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/voyage/0.0.0-test`,
+      `ai-sdk-voyage/0.0.0-test`,
     );
   });
 });

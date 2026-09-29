@@ -407,6 +407,8 @@ describe('prepareTools', () => {
         'anthropic.claude-opus-5-5',
         'us.anthropic.claude-opus-5-5',
         'global.anthropic.claude-opus-5-5',
+        'anthropic.claude-sonnet-5-5',
+        'us.anthropic.claude-sonnet-5-5',
       ])(
         'should fall back to auto for tool choice "required" on %s',
         async modelId => {

@@ -41,7 +41,7 @@ export function createSigV4FetchFunction(
     );
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/anthropic-aws/${VERSION}`,
+      `ai-sdk-anthropic-aws/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 
@@ -125,7 +125,7 @@ export function createApiKeyFetchFunction(
     const originalHeaders = normalizeHeaders(init?.headers);
     const headersWithUserAgent = withUserAgentSuffix(
       originalHeaders,
-      `ai-sdk/anthropic-aws/${VERSION}`,
+      `ai-sdk-anthropic-aws/${VERSION}`,
       getRuntimeEnvironmentUserAgent(),
     );
 

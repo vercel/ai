@@ -1,5 +1,19 @@
 # @ai-sdk/provider-utils
 
+## 5.0.51
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+
+## 5.0.50
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider@4.0.19
+
 ## 5.0.49
 
 ### Patch Changes
