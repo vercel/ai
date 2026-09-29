@@ -4,16 +4,11 @@ import { HarnessAgent } from './harness-agent';
 import type { HarnessAllTools } from './harness-agent-tool-types';
 import {
   tool,
-<<<<<<< HEAD
   type Context,
-  type SystemModelMessage,
-} from '@ai-sdk/provider-utils';
-import type { GenericToolApprovalFunction } from 'ai';
-=======
   type SystemModelMessage,
   type Tool,
 } from '@ai-sdk/provider-utils';
->>>>>>> origin/main
+import type { GenericToolApprovalFunction } from 'ai';
 import { describe, expectTypeOf, test } from 'vitest';
 import { z } from 'zod/v4';
 
@@ -58,7 +53,6 @@ const sandbox = undefined as never as HarnessV1SandboxProvider;
 type Settings = HarnessAgentSettings<typeof harness, typeof userTools>;
 
 describe('HarnessAgentSettings tool filtering types', () => {
-<<<<<<< HEAD
   test('toolApproval accepts a generic approval callback for user tools', () => {
     type RuntimeContext = { tenantId: string };
     const toolApproval: GenericToolApprovalFunction<
@@ -91,7 +85,9 @@ describe('HarnessAgentSettings tool filtering types', () => {
 
     expectTypeOf(settings).toMatchTypeOf<
       HarnessAgentSettings<typeof harness, typeof userTools, RuntimeContext>
-=======
+    >();
+  });
+
   test('rejects toolsContext when no tool declares context', () => {
     const settings: Settings = {
       harness,
@@ -140,7 +136,6 @@ describe('HarnessAgentSettings tool filtering types', () => {
     >();
     expectTypeOf(withUndefinedContext).toMatchTypeOf<
       HarnessAgentSettings<typeof harness, typeof optionalContextTools>
->>>>>>> origin/main
     >();
   });
 

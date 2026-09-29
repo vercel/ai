@@ -160,8 +160,7 @@ export function runPrompt<
   done: Promise<void>;
 } {
   const callId = generateId();
-<<<<<<< HEAD
-  const toolsContext = {} as InferToolSetContext<TOOLS>;
+  const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
   const approvalMessages: ModelMessage[] =
     input.prompt == null
       ? []
@@ -170,9 +169,6 @@ export function runPrompt<
             ? { role: 'user', content: input.prompt }
             : input.prompt,
         ];
-=======
-  const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
->>>>>>> origin/main
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -1235,14 +1231,6 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
-<<<<<<< HEAD
-          const customToolApprovalDecision = await resolveCustomToolApproval({
-            toolCall: parsedToolCall as TypedToolCall<ToolSet>,
-            tools: activeTools,
-            toolsContext,
-            messages: approvalMessages,
-            runtimeContext: input.runtimeContext,
-=======
           if (validatedHostToolCall == null) {
             throw new Error(
               `Harness '${input.harness.harnessId}' could not validate host tool '${toolCall.toolName}'.`,
@@ -1268,9 +1256,12 @@ export function runPrompt<
             });
             continue;
           }
-          const customToolApprovalDecision = resolveCustomToolApproval({
-            toolName: toolCall.toolName,
->>>>>>> origin/main
+          const customToolApprovalDecision = await resolveCustomToolApproval({
+            toolCall: parsedToolCall as TypedToolCall<ToolSet>,
+            tools: activeTools,
+            toolsContext,
+            messages: approvalMessages,
+            runtimeContext: input.runtimeContext,
             toolApproval: input.toolApproval,
           });
           if (customToolApprovalDecision.type === 'denied') {
