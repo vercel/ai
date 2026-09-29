@@ -73,11 +73,24 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
   >;
 
   const ongoingStreamPromises: Promise<void>[] = [];
+  const activeReaders = new Set<
+    ReadableStreamDefaultReader<InferUIMessageChunk<UI_MESSAGE>>
+  >();
+  let isCancelled = false;
+  let cancelReason: unknown;
   let outcome: UIMessageStreamOutcome = { status: 'unknown' };
 
   const stream = new ReadableStream({
     start(controllerArg) {
       controller = controllerArg;
+    },
+    async cancel(reason) {
+      isCancelled = true;
+      cancelReason = reason;
+
+      await Promise.all(
+        Array.from(activeReaders, reader => reader.cancel(reason)),
+      );
     },
   });
 
@@ -132,13 +145,25 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
           safeEnqueue(part);
         },
         merge(streamArg) {
+          if (isCancelled) {
+            void streamArg.cancel(cancelReason).catch(() => {});
+            return;
+          }
+
+          const reader = streamArg.getReader();
+          activeReaders.add(reader);
+
           ongoingStreamPromises.push(
             (async () => {
-              const reader = streamArg.getReader();
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                safeEnqueue(value);
+              try {
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  safeEnqueue(value);
+                }
+              } finally {
+                activeReaders.delete(reader);
+                reader.releaseLock();
               }
             })().catch(error => {
               handleError(error);
