@@ -929,6 +929,7 @@ function createSession({
     : undefined;
   let selectedModel: string | undefined;
   let activeTurn = false;
+  let pendingTurnDrain: Promise<void> = Promise.resolve();
   const pendingCompactionParts: HarnessV1StreamPart[] = [];
 
   channel.on('bridge-thread', msg => {
@@ -939,6 +940,11 @@ function createSession({
     abortSignal?: AbortSignal;
   }): HarnessV1PromptControl => {
     activeTurn = true;
+    let resolveTurnDrain!: () => void;
+    const turnDrain = new Promise<void>(resolve => {
+      resolveTurnDrain = resolve;
+    });
+    pendingTurnDrain = turnDrain;
     let pendingResolve: (() => void) | undefined;
     let pendingReject: ((err: unknown) => void) | undefined;
     const done = new Promise<void>((resolve, reject) => {
@@ -954,7 +960,11 @@ function createSession({
       : undefined;
 
     const unsubs: Array<() => void> = [];
+    let isSettled = false;
+    let isFinished = false;
+    let drainingAfterAbort = false;
     const forward = (event: HarnessV1StreamPart) => {
+      if (isSettled) return;
       try {
         turnOpts.emit(event);
       } catch {}
@@ -976,22 +986,29 @@ function createSession({
       'compaction',
       'raw',
     ] as const;
-    let isSettled = false;
+    const finishTurn = () => {
+      if (isFinished) return;
+      isFinished = true;
+      activeTurn = false;
+      if (turnOpts.abortSignal) {
+        turnOpts.abortSignal.removeEventListener('abort', onAbort);
+      }
+      for (const u of unsubs) u();
+      resolveTurnDrain();
+    };
     const settleSuccess = () => {
       if (isSettled) return;
       isSettled = true;
-      activeTurn = false;
       userMessageSubmitter?.close();
-      for (const u of unsubs) u();
       pendingResolve!();
+      finishTurn();
     };
     const settleError = (err: unknown) => {
       if (isSettled) return;
       isSettled = true;
-      activeTurn = false;
       userMessageSubmitter?.close(err);
-      for (const u of unsubs) u();
       pendingReject!(err);
+      finishTurn();
     };
 
     for (const type of eventTypes) {
@@ -1003,18 +1020,30 @@ function createSession({
     }
     unsubs.push(
       channel.on('finish', msg => {
+        if (drainingAfterAbort) {
+          finishTurn();
+          return;
+        }
         forward(msg);
         settleSuccess();
       }),
     );
     unsubs.push(
       channel.on('error', msg => {
+        if (drainingAfterAbort) {
+          finishTurn();
+          return;
+        }
         forward(msg);
         settleError(msg.error);
       }),
     );
 
     const onClose = (_code?: number, reason?: string) => {
+      if (drainingAfterAbort) {
+        finishTurn();
+        return;
+      }
       if (isSettled) return;
       if (reason === 'suspended') {
         settleSuccess();
@@ -1031,10 +1060,13 @@ function createSession({
       try {
         channel.send({ type: 'abort' });
       } catch {}
-      settleError(
+      const error =
         turnOpts.abortSignal?.reason ??
-          new DOMException('Aborted', 'AbortError'),
-      );
+        new DOMException('Aborted', 'AbortError');
+      isSettled = true;
+      drainingAfterAbort = true;
+      userMessageSubmitter?.close(error);
+      pendingReject!(error);
     };
     if (turnOpts.abortSignal) {
       if (turnOpts.abortSignal.aborted) {
@@ -1107,6 +1139,7 @@ function createSession({
     control: HarnessV1PromptControl;
     skillWriteResult: WriteSkillsResult;
   }> => {
+    await pendingTurnDrain;
     if (
       opts.responseFormat?.type === 'json' &&
       opts.responseFormat.schema == null
