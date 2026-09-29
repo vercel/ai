@@ -170,7 +170,13 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
 
     // For Mistral we need to need to instruct the model to return a JSON object.
     // https://docs.mistral.ai/capabilities/structured-output/structured_output_overview/
-    if (responseFormat?.type === 'json' && !responseFormat?.schema) {
+    // This includes the case where a schema is provided but structured outputs
+    // are disabled, because the request then falls back to `json_object` mode
+    // and the schema would otherwise never reach the model.
+    if (
+      responseFormat?.type === 'json' &&
+      !(structuredOutputs && responseFormat.schema != null)
+    ) {
       prompt = injectJsonInstructionIntoMessages({
         messages: prompt,
         schema: responseFormat.schema,
