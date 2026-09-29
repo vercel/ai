@@ -1,27 +1,45 @@
 import type { LanguageModelV4Usage } from '@ai-sdk/provider';
 import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
+export type DeepSeekCacheUsageFormat = 'deepseek' | 'openai-compatible';
+
+type DeepSeekUsage =
+  | {
+      prompt_tokens?: number | null | undefined;
+      completion_tokens?: number | null | undefined;
+      prompt_cache_hit_tokens?: number | null | undefined;
+      prompt_tokens_details?:
+        | {
+            cached_tokens?: number | null | undefined;
+          }
+        | null
+        | undefined;
+      completion_tokens_details?:
+        | {
+            reasoning_tokens?: number | null | undefined;
+          }
+        | null
+        | undefined;
+    }
+  | undefined
+  | null;
+
+export function getDeepSeekCacheReadTokens(
+  usage: DeepSeekUsage,
+  cacheUsageFormat: DeepSeekCacheUsageFormat = 'deepseek',
+): number | undefined {
+  return (
+    usage?.prompt_cache_hit_tokens ??
+    (cacheUsageFormat === 'openai-compatible'
+      ? usage?.prompt_tokens_details?.cached_tokens
+      : undefined) ??
+    undefined
+  );
+}
+
 export function convertDeepSeekUsage(
-  usage:
-    | {
-        prompt_tokens?: number | null | undefined;
-        completion_tokens?: number | null | undefined;
-        prompt_cache_hit_tokens?: number | null | undefined;
-        prompt_tokens_details?:
-          | {
-              cached_tokens?: number | null | undefined;
-            }
-          | null
-          | undefined;
-        completion_tokens_details?:
-          | {
-              reasoning_tokens?: number | null | undefined;
-            }
-          | null
-          | undefined;
-      }
-    | undefined
-    | null,
+  usage: DeepSeekUsage,
+  cacheUsageFormat: DeepSeekCacheUsageFormat = 'deepseek',
 ): LanguageModelV4Usage {
   if (usage == null) {
     return createNullLanguageModelUsage();
@@ -30,9 +48,7 @@ export function convertDeepSeekUsage(
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
   const cacheReadTokens =
-    usage.prompt_cache_hit_tokens ??
-    usage.prompt_tokens_details?.cached_tokens ??
-    0;
+    getDeepSeekCacheReadTokens(usage, cacheUsageFormat) ?? 0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 

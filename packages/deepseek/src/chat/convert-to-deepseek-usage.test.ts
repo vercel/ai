@@ -9,7 +9,7 @@ describe('convertDeepSeekUsage', () => {
       prompt_tokens_details: { cached_tokens: 80 },
     };
 
-    expect(convertDeepSeekUsage(usage)).toEqual({
+    expect(convertDeepSeekUsage(usage, 'openai-compatible')).toEqual({
       inputTokens: {
         total: 100,
         noCache: 20,
@@ -29,10 +29,27 @@ describe('convertDeepSeekUsage', () => {
       prompt_tokens_details: { cached_tokens: 80 },
     };
 
-    expect(convertDeepSeekUsage(usage).inputTokens).toEqual({
+    expect(
+      convertDeepSeekUsage(usage, 'openai-compatible').inputTokens,
+    ).toEqual({
       total: 100,
       noCache: 40,
       cacheRead: 60,
+      cacheWrite: undefined,
+    });
+  });
+
+  it('ignores OpenAI-compatible cached prompt tokens by default', () => {
+    const usage = {
+      prompt_tokens: 100,
+      completion_tokens: 10,
+      prompt_tokens_details: { cached_tokens: 80 },
+    };
+
+    expect(convertDeepSeekUsage(usage).inputTokens).toEqual({
+      total: 100,
+      noCache: 100,
+      cacheRead: 0,
       cacheWrite: undefined,
     });
   });
