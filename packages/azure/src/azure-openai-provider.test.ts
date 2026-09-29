@@ -448,6 +448,90 @@ describe('chat', () => {
 });
 
 describe('deepseek', () => {
+  const cacheUsage = {
+    completion_tokens: 10,
+    prompt_tokens: 100,
+    prompt_tokens_details: { cached_tokens: 80 },
+    total_tokens: 110,
+  };
+
+  function prepareCacheUsageResponse(
+    usage: typeof cacheUsage & { prompt_cache_hit_tokens?: number },
+  ) {
+    server.urls[
+      'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+    ].response = {
+      type: 'json-value',
+      body: {
+        choices: [
+          {
+            finish_reason: 'stop',
+            index: 0,
+            message: { content: 'Hello', role: 'assistant' },
+          },
+        ],
+        created: 0,
+        id: 'chatcmpl-cache-usage',
+        model: 'deepseek-v4-flash',
+        object: 'chat.completion',
+        usage,
+      },
+    };
+  }
+
+  it('should normalize OpenAI-compatible cache usage for generate', async () => {
+    prepareCacheUsageResponse(cacheUsage);
+
+    const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage.cachedInputTokens).toBe(80);
+    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+  });
+
+  it('should prefer native DeepSeek cache usage for generate', async () => {
+    prepareCacheUsageResponse({
+      ...cacheUsage,
+      prompt_cache_hit_tokens: 60,
+    });
+
+    const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.usage.cachedInputTokens).toBe(60);
+    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(60);
+  });
+
+  it('should normalize OpenAI-compatible cache usage for stream', async () => {
+    server.urls[
+      'https://test-resource.openai.azure.com/openai/v1/chat/completions'
+    ].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          choices: [{ delta: {}, finish_reason: 'stop', index: 0 }],
+          created: 0,
+          id: 'chatcmpl-cache-usage',
+          model: 'deepseek-v4-flash',
+          object: 'chat.completion.chunk',
+          usage: cacheUsage,
+        })}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await provider.deepseek('deepseek-v4-flash').doStream({
+      prompt: TEST_PROMPT,
+    });
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(part => part.type === 'finish');
+
+    expect(finish?.usage.cachedInputTokens).toBe(80);
+    expect(finish?.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+  });
+
   it('should map Azure DeepSeek reasoning effort', async () => {
     prepareJsonFixtureResponse('azure-deepseek-reasoning.1', 'chat');
 
