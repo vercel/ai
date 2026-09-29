@@ -85,14 +85,11 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
-<<<<<<< HEAD
-- `extensions`: opt in to Pi's normal filesystem extension discovery. Defaults
-  to `false`.
-=======
 - `credentials`: application-owned Pi credential storage. This replaces the
   file-backed `auth.json` store and supports persistent database-backed
   credentials.
->>>>>>> origin/main
+- `extensions`: opt in to Pi's normal filesystem extension discovery. Defaults
+  to `false`.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
@@ -129,7 +126,6 @@ by itself enables only the factories you explicitly provide. Filesystem
 extension discovery remains disabled unless `extensions` is enabled. Themes and
 prompt templates also remain disabled.
 
-<<<<<<< HEAD
 ## Filesystem Extensions
 
 Use `extensions: true` when the harness Node.js process itself is already
@@ -156,7 +152,7 @@ session loads a fresh runtime.
   the configured `HarnessV1SandboxProvider`. Only enable it when the harness
   process is already isolated and every source Pi may discover is trusted.
 </Warning>
-=======
+
 ## Session Reattachment
 
 By default, Pi keeps a suspended turn alive for an efficient continuation in
@@ -176,7 +172,6 @@ const harness = createPi({
 
 An incoming completed `resume-session` state always takes precedence over an
 older live suspended turn in the process.
->>>>>>> origin/main
 
 ## Authentication
 

@@ -240,11 +240,8 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
-<<<<<<< HEAD
   readonly extensions?: boolean;
-=======
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
->>>>>>> origin/main
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
 
@@ -288,6 +285,7 @@ function hasCompatibleReattachSettings(
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
     parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.extensions === current.settings.extensions &&
     parked.settings.providers === current.settings.providers &&
     parked.settings.extensionFactories === current.settings.extensionFactories
   );
@@ -1134,11 +1132,7 @@ export async function createPiSession(
       settingsManager,
       resourceLoader,
       customTools,
-<<<<<<< HEAD
       ...(hasExtensions
-=======
-      ...(hasExtensionFactories
->>>>>>> origin/main
         ? { noTools: 'builtin' as const }
         : { tools: toolNames }),
       ...(input.settings.thinkingLevel

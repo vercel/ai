@@ -193,11 +193,8 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
-<<<<<<< HEAD
           ...(settings.extensions === true ? { extensions: true } : {}),
-=======
           ...(settings.providers ? { providers: settings.providers } : {}),
->>>>>>> origin/main
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
             : {}),
