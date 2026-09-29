@@ -14,7 +14,7 @@ run(async () => {
         tools: [{ type: 'finance_search' }],
       },
     },
-    includeRawChunks: true,
+    include: { rawChunks: true },
   });
 
   await printFullStream({ result });

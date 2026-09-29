@@ -155,7 +155,7 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
         })}`,
         ...options.headers,
       },
-      `ai-sdk/xai/${VERSION}`,
+      `ai-sdk-xai/${VERSION}`,
     );
 
   const createResponsesLanguageModel = (modelId: XaiResponsesModelId) => {

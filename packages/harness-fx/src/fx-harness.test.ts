@@ -194,7 +194,7 @@ describe('createFx', () => {
           },
         },
         "clientApp": {
-          "name": "ai-sdk/harness-fx",
+          "name": "ai-sdk-harness-fx",
           "version": "0.0.0-test",
         },
         "credentialEnv": [
@@ -461,7 +461,7 @@ describe('createFx', () => {
           headers: {
             'x-tenant': 'acme',
             Authorization: 'Bearer oidc-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -486,7 +486,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -517,7 +517,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer gateway-secret',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },
@@ -563,7 +563,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'x-client-app': `ai-sdk/harness-fx/${VERSION}`,
+            'x-client-app': `ai-sdk-harness-fx/${VERSION}`,
           },
         },
       },
@@ -629,7 +629,7 @@ describe('createFx', () => {
         transform: {
           headers: {
             Authorization: 'Bearer explicit-gateway-key',
-            'x-client-app': 'ai-sdk/harness-fx/0.0.0-test',
+            'x-client-app': 'ai-sdk-harness-fx/0.0.0-test',
           },
         },
       },

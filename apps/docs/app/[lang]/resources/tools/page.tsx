@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { tools } from '@/lib/tools-registry';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/resources/tools' },
   title: 'AI SDK Tools Registry',
   description:
     'Add powerful functionality to your agents with just a few lines of code.',

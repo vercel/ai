@@ -24,7 +24,7 @@ const harnesses = [
 ] satisfies ReadonlyArray<{ name: string; harness: HarnessAgentAdapter }>;
 
 const sandboxConfig = {
-  workDir: 'workspace',
+  workDir: '.',
   bootstrapHash: 'shared-harness-tools-v1',
   onBootstrap: async ({ session, workDir, abortSignal }) => {
     await session.writeTextFile({
@@ -61,7 +61,7 @@ run(async () => {
       session = await agent.createSession({ sandboxSession });
       const result = await agent.generate({
         session,
-        prompt: 'In one sentence, what is the capital of France?',
+        prompt: `Use your sandbox's bash tool, not inference. Read and report the exact contents of PREPARED.md. If VISITS.txt already exists, report failure and stop. Write exactly "${name}" plus a newline to VISITS.txt, then read and report its exact contents.`,
       });
       console.log(`[${name}]`, result.text);
     } finally {

@@ -1,5 +1,43 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.128
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
 ## 1.0.126
 
 ### Patch Changes

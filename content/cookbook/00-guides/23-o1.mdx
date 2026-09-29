@@ -106,8 +106,10 @@ const { text } = await generateText({
 ```
 
 <Note>
-  The `reasoningEffort` parameter is only supported by o1 and has no effect on
-  other models.
+  Reasoning-effort support varies by model. The o1 model supports `low`,
+  `medium`, and `high`; see the [OpenAI provider
+  documentation](/providers/ai-sdk-providers/openai#reasoning-effort) for the
+  values supported by other models.
 </Note>
 
 ### Generating Structured Data
@@ -218,20 +220,37 @@ export async function POST(req: Request) {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { type FormEvent, useState } from 'react';
 
 export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
+  const { messages, sendMessage } = useChat();
+  const [input, setInput] = useState('');
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (input.trim()) {
+      sendMessage({ text: input });
+      setInput('');
+    }
+  }
 
   return (
     <>
       {messages.map(message => (
         <div key={message.id}>
           {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
+          {message.parts.map((part, index) =>
+            part.type === 'text' ? <span key={index}>{part.text}</span> : null,
+          )}
         </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
+        <input
+          name="prompt"
+          value={input}
+          onChange={event => setInput(event.currentTarget.value)}
+        />
         <button type="submit">Submit</button>
       </form>
     </>

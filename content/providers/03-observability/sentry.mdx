@@ -102,7 +102,7 @@ export const runtime = 'nodejs';
 
 export async function POST() {
   const result = await generateText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'What is the weather in Tokyo?',
     telemetry: {
       functionId: 'anthropic-weather-demo',

@@ -40,7 +40,7 @@ export function createTypeSafeAi(
         Authorization: `Bearer ${loadApiKey({ apiKey: options.apiKey, environmentVariableName: 'TYPESAFE_AI_API_KEY', description: 'TypeSafe' })}`,
         ...options.headers,
       },
-      `ai-sdk/typesafe-ai/${VERSION}`,
+      `ai-sdk-typesafe-ai/${VERSION}`,
     );
 
   return {

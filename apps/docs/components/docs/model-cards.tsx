@@ -40,6 +40,8 @@ interface ModelCardData {
   /** Multiple static logos rendered side by side (e.g. provider + host). */
   logos?: ModelLogo[];
   title: string;
+  /** Capabilities that differ in specific documentation versions. */
+  versionedFeatures?: Record<string, ModelFeatures>;
   /** Provider paths that differ in specific documentation versions. */
   versionedHrefs?: Record<string, string>;
 }
@@ -372,7 +374,11 @@ const OFFICIAL_MODELS: ModelCardData[] = [
     logo: { src: '/images/icons/perplexity.svg' },
     href: '/providers/ai-sdk-providers/perplexity',
     color: '20808D',
-    features: {},
+    features: { image: true, object: true, tool: true, stream: true },
+    versionedFeatures: {
+      '/v5': { image: true, object: true },
+      '/v6': { image: true, object: true },
+    },
   },
   {
     title: 'Luma AI',
@@ -444,8 +450,15 @@ const CardGrid = ({
   <div className="not-prose grid w-full grid-cols-1 gap-3 sm:grid-cols-[repeat(auto-fit,_minmax(300px,1fr))]">
     {models.map(model => {
       const href = model.versionedHrefs?.[versionPrefix] ?? model.href;
+      const features =
+        model.versionedFeatures?.[versionPrefix] ?? model.features;
       return (
-        <ModelCard {...model} href={resolveHref(href)} key={model.title} />
+        <ModelCard
+          {...model}
+          features={features}
+          href={resolveHref(href)}
+          key={model.title}
+        />
       );
     })}
   </div>

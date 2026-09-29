@@ -377,7 +377,7 @@ describe('FishAudioSpeechModel', () => {
       await model.doGenerate({ text: 'Hello, world!' });
 
       expect(server.calls[0].requestUserAgent).toContain(
-        'ai-sdk/fish-audio/0.0.0-test',
+        'ai-sdk-fish-audio/0.0.0-test',
       );
     });
 

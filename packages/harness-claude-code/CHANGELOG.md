@@ -1,5 +1,49 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.136
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.135
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.134
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.133
+
+### Patch Changes
+
+- 34c989a: chore(harness-claude-code): update bundled Claude Code CLI to 2.1.281 and Claude Agent SDK to 0.3.281, adding support for Claude Opus 5.5
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
 ## 1.0.130
 
 ### Patch Changes

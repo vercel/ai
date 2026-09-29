@@ -14,6 +14,8 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
 import type { Callback } from '../util/callback';
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
@@ -427,10 +429,10 @@ export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
                 for (const [providerName, metadata] of Object.entries(
                   result.providerMetadata,
                 )) {
-                  providerMetadata[providerName] = {
-                    ...providerMetadata[providerName],
+                  setOwn(providerMetadata, providerName, {
+                    ...getOwn(providerMetadata, providerName),
                     ...metadata,
-                  };
+                  });
                 }
               }
             }

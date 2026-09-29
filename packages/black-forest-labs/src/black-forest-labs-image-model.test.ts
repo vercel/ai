@@ -63,6 +63,15 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
+    'https://api.example.com/v1/flux-kontext-pro': {
+      response: {
+        type: 'json-value',
+        body: {
+          id: 'req-123',
+          polling_url: 'https://api.example.com/poll',
+        },
+      },
+    },
     'https://api.example.com/poll': {
       response: {
         type: 'json-value',
@@ -112,6 +121,49 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+  });
+
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'flux-pro-1.0-fill',
+        supportsFileInputs: true,
+        supportsMaskInputs: true,
+      },
+      {
+        modelId: 'flux-kontext-pro',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-kontext-max',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-pro-1.1',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'flux-pro-1.1-ultra',
+        supportsFileInputs: false,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'custom-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const model = createBasicModel({ modelId });
+
+        expect(model.supportsFileInputs).toBe(supportsFileInputs);
+        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
   });
 
   beforeEach(() => {
@@ -194,8 +246,8 @@ describe('BlackForestLabsImageModel', () => {
       });
     });
 
-    it('uses input_image field for non-fill input images', async () => {
-      const model = createBasicModel();
+    it('uses input_image field for Kontext input images', async () => {
+      const model = createBasicModel({ modelId: 'flux-kontext-pro' });
 
       await model.doGenerate({
         prompt,

@@ -1,5 +1,56 @@
 # @ai-sdk/google-vertex
 
+## 5.0.98
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/google@4.0.85
+  - @ai-sdk/openai-compatible@3.0.59
+  - @ai-sdk/provider-utils@5.0.51
+
+## 5.0.97
+
+### Patch Changes
+
+- e361d39: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), `reasoning: 'none'` maps to `between_tools` thinking, and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [e361d39]
+- Updated dependencies [8373a22]
+- Updated dependencies [d0290cf]
+  - @ai-sdk/anthropic@4.0.67
+  - @ai-sdk/google@4.0.84
+
+## 5.0.96
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [32cf2f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/openai-compatible@3.0.58
+  - @ai-sdk/google@4.0.83
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/anthropic@4.0.66
+
 ## 5.0.95
 
 ### Patch Changes

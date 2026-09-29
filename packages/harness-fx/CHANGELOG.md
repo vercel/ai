@@ -1,5 +1,54 @@
 # @ai-sdk/harness-fx
 
+## 1.0.45
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+- @ai-sdk/harness-acp@1.0.70
+
+## 1.0.44
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/harness-acp@1.0.69
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.43
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+- @ai-sdk/harness-acp@1.0.68
+
+## 1.0.42
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+  - @ai-sdk/harness-acp@1.0.67
+
+## 1.0.41
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+- @ai-sdk/harness-acp@1.0.66
+
+## 1.0.40
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+- @ai-sdk/harness-acp@1.0.65
+
 ## 1.0.39
 
 ### Patch Changes

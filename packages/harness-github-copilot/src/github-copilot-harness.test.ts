@@ -66,7 +66,7 @@ describe('createGitHubCopilot', () => {
           "task",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-github-copilot",
+          "name": "ai-sdk-harness-github-copilot",
           "version": "0.0.0-test",
         },
         "credentialEnv": [

@@ -26,7 +26,7 @@ export function toUIMessageStream<
   sendSources = false,
   sendStart = true,
   sendFinish = true,
-  onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+  onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
   messageMetadata,
   originalMessages,
   generateMessageId,

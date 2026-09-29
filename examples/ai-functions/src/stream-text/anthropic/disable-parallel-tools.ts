@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt: 'What is the weather in Paris, France and London, UK?',
     tools: {
       getWeather: tool({

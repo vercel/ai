@@ -330,7 +330,7 @@ export function createGateway(
           : {}),
         ...options.headers,
       },
-      `ai-sdk/gateway/${VERSION}`,
+      `ai-sdk-gateway/${VERSION}`,
     );
 
   const getHeaders = async () => {
