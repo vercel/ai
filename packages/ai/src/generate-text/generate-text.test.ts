@@ -8542,6 +8542,55 @@ describe('generateText', () => {
         expect(result.output).toEqual({ value: 'test-value' });
       });
 
+      it('should generate the output after the default stop condition is met on a tool-call step', async () => {
+        let callCount = 0;
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            if (callCount++ === 0) {
+              return {
+                ...dummyResponseValues,
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: 'call-1',
+                    toolName: 'tool1',
+                    input: '{}',
+                  },
+                ],
+                finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              };
+            }
+
+            return {
+              ...dummyResponseValues,
+              content: [{ type: 'text', text: '{ "value": "final" }' }],
+            };
+          },
+        });
+
+        const result = await generateText({
+          model,
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'tool result',
+            }),
+          },
+          toolChoice: 'required',
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+        });
+
+        expect(result.output).toEqual({ value: 'final' });
+        expect(result.steps).toHaveLength(1);
+        expect(result.finalStep.finishReason).toBe('tool-calls');
+        expect(model.doGenerateCalls[1].tools).toBeUndefined();
+        expect(model.doGenerateCalls[1].toolChoice).toEqual({ type: 'none' });
+      });
+
       it('should expose parse diagnostics when output is truncated', async () => {
         const truncatedText = '{"value":"test';
 
