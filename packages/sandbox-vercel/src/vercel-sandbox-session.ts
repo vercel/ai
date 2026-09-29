@@ -1,8 +1,8 @@
 import { posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_SandboxSession,
-  type Experimental_SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
+  type Experimental_SandboxProcess as SandboxProcess,
 } from '@ai-sdk/provider-utils';
 import type { Sandbox, Command } from '@vercel/sandbox';
 
@@ -13,7 +13,7 @@ import type { Sandbox, Command } from '@vercel/sandbox';
  * constructed directly by consumers. The network sandbox session owns the
  * lifetime of the underlying sandbox.
  */
-export class VercelSandboxSession implements Experimental_SandboxSession {
+export class VercelSandboxSession implements SandboxSession {
   constructor(protected readonly sandbox: Sandbox) {}
 
   get description(): string {
@@ -66,7 +66,7 @@ export class VercelSandboxSession implements Experimental_SandboxSession {
     workingDirectory?: string;
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+  }): Promise<SandboxProcess> {
     abortSignal?.throwIfAborted();
 
     const live = await this.sandbox.runCommand({
@@ -201,7 +201,7 @@ export class VercelSandboxSession implements Experimental_SandboxSession {
 function createSandboxProcess(
   command: Command,
   abortSignal: AbortSignal | undefined,
-): Experimental_SandboxProcess {
+): SandboxProcess {
   const encoder = new TextEncoder();
   const controllers: {
     stdout?: ReadableStreamDefaultController<Uint8Array>;

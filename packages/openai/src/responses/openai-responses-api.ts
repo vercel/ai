@@ -214,6 +214,7 @@ export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
 };
 
 export type OpenAIResponsesSystemMessage = {
+  type?: 'message';
   role: 'system' | 'developer';
   content:
     | string
@@ -225,6 +226,7 @@ export type OpenAIResponsesSystemMessage = {
 };
 
 export type OpenAIResponsesUserMessage = {
+  type?: 'message';
   role: 'user';
   content: Array<
     | {
@@ -262,9 +264,9 @@ export type OpenAIResponsesUserMessage = {
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type?: 'message';
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
-  id?: string;
+  content: string;
   phase?: 'commentary' | 'final_answer' | null;
 };
 
@@ -273,6 +275,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  async?: boolean;
   id?: string;
   namespace?: string;
   caller?: OpenAIResponsesToolCaller;
@@ -295,6 +298,11 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
         | {
+            type: 'input_image';
+            file_id: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
             type: 'input_file';
             filename: string;
             file_data: string;
@@ -303,6 +311,11 @@ export type OpenAIResponsesFunctionCallOutput = {
         | {
             type: 'input_file';
             file_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            file_id: string;
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
@@ -335,6 +348,7 @@ export type OpenAIResponsesCustomToolCall = {
   call_id: string;
   name: string;
   input: string;
+  async?: boolean;
 };
 
 export type OpenAIResponsesCustomToolCallOutput = {
@@ -472,7 +486,7 @@ export type OpenAIResponsesCompactionItem = {
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
   reasoning: {
-    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
 
@@ -523,6 +537,7 @@ export type OpenAIResponsesFunctionTool = {
   name: string;
   description: string | undefined;
   parameters: JSONSchema7;
+  async?: boolean;
   strict?: boolean;
   defer_loading?: boolean;
   allowed_callers?: Array<'direct' | 'programmatic'>;
@@ -623,7 +638,7 @@ export type OpenAIResponsesTool =
       output_compression: number | undefined;
       output_format: 'png' | 'jpeg' | 'webp' | undefined;
       partial_images: number | undefined;
-      quality: 'auto' | 'low' | 'medium' | 'high' | undefined;
+      quality: 'auto' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
       size:
         | 'auto'
         | '1024x1024'
@@ -663,6 +678,7 @@ export type OpenAIResponsesTool =
       type: 'custom';
       name: string;
       description?: string;
+      async?: boolean;
       format?:
         | {
             type: 'grammar';
@@ -753,7 +769,7 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
   sequence_number: z.number(),
   error: z.object({
     type: z.string(),
-    code: z.string(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),
@@ -944,6 +960,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             namespace: z.string().nullish(),
             caller: openaiResponsesToolCallerSchema.nullish(),
           }),
@@ -1021,6 +1038,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             input: z.string(),
+            async: z.boolean().nullish(),
           }),
           z.object({
             type: z.literal('shell_call'),
@@ -1093,6 +1111,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
             status: z.enum(['in_progress', 'completed', 'incomplete']),
             namespace: z.string().nullish(),
             caller: openaiResponsesToolCallerSchema.nullish(),
@@ -1105,6 +1124,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             input: z.string(),
+            async: z.boolean().nullish(),
             status: z.literal('completed'),
           }),
           z.object({
@@ -1593,6 +1613,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
               namespace: z.string().nullish(),
               caller: openaiResponsesToolCallerSchema.nullish(),
             }),
@@ -1604,6 +1625,7 @@ export const openaiResponsesResponseSchema = lazySchema(() =>
               name: z.string(),
               input: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
             }),
             openaiResponsesComputerCallSchema,
             z.object({

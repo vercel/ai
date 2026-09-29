@@ -51,6 +51,163 @@ function createEmitter({
 }
 
 describe('createEmitStreamEvent', () => {
+  it.each([true, false])(
+    'reports legacy compaction without streaming its summary as answer text (auto=%s)',
+    auto => {
+      const { emitted, emitStreamEvent } = createEmitter();
+      emitStreamEvent({
+        type: 'message.part.updated',
+        properties: { part: { type: 'compaction', auto } },
+      });
+      const summaryMessage = {
+        type: 'message.updated',
+        properties: {
+          info: { id: 'summary-1', role: 'assistant', summary: true },
+        },
+      };
+      emitStreamEvent(summaryMessage);
+      emitStreamEvent(summaryMessage);
+      expect(emitted).toEqual([
+        { type: 'stream-start' },
+        {
+          type: 'raw',
+          rawValue: {
+            type: 'opencode.compaction',
+            messageId: 'summary-1',
+            status: 'started',
+          },
+        },
+      ]);
+
+      for (const type of ['text', 'reasoning']) {
+        emitStreamEvent({
+          type: 'message.part.updated',
+          properties: {
+            part: { id: type, messageID: 'summary-1', type, text: '' },
+          },
+        });
+        emitStreamEvent({
+          type: 'message.part.delta',
+          properties: {
+            partID: type,
+            messageID: 'summary-1',
+            field: 'text',
+            delta: type === 'text' ? 'Saved context' : 'Internal reasoning',
+          },
+        });
+      }
+      emitStreamEvent({
+        type: 'message.part.updated',
+        properties: {
+          part: {
+            id: 'text',
+            messageID: 'summary-1',
+            type: 'text',
+            text: 'Saved context.',
+          },
+        },
+      });
+      emitStreamEvent({
+        type: 'message.part.updated',
+        properties: {
+          part: {
+            id: 'summary-usage',
+            messageID: 'summary-1',
+            type: 'step-finish',
+            reason: 'stop',
+            tokens: {
+              input: 1000,
+              output: 20,
+              reasoning: 5,
+              cache: { read: 100, write: 0 },
+            },
+          },
+        },
+      });
+      emitStreamEvent({ type: 'session.compacted', properties: {} });
+      emitStreamEvent({ type: 'session.compacted', properties: {} });
+      emitStreamEvent(summaryMessage);
+
+      expect(emitted.filter(event => event.type === 'finish-step')).toEqual([
+        expect.objectContaining({
+          usage: expect.objectContaining({
+            inputTokens: expect.objectContaining({ total: 1000 }),
+            outputTokens: expect.objectContaining({ total: 25 }),
+          }),
+        }),
+      ]);
+      expect(emitted.filter(event => event.type === 'compaction')).toEqual([
+        {
+          type: 'compaction',
+          trigger: auto ? 'auto' : 'manual',
+          summary: 'Saved context.',
+          harnessMetadata: { opencode: { messageId: 'summary-1' } },
+        },
+      ]);
+      expect(
+        emitted.filter(event => /^(text|reasoning)-/.test(String(event.type))),
+      ).toEqual([]);
+      emitStreamEvent({
+        type: 'message.part.updated',
+        properties: {
+          part: {
+            id: 'answer',
+            messageID: 'answer-message',
+            type: 'text',
+            text: 'The answer continues.',
+          },
+        },
+      });
+      expect(emitted).toContainEqual({
+        type: 'text-delta',
+        id: 'answer',
+        delta: 'The answer continues.',
+      });
+    },
+  );
+
+  it.each(['message.updated', 'session.error', 'session.next.step.failed'])(
+    'reports failed compaction on %s and permits another compaction',
+    type => {
+      const { emitted, emitStreamEvent } = createEmitter();
+      const start = (id: string) => ({
+        type: 'message.updated',
+        properties: { info: { id, role: 'assistant', summary: true } },
+      });
+      emitStreamEvent(start('failed-summary'));
+      emitStreamEvent({
+        type,
+        properties: {
+          error: 'failed',
+          info: {
+            id: 'failed-summary',
+            role: 'assistant',
+            summary: true,
+            error: { message: 'failed' },
+          },
+        },
+      });
+      emitStreamEvent({ type: 'session.compacted', properties: {} });
+      expect(emitted.filter(event => event.type === 'compaction')).toEqual([]);
+      expect(emitted).toContainEqual({
+        type: 'raw',
+        rawValue: {
+          type: 'opencode.compaction',
+          messageId: 'failed-summary',
+          status: 'failed',
+        },
+      });
+
+      emitStreamEvent(start('next-summary'));
+      emitStreamEvent({ type: 'session.compacted', properties: {} });
+      expect(emitted.filter(event => event.type === 'compaction')).toEqual([
+        expect.objectContaining({
+          harnessMetadata: { opencode: { messageId: 'next-summary' } },
+        }),
+      ]);
+    },
+  );
+
   it('emits text, final deltas, and step usage', () => {
     const { emitted, emitStreamEvent } = createEmitter();
 
@@ -172,7 +329,7 @@ describe('createEmitStreamEvent', () => {
         ],
         "emitted": [
           {
-            "input": "{\"file\":\"README.md\"}",
+            "input": "{"file":"README.md"}",
             "nativeName": "view",
             "providerExecuted": true,
             "toolCallId": "tool-1",
@@ -212,7 +369,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryName\":\"next.js\"}",
+          "input": "{"libraryName":"next.js"}",
           "providerExecuted": true,
           "toolCallId": "tool-1",
           "toolName": "context7_resolve-library-id",
@@ -253,7 +410,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"file\":\"README.md\"}",
+          "input": "{"file":"README.md"}",
           "nativeName": "view",
           "providerExecuted": true,
           "toolCallId": "tool-legacy",

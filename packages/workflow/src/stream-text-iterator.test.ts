@@ -526,6 +526,113 @@ describe('streamTextIterator', () => {
       `);
     });
 
+    it('interleaves provider-executed results while keeping client results in a tool message', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [
+              {
+                type: 'tool-call',
+                toolCallId: 'provider-call',
+                toolName: 'providerTool',
+                input: { query: 'docs' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'client-call',
+                toolName: 'clientTool',
+                input: { id: 1 },
+              },
+            ],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                { type: 'tool-call', toolCallIndex: 0 },
+                { type: 'tool-call', toolCallIndex: 1 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'provider-call',
+          toolName: 'providerTool',
+          output: {
+            type: 'json',
+            value: [{ toolName: 'clientTool' }],
+          },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { result: 'success' } },
+        },
+      ]);
+
+      expect(capturedPrompt).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              input: { query: 'docs' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              output: {
+                type: 'json',
+                value: [{ toolName: 'clientTool' }],
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              input: { id: 1 },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              output: { type: 'json', value: { result: 'success' } },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('preserves generated files in the assistant message history', async () => {
       vi.mocked(doStreamStep).mockResolvedValueOnce(
         createMockDoStreamStepResult({

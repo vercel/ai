@@ -1,13 +1,14 @@
-import type {
-  LanguageModelV4,
-  LanguageModelV4CallOptions,
-  LanguageModelV4Content,
-  LanguageModelV4FinishReason,
-  LanguageModelV4GenerateResult,
-  LanguageModelV4StreamPart,
-  LanguageModelV4StreamResult,
-  SharedV4ProviderMetadata,
-  SharedV4Warning,
+import {
+  InvalidResponseDataError,
+  type LanguageModelV4,
+  type LanguageModelV4CallOptions,
+  type LanguageModelV4Content,
+  type LanguageModelV4FinishReason,
+  type LanguageModelV4GenerateResult,
+  type LanguageModelV4StreamPart,
+  type LanguageModelV4StreamResult,
+  type SharedV4ProviderMetadata,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   StreamingToolCallTracker,
@@ -47,6 +48,7 @@ import {
   type OpenAIChatModelId,
 } from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 
 type OpenAIChatConfig = {
   provider: string;
@@ -158,6 +160,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     warnings.push(...messageWarnings);
 
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
 
     const baseArgs = {
       // model id:
@@ -189,11 +199,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? responseFormat.schema != null
+          ? normalizedResponseFormatSchema != null
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: normalizedResponseFormatSchema.schema,
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
@@ -396,10 +406,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV4Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }

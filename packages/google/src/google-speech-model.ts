@@ -1,4 +1,8 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SpeechModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -14,6 +18,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { googleFailedResponseHandler } from './google-error';
 import { googleSpeechResponseSchema } from './google-speech-api';
+import { getGoogleSpeechInput } from './google-speech-input';
 import {
   googleSpeechProviderOptionsSchema,
   type GoogleSpeechModelId,
@@ -101,18 +106,36 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       });
     }
 
+    // Older Gemini families require prompt-based directions. Default newer and
+    // custom model IDs to structured speech without enumerating their aliases.
+    const usesStructuredSpeech =
+      !this.modelId.startsWith('gemini-2.5-') &&
+      !this.modelId.startsWith('gemini-3.1-');
+
+    const input = getGoogleSpeechInput({
+      text,
+      voice,
+      providerOptions: { google: googleOptions },
+    });
+
+    if (input.usesCustomVoice) {
+      throw new InvalidArgumentError({
+        argument: 'voice',
+        message:
+          'Custom voices are not supported. Use a prebuilt voice instead.',
+      });
+    }
+
     // Multi-speaker (provider option) takes precedence over the single voice.
     const multiSpeakerVoiceConfig = googleOptions?.multiSpeakerVoiceConfig;
     const speechConfig = multiSpeakerVoiceConfig
       ? { multiSpeakerVoiceConfig }
       : { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
 
-    // Gemini honors natural-language style direction expressed in the prompt
-    // text, so map `instructions` onto the spoken content. With multi-speaker
-    // the transcript starts with speaker labels (e.g. `Joe: ...`), so prepending
-    // instructions would corrupt that parsing — ignore them there (with a warning).
+    // Older models expect directions in the prompt. Prepending them to a
+    // labelled multi-speaker transcript would break speaker parsing.
     let promptText = text;
-    if (instructions != null) {
+    if (instructions != null && !usesStructuredSpeech) {
       if (multiSpeakerVoiceConfig) {
         warnings.push({
           type: 'unsupported',
@@ -124,6 +147,65 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       } else {
         promptText = `${instructions}: ${text}`;
       }
+    }
+
+    let parts: Array<{
+      text: string;
+      speechMetadata?: { speaker?: string; style?: string };
+    }> = [{ text: promptText }];
+
+    if (usesStructuredSpeech) {
+      if (googleOptions?.turns && googleOptions.speechMetadata) {
+        throw new InvalidArgumentError({
+          argument: 'providerOptions',
+          message: 'Set speechMetadata on each turn when using turns.',
+        });
+      }
+      if (googleOptions?.turns && text !== '') {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'text',
+          details: 'Google TTS turns replace the top-level text.',
+        });
+      }
+      parts = (
+        googleOptions?.turns ?? [
+          { text, speechMetadata: googleOptions?.speechMetadata },
+        ]
+      ).map(part => {
+        const style = part.speechMetadata?.style ?? instructions;
+        const speaker = part.speechMetadata?.speaker;
+        if (
+          multiSpeakerVoiceConfig &&
+          !multiSpeakerVoiceConfig.speakerVoiceConfigs.some(
+            config => config.speaker === speaker,
+          )
+        ) {
+          throw new InvalidArgumentError({
+            argument: 'speechMetadata.speaker',
+            message:
+              'Every multi-speaker turn must specify a speechMetadata.speaker matching a configured speaker.',
+          });
+        }
+        return {
+          text: part.text,
+          ...(style != null || speaker != null
+            ? { speechMetadata: { style, speaker } }
+            : {}),
+        };
+      });
+    } else if (googleOptions?.turns || googleOptions?.speechMetadata) {
+      throw new InvalidArgumentError({
+        argument: 'providerOptions',
+        message: 'Structured speech metadata and turns require Gemini 3.8 TTS.',
+      });
+    }
+
+    if (input.text.length === 0) {
+      throw new InvalidArgumentError({
+        argument: 'text',
+        message: 'Speech input must contain a non-empty transcript.',
+      });
     }
 
     if (speed != null) {
@@ -145,11 +227,25 @@ export class GoogleSpeechModel implements SpeechModelV4 {
       });
     }
 
-    // Only `wav` (default, WAV-wrapped) and `pcm` (raw) are supported.
-    let resolvedOutputFormat: 'wav' | 'pcm' = 'wav';
-    if (outputFormat === 'pcm') {
-      resolvedOutputFormat = 'pcm';
-    } else if (outputFormat != null && outputFormat !== 'wav') {
+    const formats: Record<string, string> = usesStructuredSpeech
+      ? {
+          wav: 'AUDIO_WAV',
+          'audio/wav': 'AUDIO_WAV',
+          pcm: 'AUDIO_L16',
+          'audio/l16': 'AUDIO_L16',
+          mulaw: 'AUDIO_MULAW',
+          'audio/mulaw': 'AUDIO_MULAW',
+          alaw: 'AUDIO_ALAW',
+          'audio/alaw': 'AUDIO_ALAW',
+        }
+      : { wav: 'AUDIO_WAV', pcm: 'AUDIO_L16' };
+    let resolvedOutputFormat = 'wav';
+    if (
+      outputFormat != null &&
+      Object.prototype.hasOwnProperty.call(formats, outputFormat)
+    ) {
+      resolvedOutputFormat = outputFormat;
+    } else if (outputFormat != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'outputFormat',
@@ -158,21 +254,34 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     }
 
     const requestBody = {
-      contents: [{ role: 'user', parts: [{ text: promptText }] }],
+      contents: [{ role: 'user', parts }],
       generationConfig: {
         responseModalities: ['AUDIO'],
         speechConfig,
+        ...(usesStructuredSpeech && outputFormat != null
+          ? {
+              responseFormat: {
+                audio: { mimeType: formats[resolvedOutputFormat] },
+              },
+            }
+          : {}),
       },
     };
 
-    return { requestBody, warnings, outputFormat: resolvedOutputFormat };
+    return {
+      requestBody,
+      warnings,
+      outputFormat: formats[resolvedOutputFormat],
+      usesStructuredSpeech,
+    };
   }
 
   async doGenerate(
     options: Parameters<SpeechModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
-    const { requestBody, warnings, outputFormat } = await this.getArgs(options);
+    const { requestBody, warnings, outputFormat, usesStructuredSpeech } =
+      await this.getArgs(options);
 
     const {
       value: response,
@@ -211,23 +320,26 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     }
 
     const sampleRate = parseSampleRate(mimeType) ?? DEFAULT_SAMPLE_RATE;
-    const pcm =
+    const bytes =
       base64Audio != null
         ? convertBase64ToUint8Array(base64Audio)
         : new Uint8Array(0);
 
-    // Gemini returns headerless raw PCM (e.g. `audio/L16;rate=24000`). Unlike
-    // providers that return a container format (mp3/opus/wav) directly,
-    // `generateSpeech`'s `detectMediaType` can't identify raw PCM and would
-    // mislabel it `audio/mp3` (not playable), so wrap it in a minimal WAV header
-    // by default; `outputFormat: 'pcm'` returns the raw bytes untouched.
-    // Empty audio is returned as-is so the core layer throws NoSpeechGeneratedError.
+    // Older models return PCM, which needs a container for default WAV output.
+    // Gemini 3.8 returns WAV itself; adding another header corrupts that audio.
+    const isPcm =
+      /^audio\/(?:l16|pcm)(?:;|$)/i.test(mimeType ?? '') ||
+      (mimeType == null && !usesStructuredSpeech);
     const audio =
-      outputFormat === 'pcm' || pcm.length === 0
-        ? pcm
-        : addWavHeader(pcm, sampleRate);
+      outputFormat === 'AUDIO_WAV' && isPcm && bytes.length > 0
+        ? addWavHeader(bytes, sampleRate)
+        : bytes;
 
-    if (outputFormat === 'pcm' && pcm.length > 0) {
+    if (
+      outputFormat === 'AUDIO_L16' &&
+      bytes.length > 0 &&
+      !usesStructuredSpeech
+    ) {
       warnings.push({
         type: 'unsupported',
         feature: 'outputFormat',

@@ -15,7 +15,7 @@ const openai = createOpenAI({
 
 run(async () => {
   const { content } = await generateText({
-    model: openai.responses('gpt-4o-mini'),
+    model: openai.responses('gpt-6-luna'),
     tools: {
       web_search: openai.tools.webSearch(),
       checkStatus: tool({

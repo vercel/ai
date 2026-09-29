@@ -27,8 +27,8 @@ description: Learn how to upgrade AI SDK 3.4 to 4.0.
 You need to update the following packages to the following versions in your `package.json` file(s):
 
 - `ai` package: `4.0.*`
-- `ai-sdk@provider-utils` package: `2.0.*`
-- `ai-sdk/*` packages: `1.0.*` (other `@ai-sdk` packages)
+- `@ai-sdk/provider-utils` package: `2.0.*`
+- `@ai-sdk/*` packages: `1.0.*` (other `@ai-sdk/*` packages)
 
 ## Codemods
 
@@ -518,7 +518,7 @@ import { Provider } from 'ai';
   providers](/docs/reference/ai-sdk-core/provider-registry#setup) instead.
 </Note>
 
-#### Removed `experimental_​createModelRegistry` function
+#### Removed `experimental_createModelRegistry` function
 
 The `experimental_createModelRegistry` function has been removed.
 Please use the `experimental_createProviderRegistry` function instead.
@@ -621,7 +621,7 @@ const { text, response } = await generateText({
 const responseMessages = response.messages;
 ```
 
-### Removed `experimental_​continuationSteps` option
+### Removed `experimental_continuationSteps` option
 
 The `experimental_continuationSteps` option has been removed from the `generateText` function.
 Please use the `experimental_continueSteps` option instead.
@@ -965,7 +965,7 @@ return AssistantResponse(
 );
 ```
 
-#### Removed `experimental_​AssistantResponse` export
+#### Removed `experimental_AssistantResponse` export
 
 <Note type="warning">
   There is no codemod available for this change. Please review and update your

@@ -30,11 +30,19 @@ export {
 } from './detect-media-type';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
-export { EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL } from './embedding-model-capabilities';
-export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+export {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 export { extractLines } from './extract-lines';
 export * from './extract-response-headers';
 export * from './fetch-function';
+export { fetchUntrustedUrl } from './fetch-untrusted-url';
 export { filterNullable } from './filter-nullable';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';

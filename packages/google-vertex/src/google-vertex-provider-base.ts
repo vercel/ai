@@ -193,6 +193,17 @@ export interface GoogleVertexProviderSettings {
    * `ws` package in Node.js, which Vertex's OAuth Bearer header requires).
    */
   webSocket?: WebSocketConstructor;
+
+  /**
+   * Settings for downloading remote files in tool results before sending them
+   * to Vertex as inline data.
+   */
+  toolResultDownloads?: {
+    /**
+     * Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
+     */
+    maxBytes?: number;
+  };
 }
 
 /**
@@ -260,7 +271,7 @@ export function createGoogleVertex(
       const originalHeaders = await resolve(options.headers ?? {});
       return withUserAgentSuffix(
         originalHeaders,
-        `ai-sdk/google-vertex/${VERSION}`,
+        `ai-sdk-google-vertex/${VERSION}`,
       );
     };
 
@@ -294,6 +305,10 @@ export function createGoogleVertex(
           /^gs:\/\/.*$/,
         ],
       }),
+      downloadToolResultFiles: {
+        maxBytes: options.toolResultDownloads?.maxBytes ?? 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
     });
   };
 

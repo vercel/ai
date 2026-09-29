@@ -32,7 +32,11 @@ import {
   type LanguageModelV4ToolCall,
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
-import { asLanguageModelUsage, parseToolCall } from 'ai/internal';
+import {
+  asLanguageModelUsage,
+  parseToolCall,
+  validateToolContext,
+} from 'ai/internal';
 import type {
   ContentPart,
   OutputInterface as Output,
@@ -47,8 +51,13 @@ import type {
 } from 'ai';
 import type { HarnessAgentToolApprovalConfiguration } from '../harness-agent-settings';
 import { HarnessStreamTextResult } from './harness-stream-text-result';
+import { getOwn } from './get-own';
 import { translateStreamPart } from './translate-stream-part';
-import { createToolInputWorkDirStripper, stripWorkDir } from './strip-work-dir';
+import {
+  createToolInputWorkDirStripper,
+  stripParsedToolInputWorkDir,
+  stripWorkDir,
+} from './strip-work-dir';
 import {
   createTurnLifecycle,
   type HarnessAgentLifecycleCallbacks,
@@ -57,6 +66,8 @@ import {
 import { resolveCustomToolApproval } from './permission-mode';
 import { logBridgeError } from '../../utils/bridge-diagnostics';
 import { pinSandboxChannelEventCheckpoint } from '../../utils/sandbox-channel';
+
+const invalidToolInputMessage = 'Tool input validation failed.';
 
 function unwrapToolResultOutput(toolResult: ToolResultPart): {
   output: unknown;
@@ -112,6 +123,7 @@ export function runPrompt<
   skills?: ReadonlyArray<HarnessV1Skill>;
   instructions: string | undefined;
   tools: TOOLS;
+  toolsContext?: InferToolSetContext<TOOLS>;
   activeTools?: ToolSet;
   toolSpecs: HarnessV1ToolSpec[];
   builtinToolFiltering?: HarnessV1BuiltinToolFiltering | undefined;
@@ -147,7 +159,7 @@ export function runPrompt<
   done: Promise<void>;
 } {
   const callId = generateId();
-  const toolsContext = {} as InferToolSetContext<TOOLS>;
+  const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -539,28 +551,6 @@ export function runPrompt<
       onPendingToolResult(pendingResult);
       return pendingResult;
     };
-    const processPendingToolResultContinuation = async (
-      pendingResult: HarnessV1PendingToolResult,
-      continuation: ToolResultPart,
-    ): Promise<void> => {
-      const result = unwrapToolResultOutput(continuation);
-      onToolResultSettled(pendingResult.toolCallId);
-      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
-      settledHostToolCallIds.add(pendingResult.toolCallId);
-      await control.submitToolResult({
-        toolCallId: pendingResult.toolCallId,
-        output: result.output,
-        isError: result.isError,
-        toolResult: {
-          ...continuation,
-          toolName: pendingResult.toolName,
-          ...(continuation.providerOptions == null &&
-          pendingResult.providerOptions != null
-            ? { providerOptions: pendingResult.providerOptions }
-            : {}),
-        },
-      });
-    };
     const enqueueHostToolOutcome = (options: {
       toolCall: ToolCallTextStreamPart;
       outcome: HostToolOutcome;
@@ -596,12 +586,76 @@ export function runPrompt<
         error: options.outcome.error,
       } as TextStreamPart<TOOLS>);
     };
+    const submitToolResult: HarnessV1PromptControl['submitToolResult'] =
+      async submission => {
+        if (!input.isTurnSuspending?.()) {
+          return control.submitToolResult(submission);
+        }
+        const toolCall =
+          rawToolCallsByToolCallId.get(submission.toolCallId) ??
+          pendingResultsByToolCallId.get(submission.toolCallId) ??
+          pendingToolApprovals.find(
+            approval => approval.toolCallId === submission.toolCallId,
+          );
+        if (toolCall == null) {
+          throw new Error(
+            `Unknown suspended tool call '${submission.toolCallId}'.`,
+          );
+        }
+        const { toolCallId, ...completedResult } = submission;
+        onPendingToolResult({
+          toolCallId,
+          toolName: toolCall.toolName,
+          input: toolCall.input,
+          completedResult,
+        });
+        const parsed = toolCallsByToolCallId.get(toolCallId);
+        if (parsed != null && !settledHostToolCallIds.has(toolCallId)) {
+          bufferedToolOutcomes.push(() =>
+            enqueueHostToolOutcome({
+              toolCall: parsed,
+              outcome: submission.isError
+                ? { ok: false, error: submission.output }
+                : { ok: true, output: submission.output },
+            }),
+          );
+        }
+      };
+    const processPendingToolResultContinuation = async (
+      pendingResult: HarnessV1PendingToolResult,
+      continuation: ToolResultPart | undefined,
+    ): Promise<void> => {
+      const submission =
+        continuation == null
+          ? pendingResult.completedResult
+          : {
+              ...unwrapToolResultOutput(continuation),
+              toolResult: {
+                ...continuation,
+                toolName: pendingResult.toolName,
+                ...(continuation.providerOptions == null &&
+                pendingResult.providerOptions != null
+                  ? { providerOptions: pendingResult.providerOptions }
+                  : {}),
+              },
+            };
+      if (submission == null) return;
+      settledHostToolCallIds.add(pendingResult.toolCallId);
+      onToolResultSettled(pendingResult.toolCallId);
+      await submitToolResult({
+        toolCallId: pendingResult.toolCallId,
+        ...submission,
+      });
+      pendingResultsByToolCallId.delete(pendingResult.toolCallId);
+    };
     const processPendingApprovalContinuation = async (
       approval: HarnessV1PendingToolApproval,
       continuation: ToolApprovalResponse,
     ): Promise<'continued' | 'awaiting-tool-result'> => {
       const rawToolCall =
-        rawToolCallsByToolCallId.get(approval.toolCallId) ??
+        (approval.kind === 'builtin'
+          ? rawToolCallsByToolCallId.get(approval.toolCallId)
+          : undefined) ??
         ({
           type: 'tool-call',
           toolCallId: approval.toolCallId,
@@ -610,16 +664,31 @@ export function runPrompt<
           providerExecuted: approval.providerExecuted,
           nativeName: approval.nativeName,
         } satisfies Extract<HarnessV1StreamPart, { type: 'tool-call' }>);
-      const parsedInput = await safeParseJSON({ text: rawToolCall.input });
-      const toolCall: ToolCallTextStreamPart = {
-        type: 'tool-call',
-        toolCallId: rawToolCall.toolCallId,
-        toolName: rawToolCall.toolName,
-        input: parsedInput.success ? parsedInput.value : rawToolCall.input,
-        ...(rawToolCall.providerExecuted !== undefined
-          ? { providerExecuted: rawToolCall.providerExecuted }
-          : {}),
-      };
+      let validatedToolCall: ToolCallTextStreamPart | undefined;
+      let toolCall: ToolCallTextStreamPart;
+      if (approval.kind === 'custom' && continuation.approved) {
+        validatedToolCall = asToolCallTextStreamPart({
+          part: await validateToolCall({
+            event: rawToolCall,
+            tools: input.tools,
+          }),
+        });
+        toolCall = displayHostToolCall({
+          toolCall: validatedToolCall,
+          sessionWorkDir: input.sessionWorkDir,
+        });
+      } else {
+        const parsedInput = await safeParseJSON({ text: rawToolCall.input });
+        toolCall = {
+          type: 'tool-call',
+          toolCallId: rawToolCall.toolCallId,
+          toolName: rawToolCall.toolName,
+          input: parsedInput.success ? parsedInput.value : rawToolCall.input,
+          ...(rawToolCall.providerExecuted !== undefined
+            ? { providerExecuted: rawToolCall.providerExecuted }
+            : {}),
+        };
+      }
 
       enqueueApprovalResponse(approval, continuation, toolCall);
       onToolApprovalSettled(approval.approvalId);
@@ -643,13 +712,36 @@ export function runPrompt<
 
       settledHostToolCallIds.add(approval.toolCallId);
       if (!continuation.approved) {
-        await control.submitToolResult({
+        await submitToolResult({
           toolCallId: approval.toolCallId,
           output: {
             type: 'execution-denied',
             reason: continuation.reason,
           },
         });
+        return 'continued';
+      }
+
+      if (validatedToolCall == null) {
+        throw new Error(
+          `Harness '${input.harness.harnessId}' could not validate approved host tool '${approval.toolName}'.`,
+        );
+      }
+
+      if (validatedToolCall.invalid) {
+        const error = new Error(invalidToolInputMessage);
+        await submitToolResult({
+          toolCallId: approval.toolCallId,
+          output: { error: invalidToolInputMessage },
+          isError: true,
+        });
+        bufferedToolOutcomes.push(() => {
+          enqueueHostToolOutcome({
+            toolCall,
+            outcome: { ok: false, error },
+          });
+        });
+        await publishToolExecutions();
         return 'continued';
       }
 
@@ -660,11 +752,13 @@ export function runPrompt<
       const executionStartedAt = Date.now();
       const execution = await maybeExecuteHostTool({
         event: rawToolCall,
+        parsedToolCall: validatedToolCall,
         tools: activeTools,
+        toolsContext,
         wrappedExecuteTool: lifecycle.executeTool,
         sandboxSession: input.sandboxSession,
         abortSignal: input.abortSignal,
-        control,
+        submitToolResult,
         onPreliminaryResult: preliminaryOutput => {
           const stripped = stripWorkDir(
             {
@@ -727,12 +821,12 @@ export function runPrompt<
         const continuation = continuationsByToolCallId.get(
           pendingResult.toolCallId,
         );
-        if (continuation != null) {
+        if (continuation != null || pendingResult.completedResult != null) {
           await processPendingToolResultContinuation(
             pendingResult,
             continuation,
           );
-          closingResumedStep = true;
+          if (pendingResult.completedResult == null) closingResumedStep = true;
         }
       }
 
@@ -839,7 +933,6 @@ export function runPrompt<
         if (settledHostInputReplay || settledBuiltinApprovalReplay) {
           continue;
         }
-
         if (displayValue.type === 'finish-step' && closingResumedStep) {
           closingResumedStep = false;
           await publishToolExecutions();
@@ -924,15 +1017,34 @@ export function runPrompt<
 
         // Tool-call validation lives here (not in translateStreamPart) because
         // schema parsing is async and needs the merged tool set in scope.
+        let validatedHostToolCall: ToolCallTextStreamPart | undefined;
         if (displayValue.type === 'tool-call') {
+          const isHostTool =
+            value.type === 'tool-call' &&
+            !value.providerExecuted &&
+            hasTool({ tools: activeTools, toolName: value.toolName }) &&
+            !(
+              value.toolName === 'askUserQuestions' &&
+              hasTool({
+                tools: input.harness.builtinTools,
+                toolName: value.toolName,
+              })
+            );
           const parsed = await validateToolCall<TOOLS>({
-            event: displayValue,
+            event: isHostTool ? value : displayValue,
             tools: input.tools,
           });
           const parsedToolCall = asToolCallTextStreamPart({ part: parsed });
+          validatedHostToolCall = isHostTool ? parsedToolCall : undefined;
+          const displayToolCall = isHostTool
+            ? displayHostToolCall({
+                toolCall: parsedToolCall,
+                sessionWorkDir: input.sessionWorkDir,
+              })
+            : parsedToolCall;
           rawToolCallsByToolCallId.set(displayValue.toolCallId, displayValue);
-          toolCallsByToolCallId.set(displayValue.toolCallId, parsedToolCall);
-          result.enqueue(parsed);
+          toolCallsByToolCallId.set(displayValue.toolCallId, displayToolCall);
+          result.enqueue(displayToolCall as TextStreamPart<TOOLS>);
         }
 
         if (value.type === 'text-delta') {
@@ -1083,7 +1195,7 @@ export function runPrompt<
                 toolName: toolCall.toolName,
               }),
             };
-            await control.submitToolResult({
+            await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
             });
@@ -1108,6 +1220,31 @@ export function runPrompt<
             await finishForHostInputPause({ completeCurrentStep: true });
             return;
           }
+          if (validatedHostToolCall == null) {
+            throw new Error(
+              `Harness '${input.harness.harnessId}' could not validate host tool '${toolCall.toolName}'.`,
+            );
+          }
+          if (validatedHostToolCall.invalid) {
+            settledHostToolCallIds.add(toolCall.toolCallId);
+            toolExecutions.delete(toolCall.toolCallId);
+            bufferedToolOutcomes.push(() => {
+              result.enqueue({
+                type: 'tool-error',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                input: parsedToolCall.input,
+                error: new Error(invalidToolInputMessage),
+                dynamic: true,
+              } as TextStreamPart<TOOLS>);
+            });
+            await submitToolResult({
+              toolCallId: toolCall.toolCallId,
+              output: { error: invalidToolInputMessage },
+              isError: true,
+            });
+            continue;
+          }
           const customToolApprovalDecision = resolveCustomToolApproval({
             toolName: toolCall.toolName,
             toolApproval: input.toolApproval,
@@ -1130,7 +1267,7 @@ export function runPrompt<
               type: 'execution-denied',
               reason: customToolApprovalDecision.reason,
             };
-            await control.submitToolResult({
+            await submitToolResult({
               toolCallId: toolCall.toolCallId,
               output,
             });
@@ -1219,11 +1356,13 @@ export function runPrompt<
               const executionStartedAt = Date.now();
               const execution = await maybeExecuteHostTool({
                 event: toolCall,
+                parsedToolCall: validatedHostToolCall,
                 tools: activeTools,
+                toolsContext,
                 wrappedExecuteTool: lifecycle.executeTool,
                 sandboxSession: input.sandboxSession,
                 abortSignal: input.abortSignal,
-                control,
+                submitToolResult,
                 onPreliminaryResult: preliminaryOutput => {
                   /*
                    * Project a `yield`ed value as a preliminary AI SDK
@@ -1277,6 +1416,7 @@ export function runPrompt<
       await waitForOutstandingHostToolExecutions();
       const isTurnSuspending = input.isTurnSuspending?.() === true;
       if (isTurnSuspending) {
+        await publishToolExecutions();
         if (finalFinish == null) {
           /*
            * A timed slice may stop in the middle of a model step. Its partial
@@ -1365,6 +1505,22 @@ function asToolCallTextStreamPart<TOOLS extends ToolSet>(input: {
   return input.part as ToolCallTextStreamPart;
 }
 
+function displayHostToolCall(input: {
+  toolCall: ToolCallTextStreamPart;
+  sessionWorkDir: string;
+}): ToolCallTextStreamPart {
+  return {
+    ...input.toolCall,
+    input: stripParsedToolInputWorkDir({
+      value: input.toolCall.input,
+      sessionWorkDir: input.sessionWorkDir,
+    }),
+    ...(input.toolCall.invalid
+      ? { error: new Error(invalidToolInputMessage) }
+      : {}),
+  };
+}
+
 type ToolCallTextStreamPart = {
   readonly type: 'tool-call';
   readonly toolCallId: string;
@@ -1384,11 +1540,13 @@ function hasTool(input: { tools: ToolSet; toolName: string }): boolean {
 
 async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
   event: { toolCallId: string; toolName: string; input: string };
+  parsedToolCall: ToolCallTextStreamPart;
   tools: TOOLS;
+  toolsContext: InferToolSetContext<TOOLS>;
   wrappedExecuteTool: TurnLifecycle<ToolSet, Context>['executeTool'];
   sandboxSession: SandboxSession;
   abortSignal: AbortSignal | undefined;
-  control: HarnessV1PromptControl;
+  submitToolResult: HarnessV1PromptControl['submitToolResult'];
   /**
    * Called for each value a generator `execute` `yield`s before its last. The
    * caller surfaces these as preliminary `tool-result` parts on the consumer
@@ -1400,8 +1558,34 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
 
   if (!isExecutableTool(tool)) return { executed: false };
 
-  const parsed = await safeParseJSON({ text: input.event.input });
-  const args = parsed.success ? parsed.value : input.event.input;
+  if (input.parsedToolCall.invalid) {
+    const error = new Error(invalidToolInputMessage);
+    await input.submitToolResult({
+      toolCallId: input.event.toolCallId,
+      output: { error: invalidToolInputMessage },
+      isError: true,
+    });
+    return { executed: true, outcome: { ok: false, error } };
+  }
+
+  let context: unknown;
+  try {
+    context = await validateToolContext({
+      toolName: input.event.toolName,
+      context: getOwn(input.toolsContext, input.event.toolName),
+      contextSchema: tool.contextSchema,
+    });
+  } catch (err) {
+    // Context is host-only and can contain credentials. Keep the detailed
+    // validation error in the host-facing outcome, but never send its value or
+    // schema diagnostics back to the runtime/model.
+    await input.submitToolResult({
+      toolCallId: input.event.toolCallId,
+      output: { error: 'Tool context validation failed.' },
+      isError: true,
+    });
+    return { executed: true, outcome: { ok: false, error: err } };
+  }
 
   try {
     /*
@@ -1420,12 +1604,12 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
         let output: unknown;
         const stream = executeTool({
           tool,
-          input: args as never,
+          input: input.parsedToolCall.input as never,
           options: {
             toolCallId: input.event.toolCallId,
             messages: [],
             abortSignal: input.abortSignal,
-            context: undefined as never,
+            context: context as never,
             experimental_sandbox: input.sandboxSession,
           },
         });
@@ -1440,13 +1624,13 @@ async function maybeExecuteHostTool<TOOLS extends ToolSet>(input: {
       },
     });
 
-    await input.control.submitToolResult({
+    await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output,
     });
     return { executed: true, outcome: { ok: true, output } };
   } catch (err) {
-    await input.control.submitToolResult({
+    await input.submitToolResult({
       toolCallId: input.event.toolCallId,
       output: { error: String(err) },
       isError: true,

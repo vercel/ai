@@ -105,6 +105,9 @@ export class GatewayImageModel implements ImageModelV4 {
 
       return {
         images: responseBody.images, // Always base64 strings from server
+        ...(responseBody.isRetryable != null && {
+          isRetryable: responseBody.isRetryable,
+        }),
         warnings: responseBody.warnings ?? [],
         providerMetadata:
           responseBody.providerMetadata as ImageModelV4ProviderMetadata,
@@ -187,6 +190,7 @@ const gatewayImageUsageSchema = z.object({
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
+  isRetryable: z.boolean().optional(),
   warnings: z.array(gatewayImageWarningSchema).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)

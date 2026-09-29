@@ -12,7 +12,7 @@ if (!process.env.GOOGLE_TEMP_OAUTH_KEY) {
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'What is on my calendar for today?',
     tools: {
       mcp: openai.tools.mcp({
