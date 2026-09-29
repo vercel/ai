@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 14293,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-14293-workflow-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-14293-workflow-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_14293_REPRODUCED: second WorkflowAgent prompt omitted reasoning content and provider metadata."
+  }
+}
