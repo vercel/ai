@@ -11,6 +11,7 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { PerplexityLanguageModel } from './perplexity-language-model';
+import { createPerplexity } from './perplexity-provider';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -612,6 +613,25 @@ describe('doGenerate', () => {
     expect(result.response?.headers).toEqual(
       expect.objectContaining({ 'test-header': 'test-value' }),
     );
+  });
+
+  it('sends integration attribution and allows an override', async () => {
+    prepareJsonResponse();
+
+    const provider = createPerplexity({ apiKey: 'test-api-key' });
+    await provider('fast').doGenerate({ prompt: TEST_PROMPT });
+
+    expect(server.calls[0].requestHeaders['x-pplx-integration']).toBe(
+      'vercel-ai-sdk',
+    );
+
+    const customProvider = createPerplexity({
+      apiKey: 'test-api-key',
+      headers: { 'x-pplx-integration': 'custom' },
+    });
+    await customProvider('fast').doGenerate({ prompt: TEST_PROMPT });
+
+    expect(server.calls[1].requestHeaders['x-pplx-integration']).toBe('custom');
   });
 });
 
