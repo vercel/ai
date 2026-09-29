@@ -75,6 +75,15 @@ function extractErrorValue(value: unknown): { errorCode?: string } {
   return {};
 }
 
+function getFallbackModel(value: JSONValue | undefined): string | undefined {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const model = (value as JSONObject).model;
+  return typeof model === 'string' ? model : undefined;
+}
+
 export async function convertToAnthropicPrompt({
   prompt,
   sendReasoning,
@@ -821,6 +830,36 @@ export async function convertToAnthropicPrompt({
                       'sending reasoning content is disabled for this model',
                   });
                 }
+                break;
+              }
+
+              case 'custom': {
+                if (part.kind !== 'anthropic.fallback') {
+                  break;
+                }
+
+                const fallbackMetadata = part.providerOptions?.anthropic;
+                const fromModel = getFallbackModel(fallbackMetadata?.from);
+                const toModel = getFallbackModel(fallbackMetadata?.to);
+
+                if (
+                  fallbackMetadata?.type !== 'fallback' ||
+                  fromModel == null ||
+                  toModel == null
+                ) {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'anthropic fallback metadata must include from.model and to.model',
+                  });
+                  break;
+                }
+
+                anthropicContent.push({
+                  type: 'fallback',
+                  from: { model: fromModel },
+                  to: { model: toModel },
+                });
                 break;
               }
 
@@ -1571,7 +1610,11 @@ function moveToolUseBlocksToEnd(
   }
 
   for (const part of content) {
-    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+    if (
+      part.type === 'thinking' ||
+      part.type === 'redacted_thinking' ||
+      part.type === 'fallback'
+    ) {
       flushSegment();
       result.push(part);
     } else {
