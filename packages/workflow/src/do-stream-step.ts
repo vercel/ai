@@ -108,6 +108,10 @@ export type DoStreamStepRawContentPart =
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
+      type: 'reasoning';
+      reasoningIndex: number;
+    }
+  | {
       type: 'file';
       data: string;
       mediaType: string;
@@ -145,7 +149,10 @@ export type ToolInputLifecycleEvent =
  */
 export interface DoStreamStepRawResult {
   content: DoStreamStepRawContentPart[];
-  reasoning: Array<{ text: string }>;
+  reasoning: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
 }
@@ -291,7 +298,11 @@ export async function doStreamStep(
   // Minimal aggregation — only what buildStepResult needs outside the step.
   const content: DoStreamStepRawContentPart[] = [];
   const textPartIndexes = new Map<string, number>();
-  const reasoningParts: Array<{ text: string }> = [];
+  const reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }> = [];
+  const reasoningPartIndexes = new Map<string, number>();
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
@@ -357,8 +368,34 @@ export async function doStreamStep(
           });
           textPartIndexes.delete(part.id);
           break;
+        case 'reasoning-start':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
         case 'reasoning-delta':
-          reasoningParts.push({ text: part.text });
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            textDelta: part.text,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
+        case 'reasoning-end':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          reasoningPartIndexes.delete(part.id);
           break;
         case 'file':
           content.push({
@@ -549,6 +586,47 @@ function upsertTextContentPart({
   if (part.type !== 'text') {
     throw new Error(`Expected text content at index ${partIndex}.`);
   }
+
+  if (textDelta != null) {
+    part.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+  }
+}
+
+function upsertReasoningContentPart({
+  content,
+  reasoningParts,
+  reasoningPartIndexes,
+  id,
+  textDelta,
+  providerMetadata,
+}: {
+  content: DoStreamStepRawContentPart[];
+  reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  reasoningPartIndexes: Map<string, number>;
+  id: string;
+  textDelta?: string;
+  providerMetadata?: SharedV4ProviderMetadata;
+}) {
+  let partIndex = reasoningPartIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      reasoningParts.push({
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    reasoningPartIndexes.set(id, partIndex);
+    content.push({ type: 'reasoning', reasoningIndex: partIndex });
+  }
+
+  const part = reasoningParts[partIndex];
 
   if (textDelta != null) {
     part.text += textDelta;
