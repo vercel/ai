@@ -305,6 +305,7 @@ export function createAzure(
   const createDeepSeekModel = (deploymentName: string) =>
     new DeepSeekChatLanguageModel(deploymentName, {
       provider: 'azure.deepseek',
+      cacheUsageFormat: 'openai-compatible',
       url,
       headers: getHeaders,
       fetch,

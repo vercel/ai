@@ -40,6 +40,7 @@ import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
   provider: string;
+  cacheUsageFormat?: 'deepseek' | 'openai-compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -48,6 +49,19 @@ export type DeepSeekChatConfig = {
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function getDeepSeekCacheReadTokens(
+  usage: DeepSeekChatTokenUsage | undefined | null,
+  cacheUsageFormat: 'deepseek' | 'openai-compatible' = 'deepseek',
+): number | undefined {
+  return (
+    usage?.prompt_cache_hit_tokens ??
+    (cacheUsageFormat === 'openai-compatible'
+      ? usage?.prompt_tokens_details?.cached_tokens
+      : undefined) ??
+    undefined
+  );
+}
 
 function mapDeepSeekProviderReasoningEffort({
   reasoningEffort,
@@ -325,6 +339,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       content.push({ type: 'text', text });
     }
 
+    const cacheReadTokens = getDeepSeekCacheReadTokens(
+      responseBody.usage,
+      this.config.cacheUsageFormat,
+    );
+
     return {
       content,
       finishReason: mapDeepSeekFinishReason(choice.finish_reason),
@@ -335,17 +354,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
         reasoningTokens:
           responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
           undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ??
-          responseBody.usage?.prompt_tokens_details?.cached_tokens ??
-          undefined,
+        cachedInputTokens: cacheReadTokens,
       },
       providerMetadata: {
         [this.providerOptionsName]: {
-          promptCacheHitTokens:
-            responseBody.usage?.prompt_cache_hit_tokens ??
-            responseBody.usage?.prompt_tokens_details?.cached_tokens ??
-            null,
+          promptCacheHitTokens: cacheReadTokens ?? null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
           ...(responseBody.object != null && {
@@ -417,6 +430,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
     let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
+    const cacheUsageFormat = this.config.cacheUsageFormat;
     let isActiveReasoning = false;
     let isActiveText = false;
     let responseObject: 'chat.completion.chunk' | undefined;
@@ -700,6 +714,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               });
             }
 
+            const cacheReadTokens = getDeepSeekCacheReadTokens(
+              usage,
+              cacheUsageFormat,
+            );
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -710,17 +729,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                 reasoningTokens:
                   usage?.completion_tokens_details?.reasoning_tokens ??
                   undefined,
-                cachedInputTokens:
-                  usage?.prompt_cache_hit_tokens ??
-                  usage?.prompt_tokens_details?.cached_tokens ??
-                  undefined,
+                cachedInputTokens: cacheReadTokens,
               },
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens:
-                    usage?.prompt_cache_hit_tokens ??
-                    usage?.prompt_tokens_details?.cached_tokens ??
-                    null,
+                  promptCacheHitTokens: cacheReadTokens ?? null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
                   ...(responseObject != null && { responseObject }),
