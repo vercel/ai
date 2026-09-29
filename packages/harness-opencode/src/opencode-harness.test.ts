@@ -1057,6 +1057,111 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('drains an aborted turn before attaching the next turn', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? {
+              exitCode: 0,
+              stdout: '/home/vercel-sandbox',
+              stderr: '',
+            }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn() {
+        return {
+          async wait() {},
+          async kill() {},
+        } as never;
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const session = await createOpenCode().doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    const abort = new AbortController();
+    const firstEvents: unknown[] = [];
+    const firstTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write a long response.',
+      abortSignal: abort.signal,
+      emit: event => firstEvents.push(event),
+    });
+    const firstDone = expect(firstTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: 'first',
+    });
+    abort.abort();
+    await firstDone;
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: ' stale',
+    });
+    const secondEvents: unknown[] = [];
+    let secondTurnResolved = false;
+    const secondTurnPromise = session
+      .doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Reply with banana.',
+        emit: event => secondEvents.push(event),
+      })
+      .then(control => {
+        secondTurnResolved = true;
+        return control;
+      });
+    await Promise.resolve();
+
+    expect(secondTurnResolved).toBe(false);
+    expect(channel.sent.at(-1)).toEqual({ type: 'abort' });
+
+    channel.emit('finish', { type: 'finish' });
+    const secondTurn = await secondTurnPromise;
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'second',
+      delta: 'banana',
+    });
+    channel.emit('finish', { type: 'finish' });
+    await secondTurn.done;
+
+    expect(firstEvents).toEqual([
+      { type: 'text-delta', id: 'first', delta: 'first' },
+    ]);
+    expect(secondEvents).toEqual([
+      { type: 'text-delta', id: 'second', delta: 'banana' },
+      { type: 'finish' },
+    ]);
+  });
+
   describe('getBootstrap', () => {
     it('returns a recipe with the expected harnessId and bootstrapDir', async () => {
       const harness = createOpenCode();
