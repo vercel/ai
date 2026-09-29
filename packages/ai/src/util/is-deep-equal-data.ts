@@ -16,21 +16,32 @@ export function isDeepEqualData(obj1: any, obj2: any): boolean {
   if (typeof obj1 !== 'object' && typeof obj2 !== 'object')
     return obj1 === obj2;
 
-  // If they are not strictly equal, they both need to be Objects
-  if (obj1.constructor !== obj2.constructor) return false;
-
-  // Special handling for Date objects
-  if (obj1 instanceof Date && obj2 instanceof Date) {
-    return obj1.getTime() === obj2.getTime();
-  }
-
   // Handle arrays: compare length and then perform a recursive deep comparison on each item
-  if (Array.isArray(obj1)) {
+  if (Array.isArray(obj1) || Array.isArray(obj2)) {
+    if (!Array.isArray(obj1) || !Array.isArray(obj2)) return false;
     if (obj1.length !== obj2.length) return false;
     for (let i = 0; i < obj1.length; i++) {
       if (!isDeepEqualData(obj1[i], obj2[i])) return false;
     }
     return true; // All array elements matched
+  }
+
+  const prototype1 = Object.getPrototypeOf(obj1);
+  const prototype2 = Object.getPrototypeOf(obj2);
+
+  // Objects created in different realms have different Object constructors and
+  // prototypes. Treat their Object prototypes as equivalent so JSON data can
+  // be compared across serialization boundaries.
+  if (
+    prototype1 !== prototype2 &&
+    !(isObjectPrototype(prototype1) && isObjectPrototype(prototype2))
+  ) {
+    return false;
+  }
+
+  // Special handling for Date objects
+  if (obj1 instanceof Date && obj2 instanceof Date) {
+    return obj1.getTime() === obj2.getTime();
   }
 
   // Compare the set of keys in each object
@@ -45,4 +56,8 @@ export function isDeepEqualData(obj1: any, obj2: any): boolean {
   }
 
   return true; // All keys and values matched
+}
+
+function isObjectPrototype(prototype: object | null): boolean {
+  return prototype != null && Object.getPrototypeOf(prototype) === null;
 }
