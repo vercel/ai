@@ -139,6 +139,19 @@ You can use the following optional settings to customize the OpenAI provider ins
   Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
   Speech requests do not use `baseURL` or `apiVersion`.
 
+- **maiBaseURL** _string_
+
+  URL prefix for MAI realtime requests (MAI-Transcribe-2-Streaming).
+  Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+
+- **webSocket** _WebSocketConstructor_
+
+  Custom WebSocket implementation for MAI streaming transcription, for example
+  the `WebSocket` export of the `ws` package in Node.js. With a custom
+  implementation the API key is sent in the `api-key` header; with the native
+  `WebSocket` it is sent as the `api-key` query parameter. Microsoft Entra ID
+  (`tokenProvider`) authentication requires a custom implementation.
+
 ## Language Models
 
 The Azure OpenAI provider instance is a function that you can invoke to create a language model:
@@ -1125,7 +1138,9 @@ and sent to Azure under their Azure model names:
 | `mai-transcribe-2`   | `MAI-Transcribe-2`   | Supports every option below.         |
 | `mai-transcribe-1.5` | `MAI-Transcribe-1.5` | Supports `locales` and `phraseList`. |
 
-All other IDs use the OpenAI API by default, including custom deployment names.
+`mai-transcribe-2-streaming` uses the MAI realtime API; see
+[MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming). All other IDs use the
+OpenAI API by default, including custom deployment names.
 
 ```ts
 import { azure, type AzureTranscriptionModelOptions } from '@ai-sdk/azure';
@@ -1216,11 +1231,68 @@ milliseconds in metadata and seconds in normalized `segments`.
 
 MAI-Transcribe models are file transcription models: they accept WAV, MP3, or FLAC files
 shorter than 2 hours and smaller than 250 MB, and do not support streaming
-transcription. The models are in public preview. See
+transcription; use [MAI-Transcribe-2-Streaming](#mai-transcribe-2-streaming) to stream.
+The models are in public preview. See
 [Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
 for supported languages and diarization limits.
 
 AI Gateway forwards these provider options, including `azure.api`.
+
+### MAI-Transcribe-2-Streaming
+
+MAI-Transcribe-2-Streaming is a low-latency streaming speech-to-text model from Microsoft AI.
+`azure.transcription('mai-transcribe-2-streaming')` streams audio to the MAI realtime API
+(`wss://{resourceName}.services.ai.azure.com/mai/v1/realtime`) with
+[`experimental_streamTranscribe`](/docs/ai-sdk-core/transcription#streaming-transcription).
+The model ID is sent to Azure as the Foundry deployment name, so deploy the model
+as `mai-transcribe-2-streaming`, or set `api: 'mai'` for other deployment names.
+
+```ts
+import {
+  createAzure,
+  type AzureTranscriptionModelOptions,
+} from '@ai-sdk/azure';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+const azure = createAzure({ webSocket: WebSocket });
+
+const result = streamTranscribe({
+  model: azure.transcription('mai-transcribe-2-streaming'),
+  audio, // ReadableStream of 16-bit mono PCM chunks
+  inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+  providerOptions: {
+    azure: { language: 'en' } satisfies AzureTranscriptionModelOptions,
+  },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-delta') {
+    process.stdout.write(part.delta);
+  }
+}
+```
+
+The model requires a Microsoft Foundry resource with a MAI-Transcribe-2-Streaming
+deployment in a supported region, such as `centralus`.
+Input audio must be 16-bit mono PCM (`audio/pcm`) at 16000 or 24000 Hz; the default is 24000 Hz.
+
+The stream emits `transcript-delta` parts for finalized text and `transcript-partial`
+parts for the provisional text that follows the latest delta. MAI does not detect
+pauses on the server, so the stream commits once when the input audio ends and then
+emits a `transcript-final` part and the finished transcript. `durationInSeconds` is
+computed from the streamed audio.
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech' | 'mai'_
+  Set `mai` to stream with a deployment that has a different name.
+
+- **language** _string_
+  Language hint such as `en`. Omit for automatic language detection.
+
+File transcription options such as `timestamps` produce warnings when streaming.
+MAI-Transcribe-2-Streaming does not support file transcription.
 
 ### OpenAI transcription
 
@@ -1284,13 +1356,14 @@ The following provider options are available:
 
 ### Model Capabilities
 
-| Model                    | Transcription | Duration  | Segments  | Language  |
-| ------------------------ | ------------- | --------- | --------- | --------- |
-| `whisper-1`              | <Check />     | <Check /> | <Check /> | <Check /> |
-| `gpt-4o-mini-transcribe` | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `gpt-4o-transcribe`      | <Check />     | <Cross /> | <Cross /> | <Cross /> |
-| `mai-transcribe-2`       | <Check />     | <Check /> | <Check /> | <Check /> |
-| `mai-transcribe-1.5`     | <Check />     | <Check /> | <Check /> | <Check /> |
+| Model                        | Transcription         | Duration  | Segments  | Language  |
+| ---------------------------- | --------------------- | --------- | --------- | --------- |
+| `whisper-1`                  | <Check />             | <Check /> | <Check /> | <Check /> |
+| `gpt-4o-mini-transcribe`     | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `gpt-4o-transcribe`          | <Check />             | <Cross /> | <Cross /> | <Cross /> |
+| `mai-transcribe-2`           | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-1.5`         | <Check />             | <Check /> | <Check /> | <Check /> |
+| `mai-transcribe-2-streaming` | <Check /> (streaming) | <Check /> | <Cross /> | <Cross /> |
 
 ## Speech Models
 
@@ -1362,10 +1435,12 @@ Azure OpenAI supports TTS models through deployments. The capabilities depend on
 MAI-Voice models are multilingual text-to-speech models from Microsoft AI, served through Azure.
 The following model IDs use the Azure Speech API:
 
-| Model ID            | Notes                                         |
-| ------------------- | --------------------------------------------- |
-| `mai-voice-2-flash` | Low latency, for voice agents and assistants. |
-| `mai-voice-2`       | Highest fidelity, for long-form narration.    |
+| Model ID              | Notes                                         |
+| --------------------- | --------------------------------------------- |
+| `mai-voice-2.1-flash` | Low latency, for voice agents and assistants. |
+| `mai-voice-2.1`       | Highest fidelity, for long-form narration.    |
+| `mai-voice-2-flash`   | Low latency, for voice agents and assistants. |
+| `mai-voice-2`         | Highest fidelity, for long-form narration.    |
 
 All other IDs use the OpenAI API by default, including custom deployment names.
 
