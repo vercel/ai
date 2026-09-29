@@ -27,6 +27,10 @@ import {
   useState,
 } from 'react';
 import type { ResolveHref } from '@/components/docs/resolve-href';
+import {
+  DEFAULT_MODEL_IDS,
+  type ModelKind,
+} from '@/lib/geistdocs/model-placeholders';
 
 /**
  * Faithful port of production ai-sdk.dev's InteractiveCodePreview
@@ -39,7 +43,6 @@ import type { ResolveHref } from '@/components/docs/resolve-href';
  */
 
 type TabType = 'gateway' | 'provider' | 'custom';
-type ModelKind = 'text' | 'image' | 'video';
 
 const cx = (...classes: (string | false | null | undefined)[]): string =>
   classes.filter(Boolean).join(' ');
@@ -47,12 +50,6 @@ const cx = (...classes: (string | false | null | undefined)[]): string =>
 const identityHref: ResolveHref = href => href;
 
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
-
-const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
-  text: 'anthropic/claude-sonnet-5.5',
-  image: 'openai/gpt-image-2.5-sunburst',
-  video: 'google/veo-3.1-generate-001',
-};
 
 const MODEL_KIND_PLACEHOLDERS: Record<ModelKind, string[]> = {
   text: ['__TEXT_MODEL__', '__MODEL__'],
