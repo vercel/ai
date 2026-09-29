@@ -2,16 +2,17 @@ import type {
   EmbeddingModelV4,
   Experimental_BatchV4 as BatchV4,
   Experimental_EvaluationModelV4 as EvaluationModelV4,
-  Experimental_VideoModelV4,
-  FilesV4,
   ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  SpeechModelV4,
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
-  TranscriptionModelV4,
+  EmbeddingModelProviderV4,
+  VideoModelProviderV4,
+  TranscriptionModelProviderV4,
+  SpeechModelProviderV4,
+  FilesProviderV4,
+  LanguageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -56,11 +57,14 @@ const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const googleFilesUrlPattern =
   /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
 
-export interface GoogleProvider extends ProviderV4 {
-  (modelId: GoogleModelId): LanguageModelV4;
-
-  languageModel(modelId: GoogleModelId): LanguageModelV4;
-
+export interface GoogleProvider
+  extends
+    LanguageModelProviderV4<GoogleModelId>,
+    EmbeddingModelProviderV4<GoogleEmbeddingModelId>,
+    VideoModelProviderV4<GoogleVideoModelId>,
+    SpeechModelProviderV4<GoogleSpeechModelId>,
+    TranscriptionModelProviderV4<GoogleTranscriptionModelId>,
+    FilesProviderV4 {
   chat(modelId: GoogleModelId): LanguageModelV4;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
@@ -80,19 +84,17 @@ export interface GoogleProvider extends ProviderV4 {
   ): ImageModelV4;
 
   /**
+   * Creates a model for image generation.
+   */
+  imageModel(
+    modelId: GoogleImageModelId,
+    settings?: GoogleImageSettings,
+  ): ImageModelV4;
+
+  /**
    * @deprecated Use `chat()` instead.
    */
   generativeAI(modelId: GoogleModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
@@ -103,16 +105,6 @@ export interface GoogleProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
 
   /**
    * Creates an experimental model for streaming speech translation.
@@ -127,31 +119,6 @@ export interface GoogleProvider extends ProviderV4 {
   speechTranslationModel(
     modelId: GoogleSpeechTranslationModelId,
   ): SpeechTranslationModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for transcription (speech-to-text). Unary models
-   * (e.g. `gemini-3.5-transcribe`) transcribe audio files; live models
-   * (e.g. `gemini-3.5-transcribe-live`) stream transcription over the
-   * Gemini Live API WebSocket via `experimental_streamTranscribe`.
-   */
-  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for transcription (speech-to-text).
-   */
-  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
-
-  files(): FilesV4;
 
   /**
    * Creates a language model targeting the Gemini Interactions API

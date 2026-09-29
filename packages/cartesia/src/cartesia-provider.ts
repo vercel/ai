@@ -2,9 +2,10 @@ import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   NoSuchModelError,
-  type TranscriptionModelV4,
-  type SpeechModelV4,
-  type ProviderV4,
+  type TranscriptionModelProviderV4,
+  type SpeechModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type LanguageModelV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -26,24 +27,18 @@ import { VERSION } from './version';
  */
 const CARTESIA_API_VERSION = '2026-03-01';
 
-export interface CartesiaProvider extends ProviderV4 {
+export interface CartesiaProvider
+  extends
+    TranscriptionModelProviderV4<CartesiaTranscriptionModelId>,
+    SpeechModelProviderV4<CartesiaSpeechModelId>,
+    EmbeddingModelProviderV4 {
   (
     modelId: CartesiaSpeechModelId,
     settings?: {},
   ): {
     speech: CartesiaSpeechModel;
   };
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: CartesiaTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: CartesiaSpeechModelId): SpeechModelV4;
-
+  languageModel(modelId: string): LanguageModelV4;
   /**
    * Creates a realtime Ink speech-to-text model.
    */
@@ -179,6 +174,7 @@ export function createCartesia(
       message: 'Cartesia does not provide embedding models',
     });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
@@ -189,7 +185,7 @@ export function createCartesia(
     });
   };
 
-  return provider as CartesiaProvider;
+  return provider;
 }
 
 /**

@@ -1,8 +1,9 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
-  type TranscriptionModelV4,
+  type LanguageModelProviderV4,
+  type TranscriptionModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -17,22 +18,12 @@ import { GroqTranscriptionModel } from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';
 import { VERSION } from './version';
-export interface GroqProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: GroqChatModelId): LanguageModelV4;
-
-  /**
-   * Creates an Groq chat model for text generation.
-   */
-  languageModel(modelId: GroqChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV4;
-
+export interface GroqProvider
+  extends
+    LanguageModelProviderV4<GroqChatModelId>,
+    TranscriptionModelProviderV4<GroqTranscriptionModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Tools provided by Groq.
    */
@@ -125,10 +116,12 @@ export function createGroq(options: GroqProviderSettings = {}): GroqProvider {
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 

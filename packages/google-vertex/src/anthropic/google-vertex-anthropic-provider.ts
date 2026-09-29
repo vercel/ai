@@ -1,7 +1,8 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
@@ -115,17 +116,11 @@ export const googleVertexAnthropicTools: GoogleVertexAnthropicTools = {
    */
   toolSearchBm25_20251119: anthropicTools.toolSearchBm25_20251119,
 };
-export interface GoogleVertexAnthropicProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: GoogleVertexAnthropicModelId): LanguageModelV4;
-
+export interface GoogleVertexAnthropicProvider
+  extends
+    LanguageModelProviderV4<GoogleVertexAnthropicModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Anthropic tools supported by Google Vertex.
    * Note: Only a subset of Anthropic tools are available on Vertex.
@@ -248,10 +243,12 @@ export function createGoogleVertexAnthropic(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   provider.tools = googleVertexAnthropicTools;
 

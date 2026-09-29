@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -36,21 +38,15 @@ export interface MoonshotAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MoonshotAIProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: MoonshotAIChatModelId): LanguageModelV4;
-
+export interface MoonshotAIProvider
+  extends
+    LanguageModelProviderV4<MoonshotAIChatModelId>,
+    EmbeddingModelProviderV4<string>,
+    ImageModelProviderV4 {
   /**
    * Creates a chat model for text generation.
    */
   chatModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a language model for text generation.
-   */
-  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
 }
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';
@@ -107,10 +103,12 @@ export function createMoonshotAI(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   return provider;
 }

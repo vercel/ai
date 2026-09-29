@@ -1,8 +1,10 @@
 import {
   NoSuchModelError,
-  type ProviderV4,
-  type SpeechModelV4,
-  type TranscriptionModelV4,
+  type LanguageModelV4,
+  type SpeechModelProviderV4,
+  type TranscriptionModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -15,7 +17,12 @@ import { FishAudioTranscriptionModel } from './fish-audio-transcription-model';
 import type { FishAudioTranscriptionModelId } from './fish-audio-transcription-options';
 import { VERSION } from './version';
 
-export interface FishAudioProvider extends ProviderV4 {
+export interface FishAudioProvider
+  extends
+    SpeechModelProviderV4<FishAudioSpeechModelId>,
+    TranscriptionModelProviderV4<FishAudioTranscriptionModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: FishAudioSpeechModelId,
     settings?: {},
@@ -23,31 +30,7 @@ export interface FishAudioProvider extends ProviderV4 {
     speech: FishAudioSpeechModel;
   };
 
-  /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: FishAudioSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for speech generation.
-   *
-   * Narrowed to required: Fish Audio always provides speech models.
-   */
-  speechModel(modelId: FishAudioSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId?: FishAudioTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for transcription.
-   *
-   * Narrowed to required: Fish Audio always provides a transcription model.
-   */
-  transcriptionModel(
-    modelId?: FishAudioTranscriptionModelId,
-  ): TranscriptionModelV4;
+  languageModel(modelId: string): LanguageModelV4;
 }
 
 export interface FishAudioProviderSettings {
@@ -144,6 +127,7 @@ export function createFishAudio(
       message: 'Fish Audio does not provide embedding models',
     });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
@@ -153,8 +137,9 @@ export function createFishAudio(
       message: 'Fish Audio does not provide image models',
     });
   };
+  provider.image = provider.imageModel;
 
-  return provider as FishAudioProvider;
+  return provider;
 }
 
 /**

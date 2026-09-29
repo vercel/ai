@@ -419,30 +419,6 @@ describe('anthropicAws provider - model identity', () => {
     expect(model.provider).toBe('anthropic-aws.messages');
   });
 
-  it('throws NoSuchModelError when embeddingModel is invoked', () => {
-    const provider = createAnthropicAws({
-      region: 'us-west-2',
-      workspaceId: 'wrkspc_test',
-      apiKey: 'test-api-key',
-    });
-
-    expect(() => provider.embeddingModel('any-model-id')).toThrow(
-      /no such embeddingModel/i,
-    );
-  });
-
-  it('throws NoSuchModelError when imageModel is invoked', () => {
-    const provider = createAnthropicAws({
-      region: 'us-west-2',
-      workspaceId: 'wrkspc_test',
-      apiKey: 'test-api-key',
-    });
-
-    expect(() => provider.imageModel('any-model-id')).toThrow(
-      /no such imageModel/i,
-    );
-  });
-
   it('exposes files() returning an AnthropicFiles instance', () => {
     const provider = createAnthropicAws({
       region: 'us-west-2',

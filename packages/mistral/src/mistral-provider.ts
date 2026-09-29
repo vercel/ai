@@ -2,9 +2,11 @@ import {
   NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelV4,
-  type ProviderV4,
-  type SpeechModelV4,
-  type TranscriptionModelV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type SpeechModelProviderV4,
+  type TranscriptionModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -22,50 +24,17 @@ import { MistralTranscriptionModel } from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 
-export interface MistralProvider extends ProviderV4 {
-  (modelId: MistralChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: MistralChatModelId): LanguageModelV4;
-
+export interface MistralProvider
+  extends
+    LanguageModelProviderV4<MistralChatModelId>,
+    EmbeddingModelProviderV4<MistralEmbeddingModelId>,
+    SpeechModelProviderV4<MistralSpeechModelId>,
+    TranscriptionModelProviderV4<MistralTranscriptionModelId>,
+    ImageModelProviderV4 {
   /**
    * Creates a model for text generation.
    */
   chat(modelId: MistralChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speech(modelId: MistralSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for audio transcription.
-   */
-  transcription(modelId: MistralTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for audio transcription.
-   */
-  transcriptionModel(
-    modelId: MistralTranscriptionModelId,
-  ): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embedding` instead.
@@ -185,6 +154,7 @@ export function createMistral(
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   return provider;
 }

@@ -2,14 +2,15 @@ import type {
   Experimental_BatchV4 as BatchV4,
   Experimental_EvaluationModelV4 as EvaluationModelV4,
   EmbeddingModelV4,
-  FilesV4,
-  ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  SkillsV4,
-  TranscriptionModelV4,
   Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
+  LanguageModelProviderV4,
+  EmbeddingModelProviderV4,
+  ImageModelProviderV4,
+  TranscriptionModelProviderV4,
+  SpeechModelProviderV4,
+  FilesProviderV4,
+  SkillsProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -47,16 +48,17 @@ import type { OpenAISpeechTranslationModelId } from './speech-translation/openai
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
 
-export interface OpenAIProvider extends ProviderV4 {
-  (modelId: OpenAIResponsesModelId): LanguageModelV4;
-
+export interface OpenAIProvider
+  extends
+    LanguageModelProviderV4<OpenAIResponsesModelId>,
+    EmbeddingModelProviderV4<OpenAIEmbeddingModelId>,
+    ImageModelProviderV4<OpenAIImageModelId>,
+    TranscriptionModelProviderV4<OpenAITranscriptionModelId>,
+    SpeechModelProviderV4<OpenAISpeechModelId>,
+    FilesProviderV4,
+    SkillsProviderV4 {
   /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
   evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
-
-  /**
-   * Creates an OpenAI model for text generation.
-   */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
 
   /**
    * Creates an OpenAI chat model for text generation.
@@ -74,16 +76,6 @@ export interface OpenAIProvider extends ProviderV4 {
   completion(modelId: OpenAICompletionModelId): LanguageModelV4;
 
   /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
-
-  /**
    * @deprecated Use `embedding` instead.
    */
   textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
@@ -94,28 +86,6 @@ export interface OpenAIProvider extends ProviderV4 {
   textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
 
   /**
-   * Creates a model for image generation.
-   */
-  image(modelId: OpenAIImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates an experimental model for streaming speech translation.
-   */
-  translation(
-    modelId: OpenAISpeechTranslationModelId,
-  ): SpeechTranslationModelV4;
-
-  /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
@@ -123,25 +93,10 @@ export interface OpenAIProvider extends ProviderV4 {
   ): SpeechTranslationModelV4;
 
   /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV4;
-
-  /**
    * Creates an experimental realtime model for bidirectional audio/text
    * communication over WebSocket.
    */
   experimental_realtime: OpenAIRealtimeFactory;
-
-  /**
-   * Returns a FilesV4 interface for uploading files to OpenAI.
-   */
-  files(): FilesV4;
-
-  /**
-   * Returns a SkillsV4 interface for uploading skills to OpenAI.
-   */
-  skills(): SkillsV4;
 
   /**
    * Returns a BatchV4 interface for processing batches with OpenAI.

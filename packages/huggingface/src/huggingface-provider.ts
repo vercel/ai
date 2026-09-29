@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type ImageModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -34,17 +36,11 @@ export interface HuggingFaceProviderSettings {
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV4 {
-  /**
-   * Creates a Hugging Face responses model for text generation.
-   */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
-
-  /**
-   * Creates a Hugging Face responses model for text generation.
-   */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
-
+export interface HuggingFaceProvider
+  extends
+    LanguageModelProviderV4<HuggingFaceResponsesModelId>,
+    ImageModelProviderV4,
+    EmbeddingModelProviderV4 {
   /**
    * Creates a Hugging Face responses model for text generation.
    */
@@ -99,6 +95,7 @@ export function createHuggingFace(
         'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
     });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
@@ -109,6 +106,7 @@ export function createHuggingFace(
         'Hugging Face Responses API does not support image generation. Use the Hugging Face Inference API directly for image models.',
     });
   };
+  provider.image = provider.imageModel;
 
   return provider;
 }

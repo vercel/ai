@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type ImageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type VideoModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -41,31 +43,17 @@ export interface ReplicateProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ReplicateProvider extends ProviderV4 {
-  /**
-   * Creates a Replicate image generation model.
-   */
-  image(modelId: ReplicateImageModelId): ReplicateImageModel;
-
-  /**
-   * Creates a Replicate image generation model.
-   */
-  imageModel(modelId: ReplicateImageModelId): ReplicateImageModel;
+export interface ReplicateProvider
+  extends
+    ImageModelProviderV4<ReplicateImageModelId>,
+    EmbeddingModelProviderV4,
+    VideoModelProviderV4<ReplicateVideoModelId> {
+  languageModel(modelId: string): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: string): never;
-
-  /**
-   * Creates a Replicate video generation model.
-   */
-  video(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a Replicate video generation model.
-   */
-  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
 }
 
 /**
@@ -125,6 +113,7 @@ export function createReplicate(
       });
     },
     embeddingModel,
+    embedding: embeddingModel,
     textEmbeddingModel: embeddingModel,
     video: createVideoModel,
     videoModel: createVideoModel,

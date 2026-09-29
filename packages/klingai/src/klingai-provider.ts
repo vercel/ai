@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
-  type ProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   withoutTrailingSlash,
@@ -53,16 +55,12 @@ export interface KlingAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface KlingAIProvider extends ProviderV4 {
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: KlingAIVideoModelId): VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: KlingAIVideoModelId): VideoModelV4;
+export interface KlingAIProvider
+  extends
+    VideoModelProviderV4<KlingAIVideoModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
+  languageModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api-singapore.klingai.com';
@@ -118,7 +116,9 @@ export function createKlingAI(
     video: createVideoModel,
     videoModel: createVideoModel,
     languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
+    embedding: (modelId: string) => noSuchModel(modelId, 'embeddingModel'),
     embeddingModel: (modelId: string) => noSuchModel(modelId, 'embeddingModel'),
+    image: (modelId: string) => noSuchModel(modelId, 'imageModel'),
     imageModel: (modelId: string) => noSuchModel(modelId, 'imageModel'),
   };
 

@@ -1,8 +1,9 @@
 import {
   NoSuchModelError,
-  type LanguageModelV4,
   type EmbeddingModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -17,27 +18,11 @@ import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
-export interface PerplexityProvider extends ProviderV4 {
-  /**
-   * Creates a Perplexity Agent API model or preset for text generation.
-   */
-  (modelId: PerplexityLanguageModelId): LanguageModelV4;
-
-  /**
-   * Creates a Perplexity Agent API model or preset for text generation.
-   */
-  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4;
-
-  /**
-   * Creates a Perplexity model for text embeddings.
-   */
-  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a Perplexity model for text embeddings.
-   */
-  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
-
+export interface PerplexityProvider
+  extends
+    LanguageModelProviderV4<PerplexityLanguageModelId>,
+    EmbeddingModelProviderV4<PerplexityEmbeddingModelId>,
+    ImageModelProviderV4 {
   /**
    * @deprecated Use `embeddingModel` instead.
    */
@@ -113,10 +98,12 @@ export function createPerplexity(
 
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.embedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   return provider;
 }

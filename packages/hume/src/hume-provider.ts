@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
   type SpeechModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -11,10 +13,13 @@ import {
 import { HumeSpeechModel } from './hume-speech-model';
 import { VERSION } from './version';
 
-export interface HumeProvider extends ProviderV4 {
+export interface HumeProvider
+  extends EmbeddingModelProviderV4, ImageModelProviderV4 {
   (settings?: {}): {
     speech: HumeSpeechModel;
   };
+
+  languageModel(modelId: string): LanguageModelV4;
 
   /**
    * Creates a model for speech synthesis.
@@ -90,6 +95,7 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
       message: 'Hume does not provide embedding models',
     });
   };
+  provider.embedding = provider.embeddingModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({
@@ -98,8 +104,9 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
       message: 'Hume does not provide image models',
     });
   };
+  provider.image = provider.imageModel;
 
-  return provider as HumeProvider;
+  return provider;
 }
 
 /**

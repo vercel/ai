@@ -1,8 +1,8 @@
 import {
   NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
+  type ImageModelProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -51,26 +51,12 @@ export interface BlackForestLabsProviderSettings {
   pollTimeoutMillis?: number;
 }
 
-export interface BlackForestLabsProvider extends ProviderV4 {
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+export interface BlackForestLabsProvider
+  extends
+    ImageModelProviderV4<BlackForestLabsImageModelId>,
+    VideoModelProviderV4<BlackForestLabsVideoModelId>,
+    EmbeddingModelProviderV4 {
+  languageModel(modelId: string): never;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -136,6 +122,7 @@ export function createBlackForestLabs(
         modelType: 'languageModel',
       });
     },
+    embedding: embeddingModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
   };

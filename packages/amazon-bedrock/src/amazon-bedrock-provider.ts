@@ -1,10 +1,9 @@
 import { anthropicTools } from '@ai-sdk/anthropic/internal';
 import type {
   EmbeddingModelV4,
-  ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
+  ImageModelProviderV4,
+  RerankingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -117,7 +116,10 @@ export interface AmazonBedrockProviderSettings {
   generateId?: () => string;
 }
 
-export interface AmazonBedrockProvider extends ProviderV4 {
+export interface AmazonBedrockProvider
+  extends
+    ImageModelProviderV4<AmazonBedrockImageModelId>,
+    RerankingModelProviderV4<AmazonBedrockRerankingModelId> {
   (
     modelId: AmazonBedrockChatModelId,
     settings?: AmazonBedrockChatModelSettings,
@@ -159,26 +161,6 @@ export interface AmazonBedrockProvider extends ProviderV4 {
     modelId: AmazonBedrockEmbeddingModelId,
     settings?: AmazonBedrockEmbeddingModelSettings,
   ): EmbeddingModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: AmazonBedrockImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: AmazonBedrockImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for reranking documents.
-   */
-  reranking(modelId: AmazonBedrockRerankingModelId): RerankingModelV4;
-
-  /**
-   * Creates a model for reranking documents.
-   */
-  rerankingModel(modelId: AmazonBedrockRerankingModelId): RerankingModelV4;
 
   /**
    * Anthropic-specific tools that can be used with Anthropic models on Bedrock.

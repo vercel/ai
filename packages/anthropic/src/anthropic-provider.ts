@@ -3,10 +3,12 @@ import {
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_EvaluationModelV4 as EvaluationModelV4,
-  type FilesV4,
   type LanguageModelV4,
-  type ProviderV4,
-  type SkillsV4,
+  type FilesProviderV4,
+  type LanguageModelProviderV4,
+  type SkillsProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -39,17 +41,13 @@ function normalizeBaseURL(baseURL: string | undefined): string | undefined {
     : baseURLWithoutTrailingSlash;
 }
 
-export interface AnthropicProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: AnthropicModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: AnthropicModelId): LanguageModelV4;
-
+export interface AnthropicProvider
+  extends
+    LanguageModelProviderV4<AnthropicModelId>,
+    FilesProviderV4,
+    SkillsProviderV4,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   chat(modelId: AnthropicModelId): LanguageModelV4;
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
@@ -58,18 +56,6 @@ export interface AnthropicProvider extends ProviderV4 {
   evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: string): never;
-
-  files(): FilesV4;
-
-  /**
-   * Returns a SkillsV4 interface for uploading skills to Anthropic.
-   */
-  skills(): SkillsV4;
 
   /**
    * Anthropic-specific computer use tool.
@@ -219,10 +205,12 @@ export function createAnthropic(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   provider.files = () =>
     new AnthropicFiles({

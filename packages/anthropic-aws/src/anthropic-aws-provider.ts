@@ -1,9 +1,11 @@
 import {
   NoSuchModelError,
-  type FilesV4,
   type LanguageModelV4,
-  type ProviderV4,
-  type SkillsV4,
+  type FilesProviderV4,
+  type LanguageModelProviderV4,
+  type SkillsProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
@@ -24,29 +26,14 @@ import {
   type AnthropicAwsCredentials,
 } from './anthropic-aws-fetch';
 
-export interface AnthropicAwsProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: AnthropicModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: AnthropicModelId): LanguageModelV4;
-
-  /**
-   * @deprecated Use `embeddingModel` instead.
-   */
-  textEmbeddingModel(modelId: string): never;
-
-  files(): FilesV4;
-
-  /**
-   * Returns a SkillsV4 interface for uploading skills to Anthropic.
-   */
-  skills(): SkillsV4;
-
+export interface AnthropicAwsProvider
+  extends
+    LanguageModelProviderV4<AnthropicModelId>,
+    FilesProviderV4,
+    SkillsProviderV4,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
+  chat(modelId: AnthropicModelId): LanguageModelV4;
   tools: typeof anthropicTools;
 }
 
@@ -257,10 +244,12 @@ export function createAnthropicAws(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   provider.files = () =>
     new AnthropicFiles({

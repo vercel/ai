@@ -1,8 +1,10 @@
 import {
   NoSuchModelError,
   type EmbeddingModelV4,
-  type RerankingModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type EmbeddingModelProviderV4,
+  type RerankingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -16,13 +18,14 @@ import type { VoyageRerankingModelId } from './reranking/voyage-reranking-model-
 import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
 import { VERSION } from './version';
 
-export interface VoyageProvider extends ProviderV4 {
-  embedding(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  embeddingModel(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
+export interface VoyageProvider
+  extends
+    EmbeddingModelProviderV4<VoyageEmbeddingModelId>,
+    RerankingModelProviderV4<VoyageRerankingModelId>,
+    ImageModelProviderV4 {
+  languageModel(modelId: string): LanguageModelV4;
   textEmbedding(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
   textEmbeddingModel(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  reranking(modelId: VoyageRerankingModelId): RerankingModelV4;
-  rerankingModel(modelId: VoyageRerankingModelId): RerankingModelV4;
 }
 
 export interface VoyageProviderSettings {
@@ -81,6 +84,9 @@ export function createVoyage(
     },
 
     imageModel: (modelId: string) => {
+      throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+    },
+    image: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
     },
   };

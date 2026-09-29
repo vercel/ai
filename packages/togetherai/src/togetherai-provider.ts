@@ -5,10 +5,11 @@ import {
 } from '@ai-sdk/openai-compatible';
 import type {
   EmbeddingModelV4,
-  ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
+  LanguageModelProviderV4,
+  EmbeddingModelProviderV4,
+  ImageModelProviderV4,
+  RerankingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -45,21 +46,16 @@ export interface TogetherAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface TogetherAIProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: TogetherAIChatModelId): LanguageModelV4;
-
+export interface TogetherAIProvider
+  extends
+    LanguageModelProviderV4<TogetherAIChatModelId>,
+    EmbeddingModelProviderV4<TogetherAIEmbeddingModelId>,
+    ImageModelProviderV4<TogetherAIImageModelId>,
+    RerankingModelProviderV4<TogetherAIRerankingModelId> {
   /**
    * Creates a chat model for text generation.
    */
   chatModel(modelId: TogetherAIChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a chat model for text generation.
-   */
-  languageModel(modelId: TogetherAIChatModelId): LanguageModelV4;
 
   /**
    * Creates a completion model for text generation.
@@ -67,34 +63,9 @@ export interface TogetherAIProvider extends ProviderV4 {
   completionModel(modelId: TogetherAICompletionModelId): LanguageModelV4;
 
   /**
-   * Creates a text embedding model for text generation.
-   */
-  embeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV4;
-
-  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: TogetherAIEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: TogetherAIImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for reranking.
-   */
-  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV4;
-
-  /**
-   * Creates a model for reranking.
-   */
-  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV4;
 }
 
 function loadDeprecatedApiKey(): string | undefined {
@@ -192,6 +163,7 @@ export function createTogetherAI(
   provider.languageModel = createChatModel;
   provider.chatModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;

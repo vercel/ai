@@ -1,8 +1,9 @@
 import {
   NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
+  type VideoModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -39,26 +40,12 @@ export interface ByteDanceProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ByteDanceProvider extends ProviderV4 {
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: ByteDanceImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: ByteDanceImageModelId): ImageModelV4;
+export interface ByteDanceProvider
+  extends
+    VideoModelProviderV4<ByteDanceVideoModelId>,
+    ImageModelProviderV4<ByteDanceImageModelId>,
+    EmbeddingModelProviderV4 {
+  languageModel(modelId: string): LanguageModelV4;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';
@@ -97,11 +84,14 @@ export function createByteDance(
       fetch: options.fetch,
     });
 
+  const createEmbeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  };
+
   return {
     specificationVersion: 'v4' as const,
-    embeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-    },
+    embedding: createEmbeddingModel,
+    embeddingModel: createEmbeddingModel,
     languageModel: (modelId: string) => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },

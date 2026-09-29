@@ -1,7 +1,9 @@
 import {
   NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -36,17 +38,11 @@ export interface GmicloudProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface GmicloudProvider extends ProviderV4 {
-  /**
-   * Creates a GMI Cloud model for text generation.
-   */
-  (modelId: GmicloudChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a GMI Cloud model for text generation.
-   */
-  languageModel(modelId: GmicloudChatModelId): LanguageModelV4;
-
+export interface GmicloudProvider
+  extends
+    LanguageModelProviderV4<GmicloudChatModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a GMI Cloud chat model for text generation.
    */
@@ -98,10 +94,12 @@ export function createGmicloud(
   provider.embeddingModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
   };
+  provider.image = provider.imageModel;
 
   return provider;
 }

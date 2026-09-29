@@ -1,7 +1,8 @@
 import {
   NoSuchModelError,
-  type TranscriptionModelV4,
-  type ProviderV4,
+  type TranscriptionModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -12,18 +13,17 @@ import { RevaiTranscriptionModel } from './revai-transcription-model';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV4 {
+export interface RevaiProvider
+  extends
+    TranscriptionModelProviderV4<RevaiTranscriptionModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: 'machine',
     settings?: {},
   ): {
     transcription: RevaiTranscriptionModel;
   };
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -101,6 +101,7 @@ export function createRevai(
       message: 'Rev.ai does not provide text embedding models',
     });
   };
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
   provider.imageModel = () => {
@@ -110,8 +111,9 @@ export function createRevai(
       message: 'Rev.ai does not provide image models',
     });
   };
+  provider.image = provider.imageModel;
 
-  return provider as RevaiProvider;
+  return provider;
 }
 
 /**
