@@ -647,6 +647,72 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('adds a Gateway placeholder when resuming with a new authentication mode', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(
+      async (
+        _transformations: Parameters<
+          NonNullable<
+            HarnessV1NetworkSandboxSession['addRequestTransformations']
+          >
+        >[0],
+      ) => {},
+    );
+    const sandboxSession = fakeNetworkSandboxSessionForStartupSuccess({
+      bridgePortUrl: 'ws://127.0.0.1:1',
+      spawnEnvs,
+      writes: [],
+      runs: [],
+    });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const session = await createClaudeCode({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            ANTHROPIC_API_KEY: 'saved-anthropic-placeholder',
+          },
+        },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Continue the session.',
+      emit: () => {},
+    });
+    const sandboxEnv = lastStart().env as Record<string, string>;
+    expect(sandboxEnv.ANTHROPIC_API_KEY).toBe('saved-anthropic-placeholder');
+    expect(sandboxEnv.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(sandboxEnv)).not.toContain('current-gateway-secret');
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations.mock.calls[0]?.[0]).toContainEqual({
+      match: {
+        host: 'ai-gateway.vercel.sh',
+        headers: [
+          {
+            key: { exact: 'x-api-key' },
+            value: { exact: 'saved-anthropic-placeholder' },
+          },
+        ],
+      },
+      transform: { headers: { 'x-api-key': 'current-gateway-secret' } },
+    });
+    await session.doDestroy();
+  });
+
   it('brokers an explicit Claude OAuth token at the host boundary', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const addRequestTransformations = vi.fn(async () => {});

@@ -20,7 +20,7 @@ import {
   createBridgeToken,
   createBridgeErrorHandler,
   createBridgeStartupError,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
@@ -318,13 +318,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ...providerEnvironment,
         };
         sandboxCredentialEnvironment =
-          lifecycleData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: brokeringEnvironment,
             credentialEnvironmentVariables:
               credentialForwardingEnvironmentVariables,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              lifecycleData?.sandboxCredentialEnvironment,
+          });
         sandboxImplementationEnvironment = {
           ...brokeringEnvironment,
           ...sandboxCredentialEnvironment,
