@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   withoutTrailingSlash,
@@ -11,6 +12,22 @@ const AWS_PARTITION_DNS_SUFFIXES = [
   { regionPrefix: 'us-isof-', dnsSuffix: 'csp.hci.ic.gov' },
   { regionPrefix: 'eusc-', dnsSuffix: 'amazonaws.eu' },
 ] as const;
+
+// The region becomes part of the request host, so only a single DNS label is
+// accepted (e.g. `evil.example.com/#` would rewrite the host).
+const REGION_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i;
+
+function validateRegion(region: string): string {
+  if (!REGION_PATTERN.test(region)) {
+    throw new InvalidArgumentError({
+      argument: 'region',
+      message:
+        'Invalid AWS region. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL`, `AWS_ENDPOINT_URL`, or `AWS_ENDPOINT_URL_BEDROCK_RUNTIME` for custom endpoints.',
+    });
+  }
+
+  return region;
+}
 
 export function resolveAmazonBedrockBaseURL({
   baseURL,
@@ -40,7 +57,7 @@ export function resolveAmazonBedrockBaseURL({
     return withoutTrailingSlash(resolvedBaseURL) ?? resolvedBaseURL;
   }
 
-  const region = getRegion();
+  const region = validateRegion(getRegion());
   const dnsSuffix =
     AWS_PARTITION_DNS_SUFFIXES.find(({ regionPrefix }) =>
       region.startsWith(regionPrefix),
