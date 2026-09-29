@@ -1909,6 +1909,90 @@ describe('Chat', () => {
     `);
   });
 
+  it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
+    const state = new TestChatState<UIMessage>([
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-createDocument',
+            toolCallId: 'tool-1',
+            state: 'input-streaming',
+            input: { title: 'Hel' },
+            rawInput: '{"title":"Hel',
+          },
+        ],
+      },
+    ]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+    let reconnectCount = 0;
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              reconnectCount++;
+              if (reconnectCount === 1) {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  toolCallId: 'tool-1',
+                  inputTextDelta: 'lo',
+                });
+              } else {
+                controller.enqueue({
+                  type: 'tool-input-delta',
+                  toolCallId: 'tool-1',
+                  inputTextDelta: '"}',
+                });
+                controller.enqueue({
+                  type: 'tool-input-available',
+                  toolCallId: 'tool-1',
+                  toolName: 'createDocument',
+                  input: { title: 'Hello' },
+                });
+              }
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.messages[0].parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-streaming',
+        input: { title: 'Hello' },
+        rawInput: '{"title":"Hello',
+      },
+    ]);
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.messages).toHaveLength(1);
+    expect(chat.messages[0].parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+    expect(reconnectCount).toBe(2);
+  });
+
   it('should not throw to console when an overlapped request clears activeResponse before resume-stream finishes', async () => {
     let resumeController!: ReadableStreamDefaultController<UIMessageChunk>;
     const resumeStream = new ReadableStream<UIMessageChunk>({

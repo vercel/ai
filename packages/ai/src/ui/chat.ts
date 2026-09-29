@@ -538,6 +538,15 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     this.setStatus({ status: 'submitted', error: undefined });
 
     const lastMessage = this.lastMessage;
+    const resumableResponseMessage =
+      trigger === 'resume-stream' &&
+      lastMessage?.role === 'assistant' &&
+      lastMessage.parts.some(
+        part =>
+          isToolOrDynamicToolUIPart(part) && part.state === 'input-streaming',
+      )
+        ? this.state.snapshot(lastMessage)
+        : undefined;
 
     let isAbort = false;
     let isDisconnect = false;
@@ -552,7 +561,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
             : createStreamingUIMessageState({
                 lastMessage:
                   trigger === 'resume-stream'
-                    ? undefined
+                    ? resumableResponseMessage
                     : this.state.snapshot(lastMessage),
                 messageId: this.generateId(),
               }),
