@@ -56,6 +56,14 @@ describe('outboundMessageSchema', () => {
     },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
+    {
+      type: 'raw',
+      rawValue: {
+        type: 'stream_event',
+        event: { type: 'message_stop' },
+        usage: { input_tokens: 1, output_tokens: 2 },
+      },
+    },
   ];
 
   for (const sample of cases) {
@@ -92,6 +100,8 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
+        agentProgressSummaries: true,
+        forwardSubagentText: true,
         env: { DEPLOYMENT_ENV: 'staging' },
         thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],
