@@ -1741,8 +1741,17 @@ class DefaultStreamTextResult<
 
           // derived:
           const finishReason = recordedFinishReason ?? 'other';
+          // A `finish` part only arrives on the success path. When a later step
+          // throws or the stream is aborted, the steps already recorded are
+          // what the caller paid for, so aggregate their usage the way
+          // `warnings` is aggregated below instead of resolving an empty
+          // usage whose fields are all undefined.
           const totalUsage =
-            recordedTotalUsage ?? createNullLanguageModelUsage();
+            recordedTotalUsage ??
+            recordedSteps.reduce(
+              (total, step) => addLanguageModelUsage(total, step.usage),
+              createNullLanguageModelUsage(),
+            );
 
           // from finish:
           self._finishReason.resolve(finishReason);
