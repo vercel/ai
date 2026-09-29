@@ -336,12 +336,16 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
           responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
           undefined,
         cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
+          responseBody.usage?.prompt_cache_hit_tokens ??
+          responseBody.usage?.prompt_tokens_details?.cached_tokens ??
+          undefined,
       },
       providerMetadata: {
         [this.providerOptionsName]: {
           promptCacheHitTokens:
-            responseBody.usage?.prompt_cache_hit_tokens ?? null,
+            responseBody.usage?.prompt_cache_hit_tokens ??
+            responseBody.usage?.prompt_tokens_details?.cached_tokens ??
+            null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
           ...(responseBody.object != null && {
@@ -706,11 +710,17 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                 reasoningTokens:
                   usage?.completion_tokens_details?.reasoning_tokens ??
                   undefined,
-                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
+                cachedInputTokens:
+                  usage?.prompt_cache_hit_tokens ??
+                  usage?.prompt_tokens_details?.cached_tokens ??
+                  undefined,
               },
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
+                  promptCacheHitTokens:
+                    usage?.prompt_cache_hit_tokens ??
+                    usage?.prompt_tokens_details?.cached_tokens ??
+                    null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
                   ...(responseObject != null && { responseObject }),
