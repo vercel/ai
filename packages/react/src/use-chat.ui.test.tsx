@@ -1977,6 +1977,135 @@ describe('resume ongoing stream and return assistant message', () => {
   });
 });
 
+describe('resume interrupted stream after page visibility change', () => {
+  let controller: TestResponseController;
+
+  setupTestComponent(
+    () => {
+      const { messages, sendMessage, status, error } = useChat({
+        id: '123',
+        generateId: mockId(),
+        resume: true,
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status}</div>
+          <div data-testid="error">{error?.message}</div>
+          <div data-testid="assistant-text">
+            {messages
+              .filter(message => message.role === 'assistant')
+              .flatMap(message => message.parts)
+              .map(part => (part.type === 'text' ? part.text : ''))
+              .join('')}
+          </div>
+          <button
+            data-testid="send"
+            onClick={() => {
+              sendMessage({ text: 'hi' });
+            }}
+          />
+        </div>
+      );
+    },
+    {
+      init: TestComponent => {
+        controller = new TestResponseController();
+        server.urls['/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+        server.urls['/api/chat/123/stream'].response = ({ callNumber }) =>
+          callNumber === 0
+            ? { type: 'empty', status: 204 }
+            : {
+                type: 'stream-chunks',
+                chunks: [
+                  formatChunk({
+                    type: 'text-delta',
+                    id: 'text-1',
+                    delta: ', world.',
+                  }),
+                  formatChunk({ type: 'text-end', id: 'text-1' }),
+                  formatChunk({ type: 'finish', finishReason: 'stop' }),
+                ],
+              };
+
+        return <TestComponent />;
+      },
+    },
+  );
+
+  it('resumes an interrupted stream when the document becomes visible', async () => {
+    const originalVisibilityState = document.visibilityState;
+
+    try {
+      await waitFor(() => {
+        expect(server.calls).toHaveLength(1);
+        expect(server.calls[0].requestMethod).toBe('GET');
+        expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      });
+
+      await userEvent.click(screen.getByTestId('send'));
+
+      await controller.write(formatChunk({ type: 'text-start', id: 'text-1' }));
+      await controller.write(
+        formatChunk({ type: 'text-delta', id: 'text-1', delta: 'Hello' }),
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+        expect(screen.getByTestId('assistant-text')).toHaveTextContent('Hello');
+      });
+
+      await controller.error(new TypeError('fetch failed'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('error');
+      });
+
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'hidden',
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'visible',
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      try {
+        await waitFor(
+          () => {
+            expect(screen.getByTestId('status')).toHaveTextContent('ready');
+            expect(screen.getByTestId('error')).toBeEmptyDOMElement();
+            expect(screen.getByTestId('assistant-text')).toHaveTextContent(
+              'Hello, world.',
+            );
+          },
+          { timeout: 1000 },
+        );
+      } catch {
+        throw new Error(
+          'ISSUE_11865: interrupted stream was not resumed after the document became visible',
+        );
+      }
+
+      expect(
+        server.calls.filter(call => call.requestMethod === 'GET'),
+      ).toHaveLength(2);
+    } finally {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => originalVisibilityState,
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }
+  });
+});
+
 describe('stop', () => {
   setupTestComponent(() => {
     const { messages, sendMessage, stop, status } = useChat({
