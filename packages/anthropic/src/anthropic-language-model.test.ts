@@ -3453,6 +3453,24 @@ describe('AnthropicLanguageModel', () => {
         it('should include web search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
         });
+
+        it('should expose search results as sources without conflating inline citations', () => {
+          const webSearchResult = result.content.find(
+            part =>
+              part.type === 'tool-result' && part.toolName === 'web_search',
+          );
+          const expectedSourceUrls = (
+            (webSearchResult as any)?.result ?? []
+          ).map((source: any) => source.url);
+          const actualSourceUrls = result.content
+            .filter(part => part.type === 'source' && part.sourceType === 'url')
+            .map(part => part.url);
+
+          expect(actualSourceUrls).toHaveLength(expectedSourceUrls.length);
+          expect(new Set(actualSourceUrls)).toEqual(
+            new Set(expectedSourceUrls),
+          );
+        });
       });
 
       const TEST_PROMPT = [
