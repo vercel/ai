@@ -69,7 +69,7 @@ const { images } = await generateImage({
 });
 ```
 
-The image to enhance is passed through the prompt's `images`. The Topaz image API is asynchronous: the provider submits the job, polls until it finishes, and downloads the result, so `generateImage` resolves with the enhanced image.
+The image to enhance (JPEG, PNG or TIFF) is passed through the prompt's `images`. The Topaz image API is asynchronous: the provider submits the job, polls until it finishes, and downloads the result, so `generateImage` resolves with the enhanced image.
 
 ### Model Capabilities
 
@@ -110,11 +110,11 @@ const { images } = await generateImage({
 - **grainStrength** _number_: grain effect strength, 0 to 1. Defaults to 0.5.
 - **inputWidth** / **inputHeight** _number_: input dimensions in pixels. Topaz infers these from the upload when omitted.
 - **outputWidth** / **outputHeight** _number_: output dimensions in pixels, 1 to 32000. These take precedence over the dimensions derived from `size`.
-- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_: output format.
+- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_: output format. Topaz defaults to `jpeg`.
 - **cropToFill** _boolean_: crop the output to fill the requested dimensions. Defaults to `false`.
 - **webhookUrl** _string_: URL to receive job-status webhooks.
 - **pollIntervalMillis** _number_: status poll interval. Defaults to 2000.
-- **pollTimeoutMillis** _number_: maximum time to wait for the job. Defaults to 600000.
+- **pollTimeoutMillis** _number_: maximum time to wait for the job. Defaults to 600000. The provider cancels the Topaz job when this runs out or the call is aborted, since Topaz charges on completion.
 
 `aspectRatio`, `seed`, `mask` and `n` greater than 1 are not supported and produce warnings.
 
@@ -137,6 +137,44 @@ const { videos } = await generateVideo({
   model: topaz.video('starlight-precise-2.6'),
   prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '3840x2160',
+});
+```
+
+The video to enhance is passed through `inputReferences`, and `resolution` sets the output resolution. `generateVideo` requires a `prompt`, so pass an empty string: Topaz ignores text, and a non-empty prompt produces a warning.
+
+### Model Capabilities
+
+| Model                   | Topaz model | Description                                   |
+| ----------------------- | ----------- | --------------------------------------------- |
+| `proteus`               | `prob-4`    | Detail-preserving upscaling with fine control |
+| `starlight-precise-2.6` | `slp-2.6`   | Generative upscaling with high fidelity       |
+
+Passing a raw Topaz filter model name (for example `slp-2.5`) also works, and unknown ids are forwarded to the API unchanged.
+
+### Submission Flows
+
+By default the provider uses Topaz's express flow: it creates the request, uploads the video to a single URL, and Topaz starts processing once the upload lands. Express needs no metadata about the input video, only the output resolution (from `resolution` or `output.width` / `output.height`).
+
+Passing input metadata in the `source` provider option switches to Topaz's full flow: create, accept, multi-part upload, and complete-upload. Use it for large files that need a multi-part upload, or when you want a cost estimate before the upload starts. The AI SDK does not inspect media files, so the full flow needs the complete set:
+
+| Field        | Where it comes from                                                |
+| ------------ | ------------------------------------------------------------------ |
+| `size`       | Derived from the input bytes.                                      |
+| `container`  | Derived from the input's media type or URL extension.              |
+| `resolution` | `source.width` and `source.height`.                                |
+| `duration`   | `source.duration`.                                                 |
+| `frameRate`  | `source.frameRate`.                                                |
+| `frameCount` | `source.frameCount`, or `duration * frameRate` when it is omitted. |
+
+In the full flow the output resolution and frame rate default to the source values.
+
+```ts
+const { videos } = await generateVideo({
+  model: topaz.video('proteus'),
+  prompt: '',
+  inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '3840x2160',
   providerOptions: {
     topaz: {
       source: {
@@ -146,65 +184,30 @@ const { videos } = await generateVideo({
         frameRate: 30,
         frameCount: 300,
       },
-      output: { width: 3840, height: 2160 },
     },
   },
 });
 ```
-
-The video to enhance is passed through `inputReferences`. `generateVideo` requires a `prompt`, so pass an empty string: Topaz ignores text, and a non-empty prompt produces a warning.
-
-### Model Capabilities
-
-| Model                   | Topaz model | Description                                   |
-| ----------------------- | ----------- | --------------------------------------------- |
-| `proteus`               | `prob-4`    | Detail-preserving upscaling with fine control |
-| `starlight-precise-2.6` | `slp-2.6`   | Generative upscaling with high fidelity       |
-
-### Source Metadata
-
-Topaz creates the video request before the upload begins, and that request has to describe the input video. The AI SDK does not inspect media files, so this metadata comes from your side. The provider fills in what it can:
-
-| Field        | Where it comes from                                                 |
-| ------------ | ------------------------------------------------------------------- |
-| `size`       | Derived from the input bytes.                                       |
-| `container`  | Derived from the input's media type or URL extension.               |
-| `resolution` | The `resolution` call option, or `source.width` / `source.height`.  |
-| `duration`   | The `duration` call option, or `source.duration`.                   |
-| `frameRate`  | The `fps` call option, or `source.frameRate`.                       |
-| `frameCount` | `source.frameCount`, or `duration * frameRate` when both are known. |
-
-`source.*` always takes precedence over the corresponding call option. If anything is still missing, the provider throws an error naming the fields it needs.
 
 <Note>
   Set `source.frameCount` explicitly for variable-frame-rate input, where
   `duration * frameRate` is not exact.
 </Note>
 
-So the example above can also be written using the standard call options:
-
-```ts
-const { videos } = await generateVideo({
-  model: topaz.video('proteus'),
-  prompt: '',
-  inputReferences: ['https://example.com/clip.mp4'],
-  resolution: '1920x1080',
-  duration: 10,
-  fps: 30,
-  providerOptions: {
-    topaz: {
-      source: { frameCount: 300 },
-    },
-  },
-});
-```
+Setting only `source.container` keeps the express flow. It overrides container detection for inputs with an unusual media type.
 
 ### Video Provider Options
 
 Structural options:
 
-- **source** _object_: input video metadata: `width`, `height`, `duration`, `frameRate`, `frameCount`, `container`.
-- **output** _object_: `width`, `height`, `frameRate`, `audioCodec` (`'AAC' | 'AC3' | 'PCM'`), `audioTransfer` (`'Copy' | 'Convert' | 'None'`), `container` (`'mp4' | 'mov' | 'mkv'`), `dynamicCompressionLevel` (`'Low' | 'Mid' | 'High'`). Each dimension and the frame rate default to the source value; audio defaults to `AAC` / `Copy`.
+- **source** _object_: input video metadata, `width`, `height`, `duration`, `frameRate`, `frameCount` and `container`. See [Submission Flows](#submission-flows).
+- **output** _object_: output settings.
+  - `width` / `height`: output dimensions. These take precedence over `resolution`.
+  - `frameRate`: output frame rate, taking precedence over `fps`. Topaz only changes the frame rate when a frame-interpolation filter is present.
+  - `audioTransfer` (`'Copy' | 'Convert' | 'None'`, default `Copy`), `audioCodec` (`'AAC' | 'AC3' | 'PCM'`, default `AAC`), `audioBitrate`.
+  - `videoEncoder` (`'AV1' | 'H264' | 'H265' | 'ProRes' | 'VP9'`, Topaz defaults to `H265`), `videoProfile`, `videoBitrate`, `dynamicCompressionLevel` (`'Low' | 'Mid' | 'High'`).
+  - `container` (`'mp4' | 'mov' | 'mkv' | 'avi' | 'webm'`): defaults to the input container when it is `mov` or `mkv`, otherwise `mp4`. `ProRes` always produces `mov`, `AV1` and `VP9` always produce `mp4`.
+  - `cropToFit`: center-crop to the output dimensions.
 - **additionalFilters** _Array&lt;Record&lt;string, unknown&gt;&gt;_: extra `filters[]` entries, e.g. a frame-interpolation filter. Each entry must include a `model` key.
 - **filter** _Record&lt;string, unknown&gt;_: escape hatch merged into the model's filter entry, overriding the typed options below.
 
@@ -212,9 +215,9 @@ Proteus filter settings: `videoType`, `auto`, `fieldOrder`, `focusFixLevel`, `co
 
 Starlight Precise filter settings: `sharpness`, `videoBitDepth`, `videoCodec`, `videoProfile`, `watermark`.
 
-See the [Proteus](https://developer.topazlabs.com/video-models/proteus/proteus-1) and [Starlight Precise 2.6](https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6) references for the accepted ranges.
+See the [Proteus](https://developer.topazlabs.com/video-models/proteus/proteus-1) and [Starlight Precise 2.6](https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6) references for the accepted ranges, and [Create Video Request](https://developer.topazlabs.com/reference/video/create-request/create-video-request) for the accepted encoder and profile combinations.
 
-A non-empty `prompt`, `aspectRatio`, `seed`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
+A non-empty `prompt`, `aspectRatio`, `seed`, `duration`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
 
 ### Long-Running Operations
 
@@ -228,25 +231,17 @@ const operation = await startVideo({
   model: topaz.video('starlight-precise-2.6'),
   prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
-  providerOptions: {
-    topaz: {
-      source: {
-        width: 1920,
-        height: 1080,
-        duration: 10,
-        frameRate: 30,
-        frameCount: 300,
-      },
-    },
-  },
+  resolution: '3840x2160',
 });
 ```
 
+If a step after the request is created fails (for example the upload), the provider cancels the Topaz request so any reserved credits are refunded.
+
 ### Video Provider Metadata
 
-Topaz estimates the cost of a video request in credits as a `[lowerBound, upperBound]` range. It estimates once when the request is created and again after the source upload is received, and it bills the lower bound of the second estimate.
+Topaz estimates the cost of a video request in credits as a `[lowerBound, upperBound]` range. It estimates again once the source upload is received, and it bills the lower bound of that estimate.
 
-The start result's `providerMetadata.topaz` contains the `requestId` and `estimatedCredits`, the initial cost range. It is informational only, since the post-upload estimate is what gets billed.
+The start result's `providerMetadata.topaz` contains the `requestId` and, when Topaz could compute it up front, `estimatedCredits`, the initial cost range. The full flow always returns one, the express flow only sometimes. It is informational only, since the post-upload estimate is what gets billed.
 
 The completed status's `providerMetadata.topaz` contains:
 

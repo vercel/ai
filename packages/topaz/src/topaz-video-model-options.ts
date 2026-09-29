@@ -6,75 +6,112 @@ import {
 import { z } from 'zod/v4';
 
 /**
+ * Containers Topaz accepts for the input video.
+ */
+export const topazSourceContainers = [
+  '3gp',
+  'avi',
+  'dv',
+  'flv',
+  'm1v',
+  'm2t',
+  'm2ts',
+  'm2v',
+  'm4v',
+  'mkv',
+  'mov',
+  'mp4',
+  'mpeg',
+  'mpg',
+  'mts',
+  'mxf',
+  'ser',
+  'ts',
+  'vob',
+  'webm',
+  'wmv',
+] as const;
+
+/**
+ * Containers Topaz can produce for the enhanced video.
+ */
+export const topazOutputContainers = [
+  'mp4',
+  'mov',
+  'mkv',
+  'avi',
+  'webm',
+] as const;
+
+/**
  * Metadata about the input video.
  *
- * Topaz requires this on `POST /video/` before the upload happens, and the AI
- * SDK does not inspect media files (no provider package ships a demuxer), so
- * whatever cannot be derived from the bytes has to be supplied here.
- *
- * `size` and `container` are derived from the input file and are not part of
- * this object. `duration`, `frameRate` and the resolution are read from the
- * `duration`, `fps` and `resolution` call options when those are set, so this
- * object only needs to cover the gaps.
+ * By default the provider uses Topaz's express flow, which needs no source
+ * metadata. Setting any of `width`, `height`, `duration`, `frameRate` or
+ * `frameCount` switches to the full flow (create, accept, multi-part upload,
+ * complete-upload), which returns a cost estimate before the upload and
+ * supports multi-part uploads of large files. In that flow `width`, `height`,
+ * `duration` and `frameRate` are required, because the AI SDK does not inspect
+ * media files.
  */
 export const topazVideoSourceSchema = z.object({
   /**
-   * Width of the input video in pixels. Falls back to the width of the
-   * `resolution` call option.
+   * Width of the input video in pixels.
    */
   width: z.number().int().positive().optional(),
 
   /**
-   * Height of the input video in pixels. Falls back to the height of the
-   * `resolution` call option.
+   * Height of the input video in pixels.
    */
   height: z.number().int().positive().optional(),
 
   /**
-   * Duration of the input video in seconds. Falls back to the `duration` call
-   * option.
+   * Duration of the input video in seconds.
    */
   duration: z.number().positive().optional(),
 
   /**
-   * Frame rate of the input video. Falls back to the `fps` call option.
+   * Frame rate of the input video.
    */
   frameRate: z.number().positive().optional(),
 
   /**
    * Total number of frames in the input video. Derived from
    * `duration * frameRate` when omitted, which is only correct for
-   * constant-frame-rate input - set it explicitly for variable-frame-rate
+   * constant-frame-rate input, so set it explicitly for variable-frame-rate
    * sources.
    */
   frameCount: z.number().int().positive().optional(),
 
   /**
    * Container of the input video. Detected from the input file's media type
-   * when omitted.
+   * or URL extension when omitted.
    */
-  container: z.enum(['mp4', 'mov', 'mkv']).optional(),
+  container: z.enum(topazSourceContainers).optional(),
 });
 
 export type TopazVideoSource = z.infer<typeof topazVideoSourceSchema>;
 
 /**
- * Output settings for the enhanced video. Anything omitted defaults to the
- * corresponding source value.
+ * Output settings for the enhanced video.
  */
 export const topazVideoOutputSchema = z.object({
   /**
-   * Width of the output video in pixels. Defaults to the source width.
+   * Width of the output video in pixels. Takes precedence over the
+   * `resolution` call option.
    */
   width: z.number().int().positive().optional(),
 
   /**
-   * Height of the output video in pixels. Defaults to the source height.
+   * Height of the output video in pixels. Takes precedence over the
+   * `resolution` call option.
    */
   height: z.number().int().positive().optional(),
 
   /**
-   * Frame rate of the output video. Defaults to the source frame rate.
+   * Frame rate of the output video. Takes precedence over the `fps` call
+   * option. Topaz only changes the frame rate when a frame-interpolation
+   * filter is present.
    */
   frameRate: z.number().positive().optional(),
 
@@ -84,19 +121,49 @@ export const topazVideoOutputSchema = z.object({
   audioCodec: z.enum(['AAC', 'AC3', 'PCM']).optional(),
 
   /**
+   * Audio bitrate, e.g. `192k`. Topaz uses the codec default when omitted.
+   */
+  audioBitrate: z.string().optional(),
+
+  /**
    * How to handle the input audio track. Defaults to `Copy`.
    */
   audioTransfer: z.enum(['Copy', 'Convert', 'None']).optional(),
 
   /**
-   * Container of the output video. Defaults to the source container.
+   * Video encoder. Topaz defaults to `H265`. `ProRes` forces a `mov`
+   * container, `AV1` and `VP9` force `mp4`.
    */
-  container: z.enum(['mp4', 'mov', 'mkv']).optional(),
+  videoEncoder: z.enum(['AV1', 'H264', 'H265', 'ProRes', 'VP9']).optional(),
 
   /**
-   * Automatic constant-quality compression level. Topaz defaults to `High`.
+   * Encoder profile, e.g. `Main10` for H265 or `422 HQ` for ProRes. Topaz uses
+   * the encoder's default profile when omitted.
+   */
+  videoProfile: z.string().optional(),
+
+  /**
+   * Constant bitrate, e.g. `20m`. Required for `VP9`. Mutually exclusive with
+   * `dynamicCompressionLevel`.
+   */
+  videoBitrate: z.string().optional(),
+
+  /**
+   * Automatic constant-quality compression level. Topaz defaults to `High`
+   * unless `videoBitrate` is set.
    */
   dynamicCompressionLevel: z.enum(['Low', 'Mid', 'High']).optional(),
+
+  /**
+   * Center-crop to fit the output dimensions.
+   */
+  cropToFit: z.boolean().optional(),
+
+  /**
+   * Container of the output video. Defaults to the input container when Topaz
+   * can produce it, otherwise `mp4`.
+   */
+  container: z.enum(topazOutputContainers).optional(),
 });
 
 export type TopazVideoOutput = z.infer<typeof topazVideoOutputSchema>;
@@ -175,7 +242,7 @@ export const topazVideoModelOptionsSchema = lazySchema(() =>
       grainSize: z.number().min(0).max(5).optional(),
 
       /** Proteus: grain model. */
-      grainType: z.enum(['silverRich', 'gaussian', 'grey']).optional(),
+      grainType: z.enum(['silver_rich', 'gaussian', 'grey']).optional(),
 
       /** Proteus: original detail recovery, 0 to 1. */
       recoverOriginalDetailValue: z.number().min(0).max(1).optional(),

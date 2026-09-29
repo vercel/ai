@@ -15,20 +15,10 @@ run(async () => {
         inputReferences: [
           'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/prudence.mp4',
         ],
+        // The output resolution. The source is 360x640.
+        resolution: '1080x1920',
         providerOptions: {
-          topaz: {
-            // Topaz needs the input video's properties before the upload
-            // starts, and the AI SDK does not inspect media files.
-            source: {
-              width: 360,
-              height: 640,
-              duration: 5.133,
-              frameRate: 30,
-              frameCount: 154,
-            },
-            output: { width: 1080, height: 1920 },
-            sharpness: 4,
-          } satisfies TopazVideoModelOptions,
+          topaz: { sharpness: 4 } satisfies TopazVideoModelOptions,
         },
       }),
   );

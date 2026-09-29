@@ -49,7 +49,7 @@ const { image } = await generateImage({
 
 ## Video Enhancement Example
 
-Topaz needs the input video's properties before the upload starts, so pass them through the `source` provider option (or the `resolution`, `duration` and `fps` call options):
+`generateVideo` requires a prompt, so pass an empty one. `resolution` sets the output resolution:
 
 ```ts
 import { topaz } from '@ai-sdk/topaz';
@@ -59,18 +59,7 @@ const { videos } = await generateVideo({
   model: topaz.video('starlight-precise-2.6'),
   prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
-  providerOptions: {
-    topaz: {
-      source: {
-        width: 1920,
-        height: 1080,
-        duration: 10,
-        frameRate: 30,
-        frameCount: 300,
-      },
-      output: { width: 3840, height: 2160 },
-    },
-  },
+  resolution: '3840x2160',
 });
 ```
 

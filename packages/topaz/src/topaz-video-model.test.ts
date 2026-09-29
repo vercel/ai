@@ -1,4 +1,5 @@
 import {
+  type FetchFunction,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
@@ -47,13 +48,29 @@ const defaultOptions: Parameters<TopazVideoModel['doStart']>[0] = {
   providerOptions: { topaz: sourceOptions },
 };
 
-function createModel(modelId = 'starlight-precise-2.6') {
+function createModel(modelId = 'starlight-precise-2.6', fetch?: FetchFunction) {
   return new TopazVideoModel(modelId, {
     provider: 'topaz.video',
     baseURL: TEST_BASE_URL,
     headers: () => ({ 'X-API-Key': 'test-key' }),
+    fetch,
     _internal: { currentDate: () => new Date('2026-01-01T00:00:00Z') },
   });
+}
+
+/**
+ * The test server does not expose raw request bodies, so upload bytes are
+ * captured at the fetch boundary.
+ */
+function recordUploads(): { fetch: FetchFunction; uploads: Uint8Array[] } {
+  const uploads: Uint8Array[] = [];
+  const fetch: FetchFunction = (input, init) => {
+    if (init?.method === 'PUT') {
+      uploads.push(new Uint8Array(init.body as Uint8Array));
+    }
+    return globalThis.fetch(input, init);
+  };
+  return { fetch, uploads };
 }
 
 describe('TopazVideoModel', () => {
@@ -66,6 +83,19 @@ describe('TopazVideoModel', () => {
           estimates: { cost: [12, 15], time: [60, 90] },
         },
       },
+    },
+    [`${TEST_BASE_URL}/video/express`]: {
+      response: {
+        type: 'json-value',
+        body: {
+          requestId: REQUEST_ID,
+          uploadId: 'upload-express',
+          uploadUrls: [UPLOAD_URL],
+        },
+      },
+    },
+    [`${TEST_BASE_URL}/video/${REQUEST_ID}`]: {
+      response: { type: 'empty', status: 204 },
     },
     [`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`]: {
       response: {
@@ -233,36 +263,33 @@ describe('TopazVideoModel', () => {
       });
     });
 
-    it('reads source metadata from the spec call options when available', async () => {
+    it('derives frameCount from duration and frameRate', async () => {
       await createModel().doStart({
         ...defaultOptions,
-        resolution: '1280x720',
-        duration: 4,
-        fps: 25,
-        providerOptions: { topaz: {} },
+        providerOptions: {
+          topaz: {
+            source: { width: 1280, height: 720, duration: 4, frameRate: 25 },
+          },
+        },
       });
 
       const body = await server.calls[0].requestBodyJson;
 
-      expect(body.source.resolution).toEqual({ width: 1280, height: 720 });
-      expect(body.source.duration).toBe(4);
-      expect(body.source.frameRate).toBe(25);
-      // frameCount is derived from duration * frameRate.
       expect(body.source.frameCount).toBe(100);
     });
 
-    it('prefers the source provider option over the spec call options', async () => {
+    it('maps the resolution and fps call options onto the output', async () => {
       await createModel().doStart({
         ...defaultOptions,
-        resolution: '1280x720',
-        duration: 4,
-        fps: 25,
+        resolution: '3840x2160',
+        fps: 60,
       });
 
       const body = await server.calls[0].requestBodyJson;
 
       expect(body.source.resolution).toEqual({ width: 1920, height: 1080 });
-      expect(body.source.duration).toBe(10);
+      expect(body.output.resolution).toEqual({ width: 3840, height: 2160 });
+      expect(body.output.frameRate).toBe(60);
     });
 
     it('defaults the output to the source, with AAC/Copy audio', async () => {
@@ -383,13 +410,17 @@ describe('TopazVideoModel', () => {
       });
     });
 
-    it('splits the upload across every returned URL', async () => {
+    it('splits the upload into segments of at least 500 MB, one per URL', async () => {
       server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
         type: 'json-value',
         body: { uploadId: 'upload-1', urls: [UPLOAD_URL, UPLOAD_URL_2] },
       };
 
-      await createModel().doStart({ ...defaultOptions });
+      const { fetch, uploads } = recordUploads();
+      await createModel(undefined, fetch).doStart({ ...defaultOptions });
+
+      // The 8-byte fixture fits in the first 500 MB segment.
+      expect(uploads).toEqual([inputVideo.data, new Uint8Array()]);
 
       const completeBody = await server.calls[4].requestBodyJson;
 
@@ -434,6 +465,7 @@ describe('TopazVideoModel', () => {
             frameType: 'first_frame',
           },
         ],
+        duration: 5,
         n: 2,
       });
 
@@ -445,21 +477,23 @@ describe('TopazVideoModel', () => {
         'prompt',
         'aspectRatio',
         'seed',
+        'duration',
         'generateAudio',
         'frameImages',
         'n',
       ]);
     });
 
-    it('throws and names the missing metadata', async () => {
+    it('throws and names the missing metadata when source metadata is partial', async () => {
       await expect(
         createModel().doStart({
           ...defaultOptions,
-          providerOptions: { topaz: {} },
+          providerOptions: { topaz: { source: { width: 1920 } } },
         }),
       ).rejects.toThrow(
-        /Missing: source\.width \/ source\.height .*source\.duration.*source\.frameRate.*source\.frameCount/s,
+        /Missing: source\.height, source\.duration, source\.frameRate\./,
       );
+      expect(server.calls).toHaveLength(0);
     });
 
     it('throws when no video reference is passed', async () => {
@@ -486,10 +520,10 @@ describe('TopazVideoModel', () => {
         createModel().doStart({
           ...defaultOptions,
           inputReferences: [
-            { type: 'file', mediaType: 'video/webm', data: inputVideo.data },
+            { type: 'file', mediaType: 'video/ogg', data: inputVideo.data },
           ],
         }),
-      ).rejects.toThrow(/does not support the media type "video\/webm"/);
+      ).rejects.toThrow(/Could not map the media type "video\/ogg"/);
     });
 
     it('warns when more than one reference is passed', async () => {
@@ -538,12 +572,167 @@ describe('TopazVideoModel', () => {
       ).rejects.toThrow(/no upload URLs/);
     });
 
-    it('throws when the upload response has no ETag', async () => {
+    it('sends a placeholder ETag for a single-URL upload without one', async () => {
+      server.urls[UPLOAD_URL].response = { type: 'json-value', body: {} };
+
+      await createModel().doStart({ ...defaultOptions });
+
+      expect(await server.calls[3].requestBodyJson).toEqual({
+        uploadResults: [{ partNum: 1, eTag: 'unused' }],
+      });
+    });
+
+    it('throws when a multi-part upload response has no ETag', async () => {
+      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
+        type: 'json-value',
+        body: { uploadId: 'upload-1', urls: [UPLOAD_URL, UPLOAD_URL_2] },
+      };
       server.urls[UPLOAD_URL].response = { type: 'json-value', body: {} };
 
       await expect(
         createModel().doStart({ ...defaultOptions }),
       ).rejects.toThrow(/did not return an ETag/);
+    });
+
+    it('cancels the request when a step after create fails', async () => {
+      server.urls[UPLOAD_URL].response = { type: 'error', status: 500 };
+
+      await expect(
+        createModel().doStart({ ...defaultOptions }),
+      ).rejects.toThrow(/failed with status 500/);
+
+      const cancel = server.calls.at(-1);
+      expect(cancel?.requestMethod).toBe('DELETE');
+      expect(cancel?.requestUrl).toBe(`${TEST_BASE_URL}/video/${REQUEST_ID}`);
+      expect(cancel?.requestHeaders['x-api-key']).toBe('test-key');
+    });
+
+    it('includes the Topaz error code in API errors', async () => {
+      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
+        type: 'error',
+        status: 402,
+        body: JSON.stringify({
+          message: 'Not enough credits',
+          errorCode: 'INSUFFICIENT_CREDITS',
+        }),
+      };
+
+      await expect(
+        createModel().doStart({ ...defaultOptions }),
+      ).rejects.toThrow('Not enough credits (INSUFFICIENT_CREDITS)');
+    });
+
+    it('reports the container Topaz forces for the chosen encoder', async () => {
+      const result = await createModel().doStart({
+        ...defaultOptions,
+        providerOptions: {
+          topaz: {
+            ...sourceOptions,
+            output: { videoEncoder: 'ProRes', container: 'mp4' },
+          },
+        },
+      });
+
+      expect(result.operation).toEqual({
+        requestId: REQUEST_ID,
+        outputContainer: 'mov',
+      });
+    });
+  });
+
+  describe('doStart (express)', () => {
+    const expressOptions: Parameters<TopazVideoModel['doStart']>[0] = {
+      ...defaultOptions,
+      resolution: '3840x2160',
+      providerOptions: { topaz: { sharpness: 3 } },
+    };
+
+    it('creates an express request and uploads to its URL', async () => {
+      const { fetch, uploads } = recordUploads();
+      const result = await createModel(undefined, fetch).doStart(
+        expressOptions,
+      );
+
+      expect(
+        server.calls.map(call => [call.requestMethod, call.requestUrl]),
+      ).toEqual([
+        ['POST', `${TEST_BASE_URL}/video/express`],
+        ['PUT', UPLOAD_URL],
+      ]);
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        source: { container: 'mp4' },
+        output: {
+          resolution: { width: 3840, height: 2160 },
+          audioTransfer: 'Copy',
+          audioCodec: 'AAC',
+          container: 'mp4',
+        },
+        filters: [{ model: 'slp-2.6', sharpness: 3 }],
+      });
+      expect(uploads).toEqual([inputVideo.data]);
+      expect(result.operation).toEqual({
+        requestId: REQUEST_ID,
+        outputContainer: 'mp4',
+      });
+      expect(result.providerMetadata).toEqual({
+        topaz: { requestId: REQUEST_ID },
+      });
+    });
+
+    it('uses the express flow when only the source container is declared', async () => {
+      await createModel().doStart({
+        ...expressOptions,
+        providerOptions: { topaz: { source: { container: 'mov' } } },
+      });
+
+      expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/video/express`);
+      expect((await server.calls[0].requestBodyJson).source).toEqual({
+        container: 'mov',
+      });
+    });
+
+    it('omits the audio codec when audio is dropped', async () => {
+      await createModel().doStart({
+        ...expressOptions,
+        providerOptions: { topaz: { output: { audioTransfer: 'None' } } },
+      });
+
+      const { output } = await server.calls[0].requestBodyJson;
+      expect(output.audioTransfer).toBe('None');
+      expect(output).not.toHaveProperty('audioCodec');
+    });
+
+    it('requires an output resolution', async () => {
+      await expect(
+        createModel().doStart({ ...expressOptions, resolution: undefined }),
+      ).rejects.toThrow(/needs the output resolution/);
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('reports an estimate when Topaz can compute one up front', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
+        type: 'json-value',
+        body: {
+          requestId: REQUEST_ID,
+          uploadUrls: [UPLOAD_URL],
+          estimates: { cost: [3, 4] },
+        },
+      };
+
+      const result = await createModel().doStart(expressOptions);
+
+      expect(result.providerMetadata).toEqual({
+        topaz: { requestId: REQUEST_ID, estimatedCredits: [3, 4] },
+      });
+    });
+
+    it('cancels the request when the upload fails', async () => {
+      server.urls[UPLOAD_URL].response = { type: 'error', status: 403 };
+
+      await expect(createModel().doStart(expressOptions)).rejects.toThrow(
+        /failed with status 403/,
+      );
+      expect(server.calls.at(-1)?.requestMethod).toBe('DELETE');
     });
   });
 

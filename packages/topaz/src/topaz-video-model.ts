@@ -27,6 +27,8 @@ import type { TopazConfig } from './topaz-config';
 import { topazFailedResponseHandler, TopazError } from './topaz-error';
 import {
   TOPAZ_NON_FILTER_OPTION_KEYS,
+  type topazOutputContainers,
+  topazSourceContainers,
   topazVideoModelOptionsSchema,
   type TopazVideoModelOptions,
 } from './topaz-video-model-options';
@@ -36,29 +38,53 @@ import {
 } from './topaz-video-settings';
 import { VERSION } from './version';
 
-type TopazContainer = 'mp4' | 'mov' | 'mkv';
+type TopazSourceContainer = (typeof topazSourceContainers)[number];
+type TopazOutputContainer = (typeof topazOutputContainers)[number];
 
-const mediaTypeContainers: Record<string, TopazContainer> = {
+const mediaTypeContainers: Record<string, TopazSourceContainer> = {
   'video/mp4': 'mp4',
   'video/quicktime': 'mov',
   'video/mov': 'mov',
   'video/x-matroska': 'mkv',
   'video/matroska': 'mkv',
+  'video/webm': 'webm',
+  'video/x-msvideo': 'avi',
+  'video/avi': 'avi',
+  'video/mpeg': 'mpeg',
+  'video/mp2t': 'ts',
+  'video/x-ms-wmv': 'wmv',
+  'video/x-flv': 'flv',
+  'video/3gpp': '3gp',
+  'video/x-m4v': 'm4v',
+  'application/mxf': 'mxf',
 };
 
-const extensionContainers: Record<string, TopazContainer> = {
-  mp4: 'mp4',
-  m4v: 'mp4',
-  mov: 'mov',
+const extensionContainers: Record<string, TopazSourceContainer> = {
+  ...Object.fromEntries(topazSourceContainers.map(c => [c, c])),
   qt: 'mov',
-  mkv: 'mkv',
 };
 
-const containerMediaTypes: Record<TopazContainer, string> = {
+const containerMediaTypes: Record<string, string> = {
   mp4: 'video/mp4',
+  m4v: 'video/mp4',
   mov: 'video/quicktime',
   mkv: 'video/x-matroska',
+  webm: 'video/webm',
+  avi: 'video/x-msvideo',
+  mpeg: 'video/mpeg',
+  mpg: 'video/mpeg',
+  ts: 'video/mp2t',
+  wmv: 'video/x-ms-wmv',
+  flv: 'video/x-flv',
+  '3gp': 'video/3gpp',
+  mxf: 'application/mxf',
 };
+
+/**
+ * Presigned uploads are split into segments of at least this size, per the
+ * Topaz accept endpoint.
+ */
+const UPLOAD_SEGMENT_BYTES = 500_000_000;
 
 /** Status values that mean the request has not settled yet. */
 const pendingStatuses = new Set([
@@ -72,10 +98,11 @@ const pendingStatuses = new Set([
 ]);
 
 /**
- * Topaz video models enhance a video the caller supplies. The input video is
- * passed through `inputReferences`, and `doStart` runs the four-step Topaz
- * submission (create, accept, upload, complete-upload) before handing the
- * request id to `doStatus` for polling.
+ * Topaz video models enhance a video the caller supplies, passed through
+ * `inputReferences`. `doStart` uses Topaz's express flow (create, then a
+ * single upload) unless the caller supplies source metadata, in which case it
+ * uses the full flow (create, accept, multi-part upload, complete-upload).
+ * Either way processing starts once the upload lands, and `doStatus` polls.
  */
 export class TopazVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
@@ -129,92 +156,143 @@ export class TopazVideoModel implements VideoModelV4 {
       abortSignal: options.abortSignal,
     });
 
-    const source = resolveSource({
-      options,
-      topazOptions,
-      container,
-      sizeBytes: bytes.byteLength,
-    });
+    const source = resolveSource(topazOptions, container, bytes.byteLength);
+    const output = buildOutput({ options, topazOptions, source });
+    const filters = [
+      buildFilter(this.modelId, topazOptions),
+      ...(topazOptions?.additionalFilters ?? []),
+    ];
+    const contentType =
+      containerMediaTypes[source.container] ?? 'application/octet-stream';
 
-    const output = buildOutput(source, topazOptions);
+    let requestId: string | undefined;
 
-    const body = {
-      source: {
-        container: source.container,
-        size: source.size,
-        duration: source.duration,
-        frameCount: source.frameCount,
-        frameRate: source.frameRate,
-        resolution: { width: source.width, height: source.height },
-      },
-      output,
-      filters: [
-        buildFilter(this.modelId, topazOptions),
-        ...(topazOptions?.additionalFilters ?? []),
-      ],
-    };
+    try {
+      if (source.type === 'express') {
+        const { value: created, responseHeaders } = await postJsonToApi({
+          url: `${this.config.baseURL}/video/express`,
+          headers,
+          body: { source: { container: source.container }, output, filters },
+          successfulResponseHandler: createJsonResponseHandler(
+            topazVideoExpressResponseSchema,
+          ),
+          failedResponseHandler: topazFailedResponseHandler,
+          abortSignal: options.abortSignal,
+          fetch: this.config.fetch,
+        });
 
-    const { value: createResponse, responseHeaders } = await postJsonToApi({
-      url: `${this.config.baseURL}/video/`,
-      headers,
-      body,
-      successfulResponseHandler: createJsonResponseHandler(
-        topazVideoCreateResponseSchema,
-      ),
-      failedResponseHandler: topazFailedResponseHandler,
-      abortSignal: options.abortSignal,
-      fetch: this.config.fetch,
-    });
+        requestId = requireRequestId(created.requestId);
 
-    const requestId = createResponse.requestId;
-    if (requestId == null) {
-      throw new TopazError({
-        message: 'Topaz did not return a requestId for the video request.',
+        await this.uploadVideo({
+          requestId,
+          bytes,
+          urls: created.uploadUrls,
+          contentType,
+          abortSignal: options.abortSignal,
+        });
+
+        return this.startResult({
+          requestId,
+          outputContainer: output.container,
+          estimatedCredits: created.estimates?.cost,
+          warnings,
+          currentDate,
+          responseHeaders,
+        });
+      }
+
+      const { value: created, responseHeaders } = await postJsonToApi({
+        url: `${this.config.baseURL}/video/`,
+        headers,
+        body: {
+          source: {
+            container: source.container,
+            size: source.size,
+            duration: source.duration,
+            frameCount: source.frameCount,
+            frameRate: source.frameRate,
+            resolution: { width: source.width, height: source.height },
+          },
+          output,
+          filters,
+        },
+        successfulResponseHandler: createJsonResponseHandler(
+          topazVideoCreateResponseSchema,
+        ),
+        failedResponseHandler: topazFailedResponseHandler,
+        abortSignal: options.abortSignal,
+        fetch: this.config.fetch,
       });
-    }
 
-    const accepted = await this.patch({
-      path: `/video/${requestId}/accept`,
-      schema: topazVideoAcceptResponseSchema,
-      headers,
-      abortSignal: options.abortSignal,
-    });
+      requestId = requireRequestId(created.requestId);
 
-    const uploadUrls = accepted.urls ?? [];
-    if (uploadUrls.length === 0) {
-      throw new TopazError({
-        message: `Topaz returned no upload URLs for request ${requestId}.`,
+      // Accepting reserves the estimated credits.
+      const accepted = await this.patch({
+        path: `/video/${requestId}/accept`,
+        schema: topazVideoAcceptResponseSchema,
+        headers,
+        abortSignal: options.abortSignal,
       });
+
+      const uploadResults = await this.uploadVideo({
+        requestId,
+        bytes,
+        urls: accepted.urls,
+        contentType,
+        abortSignal: options.abortSignal,
+      });
+
+      await this.patch({
+        path: `/video/${requestId}/complete-upload`,
+        body: { uploadResults },
+        schema: topazVideoCompleteUploadResponseSchema,
+        headers,
+        abortSignal: options.abortSignal,
+      });
+
+      return this.startResult({
+        requestId,
+        outputContainer: output.container,
+        estimatedCredits: created.estimates?.cost,
+        warnings,
+        currentDate,
+        responseHeaders,
+      });
+    } catch (error) {
+      // Canceling before processing starts refunds any reserved credits.
+      if (requestId != null) {
+        await this.cancelQuietly(requestId, headers);
+      }
+      throw error;
     }
+  }
 
-    const uploadResults = await this.uploadVideo({
-      bytes,
-      urls: uploadUrls,
-      contentType: containerMediaTypes[source.container],
-      abortSignal: options.abortSignal,
-    });
-
-    await this.patch({
-      path: `/video/${requestId}/complete-upload`,
-      body: { uploadResults },
-      schema: topazVideoCompleteUploadResponseSchema,
-      headers,
-      abortSignal: options.abortSignal,
-    });
-
+  private startResult({
+    requestId,
+    outputContainer,
+    estimatedCredits,
+    warnings,
+    currentDate,
+    responseHeaders,
+  }: {
+    requestId: string;
+    outputContainer: TopazOutputContainer;
+    estimatedCredits: number[] | null | undefined;
+    warnings: SharedV4Warning[];
+    currentDate: Date;
+    responseHeaders: Record<string, string> | undefined;
+  }): VideoModelV4OperationStartResult {
     return {
       // The output container travels with the operation so `doStatus` can
       // report the right media type without re-deriving it.
-      operation: { requestId, outputContainer: output.container },
+      operation: { requestId, outputContainer },
       warnings,
       providerMetadata: {
         topaz: {
           requestId,
           // Preliminary: Topaz re-estimates once the upload is received, and
           // the completed status carries the value that is billed.
-          ...(createResponse.estimates?.cost != null
-            ? { estimatedCredits: createResponse.estimates.cost }
-            : {}),
+          ...(estimatedCredits != null ? { estimatedCredits } : {}),
         },
       },
       response: {
@@ -231,7 +309,7 @@ export class TopazVideoModel implements VideoModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestId, outputContainer } = options.operation as {
       requestId: string;
-      outputContainer?: TopazContainer;
+      outputContainer?: string;
     };
 
     const { value: status, responseHeaders } = await getFromApi({
@@ -275,9 +353,9 @@ export class TopazVideoModel implements VideoModelV4 {
             type: 'url',
             url,
             mediaType:
-              outputContainer != null
+              (outputContainer != null
                 ? containerMediaTypes[outputContainer]
-                : 'video/mp4',
+                : undefined) ?? 'video/mp4',
           },
         ],
         warnings: [],
@@ -362,6 +440,16 @@ export class TopazVideoModel implements VideoModelV4 {
       });
     }
 
+    if (options.duration != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'duration',
+        details:
+          'Topaz video models enhance the whole input video, so duration was ignored. ' +
+          'Pass the input duration via the `source.duration` provider option instead.',
+      });
+    }
+
     if (options.generateAudio != null) {
       warnings.push({
         type: 'unsupported',
@@ -434,9 +522,9 @@ export class TopazVideoModel implements VideoModelV4 {
     abortSignal,
   }: {
     input: VideoModelV4File;
-    declaredContainer: TopazContainer | undefined;
+    declaredContainer: TopazSourceContainer | undefined;
     abortSignal: AbortSignal | undefined;
-  }): Promise<{ bytes: Uint8Array; container: TopazContainer }> {
+  }): Promise<{ bytes: Uint8Array; container: TopazSourceContainer }> {
     if (input.type === 'file') {
       const bytes =
         typeof input.data === 'string'
@@ -449,9 +537,8 @@ export class TopazVideoModel implements VideoModelV4 {
       if (container == null) {
         throw new TopazError({
           message:
-            `Topaz does not support the media type "${input.mediaType}". Supported ` +
-            'containers are mp4, mov and mkv; set `source.container` explicitly if the ' +
-            'media type is unusual.',
+            `Could not map the media type "${input.mediaType}" onto a Topaz container. ` +
+            'Set the `source.container` provider option explicitly.',
         });
       }
 
@@ -489,18 +576,31 @@ export class TopazVideoModel implements VideoModelV4 {
   }
 
   private async uploadVideo({
+    requestId,
     bytes,
     urls,
     contentType,
     abortSignal,
   }: {
+    requestId: string;
     bytes: Uint8Array;
-    urls: string[];
+    urls: string[] | null | undefined;
     contentType: string;
     abortSignal: AbortSignal | undefined;
   }): Promise<Array<{ partNum: number; eTag: string }>> {
+    if (urls == null || urls.length === 0) {
+      throw new TopazError({
+        message: `Topaz returned no upload URLs for request ${requestId}.`,
+      });
+    }
+
     const fetchImpl = this.config.fetch ?? globalThis.fetch;
-    const partSize = Math.ceil(bytes.byteLength / urls.length);
+    // Topaz splits multi-part uploads into segments of at least 500 MB and
+    // issues ceil(size / 500 MB) URLs, capped at 150.
+    const partSize = Math.max(
+      UPLOAD_SEGMENT_BYTES,
+      Math.ceil(bytes.byteLength / urls.length),
+    );
     const results: Array<{ partNum: number; eTag: string }> = [];
 
     for (const [index, url] of urls.entries()) {
@@ -512,7 +612,10 @@ export class TopazVideoModel implements VideoModelV4 {
         validateDownloadUrl(url);
       }
 
-      const part = bytes.subarray(index * partSize, (index + 1) * partSize);
+      const part =
+        urls.length === 1
+          ? bytes
+          : bytes.subarray(index * partSize, (index + 1) * partSize);
 
       const response = await fetchImpl(url, {
         method: 'PUT',
@@ -532,17 +635,38 @@ export class TopazVideoModel implements VideoModelV4 {
         });
       }
 
-      const eTag = response.headers.get('etag');
-      if (eTag == null) {
+      const eTag = response.headers.get('etag')?.replace(/"/g, '');
+
+      // Single-URL uploads have no parts to reassemble, so Topaz ignores the
+      // ETag but still requires one entry in `uploadResults`.
+      if (eTag == null && urls.length > 1) {
         throw new TopazError({
           message: `The upload of part ${index + 1} did not return an ETag header.`,
         });
       }
 
-      results.push({ partNum: index + 1, eTag: eTag.replace(/"/g, '') });
+      results.push({ partNum: index + 1, eTag: eTag ?? 'unused' });
     }
 
     return results;
+  }
+
+  private async cancelQuietly(
+    requestId: string,
+    headers: Record<string, string | undefined>,
+  ): Promise<void> {
+    const fetchImpl = this.config.fetch ?? globalThis.fetch;
+
+    try {
+      // Deliberately not tied to the caller's abort signal, which may be the
+      // reason the start failed.
+      await fetchImpl(`${this.config.baseURL}/video/${requestId}`, {
+        method: 'DELETE',
+        headers: removeUndefinedEntries(headers),
+      });
+    } catch {
+      // Best effort: the original error is more useful to the caller.
+    }
   }
 
   private async patch<T>({
@@ -612,83 +736,86 @@ function isVideoReference(reference: VideoModelV4File): boolean {
   return containerFromUrl(reference.url) != null;
 }
 
-function containerFromUrl(url: string): TopazContainer | undefined {
+function containerFromUrl(url: string): TopazSourceContainer | undefined {
   const withoutQuery = url.split(/[?#]/)[0];
   const extension = withoutQuery.split('.').pop()?.toLowerCase();
   return extension != null ? extensionContainers[extension] : undefined;
 }
 
-type ResolvedSource = {
-  container: TopazContainer;
-  size: number;
-  duration: number;
-  frameRate: number;
-  frameCount: number;
-  width: number;
-  height: number;
-};
+type ResolvedSource =
+  | { type: 'express'; container: TopazSourceContainer }
+  | {
+      type: 'full';
+      container: TopazSourceContainer;
+      size: number;
+      duration: number;
+      frameRate: number;
+      frameCount: number;
+      width: number;
+      height: number;
+    };
 
 /**
- * Merges the source metadata Topaz needs from the spec call options and the
- * `source` provider option. Nothing is read out of the video bytes: no provider
- * package inspects media files, so anything that cannot be derived from the
- * request has to be supplied by the caller.
+ * Picks the submission flow. Source metadata beyond the container is only
+ * needed, and only accepted, by the full flow, so its presence opts in.
+ * Nothing is read out of the video bytes: no provider package inspects media
+ * files.
  */
-function resolveSource({
-  options,
-  topazOptions,
-  container,
-  sizeBytes,
-}: {
-  options: Parameters<NonNullable<VideoModelV4['doStart']>>[0];
-  topazOptions: TopazVideoModelOptions | undefined;
-  container: TopazContainer;
-  sizeBytes: number;
-}): ResolvedSource {
+function resolveSource(
+  topazOptions: TopazVideoModelOptions | undefined,
+  container: TopazSourceContainer,
+  sizeBytes: number,
+): ResolvedSource {
   const source = topazOptions?.source;
-  const resolution = parseResolution(options.resolution);
+  const { width, height, duration, frameRate } = source ?? {};
 
-  const width = source?.width ?? resolution.width;
-  const height = source?.height ?? resolution.height;
-  const duration = source?.duration ?? options.duration;
-  const frameRate = source?.frameRate ?? options.fps;
+  if (
+    width == null &&
+    height == null &&
+    duration == null &&
+    frameRate == null &&
+    source?.frameCount == null
+  ) {
+    return { type: 'express', container };
+  }
+
   const frameCount =
     source?.frameCount ??
     (duration != null && frameRate != null
       ? Math.round(duration * frameRate)
       : undefined);
 
-  const missing: string[] = [];
-  if (width == null || height == null) {
-    missing.push('source.width / source.height (or the `resolution` option)');
-  }
-  if (duration == null) {
-    missing.push('source.duration (or the `duration` option)');
-  }
-  if (frameRate == null) {
-    missing.push('source.frameRate (or the `fps` option)');
-  }
-  if (frameCount == null) {
-    missing.push('source.frameCount');
-  }
+  const missing = [
+    width == null ? 'source.width' : undefined,
+    height == null ? 'source.height' : undefined,
+    duration == null ? 'source.duration' : undefined,
+    frameRate == null ? 'source.frameRate' : undefined,
+  ].filter(field => field != null);
 
-  if (missing.length > 0) {
+  if (
+    width == null ||
+    height == null ||
+    duration == null ||
+    frameRate == null ||
+    frameCount == null
+  ) {
     throw new TopazError({
       message:
-        'Topaz needs metadata about the input video before the upload starts, and the ' +
-        'AI SDK does not inspect media files. Missing: ' +
-        `${missing.join(', ')}.`,
+        'Source metadata switches Topaz to the full upload flow, which needs the ' +
+        `complete set. Missing: ${missing.join(', ')}. ` +
+        'Omit `source` metadata to use the express flow instead.',
     });
   }
 
   return {
+    type: 'full',
     container,
     size: sizeBytes,
-    duration: duration!,
-    frameRate: frameRate!,
-    frameCount: frameCount!,
-    width: width!,
-    height: height!,
+    duration,
+    frameRate,
+    frameCount,
+    width,
+    height,
   };
 }
 
@@ -704,32 +831,104 @@ function parseResolution(resolution: `${number}x${number}` | undefined): {
   return { width, height };
 }
 
-function buildOutput(
-  source: ResolvedSource,
-  topazOptions: TopazVideoModelOptions | undefined,
-): {
-  container: TopazContainer;
-  resolution: { width: number; height: number };
-  frameRate: number;
-  audioCodec: string;
-  audioTransfer: string;
-  dynamicCompressionLevel?: string;
-} {
+function buildOutput({
+  options,
+  topazOptions,
+  source,
+}: {
+  options: Parameters<NonNullable<VideoModelV4['doStart']>>[0];
+  topazOptions: TopazVideoModelOptions | undefined;
+  source: ResolvedSource;
+}): Record<string, unknown> & { container: TopazOutputContainer } {
   const output = topazOptions?.output;
+  const resolution = parseResolution(options.resolution);
+
+  const width =
+    output?.width ??
+    resolution.width ??
+    (source.type === 'full' ? source.width : undefined);
+  const height =
+    output?.height ??
+    resolution.height ??
+    (source.type === 'full' ? source.height : undefined);
+
+  if (width == null || height == null) {
+    throw new TopazError({
+      message:
+        'Topaz needs the output resolution. Set the `resolution` call option or the ' +
+        '`output.width` / `output.height` provider options.',
+    });
+  }
+
+  const frameRate =
+    output?.frameRate ??
+    options.fps ??
+    (source.type === 'full' ? source.frameRate : undefined);
+  const audioTransfer = output?.audioTransfer ?? 'Copy';
 
   return {
-    resolution: {
-      width: output?.width ?? source.width,
-      height: output?.height ?? source.height,
-    },
-    frameRate: output?.frameRate ?? source.frameRate,
-    audioCodec: output?.audioCodec ?? 'AAC',
-    audioTransfer: output?.audioTransfer ?? 'Copy',
-    container: output?.container ?? source.container,
+    resolution: { width, height },
+    ...(frameRate != null ? { frameRate } : {}),
+    audioTransfer,
+    ...(audioTransfer !== 'None'
+      ? { audioCodec: output?.audioCodec ?? 'AAC' }
+      : output?.audioCodec != null
+        ? { audioCodec: output.audioCodec }
+        : {}),
+    ...(output?.audioBitrate != null
+      ? { audioBitrate: output.audioBitrate }
+      : {}),
+    ...(output?.videoEncoder != null
+      ? { videoEncoder: output.videoEncoder }
+      : {}),
+    ...(output?.videoProfile != null
+      ? { videoProfile: output.videoProfile }
+      : {}),
+    ...(output?.videoBitrate != null
+      ? { videoBitrate: output.videoBitrate }
+      : {}),
     ...(output?.dynamicCompressionLevel != null
       ? { dynamicCompressionLevel: output.dynamicCompressionLevel }
       : {}),
+    ...(output?.cropToFit != null ? { cropToFit: output.cropToFit } : {}),
+    container: resolveOutputContainer(output, source.container),
   };
+}
+
+/**
+ * Mirrors Topaz's container rules so `doStatus` can report the media type of
+ * the file Topaz will actually produce.
+ */
+function resolveOutputContainer(
+  output: TopazVideoModelOptions['output'],
+  sourceContainer: TopazSourceContainer,
+): TopazOutputContainer {
+  switch (output?.videoEncoder) {
+    case 'ProRes':
+      return 'mov';
+    case 'AV1':
+    case 'VP9':
+      return 'mp4';
+  }
+
+  if (output?.container != null) {
+    return output.container;
+  }
+
+  // The default H265 encoder only writes mp4, mov and mkv.
+  return sourceContainer === 'mov' || sourceContainer === 'mkv'
+    ? sourceContainer
+    : 'mp4';
+}
+
+function requireRequestId(requestId: string | null | undefined): string {
+  if (requestId == null) {
+    throw new TopazError({
+      message: 'Topaz did not return a requestId for the video request.',
+    });
+  }
+
+  return requestId;
 }
 
 function buildFilter(
@@ -765,6 +964,13 @@ const topazVideoEstimatesSchema = z
 
 const topazVideoCreateResponseSchema = z.object({
   requestId: z.string().nullish(),
+  estimates: topazVideoEstimatesSchema,
+});
+
+const topazVideoExpressResponseSchema = z.object({
+  requestId: z.string().nullish(),
+  uploadId: z.string().nullish(),
+  uploadUrls: z.array(z.string()).nullish(),
   estimates: topazVideoEstimatesSchema,
 });
 

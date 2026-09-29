@@ -69,6 +69,9 @@ describe('TopazImageModel', () => {
     [DOWNLOAD_URL]: {
       response: { type: 'binary', body: outputBytes },
     },
+    [`${TEST_BASE_URL}/image/v1/cancel/${PROCESS_ID}`]: {
+      response: { type: 'empty', status: 204 },
+    },
   });
 
   describe('constructor', () => {
@@ -296,6 +299,9 @@ describe('TopazImageModel', () => {
       await expect(
         createModel().doGenerate({ ...defaultOptions }),
       ).rejects.toThrow(/cancelled for process proc-123/);
+      expect(server.calls.map(call => call.requestMethod)).not.toContain(
+        'DELETE',
+      );
     });
 
     it('throws when polling exceeds the timeout', async () => {
@@ -312,6 +318,34 @@ describe('TopazImageModel', () => {
           },
         }),
       ).rejects.toThrow(/did not finish within 1ms/);
+
+      // Topaz charges on completion, so the abandoned job is canceled.
+      const cancel = server.calls.at(-1);
+      expect(cancel?.requestMethod).toBe('DELETE');
+      expect(cancel?.requestUrl).toBe(
+        `${TEST_BASE_URL}/image/v1/cancel/${PROCESS_ID}`,
+      );
+      expect(cancel?.requestHeaders['x-api-key']).toBe('test-key');
+    });
+
+    it('cancels the job when the caller aborts while polling', async () => {
+      const abortController = new AbortController();
+      server.urls[`${TEST_BASE_URL}/image/v1/status/${PROCESS_ID}`].response =
+        () => {
+          abortController.abort();
+          return { type: 'json-value', body: { status: 'Processing' } };
+        };
+
+      await expect(
+        createModel().doGenerate({
+          ...defaultOptions,
+          abortSignal: abortController.signal,
+        }),
+      ).rejects.toThrow();
+
+      expect(server.calls.at(-1)?.requestUrl).toBe(
+        `${TEST_BASE_URL}/image/v1/cancel/${PROCESS_ID}`,
+      );
     });
 
     it('throws when no download URL is returned', async () => {
@@ -336,6 +370,18 @@ describe('TopazImageModel', () => {
       await expect(
         createModel().doGenerate({ ...defaultOptions }),
       ).rejects.toThrow(/model is required/);
+    });
+
+    it('surfaces the documented image error shape', async () => {
+      server.urls[`${TEST_BASE_URL}/image/v1/enhance-gen/async`].response = {
+        type: 'error',
+        status: 402,
+        body: JSON.stringify({ code: 402, message: 'Insufficient credits' }),
+      };
+
+      await expect(
+        createModel().doGenerate({ ...defaultOptions }),
+      ).rejects.toThrow('Insufficient credits');
     });
   });
 });

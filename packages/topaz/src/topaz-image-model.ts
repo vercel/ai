@@ -14,6 +14,7 @@ import {
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  removeUndefinedEntries,
   resolve,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
@@ -106,15 +107,25 @@ export class TopazImageModel implements ImageModelV4 {
       });
     }
 
-    const status = await this.waitForCompletion({
-      processId,
-      headers,
-      abortSignal: options.abortSignal,
-      pollIntervalMillis:
-        topazOptions?.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
-      pollTimeoutMillis:
-        topazOptions?.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS,
-    });
+    let status: TopazImageStatusResponse;
+    try {
+      status = await this.waitForCompletion({
+        processId,
+        headers,
+        abortSignal: options.abortSignal,
+        pollIntervalMillis:
+          topazOptions?.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
+        pollTimeoutMillis:
+          topazOptions?.pollTimeoutMillis ?? DEFAULT_POLL_TIMEOUT_MILLIS,
+      });
+    } catch (error) {
+      // Topaz charges on completion, so a job nobody will download should not
+      // be left running after the caller aborts.
+      if (options.abortSignal?.aborted) {
+        await this.cancelQuietly(processId, headers);
+      }
+      throw error;
+    }
 
     const { image, responseHeaders } = await this.download({
       processId,
@@ -324,6 +335,7 @@ export class TopazImageModel implements ImageModelV4 {
       }
 
       if (Date.now() + pollIntervalMillis > deadline) {
+        await this.cancelQuietly(processId, headers ?? {});
         throw new TopazError({
           message:
             `Topaz image enhancement did not finish within ${pollTimeoutMillis}ms ` +
@@ -333,6 +345,24 @@ export class TopazImageModel implements ImageModelV4 {
       }
 
       await delay(pollIntervalMillis, { abortSignal });
+    }
+  }
+
+  private async cancelQuietly(
+    processId: string,
+    headers: Record<string, string | undefined>,
+  ): Promise<void> {
+    const fetchImpl = this.config.fetch ?? globalThis.fetch;
+
+    try {
+      // Deliberately not tied to the caller's abort signal, which may be the
+      // reason polling stopped.
+      await fetchImpl(`${this.config.baseURL}/image/v1/cancel/${processId}`, {
+        method: 'DELETE',
+        headers: removeUndefinedEntries(headers),
+      });
+    } catch {
+      // Best effort: the original error is more useful to the caller.
     }
   }
 

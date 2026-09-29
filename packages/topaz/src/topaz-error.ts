@@ -3,9 +3,10 @@ import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
- * Topaz reports errors as `{ "detail": ... }`, where `detail` is either a
- * message or FastAPI's array of validation issues. `message` and `error` are
- * accepted as well because a few endpoints use them instead.
+ * The image API reports errors as `{ "message": ... }` and the video API as
+ * `{ "message": ..., "errorCode": ... }`. `detail` (a message or FastAPI's
+ * array of validation issues) and `error` are accepted as well because a few
+ * endpoints use them instead.
  */
 export const topazErrorDataSchema = z.object({
   detail: z
@@ -16,11 +17,17 @@ export const topazErrorDataSchema = z.object({
     .nullish(),
   message: z.string().nullish(),
   error: z.string().nullish(),
+  errorCode: z.string().nullish(),
 });
 
 export type TopazErrorData = z.infer<typeof topazErrorDataSchema>;
 
 export function topazErrorToMessage(data: TopazErrorData): string {
+  const message = baseErrorMessage(data);
+  return data.errorCode != null ? `${message} (${data.errorCode})` : message;
+}
+
+function baseErrorMessage(data: TopazErrorData): string {
   const { detail } = data;
 
   if (typeof detail === 'string') {
