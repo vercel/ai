@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -22,6 +28,17 @@ const createOpencodeServerMock = vi.hoisted(() =>
     close: vi.fn(),
   })),
 );
+
+const abortTurnFixture = JSON.parse(
+  readFileSync(
+    new URL('./__fixtures__/abort-turn-events.json', import.meta.url),
+    'utf8',
+  ),
+) as {
+  sessionId: string;
+  firstTurn: unknown[];
+  secondTurn: unknown[];
+};
 
 const relayMock = vi.hoisted(() => ({
   authorizeToolCall: vi.fn(),
@@ -108,6 +125,101 @@ describe('OpenCode bridge turn settlement', () => {
     permissionReplyMock.mockReset();
     createOpencodeServerMock.mockClear();
     vi.unstubAllEnvs();
+  });
+
+  it('keeps an aborted turn out of the next turn and waits for its reply', async () => {
+    const firstController = new AbortController();
+    const firstEmitted: Array<Record<string, unknown>> = [];
+    const secondEmitted: Array<Record<string, unknown>> = [];
+    const firstEmitError = vi.fn();
+    const secondEmitError = vi.fn();
+    let subscription = 0;
+    const promptAsync = vi.fn(async () => ({ data: {} }));
+
+    sdkMock.client = {
+      mcp: { status: vi.fn(async () => ({ data: {} })) },
+      session: {
+        create: vi.fn(async () => ({
+          data: { id: abortTurnFixture.sessionId },
+        })),
+        get: vi.fn(async () => ({ data: {} })),
+        messages: vi.fn(async () => ({ data: [] })),
+        promptAsync,
+        abort: vi.fn(async () => ({ data: true })),
+      },
+      event: {
+        subscribe: vi.fn(async () => {
+          const events =
+            subscription++ === 0
+              ? abortTurnFixture.firstTurn
+              : abortTurnFixture.secondTurn;
+          return {
+            stream: {
+              async *[Symbol.asyncIterator]() {
+                yield* events;
+              },
+            },
+          };
+        }),
+      },
+      v2: {
+        session: {
+          context: vi.fn(async () => ({ data: [] })),
+          switchModel: vi.fn(async () => ({ data: {} })),
+        },
+      },
+    };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Write a 600-word short story about a lighthouse keeper.',
+      model: 'anthropic/claude-haiku-4-5',
+    };
+    bridgeMock.turn = {
+      emit: (event: Record<string, unknown>) => {
+        firstEmitted.push(event);
+        if (event.type === 'text-delta') firstController.abort();
+      },
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: firstController.signal,
+      firstTurn: true,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: firstEmitError,
+    };
+    setBridgeArgv();
+    await import('./index');
+
+    const secondTurn = {
+      emit: (event: Record<string, unknown>) => secondEmitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: secondEmitError,
+    };
+    await bridgeMock.onStart!(
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Reply with exactly one word, with no punctuation: banana',
+        model: 'anthropic/claude-haiku-4-5',
+      },
+      secondTurn,
+    );
+
+    const secondText = secondEmitted
+      .filter(event => event.type === 'text-delta')
+      .map(event => String(event.delta))
+      .join('');
+    expect(promptAsync).toHaveBeenCalledTimes(2);
+    expect(secondEmitError).not.toHaveBeenCalled();
+    expect(secondText).toBe('banana');
   });
 
   it('preserves native manual compaction as one normalized completion event', async () => {

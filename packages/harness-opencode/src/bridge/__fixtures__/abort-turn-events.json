@@ -1,0 +1,325 @@
+{
+  "metadata": {
+    "capturedAt": "2026-09-29T02:26:00Z",
+    "openCodeVersion": "1.18.31",
+    "model": "anthropic/claude-haiku-4-5",
+    "description": "Selected live OpenCode events from an aborted lighthouse-story turn followed by a queued one-word banana turn."
+  },
+  "sessionId": "ses_f150402b5ffe3ULdo44ilXiYN3",
+  "firstTurn": [
+    {
+      "id": "evt_0eafc0401001ZFdwZ22cHHEGvI",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "busy" }
+      }
+    },
+    {
+      "id": "evt_0eafc2ec6001hc5HRcxodIK4gN",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc2ec6001I9KIXGBqM515BG",
+          "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "snapshot": "d5312e387751d32361c2b2c1e69612fc5636d85c",
+          "type": "step-start"
+        },
+        "time": 1790648790726
+      }
+    },
+    {
+      "id": "evt_0eafc2eca001g9sGKdDHobZ3UL",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+          "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "type": "text",
+          "text": "",
+          "time": { "start": 1790648790730 }
+        },
+        "time": 1790648790730
+      }
+    },
+    {
+      "id": "evt_0eafc2ecc001a10bUDLKGvmUH7",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": "#"
+      }
+    },
+    {
+      "id": "evt_0eafc2ecd001nEj12YgWy3jPhV",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": " The Lighthouse"
+      }
+    }
+  ],
+  "secondTurn": [
+    {
+      "id": "evt_0eafc2f25005j4aw5DybGSleL6",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": " the wind"
+      }
+    },
+    {
+      "id": "evt_0eafc2f26001f3YWh5qPkhd0qs",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": ", and waited"
+      }
+    },
+    {
+      "id": "evt_0eafc2f26002GBgGSY3RKxwWhb",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": " for dawn"
+      }
+    },
+    {
+      "id": "evt_0eafc2f26003E3Pzx4yLWBmAg3",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+        "partID": "prt_0eafc2eca001t4RIFcKZYzEfy7",
+        "field": "text",
+        "delta": "."
+      }
+    },
+    {
+      "id": "evt_0eafc2f4d001yuNhyHfm9PFBmc",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc2f4d001tXqBWbGuuAHtyx",
+          "reason": "stop",
+          "snapshot": "d5312e387751d32361c2b2c1e69612fc5636d85c",
+          "messageID": "msg_0eafc01af0017beyKYMPMBDRY2",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13861,
+            "input": 3,
+            "output": 829,
+            "reasoning": 0,
+            "cache": { "write": 13029, "read": 0 }
+          },
+          "cost": 0.02043425
+        },
+        "time": 1790648790861
+      }
+    },
+    {
+      "id": "evt_0eafc2f6f001feJMuC6vU9QGod",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "busy" }
+      }
+    },
+    {
+      "id": "evt_0eafc2f72001wNPqgUSkaV4h38",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "idle" }
+      }
+    },
+    {
+      "id": "evt_0eafc373a001mvU7ZEB2UBDO3X",
+      "type": "message.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "info": {
+          "id": "msg_0eafc3739001MGircqpr10bz9A",
+          "role": "user",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "time": { "created": 1790648792889 },
+          "agent": "build",
+          "model": {
+            "providerID": "anthropic",
+            "modelID": "claude-haiku-4-5"
+          }
+        }
+      }
+    },
+    {
+      "id": "evt_0eafc373c001QcWtw3kCoPExtE",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "type": "text",
+          "text": "Reply with exactly one word, with no punctuation: banana",
+          "messageID": "msg_0eafc3739001MGircqpr10bz9A",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "id": "prt_0eafc37390024S6NY1CvIN1kGp"
+        },
+        "time": 1790648792892
+      }
+    },
+    {
+      "id": "evt_0eafc3742001mNr6RYSWvUN3d8",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "busy" }
+      }
+    },
+    {
+      "id": "evt_0eafc3744001X2YTWydFmcWr1M",
+      "type": "message.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "info": {
+          "id": "msg_0eafc3744001Bz77lmwKmy3BrY",
+          "parentID": "msg_0eafc3739001MGircqpr10bz9A",
+          "role": "assistant",
+          "mode": "build",
+          "agent": "build",
+          "cost": 0,
+          "tokens": {
+            "input": 0,
+            "output": 0,
+            "reasoning": 0,
+            "cache": { "read": 0, "write": 0 }
+          },
+          "modelID": "claude-haiku-4-5",
+          "providerID": "anthropic",
+          "time": { "created": 1790648792900 },
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3"
+        }
+      }
+    },
+    {
+      "id": "evt_0eafc39f9001jroz9OQzHqgdt9",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc39f8001g63ymLb6249712",
+          "messageID": "msg_0eafc3744001Bz77lmwKmy3BrY",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "snapshot": "d5312e387751d32361c2b2c1e69612fc5636d85c",
+          "type": "step-start"
+        },
+        "time": 1790648793593
+      }
+    },
+    {
+      "id": "evt_0eafc39fb001LaFHtrpIgtrPQK",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc39fb001srwdpxJSoD8jt9",
+          "messageID": "msg_0eafc3744001Bz77lmwKmy3BrY",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "type": "text",
+          "text": "",
+          "time": { "start": 1790648793595 }
+        },
+        "time": 1790648793595
+      }
+    },
+    {
+      "id": "evt_0eafc39fd001uibvIgIf21DJZn",
+      "type": "message.part.delta",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "messageID": "msg_0eafc3744001Bz77lmwKmy3BrY",
+        "partID": "prt_0eafc39fb001srwdpxJSoD8jt9",
+        "field": "text",
+        "delta": "banana"
+      }
+    },
+    {
+      "id": "evt_0eafc39fe001620ExZfxN3VM0q",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc39fb001srwdpxJSoD8jt9",
+          "messageID": "msg_0eafc3744001Bz77lmwKmy3BrY",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "type": "text",
+          "text": "banana",
+          "time": {
+            "start": 1790648793595,
+            "end": 1790648793598
+          }
+        },
+        "time": 1790648793598
+      }
+    },
+    {
+      "id": "evt_0eafc3a0c001p74TXmB33cKx49",
+      "type": "message.part.updated",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "part": {
+          "id": "prt_0eafc3a0c001StVV1A6lRwmeCv",
+          "reason": "stop",
+          "snapshot": "d5312e387751d32361c2b2c1e69612fc5636d85c",
+          "messageID": "msg_0eafc3744001Bz77lmwKmy3BrY",
+          "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13880,
+            "input": 3,
+            "output": 4,
+            "reasoning": 0,
+            "cache": { "write": 844, "read": 13029 }
+          },
+          "cost": 0.0023809
+        },
+        "time": 1790648793612
+      }
+    },
+    {
+      "id": "evt_0eafc3a2c0017Owt4rCfsc4FEU",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "busy" }
+      }
+    },
+    {
+      "id": "evt_0eafc3a2e001aON9xEhD26TjwA",
+      "type": "session.status",
+      "properties": {
+        "sessionID": "ses_f150402b5ffe3ULdo44ilXiYN3",
+        "status": { "type": "idle" }
+      }
+    }
+  ]
+}
