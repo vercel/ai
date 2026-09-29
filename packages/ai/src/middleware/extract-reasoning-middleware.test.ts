@@ -283,6 +283,51 @@ describe('extractReasoningMiddleware', () => {
         ]
       `);
     });
+
+    it('should preserve provider metadata on the remaining text part', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doGenerate() {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: '<think>analyzing the request</think>Here is the response',
+                providerMetadata: { openai: { itemId: 'msg_1' } },
+              },
+            ],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+            warnings: [],
+          };
+        },
+      });
+
+      const result = await generateText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      expect(result.content).toMatchInlineSnapshot(`
+        [
+          {
+            "text": "analyzing the request",
+            "type": "reasoning",
+          },
+          {
+            "providerMetadata": {
+              "openai": {
+                "itemId": "msg_1",
+              },
+            },
+            "text": "Here is the response",
+            "type": "text",
+          },
+        ]
+      `);
+    });
   });
 
   describe('wrapStream', () => {

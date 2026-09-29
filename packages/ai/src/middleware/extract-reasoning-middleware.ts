@@ -71,7 +71,7 @@ export function extractReasoningMiddleware({
         });
 
         transformedContent.push({
-          type: 'text',
+          ...part,
           text: textWithoutReasoning,
         });
       }
