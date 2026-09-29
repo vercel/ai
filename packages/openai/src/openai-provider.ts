@@ -88,6 +88,13 @@ export interface OpenAIProvider
   /**
    * Creates an experimental model for streaming speech translation.
    */
+  translation(
+    modelId: OpenAISpeechTranslationModelId,
+  ): SpeechTranslationModelV4;
+
+  /**
+   * Creates an experimental model for streaming speech translation.
+   */
   speechTranslationModel(
     modelId: OpenAISpeechTranslationModelId,
   ): SpeechTranslationModelV4;
