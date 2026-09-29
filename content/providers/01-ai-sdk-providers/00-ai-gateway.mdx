@@ -625,16 +625,20 @@ const result = await generateText({
 });
 
 // Get the generation ID from provider metadata
-const generationId = result.providerMetadata?.gateway?.generationId;
+const generationId = result.providerMetadata?.gateway?.generationId as
+  | string
+  | undefined;
 
 // Look up detailed generation info
-const generation = await gateway.getGenerationInfo({ id: generationId });
+if (generationId) {
+  const generation = await gateway.getGenerationInfo({ id: generationId });
 
-console.log(`Model: ${generation.model}`);
-console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.promptTokens}`);
-console.log(`Completion tokens: ${generation.completionTokens}`);
+  console.log(`Model: ${generation.model}`);
+  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
+  console.log(`Latency: ${generation.latency}ms`);
+  console.log(`Prompt tokens: ${generation.promptTokens}`);
+  console.log(`Completion tokens: ${generation.completionTokens}`);
+}
 ```
 
 With `streamText`, you can capture the generation ID from the first chunk via `stream`:
@@ -1600,15 +1604,15 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-5.4 first
+// 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try gemini-3-flash-preview
+// 3. If that fails, try google/gemini-3.8-flash
 // 4. Return the result from the first model that succeeds
 ```
 

@@ -118,12 +118,12 @@ export default function Page() {
               {message.role === "user" ? "You" : "Assistant"}
             </div>
             <div className="prose space-y-2">
-              {message.parts.map((part) => {
+              {message.parts.map((part, index) => {
                 if (part.type === "text") {
                   return (
                     <MemoizedMarkdown
-                      key={`${message.id}-text`}
-                      id={message.id}
+                      key={`${message.id}-text-${index}`}
+                      id={`${message.id}-${index}`}
                       content={part.text}
                     />
                   );

@@ -150,7 +150,7 @@ const { text } = await traceContext(
 
 ### Group Traces Into Threads
 
-`confident-trace` provides a `turn()` method you can use to group two sequential AI SDK calls into one turn. Reuse the same thread ID on later turns to group them into one thread you can view and evaluate on Confident AI:
+`confident-trace` provides a `turn()` method you can use to group sequential AI SDK calls into one turn. Reuse the same thread ID on later turns to group them into one thread you can view and evaluate on Confident AI:
 
 ```ts
 import { generateText } from 'ai';

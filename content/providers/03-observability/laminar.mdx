@@ -252,14 +252,16 @@ The two libraries allow for additional advanced configuration, but the default s
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  laminarOptions: {
-    projectApiKey: process.env.LMNR_PROJECT_API_KEY,
-    baseUrl: "http://localhost",
-    httpPort: 8000,
-    grpcPort: 8001,
-  },
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    laminarOptions: {
+      projectApiKey: process.env.LMNR_PROJECT_API_KEY,
+      baseUrl: 'http://localhost',
+      httpPort: 8000,
+      grpcPort: 8001,
+    },
+  }),
+);
 ```
 
 ### Do not record inputs or outputs
@@ -270,10 +272,12 @@ By default, Laminar integration records all inputs and outputs, but you can disa
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  recordInputs: false, // default true
-  recordOutputs: false, // default true
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    recordInputs: false, // default true
+    recordOutputs: false, // default true
+  }),
+);
 ```
 
 ### Adding a span for every agent step
@@ -285,9 +289,11 @@ configure this in the constructor options.
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  createStepSpan: true, // default false
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    createStepSpan: true, // default false
+  }),
+);
 ```
 
 ### Span name
