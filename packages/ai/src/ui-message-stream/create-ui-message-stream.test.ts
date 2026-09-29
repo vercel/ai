@@ -75,6 +75,58 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should cancel merged streams when the consumer cancels', async () => {
+    const pullStarted = new DelayedPromise<void>();
+    const pullRelease = new DelayedPromise<void>();
+    const pullFinished = new DelayedPromise<void>();
+    const cancelReason = new Error('client disconnected');
+    let sourceCancelled = false;
+    let sourceContinuedAfterCancel = false;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+            },
+            async pull(controller) {
+              pullStarted.resolve(undefined);
+              await pullRelease.promise;
+
+              if (!sourceCancelled) {
+                sourceContinuedAfterCancel = true;
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'continued-source',
+                  delta: 'discarded',
+                });
+                controller.close();
+              }
+
+              pullFinished.resolve(undefined);
+            },
+            cancel(reason) {
+              expect(reason).toBe(cancelReason);
+              sourceCancelled = true;
+            },
+          }),
+        );
+      },
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await pullStarted.promise;
+    await reader.cancel(cancelReason);
+
+    pullRelease.resolve(undefined);
+    await pullFinished.promise;
+
+    expect(sourceCancelled).toBe(true);
+    expect(sourceContinuedAfterCancel).toBe(false);
+  });
+
   it('should send async message annotation and close the stream', async () => {
     const wait = new DelayedPromise<void>();
 
