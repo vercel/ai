@@ -1,5 +1,11 @@
 # @ai-sdk/provider
 
+## 4.0.20
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+
 ## 4.0.19
 
 ### Patch Changes

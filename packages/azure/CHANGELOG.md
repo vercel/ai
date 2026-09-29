@@ -1,5 +1,18 @@
 # @ai-sdk/azure
 
+## 4.0.86
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [040033b]
+- Updated dependencies [ea54a10]
+- Updated dependencies [ede5b89]
+  - @ai-sdk/openai@4.0.82
+  - @ai-sdk/deepseek@3.0.57
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.85
 
 ### Patch Changes

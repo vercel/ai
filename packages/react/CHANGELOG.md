@@ -1,5 +1,21 @@
 # @ai-sdk/react
 
+## 4.0.126
+
+### Patch Changes
+
+- 193d284: fix(react): deduplicate automatic stream resumption for shared Chat instances
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/mcp@2.0.63
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.125
 
 ### Patch Changes

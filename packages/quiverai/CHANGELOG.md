@@ -1,5 +1,15 @@
 # @ai-sdk/quiverai
 
+## 2.0.53
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/open-responses@2.0.57
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 2.0.52
 
 ### Patch Changes

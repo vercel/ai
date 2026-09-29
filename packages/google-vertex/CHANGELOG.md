@@ -1,5 +1,18 @@
 # @ai-sdk/google-vertex
 
+## 5.0.99
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/google@4.0.86
+  - @ai-sdk/openai-compatible@3.0.60
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 5.0.98
 
 ### Patch Changes
