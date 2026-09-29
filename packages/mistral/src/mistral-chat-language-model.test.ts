@@ -504,6 +504,30 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should map the error finish reason', async () => {
+    server.urls[CHAT_COMPLETIONS_URL].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-error',
+        object: 'chat.completion',
+        created: 1769088720,
+        model: 'mistral-small-latest',
+        usage: { prompt_tokens: 4, total_tokens: 4, completion_tokens: 0 },
+        choices: [
+          {
+            index: 0,
+            finish_reason: 'error',
+            message: { role: 'assistant', content: '' },
+          },
+        ],
+      },
+    };
+
+    const { finishReason } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(finishReason).toStrictEqual({ unified: 'error', raw: 'error' });
+  });
+
   it('should pass parallelToolCalls option', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
