@@ -4,6 +4,7 @@
 '@ai-sdk/azure': patch
 '@ai-sdk/cartesia': patch
 '@ai-sdk/deepseek': patch
+'@ai-sdk/devtools': patch
 '@ai-sdk/elevenlabs': patch
 '@ai-sdk/fish-audio': patch
 '@ai-sdk/gladia': patch
