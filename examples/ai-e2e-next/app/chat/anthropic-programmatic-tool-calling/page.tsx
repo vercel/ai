@@ -48,6 +48,14 @@ export default function ChatAnthropicProgrammaticToolCalling() {
                 );
               }
               case 'tool-rollDie': {
+                if (part.state === 'input-error') {
+                  return (
+                    <div key={index} className="text-red-500">
+                      Tool input error: {part.errorText}
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={index} className="text-gray-500">
                     {part.state === 'output-available'

@@ -50,6 +50,12 @@ export default function Chat() {
                         Weather in {part.input.city}: {part.output}
                       </div>
                     );
+                  case 'input-error':
+                    return (
+                      <div key={index} className="text-red-500">
+                        Could not start weather lookup: {part.errorText}
+                      </div>
+                    );
                   case 'output-error':
                     return (
                       <div key={index} className="text-red-500">

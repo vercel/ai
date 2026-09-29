@@ -48,6 +48,14 @@ export default function Chat() {
               }
 
               if (part.type === 'tool-showWeatherInformation') {
+                if (part.state === 'input-error') {
+                  return (
+                    <div key={part.toolCallId} className="text-red-500">
+                      Tool input error: {part.errorText}
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={part.toolCallId}

@@ -6,6 +6,14 @@ export default function CodeInterpreterView({
 }: {
   invocation: UIToolInvocation<ReturnType<typeof openai.tools.codeInterpreter>>;
 }) {
+  if (invocation.state === 'input-error') {
+    return (
+      <div className="text-red-500">
+        Tool input error: {invocation.errorText}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-2 bg-gray-900 rounded-xl border border-gray-600 shadow-lg">
       <div className="px-6 py-3 bg-gray-800 rounded-t-xl border-b border-gray-700">

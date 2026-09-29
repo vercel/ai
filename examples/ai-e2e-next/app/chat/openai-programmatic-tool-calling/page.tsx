@@ -46,6 +46,14 @@ export default function ChatOpenAIProgrammaticToolCalling() {
                 );
               }
               case 'tool-getInventory': {
+                if (part.state === 'input-error') {
+                  return (
+                    <div key={index} className="text-red-500">
+                      Tool input error: {part.errorText}
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={index}
@@ -58,6 +66,14 @@ export default function ChatOpenAIProgrammaticToolCalling() {
                 );
               }
               case 'tool-getDemand': {
+                if (part.state === 'input-error') {
+                  return (
+                    <div key={index} className="text-red-500">
+                      Tool input error: {part.errorText}
+                    </div>
+                  );
+                }
+
                 return (
                   <div
                     key={index}

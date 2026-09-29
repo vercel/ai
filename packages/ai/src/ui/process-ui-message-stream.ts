@@ -229,6 +229,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerMetadata?: ProviderMetadata;
                 }
               | {
+                  state: 'input-error';
+                  input: unknown;
+                  errorText: string;
+                  providerMetadata?: ProviderMetadata;
+                }
+              | {
                   state: 'output-available';
                   input: unknown;
                   output: unknown;
@@ -340,6 +346,12 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               | {
                   state: 'input-available';
                   input: unknown;
+                  providerMetadata?: ProviderMetadata;
+                }
+              | {
+                  state: 'input-error';
+                  input: unknown;
+                  errorText: string;
                   providerMetadata?: ProviderMetadata;
                 }
               | {
@@ -755,7 +767,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 updateDynamicToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
-                  state: 'output-error',
+                  state: 'input-error',
                   input: chunk.input,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,
@@ -766,7 +778,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 updateToolPart({
                   toolCallId: chunk.toolCallId,
                   toolName: chunk.toolName,
-                  state: 'output-error',
+                  state: 'input-error',
                   input: chunk.input,
                   errorText: chunk.errorText,
                   providerExecuted: chunk.providerExecuted,

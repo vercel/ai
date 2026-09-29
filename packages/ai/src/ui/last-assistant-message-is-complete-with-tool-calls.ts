@@ -44,6 +44,7 @@ export function lastAssistantMessageIsCompleteWithToolCalls({
       .some(part => part.type === 'text' && part.state !== 'done') &&
     lastStepToolInvocations.every(
       part =>
+        part.state === 'input-error' ||
         (part.state === 'output-available' && part.preliminary !== true) ||
         part.state === 'output-error',
     )

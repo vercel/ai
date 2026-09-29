@@ -10,6 +10,14 @@ export default function OpenAIProgrammaticToolCallingView({
 }: {
   invocation: ProgramInvocation;
 }) {
+  if (invocation.state === 'input-error') {
+    return (
+      <div className="text-red-500">
+        Tool input error: {invocation.errorText}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-2 bg-gray-900 rounded-xl border border-gray-600 shadow-lg">
       <div className="px-4 py-3 bg-gray-800 rounded-t-xl border-b border-gray-700">

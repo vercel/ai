@@ -40,6 +40,14 @@ export default function ChatOpenAIShellContainerSkills() {
                       </div>
                     );
                   case 'tool-shell': {
+                    if (part.state === 'input-error') {
+                      return (
+                        <div key={index} className="text-red-500">
+                          Tool input error: {part.errorText}
+                        </div>
+                      );
+                    }
+
                     const commands = part.input?.action?.commands || [];
                     const outputs =
                       part.state === 'output-available'

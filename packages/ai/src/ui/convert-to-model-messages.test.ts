@@ -780,6 +780,85 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+    describe('tool input error', () => {
+      it('should convert input-error into a tool call and error result', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-calculator',
+                state: 'input-error',
+                toolCallId: 'call1',
+                input: { operation: 'add', numbers: 'invalid' },
+                errorText: 'Invalid tool input',
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'calculator',
+                input: { operation: 'add', numbers: 'invalid' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'calculator',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid tool input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
+      it('should keep input-error when ignoring incomplete tool calls', async () => {
+        const result = await convertToModelMessages(
+          [
+            {
+              role: 'assistant',
+              parts: [
+                {
+                  type: 'tool-calculator',
+                  state: 'input-error',
+                  toolCallId: 'call1',
+                  input: { operation: 'add', numbers: 'invalid' },
+                  errorText: 'Invalid tool input',
+                },
+              ],
+            },
+          ],
+          { ignoreIncompleteToolCalls: true },
+        );
+
+        expect(result).toHaveLength(2);
+        expect(result[1]).toMatchObject({
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call1',
+            },
+          ],
+        });
+      });
+    });
+
     describe('tool output error', () => {
       it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
         const result = await convertToModelMessages([

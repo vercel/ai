@@ -7081,7 +7081,7 @@ describe('processUIMessageStream', () => {
                   "preliminary": undefined,
                   "providerExecuted": undefined,
                   "rawInput": undefined,
-                  "state": "output-error",
+                  "state": "input-error",
                   "title": undefined,
                   "toolCallId": "call-1",
                   "type": "tool-cityAttractions",
@@ -7141,13 +7141,76 @@ describe('processUIMessageStream', () => {
     });
   });
 
+  describe('tool input error state', () => {
+    it.each([
+      { name: 'static', dynamic: false, expectedType: 'tool-cityAttractions' },
+      { name: 'dynamic', dynamic: true, expectedType: 'dynamic-tool' },
+    ])(
+      'represents $name tool input errors as input-error',
+      async ({ dynamic, expectedType }) => {
+        const stream = createUIMessageStream([
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            ...(dynamic ? { dynamic: true } : {}),
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call-1',
+            inputTextDelta: '{ "cities": ["San Francisco"] }',
+          },
+          {
+            type: 'tool-input-error',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            input: { cities: ['San Francisco'] },
+            errorText: 'Invalid input for tool cityAttractions',
+            ...(dynamic ? { dynamic: true } : {}),
+          },
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        const toolPart = state.message.parts.find(
+          (part: any) => part.toolCallId === 'call-1',
+        );
+
+        expect(toolPart).toMatchObject({
+          type: expectedType,
+          state: 'input-error',
+          errorText: 'Invalid input for tool cityAttractions',
+        });
+      },
+    );
+  });
+
   describe('dynamic tool errors after input streaming', () => {
     const terminalChunks: Array<{
       name: string;
+      expectedState: 'input-error' | 'output-error';
       chunk: UIMessageChunk;
     }> = [
       {
         name: 'tool input error',
+        expectedState: 'input-error',
         chunk: {
           type: 'tool-input-error',
           toolCallId: 'call-1',
@@ -7159,6 +7222,7 @@ describe('processUIMessageStream', () => {
       },
       {
         name: 'tool output error',
+        expectedState: 'output-error',
         chunk: {
           type: 'tool-output-error',
           toolCallId: 'call-1',
@@ -7170,7 +7234,7 @@ describe('processUIMessageStream', () => {
 
     it.each(terminalChunks)(
       'clears raw input on $name',
-      async ({ chunk: terminalChunk }) => {
+      async ({ chunk: terminalChunk, expectedState }) => {
         const warningLogger = vi.fn();
         globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
 
@@ -7214,7 +7278,7 @@ describe('processUIMessageStream', () => {
 
         expect(toolPart).toMatchObject({
           type: 'dynamic-tool',
-          state: 'output-error',
+          state: expectedState,
         });
         expect((toolPart as any).rawInput).toBeUndefined();
 

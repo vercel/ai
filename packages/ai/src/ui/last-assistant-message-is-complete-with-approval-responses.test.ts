@@ -227,6 +227,36 @@ describe('lastAssistantMessageIsCompleteWithApprovalResponses', () => {
     ).toBe(false);
   });
 
+  it('should treat input-error as terminal when another approval has responded', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: true },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'input-error',
+                input: { city: 123 },
+                errorText: 'Invalid tool input',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it('should return true when a tool output is denied and another approval has responded', () => {
     expect(
       lastAssistantMessageIsCompleteWithApprovalResponses({
