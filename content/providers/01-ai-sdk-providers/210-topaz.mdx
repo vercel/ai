@@ -120,10 +120,12 @@ const { images } = await generateImage({
 
 ### Image Provider Metadata
 
-`providerMetadata.topaz` on the result contains:
+`providerMetadata.topaz.images[]` on the result contains, for each image:
 
+- **processId** _string_: the Topaz job id.
 - **credits** _number_: the credits Topaz charged for the job.
-- **images** _Array&lt;object&gt;_: per-image details with `processId`, `width`, `height` and `format`.
+- **width** / **height** _number_: the output dimensions.
+- **format** _string_: the output format.
 
 ## Video Models
 

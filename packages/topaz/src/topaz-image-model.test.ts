@@ -1,4 +1,7 @@
-import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type ImageModelV4CallOptions,
+} from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -127,10 +130,10 @@ describe('TopazImageModel', () => {
       );
       expect(result.providerMetadata).toEqual({
         topaz: {
-          credits: 2,
           images: [
             {
               processId: PROCESS_ID,
+              credits: 2,
               width: 4000,
               height: 3000,
               format: 'png',
@@ -274,9 +277,12 @@ describe('TopazImageModel', () => {
     });
 
     it('throws when no input image is provided', async () => {
-      await expect(
-        createModel().doGenerate({ ...defaultOptions, files: undefined }),
-      ).rejects.toThrow(/enhance an existing image/);
+      const error = await createModel()
+        .doGenerate({ ...defaultOptions, files: undefined })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error.message).toMatch(/enhance an existing image/);
     });
 
     it('throws when the job fails', async () => {

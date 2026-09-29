@@ -20,7 +20,7 @@ run(async () => {
     },
   });
 
-  // `topaz.credits` is what Topaz charged for the job.
+  // `topaz.images[0].credits` is what Topaz charged for the job.
   console.log(
     'Provider metadata:',
     JSON.stringify(result.providerMetadata, null, 2),

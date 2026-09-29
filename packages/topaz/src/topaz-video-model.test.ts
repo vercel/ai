@@ -3,6 +3,7 @@ import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
+import { APICallError, InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TopazVideoModel } from './topaz-video-model';
@@ -703,9 +704,12 @@ describe('TopazVideoModel', () => {
     });
 
     it('requires an output resolution', async () => {
-      await expect(
-        createModel().doStart({ ...expressOptions, resolution: undefined }),
-      ).rejects.toThrow(/needs the output resolution/);
+      const error = await createModel()
+        .doStart({ ...expressOptions, resolution: undefined })
+        .catch(error => error);
+
+      expect(InvalidArgumentError.isInstance(error)).toBe(true);
+      expect(error.message).toMatch(/needs the output resolution/);
       expect(server.calls).toHaveLength(0);
     });
 
@@ -727,11 +731,15 @@ describe('TopazVideoModel', () => {
     });
 
     it('cancels the request when the upload fails', async () => {
-      server.urls[UPLOAD_URL].response = { type: 'error', status: 403 };
+      server.urls[UPLOAD_URL].response = { type: 'error', status: 503 };
 
-      await expect(createModel().doStart(expressOptions)).rejects.toThrow(
-        /failed with status 403/,
-      );
+      const error = await createModel()
+        .doStart(expressOptions)
+        .catch(error => error);
+
+      expect(APICallError.isInstance(error)).toBe(true);
+      expect(error.statusCode).toBe(503);
+      expect(error.isRetryable).toBe(true);
       expect(server.calls.at(-1)?.requestMethod).toBe('DELETE');
     });
   });
@@ -882,15 +890,15 @@ describe('TopazVideoModel', () => {
       );
     });
 
-    it('throws on an unrecognized status', async () => {
+    it('keeps polling on an unrecognized status', async () => {
       server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/status`].response = {
         type: 'json-value',
         body: { status: 'sideways' },
       };
 
-      await expect(createModel().doStatus({ operation })).rejects.toThrow(
-        /unrecognized status "sideways"/,
-      );
+      const result = await createModel().doStatus({ operation });
+
+      expect(result.status).toBe('pending');
     });
   });
 });

@@ -1,8 +1,11 @@
-import type {
-  ImageModelV4,
-  ImageModelV4CallOptions,
-  ImageModelV4Result,
-  SharedV4Warning,
+import {
+  AISDKError,
+  InvalidArgumentError,
+  InvalidResponseDataError,
+  type ImageModelV4,
+  type ImageModelV4CallOptions,
+  type ImageModelV4Result,
+  type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -22,7 +25,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
-import { topazFailedResponseHandler, TopazError } from './topaz-error';
+import { topazFailedResponseHandler } from './topaz-error';
 import {
   topazImageModelOptionsSchema,
   type TopazImageModelOptions,
@@ -102,7 +105,8 @@ export class TopazImageModel implements ImageModelV4 {
 
     const processId = submitResponse.process_id;
     if (processId == null) {
-      throw new TopazError({
+      throw new InvalidResponseDataError({
+        data: submitResponse,
         message: 'Topaz did not return a process_id for the enhance request.',
       });
     }
@@ -143,11 +147,11 @@ export class TopazImageModel implements ImageModelV4 {
       },
       providerMetadata: {
         topaz: {
-          // Topaz bills exactly the credits reported on the completed job.
-          ...(status.credits != null ? { credits: status.credits } : {}),
           images: [
             {
               processId,
+              // Topaz bills exactly the credits reported on the completed job.
+              ...(status.credits != null ? { credits: status.credits } : {}),
               ...(status.output_width != null
                 ? { width: status.output_width }
                 : {}),
@@ -223,10 +227,11 @@ export class TopazImageModel implements ImageModelV4 {
     const file = options.files?.[0];
 
     if (file == null) {
-      throw new TopazError({
+      throw new InvalidArgumentError({
+        argument: 'files',
         message:
           'Topaz image models enhance an existing image. Pass the input image via ' +
-          'the `files` option.',
+          '`prompt.images`.',
       });
     }
 
@@ -329,14 +334,16 @@ export class TopazImageModel implements ImageModelV4 {
       }
 
       if (status.status === 'Failed' || status.status === 'Cancelled') {
-        throw new TopazError({
+        throw new AISDKError({
+          name: 'TOPAZ_IMAGE_ENHANCEMENT_FAILED',
           message: `Topaz image enhancement ${status.status.toLowerCase()} for process ${processId}.`,
         });
       }
 
       if (Date.now() + pollIntervalMillis > deadline) {
         await this.cancelQuietly(processId, headers ?? {});
-        throw new TopazError({
+        throw new AISDKError({
+          name: 'TOPAZ_IMAGE_ENHANCEMENT_TIMEOUT',
           message:
             `Topaz image enhancement did not finish within ${pollTimeoutMillis}ms ` +
             `(process ${processId}, last status ${status.status ?? 'unknown'}). ` +
@@ -393,7 +400,8 @@ export class TopazImageModel implements ImageModelV4 {
 
     const downloadUrl = downloadResponse.download_url;
     if (downloadUrl == null) {
-      throw new TopazError({
+      throw new InvalidResponseDataError({
+        data: downloadResponse,
         message: `Topaz did not return a download URL for process ${processId}.`,
       });
     }
@@ -440,15 +448,12 @@ function appendIfDefined(
 
 const topazImageSubmitResponseSchema = z.object({
   process_id: z.string().nullish(),
-  source_id: z.string().nullish(),
-  eta: z.number().nullish(),
 });
 
 const topazImageStatusResponseSchema = z.object({
   // Documented values are Pending, Processing, Completed, Cancelled and Failed.
   // Unknown values keep polling rather than failing the parse.
   status: z.string().nullish(),
-  progress: z.number().nullish(),
   credits: z.number().nullish(),
   output_width: z.number().nullish(),
   output_height: z.number().nullish(),
@@ -459,6 +464,4 @@ type TopazImageStatusResponse = z.infer<typeof topazImageStatusResponseSchema>;
 
 const topazImageDownloadResponseSchema = z.object({
   download_url: z.string().nullish(),
-  head_url: z.string().nullish(),
-  expiry: z.union([z.string(), z.number()]).nullish(),
 });

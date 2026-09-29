@@ -8,5 +8,4 @@ export type {
   TopazVideoOutput,
   TopazVideoSource,
 } from './topaz-video-model-options';
-export { TopazError } from './topaz-error';
 export { VERSION } from './version';

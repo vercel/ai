@@ -1,4 +1,7 @@
 import {
+  APICallError,
+  InvalidArgumentError,
+  InvalidResponseDataError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type Experimental_VideoModelV4File as VideoModelV4File,
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
@@ -24,7 +27,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
-import { topazFailedResponseHandler, TopazError } from './topaz-error';
+import { topazFailedResponseHandler } from './topaz-error';
 import {
   TOPAZ_NON_FILTER_OPTION_KEYS,
   type topazOutputContainers,
@@ -85,17 +88,6 @@ const containerMediaTypes: Record<string, string> = {
  * Topaz accept endpoint.
  */
 const UPLOAD_SEGMENT_BYTES = 500_000_000;
-
-/** Status values that mean the request has not settled yet. */
-const pendingStatuses = new Set([
-  'requested',
-  'accepted',
-  'initializing',
-  'preprocessing',
-  'processing',
-  'postprocessing',
-  'canceling',
-]);
 
 /**
  * Topaz video models enhance a video the caller supplies, passed through
@@ -341,7 +333,8 @@ export class TopazVideoModel implements VideoModelV4 {
 
       const url = status.download?.url;
       if (url == null) {
-        throw new TopazError({
+        throw new InvalidResponseDataError({
+          data: status,
           message: `Topaz reported request ${requestId} complete but returned no download URL.`,
         });
       }
@@ -397,12 +390,9 @@ export class TopazVideoModel implements VideoModelV4 {
       };
     }
 
-    if (status.status != null && !pendingStatuses.has(status.status)) {
-      throw new TopazError({
-        message: `Topaz returned an unrecognized status "${status.status}" for request ${requestId}.`,
-      });
-    }
-
+    // Documented in-progress values are requested, accepted, initializing,
+    // preprocessing, processing, postprocessing and canceling. Anything else
+    // keeps polling too, so a newly added state cannot break running jobs.
     return { status: 'pending', response };
   }
 
@@ -489,14 +479,16 @@ export class TopazVideoModel implements VideoModelV4 {
 
     if (videos.length === 0) {
       if (options.image != null) {
-        throw new TopazError({
+        throw new InvalidArgumentError({
+          argument: 'image',
           message:
             'Topaz video models enhance an existing video, not a still image. Pass the ' +
             'input video via `inputReferences`.',
         });
       }
 
-      throw new TopazError({
+      throw new InvalidArgumentError({
+        argument: 'inputReferences',
         message:
           'Topaz video models require an input video. Pass it via `inputReferences`, ' +
           'e.g. `inputReferences: [{ type: "file", mediaType: "video/mp4", data: bytes }]`. ' +
@@ -535,7 +527,8 @@ export class TopazVideoModel implements VideoModelV4 {
         declaredContainer ?? mediaTypeContainers[input.mediaType.toLowerCase()];
 
       if (container == null) {
-        throw new TopazError({
+        throw new InvalidArgumentError({
+          argument: 'inputReferences',
           message:
             `Could not map the media type "${input.mediaType}" onto a Topaz container. ` +
             'Set the `source.container` provider option explicitly.',
@@ -553,7 +546,8 @@ export class TopazVideoModel implements VideoModelV4 {
       containerFromUrl(input.url);
 
     if (container == null) {
-      throw new TopazError({
+      throw new InvalidArgumentError({
+        argument: 'inputReferences',
         message:
           `Could not determine the container of the input video at "${input.url}". Set ` +
           'the `source.container` provider option, or pass `mediaType` on the reference.',
@@ -589,7 +583,8 @@ export class TopazVideoModel implements VideoModelV4 {
     abortSignal: AbortSignal | undefined;
   }): Promise<Array<{ partNum: number; eTag: string }>> {
     if (urls == null || urls.length === 0) {
-      throw new TopazError({
+      throw new InvalidResponseDataError({
+        data: urls,
         message: `Topaz returned no upload URLs for request ${requestId}.`,
       });
     }
@@ -628,10 +623,15 @@ export class TopazVideoModel implements VideoModelV4 {
       });
 
       if (!response.ok) {
-        throw new TopazError({
+        throw new APICallError({
           message:
             `Uploading part ${index + 1} of the input video failed with status ` +
             `${response.status} ${response.statusText}.`,
+          url,
+          requestBodyValues: {},
+          statusCode: response.status,
+          responseHeaders: Object.fromEntries(response.headers.entries()),
+          responseBody: await response.text(),
         });
       }
 
@@ -640,7 +640,8 @@ export class TopazVideoModel implements VideoModelV4 {
       // Single-URL uploads have no parts to reassemble, so Topaz ignores the
       // ETag but still requires one entry in `uploadResults`.
       if (eTag == null && urls.length > 1) {
-        throw new TopazError({
+        throw new InvalidResponseDataError({
+          data: Object.fromEntries(response.headers.entries()),
           message: `The upload of part ${index + 1} did not return an ETag header.`,
         });
       }
@@ -799,7 +800,8 @@ function resolveSource(
     frameRate == null ||
     frameCount == null
   ) {
-    throw new TopazError({
+    throw new InvalidArgumentError({
+      argument: 'providerOptions.topaz.source',
       message:
         'Source metadata switches Topaz to the full upload flow, which needs the ' +
         `complete set. Missing: ${missing.join(', ')}. ` +
@@ -853,7 +855,8 @@ function buildOutput({
     (source.type === 'full' ? source.height : undefined);
 
   if (width == null || height == null) {
-    throw new TopazError({
+    throw new InvalidArgumentError({
+      argument: 'resolution',
       message:
         'Topaz needs the output resolution. Set the `resolution` call option or the ' +
         '`output.width` / `output.height` provider options.',
@@ -923,7 +926,8 @@ function resolveOutputContainer(
 
 function requireRequestId(requestId: string | null | undefined): string {
   if (requestId == null) {
-    throw new TopazError({
+    throw new InvalidResponseDataError({
+      data: requestId,
       message: 'Topaz did not return a requestId for the video request.',
     });
   }
@@ -969,24 +973,18 @@ const topazVideoCreateResponseSchema = z.object({
 
 const topazVideoExpressResponseSchema = z.object({
   requestId: z.string().nullish(),
-  uploadId: z.string().nullish(),
   uploadUrls: z.array(z.string()).nullish(),
   estimates: topazVideoEstimatesSchema,
 });
 
 const topazVideoAcceptResponseSchema = z.object({
-  uploadId: z.string().nullish(),
   urls: z.array(z.string()).nullish(),
-  message: z.string().nullish(),
 });
 
-const topazVideoCompleteUploadResponseSchema = z.object({
-  message: z.string().nullish(),
-});
+const topazVideoCompleteUploadResponseSchema = z.object({});
 
 const topazVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),
-  progress: z.number().nullish(),
   message: z.string().nullish(),
   errorCode: z.string().nullish(),
   // Documented as a string, accepted as a number too.
@@ -995,7 +993,6 @@ const topazVideoStatusResponseSchema = z.object({
   download: z
     .object({
       url: z.string().nullish(),
-      expiresIn: z.number().nullish(),
       expiresAt: z.union([z.string(), z.number()]).nullish(),
     })
     .nullish(),

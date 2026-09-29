@@ -1,4 +1,3 @@
-import { AISDKError } from '@ai-sdk/provider';
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
@@ -51,19 +50,3 @@ export const topazFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: topazErrorDataSchema,
   errorToMessage: topazErrorToMessage,
 });
-
-const name = 'AI_TopazError';
-const marker = `vercel.ai.error.${name}`;
-const symbol = Symbol.for(marker);
-
-export class TopazError extends AISDKError {
-  private readonly [symbol] = true; // used in isInstance
-
-  constructor({ message, cause }: { message: string; cause?: unknown }) {
-    super({ name, message, cause });
-  }
-
-  static isInstance(error: unknown): error is TopazError {
-    return AISDKError.hasMarker(error, marker);
-  }
-}
