@@ -3,9 +3,17 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 describe('createUIMessageStreamResponse', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should create a Response with correct headers and encoded stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,
@@ -52,8 +60,6 @@ describe('createUIMessageStreamResponse', () => {
     `);
   });
 
-<<<<<<< HEAD
-=======
   it('should send opening and keep-alive comments for an idle stream', async () => {
     const response = createUIMessageStreamResponse({
       stream: new ReadableStream(),
@@ -79,46 +85,6 @@ describe('createUIMessageStreamResponse', () => {
     await reader.cancel();
   });
 
-  it('can respond with a stream created by toUIMessageStream', async () => {
-    const response = createUIMessageStreamResponse({
-      status: 200,
-      stream: toUIMessageStream({
-        stream: convertArrayToReadableStream([
-          { type: 'start' },
-          { type: 'text-start', id: 't1' },
-          { type: 'text-delta', id: 't1', text: 'Hello' },
-          { type: 'text-end', id: 't1' },
-        ] satisfies TextStreamPart<{}>[]),
-        generateMessageId: () => 'msg-123',
-      }),
-    });
-
-    expect(
-      await convertReadableStreamToArray(
-        response.body!.pipeThrough(new TextDecoderStream()),
-      ),
-    ).toMatchInlineSnapshot(`
-      [
-        "data: {"type":"start","messageId":"msg-123"}
-
-      ",
-        "data: {"type":"text-start","id":"t1"}
-
-      ",
-        "data: {"type":"text-delta","id":"t1","delta":"Hello"}
-
-      ",
-        "data: {"type":"text-end","id":"t1"}
-
-      ",
-        "data: [DONE]
-
-      ",
-      ]
-    `);
-  });
-
->>>>>>> 05cdac6c32 (fix: idle UI message streams failing to flush promptly or remain open behind reverse proxies (#21672))
   it('should handle errors in the stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,
@@ -187,7 +153,7 @@ describe('createUIMessageStreamResponse', () => {
     `);
 
     // Wait for consumeSseStream to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Verify consumeSseStream received the same data
     expect(consumedData).toMatchInlineSnapshot(`
