@@ -47,6 +47,7 @@ import type {
   WorkflowAgentOnStepFinishCallback,
   TelemetryOptions,
   WorkflowAgentOnStepStartCallback,
+  StreamTextTransform,
 } from './workflow-agent.js';
 
 // Re-export for consumers
@@ -140,6 +141,7 @@ export async function* streamTextIterator({
   timeoutAt,
   repairToolCall,
   responseFormat,
+  experimental_transform,
   experimental_sandbox: sandbox,
 }: {
   prompt: LanguageModelV4Prompt;
@@ -164,6 +166,9 @@ export async function* streamTextIterator({
   timeoutAt?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_transform?:
+    | StreamTextTransform<ToolSet>
+    | Array<StreamTextTransform<ToolSet>>;
   experimental_sandbox?: SandboxSession;
 }): AsyncGenerator<
   StreamTextIteratorYieldValue,
@@ -370,6 +375,7 @@ export async function* streamTextIterator({
           timeoutAt,
           repairToolCall,
           responseFormat,
+          experimental_transform,
         },
       );
 
