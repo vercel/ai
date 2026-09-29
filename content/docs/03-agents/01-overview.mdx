@@ -240,10 +240,16 @@ try {
 Thrown when the API key cannot be loaded from configuration or environment variables.
 
 ```typescript
-import { loadAPIKey, LoadAPIKeyError } from 'ai';
+import { generateText, LoadAPIKeyError } from 'ai';
 
 try {
-  const apiKey = await loadAPIKey({ provider: 'openai' });
+  // The provider loads the API key internally (e.g. from the
+  // OPENAI_API_KEY environment variable). If it is missing or invalid,
+  // a LoadAPIKeyError is thrown.
+  const result = await generateText({
+    model: createOpenAI().chat('gpt-4o'),
+    prompt: 'Hello, world!',
+  });
 } catch (error) {
   if (error instanceof LoadAPIKeyError) {
     console.error(`API key loading failed: ${error.message}`);
@@ -261,7 +267,7 @@ import { z } from 'zod';
 
 const weatherTool = tool({
   description: 'Get weather for a location',
-  parameters: z.object({
+  inputSchema: z.object({
     location: z.string().describe('City name'),
     units: z.enum(['celsius', 'fahrenheit']).default('celsius'),
   }),
