@@ -7927,6 +7927,27 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it('should preserve a mid-output fallback boundary for replay', async () => {
+      prepareChunksFixtureResponse('anthropic-mid-output-fallback');
+
+      const { stream } = await provider('claude-opus-5-5').doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const result = await convertReadableStreamToArray(stream);
+      const fallbackMetadata = result
+        .flatMap(part =>
+          'providerMetadata' in part ? [part.providerMetadata?.anthropic] : [],
+        )
+        .find(metadata => metadata?.type === 'fallback');
+
+      expect(fallbackMetadata).toEqual({
+        type: 'fallback',
+        from: { model: 'claude-opus-5-5' },
+        to: { model: 'claude-opus-4-8' },
+      });
+    });
+
     it('should stream reasoning deltas', async () => {
       server.urls['https://api.anthropic.com/v1/messages'].response = {
         type: 'stream-chunks',
