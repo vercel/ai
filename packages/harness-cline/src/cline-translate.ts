@@ -78,6 +78,38 @@ function toolCallPart(
   if (isMcpTool) {
     state.dynamicToolCallIds.add(toolCall.toolCallId);
   }
+  if (toolCall.toolName === 'ask_question') {
+    const nativeInput = toolCall.input as {
+      question: string;
+      options: string[];
+    };
+    return {
+      type: 'tool-call',
+      toolCallId: toolCall.toolCallId,
+      toolName: 'askUserQuestions',
+      input: JSON.stringify({
+        allowPartialAnswers: false,
+        questions: [
+          {
+            id: 'question-1',
+            question: nativeInput.question,
+            options: nativeInput.options.map((label, index) => ({
+              id: `option-${index + 1}`,
+              label,
+            })),
+            allowFreeForm: true,
+          },
+        ],
+      }),
+      providerExecuted: false,
+      providerMetadata: {
+        cline: {
+          nativeRequest: nativeInput,
+        },
+      },
+      nativeName: 'ask_question',
+    };
+  }
   return {
     type: 'tool-call',
     toolCallId: toolCall.toolCallId,
@@ -209,7 +241,10 @@ export function translateClineEvent(
         {
           type: 'tool-result',
           toolCallId: event.toolCall.toolCallId,
-          toolName: event.toolCall.toolName,
+          toolName:
+            event.toolCall.toolName === 'ask_question'
+              ? 'askUserQuestions'
+              : event.toolCall.toolName,
           result: toToolResultValue(output),
           ...(resultPart?.isError ? { isError: true } : {}),
           ...(dynamic ? { dynamic: true } : {}),

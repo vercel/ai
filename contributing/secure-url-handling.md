@@ -11,24 +11,25 @@ explicit `validateUrl`.
 
 ## Deciding `true` vs `false`
 
-The test: **does the URL's host (or scheme) come from the provider's response
-body?**
-
 - **`validateUrl: true`** — the host comes from response-body data (a download
   URL like `json.audio.url` / `image.url`, or a polling URL like
   `finalPrediction.urls.get`). It is attacker-influenceable, so it is routed
   through `fetchWithValidatedRedirects`, which rejects private/loopback/link-local
   targets and re-validates every redirect hop. Blocked URLs throw
-  `DownloadError`.
+  `DownloadError`. Also use this for authenticated status polling when the
+  initial URL is built from the configured provider endpoint: pass that endpoint
+  as `trustedOrigin` so the first hop is allowed while every redirect off that
+  origin is validated.
 - **`validateUrl: false`** — the URL is built from a developer-configured
-  endpoint (`${config.baseURL}/…`, `config.url({ path })`, `${baseUrl.origin}/…`)
-  with at most a path segment or id interpolated. The host is fixed by config, so
-  there is nothing to validate, and validating it would break legitimate
-  self-hosted / localhost base URLs. (Path-only injection is not SSRF — the host
-  cannot be changed.)
+  endpoint (`${config.baseURL}/…`, `config.url({ path })`,
+  `${baseUrl.origin}/…`) with at most a path segment or id interpolated, and the
+  request does not need the validated redirect path. The host is fixed by
+  config, so validating the initial URL would break legitimate self-hosted /
+  localhost base URLs. (Path-only injection is not SSRF — the host cannot be
+  changed.)
 
-> If the host, or anything beyond a path segment, comes from a response body →
-> `validateUrl: true`.
+> If the host, or anything beyond a path segment, comes from a response body,
+> or an authenticated poll must validate redirects → `validateUrl: true`.
 
 ## Self-hosted deployments: `trustedOrigin`
 
@@ -73,6 +74,46 @@ await getFromApi({
 });
 ```
 
+## Direct fetch helpers
+
+Use `fetchUntrustedUrl` from `@ai-sdk/provider-utils` for direct fetches of
+response-supplied or otherwise untrusted URLs. It shares URL validation, DNS
+pinning, and redirect handling with `fetchWithValidatedRedirects`, but adds
+first-hop credential isolation. Without a matching `credentialedOrigin` or,
+when that option is omitted, a matching `trustedOrigin`, it sends only an
+allowlist of non-credential request metadata such as content negotiation, range,
+idempotency, tracing, request-id, and user-agent headers. Unknown headers are
+withheld because arbitrary provider credential names cannot be identified
+safely.
+
+Set `credentialedOrigin` to a developer-configured endpoint when credentials
+are needed. It takes precedence over `trustedOrigin`, which also exempts matching
+hops from URL validation for self-hosted deployments. Never derive either origin
+from response data. Sanitization still strips proxy, cloud-metadata, and cookie
+headers, and a cross-origin redirect retains only `User-Agent`.
+
+`fetchWithValidatedRedirects` retains its existing behavior for compatibility:
+it sanitizes caller headers but forwards credentials and arbitrary custom
+headers on the first hop. `trustedOrigin` in that helper controls URL validation,
+not credential forwarding. Its callers remain responsible for deciding whether
+the initial URL may receive those headers. Switching to `fetchUntrustedUrl` is
+an explicit opt-in; existing calls are not automatically protected on the first
+hop. `getFromApi` also retains its existing optional `credentialedOrigin` policy,
+so provider call sites must continue passing the configured origin when sending
+credentials to response-supplied URLs.
+
+If a direct caller needs to send additional protocol metadata to an untrusted
+first hop, list only those sanitized header names in
+`untrustedFirstHopHeaders`. Do not use this option for credentials:
+
+```ts
+await fetchUntrustedUrl({
+  url: discoveryUrl,
+  headers: { 'x-protocol-version': protocolVersion },
+  untrustedFirstHopHeaders: ['x-protocol-version'],
+});
+```
+
 ## DNS validation and deployment hardening
 
 On Node.js, the default validated download fetch resolves all DNS records
@@ -80,8 +121,16 @@ inside an `undici` connector hook, rejects the entire result if any address is
 private/internal, and returns those exact records to the connector. This pins
 the connection to the validated result and prevents DNS rebinding.
 
-An injected or globally replaced custom `fetch` must provide equivalent
-connect-time validation. Other server runtimes should restrict network egress
+Node-compatible `process` objects in Bun, Deno, Cloudflare Workers, and framework
+edge runtimes do not opt into this Node-only transport. Workers process-v2
+[reports a Node release but a `workerd` title](https://github.com/cloudflare/workerd/blob/main/src/node/internal/public_process.ts),
+and its [`dns.lookup` is not implemented](https://developers.cloudflare.com/workers/runtime-apis/nodejs/dns/).
+Deno's Node-compatible process exposes
+[`versions.deno`](https://github.com/denoland/deno/blob/main/ext/node/polyfills/_process/process.ts).
+
+Global `fetch` wrappers do not replace this protected Node.js transport. An
+explicitly injected custom `fetch` must provide equivalent connect-time
+validation. Other server runtimes should restrict network egress
 because the Node DNS and socket hooks are unavailable there. The user-facing
 explanation lives in:
 [Secure URL Fetching](../content/docs/06-advanced/11-secure-url-fetching.mdx).

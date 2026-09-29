@@ -56,6 +56,14 @@ describe('outboundMessageSchema', () => {
     },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
+    {
+      type: 'raw',
+      rawValue: {
+        type: 'stream_event',
+        event: { type: 'message_stop' },
+        usage: { input_tokens: 1, output_tokens: 2 },
+      },
+    },
   ];
 
   for (const sample of cases) {
@@ -69,6 +77,17 @@ describe('outboundMessageSchema', () => {
       outboundMessageSchema.parse({ type: 'mystery' as 'error', error: 1 }),
     ).toThrow();
   });
+
+  it('preserves structured Claude Code tool results', () => {
+    const message = {
+      type: 'tool-result' as const,
+      toolCallId: 't1',
+      toolName: 'TaskCreate',
+      result: { task: { id: '1', subject: 'probe-task' } },
+    };
+
+    expect(outboundMessageSchema.parse(message)).toEqual(message);
+  });
 });
 
 describe('inboundMessageSchema', () => {
@@ -81,6 +100,8 @@ describe('inboundMessageSchema', () => {
         tools: [{ name: 'deploy' }],
         model: 'claude-sonnet-4-5',
         maxTurns: 5,
+        agentProgressSummaries: true,
+        forwardSubagentText: true,
         env: { DEPLOYMENT_ENV: 'staging' },
         thinking: { type: 'adaptive', display: 'summarized' },
         skills: ['weather-forecast', 'weather-codes'],

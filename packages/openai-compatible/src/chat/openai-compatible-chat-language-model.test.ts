@@ -196,6 +196,34 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should reject a response without choices', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
   describe('tool call (fixture)', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('xai-tool-call');
@@ -2230,6 +2258,37 @@ describe('doStream', () => {
     `);
   });
 
+  it('should keep reasoning active when deltas include empty tool calls', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events.filter(({ type }) => type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+    ]);
+  });
+
   it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -2729,6 +2788,49 @@ describe('doStream', () => {
       },
     ]);
     expect(parts.at(-1)?.type).toBe('finish');
+  });
+
+  it('should keep id-less tool calls distinct when the index is reused', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p0\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"write_file","arguments":"{\\"path\\":\\"p1\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"read_file","arguments":"{\\"path\\":\\"p2\\"}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+    const toolCalls = parts.filter(part => part.type === 'tool-call');
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'read_file', input: '{"path":"p0"}' },
+      { toolName: 'write_file', input: '{"path":"p1"}' },
+      { toolName: 'read_file', input: '{"path":"p2"}' },
+    ]);
+    expect(
+      toolCalls.every(toolCall => toolCall.toolCallId.trim().length > 0),
+    ).toBe(true);
+    expect(new Set(toolCalls.map(toolCall => toolCall.toolCallId)).size).toBe(
+      3,
+    );
   });
 
   it('should error when streamed tool call never receives a function.name', async () => {
@@ -4003,6 +4105,24 @@ describe('doStream', () => {
           },
         }
       `);
+    });
+  });
+
+  it('should extract response metadata after an empty placeholder chunk', async () => {
+    prepareChunksFixtureResponse('placeholder-first-chunk');
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.find(event => event.type === 'response-metadata')).toEqual({
+      type: 'response-metadata',
+      id: 'chatcmpl-123',
+      modelId: 'actual-model-name',
+      timestamp: new Date(1700000000 * 1000),
     });
   });
 });

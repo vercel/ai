@@ -35,10 +35,15 @@ export interface HarnessWorkflowUsageSummary {
   readonly outputTokens?: number;
 }
 
-export interface HarnessWorkflowFinalResult {
+export interface HarnessWorkflowFinalResult<OUTPUT = unknown> {
   readonly sessionId: string;
   readonly finishReason: string;
   readonly usage?: HarnessWorkflowUsageSummary;
+  /**
+   * The agent's parsed and schema-validated output when the agent has an output
+   * specification.
+   */
+  readonly output?: OUTPUT;
 }
 
 export interface HarnessWorkflowSerializedChunk {
@@ -51,6 +56,13 @@ export interface HarnessWorkflowStreamContext {
   readonly activeReasoningParts?: Record<
     string,
     HarnessWorkflowSerializedChunk
+  >;
+  readonly activeToolInputs?: Record<
+    string,
+    {
+      readonly start: HarnessWorkflowSerializedChunk;
+      readonly text: string;
+    }
   >;
   readonly pendingToolInputs?: Record<string, HarnessWorkflowSerializedChunk>;
 }
@@ -68,11 +80,13 @@ export interface HarnessWorkflowStreamContext {
  *  - `continueFrom` reattaches to a suspended turn from this same run and
  *    continues it without sending `prompt` again.
  */
-export interface HarnessWorkflowState {
+export interface HarnessWorkflowState<OUTPUT = unknown> {
   /**
-   * Stable harness session id; doubles as the sandbox name across processes.
-   * Reuse the chat/conversation id so every user turn resumes the same warm
-   * session and the agent retains prior-turn context.
+   * Stable harness session id. Callers may derive a sandboxId from this value,
+   * but must create or resume the sandbox separately on every step. If the
+   * sandboxId cannot be derived, persist it separately from this state.
+   * Reuse the chat/conversation id so every user turn resumes the same
+   * harness session and retains prior-turn context.
    */
   readonly sessionId: string;
   /**
@@ -101,7 +115,7 @@ export interface HarnessWorkflowState {
    */
   readonly continueFrom?: HarnessV1ContinueTurnState;
   readonly streamContext?: HarnessWorkflowStreamContext;
-  readonly finalResult?: HarnessWorkflowFinalResult;
+  readonly finalResult?: HarnessWorkflowFinalResult<OUTPUT>;
   readonly error?: string;
 }
 
@@ -110,8 +124,8 @@ export interface HarnessWorkflowState {
  * and the natural shape for a workflow function's input. `sessionId` is required
  * (and must be caller-supplied, since the workflow runtime forbids
  * non-deterministic id generation inside a step) — reuse the conversation id so
- * the sandbox name is stable across turns. Pass `resumeFrom` (the handle
- * persisted after the previous turn) to resume the warm conversation; omit it
+ * callers can derive their sandboxId across turns. Pass `resumeFrom` (the handle
+ * persisted after the previous turn) to resume the conversation; omit it
  * only for the first turn of a new conversation.
  */
 export interface HarnessWorkflowInput {
@@ -123,9 +137,9 @@ export interface HarnessWorkflowInput {
 }
 
 /** Initial state for one user turn (see {@link HarnessWorkflowInput}). */
-export function createHarnessWorkflowState(
+export function createHarnessWorkflowState<OUTPUT = unknown>(
   input: HarnessWorkflowInput,
-): HarnessWorkflowState {
+): HarnessWorkflowState<OUTPUT> {
   return {
     sessionId: input.sessionId,
     prompt: input.prompt ?? '',
@@ -140,9 +154,9 @@ export function createHarnessWorkflowState(
  * Collapse a terminal state into its result. Throws if the run failed; returns
  * the captured `finalResult` when finished, or a best-effort result otherwise.
  */
-export function finalizeHarnessWorkflow(
-  state: HarnessWorkflowState,
-): HarnessWorkflowFinalResult {
+export function finalizeHarnessWorkflow<OUTPUT = unknown>(
+  state: HarnessWorkflowState<OUTPUT>,
+): HarnessWorkflowFinalResult<OUTPUT> {
   if (state.status === 'failed') {
     throw new Error(state.error ?? 'harness workflow failed');
   }

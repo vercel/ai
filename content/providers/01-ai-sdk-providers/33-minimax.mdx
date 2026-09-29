@@ -137,9 +137,10 @@ The following optional provider options are available for MiniMax language model
 
 ## Video Models
 
-You can generate videos with the MiniMax-H3 model using the
-[`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video)
-function:
+You can generate videos with the MiniMax-H3 and MiniMax-H3-Max models using
+the [`experimental_generateVideo`](/docs/reference/ai-sdk-core/generate-video)
+function. MiniMax-H3-Max is the faster variant: it renders at lower resolutions
+and serves every mode except reference-to-video.
 
 ```ts
 import { minimax, type MiniMaxVideoModelOptions } from '@ai-sdk/minimax';
@@ -152,18 +153,37 @@ const { video } = await generateVideo({
   duration: 5,
   providerOptions: {
     minimax: {
+      resolution: '768P',
       pollTimeoutMs: 600000, // 10 minutes
     } satisfies MiniMaxVideoModelOptions,
   },
 });
 ```
 
-MiniMax-H3 generates one video per call. Generation is asynchronous — the model
-creates a task and polls until it completes, then returns the resulting MP4 URL.
+Both models generate one video per call. Generation is asynchronous — by default,
+the model creates a task and polls until it completes, then returns the resulting
+MP4 URL.
+Status polls trust the configured MiniMax API origin for the first request and
+validate every redirect to another origin before following it.
 
-`duration` accepts a whole number of seconds from 5 to 15, and defaults to 5. A
-fractional value is rounded and an out-of-range value is clamped, each with a
-warning. The only supported output resolution is `2K`.
+`duration` accepts a whole number of seconds and defaults to 5. MiniMax-H3
+supports 4 to 15 seconds; MiniMax-H3-Max supports 5 to 15 seconds. A fractional
+value is rounded and an out-of-range value is clamped, each with a warning.
+MiniMax-H3 supports `768P` and `2K` output, while MiniMax-H3-Max supports `480P`
+and `768P`.
+
+The API takes a named tier rather than a frame size, so a top-level `resolution`
+is matched against a fixed table of one frame size per tier per aspect ratio:
+
+| Tier   | Accepted `resolution` values                                                 |
+| ------ | ---------------------------------------------------------------------------- |
+| `480P` | `480x480`, `1120x480`, `854x480`, `640x480`, `480x854`, `480x640`            |
+| `768P` | `768x768`, `1792x768`, `1366x768`, `1024x768`, `768x1366`, `768x1024`        |
+| `2K`   | `2048x2048`, `2560x1080`, `2560x1440`, `2048x1536`, `1440x2560`, `1536x2048` |
+
+Anything outside the table, or a tier the selected model does not support, warns
+and falls back to the model default. `providerOptions.minimax.resolution` names
+the tier exactly and wins over the top-level value, which is reported as ignored.
 
 For **text-to-video**, `aspectRatio` defaults to `16:9` when omitted. The MiniMax
 API requires a concrete ratio for text-only requests and does not accept
@@ -176,6 +196,76 @@ ratio follows the input image.
   storage promptly after generation.
 </Note>
 
+### Asynchronous Generation
+
+To let the SDK manage the start/status flow, pass `poll` to `generateVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { video } = await generateVideo({
+  model: minimax.video('MiniMax-H3'),
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  poll: { intervalMs: 10000, timeoutMs: 600000 },
+});
+```
+
+Without `poll` or `webhook`, generation continues to use the provider's
+`pollIntervalMs` and `pollTimeoutMs` options. With `poll`, the SDK's polling
+settings apply instead.
+
+MiniMax does not implement the generic webhook hook. Passing `webhook` to
+`generateVideo` falls back to SDK polling without invoking the factory. MiniMax's
+challenge handshake and progress notifications require a protocol-aware receiver
+and are incompatible with the generic SDK and Workflow webhook receivers.
+
+For caller-managed scheduling, use `experimental_startVideo` to submit one task
+without polling and `experimental_getVideoStatus` to check it once, returning
+`pending`, `completed`, or `error`. Persist the complete JSON-serializable
+`operation` from `experimental_startVideo` and pass it unchanged to
+`experimental_getVideoStatus` on a model with the same configuration.
+Its `resolvedInputs` contains `imageCount` and `referenceVideoIndices`: zero-based
+positions of accepted URL-video references in the original mixed `inputReferences`
+array. Inline videos count toward the cap but are omitted from the indices;
+duplicate references keep separate indices. Neither the operation nor status
+metadata retains input URLs, prompts, inline data, or API credentials.
+Status metadata uses these indices instead of `referenceVideoUrls`; ordinary
+`generateVideo` calls without `poll` or `webhook` retain the existing URL metadata.
+See the
+[start/status example](https://github.com/vercel/ai/blob/main/examples/ai-functions/src/generate-video/minimax/start-status.ts).
+
+For application-managed callbacks, pass an explicit `webhookUrl` to
+`experimental_startVideo`:
+
+```ts
+import { minimax } from '@ai-sdk/minimax';
+import {
+  experimental_startVideo as startVideo,
+  experimental_getVideoStatus as getVideoStatus,
+} from 'ai';
+
+const model = minimax.video('MiniMax-H3');
+const { operation } = await startVideo({
+  model,
+  prompt: 'A white kitten chases a butterfly across a sunlit garden.',
+  webhookUrl: 'https://example.com/api/minimax/callback',
+});
+
+// Persist operation, then check it from your application's callback handler.
+const status = await getVideoStatus(model, { operation });
+```
+
+Your application hosts the callback endpoint and handles MiniMax's callback
+protocol; the adapter only forwards `webhookUrl` as MiniMax's `callback_url`.
+The endpoint must echo the verification `challenge` unchanged within 3 seconds
+and filter out `queued`/`running` progress updates. Handle terminal notifications
+when `task.status` is `succeeded`, `failed`, or `cancelled`, then use
+`getVideoStatus` with the persisted operation to retrieve the outcome. Neither
+the challenge nor a progress update signals completion. See the
+[MiniMax V2 API reference](https://platform.minimax.io/docs/api-reference/video-generation-v2-create.md)
+for the callback contract.
+
 ### Generation modes
 
 The generation mode is inferred from the inputs you pass:
@@ -185,9 +275,10 @@ The generation mode is inferred from the inputs you pass:
   `frameType: 'first_frame'`) to animate a starting image.
 - **First-to-last keyframes** — pass `frameImages` with both a `first_frame` and
   a `last_frame` to control the transition.
-- **Reference-to-video** — pass `inputReferences` (images and/or videos, routed
-  by media type) to keep a subject/style or follow motion. Frame images and
-  references are mutually exclusive.
+- **Reference-to-video (MiniMax-H3 only)** — pass `inputReferences` (images
+  and/or videos, routed by media type) to keep a subject/style or follow motion.
+  Frame images and references are mutually exclusive. MiniMax-H3-Max does not
+  support reference-to-video inputs.
 
 When a frame image is supplied, the aspect ratio follows the image and any
 explicit `aspectRatio` is ignored.
@@ -196,9 +287,10 @@ explicit `aspectRatio` is ignored.
 
 The following optional provider options are available for MiniMax video models:
 
-- **resolution** _string_
+- **resolution** _'480P' | '768P' | '2K'_
 
-  Output resolution. MiniMax-H3 currently only supports `'2K'` (the default).
+  Output resolution. MiniMax-H3 supports `'768P'` and `'2K'` (the default).
+  MiniMax-H3-Max supports `'480P'` and `'768P'` (the default).
 
 - **ratio** _'adaptive' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'_
 
@@ -206,8 +298,9 @@ The following optional provider options are available for MiniMax video models:
 
 - **referenceAudioUrls** _string[]_
 
-  Reference audio URLs (or `mm_file://` handles) for reference-to-video
-  generation. Must be paired with at least one reference image or video. Up to 3.
+  Reference audio URLs (or `mm_file://` handles) for MiniMax-H3
+  reference-to-video generation. Must be paired with at least one reference
+  image or video. Up to 3. MiniMax-H3-Max does not support reference audio.
 
 - **aigcWatermark** _boolean_
 

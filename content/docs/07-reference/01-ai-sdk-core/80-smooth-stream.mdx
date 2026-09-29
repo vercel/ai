@@ -6,7 +6,7 @@ description: Stream transformer for smoothing text and reasoning output
 # `smoothStream()`
 
 `smoothStream` is a utility function that creates a TransformStream
-for the `streamText` `transform` option
+for the `streamText` `experimental_transform` option
 to smooth out text and reasoning streaming by buffering and releasing complete chunks with configurable delays.
 This creates a more natural reading experience when streaming text and reasoning responses.
 
@@ -38,7 +38,7 @@ const result = streamText({
       type: 'number | null',
       isOptional: true,
       description:
-        'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays.',
+        'The delay in milliseconds between outputting each chunk. Defaults to 10ms. Set to `null` to disable delays. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.',
     },
     {
       name: 'chunking',

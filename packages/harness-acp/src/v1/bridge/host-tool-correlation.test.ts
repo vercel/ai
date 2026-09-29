@@ -67,6 +67,49 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(1);
   });
 
+  it('matches MCP-before-ACP by a server-qualified direct ACP name and input', () => {
+    const { correlation, semantic, raw } = setup();
+    register({
+      correlation,
+      token: 'direct-name-token',
+      toolName: 'weather',
+      input: { city: 'Lima' },
+      order: 1,
+    });
+    const rawUpdate = {
+      sessionUpdate: 'tool_call',
+      toolCallId: 'direct-name-call',
+      name: 'weather',
+      title: 'Opaque display',
+      status: 'completed',
+      rawInput: { city: 'Lima' },
+      _meta: { serverName: 'ai-sdk-harness-tools' },
+    } as const;
+
+    correlation.update({
+      message: update(rawUpdate),
+      rawUpdate,
+    });
+
+    expect(semantic).toEqual([]);
+    expect(raw).toEqual([rawUpdate]);
+    expect(correlation.getToolCall({ toolCallId: rawUpdate.toolCallId }))
+      .toMatchInlineSnapshot(`
+      {
+        "_meta": {
+          "serverName": "ai-sdk-harness-tools",
+        },
+        "name": "weather",
+        "rawInput": {
+          "city": "Lima",
+        },
+        "status": "completed",
+        "title": "Opaque display",
+        "toolCallId": "direct-name-call",
+      }
+    `);
+  });
+
   it('matches Cursor MCP updates by provider, tool, and nested args', () => {
     const { correlation, semantic, raw } = setup();
     register({
@@ -174,6 +217,43 @@ describe('createHostToolCorrelation', () => {
       toolCallId: 'permission-before-update',
       combinedToolName: 'ai-sdk-harness-tools__get_weather',
       input: { city: 'Lima' },
+    });
+
+    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+  });
+
+  it('does not claim a host permission from an unqualified ACP name', () => {
+    const { correlation } = setup({
+      hostTools: [{ name: 'get_weather' }],
+    });
+    const toolCall = {
+      toolCallId: 'direct-name-permission',
+      name: 'get_weather',
+      status: 'pending',
+      rawInput: { city: 'Lima' },
+    } as const;
+
+    expect(correlation.claimHostToolPermission({ toolCall })).toBe(false);
+  });
+
+  it('claims a direct ACP name when the candidate is server-qualified', () => {
+    const { correlation } = setup({
+      hostTools: [{ name: 'get_weather' }],
+    });
+    const toolCall = {
+      toolCallId: 'server-qualified-direct-name',
+      name: 'get_weather',
+      title: 'Opaque display',
+      status: 'pending',
+      rawInput: { city: 'Lima' },
+      _meta: { serverName: 'ai-sdk-harness-tools' },
+    } as const;
+    correlation.update({
+      message: update({
+        sessionUpdate: 'tool_call',
+        ...toolCall,
+      }),
+      rawUpdate: toolCall,
     });
 
     expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);

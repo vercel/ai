@@ -63,7 +63,7 @@ const toolApproval = opaPolicy({
 
 // 3. Pass it to generateText. Everything else is normal.
 const result = await generateText({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   tools: { git, bash, queryLogs },
   toolApproval,
   prompt: 'find the failing test and push the fix',
@@ -107,7 +107,9 @@ The adapter also accepts the legacy boolean shape (`{ "allow": true | false, "re
 
 If the backend itself errors (OPA server unreachable, WASM fault, a misbuilt bundle that yields no result), `opaPolicy` returns `{ type: 'denied' }` with the underlying message as the reason. The error never rejects out of the `toolApproval` callback and never aborts the run. A backend outage blocks the affected tool call rather than silently letting it through. This matches `opaCapabilityMiddleware`, which also fails closed.
 
-Note this is distinct from a Rego rule that returns no matching decision: that normalizes to `not-applicable` ("no opinion"), which the SDK treats as allow. Use `default decision := { "decision": "deny" }` in your policy if you want unmatched calls to be denied too.
+Present but unrecognized policy results, such as an unknown `decision` value or a non-boolean legacy `allow` value, also fail closed with a denied result.
+
+This is distinct from a Rego rule that returns no matching decision: `null` or `undefined` normalizes to `not-applicable` ("no opinion"), which the SDK treats as allow. Use `default decision := { "decision": "deny" }` in your policy if you want unmatched calls to be denied too.
 
 ### What the adapter passes as `input`
 
@@ -557,7 +559,7 @@ import { wasmPolicyClient, opaCapabilityMiddleware } from '@ai-sdk/policy-opa';
 const client = await wasmPolicyClient({ wasm });
 
 const wrappedModel = wrapLanguageModel({
-  model: anthropic('claude-sonnet-4-5'),
+  model: anthropic('claude-sonnet-5-5'),
   middleware: opaCapabilityMiddleware({
     client,
     path: 'agent/tools/allowed',

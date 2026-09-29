@@ -26,7 +26,7 @@ const PUBLIC_TO_NATIVE: Readonly<Record<string, string>> = {
   ExitPlanMode: 'ExitPlanMode',
   EnterWorktree: 'EnterWorktree',
   ExitWorktree: 'ExitWorktree',
-  AskUserQuestion: 'AskUserQuestion',
+  askUserQuestions: 'AskUserQuestion',
   Skill: 'Skill',
   ToolSearch: 'ToolSearch',
 };

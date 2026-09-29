@@ -21,7 +21,7 @@ export default function Chat() {
     transport: {
       sendMessages: async ({ messages, abortSignal }) => {
         const result = streamText({
-          model: openai('gpt-4o'),
+          model: openai('gpt-6-astra'),
           messages: await convertToModelMessages(messages),
           abortSignal,
         });

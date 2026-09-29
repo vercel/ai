@@ -544,7 +544,6 @@ export function extractSystemFromPrompt(
   if (systemMsg && systemMsg.role === 'system') {
     return systemMsg.content;
   }
-  return undefined;
 }
 
 /**

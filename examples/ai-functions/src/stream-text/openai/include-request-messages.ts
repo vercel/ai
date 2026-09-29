@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     prompt: 'Invent a new holiday and describe its traditions.',
     include: {
       requestMessages: true,

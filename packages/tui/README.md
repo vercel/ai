@@ -24,7 +24,7 @@ import { z } from 'zod';
 await runAgentTUI({
   title: 'Weather Agent',
   agent: new ToolLoopAgent({
-    model: openai('gpt-5.4-mini'),
+    model: openai('gpt-6-luna'),
     instructions:
       'You are a concise weather assistant.' +
       'Use the weather tool when the user asks about weather, ' +
