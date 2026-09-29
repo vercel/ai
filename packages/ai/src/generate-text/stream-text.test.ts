@@ -32634,6 +32634,45 @@ describe('streamText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('provider-specific usage metadata', () => {
+    // The aggregate dropped the provider's own usage payload, so the total came
+    // back without the `raw` the step itself carried.
+    const stepUsage: LanguageModelV4Usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 10, text: 10, reasoning: undefined },
+    };
+
+    it("should keep the provider's usage payload on the total usage", async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: { ...stepUsage, raw: { providerSpecific: 'keep-me' } },
+            },
+          ]),
+        }),
+      });
+
+      const result = streamText({ model, prompt: 'test-input' });
+
+      const totalUsage = await result.totalUsage;
+      const [step] = await result.steps;
+
+      expect(step!.usage.raw).toEqual({ providerSpecific: 'keep-me' });
+      expect(totalUsage.raw).toEqual({ providerSpecific: 'keep-me' });
+    });
+  });
 });
 
 async function expectUndefinedUnhandledRejections({
