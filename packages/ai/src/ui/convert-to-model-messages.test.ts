@@ -1506,6 +1506,36 @@ describe('convertToModelMessages', () => {
     });
   });
 
+  describe('pending tool approvals', () => {
+    it('should ignore a pending approval when followed by a user message', async () => {
+      const result = await convertToModelMessages([
+        {
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-weather',
+              state: 'approval-requested',
+              toolCallId: 'call-awaiting-approval',
+              input: { city: 'Tokyo' },
+              approval: { id: 'approval-1' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          parts: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Use a different city instead.' }],
+        },
+      ]);
+    });
+  });
+
   describe('when ignoring incomplete tool calls', () => {
     it('should ignore preliminary tool outputs', async () => {
       let toModelOutputCalls = 0;
