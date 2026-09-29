@@ -60,6 +60,14 @@ export default function OpenPreviousResponseIdPage() {
                 return <ReasoningView part={part} key={index} />;
               }
               case 'tool-rollDieToolWithProgrammaticCalling': {
+                if (part.state === 'input-error') {
+                  return (
+                    <div key={index} className="text-red-500">
+                      Tool input error: {part.errorText}
+                    </div>
+                  );
+                }
+
                 return (
                   <div key={index} className="flex gap-2 p-1">
                     <div>{part.input?.player}</div>

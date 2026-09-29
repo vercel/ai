@@ -66,6 +66,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolUIPart(part) ||
           part.state === 'approval-responded' ||
+          part.state === 'input-error' ||
           (part.state === 'output-available' && part.preliminary !== true) ||
           part.state === 'output-error' ||
           part.state === 'output-denied',
@@ -262,11 +263,15 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                   if (
                     part.providerExecuted === true &&
                     part.state !== 'approval-responded' &&
-                    (part.state === 'output-available' ||
+                    (part.state === 'input-error' ||
+                      part.state === 'output-available' ||
                       part.state === 'output-error')
                   ) {
                     const resultProviderMetadata =
-                      part.resultProviderMetadata ?? part.callProviderMetadata;
+                      part.state === 'input-error'
+                        ? part.callProviderMetadata
+                        : (part.resultProviderMetadata ??
+                          part.callProviderMetadata);
 
                     content.push({
                       type: 'tool-result',
@@ -276,12 +281,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                         toolCallId: part.toolCallId,
                         input: part.input,
                         output:
-                          part.state === 'output-error'
-                            ? part.errorText
-                            : part.output,
+                          part.state === 'output-available'
+                            ? part.output
+                            : part.errorText,
                         tool: getOwn(options?.tools, toolName),
                         errorMode:
-                          part.state === 'output-error' ? 'json' : 'none',
+                          part.state === 'output-available' ? 'none' : 'json',
                       }),
                       ...(resultProviderMetadata != null
                         ? { providerOptions: resultProviderMetadata }
@@ -384,6 +389,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       break;
                     }
 
+                    case 'input-error':
                     case 'output-error':
                     case 'output-available': {
                       const toolName = getToolName(toolPart);
@@ -395,12 +401,14 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           toolCallId: toolPart.toolCallId,
                           input: toolPart.input,
                           output:
-                            toolPart.state === 'output-error'
-                              ? toolPart.errorText
-                              : toolPart.output,
+                            toolPart.state === 'output-available'
+                              ? toolPart.output
+                              : toolPart.errorText,
                           tool: getOwn(options?.tools, toolName),
                           errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
+                            toolPart.state === 'output-available'
+                              ? 'none'
+                              : 'text',
                         }),
                         ...(toolPart.callProviderMetadata != null
                           ? { providerOptions: toolPart.callProviderMetadata }

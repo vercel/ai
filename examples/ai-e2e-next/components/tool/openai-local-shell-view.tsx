@@ -8,6 +8,14 @@ export default function LocalShellView({
   invocation: UIToolInvocation<ReturnType<typeof openai.tools.localShell>>;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
 }) {
+  if (invocation.state === 'input-error') {
+    return (
+      <div className="text-red-500">
+        Tool input error: {invocation.errorText}
+      </div>
+    );
+  }
+
   const action = invocation.input?.action;
   const command = action?.command?.join(' ') || '';
 

@@ -181,6 +181,20 @@ const uiMessagesSchema = lazySchema(() => {
                   toolCallId: z.string(),
                   title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
+                  state: z.literal('input-error'),
+                  input: z.unknown(),
+                  providerExecuted: z.boolean().optional(),
+                  output: z.never().optional(),
+                  errorText: z.string(),
+                  callProviderMetadata: providerMetadataSchema.optional(),
+                  approval: z.never().optional(),
+                }),
+                z.object({
+                  type: z.literal('dynamic-tool'),
+                  toolName: z.string(),
+                  toolCallId: z.string(),
+                  title: z.string().optional(),
+                  toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('approval-requested'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -273,6 +287,19 @@ const uiMessagesSchema = lazySchema(() => {
                   input: z.unknown(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
+                  callProviderMetadata: providerMetadataSchema.optional(),
+                  approval: z.never().optional(),
+                }),
+                z.object({
+                  type: z.string().startsWith('tool-'),
+                  toolCallId: z.string(),
+                  title: z.string().optional(),
+                  toolMetadata: toolMetadataSchema.optional(),
+                  state: z.literal('input-error'),
+                  providerExecuted: z.boolean().optional(),
+                  input: z.unknown(),
+                  output: z.never().optional(),
+                  errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   approval: z.never().optional(),
                 }),
@@ -498,6 +525,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
             const toolName = toolPart.type.slice(5);
             const tool = tools == null ? undefined : getOwn(tools, toolName);
             const isTerminal =
+              toolPart.state === 'input-error' ||
               toolPart.state === 'output-available' ||
               toolPart.state === 'output-error' ||
               toolPart.state === 'output-denied';
@@ -545,6 +573,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
             // Tool input validation
             if (
               toolPart.state !== 'input-streaming' &&
+              toolPart.state !== 'input-error' &&
               (toolPart.state !== 'output-error' ||
                 inputSchemaInput != null ||
                 toolPart.input !== undefined)

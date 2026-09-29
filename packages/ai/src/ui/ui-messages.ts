@@ -318,6 +318,14 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: never;
     }
   | {
+      state: 'input-error';
+      input: unknown;
+      output?: never;
+      errorText: string;
+      callProviderMetadata?: ProviderMetadata;
+      approval?: never;
+    }
+  | {
       state: 'approval-requested';
       input: asUITool<TOOL>['input'];
       output?: never;
@@ -458,6 +466,14 @@ export type DynamicToolUIPart = {
       input: unknown;
       output?: never;
       errorText?: never;
+      callProviderMetadata?: ProviderMetadata;
+      approval?: never;
+    }
+  | {
+      state: 'input-error';
+      input: unknown;
+      output?: never;
+      errorText: string;
       callProviderMetadata?: ProviderMetadata;
       approval?: never;
     }

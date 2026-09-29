@@ -93,6 +93,29 @@ describe('lastAssistantMessageIsCompleteWithToolCalls', () => {
     ).toBe(false);
   });
 
+  it('should return true when the tool has an input-error state', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithToolCalls({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeatherInformation',
+                toolCallId: 'call_1',
+                state: 'input-error',
+                input: { city: 123 },
+                errorText: 'Invalid tool input',
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(true);
+  });
+
   it('should return true when the tool has an output-error state', () => {
     expect(
       lastAssistantMessageIsCompleteWithToolCalls({

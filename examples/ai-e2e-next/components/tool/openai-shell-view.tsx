@@ -8,6 +8,14 @@ export default function ShellView({
   invocation: UIToolInvocation<ReturnType<typeof openai.tools.shell>>;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
 }) {
+  if (invocation.state === 'input-error') {
+    return (
+      <div className="text-red-500">
+        Tool input error: {invocation.errorText}
+      </div>
+    );
+  }
+
   const action = invocation.input?.action;
   const commands = action?.commands || [];
 

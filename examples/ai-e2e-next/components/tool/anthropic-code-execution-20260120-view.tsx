@@ -10,6 +10,16 @@ export default function AnthropicCodeExecution20260120View({
   >;
 }) {
   switch (invocation.state) {
+    case 'input-error':
+      return (
+        <div className="mb-2 bg-red-900 rounded-xl border border-red-700 shadow-lg">
+          <pre className="overflow-x-auto p-4 text-sm text-red-100 whitespace-pre-wrap">
+            <span className="font-semibold">Code Execution Input Error</span>
+            <br />
+            {invocation.errorText}
+          </pre>
+        </div>
+      );
     case 'input-streaming':
     case 'input-available': {
       return <InputView input={invocation.input} />;
@@ -271,8 +281,9 @@ export default function AnthropicCodeExecution20260120View({
 function InputView({
   input,
 }: {
-  input: UIToolInvocation<
-    ReturnType<typeof anthropic.tools.codeExecution_20260120>
+  input: Exclude<
+    UIToolInvocation<ReturnType<typeof anthropic.tools.codeExecution_20260120>>,
+    { state: 'input-error' }
   >['input'];
 }) {
   if (!input) {

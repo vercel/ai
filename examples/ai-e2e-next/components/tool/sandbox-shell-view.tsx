@@ -8,6 +8,14 @@ export default function SandboxShellView({
   invocation: UIToolInvocation<ReturnType<typeof sandboxShellTool>>;
   addToolApprovalResponse: ChatAddToolApproveResponseFunction;
 }) {
+  if (invocation.state === 'input-error') {
+    return (
+      <div className="text-red-500">
+        Tool input error: {invocation.errorText}
+      </div>
+    );
+  }
+
   const command = invocation.input?.command || '';
 
   switch (invocation.state) {

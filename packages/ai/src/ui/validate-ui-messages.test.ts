@@ -1725,6 +1725,70 @@ describe('validateUIMessages', () => {
       });
     });
 
+    it('should preserve static tool identity for input-error with schema-invalid input', async () => {
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-foo',
+                toolCallId: '1',
+                state: 'input-error',
+                input: { foo: 123 },
+                errorText: 'AI_InvalidToolInputError',
+                providerExecuted: false,
+              },
+            ],
+          },
+        ],
+        tools: {
+          foo: testTool,
+        },
+      });
+
+      expect(messages).toEqual([
+        {
+          id: '1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-foo',
+              toolCallId: '1',
+              state: 'input-error',
+              input: { foo: 123 },
+              errorText: 'AI_InvalidToolInputError',
+              providerExecuted: false,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should validate a dynamic tool part in input-error state', async () => {
+      const messages = [
+        {
+          id: '1',
+          role: 'assistant' as const,
+          parts: [
+            {
+              type: 'dynamic-tool' as const,
+              toolName: 'foo',
+              toolCallId: '1',
+              state: 'input-error' as const,
+              input: '{ invalid json',
+              errorText: 'Invalid tool input',
+            },
+          ],
+        },
+      ];
+
+      const result = await validateUIMessages({ messages });
+
+      expect(result).toEqual(messages);
+    });
+
     it('should represent schema-incompatible output-error input as a dynamic tool part', async () => {
       // A tool call that failed with an invalid-input error keeps its (invalid)
       // input. The history must stay loadable without exposing that input under
