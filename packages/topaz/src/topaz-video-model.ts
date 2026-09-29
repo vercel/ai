@@ -14,8 +14,13 @@ import {
   isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
+  removeUndefinedEntries,
+  resolve,
+  serializeModelOptions,
   validateDownloadUrl,
   withUserAgentSuffix,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
@@ -80,6 +85,20 @@ export class TopazVideoModel implements VideoModelV4 {
     return this.config.provider;
   }
 
+  static [WORKFLOW_SERIALIZE](model: TopazVideoModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TopazVideoModelId;
+    config: TopazConfig;
+  }) {
+    return new TopazVideoModel(options.modelId, options.config);
+  }
+
   constructor(
     readonly modelId: TopazVideoModelId,
     private readonly config: TopazConfig,
@@ -91,11 +110,15 @@ export class TopazVideoModel implements VideoModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
-    const topazOptions = (await parseProviderOptions({
+    const topazOptions = await parseProviderOptions({
       provider: 'topaz',
       providerOptions: options.providerOptions,
       schema: topazVideoModelOptionsSchema,
-    })) as TopazVideoModelOptions | undefined;
+    });
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     this.addUnsupportedWarnings(options, warnings);
 
@@ -133,7 +156,7 @@ export class TopazVideoModel implements VideoModelV4 {
 
     const { value: createResponse, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/video/`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers,
       body,
       successfulResponseHandler: createJsonResponseHandler(
         topazVideoCreateResponseSchema,
@@ -153,7 +176,7 @@ export class TopazVideoModel implements VideoModelV4 {
     const accepted = await this.patch({
       path: `/video/${requestId}/accept`,
       schema: topazVideoAcceptResponseSchema,
-      headers: options.headers,
+      headers,
       abortSignal: options.abortSignal,
     });
 
@@ -175,7 +198,7 @@ export class TopazVideoModel implements VideoModelV4 {
       path: `/video/${requestId}/complete-upload`,
       body: { uploadResults },
       schema: topazVideoCompleteUploadResponseSchema,
-      headers: options.headers,
+      headers,
       abortSignal: options.abortSignal,
     });
 
@@ -184,6 +207,16 @@ export class TopazVideoModel implements VideoModelV4 {
       // report the right media type without re-deriving it.
       operation: { requestId, outputContainer: output.container },
       warnings,
+      providerMetadata: {
+        topaz: {
+          requestId,
+          // Preliminary: Topaz re-estimates once the upload is received, and
+          // the completed status carries the value that is billed.
+          ...(createResponse.estimates?.cost != null
+            ? { estimatedCredits: createResponse.estimates.cost }
+            : {}),
+        },
+      },
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -205,7 +238,10 @@ export class TopazVideoModel implements VideoModelV4 {
       url: `${this.config.baseURL}/video/${requestId}/status`,
       // Built from the configured baseURL, not from response data.
       validateUrl: false,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers: combineHeaders(
+        await resolve(this.config.headers),
+        options.headers,
+      ),
       successfulResponseHandler: createJsonResponseHandler(
         topazVideoStatusResponseSchema,
       ),
@@ -221,6 +257,10 @@ export class TopazVideoModel implements VideoModelV4 {
     };
 
     if (status.status === 'complete') {
+      // Topaz confirmed it invoices the lower bound of `estimates.cost`, which
+      // it recomputes once the source upload has been received.
+      const credits = lowerBoundCredits(status.estimates?.cost);
+
       const url = status.download?.url;
       if (url == null) {
         throw new TopazError({
@@ -244,19 +284,16 @@ export class TopazVideoModel implements VideoModelV4 {
         response,
         providerMetadata: {
           topaz: {
-            videos: [
-              {
-                requestId,
-                ...(status.outputSize != null
-                  ? { outputSize: status.outputSize }
-                  : {}),
-                ...(status.download?.expiresAt != null
-                  ? { expiresAt: status.download.expiresAt }
-                  : {}),
-              },
-            ],
+            requestId,
+            ...(credits != null ? { credits } : {}),
             ...(status.estimates?.cost != null
-              ? { cost: status.estimates.cost }
+              ? { estimatedCredits: status.estimates.cost }
+              : {}),
+            ...(status.outputSize != null
+              ? { outputSize: status.outputSize }
+              : {}),
+            ...(status.download?.expiresAt != null
+              ? { expiresAt: status.download.expiresAt }
               : {}),
           },
         },
@@ -268,7 +305,16 @@ export class TopazVideoModel implements VideoModelV4 {
         status: 'error',
         error:
           `Topaz video request ${requestId} ${status.status}` +
+          (status.errorCode != null ? ` (${status.errorCode})` : '') +
           (status.message != null ? `: ${status.message}` : '.'),
+        providerMetadata: {
+          topaz: {
+            requestId,
+            ...(status.errorCode != null
+              ? { errorCode: status.errorCode }
+              : {}),
+          },
+        },
         response,
       };
     }
@@ -286,7 +332,9 @@ export class TopazVideoModel implements VideoModelV4 {
     options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
     warnings: SharedV4Warning[],
   ): void {
-    if (options.prompt != null) {
+    // `generateVideo` requires a prompt, so an empty one is the expected way
+    // to call an enhancement model and does not warrant a warning.
+    if (options.prompt != null && options.prompt.trim() !== '') {
       warnings.push({
         type: 'unsupported',
         feature: 'prompt',
@@ -470,7 +518,7 @@ export class TopazVideoModel implements VideoModelV4 {
         method: 'PUT',
         headers: withUserAgentSuffix(
           { 'Content-Type': contentType },
-          `ai-sdk/topaz/${VERSION}`,
+          `ai-sdk-topaz/${VERSION}`,
         ) as HeadersInit,
         body: part as BodyInit,
         signal: abortSignal,
@@ -517,14 +565,12 @@ export class TopazVideoModel implements VideoModelV4 {
 
     const response = await fetchImpl(url, {
       method: 'PATCH',
-      headers: withUserAgentSuffix(
+      headers: removeUndefinedEntries(
         combineHeaders(
-          this.config.headers(),
-          body != null ? { 'Content-Type': 'application/json' } : {},
           headers,
+          body != null ? { 'Content-Type': 'application/json' } : {},
         ),
-        `ai-sdk/topaz/${VERSION}`,
-      ) as HeadersInit,
+      ),
       ...(body != null ? { body: JSON.stringify(body) } : {}),
       signal: abortSignal,
     });
@@ -546,6 +592,12 @@ export class TopazVideoModel implements VideoModelV4 {
 
     return value;
   }
+}
+
+function lowerBoundCredits(
+  cost: number[] | null | undefined,
+): number | undefined {
+  return cost != null && cost.length > 0 ? Math.min(...cost) : undefined;
 }
 
 function isVideoReference(reference: VideoModelV4File): boolean {
@@ -703,14 +755,17 @@ function buildFilter(
   return filter;
 }
 
+// `cost` (credits) and `time` (seconds) are [lowerBound, upperBound] pairs.
+const topazVideoEstimatesSchema = z
+  .object({
+    cost: z.array(z.number()).nullish(),
+    time: z.array(z.number()).nullish(),
+  })
+  .nullish();
+
 const topazVideoCreateResponseSchema = z.object({
   requestId: z.string().nullish(),
-  estimates: z
-    .object({
-      cost: z.json().nullish(),
-      time: z.json().nullish(),
-    })
-    .nullish(),
+  estimates: topazVideoEstimatesSchema,
 });
 
 const topazVideoAcceptResponseSchema = z.object({
@@ -727,13 +782,10 @@ const topazVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),
   progress: z.number().nullish(),
   message: z.string().nullish(),
-  outputSize: z.number().nullish(),
-  estimates: z
-    .object({
-      cost: z.json().nullish(),
-      time: z.json().nullish(),
-    })
-    .nullish(),
+  errorCode: z.string().nullish(),
+  // Documented as a string, accepted as a number too.
+  outputSize: z.union([z.string(), z.number()]).nullish(),
+  estimates: topazVideoEstimatesSchema,
   download: z
     .object({
       url: z.string().nullish(),

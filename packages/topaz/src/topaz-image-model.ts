@@ -1,7 +1,6 @@
 import type {
   ImageModelV4,
   ImageModelV4CallOptions,
-  ImageModelV4File,
   ImageModelV4Result,
   SharedV4Warning,
 } from '@ai-sdk/provider';
@@ -10,10 +9,15 @@ import {
   convertBase64ToUint8Array,
   createBinaryResponseHandler,
   createJsonResponseHandler,
+  delay,
   getFromApi,
   mediaTypeToExtension,
   parseProviderOptions,
   postFormDataToApi,
+  resolve,
+  serializeModelOptions,
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { TopazConfig } from './topaz-config';
@@ -37,9 +41,25 @@ const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
 export class TopazImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
+  readonly supportsFileInputs = true;
+  readonly supportsMaskInputs = false;
 
   get provider(): string {
     return this.config.provider;
+  }
+
+  static [WORKFLOW_SERIALIZE](model: TopazImageModel) {
+    return serializeModelOptions({
+      modelId: model.modelId,
+      config: model.config,
+    });
+  }
+
+  static [WORKFLOW_DESERIALIZE](options: {
+    modelId: TopazImageModelId;
+    config: TopazConfig;
+  }) {
+    return new TopazImageModel(options.modelId, options.config);
   }
 
   constructor(
@@ -53,11 +73,15 @@ export class TopazImageModel implements ImageModelV4 {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
-    const topazOptions = (await parseProviderOptions({
+    const topazOptions = await parseProviderOptions({
       provider: 'topaz',
       providerOptions: options.providerOptions,
       schema: topazImageModelOptionsSchema,
-    })) as TopazImageModelOptions | undefined;
+    });
+    const headers = combineHeaders(
+      await resolve(this.config.headers),
+      options.headers,
+    );
 
     this.addUnsupportedWarnings(options, warnings);
 
@@ -65,7 +89,7 @@ export class TopazImageModel implements ImageModelV4 {
 
     const { value: submitResponse } = await postFormDataToApi({
       url: `${this.config.baseURL}/image/v1/enhance-gen/async`,
-      headers: combineHeaders(this.config.headers(), options.headers),
+      headers,
       formData,
       successfulResponseHandler: createJsonResponseHandler(
         topazImageSubmitResponseSchema,
@@ -84,7 +108,7 @@ export class TopazImageModel implements ImageModelV4 {
 
     const status = await this.waitForCompletion({
       processId,
-      headers: options.headers,
+      headers,
       abortSignal: options.abortSignal,
       pollIntervalMillis:
         topazOptions?.pollIntervalMillis ?? DEFAULT_POLL_INTERVAL_MILLIS,
@@ -94,7 +118,7 @@ export class TopazImageModel implements ImageModelV4 {
 
     const { image, responseHeaders } = await this.download({
       processId,
-      headers: options.headers,
+      headers,
       abortSignal: options.abortSignal,
     });
 
@@ -108,10 +132,11 @@ export class TopazImageModel implements ImageModelV4 {
       },
       providerMetadata: {
         topaz: {
+          // Topaz bills exactly the credits reported on the completed job.
+          ...(status.credits != null ? { credits: status.credits } : {}),
           images: [
             {
               processId,
-              ...(status.credits != null ? { credits: status.credits } : {}),
               ...(status.output_width != null
                 ? { width: status.output_width }
                 : {}),
@@ -279,7 +304,7 @@ export class TopazImageModel implements ImageModelV4 {
         url: `${this.config.baseURL}/image/v1/status/${processId}`,
         // Built from the configured baseURL, not from response data.
         validateUrl: false,
-        headers: combineHeaders(this.config.headers(), headers),
+        headers,
         successfulResponseHandler: createJsonResponseHandler(
           topazImageStatusResponseSchema,
         ),
@@ -307,7 +332,7 @@ export class TopazImageModel implements ImageModelV4 {
         });
       }
 
-      await delay(pollIntervalMillis, abortSignal);
+      await delay(pollIntervalMillis, { abortSignal });
     }
   }
 
@@ -327,7 +352,7 @@ export class TopazImageModel implements ImageModelV4 {
       url: `${this.config.baseURL}/image/v1/download/${processId}`,
       // Built from the configured baseURL, not from response data.
       validateUrl: false,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers,
       successfulResponseHandler: createJsonResponseHandler(
         topazImageDownloadResponseSchema,
       ),
@@ -350,7 +375,7 @@ export class TopazImageModel implements ImageModelV4 {
       validateUrl: true,
       credentialedOrigin: this.config.baseURL,
       trustedOrigin: this.config.baseURL,
-      headers: combineHeaders(this.config.headers(), headers),
+      headers,
       successfulResponseHandler: createBinaryResponseHandler(),
       failedResponseHandler: topazFailedResponseHandler,
       abortSignal,
@@ -383,27 +408,6 @@ function appendIfDefined(
   }
 }
 
-function delay(millis: number, abortSignal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (abortSignal?.aborted) {
-      reject(abortSignal.reason);
-      return;
-    }
-
-    const timeout = setTimeout(() => {
-      abortSignal?.removeEventListener('abort', onAbort);
-      resolve();
-    }, millis);
-
-    function onAbort() {
-      clearTimeout(timeout);
-      reject(abortSignal?.reason);
-    }
-
-    abortSignal?.addEventListener('abort', onAbort, { once: true });
-  });
-}
-
 const topazImageSubmitResponseSchema = z.object({
   process_id: z.string().nullish(),
   source_id: z.string().nullish(),
@@ -411,9 +415,9 @@ const topazImageSubmitResponseSchema = z.object({
 });
 
 const topazImageStatusResponseSchema = z.object({
-  status: z
-    .enum(['Pending', 'Processing', 'Completed', 'Cancelled', 'Failed'])
-    .nullish(),
+  // Documented values are Pending, Processing, Completed, Cancelled and Failed.
+  // Unknown values keep polling rather than failing the parse.
+  status: z.string().nullish(),
   progress: z.number().nullish(),
   credits: z.number().nullish(),
   output_width: z.number().nullish(),
@@ -428,5 +432,3 @@ const topazImageDownloadResponseSchema = z.object({
   head_url: z.string().nullish(),
   expiry: z.union([z.string(), z.number()]).nullish(),
 });
-
-export type { ImageModelV4File as TopazImageInputFile };

@@ -86,7 +86,7 @@ export function createTopaz(
         accept: 'application/json',
         ...options.headers,
       },
-      `ai-sdk/topaz/${VERSION}`,
+      `ai-sdk-topaz/${VERSION}`,
     );
 
   const createImageModel = (modelId: TopazImageModelId): ImageModelV4 =>

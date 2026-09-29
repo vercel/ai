@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 /**
@@ -89,9 +94,9 @@ export const topazVideoOutputSchema = z.object({
   container: z.enum(['mp4', 'mov', 'mkv']).optional(),
 
   /**
-   * Dynamic compression level applied to the output.
+   * Automatic constant-quality compression level. Topaz defaults to `High`.
    */
-  dynamicCompressionLevel: z.string().optional(),
+  dynamicCompressionLevel: z.enum(['Low', 'Mid', 'High']).optional(),
 });
 
 export type TopazVideoOutput = z.infer<typeof topazVideoOutputSchema>;
@@ -102,98 +107,102 @@ export type TopazVideoOutput = z.infer<typeof topazVideoOutputSchema>;
  * @see https://developer.topazlabs.com/video-models/proteus/proteus-1
  * @see https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6
  */
-export const topazVideoModelOptionsSchema = z.object({
-  source: topazVideoSourceSchema.optional(),
-  output: topazVideoOutputSchema.optional(),
+export const topazVideoModelOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      source: topazVideoSourceSchema.optional(),
+      output: topazVideoOutputSchema.optional(),
 
-  /**
-   * Extra `filters[]` entries to send alongside the model's own filter, e.g. a
-   * frame-interpolation filter. Each entry must include a `model` key.
-   */
-  additionalFilters: z.array(z.record(z.string(), z.unknown())).optional(),
+      /**
+       * Extra `filters[]` entries to send alongside the model's own filter, e.g. a
+       * frame-interpolation filter. Each entry must include a `model` key.
+       */
+      additionalFilters: z.array(z.record(z.string(), z.unknown())).optional(),
 
-  /**
-   * Escape hatch for filter settings this package does not model yet. Merged
-   * into the model's filter entry, taking precedence over the typed options
-   * below.
-   */
-  filter: z.record(z.string(), z.unknown()).optional(),
+      /**
+       * Escape hatch for filter settings this package does not model yet. Merged
+       * into the model's filter entry, taking precedence over the typed options
+       * below.
+       */
+      filter: z.record(z.string(), z.unknown()).optional(),
 
-  // ---------------------------------------------------------------------------
-  // Proteus (`proteus`)
-  // ---------------------------------------------------------------------------
+      // ---------------------------------------------------------------------------
+      // Proteus (`proteus`)
+      // ---------------------------------------------------------------------------
 
-  /** Proteus: how the input frames are encoded. */
-  videoType: z
-    .enum(['Progressive', 'Interlaced', 'ProgressiveInterlaced'])
-    .optional(),
+      /** Proteus: how the input frames are encoded. */
+      videoType: z
+        .enum(['Progressive', 'Interlaced', 'ProgressiveInterlaced'])
+        .optional(),
 
-  /** Proteus: parameter estimation mode. */
-  auto: z.enum(['Auto', 'Manual', 'Relative']).optional(),
+      /** Proteus: parameter estimation mode. */
+      auto: z.enum(['Auto', 'Manual', 'Relative']).optional(),
 
-  /** Proteus: field order for interlaced input. */
-  fieldOrder: z.enum(['TopFirst', 'BottomFirst', 'Auto']).optional(),
+      /** Proteus: field order for interlaced input. */
+      fieldOrder: z.enum(['TopFirst', 'BottomFirst', 'Auto']).optional(),
 
-  /** Proteus: focus-fix strength. */
-  focusFixLevel: z.enum(['None', 'Normal', 'Strong']).optional(),
+      /** Proteus: focus-fix strength. */
+      focusFixLevel: z.enum(['None', 'Normal', 'Strong']).optional(),
 
-  /** Proteus: compression artifact removal, -1 to 1. */
-  compression: z.number().min(-1).max(1).optional(),
+      /** Proteus: compression artifact removal, -1 to 1. */
+      compression: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: detail recovery, -1 to 1. */
-  details: z.number().min(-1).max(1).optional(),
+      /** Proteus: detail recovery, -1 to 1. */
+      details: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: pre-processing noise reduction, 0 to 0.1. */
-  prenoise: z.number().min(0).max(0.1).optional(),
+      /** Proteus: pre-processing noise reduction, 0 to 0.1. */
+      prenoise: z.number().min(0).max(0.1).optional(),
 
-  /** Proteus: noise reduction, -1 to 1. */
-  noise: z.number().min(-1).max(1).optional(),
+      /** Proteus: noise reduction, -1 to 1. */
+      noise: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: halo suppression, -1 to 1. */
-  halo: z.number().min(-1).max(1).optional(),
+      /** Proteus: halo suppression, -1 to 1. */
+      halo: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: pre-processing blur, -1 to 1. */
-  preblur: z.number().min(-1).max(1).optional(),
+      /** Proteus: pre-processing blur, -1 to 1. */
+      preblur: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: sharpening, -1 to 1. */
-  blur: z.number().min(-1).max(1).optional(),
+      /** Proteus: sharpening, -1 to 1. */
+      blur: z.number().min(-1).max(1).optional(),
 
-  /** Proteus: grain amount, 0 to 0.1. */
-  grain: z.number().min(0).max(0.1).optional(),
+      /** Proteus: grain amount, 0 to 0.1. */
+      grain: z.number().min(0).max(0.1).optional(),
 
-  /** Proteus: grain sigma, 0 to 1. */
-  grainSigma: z.number().min(0).max(1).optional(),
+      /** Proteus: grain sigma, 0 to 1. */
+      grainSigma: z.number().min(0).max(1).optional(),
 
-  /** Proteus: grain size, 0 to 5. */
-  grainSize: z.number().min(0).max(5).optional(),
+      /** Proteus: grain size, 0 to 5. */
+      grainSize: z.number().min(0).max(5).optional(),
 
-  /** Proteus: grain model. */
-  grainType: z.enum(['silverRich', 'gaussian', 'grey']).optional(),
+      /** Proteus: grain model. */
+      grainType: z.enum(['silverRich', 'gaussian', 'grey']).optional(),
 
-  /** Proteus: original detail recovery, 0 to 1. */
-  recoverOriginalDetailValue: z.number().min(0).max(1).optional(),
+      /** Proteus: original detail recovery, 0 to 1. */
+      recoverOriginalDetailValue: z.number().min(0).max(1).optional(),
 
-  // ---------------------------------------------------------------------------
-  // Starlight Precise (`starlight-precise-2.6`)
-  // ---------------------------------------------------------------------------
+      // ---------------------------------------------------------------------------
+      // Starlight Precise (`starlight-precise-2.6`)
+      // ---------------------------------------------------------------------------
 
-  /** Starlight: sharpening applied to the output, 1.0 to 5.0. Defaults to 5.0. */
-  sharpness: z.number().min(1).max(5).optional(),
+      /** Starlight: sharpening applied to the output, 1.0 to 5.0. Defaults to 5.0. */
+      sharpness: z.number().min(1).max(5).optional(),
 
-  /** Starlight: output bit depth. */
-  videoBitDepth: z.number().int().positive().optional(),
+      /** Starlight: output bit depth. */
+      videoBitDepth: z.number().int().positive().optional(),
 
-  /** Starlight: output video codec. */
-  videoCodec: z.enum(['ffv1', 'prores', 'vp9']).optional(),
+      /** Starlight: output video codec. */
+      videoCodec: z.enum(['ffv1', 'prores', 'vp9']).optional(),
 
-  /** Starlight: output chroma subsampling profile. */
-  videoProfile: z.enum(['420', '422', '444']).optional(),
+      /** Starlight: output chroma subsampling profile. */
+      videoProfile: z.enum(['420', '422', '444']).optional(),
 
-  /** Starlight: whether to watermark the output. Defaults to `false`. */
-  watermark: z.boolean().optional(),
-});
+      /** Starlight: whether to watermark the output. Defaults to `false`. */
+      watermark: z.boolean().optional(),
+    }),
+  ),
+);
 
-export type TopazVideoModelOptions = z.infer<
+export type TopazVideoModelOptions = InferSchema<
   typeof topazVideoModelOptionsSchema
 >;
 

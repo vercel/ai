@@ -12,14 +12,18 @@ run(async () => {
         'https://raw.githubusercontent.com/vercel/ai/refs/heads/main/examples/ai-functions/data/comic-cat.png',
       ],
     },
+    size: '2048x2048',
     providerOptions: {
       topaz: {
         enhancementStrength: 'high',
-        outputWidth: 2048,
-        outputHeight: 2048,
       } satisfies TopazImageModelOptions,
     },
   });
 
+  // `topaz.credits` is what Topaz charged for the job.
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(result.providerMetadata, null, 2),
+  );
   await presentImages(result.images);
 });

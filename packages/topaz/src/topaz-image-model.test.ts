@@ -1,3 +1,8 @@
+import type { ImageModelV4CallOptions } from '@ai-sdk/provider';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TopazImageModel } from './topaz-image-model';
@@ -14,7 +19,7 @@ const inputImage = {
   data: new Uint8Array([1, 2, 3, 4]),
 };
 
-const defaultOptions = {
+const defaultOptions: ImageModelV4CallOptions = {
   prompt: undefined,
   n: 1,
   size: undefined,
@@ -23,7 +28,7 @@ const defaultOptions = {
   files: [inputImage],
   mask: undefined,
   providerOptions: { topaz: { pollIntervalMillis: 1 } },
-} as const;
+};
 
 function createModel(modelId = 'wonder-3.5') {
   return new TopazImageModel(modelId, {
@@ -74,6 +79,33 @@ describe('TopazImageModel', () => {
       expect(model.modelId).toBe('wonder-3.5');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxImagesPerCall).toBe(1);
+      expect(model.supportsFileInputs).toBe(true);
+      expect(model.supportsMaskInputs).toBe(false);
+    });
+
+    it('supports workflow serialization', () => {
+      const serialized = TopazImageModel[WORKFLOW_SERIALIZE](createModel());
+
+      expect(serialized).toEqual({
+        modelId: 'wonder-3.5',
+        config: {
+          provider: 'topaz.image',
+          baseURL: TEST_BASE_URL,
+          headers: { 'X-API-Key': 'test-key' },
+        },
+      });
+
+      const model = TopazImageModel[WORKFLOW_DESERIALIZE]({
+        modelId: 'wonder-3.5',
+        config: {
+          provider: 'topaz.image',
+          baseURL: TEST_BASE_URL,
+          headers: { 'X-API-Key': 'test-key' },
+        },
+      });
+
+      expect(model.provider).toBe('topaz.image');
+      expect(model.modelId).toBe('wonder-3.5');
     });
   });
 
@@ -90,15 +122,19 @@ describe('TopazImageModel', () => {
       expect(result.response.timestamp).toEqual(
         new Date('2026-01-01T00:00:00Z'),
       );
-      expect(result.providerMetadata?.topaz.images).toEqual([
-        {
-          processId: PROCESS_ID,
+      expect(result.providerMetadata).toEqual({
+        topaz: {
           credits: 2,
-          width: 4000,
-          height: 3000,
-          format: 'png',
+          images: [
+            {
+              processId: PROCESS_ID,
+              width: 4000,
+              height: 3000,
+              format: 'png',
+            },
+          ],
         },
-      ]);
+      });
     });
 
     it('maps the model id onto the Topaz model name and uploads the file', async () => {
@@ -216,13 +252,11 @@ describe('TopazImageModel', () => {
         mask: inputImage,
       });
 
-      expect(result.warnings.map(warning => warning.feature)).toEqual([
-        'prompt',
-        'aspectRatio',
-        'seed',
-        'mask',
-        'n',
-      ]);
+      expect(
+        result.warnings.map(warning =>
+          warning.type === 'unsupported' ? warning.feature : warning.type,
+        ),
+      ).toEqual(['prompt', 'aspectRatio', 'seed', 'mask', 'n']);
     });
 
     it('warns when more than one input file is passed', async () => {

@@ -7,7 +7,7 @@ description: Learn how to use the Topaz Labs provider for the AI SDK.
 
 The [Topaz Labs](https://www.topazlabs.com/) provider contains support for Topaz Labs' image and video enhancement models.
 
-Topaz models **enhance media you supply** — they upscale, denoise, sharpen and restore an existing image or video. They do not generate media from a text prompt, so the input file is the required part of the request and a text prompt is ignored.
+Topaz models **enhance media you supply**. They upscale, denoise, sharpen and restore an existing image or video. They do not generate media from a text prompt, so the input file is the required part of the request and a text prompt is ignored.
 
 ## Setup
 
@@ -77,7 +77,7 @@ The image to enhance is passed through the prompt's `images`. The Topaz image AP
 | ------------ | ------------ | ---------------------------------------- |
 | `wonder-3.5` | `Wonder 3.5` | Generative upscaling and detail recovery |
 
-Passing a raw Topaz model name (for example `Wonder 3.5`) also works — unknown ids are forwarded to the API unchanged.
+Passing a raw Topaz model name (for example `Wonder 3.5`) also works, and unknown ids are forwarded to the API unchanged.
 
 ### Image Provider Options
 
@@ -102,21 +102,28 @@ const { images } = await generateImage({
 });
 ```
 
-- **enhancementStrength** _'low' | 'medium' | 'high'_ — how aggressively to enhance. Defaults to `high`.
-- **grain** _boolean_ — add grain to the output. Defaults to `false`.
-- **grainDensity** _number_ — grain intensity, 0 to 1. Defaults to 0.5.
-- **grainModel** _'silver' | 'gaussian' | 'grey'_ — grain model. Defaults to `silver`.
-- **grainSize** _number_ — grain particle size, 1 to 5. Defaults to 1.
-- **grainStrength** _number_ — grain effect strength, 0 to 1. Defaults to 0.5.
-- **inputWidth** / **inputHeight** _number_ — input dimensions in pixels. Topaz infers these from the upload when omitted.
-- **outputWidth** / **outputHeight** _number_ — output dimensions in pixels, 1 to 32000. These take precedence over the dimensions derived from `size`.
-- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_ — output format.
-- **cropToFill** _boolean_ — crop the output to fill the requested dimensions. Defaults to `false`.
-- **webhookUrl** _string_ — URL to receive job-status webhooks.
-- **pollIntervalMillis** _number_ — status poll interval. Defaults to 2000.
-- **pollTimeoutMillis** _number_ — maximum time to wait for the job. Defaults to 600000.
+- **enhancementStrength** _'low' | 'medium' | 'high'_: how aggressively to enhance. Defaults to `high`.
+- **grain** _boolean_: add grain to the output. Defaults to `false`.
+- **grainDensity** _number_: grain intensity, 0 to 1. Defaults to 0.5.
+- **grainModel** _'silver' | 'gaussian' | 'grey'_: grain model. Defaults to `silver`.
+- **grainSize** _number_: grain particle size, 1 to 5. Defaults to 1.
+- **grainStrength** _number_: grain effect strength, 0 to 1. Defaults to 0.5.
+- **inputWidth** / **inputHeight** _number_: input dimensions in pixels. Topaz infers these from the upload when omitted.
+- **outputWidth** / **outputHeight** _number_: output dimensions in pixels, 1 to 32000. These take precedence over the dimensions derived from `size`.
+- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_: output format.
+- **cropToFill** _boolean_: crop the output to fill the requested dimensions. Defaults to `false`.
+- **webhookUrl** _string_: URL to receive job-status webhooks.
+- **pollIntervalMillis** _number_: status poll interval. Defaults to 2000.
+- **pollTimeoutMillis** _number_: maximum time to wait for the job. Defaults to 600000.
 
 `aspectRatio`, `seed`, `mask` and `n` greater than 1 are not supported and produce warnings.
+
+### Image Provider Metadata
+
+`providerMetadata.topaz` on the result contains:
+
+- **credits** _number_: the credits Topaz charged for the job.
+- **images** _Array&lt;object&gt;_: per-image details with `processId`, `width`, `height` and `format`.
 
 ## Video Models
 
@@ -128,6 +135,7 @@ import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
   model: topaz.video('starlight-precise-2.6'),
+  prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
   providerOptions: {
     topaz: {
@@ -144,7 +152,7 @@ const { videos } = await generateVideo({
 });
 ```
 
-The video to enhance is passed through `inputReferences`.
+The video to enhance is passed through `inputReferences`. `generateVideo` requires a `prompt`, so pass an empty string: Topaz ignores text, and a non-empty prompt produces a warning.
 
 ### Model Capabilities
 
@@ -178,6 +186,7 @@ So the example above can also be written using the standard call options:
 ```ts
 const { videos } = await generateVideo({
   model: topaz.video('proteus'),
+  prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
   resolution: '1920x1080',
   duration: 10,
@@ -194,10 +203,10 @@ const { videos } = await generateVideo({
 
 Structural options:
 
-- **source** _object_ — input video metadata: `width`, `height`, `duration`, `frameRate`, `frameCount`, `container`.
-- **output** _object_ — `width`, `height`, `frameRate`, `audioCodec` (`'AAC' | 'AC3' | 'PCM'`), `audioTransfer` (`'Copy' | 'Convert' | 'None'`), `container` (`'mp4' | 'mov' | 'mkv'`), `dynamicCompressionLevel`. Each dimension and the frame rate default to the source value; audio defaults to `AAC` / `Copy`.
-- **additionalFilters** _Array&lt;Record&lt;string, unknown&gt;&gt;_ — extra `filters[]` entries, e.g. a frame-interpolation filter. Each entry must include a `model` key.
-- **filter** _Record&lt;string, unknown&gt;_ — escape hatch merged into the model's filter entry, overriding the typed options below.
+- **source** _object_: input video metadata: `width`, `height`, `duration`, `frameRate`, `frameCount`, `container`.
+- **output** _object_: `width`, `height`, `frameRate`, `audioCodec` (`'AAC' | 'AC3' | 'PCM'`), `audioTransfer` (`'Copy' | 'Convert' | 'None'`), `container` (`'mp4' | 'mov' | 'mkv'`), `dynamicCompressionLevel` (`'Low' | 'Mid' | 'High'`). Each dimension and the frame rate default to the source value; audio defaults to `AAC` / `Copy`.
+- **additionalFilters** _Array&lt;Record&lt;string, unknown&gt;&gt;_: extra `filters[]` entries, e.g. a frame-interpolation filter. Each entry must include a `model` key.
+- **filter** _Record&lt;string, unknown&gt;_: escape hatch merged into the model's filter entry, overriding the typed options below.
 
 Proteus filter settings: `videoType`, `auto`, `fieldOrder`, `focusFixLevel`, `compression`, `details`, `prenoise`, `noise`, `halo`, `preblur`, `blur`, `grain`, `grainSigma`, `grainSize`, `grainType`, `recoverOriginalDetailValue`.
 
@@ -205,11 +214,11 @@ Starlight Precise filter settings: `sharpness`, `videoBitDepth`, `videoCodec`, `
 
 See the [Proteus](https://developer.topazlabs.com/video-models/proteus/proteus-1) and [Starlight Precise 2.6](https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6) references for the accepted ranges.
 
-`prompt`, `aspectRatio`, `seed`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
+A non-empty `prompt`, `aspectRatio`, `seed`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
 
 ### Long-Running Operations
 
-Video enhancement takes minutes, so Topaz video models implement the AI SDK's async operation protocol. `generateVideo` polls to completion. Use `experimental_startVideo` when you would rather persist the operation and check its status later:
+Video enhancement takes minutes, so Topaz video models implement the AI SDK's async operation protocol. `generateVideo` polls to completion, and long clips can exceed its default 10 minute timeout, so raise `poll.timeoutMs` when needed. Use `experimental_startVideo` when you would rather persist the operation and check its status later:
 
 ```ts
 import { topaz } from '@ai-sdk/topaz';
@@ -217,6 +226,7 @@ import { experimental_startVideo as startVideo } from 'ai';
 
 const operation = await startVideo({
   model: topaz.video('starlight-precise-2.6'),
+  prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
   providerOptions: {
     topaz: {
@@ -231,3 +241,19 @@ const operation = await startVideo({
   },
 });
 ```
+
+### Video Provider Metadata
+
+Topaz estimates the cost of a video request in credits as a `[lowerBound, upperBound]` range. It estimates once when the request is created and again after the source upload is received, and it bills the lower bound of the second estimate.
+
+The start result's `providerMetadata.topaz` contains the `requestId` and `estimatedCredits`, the initial cost range. It is informational only, since the post-upload estimate is what gets billed.
+
+The completed status's `providerMetadata.topaz` contains:
+
+- **requestId** _string_: the Topaz request id.
+- **credits** _number_: the credits Topaz bills for the request (the lower bound of the post-upload estimate).
+- **estimatedCredits** _[number, number]_: the full post-upload cost range.
+- **outputSize** _string_: the size of the enhanced video.
+- **expiresAt** _number_: when the download URL expires, in milliseconds since the Unix epoch.
+
+A failed request reports Topaz's `errorCode` (for example `CREDIT_DIFFERENCE` when the post-upload estimate diverged from the first one, in which case Topaz refunds the credits) in both the error message and `providerMetadata.topaz.errorCode`.

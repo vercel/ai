@@ -1,3 +1,7 @@
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
 import { TopazVideoModel } from './topaz-video-model';
@@ -28,7 +32,7 @@ const sourceOptions = {
   },
 };
 
-const defaultOptions = {
+const defaultOptions: Parameters<TopazVideoModel['doStart']>[0] = {
   prompt: undefined,
   n: 1,
   image: undefined,
@@ -41,7 +45,7 @@ const defaultOptions = {
   generateAudio: undefined,
   seed: undefined,
   providerOptions: { topaz: sourceOptions },
-} as const;
+};
 
 function createModel(modelId = 'starlight-precise-2.6') {
   return new TopazVideoModel(modelId, {
@@ -57,7 +61,10 @@ describe('TopazVideoModel', () => {
     [`${TEST_BASE_URL}/video/`]: {
       response: {
         type: 'json-value',
-        body: { requestId: REQUEST_ID, estimates: { cost: [12], time: [60] } },
+        body: {
+          requestId: REQUEST_ID,
+          estimates: { cost: [12, 15], time: [60, 90] },
+        },
       },
     },
     [`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`]: {
@@ -93,9 +100,13 @@ describe('TopazVideoModel', () => {
         body: {
           status: 'complete',
           progress: 100,
-          outputSize: 12345,
-          estimates: { cost: [12], time: [60] },
-          download: { url: DOWNLOAD_URL, expiresIn: 3600 },
+          outputSize: '12345',
+          estimates: { cost: [14, 18], time: [60, 90] },
+          download: {
+            url: DOWNLOAD_URL,
+            expiresIn: 3600,
+            expiresAt: 1767229200000,
+          },
         },
       },
     },
@@ -109,6 +120,31 @@ describe('TopazVideoModel', () => {
       expect(model.modelId).toBe('starlight-precise-2.6');
       expect(model.specificationVersion).toBe('v4');
       expect(model.maxVideosPerCall).toBe(1);
+    });
+
+    it('supports workflow serialization', () => {
+      const serialized = TopazVideoModel[WORKFLOW_SERIALIZE](createModel());
+
+      expect(serialized).toEqual({
+        modelId: 'starlight-precise-2.6',
+        config: {
+          provider: 'topaz.video',
+          baseURL: TEST_BASE_URL,
+          headers: { 'X-API-Key': 'test-key' },
+        },
+      });
+
+      const model = TopazVideoModel[WORKFLOW_DESERIALIZE]({
+        modelId: 'starlight-precise-2.6',
+        config: {
+          provider: 'topaz.video',
+          baseURL: TEST_BASE_URL,
+          headers: { 'X-API-Key': 'test-key' },
+        },
+      });
+
+      expect(model.provider).toBe('topaz.video');
+      expect(model.modelId).toBe('starlight-precise-2.6');
     });
   });
 
@@ -133,6 +169,29 @@ describe('TopazVideoModel', () => {
         outputContainer: 'mp4',
       });
       expect(result.warnings).toEqual([]);
+    });
+
+    it('reports the initial cost estimate without a billed amount', async () => {
+      const result = await createModel().doStart({ ...defaultOptions });
+
+      expect(result.providerMetadata).toEqual({
+        topaz: { requestId: REQUEST_ID, estimatedCredits: [12, 15] },
+      });
+    });
+
+    it('sends the API key from a deserialized headers object', async () => {
+      await TopazVideoModel[WORKFLOW_DESERIALIZE]({
+        modelId: 'starlight-precise-2.6',
+        config: {
+          provider: 'topaz.video',
+          baseURL: TEST_BASE_URL,
+          headers: { 'X-API-Key': 'restored-key' },
+        },
+      }).doStart({ ...defaultOptions });
+
+      expect(server.calls[0].requestHeaders['x-api-key']).toBe('restored-key');
+      expect(server.calls[1].requestHeaders['x-api-key']).toBe('restored-key');
+      expect(server.calls[2].requestHeaders['x-api-key']).toBeUndefined();
     });
 
     it('maps the model id onto the Topaz filter model name', async () => {
@@ -353,6 +412,15 @@ describe('TopazVideoModel', () => {
       expect(server.calls[1].requestHeaders['x-api-key']).toBe('test-key');
     });
 
+    it('does not warn about an empty prompt', async () => {
+      const result = await createModel().doStart({
+        ...defaultOptions,
+        prompt: '',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+
     it('warns about options Topaz does not support', async () => {
       const result = await createModel().doStart({
         ...defaultOptions,
@@ -362,15 +430,18 @@ describe('TopazVideoModel', () => {
         generateAudio: true,
         frameImages: [
           {
-            type: 'url',
-            url: 'https://example.com/first.png',
-            role: 'first_frame',
+            image: { type: 'url', url: 'https://example.com/first.png' },
+            frameType: 'first_frame',
           },
         ],
         n: 2,
       });
 
-      expect(result.warnings.map(warning => warning.feature)).toEqual([
+      expect(
+        result.warnings.map(warning =>
+          warning.type === 'unsupported' ? warning.feature : warning.type,
+        ),
+      ).toEqual([
         'prompt',
         'aspectRatio',
         'seed',
@@ -491,6 +562,48 @@ describe('TopazVideoModel', () => {
       );
     });
 
+    it('bills the lower bound of the post-upload cost estimate', async () => {
+      const result = await createModel().doStatus({ operation });
+
+      expect(result.providerMetadata).toEqual({
+        topaz: {
+          requestId: REQUEST_ID,
+          credits: 14,
+          estimatedCredits: [14, 18],
+          outputSize: '12345',
+          expiresAt: 1767229200000,
+        },
+      });
+    });
+
+    it('uses the cheaper bound regardless of order', async () => {
+      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/status`].response = {
+        type: 'json-value',
+        body: {
+          status: 'complete',
+          estimates: { cost: [20, 16] },
+          download: { url: DOWNLOAD_URL },
+        },
+      };
+
+      const result = await createModel().doStatus({ operation });
+
+      expect(result.providerMetadata?.topaz.credits).toBe(16);
+    });
+
+    it('omits credits when Topaz returns no cost estimate', async () => {
+      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/status`].response = {
+        type: 'json-value',
+        body: { status: 'complete', download: { url: DOWNLOAD_URL } },
+      };
+
+      const result = await createModel().doStatus({ operation });
+
+      expect(result.providerMetadata).toEqual({
+        topaz: { requestId: REQUEST_ID },
+      });
+    });
+
     it('reports the media type of the output container', async () => {
       const result = await createModel().doStatus({
         operation: { requestId: REQUEST_ID, outputContainer: 'mov' },
@@ -531,6 +644,30 @@ describe('TopazVideoModel', () => {
       expect(result.status).toBe('error');
       expect(result).toMatchObject({
         error: expect.stringMatching(/out of credits/),
+      });
+    });
+
+    it('includes the Topaz error code on a failed request', async () => {
+      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/status`].response = {
+        type: 'json-value',
+        body: {
+          status: 'failed',
+          errorCode: 'CREDIT_DIFFERENCE',
+          message: 'Estimate changed after upload',
+        },
+      };
+
+      const result = await createModel().doStatus({ operation });
+
+      expect(result).toEqual({
+        status: 'error',
+        error:
+          `Topaz video request ${REQUEST_ID} failed (CREDIT_DIFFERENCE): ` +
+          'Estimate changed after upload',
+        providerMetadata: {
+          topaz: { requestId: REQUEST_ID, errorCode: 'CREDIT_DIFFERENCE' },
+        },
+        response: expect.any(Object),
       });
     });
 
