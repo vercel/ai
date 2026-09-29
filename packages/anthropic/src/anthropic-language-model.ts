@@ -128,22 +128,6 @@ export function createCitationSource(
   }>,
   generateId: () => string,
 ): LanguageModelV4Source | undefined {
-  if (citation.type === 'web_search_result_location') {
-    return {
-      type: 'source' as const,
-      sourceType: 'url' as const,
-      id: generateId(),
-      url: citation.url,
-      title: citation.title ?? undefined,
-      providerMetadata: {
-        anthropic: {
-          citedText: citation.cited_text,
-          encryptedIndex: citation.encrypted_index,
-        },
-      } satisfies SharedV4ProviderMetadata,
-    };
-  }
-
   if (citation.type !== 'page_location' && citation.type !== 'char_location') {
     return;
   }

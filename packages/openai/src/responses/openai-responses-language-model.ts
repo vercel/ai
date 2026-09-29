@@ -1082,15 +1082,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             });
 
             for (const annotation of contentPart.annotations) {
-              if (annotation.type === 'url_citation') {
-                content.push({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: this.config.generateId?.() ?? generateId(),
-                  url: annotation.url,
-                  title: annotation.title,
-                });
-              } else if (annotation.type === 'file_citation') {
+              if (annotation.type === 'file_citation') {
                 content.push({
                   type: 'source',
                   sourceType: 'document',
@@ -1277,6 +1269,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             ),
             result: mapWebSearchOutput(part.action),
           });
+
+          if (part.action?.type === 'search') {
+            for (const source of part.action.sources ?? []) {
+              if (source.type === 'url') {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: source.url,
+                });
+              }
+            }
+          }
 
           break;
         }
@@ -2142,6 +2147,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                   ),
                   result: mapWebSearchOutput(value.item.action),
                 });
+
+                if (value.item.action?.type === 'search') {
+                  for (const source of value.item.action.sources ?? []) {
+                    if (source.type === 'url') {
+                      controller.enqueue({
+                        type: 'source',
+                        sourceType: 'url',
+                        id: self.config.generateId?.() ?? generateId(),
+                        url: source.url,
+                      });
+                    }
+                  }
+                }
               } else if (value.item.type === 'computer_call') {
                 ongoingToolCalls[value.output_index] = undefined;
 
@@ -2830,15 +2848,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
-              if (value.annotation.type === 'url_citation') {
-                controller.enqueue({
-                  type: 'source',
-                  sourceType: 'url',
-                  id: self.config.generateId?.() ?? generateId(),
-                  url: value.annotation.url,
-                  title: value.annotation.title,
-                });
-              } else if (value.annotation.type === 'file_citation') {
+              if (value.annotation.type === 'file_citation') {
                 controller.enqueue({
                   type: 'source',
                   sourceType: 'document',
