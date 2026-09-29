@@ -103,6 +103,16 @@ export type ClaudeCodeHarnessSettings = {
    */
   readonly maxTurns?: number;
   /**
+   * Enables periodic AI-generated progress summaries for running subagents.
+   * The summaries are forwarded in raw `task_progress` stream parts.
+   */
+  readonly agentProgressSummaries?: boolean;
+  /**
+   * Forwards subagent text and thinking messages in addition to tool activity.
+   * Subagent messages are exposed as raw stream parts.
+   */
+  readonly forwardSubagentText?: boolean;
+  /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
    */
@@ -1035,6 +1045,8 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            agentProgressSummaries: settings.agentProgressSummaries,
+            forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1196,6 +1208,8 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        agentProgressSummaries: settings.agentProgressSummaries,
+        forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1512,6 +1526,8 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  agentProgressSummaries,
+  forwardSubagentText,
   env,
   thinking,
   effort,
@@ -1537,6 +1553,8 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  agentProgressSummaries: boolean | undefined;
+  forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1810,6 +1828,10 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(agentProgressSummaries !== undefined
+          ? { agentProgressSummaries }
+          : {}),
+        ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
@@ -1874,6 +1896,10 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(agentProgressSummaries !== undefined
+            ? { agentProgressSummaries }
+            : {}),
+          ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),

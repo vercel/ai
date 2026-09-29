@@ -73,8 +73,15 @@ values override variables inherited from the sandbox bridge process.
 
 ```ts
 const harness = createClaudeCode({
+  agentProgressSummaries: true,
+  forwardSubagentText: true,
   env: {
     DEPLOYMENT_ENV: 'staging',
   },
 });
 ```
+
+Sub-agent messages and task/background notifications are surfaced as `raw`
+stream parts. `agentProgressSummaries` adds periodic summaries to raw
+`task_progress` messages, while `forwardSubagentText` includes sub-agent text
+and thinking messages in the raw stream.

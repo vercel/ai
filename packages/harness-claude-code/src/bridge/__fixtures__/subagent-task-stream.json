@@ -23,7 +23,7 @@
     "subtype": "background_tasks_changed",
     "tasks": [
       {
-        "task_id": "task_issue_21687",
+        "task_id": "task_subagent",
         "task_type": "local_agent",
         "description": "Run a background command"
       }
@@ -32,7 +32,7 @@
   {
     "type": "system",
     "subtype": "task_started",
-    "task_id": "task_issue_21687",
+    "task_id": "task_subagent",
     "tool_use_id": "toolu_parent_agent",
     "description": "Run a background command",
     "subagent_type": "general-purpose",
@@ -48,7 +48,7 @@
           "id": "toolu_subagent_bash",
           "name": "Bash",
           "input": {
-            "command": "printf issue-21687-subagent"
+            "command": "printf subagent-output"
           }
         }
       ]
@@ -57,7 +57,7 @@
   {
     "type": "system",
     "subtype": "task_progress",
-    "task_id": "task_issue_21687",
+    "task_id": "task_subagent",
     "tool_use_id": "toolu_parent_agent",
     "description": "Running command",
     "subagent_type": "general-purpose",
@@ -77,7 +77,7 @@
         {
           "type": "tool_result",
           "tool_use_id": "toolu_subagent_bash",
-          "content": "issue-21687-subagent",
+          "content": "subagent-output",
           "is_error": false
         }
       ]
@@ -90,7 +90,7 @@
       "content": [
         {
           "type": "text",
-          "text": "The command printed issue-21687-subagent."
+          "text": "The command printed subagent-output."
         }
       ]
     }
@@ -98,7 +98,7 @@
   {
     "type": "system",
     "subtype": "task_updated",
-    "task_id": "task_issue_21687",
+    "task_id": "task_subagent",
     "patch": {
       "status": "running",
       "is_backgrounded": true
@@ -112,11 +112,11 @@
   {
     "type": "system",
     "subtype": "task_notification",
-    "task_id": "task_issue_21687",
+    "task_id": "task_subagent",
     "tool_use_id": "toolu_parent_agent",
     "status": "completed",
-    "output_file": "/tmp/task_issue_21687.output",
-    "summary": "The command printed issue-21687-subagent.",
+    "output_file": "/tmp/task_subagent.output",
+    "summary": "The command printed subagent-output.",
     "usage": {
       "total_tokens": 9641,
       "tool_uses": 1,
