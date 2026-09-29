@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -378,6 +379,60 @@ describe('Claude Code bridge configuration', () => {
       permissionPromptToolName: 'stdio',
     });
     expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
+  test('exits plan mode under allow-all', async () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          './__fixtures__/exit-plan-mode-permission.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as {
+      withoutCanUseTool: Record<string, unknown>[];
+      withCanUseTool: Record<string, unknown>[];
+    };
+
+    state.createQuery = args =>
+      (async function* () {
+        const canUseTool = args.options.canUseTool;
+        let messages = fixture.withoutCanUseTool;
+        if (typeof canUseTool === 'function') {
+          const decision = await canUseTool(
+            'ExitPlanMode',
+            {},
+            { toolUseID: 'exit-plan-mode' },
+          );
+          if (
+            typeof decision === 'object' &&
+            decision != null &&
+            Reflect.get(decision, 'behavior') === 'allow'
+          ) {
+            messages = fixture.withCanUseTool;
+          }
+        }
+        for (const message of messages) {
+          yield message;
+        }
+      })();
+
+    await import('./index');
+
+    const exitResult = state.emitted.find(
+      event =>
+        event.type === 'tool-result' && event.toolCallId === 'exit-plan-mode',
+    );
+    expect(
+      exitResult,
+      'ExitPlanMode should succeed under allow-all so the session leaves read-only plan mode.',
+    ).toMatchObject({
+      type: 'tool-result',
+      toolCallId: 'exit-plan-mode',
+      toolName: 'ExitPlanMode',
+      isError: false,
+    });
   });
 
   test('preserves inactive tool filtering when bypassing permissions', async () => {
