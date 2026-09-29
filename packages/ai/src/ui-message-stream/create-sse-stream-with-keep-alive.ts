@@ -23,52 +23,66 @@ export function createSseStreamWithKeepAlive({
   }
 
   const reader = stream.getReader();
-  let pendingRead: Promise<ReadableStreamReadResult<string>> | undefined;
   let keepAliveTimeout: ReturnType<typeof setTimeout> | undefined;
+  let isCancelled = false;
+
+  const clearKeepAliveTimeout = () => {
+    clearTimeout(keepAliveTimeout);
+    keepAliveTimeout = undefined;
+  };
+
+  const scheduleKeepAlive = (
+    controller: ReadableStreamDefaultController<string>,
+  ) => {
+    clearKeepAliveTimeout();
+    keepAliveTimeout = setTimeout(() => {
+      if (isCancelled) {
+        return;
+      }
+
+      if (controller.desiredSize != null && controller.desiredSize > 0) {
+        controller.enqueue(KEEP_ALIVE_COMMENT);
+      }
+
+      scheduleKeepAlive(controller);
+    }, keepAliveMs);
+  };
 
   return new ReadableStream<string>({
     start(controller) {
       controller.enqueue(STREAM_OPEN_COMMENT);
+      scheduleKeepAlive(controller);
     },
 
-    async pull(controller) {
-      pendingRead ??= reader.read();
+    pull(controller) {
+      return reader.read().then(
+        result => {
+          clearKeepAliveTimeout();
 
-      let result:
-        | { type: 'source'; value: ReadableStreamReadResult<string> }
-        | { type: 'keep-alive' };
+          if (isCancelled) {
+            return;
+          }
 
-      try {
-        result = await Promise.race([
-          pendingRead.then(value => ({ type: 'source' as const, value })),
-          new Promise<{ type: 'keep-alive' }>(resolve => {
-            keepAliveTimeout = setTimeout(
-              () => resolve({ type: 'keep-alive' }),
-              keepAliveMs,
-            );
-          }),
-        ]);
-      } finally {
-        clearTimeout(keepAliveTimeout);
-        keepAliveTimeout = undefined;
-      }
+          if (result.done) {
+            controller.close();
+          } else {
+            controller.enqueue(result.value);
+            scheduleKeepAlive(controller);
+          }
+        },
+        error => {
+          clearKeepAliveTimeout();
 
-      if (result.type === 'keep-alive') {
-        controller.enqueue(KEEP_ALIVE_COMMENT);
-        return;
-      }
-
-      pendingRead = undefined;
-
-      if (result.value.done) {
-        controller.close();
-      } else {
-        controller.enqueue(result.value.value);
-      }
+          if (!isCancelled) {
+            throw error;
+          }
+        },
+      );
     },
 
     async cancel(reason) {
-      clearTimeout(keepAliveTimeout);
+      isCancelled = true;
+      clearKeepAliveTimeout();
       await reader.cancel(reason);
     },
   });

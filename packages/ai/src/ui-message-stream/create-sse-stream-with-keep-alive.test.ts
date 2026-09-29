@@ -48,6 +48,43 @@ describe('createSseStreamWithKeepAlive', () => {
     await reader.cancel();
   });
 
+  it('should retain one pending source read across many idle keep-alives', async () => {
+    const pendingSourceRead = new Promise<ReadableStreamReadResult<string>>(
+      () => {},
+    );
+    const then = vi.spyOn(pendingSourceRead, 'then');
+    const cancel = vi.fn();
+    const stream = {
+      getReader: () => ({
+        read: () => pendingSourceRead,
+        cancel,
+      }),
+    } as unknown as ReadableStream<string>;
+    const reader = createSseStreamWithKeepAlive({
+      stream,
+      keepAliveMs: 100,
+    }).getReader();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: false,
+      value: ': stream-open\n\n',
+    });
+
+    const keepAlives = Array.from({ length: 2_500 }, () => reader.read());
+    await vi.advanceTimersByTimeAsync(250_000);
+
+    await expect(Promise.all(keepAlives)).resolves.toEqual(
+      Array.from({ length: 2_500 }, () => ({
+        done: false,
+        value: ': keep-alive\n\n',
+      })),
+    );
+    expect(then).toHaveBeenCalledTimes(1);
+
+    await reader.cancel();
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
   it('should reset the keep-alive timer after source activity', async () => {
     let sourceController: ReadableStreamDefaultController<string>;
     const stream = new ReadableStream<string>({
