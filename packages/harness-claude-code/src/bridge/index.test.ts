@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -370,69 +369,37 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
-  test('omits canUseTool when bypassing permissions', async () => {
+  test('allows explicit permission requests when bypassing permissions', async () => {
     await import('./index');
 
     expect(state.queryArgs[0]?.options).toMatchObject({
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      permissionPromptToolName: 'stdio',
     });
-    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
-  });
-
-  test('exits plan mode under allow-all', async () => {
-    const fixture = JSON.parse(
-      readFileSync(
-        new URL(
-          './__fixtures__/exit-plan-mode-permission.json',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    ) as {
-      withoutCanUseTool: Record<string, unknown>[];
-      withCanUseTool: Record<string, unknown>[];
-    };
-
-    state.createQuery = args =>
-      (async function* () {
-        const canUseTool = args.options.canUseTool;
-        let messages = fixture.withoutCanUseTool;
-        if (typeof canUseTool === 'function') {
-          const decision = await canUseTool(
-            'ExitPlanMode',
-            {},
-            { toolUseID: 'exit-plan-mode' },
-          );
-          if (
-            typeof decision === 'object' &&
-            decision != null &&
-            Reflect.get(decision, 'behavior') === 'allow'
-          ) {
-            messages = fixture.withCanUseTool;
-          }
-        }
-        for (const message of messages) {
-          yield message;
-        }
-      })();
-
-    await import('./index');
-
-    const exitResult = state.emitted.find(
-      event =>
-        event.type === 'tool-result' && event.toolCallId === 'exit-plan-mode',
+    expect(state.queryArgs[0]?.options).not.toHaveProperty(
+      'permissionPromptToolName',
     );
-    expect(
-      exitResult,
-      'ExitPlanMode should succeed under allow-all so the session leaves read-only plan mode.',
-    ).toMatchObject({
-      type: 'tool-result',
-      toolCallId: 'exit-plan-mode',
-      toolName: 'ExitPlanMode',
-      isError: false,
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool?.(
+        'ExitPlanMode',
+        { plan: 'Implement the change.' },
+        { toolUseID: 'exit-plan-mode' },
+      ),
+    ).resolves.toEqual({
+      behavior: 'allow',
+      updatedInput: { plan: 'Implement the change.' },
     });
+    expect(state.emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'tool-approval-request' }),
+    );
   });
 
   test('preserves inactive tool filtering when bypassing permissions', async () => {
@@ -446,14 +413,32 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({
       permissionMode: 'bypassPermissions',
       allowDangerouslySkipPermissions: true,
-      permissionPromptToolName: 'stdio',
       disallowedTools: ['Bash'],
       settings: {
         permissions: { ask: ['Bash(*)'] },
         sandbox: { autoAllowBashIfSandboxed: false },
       },
     });
-    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+    const canUseTool = state.queryArgs[0]?.options.canUseTool as
+      | ((
+          toolName: string,
+          toolInput: Record<string, unknown>,
+          options: { toolUseID: string },
+        ) => Promise<unknown>)
+      | undefined;
+    expect(canUseTool).toBeTypeOf('function');
+    await expect(
+      canUseTool?.(
+        'Bash',
+        { command: 'echo filtered' },
+        { toolUseID: 'inactive-bash' },
+      ),
+    ).resolves.toMatchObject({ behavior: 'allow' });
+    expect(state.emitted).toContainEqual({
+      type: 'tool-approval-request',
+      approvalId: 'inactive-bash',
+      toolCallId: 'inactive-bash',
+    });
   });
 
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
@@ -532,10 +517,10 @@ describe('Claude Code bridge configuration', () => {
       }>;
     };
     const questionHook = hooks.PreToolUse[0];
-    expect(state.queryArgs[0]?.options).toMatchObject({
-      permissionPromptToolName: 'stdio',
-    });
-    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+    expect(state.queryArgs[0]?.options).toHaveProperty('canUseTool');
+    expect(state.queryArgs[0]?.options).not.toHaveProperty(
+      'permissionPromptToolName',
+    );
     const result = await questionHook.hooks[0](
       {
         hook_event_name: 'PreToolUse',
