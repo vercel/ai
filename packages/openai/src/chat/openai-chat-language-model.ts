@@ -16,6 +16,7 @@ import {
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
+  injectJsonInstructionIntoMessages,
   isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
@@ -25,6 +26,7 @@ import {
   type FetchFunction,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { isObjectRootJsonSchema } from '../is-object-root-json-schema';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
 import {
@@ -146,19 +148,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
 
-    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
-      {
-        prompt,
-        systemMessageMode:
-          openaiOptions.systemMessageMode ??
-          (isReasoningModel
-            ? 'developer'
-            : modelCapabilities.systemMessageMode),
-      },
-    );
-
-    warnings.push(...messageWarnings);
-
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? true;
     const normalizedResponseFormatSchema =
       responseFormat?.type === 'json' && responseFormat.schema != null
@@ -168,6 +157,52 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     if (normalizedResponseFormatSchema != null) {
       warnings.push(...normalizedResponseFormatSchema.warnings);
     }
+
+    // OpenAI structured outputs require an object at the schema root, so a
+    // schema with a non-object root (e.g. a top-level array) cannot be sent as
+    // `json_schema`. Fall back to JSON mode and describe the schema in the
+    // prompt instead of failing the request.
+    const usesJsonSchemaResponseFormat =
+      normalizedResponseFormatSchema != null &&
+      isObjectRootJsonSchema(normalizedResponseFormatSchema.schema);
+
+    const jsonFallbackSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !usesJsonSchemaResponseFormat
+        ? responseFormat.schema
+        : undefined;
+
+    if (jsonFallbackSchema != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'responseFormat schema root',
+        details:
+          'OpenAI structured outputs require a JSON schema with an object at the root. ' +
+          'The response format falls back to `json_object` without schema enforcement.',
+      });
+    }
+
+    const { messages, warnings: messageWarnings } = convertToOpenAIChatMessages(
+      {
+        prompt:
+          jsonFallbackSchema != null
+            ? injectJsonInstructionIntoMessages({
+                messages: prompt,
+                schema: jsonFallbackSchema,
+                schemaSuffix:
+                  'You MUST answer with JSON that matches the JSON schema above.',
+              })
+            : prompt,
+        systemMessageMode:
+          openaiOptions.systemMessageMode ??
+          (isReasoningModel
+            ? 'developer'
+            : modelCapabilities.systemMessageMode),
+      },
+    );
+
+    warnings.push(...messageWarnings);
 
     const baseArgs = {
       // model id:
@@ -199,7 +234,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
       presence_penalty: presencePenalty,
       response_format:
         responseFormat?.type === 'json'
-          ? normalizedResponseFormatSchema != null
+          ? usesJsonSchemaResponseFormat
             ? {
                 type: 'json_schema',
                 json_schema: {

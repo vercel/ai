@@ -22,6 +22,7 @@ import {
   createJsonResponseHandler,
   createToolNameMapping,
   generateId,
+  injectJsonInstructionIntoMessages,
   isCustomReasoning,
   parseProviderOptions,
   postJsonToApi,
@@ -31,6 +32,7 @@ import {
   type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
+import { isObjectRootJsonSchema } from '../is-object-root-json-schema';
 import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   prepareOpenAIConfigForWorkflowDeserialize,
@@ -418,9 +420,52 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         options: openaiOptions,
       });
 
+    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
+    const normalizedResponseFormatSchema =
+      responseFormat?.type === 'json' && responseFormat.schema != null
+        ? normalizeOpenAIJsonSchema(responseFormat.schema)
+        : undefined;
+
+    if (normalizedResponseFormatSchema != null) {
+      warnings.push(...normalizedResponseFormatSchema.warnings);
+    }
+
+    // OpenAI structured outputs require an object at the schema root, so a
+    // schema with a non-object root (e.g. a top-level array) cannot be sent as
+    // `json_schema`. Fall back to JSON mode and describe the schema in the
+    // prompt instead of failing the request.
+    const usesJsonSchemaResponseFormat =
+      normalizedResponseFormatSchema != null &&
+      isObjectRootJsonSchema(normalizedResponseFormatSchema.schema);
+
+    const jsonFallbackSchema =
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !usesJsonSchemaResponseFormat
+        ? responseFormat.schema
+        : undefined;
+
+    if (jsonFallbackSchema != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'responseFormat schema root',
+        details:
+          'OpenAI structured outputs require a JSON schema with an object at the root. ' +
+          'The response format falls back to `json_object` without schema enforcement.',
+      });
+    }
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
-        prompt,
+        prompt:
+          jsonFallbackSchema != null
+            ? injectJsonInstructionIntoMessages({
+                messages: prompt,
+                schema: jsonFallbackSchema,
+                schemaSuffix:
+                  'You MUST answer with JSON that matches the JSON schema above.',
+              })
+            : prompt,
         toolNameMapping,
         systemMessageMode:
           openaiOptions?.systemMessageMode ??
@@ -522,16 +567,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       input.push({ type: 'compaction_trigger' });
     }
 
-    const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
-    const normalizedResponseFormatSchema =
-      responseFormat?.type === 'json' && responseFormat.schema != null
-        ? normalizeOpenAIJsonSchema(responseFormat.schema)
-        : undefined;
-
-    if (normalizedResponseFormatSchema != null) {
-      warnings.push(...normalizedResponseFormatSchema.warnings);
-    }
-
     let include: OpenAIResponsesIncludeOptions = openaiOptions?.include;
 
     function addInclude(key: OpenAIResponsesIncludeValue) {
@@ -603,16 +638,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       ...((responseFormat?.type === 'json' || openaiOptions?.textVerbosity) && {
         text: {
           ...(responseFormat?.type === 'json' && {
-            format:
-              normalizedResponseFormatSchema != null
-                ? {
-                    type: 'json_schema',
-                    strict: strictJsonSchema,
-                    name: responseFormat.name ?? 'response',
-                    description: responseFormat.description,
-                    schema: normalizedResponseFormatSchema.schema,
-                  }
-                : { type: 'json_object' },
+            format: usesJsonSchemaResponseFormat
+              ? {
+                  type: 'json_schema',
+                  strict: strictJsonSchema,
+                  name: responseFormat.name ?? 'response',
+                  description: responseFormat.description,
+                  schema: normalizedResponseFormatSchema.schema,
+                }
+              : { type: 'json_object' },
           }),
           ...(openaiOptions?.textVerbosity && {
             verbosity: openaiOptions.textVerbosity,
