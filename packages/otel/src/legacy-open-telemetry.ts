@@ -19,13 +19,18 @@ import type {
   GenerateObjectStartEvent,
   GenerateObjectStepEndEvent,
   GenerateObjectStepStartEvent,
+  GenerateTextAbortEvent,
   GenerateTextEndEvent,
   GenerateTextStartEvent,
   GenerateTextStepEndEvent,
   GenerateTextStepStartEvent,
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
-  OutputInterface as Output,
+  Experimental_EvaluateEndEvent as EvaluateEndEvent,
+  Experimental_EvaluateStartEvent as EvaluateStartEvent,
+  Experimental_EvaluationModelCallEndEvent as EvaluationModelCallEndEvent,
+  Experimental_EvaluationModelCallStartEvent as EvaluationModelCallStartEvent,
+  Output,
   RerankingModelCallEndEvent,
   RerankEndEvent,
   RerankStartEvent,
@@ -37,6 +42,7 @@ import type {
 } from 'ai';
 import { assembleOperationName } from './assemble-operation-name';
 import { getBaseTelemetryAttributes } from './get-base-telemetry-attributes';
+import { sanitizeAttributeValue } from './sanitize-attribute-value';
 import { stringifyForTelemetry } from './stringify-for-telemetry';
 
 function recordSpanError(span: Span, error: unknown): void {
@@ -87,7 +93,10 @@ function selectAttributes(
     ) {
       if (telemetry?.recordInputs === false) continue;
       const resolved = value.input();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
@@ -98,11 +107,15 @@ function selectAttributes(
     ) {
       if (telemetry?.recordOutputs === false) continue;
       const resolved = value.output();
-      if (resolved != null) result[key] = resolved;
+      if (resolved != null) {
+        const sanitized = sanitizeAttributeValue(resolved);
+        if (sanitized != null) result[key] = sanitized;
+      }
       continue;
     }
 
-    result[key] = value as AttributeValue;
+    const sanitized = sanitizeAttributeValue(value as AttributeValue);
+    if (sanitized != null) result[key] = sanitized;
   }
 
   return result;
@@ -111,7 +124,7 @@ function selectAttributes(
 interface OtelStepStartEvent<
   TOOLS extends ToolSet = ToolSet,
   RUNTIME_CONTEXT extends AISDKContext = AISDKContext,
-  OUTPUT extends Output = Output,
+  OUTPUT extends Output.Output = Output.Output,
 > extends GenerateTextStepStartEvent<TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly promptMessages?: LanguageModelV4Prompt;
   readonly stepTools?: ReadonlyArray<Record<string, unknown>>;
@@ -127,6 +140,7 @@ interface CallState {
   stepContext: OpenTelemetryContext | undefined;
   embedSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   rerankSpan: { span: Span; context: OpenTelemetryContext } | undefined;
+  evaluationSpan: { span: Span; context: OpenTelemetryContext } | undefined;
   toolSpans: Map<string, { span: Span; context: OpenTelemetryContext }>;
   baseTelemetryAttributes: Attributes;
   settings: Record<string, unknown>;
@@ -172,6 +186,26 @@ export class LegacyOpenTelemetry implements Telemetry {
     }
 
     return context.with(toolSpanEntry.context, execute);
+  }
+
+  /**
+   * Runs the provider `doGenerate`/`doStream` call with the active legacy
+   * model-call context.
+   */
+  executeLanguageModelCall<T>({
+    callId,
+    execute,
+  }: {
+    callId: string;
+    execute: () => PromiseLike<T>;
+  }): PromiseLike<T> {
+    const stepContext = this.getCallState(callId)?.stepContext;
+
+    if (stepContext == null) {
+      return execute();
+    }
+
+    return context.with(stepContext, execute);
   }
 
   onStart(
@@ -266,6 +300,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
+      evaluationSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -333,6 +368,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
+      evaluationSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -391,7 +427,7 @@ export class LegacyOpenTelemetry implements Telemetry {
   }
 
   /** @deprecated */
-  onObjectStepFinish(event: GenerateObjectStepEndEvent): void {
+  onObjectStepEnd(event: GenerateObjectStepEndEvent): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -463,7 +499,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const value = event.value;
@@ -500,6 +536,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
+      evaluationSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -583,6 +620,11 @@ export class LegacyOpenTelemetry implements Telemetry {
         operationId: 'ai.toolCall',
         telemetry,
       }),
+      ...Object.fromEntries(
+        Object.entries(state.baseTelemetryAttributes).filter(([key]) =>
+          key.startsWith('ai.settings.context.'),
+        ),
+      ),
       'ai.toolCall.name': toolCall.toolName,
       'ai.toolCall.id': toolCall.toolCallId,
       'ai.toolCall.args': {
@@ -634,7 +676,7 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.toolSpans.delete(event.toolCall.toolCallId);
   }
 
-  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
+  onStepEnd(event: GenerateTextStepEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
@@ -687,7 +729,7 @@ export class LegacyOpenTelemetry implements Telemetry {
           ? JSON.stringify(event.providerMetadata)
           : undefined,
         'ai.response.msToFirstChunk': isStreamText
-          ? event.performance.timeToFirstOutputTokenMs
+          ? event.performance.timeToFirstOutputMs
           : undefined,
         'ai.response.msToFinish': isStreamText
           ? event.performance.responseTimeMs
@@ -722,10 +764,9 @@ export class LegacyOpenTelemetry implements Telemetry {
       }),
     );
 
-    if (isStreamText && event.performance.timeToFirstOutputTokenMs != null) {
+    if (isStreamText && event.performance.timeToFirstOutputMs != null) {
       state.stepSpan.addEvent('ai.stream.firstChunk', {
-        'ai.response.msToFirstChunk':
-          event.performance.timeToFirstOutputTokenMs,
+        'ai.response.msToFirstChunk': event.performance.timeToFirstOutputMs,
       });
     }
 
@@ -740,6 +781,11 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.stepSpan.end();
     state.stepSpan = undefined;
     state.stepContext = undefined;
+  }
+
+  /** @deprecated Use `onStepEnd` instead. */
+  onStepFinish(event: GenerateTextStepEndEvent<ToolSet>): void {
+    this.onStepEnd(event);
   }
 
   onEnd(
@@ -790,8 +836,8 @@ export class LegacyOpenTelemetry implements Telemetry {
         },
         'ai.response.reasoning': {
           output: () =>
-            event.reasoning.length > 0
-              ? event.reasoning
+            event.finalStep.reasoning.length > 0
+              ? event.finalStep.reasoning
                   .filter(part => 'text' in part)
                   .map(part => part.text)
                   .join('\n')
@@ -821,27 +867,27 @@ export class LegacyOpenTelemetry implements Telemetry {
                 )
               : undefined,
         },
-        'ai.response.providerMetadata': event.providerMetadata
-          ? JSON.stringify(event.providerMetadata)
+        'ai.response.providerMetadata': event.finalStep.providerMetadata
+          ? JSON.stringify(event.finalStep.providerMetadata)
           : undefined,
 
-        'ai.usage.inputTokens': event.totalUsage.inputTokens,
-        'ai.usage.outputTokens': event.totalUsage.outputTokens,
-        'ai.usage.totalTokens': event.totalUsage.totalTokens,
+        'ai.usage.inputTokens': event.usage.inputTokens,
+        'ai.usage.outputTokens': event.usage.outputTokens,
+        'ai.usage.totalTokens': event.usage.totalTokens,
         'ai.usage.reasoningTokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
+          event.usage.outputTokenDetails?.reasoningTokens,
         'ai.usage.cachedInputTokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.noCacheTokens':
-          event.totalUsage.inputTokenDetails?.noCacheTokens,
+          event.usage.inputTokenDetails?.noCacheTokens,
         'ai.usage.inputTokenDetails.cacheReadTokens':
-          event.totalUsage.inputTokenDetails?.cacheReadTokens,
+          event.usage.inputTokenDetails?.cacheReadTokens,
         'ai.usage.inputTokenDetails.cacheWriteTokens':
-          event.totalUsage.inputTokenDetails?.cacheWriteTokens,
+          event.usage.inputTokenDetails?.cacheWriteTokens,
         'ai.usage.outputTokenDetails.textTokens':
-          event.totalUsage.outputTokenDetails?.textTokens,
+          event.usage.outputTokenDetails?.textTokens,
         'ai.usage.outputTokenDetails.reasoningTokens':
-          event.totalUsage.outputTokenDetails?.reasoningTokens,
+          event.usage.outputTokenDetails?.reasoningTokens,
       }),
     );
 
@@ -980,7 +1026,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       model: { provider: event.provider, modelId: event.modelId },
       headers: event.headers,
       settings,
-      context: undefined,
+      context: event.runtimeContext,
     });
 
     const attributes = selectAttributes(telemetry, {
@@ -1006,6 +1052,7 @@ export class LegacyOpenTelemetry implements Telemetry {
       stepContext: undefined,
       embedSpans: new Map(),
       rerankSpan: undefined,
+      evaluationSpan: undefined,
       toolSpans: new Map(),
       baseTelemetryAttributes,
       settings,
@@ -1067,6 +1114,163 @@ export class LegacyOpenTelemetry implements Telemetry {
     state.rerankSpan = undefined;
   }
 
+  private onEvaluateOperationStart(
+    event: InferTelemetryEvent<EvaluateStartEvent>,
+  ): void {
+    const telemetry: TelemetryOptions = {
+      recordInputs: event.recordInputs,
+      recordOutputs: event.recordOutputs,
+      functionId: event.functionId,
+    };
+    const settings: Record<string, unknown> = {
+      maxRetries: event.maxRetries,
+    };
+    const baseTelemetryAttributes = getBaseTelemetryAttributes({
+      model: { provider: event.provider, modelId: event.modelId },
+      headers: event.headers,
+      settings,
+      context: event.runtimeContext,
+    });
+    const attributes = selectAttributes(telemetry, {
+      ...assembleOperationName({ operationId: event.operationId, telemetry }),
+      ...baseTelemetryAttributes,
+      'ai.evaluation.state': {
+        input: () => JSON.stringify(event.state),
+      },
+      'ai.evaluation.questions': {
+        input: () => JSON.stringify(event.questions),
+      },
+    });
+    const rootSpan = this.tracer.startSpan(event.operationId, { attributes });
+    const rootContext = trace.setSpan(context.active(), rootSpan);
+
+    this.callStates.set(event.callId, {
+      operationId: event.operationId,
+      telemetry,
+      rootSpan,
+      rootContext,
+      stepSpan: undefined,
+      stepContext: undefined,
+      embedSpans: new Map(),
+      rerankSpan: undefined,
+      evaluationSpan: undefined,
+      toolSpans: new Map(),
+      baseTelemetryAttributes,
+      settings,
+    });
+  }
+
+  private onEvaluateOperationEnd(event: EvaluateEndEvent): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    state.rootSpan.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.evaluation.answers': {
+          output: () => JSON.stringify(event.answers),
+        },
+      }),
+    );
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
+  experimental_onEvaluateStart(
+    event: InferTelemetryEvent<EvaluateStartEvent>,
+  ): void {
+    this.onEvaluateOperationStart(event);
+  }
+
+  experimental_onEvaluateEnd(event: EvaluateEndEvent): void {
+    this.onEvaluateOperationEnd(event);
+  }
+
+  experimental_onEvaluationModelCallStart(
+    event: EvaluationModelCallStartEvent,
+  ): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan || !state.rootContext) return;
+
+    const attributes = selectAttributes(state.telemetry, {
+      ...assembleOperationName({
+        operationId: event.operationId,
+        telemetry: state.telemetry,
+      }),
+      ...state.baseTelemetryAttributes,
+      'ai.evaluation.state': {
+        input: () => JSON.stringify(event.state),
+      },
+      'ai.evaluation.questions': {
+        input: () => JSON.stringify(event.questions),
+      },
+    });
+    const span = this.tracer.startSpan(
+      event.operationId,
+      { attributes },
+      state.rootContext,
+    );
+    state.evaluationSpan = {
+      span,
+      context: trace.setSpan(state.rootContext, span),
+    };
+  }
+
+  experimental_onEvaluationModelCallEnd(
+    event: EvaluationModelCallEndEvent,
+  ): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.evaluationSpan) return;
+
+    state.evaluationSpan.span.setAttributes(
+      selectAttributes(state.telemetry, {
+        'ai.evaluation.answers': {
+          output: () => JSON.stringify(event.answers),
+        },
+        'ai.usage.inputTokens': event.usage?.inputTokens,
+        'ai.usage.outputTokens': event.usage?.outputTokens,
+        'ai.response.providerMetadata': event.providerMetadata
+          ? JSON.stringify(event.providerMetadata)
+          : undefined,
+      }),
+    );
+    state.evaluationSpan.span.end();
+    state.evaluationSpan = undefined;
+  }
+
+  onAbort(event: GenerateTextAbortEvent<ToolSet>): void {
+    const state = this.getCallState(event.callId);
+    if (!state?.rootSpan) return;
+
+    for (const { span: toolSpan } of state.toolSpans.values()) {
+      toolSpan.end();
+    }
+    state.toolSpans.clear();
+
+    if (state.stepSpan) {
+      state.stepSpan.end();
+      state.stepSpan = undefined;
+      state.stepContext = undefined;
+    }
+
+    for (const { span: embedSpan } of state.embedSpans.values()) {
+      embedSpan.end();
+    }
+    state.embedSpans.clear();
+
+    if (state.rerankSpan) {
+      state.rerankSpan.span.end();
+      state.rerankSpan = undefined;
+    }
+
+    if (state.evaluationSpan) {
+      state.evaluationSpan.span.end();
+      state.evaluationSpan = undefined;
+    }
+
+    state.rootSpan.end();
+    this.cleanupCallState(event.callId);
+  }
+
   onError(error: unknown): void {
     const event = error as { callId?: string; error?: unknown };
     if (!event?.callId) return;
@@ -1091,6 +1295,12 @@ export class LegacyOpenTelemetry implements Telemetry {
       recordSpanError(state.rerankSpan.span, actualError);
       state.rerankSpan.span.end();
       state.rerankSpan = undefined;
+    }
+
+    if (state.evaluationSpan) {
+      recordSpanError(state.evaluationSpan.span, actualError);
+      state.evaluationSpan.span.end();
+      state.evaluationSpan = undefined;
     }
 
     recordSpanError(state.rootSpan, actualError);

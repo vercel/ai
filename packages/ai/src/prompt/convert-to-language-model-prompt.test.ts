@@ -117,6 +117,18 @@ describe('convertToLanguageModelPrompt', () => {
   });
 
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('image parts', () => {
       it('should download images for user image parts with URLs when model does not support image URLs', async () => {
         const result = await convertToLanguageModelPrompt({
@@ -1082,6 +1094,137 @@ describe('convertToLanguageModelPrompt', () => {
         ]
       `);
     });
+
+    it('should preserve provider options at tool message boundaries when combining consecutive tool messages', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId1',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId2',
+                  toolName: 'toolName',
+                  input: {},
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId1',
+                  output: { type: 'text', value: 'result1' },
+                  providerOptions: {
+                    test: {
+                      cacheControl: 'part',
+                      partOnly: true,
+                    },
+                  },
+                },
+              ],
+              providerOptions: {
+                test: {
+                  cacheControl: 'first-message',
+                  messageOnly: true,
+                },
+              },
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId2',
+                  output: { type: 'text', value: 'result2' },
+                },
+              ],
+              providerOptions: {
+                test: {
+                  cacheControl: 'second-message',
+                },
+              },
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "content": [
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId1",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+              {
+                "input": {},
+                "providerExecuted": undefined,
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId2",
+                "toolName": "toolName",
+                "type": "tool-call",
+              },
+            ],
+            "providerOptions": undefined,
+            "role": "assistant",
+          },
+          {
+            "content": [
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result1",
+                },
+                "providerOptions": {
+                  "test": {
+                    "cacheControl": "part",
+                    "messageOnly": true,
+                    "partOnly": true,
+                  },
+                },
+                "toolCallId": "toolCallId1",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+              {
+                "output": {
+                  "type": "text",
+                  "value": "result2",
+                },
+                "providerOptions": undefined,
+                "toolCallId": "toolCallId2",
+                "toolName": "toolName",
+                "type": "tool-result",
+              },
+            ],
+            "providerOptions": {
+              "test": {
+                "cacheControl": "second-message",
+              },
+            },
+            "role": "tool",
+          },
+        ]
+      `);
+    });
   });
 
   describe('custom download function', () => {
@@ -1339,6 +1482,18 @@ describe('convertToLanguageModelPrompt', () => {
 
 describe('convertToLanguageModelMessage', () => {
   describe('user message', () => {
+    let mockProcessEmitWarning: ReturnType<typeof vi.spyOn>;
+
+    beforeEach(() => {
+      mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      mockProcessEmitWarning.mockRestore();
+    });
+
     describe('text parts', () => {
       it('should filter out empty text parts', async () => {
         const result = convertToLanguageModelMessage({
@@ -2984,6 +3139,10 @@ describe('convertToLanguageModelMessage', () => {
     });
 
     it('should include multipart content', () => {
+      const mockProcessEmitWarning = vi
+        .spyOn(process, 'emitWarning')
+        .mockImplementation(() => {});
+
       const result = convertToLanguageModelMessage({
         message: {
           role: 'tool',
@@ -3035,6 +3194,8 @@ describe('convertToLanguageModelMessage', () => {
         },
         downloadedAssets: {},
       });
+
+      mockProcessEmitWarning.mockRestore();
 
       expect(result).toMatchInlineSnapshot(`
         {

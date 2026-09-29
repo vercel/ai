@@ -11,7 +11,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+    model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
     tools: {
       weather: weatherTool,
       cityAttractions: {
@@ -27,7 +27,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-delta': {
         if (!enteredReasoning) {

@@ -61,9 +61,16 @@ export const weatherTool = tool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: CONTEXT; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.',
+            },
+            {
+              name: 'deferLoading',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                "Keep this tool out of the model context until toolSearch discovers it. Supports direct calling or code mode with toolDiscovery: 'conversation'. Discovered tools become available on the next model step. Defaults to false.",
             },
             {
               name: 'title',
@@ -143,7 +150,7 @@ export const weatherTool = tool({
                     },
                     {
                       name: 'experimental_sandbox',
-                      type: 'Experimental_Sandbox',
+                      type: 'Experimental_SandboxSession',
                       isOptional: true,
                       description:
                         'Optional experimental sandbox environment passed from the generation or agent call. Use it when a tool needs to execute commands or code in an experimental sandbox.',
@@ -171,7 +178,7 @@ export const weatherTool = tool({
               isOptional: true,
               type: '(options: ToolExecutionOptions<CONTEXT>) => void | PromiseLike<void>',
               description:
-                'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.',
+                'Optional function that is called when the model starts generating the tool input. In non-streaming contexts, it is called immediately before onInputAvailable.',
             },
             {
               name: 'onInputDelta',

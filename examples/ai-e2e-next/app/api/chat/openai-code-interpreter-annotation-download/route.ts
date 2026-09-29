@@ -5,7 +5,9 @@ import {
 } from '@ai-sdk/openai';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   validateUIMessages,
   type InferUITools,
   type ToolSet,
@@ -41,7 +43,7 @@ export async function POST(req: Request) {
   }> = [];
 
   const result = streamText({
-    model: openai('gpt-5-nano'),
+    model: openai('gpt-5.4-nano'),
     tools,
     messages: await convertToModelMessages(uiMessages),
     onStepFinish: async ({ sources, request }) => {
@@ -76,20 +78,23 @@ export async function POST(req: Request) {
     },
   });
 
-  return result.toUIMessageStreamResponse({
-    originalMessages: uiMessages,
-    messageMetadata: ({ part }) => {
-      // When streaming finishes, create download links from collected sources
-      if (part.type === 'finish' && containerFileSources.length > 0) {
-        const downloadLinks = containerFileSources.map(source => ({
-          filename: source.filename,
-          url: `/api/download-container-file/openai?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
-        }));
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: uiMessages,
+      messageMetadata: ({ part }) => {
+        // When streaming finishes, create download links from collected sources
+        if (part.type === 'finish' && containerFileSources.length > 0) {
+          const downloadLinks = containerFileSources.map(source => ({
+            filename: source.filename,
+            url: `/api/download-container-file/openai?container_id=${encodeURIComponent(source.containerId)}&file_id=${encodeURIComponent(source.fileId)}&filename=${encodeURIComponent(source.filename)}`,
+          }));
 
-        return {
-          downloadLinks,
-        };
-      }
-    },
+          return {
+            downloadLinks,
+          };
+        }
+      },
+    }),
   });
 }

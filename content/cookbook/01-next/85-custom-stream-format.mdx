@@ -8,7 +8,7 @@ tags: ['next', 'streaming', 'tool use']
 
 Create a custom stream to control the streaming format and structure of tool calls instead of using the built-in AI SDK data stream format (`toUIMessageStream()`).
 
-`fullStream` (on `StreamTextResult`) gives you direct access to all model events. You can transform, filter, and structure these events into your own streaming format. This gives you the benefits of the AI SDK's unified provider interface without prescribing how you consume the stream.
+`stream` (on `StreamTextResult`) gives you direct access to all model events. You can transform, filter, and structure these events into your own streaming format. This gives you the benefits of the AI SDK's unified provider interface without prescribing how you consume the stream.
 
 You can:
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     },
   });
 
-  return new Response(result.fullStream.pipeThrough(transformStream), {
+  return new Response(result.stream.pipeThrough(transformStream), {
     headers: { 'Content-Type': 'text/event-stream' },
   });
 }

@@ -8,7 +8,7 @@ const errorMessage = fs.readFileSync('data/error-message.txt', 'utf8');
 
 run(async () => {
   const result1 = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: errorMessage,
     output: Output.object({
       schema: z.object({
@@ -22,7 +22,7 @@ run(async () => {
   console.log(result1.finalStep.providerMetadata?.google);
 
   const result2 = await generateText({
-    model: google('gemini-2.5-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: errorMessage,
     output: Output.object({
       schema: z.object({

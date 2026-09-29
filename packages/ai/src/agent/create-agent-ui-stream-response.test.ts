@@ -1,6 +1,6 @@
 import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import {
-  type Experimental_Sandbox as Sandbox,
+  type Experimental_SandboxSession as SandboxSession,
   tool,
 } from '@ai-sdk/provider-utils';
 import {
@@ -8,7 +8,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mockSandboxFileStubs } from '../test/mock-sandbox';
+import { mockSandboxSessionFileStubs } from '../test/mock-sandbox';
 import { z } from 'zod/v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { createAgentUIStreamResponse } from './create-agent-ui-stream-response';
@@ -132,7 +132,9 @@ describe('createAgentUIStreamResponse', () => {
           {
             "abortSignal": undefined,
             "frequencyPenalty": undefined,
-            "headers": undefined,
+            "headers": {
+              "user-agent": "ai-sdk-agent/tool-loop",
+            },
             "includeRawChunks": false,
             "maxOutputTokens": undefined,
             "presencePenalty": undefined,
@@ -364,14 +366,14 @@ describe('createAgentUIStreamResponse', () => {
   it('should pass sandbox to tool execution', async () => {
     const sandbox = {
       description: 'test sandbox',
-      runCommand: async () => ({
+      run: async () => ({
         exitCode: 0,
         stdout: 'ok',
         stderr: '',
       }),
-      ...mockSandboxFileStubs,
-    } satisfies Sandbox;
-    let receivedSandbox: Sandbox | undefined;
+      ...mockSandboxSessionFileStubs,
+    } satisfies SandboxSession;
+    let receivedSandbox: SandboxSession | undefined;
     let callCount = 0;
 
     const agent = new ToolLoopAgent({

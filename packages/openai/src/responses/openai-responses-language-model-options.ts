@@ -53,6 +53,13 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.4-pro-2026-03-05',
   'gpt-5.5',
   'gpt-5.5-2026-04-23',
+  'gpt-5.6',
+  'gpt-5.6-luna',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-6-astra',
+  'gpt-6-luna',
+  'gpt-6-sol',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -121,6 +128,13 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.4-pro-2026-03-05'
   | 'gpt-5.5'
   | 'gpt-5.5-2026-04-23'
+  | 'gpt-5.6'
+  | 'gpt-5.6-luna'
+  | 'gpt-5.6-sol'
+  | 'gpt-5.6-terra'
+  | 'gpt-6-astra'
+  | 'gpt-6-luna'
+  | 'gpt-6-sol'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -156,17 +170,27 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
       /**
        * The set of extra fields to include in the response (advanced, usually not needed).
-       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'message.output_text.logprobs'.
+       * Example values: 'reasoning.encrypted_content', 'file_search_call.results', 'web_search_call.results', 'message.output_text.logprobs'.
        */
       include: z
         .array(
           z.enum([
             'reasoning.encrypted_content', // handled internally by default, only needed for unknown reasoning models
             'file_search_call.results',
+            'web_search_call.results',
             'message.output_text.logprobs',
           ]),
         )
         .nullish(),
+
+      /**
+       * Whether to automatically include web search action sources in the
+       * response. Disable this for OpenAI-compatible providers that do not
+       * support the `web_search_call.action.sources` include value.
+       *
+       * Defaults to `true`.
+       */
+      includeWebSearchSources: z.boolean().optional(),
 
       /**
        * Instructions for the model.
@@ -222,10 +246,24 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       promptCacheKey: z.string().nullish(),
 
       /**
+       * Prompt cache behavior for GPT-5.6 and later models.
+       * `mode` controls whether OpenAI also places an implicit breakpoint.
+       * `ttl` sets the minimum cache lifetime and currently only supports 30 minutes.
+       */
+      promptCacheOptions: z
+        .object({
+          mode: z.enum(['implicit', 'explicit']).optional(),
+          ttl: z.literal('30m').optional(),
+        })
+        .optional(),
+
+      /**
        * The retention policy for the prompt cache.
        * - 'in_memory': Default. Standard prompt caching behavior.
        * - '24h': Extended prompt caching that keeps cached prefixes active for up to 24 hours.
-       *          Currently only available for 5.1 series models.
+       *          Available for models before GPT-5.6 that support extended caching.
+       *
+       * @deprecated For GPT-5.6 and later models, use `promptCacheOptions.ttl`.
        *
        * @default 'in_memory'
        */
@@ -234,14 +272,38 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
-       * Valid values: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
-       *
-       * The 'none' type for `reasoningEffort` is only available for OpenAI's GPT-5.1
-       * models. Also, the 'xhigh' type for `reasoningEffort` is only available for
-       * OpenAI's GPT-5.1-Codex-Max model. Setting `reasoningEffort` to 'none' or 'xhigh' with unsupported models will result in
-       * an error.
+       * GPT-5.6 supports 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
+       * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Updates the reasoning effort for GPT-6 and later models starting with this response
+       * without changing the request-level reasoning effort. This preserves the
+       * request prefix for prompt caching.
+       *
+       * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
+       * combined with automatic compaction or automatic truncation.
+       * Supported efforts vary by model; 'none' is supported by GPT-6 Sol and Luna.
+       */
+      reasoningEffortUpdate: z
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+
+      /**
+       * Controls how much model work GPT-5.6 performs before returning a final answer.
+       * `standard` is the default. `pro` increases quality, latency, and token usage.
+       */
+      reasoningMode: z.enum(['standard', 'pro']).optional(),
+
+      /**
+       * Controls which available reasoning items GPT-5.6 can use.
+       * `auto` uses the model default, `current_turn` excludes reasoning from earlier
+       * turns, and `all_turns` makes compatible earlier reasoning available.
+       */
+      reasoningContext: z
+        .enum(['auto', 'current_turn', 'all_turns'])
+        .optional(),
 
       /**
        * Controls reasoning summary output from the model.
@@ -259,10 +321,14 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Service tier for the request.
        * Set to 'flex' for 50% cheaper processing at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
        * Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+       * Set to 'fast' for the same tier as 'priority' (OpenAI's newer name for it).
+       * Set to 'ultrafast' for access-controlled Ultrafast processing (available only for gpt-5.6-sol).
        *
        * Defaults to 'auto'.
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'ultrafast', 'default'])
+        .nullish(),
 
       /**
        * Whether to store the generation. Defaults to `true`.
@@ -339,6 +405,12 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
         .nullish(),
 
       /**
+       * Request explicit server-side compaction by appending a
+       * `compaction_trigger` item to the Responses input.
+       */
+      compactionTrigger: z.boolean().optional(),
+
+      /**
        * Restrict the callable tools to a subset while keeping the full tools
        * list intact, so prompt caching is preserved across requests with
        * different allowlists.
@@ -360,4 +432,26 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
 export type OpenAILanguageModelResponsesOptions = InferSchema<
   typeof openaiLanguageModelResponsesOptionsSchema
+>;
+
+export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Emit a configuration update at this position in Responses history.
+       * Requires empty system message content and the same supported
+       * configuration as the request-level reasoningEffortUpdate option.
+       * Unsupported historical updates throw instead of being omitted.
+       *
+       * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+       */
+      reasoningEffortUpdate: z
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesSystemMessageOptions = InferSchema<
+  typeof openaiResponsesSystemMessageOptionsSchema
 >;

@@ -13,6 +13,9 @@
   ],
   "references": [
     {
+      "path": "../deepseek"
+    },
+    {
       "path": "../openai"
     },
     {
@@ -20,6 +23,9 @@
     },
     {
       "path": "../provider-utils"
+    },
+    {
+      "path": "../test-server"
     }
   ]
 }

@@ -20,9 +20,19 @@ export type ToolApprovalRequestOutput<TOOLS extends ToolSet> = {
   toolCall: TypedToolCall<TOOLS>;
 
   /**
+   * Reason why the tool call requires approval.
+   */
+  reason?: string;
+
+  /**
    * Flag indicating whether the tool was automatically approved or denied.
    *
    * @default false
    */
   isAutomatic?: boolean;
+
+  /**
+   * HMAC-SHA256 signature binding this approval request to its tool call.
+   */
+  signature?: string;
 };

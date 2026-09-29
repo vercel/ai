@@ -60,7 +60,7 @@ run(async () => {
   console.log('\nturn 1 response:');
 
   let rawChunkCount = 0;
-  for await (const chunk of turn1.fullStream) {
+  for await (const chunk of turn1.stream) {
     if (chunk.type === 'text-delta') {
       process.stdout.write(chunk.text);
     } else if (chunk.type === 'raw') {
@@ -149,7 +149,7 @@ run(async () => {
 
     console.log('\nturn 2 response:');
 
-    for await (const chunk of turn2.fullStream) {
+    for await (const chunk of turn2.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }
@@ -230,7 +230,7 @@ run(async () => {
 
     console.log('\nturn 3 response:');
 
-    for await (const chunk of turn3.fullStream) {
+    for await (const chunk of turn3.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }

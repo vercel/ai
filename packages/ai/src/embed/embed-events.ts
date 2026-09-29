@@ -1,4 +1,4 @@
-import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { Context, ProviderOptions } from '@ai-sdk/provider-utils';
 import type { Embedding, ProviderMetadata } from '../types';
 import type { EmbeddingModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
@@ -8,7 +8,10 @@ import type { Warning } from '../types/warning';
  *
  * Called when the operation begins, before the embedding model is called.
  */
-export type EmbedStartEvent = {
+export type EmbedStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 
@@ -35,11 +38,14 @@ export type EmbedStartEvent = {
 };
 
 /**
- * Event passed to the `experimental_onEnd` callback for embed and embedMany operations.
+ * Event passed to the `onEnd` callback for embed and embedMany operations.
  *
  * Called when the operation completes, after the embedding model returns.
  */
-export type EmbedEndEvent = {
+export type EmbedEndEvent<RUNTIME_CONTEXT extends Context = Context> = {
+  /** User-defined runtime context. */
+  readonly runtimeContext: RUNTIME_CONTEXT;
+
   /** Unique identifier for this embed call, used to correlate events. */
   readonly callId: string;
 

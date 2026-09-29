@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText } from 'ai';
 import { cancelOnSigint } from '../../lib/cancel-on-sigint';
 import { run } from '../../lib/run';
@@ -20,6 +23,11 @@ run(async () => {
     prompt:
       'List three foundational concepts behind transformer-based language models (one sentence each).',
     abortSignal: ac.signal,
+    providerOptions: {
+      google: {
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
+    },
   });
 
   const interactionId = turn1.finalStep.providerMetadata?.google
@@ -45,7 +53,10 @@ run(async () => {
     prompt:
       'Of those three, which one was the most novel contribution at the time? Answer in 1-2 sentences.',
     providerOptions: {
-      google: { previousInteractionId: interactionId },
+      google: {
+        previousInteractionId: interactionId,
+        background: true,
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
     abortSignal: ac.signal,
   });

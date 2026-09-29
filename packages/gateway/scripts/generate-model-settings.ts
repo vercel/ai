@@ -1,3 +1,4 @@
+import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -33,6 +34,10 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-embedding-model-settings.ts',
     typeName: 'GatewayEmbeddingModelId',
   },
+  evaluation: {
+    outputFile: 'gateway-evaluation-model-settings.ts',
+    typeName: 'GatewayEvaluationModelId',
+  },
   image: {
     outputFile: 'gateway-image-model-settings.ts',
     typeName: 'GatewayImageModelId',
@@ -41,9 +46,21 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-video-model-settings.ts',
     typeName: 'GatewayVideoModelId',
   },
+  realtime: {
+    outputFile: 'gateway-realtime-model-settings.ts',
+    typeName: 'GatewayRealtimeModelId',
+  },
   reranking: {
     outputFile: 'gateway-reranking-model-settings.ts',
     typeName: 'GatewayRerankingModelId',
+  },
+  speech: {
+    outputFile: 'gateway-speech-model-settings.ts',
+    typeName: 'GatewaySpeechModelId',
+  },
+  transcription: {
+    outputFile: 'gateway-transcription-model-settings.ts',
+    typeName: 'GatewayTranscriptionModelId',
   },
 };
 
@@ -104,6 +121,8 @@ async function main() {
     modelsByType[model.type].push(model.id);
   }
 
+  const writtenPaths: string[] = [];
+
   for (const [type, modelIds] of Object.entries(modelsByType)) {
     const config = getModalityConfig(type);
     const outputPath = path.join(OUTPUT_DIR, config.outputFile);
@@ -116,9 +135,16 @@ async function main() {
 
     const content = generateTypeFile(modelIds, config.typeName);
     fs.writeFileSync(outputPath, content, 'utf-8');
+    writtenPaths.push(outputPath);
     console.log(
       `Generated ${config.outputFile} with ${modelIds.length} models`,
     );
+  }
+
+  // A union short enough to fit on one line is emitted multi-line here, so the
+  // repo formatter decides the final shape rather than this script guessing it.
+  if (writtenPaths.length > 0) {
+    execFileSync('oxfmt', writtenPaths, { stdio: 'inherit' });
   }
 
   console.log('Model settings updated successfully');

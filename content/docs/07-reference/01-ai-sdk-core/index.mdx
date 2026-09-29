@@ -54,12 +54,47 @@ AI SDK Core contains the following main functions:
       href: '/docs/reference/ai-sdk-core/generate-video',
     },
     {
-      title: 'experimental_transcribe()',
+      title: 'experimental_startBatch()',
+      description: 'Start an asynchronous text-generation batch.',
+      href: '/docs/reference/ai-sdk-core/start-batch',
+    },
+    {
+      title: 'experimental_getBatchStatus()',
+      description: 'Retrieve the status of an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-status',
+    },
+    {
+      title: 'experimental_getBatchResults()',
+      description: 'Retrieve terminal results from an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/get-batch-results',
+    },
+    {
+      title: 'experimental_cancelBatch()',
+      description: 'Request cancellation of an asynchronous batch.',
+      href: '/docs/reference/ai-sdk-core/cancel-batch',
+    },
+    {
+      title: 'experimental_listBatches()',
+      description: 'List asynchronous batches and their latest statuses.',
+      href: '/docs/reference/ai-sdk-core/list-batches',
+    },
+    {
+      title: 'transcribe()',
       description: 'Generate a transcript from an audio file.',
       href: '/docs/reference/ai-sdk-core/transcribe',
     },
     {
-      title: 'experimental_generateSpeech()',
+      title: 'experimental_streamTranscribe()',
+      description: 'Stream a transcript from live raw audio.',
+      href: '/docs/reference/ai-sdk-core/stream-transcribe',
+    },
+    {
+      title: 'experimental_streamTranslate()',
+      description: 'Stream a speech-to-speech translation from live raw audio.',
+      href: '/docs/reference/ai-sdk-core/stream-translate',
+    },
+    {
+      title: 'generateSpeech()',
       description: 'Generate speech audio from text.',
       href: '/docs/reference/ai-sdk-core/generate-speech',
     },
@@ -81,12 +116,23 @@ It also contains the following helper functions:
 <IndexCards
   cards={[
     {
+      title: 'toolSearch()',
+      description:
+        'Search deferred tools and load their definitions on demand.',
+      href: '/docs/reference/ai-sdk-core/tool-search',
+    },
+    {
       title: 'tool()',
       description: 'Type inference helper function for tools.',
       href: '/docs/reference/ai-sdk-core/tool',
     },
     {
-      title: 'Experimental_Sandbox',
+      title: 'experimental_getRealtimeToolDefinitions()',
+      description: 'Convert AI SDK tools into realtime tool definitions.',
+      href: '/docs/reference/ai-sdk-core/get-realtime-tool-definitions',
+    },
+    {
+      title: 'Experimental_SandboxSession',
       description:
         'Experimental execution environment interface passed to tool execution.',
       href: '/docs/reference/ai-sdk-core/sandbox',
@@ -185,6 +231,11 @@ It also contains the following helper functions:
       title: 'defaultSettingsMiddleware()',
       description: 'Applies default settings to a language model.',
       href: '/docs/reference/ai-sdk-core/default-settings-middleware',
+    },
+    {
+      title: 'defaultInstructionsMiddleware()',
+      description: 'Applies default instructions to a language model.',
+      href: '/docs/reference/ai-sdk-core/default-instructions-middleware',
     },
     {
       title: 'smoothStream()',

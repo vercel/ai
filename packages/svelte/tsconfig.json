@@ -11,23 +11,30 @@
     "strict": true,
     "moduleResolution": "bundler",
     "module": "esnext",
-    "target": "esnext",
+    "target": "ES2022",
     "declaration": true,
     "declarationMap": true,
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable"
+    ],
     "types": [],
     "rootDir": "src",
     "outDir": "dist"
   },
   "references": [
     {
+      "path": "../ai"
+    },
+    {
       "path": "../provider-utils"
     },
     {
-      "path": "../ai"
+      "path": "../test-server"
     }
   ],
   "include": [

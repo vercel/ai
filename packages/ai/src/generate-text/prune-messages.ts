@@ -47,7 +47,9 @@ export function pruneMessages({
 
       return {
         ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
+        content: message.content.filter(
+          part => part.type !== 'reasoning' && part.type !== 'reasoning-file',
+        ),
       };
     });
   }
@@ -100,6 +102,57 @@ export function pruneMessages({
       }
     }
 
+    // Build global maps from tool call id and approval id to tool name.
+    // These must be global (not per-message) because a `tool-approval-response`
+    // lives in a separate `tool` message from its `tool-approval-request`
+    // (assistant message), so the tool name of a response can only be resolved
+    // by looking across messages. Resolving names per-message left responses
+    // unresolved, which caused them to be kept while their request was pruned,
+    // producing orphaned approval responses.
+    const toolCallIdToToolName = new Map<string, string>();
+    for (const message of messages) {
+      if (
+        (message.role === 'assistant' || message.role === 'tool') &&
+        typeof message.content !== 'string'
+      ) {
+        for (const part of message.content) {
+          if (part.type === 'tool-call' || part.type === 'tool-result') {
+            toolCallIdToToolName.set(part.toolCallId, part.toolName);
+          }
+        }
+      }
+    }
+
+    const approvalIdToToolCallId = new Map<string, string>();
+    const approvalIdToToolName = new Map<string, string>();
+    for (const message of messages) {
+      if (
+        (message.role === 'assistant' || message.role === 'tool') &&
+        typeof message.content !== 'string'
+      ) {
+        for (const part of message.content) {
+          if (part.type === 'tool-approval-request') {
+            approvalIdToToolCallId.set(part.approvalId, part.toolCallId);
+
+            const toolName = toolCallIdToToolName.get(part.toolCallId);
+            if (toolName != null) {
+              approvalIdToToolName.set(part.approvalId, toolName);
+            }
+          }
+        }
+      }
+    }
+
+    // Approval requests depend on their originating tool call. When an
+    // approval response is in the retained messages, trace through its request
+    // so pruning does not leave a pending approval without the call to execute.
+    for (const approvalId of keptApprovalIds) {
+      const toolCallId = approvalIdToToolCallId.get(approvalId);
+      if (toolCallId != null) {
+        keptToolCallIds.add(toolCallId);
+      }
+    }
+
     messages = messages.map((message, messageIndex) => {
       if (
         (message.role !== 'assistant' && message.role !== 'tool') ||
@@ -109,9 +162,6 @@ export function pruneMessages({
       ) {
         return message;
       }
-
-      const toolCallIdToToolName: Record<string, string> = {};
-      const approvalIdToToolName: Record<string, string> = {};
 
       return {
         ...message,
@@ -126,14 +176,6 @@ export function pruneMessages({
             return true;
           }
 
-          // track tool calls and approvals:
-          if (part.type === 'tool-call') {
-            toolCallIdToToolName[part.toolCallId] = part.toolName;
-          } else if (part.type === 'tool-approval-request') {
-            approvalIdToToolName[part.approvalId] =
-              toolCallIdToToolName[part.toolCallId];
-          }
-
           // keep parts that are associated with a tool call or approval that needs to be kept:
           if (
             ((part.type === 'tool-call' || part.type === 'tool-result') &&
@@ -146,13 +188,15 @@ export function pruneMessages({
           }
 
           // keep parts that are not associated with a tool that should be removed:
+          const partToolName =
+            part.type === 'tool-call' || part.type === 'tool-result'
+              ? part.toolName
+              : approvalIdToToolName.get(part.approvalId);
+
           return (
             toolCall.tools != null &&
-            !toolCall.tools.includes(
-              part.type === 'tool-call' || part.type === 'tool-result'
-                ? part.toolName
-                : approvalIdToToolName[part.approvalId],
-            )
+            partToolName != null &&
+            !toolCall.tools.includes(partToolName)
           );
         }),
       } as AssistantModelMessage | ToolModelMessage;

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-6-luna'),
     tools: {
       weather: tool({
         description: 'Get the weather in a location',
@@ -34,7 +34,7 @@ run(async () => {
     prompt: 'What is the weather in San Francisco?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         console.log('Text:', part.text);

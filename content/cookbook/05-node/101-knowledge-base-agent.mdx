@@ -31,10 +31,10 @@ cd knowledge-base-agent
 pnpm init
 ```
 
-Install the AI SDK, OpenAI provider, Upstash Search packages, and tsx as a dev dependency:
+Install the AI SDK, OpenAI provider, Upstash Search, and dotenv packages, and tsx as a dev dependency:
 
 ```bash
-pnpm i ai zod @ai-sdk/openai @upstash/search
+pnpm i ai zod @ai-sdk/openai @upstash/search dotenv
 pnpm i -D tsx
 ```
 
@@ -134,7 +134,7 @@ const index = search.index<KnowledgeContent>('knowledge-base');
 
 async function main(prompt: string) {
   const { text } = await generateText({
-    model: 'openai/gpt-4o',
+    model: 'openai/gpt-6-astra',
     prompt,
     stopWhen: isStepCount(5),
     tools: {
@@ -212,7 +212,7 @@ async function main(prompt: string) {
       }),
     },
     // log out intermediate steps
-    onStepFinish: ({ toolResults }) => {
+    onStepEnd: ({ toolResults }) => {
       if (toolResults.length > 0) {
         console.log('Tool results:');
         console.dir(toolResults, { depth: null });

@@ -1,4 +1,5 @@
 import type { EmbeddingModelV4Embedding } from '@ai-sdk/provider';
+import { EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import { createGoogle } from './google-provider';
@@ -15,7 +16,9 @@ const dummyEmbeddings = [
 const testValues = ['sunny day at the beach', 'rainy day in the city'];
 
 const provider = createGoogle({ apiKey: 'test-api-key' });
-const model = provider.embeddingModel('gemini-embedding-001');
+const model = provider.embeddingModel(
+  'gemini-embedding-001',
+) as GoogleEmbeddingModel;
 const multimodalModel = provider.embeddingModel('gemini-embedding-2-preview');
 
 const URL =
@@ -252,7 +255,7 @@ describe('GoogleEmbeddingModel', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google/0.0.0-test`,
+      `ai-sdk-google/0.0.0-test`,
     );
   });
 
@@ -263,11 +266,15 @@ describe('GoogleEmbeddingModel', () => {
       headers: () => ({}),
     });
 
-    const tooManyValues = Array(2049).fill('test');
+    const tooManyValues = Array(101).fill('test');
 
     await expect(model.doEmbed({ values: tooManyValues })).rejects.toThrow(
-      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 2048 values per call, but 2049 values were provided.',
+      'Too many values for a single embedding call. The google.generative-ai model "gemini-embedding-001" can only embed up to 100 values per call, but 101 values were provided.',
     );
+  });
+
+  it('should expose the Google batch embedding API limit', () => {
+    expect(model.maxEmbeddingsPerCall).toBe(100);
   });
 
   it('should use the batch embeddings endpoint', async () => {
@@ -436,6 +443,29 @@ describe('GoogleEmbeddingModel', () => {
         ],
       }
     `);
+  });
+
+  it('should slice per-value multimodal content for automatic batches', async () => {
+    const providerOptions = {
+      google: {
+        outputDimensionality: 128,
+        content: [[{ text: 'context 0' }], null, [{ text: 'context 2' }]],
+      },
+    };
+
+    expect(
+      await model[EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER]({
+        providerOptions,
+        values: ['value 0', 'value 1', 'value 2'],
+        startIndex: 1,
+        endIndex: 3,
+      }),
+    ).toStrictEqual({
+      google: {
+        outputDimensionality: 128,
+        content: [null, [{ text: 'context 2' }]],
+      },
+    });
   });
 
   it('should merge fileData content for single embedding', async () => {

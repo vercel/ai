@@ -14,13 +14,13 @@ The `dynamicTool` function creates tools where the input and output types are no
 
 Unlike the regular `tool` function, `dynamicTool` accepts and returns `unknown` types, allowing you to work with tools that have runtime-determined schemas.
 
-```ts highlight={"1,4,9,10,11"}
+```ts highlight={"1,4,9,11"}
 import { dynamicTool } from 'ai';
 import { z } from 'zod';
 
 export const customTool = dynamicTool({
   description: 'Execute a custom user-defined function',
-  inputSchema: z.object({}),
+  inputSchema: z.object({ action: z.string(), parameters: z.unknown() }),
   // input is typed as 'unknown'
   execute: async input => {
     const { action, parameters } = input as any;
@@ -54,9 +54,16 @@ export const customTool = dynamicTool({
             {
               name: 'description',
               isOptional: true,
-              type: 'string | ((options: { context: Context; experimental_sandbox?: Experimental_Sandbox }) => string)',
+              type: 'string | ((options: { context: Context; experimental_sandbox?: Experimental_SandboxSession }) => string)',
               description:
                 'Information about the purpose of the tool including details on how and when it can be used by the model. Provide a string for a fixed description, or a function to derive the description from the tool-specific context and optional experimental sandbox before each model call.'
+            },
+            {
+              name: 'deferLoading',
+              isOptional: true,
+              type: 'boolean',
+              description:
+                "Keep this tool out of the model context until toolSearch discovers it. Supports direct calling or code mode with toolDiscovery: 'conversation'. Discovered tools become available on the next model step. Defaults to false.",
             },
             {
               name: 'title',
@@ -130,7 +137,7 @@ export const customTool = dynamicTool({
               isOptional: true,
               type: '(options: ToolExecutionOptions<Context>) => void | PromiseLike<void>',
               description:
-                'Optional function that is called when the argument streaming starts. Only called when the tool is used in a streaming context.'
+                'Optional function that is called when the model starts generating the tool input. In non-streaming contexts, it is called immediately before onInputAvailable.'
             },
             {
               name: 'onInputDelta',
@@ -186,7 +193,7 @@ const result = await generateText({
       /* ... */
     }),
   },
-  onStepFinish: ({ toolCalls, toolResults }) => {
+  onStepEnd: ({ toolCalls, toolResults }) => {
     for (const toolCall of toolCalls) {
       if (toolCall.dynamic) {
         // Dynamic tool: input/output are 'unknown'

@@ -5,3 +5,5 @@ export {
   experimental_createProviderRegistry,
 } from './provider-registry';
 export type { ProviderRegistryProvider } from './provider-registry';
+
+export type { EvaluationProviderRegistry as Experimental_EvaluationProviderRegistry } from './provider-registry';

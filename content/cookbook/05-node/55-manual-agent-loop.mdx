@@ -37,7 +37,7 @@ const messages: ModelMessage[] = [
 async function main() {
   while (true) {
     const result = streamText({
-      model: 'openai/gpt-4o',
+      model: 'openai/gpt-6-astra',
       messages,
       tools: {
         getWeather: tool({
@@ -51,7 +51,7 @@ async function main() {
     });
 
     // Stream the response (only necessary for providing updates to the user)
-    for await (const chunk of result.fullStream) {
+    for await (const chunk of result.stream) {
       if (chunk.type === 'text-delta') {
         process.stdout.write(chunk.text);
       }

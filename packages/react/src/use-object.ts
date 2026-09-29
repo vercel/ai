@@ -20,10 +20,7 @@ import useSWR from 'swr';
 // use function to allow for mocking in tests:
 const getOriginalFetch = () => fetch;
 
-export type Experimental_UseObjectOptions<
-  SCHEMA extends FlexibleSchema,
-  RESULT,
-> = {
+export type UseObjectOptions<SCHEMA extends FlexibleSchema, RESULT> = {
   /**
    * The API endpoint. It should stream JSON that matches the schema as chunked text.
    */
@@ -88,7 +85,7 @@ export type Experimental_UseObjectOptions<
   credentials?: RequestCredentials;
 };
 
-export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
+export type UseObjectHelpers<RESULT, INPUT> = {
   /**
    * Calls the API with the provided input as JSON body.
    */
@@ -120,7 +117,11 @@ export type Experimental_UseObjectHelpers<RESULT, INPUT> = {
   clear: () => void;
 };
 
-function useObject<
+type ObjectState<RESULT> = {
+  object: DeepPartial<RESULT> | undefined;
+};
+
+export function useObject<
   SCHEMA extends FlexibleSchema,
   RESULT = InferSchema<SCHEMA>,
   INPUT = any,
@@ -134,19 +135,16 @@ function useObject<
   onFinish,
   headers,
   credentials,
-}: Experimental_UseObjectOptions<
-  SCHEMA,
-  RESULT
->): Experimental_UseObjectHelpers<RESULT, INPUT> {
+}: UseObjectOptions<SCHEMA, RESULT>): UseObjectHelpers<RESULT, INPUT> {
   // Generate an unique id if not provided.
   const hookId = useId();
   const completionId = id ?? hookId;
 
   // Store the completion state in SWR, using the completionId as the key to share states.
-  const { data, mutate } = useSWR<DeepPartial<RESULT>>(
-    [api, completionId],
+  const { data, mutate } = useSWR<ObjectState<RESULT>>(
+    [completionId, 'object'],
     null,
-    { fallbackData: initialValue },
+    { fallbackData: { object: initialValue } },
   );
 
   const [error, setError] = useState<undefined | Error>(undefined);
@@ -166,12 +164,13 @@ function useObject<
   }, []);
 
   const submit = async (input: INPUT) => {
+    const abortController = new AbortController();
+
     try {
       clearObject();
 
       setIsLoading(true);
 
-      const abortController = new AbortController();
       abortControllerRef.current = abortController;
 
       // Resolve headers at request time (supports async functions for dynamic auth tokens)
@@ -191,7 +190,7 @@ function useObject<
 
       if (!response.ok) {
         throw new Error(
-          (await response.text()) ?? 'Failed to fetch the response.',
+          (await response.text()) || 'Failed to fetch the response.',
         );
       }
 
@@ -213,13 +212,14 @@ function useObject<
             if (!isDeepEqualData(latestObject, currentObject)) {
               latestObject = currentObject;
 
-              mutate(currentObject);
+              mutate({ object: currentObject });
             }
           },
 
           async close() {
-            setIsLoading(false);
-            abortControllerRef.current = null;
+            if (abortControllerRef.current === abortController) {
+              setIsLoading(false);
+            }
 
             if (onFinish != null) {
               const validationResult = await safeValidateTypes({
@@ -227,11 +227,15 @@ function useObject<
                 schema: asSchema(schema),
               });
 
-              onFinish(
+              await onFinish(
                 validationResult.success
                   ? { object: validationResult.value, error: undefined }
                   : { object: undefined, error: validationResult.error },
               );
+            }
+
+            if (abortControllerRef.current === abortController) {
+              abortControllerRef.current = null;
             }
           },
         }),
@@ -245,8 +249,11 @@ function useObject<
         onError(error);
       }
 
-      setIsLoading(false);
-      setError(error instanceof Error ? error : new Error(String(error)));
+      if (abortControllerRef.current === abortController) {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+        setError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   };
 
@@ -258,17 +265,15 @@ function useObject<
   const clearObject = () => {
     setError(undefined);
     setIsLoading(false);
-    mutate(undefined);
+    mutate({ object: undefined });
   };
 
   return {
     submit,
-    object: data,
+    object: data?.object,
     error,
     isLoading,
     stop,
     clear,
   };
 }
-
-export const experimental_useObject = useObject;

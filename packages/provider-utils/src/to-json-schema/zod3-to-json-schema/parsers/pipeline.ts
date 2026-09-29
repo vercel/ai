@@ -14,16 +14,18 @@ export const parsePipelineDef = (
     return parseDef(def.out._def, refs);
   }
 
-  const a = parseDef(def.in._def, {
+  const inputSchema = parseDef(def.in._def, {
     ...refs,
     currentPath: [...refs.currentPath, 'allOf', '0'],
   });
-  const b = parseDef(def.out._def, {
+  const outputSchema = parseDef(def.out._def, {
     ...refs,
-    currentPath: [...refs.currentPath, 'allOf', a ? '1' : '0'],
+    currentPath: [...refs.currentPath, 'allOf', inputSchema ? '1' : '0'],
   });
 
   return {
-    allOf: [a, b].filter((x): x is JsonSchema7Type => x !== undefined),
+    allOf: [inputSchema, outputSchema].filter(
+      (schema): schema is JsonSchema7Type => schema !== undefined,
+    ),
   };
 };

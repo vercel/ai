@@ -1,4 +1,7 @@
-import type { FetchFunction } from '@ai-sdk/provider-utils';
+import type {
+  FetchFunction,
+  WebSocketConstructor,
+} from '@ai-sdk/provider-utils';
 
 export type ElevenLabsConfig = {
   provider: string;
@@ -6,4 +9,5 @@ export type ElevenLabsConfig = {
   headers?: () => Record<string, string | undefined>;
   fetch?: FetchFunction;
   generateId?: () => string;
+  webSocket?: WebSocketConstructor;
 };

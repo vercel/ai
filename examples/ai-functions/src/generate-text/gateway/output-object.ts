@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: 'xai/grok-3-beta',
+    model: 'spacexai/grok-4.7',
     output: Output.object({
       schema: z.object({
         recipe: z.object({

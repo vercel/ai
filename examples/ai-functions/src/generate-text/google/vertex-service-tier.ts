@@ -1,4 +1,7 @@
-import type { GoogleLanguageModelOptions } from '@ai-sdk/google';
+import type {
+  GoogleLanguageModelOptions,
+  GoogleProviderMetadata,
+} from '@ai-sdk/google';
 import { googleVertex } from '@ai-sdk/google-vertex';
 import { generateText } from 'ai';
 import { run } from '../../lib/run';
@@ -9,14 +12,15 @@ run(async () => {
     prompt: 'What color is the sky in one word?',
     providerOptions: {
       vertex: {
-        serviceTier: 'flex',
+        sharedRequestType: 'priority',
       } satisfies GoogleLanguageModelOptions,
     },
   });
 
+  const metadata = result.finalStep.providerMetadata?.googleVertex as
+    | GoogleProviderMetadata
+    | undefined;
+
   console.log(result.text);
-  console.log(
-    'serviceTier:',
-    result.finalStep.providerMetadata?.google?.serviceTier,
-  );
+  console.log('trafficType:', metadata?.usageMetadata?.trafficType);
 });

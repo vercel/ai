@@ -1,0 +1,44 @@
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createDeepAgents } from './_create';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+import { tool } from 'ai';
+import { z } from 'zod';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
+
+const deepAgents = createDeepAgents();
+
+// Deep Agents's builtin tool set (read/write/edit/bash/grep/glob/ls/task/write_todos)
+// merges with user tools; TypeScript narrows `toolName`/`input` per tool across both surfaces.
+run(async () => {
+  const echo = tool({
+    description: 'Return the given message back to the model.',
+    inputSchema: z.object({ message: z.string() }),
+    execute: async ({ message }: { message: string }) => ({ message }),
+  });
+
+  const agent = new HarnessAgent({
+    harness: deepAgents,
+    tools: { echo },
+  });
+
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
+  try {
+    session = await agent.createSession({ sandboxSession });
+    const result = await agent.stream({
+      session,
+      prompt:
+        'Call the `echo` tool with the message "hello", then run `uname -a` and tell me the kernel.',
+    });
+    await printFullStream({ result });
+  } finally {
+    await session?.destroy();
+    await sandboxSession.destroy();
+  }
+});

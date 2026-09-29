@@ -32,6 +32,17 @@ export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'grok-imagine-image' ||
+      this.modelId === 'grok-imagine-image-pro'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -162,6 +173,12 @@ export class XaiImageModel implements ImageModelV4 {
       fetch: this.config.fetch,
     });
 
+    if (response.data.some(image => image.respect_moderation === false)) {
+      throw new Error(
+        'Image generation was blocked due to a content policy violation.',
+      );
+    }
+
     const hasAllBase64 = response.data.every(image => image.b64_json != null);
 
     const images = hasAllBase64
@@ -201,6 +218,9 @@ export class XaiImageModel implements ImageModelV4 {
   ): Promise<Uint8Array> {
     const { value } = await getFromApi({
       url,
+      // url is a generated-image URL from the provider response; validate it.
+      validateUrl: true,
+      trustedOrigin: this.config.baseURL,
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -216,6 +236,7 @@ const xaiImageResponseSchema = z.object({
       url: z.string().nullish(),
       b64_json: z.string().nullish(),
       revised_prompt: z.string().nullish(),
+      respect_moderation: z.boolean().nullish(),
     }),
   ),
   usage: z

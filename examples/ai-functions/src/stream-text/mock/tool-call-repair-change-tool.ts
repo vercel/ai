@@ -43,7 +43,7 @@ run(async () => {
     },
     prompt: 'What are the tourist attractions in San Francisco?',
 
-    experimental_repairToolCall: async ({ toolCall }) => {
+    repairToolCall: async ({ toolCall }) => {
       return toolCall.toolName === 'attractions'
         ? {
             type: 'tool-call' as const,
@@ -56,7 +56,7 @@ run(async () => {
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     console.log(JSON.stringify(part, null, 2));
   }
 

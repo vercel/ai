@@ -1,4 +1,7 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { generateText, type ModelMessage } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
@@ -25,7 +28,7 @@ run(async () => {
       google: {
         responseModalities: ['image'],
         store: false,
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
@@ -57,7 +60,7 @@ run(async () => {
       google: {
         responseModalities: ['image'],
         store: false,
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 

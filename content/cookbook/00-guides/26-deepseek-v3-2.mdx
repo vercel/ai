@@ -6,6 +6,13 @@ tags: ['getting-started', 'agents']
 
 # Get started with DeepSeek V3.2
 
+<Note>
+  DeepSeek retired the `deepseek-chat` and `deepseek-reasoner` API aliases on
+  July 24, 2026. The examples in this historical V3.2 guide are preserved for
+  reference and no longer run against the current service. For current
+  applications, use `deepseek-v4-flash` or `deepseek-v4-pro`.
+</Note>
+
 With the [release of DeepSeek V3.2](https://api-docs.deepseek.com/news/news251201), there has never been a better time to start building AI applications that require advanced reasoning and agentic capabilities.
 
 The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like DeepSeek V3.2 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
@@ -84,7 +91,13 @@ Then, create a route handler for the chat endpoint:
 
 ```tsx filename="app/api/chat/route.ts"
 import { deepSeek } from '@ai-sdk/deepseek';
-import { convertToModelMessages, streamText, UIMessage } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  UIMessage,
+} from 'ai';
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
@@ -94,7 +107,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse({ sendReasoning: true });
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream, sendReasoning: true }),
+  });
 }
 ```
 
@@ -158,9 +173,11 @@ Let's add a weather tool to your agent. Update your route handler at `app/api/ch
 import { deepSeek } from '@ai-sdk/deepseek';
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   isStepCount,
   streamText,
   tool,
+  toUIMessageStream,
   UIMessage,
 } from 'ai';
 import { z } from 'zod';
@@ -187,7 +204,9 @@ export async function POST(req: Request) {
     stopWhen: isStepCount(5),
   });
 
-  return result.toUIMessageStreamResponse({ sendReasoning: true });
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream, sendReasoning: true }),
+  });
 }
 ```
 

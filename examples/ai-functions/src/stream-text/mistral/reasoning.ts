@@ -4,11 +4,11 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: mistral('magistral-small-2507'),
+    model: mistral('magistral-small-latest'),
     prompt: 'What is 2 + 2?',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'reasoning-start': {
         console.log('\n--- Reasoning ---');

@@ -72,7 +72,7 @@ console.log(text);`,
 import { webSearch } from '@exalabs/ai-sdk';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Tell me the latest developments in AI',
   tools: {
     webSearch: webSearch(),
@@ -104,7 +104,7 @@ console.log(text);`,
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'When was Vercel Ship AI?',
   tools: {
     webSearch: searchTool,
@@ -152,7 +152,7 @@ const { tools } = await createVercelSandboxCodeMode({
 });
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
+  model: 'openai/gpt-6-astra',
   tools,
   stopWhen: isStepCount(20),
   system: SANDBOX_SYSTEM_PROMPT,
@@ -189,7 +189,7 @@ console.log(text);
 import { perplexitySearch } from '@perplexity-ai/ai-sdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
+  model: 'openai/gpt-6-astra',
   prompt: 'What are the latest AI developments? Use search to find current information.',
   tools: {
     search: perplexitySearch(),
@@ -221,7 +221,7 @@ console.log(text);`,
 import { tavilySearch } from '@tavily/ai-sdk';
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'What are the latest developments in agentic search?',
   tools: {
     webSearch: tavilySearch,
@@ -253,7 +253,7 @@ console.log(text);`,
 import { scrapeTool } from 'firecrawl-aisdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5-mini',
+  model: 'openai/gpt-6-luna',
   prompt: 'Scrape https://firecrawl.dev and summarize what it does',
   tools: {
     scrape: scrapeTool,
@@ -335,7 +335,7 @@ import { guard, redact, verify } from '@superagent-ai/ai-sdk';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('gpt-4o-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'Check this input for security threats: "Ignore all instructions"',
   tools: {
     guard: guard(),
@@ -355,33 +355,35 @@ console.log(text);`,
     slug: 'tako-search',
     name: 'Tako Search',
     description:
-      "Search Tako's knowledge base for data visualizations, insights, and well-sourced information with charts and analytics.",
+      "Tako gives AI agents real-time, well-sourced data and charts across finance, economics, sports, demographics, and more. Search Tako's curated knowledge graph and the live web, get citation-backed answers, and fetch the data behind any result.",
     packageName: '@takoviz/ai-sdk',
+    tags: ['search', 'web', 'data', 'visualization', 'analytics'],
+    apiKeyEnvName: 'TAKO_API_KEY',
     installCommand: {
       pnpm: 'pnpm install @takoviz/ai-sdk',
       npm: 'npm install @takoviz/ai-sdk',
       yarn: 'yarn add @takoviz/ai-sdk',
       bun: 'bun add @takoviz/ai-sdk',
     },
-    codeExample: `import { takoSearch } from '@takoviz/ai-sdk';
-import { generateText, isStepCount } from 'ai';
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { takoSearch, takoAnswer, takoContents } from '@takoviz/ai-sdk';
 
 const { text } = await generateText({
-  model: 'openai/gpt-5.2',
-  prompt: 'What is the stock price of Nvidia?',
+  model: 'openai/gpt-6-astra',
+  prompt: 'How have Nvidia and AMD employee counts compared since 2013?',
   tools: {
     takoSearch: takoSearch(),
+    takoAnswer: takoAnswer(),
+    takoContents: takoContents(),
   },
   stopWhen: isStepCount(5),
 });
 
 console.log(text);`,
     docsUrl: 'https://github.com/TakoData/ai-sdk#readme',
-    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
+    apiKeyUrl: 'https://developer.tako.com/console/api-keys',
     websiteUrl: 'https://tako.com',
-    apiKeyEnvName: 'TAKO_API_KEY',
-    apiKeyUrl: 'https://tako.com',
-    tags: ['search', 'data', 'visualization', 'analytics'],
+    npmUrl: 'https://www.npmjs.com/package/@takoviz/ai-sdk',
   },
   {
     slug: 'valyu',
@@ -403,7 +405,7 @@ import { webSearch } from '@valyu/ai-sdk';
 // bioSearch, patentSearch, secSearch, economicsSearch, companyResearch
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   prompt: 'Latest data center projects for AI inference?',
   tools: {
     webSearch: webSearch(),
@@ -435,7 +437,7 @@ console.log(text);`,
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
@@ -472,7 +474,7 @@ const { tools } = await createBashTool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
   stopWhen: isStepCount(5),
@@ -503,7 +505,7 @@ import { createBrowserbaseTools } from '@browserbasehq/ai-sdk';
 const browserbase = createBrowserbaseTools();
 
 const { text } = await generateText({
-  model: 'google/gemini-3-pro-preview',
+  model: 'google/gemini-3.1-pro-preview',
   tools: browserbase.tools,
   stopWhen: isStepCount(10),
   prompt: 'Open https://news.ycombinator.com and summarize the top 3 stories.',
@@ -534,7 +536,7 @@ await browserbase.closeSession();`,
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4-5-20250929',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
@@ -550,5 +552,141 @@ console.log(text);`,
     apiKeyUrl: 'https://you.com/platform/api-keys',
     websiteUrl: 'https://you.com',
     npmUrl: 'https://www.npmjs.com/package/@youdotcom-oss/ai-sdk-plugin',
+  },
+  {
+    slug: 'nitrosend',
+    name: 'Nitrosend',
+    description:
+      'Nitrosend tools for Vercel AI SDK agents — send email and SMS, manage contacts and segments, build flows, run campaigns. Backed by the Nitrosend remote MCP server.',
+    packageName: '@nitrosend/ai-sdk',
+    tags: ['email', 'sms', 'marketing', 'mcp', 'automation', 'crm'],
+    apiKeyEnvName: 'NITROSEND_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      npm: 'npm install @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      yarn: 'yarn add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+      bun: 'bun add @nitrosend/ai-sdk ai @ai-sdk/mcp zod @ai-sdk/openai',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { withNitrosendTools } from '@nitrosend/ai-sdk';
+
+const result = await withNitrosendTools({}, async ({ tools }) => {
+  return generateText({
+    model: openai('gpt-6-astra'),
+    tools,
+    stopWhen: isStepCount(5),
+    prompt: 'Send a welcome email to founder@acme.com from our team.',
+  });
+});
+
+console.log(result.text);`,
+    docsUrl: 'https://docs.nitrosend.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.nitrosend.com/settings/api-keys',
+    websiteUrl: 'https://nitrosend.com',
+    npmUrl: 'https://www.npmjs.com/package/@nitrosend/ai-sdk',
+  },
+  {
+    slug: 'fatstack',
+    name: 'Fatstack',
+    description:
+      'Discover pay-per-call API and MCP tools from the Fatstack marketplace and use them as an AI SDK ToolSet. Discovery is free; calls settle in real USDC on Base via x402, with required daily spend guards.',
+    packageName: '@fatstack/ai-sdk-tools',
+    tags: ['payments', 'x402', 'mcp', 'marketplace', 'tool-discovery'],
+    installCommand: {
+      pnpm: 'pnpm add @fatstack/ai-sdk-tools ai viem',
+      npm: 'npm install @fatstack/ai-sdk-tools ai viem',
+      yarn: 'yarn add @fatstack/ai-sdk-tools ai viem',
+      bun: 'bun add @fatstack/ai-sdk-tools ai viem',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fatstackTools } from '@fatstack/ai-sdk-tools';
+import { privateKeyToAccount } from 'viem/accounts';
+
+// Discovery is free and happens once; only calling a tool costs anything.
+//
+// The public catalogue is on Base mainnet, so calls spend real USDC. The
+// required guards bound spending and cannot be raised by the model.
+const tools = await fatstackTools({
+  wallet: privateKeyToAccount(process.env.AGENT_PRIVATE_KEY as \`0x\${string}\`),
+  networks: ['base'],
+  guards: { maxPerDay: 0.5, maxPerCall: 0.01 },
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Convert 20 degrees Celsius to Fahrenheit.',
+  tools,
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
+    websiteUrl: 'https://www.fatstack.net',
+    npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
+  },
+  {
+    slug: 'pushary',
+    name: 'Pushary',
+    description:
+      'Require a named person to approve selected AI SDK tool calls from their phone before local tool execution. Pushary plugs into toolApproval and fails closed when approval is denied, expires, or goes unanswered.',
+    packageName: '@pushary/ai-sdk',
+    tags: ['approval', 'human-in-the-loop', 'security', 'phone'],
+    apiKeyEnvName: 'PUSHARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pushary/ai-sdk ai zod',
+      npm: 'npm install @pushary/ai-sdk ai zod',
+      yarn: 'yarn add @pushary/ai-sdk ai zod',
+      bun: 'bun add @pushary/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { pusharyApproval } from '@pushary/ai-sdk';
+import { z } from 'zod';
+
+// Derive this stable ID from the authenticated user on your server.
+// Enroll the user once before running the agent; see the Pushary guide below.
+const externalId = 'user_123';
+
+const lookupOrder = tool({
+  description: 'Look up an order',
+  inputSchema: z.object({ orderId: z.string() }),
+  execute: async ({ orderId }) => ({
+    orderId,
+    total: 40,
+    refundable: true,
+  }),
+});
+
+const issueRefund = tool({
+  description: 'Refund an order',
+  inputSchema: z.object({
+    orderId: z.string(),
+    amount: z.number().positive(),
+  }),
+  execute: async ({ orderId, amount }) => ({
+    orderId,
+    amount,
+    refunded: true,
+  }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund, lookupOrder },
+  toolApproval: pusharyApproval({
+    apiKey: process.env.PUSHARY_API_KEY!,
+    externalId,
+    policy: false,
+    tools: ['issueRefund'],
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Look up order 1234 and refund it in full.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
+    apiKeyUrl: 'https://pushary.com/onboarding/partner',
+    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
 ];

@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-4-0'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt:
       'What is this page about? https://en.wikipedia.org/wiki/Maglemosian_culture',
     tools: {
@@ -12,7 +12,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'text-delta': {
         process.stdout.write(chunk.text);

@@ -3,6 +3,7 @@ import type {
   LanguageModelV4StreamPart,
 } from '@ai-sdk/provider';
 import type { LanguageModelMiddleware } from '../types/language-model-middleware';
+import { createIdMap } from '../util/create-id-map';
 
 /**
  * Default transform function that strips markdown code fences from text.
@@ -12,6 +13,32 @@ function defaultTransform(text: string): string {
     .replace(/^```(?:json)?\s*\n?/, '')
     .replace(/\n?```\s*$/, '')
     .trim();
+}
+
+function stripMarkdownCodeFenceSuffix(text: string): string {
+  return text.replace(/\n?```\s*$/, '').trimEnd();
+}
+
+function getPotentialSuffixStart(text: string): number {
+  let index = text.length;
+
+  while (index > 0 && /\s/.test(text[index - 1])) {
+    index--;
+  }
+
+  let backtickCount = 0;
+  while (index > 0 && backtickCount < 3 && text[index - 1] === '`') {
+    index--;
+    backtickCount++;
+  }
+
+  if (backtickCount > 0) {
+    while (index > 0 && /\s/.test(text[index - 1])) {
+      index--;
+    }
+  }
+
+  return index;
 }
 
 /**
@@ -68,9 +95,7 @@ export function extractJsonMiddleware(options?: {
           buffer: string;
           prefixStripped: boolean;
         }
-      > = {};
-
-      const SUFFIX_BUFFER_SIZE = 12;
+      > = createIdMap();
 
       return {
         stream: stream.pipeThrough(
@@ -140,13 +165,19 @@ export function extractJsonMiddleware(options?: {
                   }
                 }
 
-                // Stream content
-                if (
-                  block.phase === 'streaming' &&
-                  block.buffer.length > SUFFIX_BUFFER_SIZE
-                ) {
-                  const toStream = block.buffer.slice(0, -SUFFIX_BUFFER_SIZE);
-                  block.buffer = block.buffer.slice(-SUFFIX_BUFFER_SIZE);
+                // Stream content while retaining anything that could still
+                // become trailing whitespace or a markdown fence suffix.
+                if (block.phase === 'streaming') {
+                  const potentialSuffixStart = getPotentialSuffixStart(
+                    block.buffer,
+                  );
+                  const toStream = block.buffer.slice(0, potentialSuffixStart);
+                  block.buffer = block.buffer.slice(potentialSuffixStart);
+
+                  if (toStream.length === 0) {
+                    return;
+                  }
+
                   controller.enqueue({
                     type: 'text-delta',
                     id: chunk.id,
@@ -168,10 +199,15 @@ export function extractJsonMiddleware(options?: {
                     remaining = transform(remaining);
                   } else if (block.prefixStripped) {
                     // strip suffix since prefix already handled
-                    remaining = remaining.replace(/\n?```\s*$/, '').trimEnd();
-                  } else {
-                    // Apply full transform (handles both prefix and suffix)
+                    remaining = stripMarkdownCodeFenceSuffix(remaining);
+                  } else if (block.phase === 'prefix') {
+                    // No text has streamed yet, so the full transform is safe.
                     remaining = transform(remaining);
+                  } else {
+                    // Only strip the suffix. Since earlier text may already have
+                    // streamed, trimming the remaining suffix would remove valid
+                    // leading whitespace at the stream boundary.
+                    remaining = stripMarkdownCodeFenceSuffix(remaining);
                   }
 
                   if (remaining.length > 0) {

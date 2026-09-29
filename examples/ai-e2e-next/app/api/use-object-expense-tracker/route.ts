@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { Output, streamText } from 'ai';
+import { createTextStreamResponse, Output, streamText, toTextStream } from 'ai';
 import { expenseSchema } from './schema';
 
 // Allow streaming responses up to 30 seconds
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const { expense }: { expense: string } = await req.json();
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     instructions:
       'You categorize expenses into one of the following categories: ' +
       'TRAVEL, MEALS, ENTERTAINMENT, OFFICE SUPPLIES, OTHER.' +
@@ -28,5 +28,7 @@ export async function POST(req: Request) {
     output: Output.object({ schema: expenseSchema }),
   });
 
-  return result.toTextStreamResponse();
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
+  });
 }

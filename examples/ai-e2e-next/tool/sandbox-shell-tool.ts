@@ -17,7 +17,7 @@ export function sandboxShellTool() {
       if (!sandbox) {
         throw new Error('Sandbox is not available');
       }
-      return sandbox.runCommand({
+      return sandbox.run({
         command,
         workingDirectory,
         abortSignal,

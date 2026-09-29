@@ -34,7 +34,7 @@ ${documentCorpus}
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-opus-4-6'),
+    model: anthropic('claude-opus-5-5'),
     messages: [
       {
         role: 'user',
@@ -97,7 +97,7 @@ run(async () => {
             Docker is the foundation for containerization:
 
             1. **Dockerfile** - Defines how to build your application image:
-              - Base image selection (e.g., node:18-alpine)
+              - Base image selection (e.g., node:22-alpine)
               - Working directory setup
               - Dependency installation
               - Source code copying

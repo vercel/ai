@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google('gemini-2.0-flash'),
+    model: google('gemini-3.8-flash'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,
@@ -14,7 +14,7 @@ run(async () => {
   let textChunkCount = 0;
   let rawChunkCount = 0;
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'text-delta') {
       textChunkCount++;
       console.log('Text chunk', textChunkCount, ':', chunk.text);

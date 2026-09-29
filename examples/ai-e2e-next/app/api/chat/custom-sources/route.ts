@@ -4,6 +4,7 @@ import {
   createUIMessageStream,
   createUIMessageStreamResponse,
   streamText,
+  toUIMessageStream,
   type UIMessage,
 } from 'ai';
 export async function POST(req: Request) {
@@ -24,11 +25,13 @@ export async function POST(req: Request) {
       });
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         messages: modelMessages,
       });
 
-      writer.merge(result.toUIMessageStream({ sendStart: false }));
+      writer.merge(
+        toUIMessageStream({ stream: result.stream, sendStart: false }),
+      );
     },
     originalMessages: messages,
     onFinish: options => {

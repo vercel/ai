@@ -36,7 +36,7 @@ const result = await streamText({
   prompt: 'Generate an image',
 });
 
-for await (const delta of result.fullStream) {
+for await (const delta of result.stream) {
   switch (delta.type) {
     case 'file': {
       console.log('Media type:', delta.file.mediaType);
@@ -57,7 +57,7 @@ const result = await streamText({
   prompt: 'Generate an image',
 });
 
-for await (const delta of result.fullStream) {
+for await (const delta of result.stream) {
   switch (delta.type) {
     case 'file': {
       console.log('Media type:', delta.mediaType);

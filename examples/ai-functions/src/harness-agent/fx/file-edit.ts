@@ -1,0 +1,47 @@
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createFx } from './_create';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const fx = createFx();
+
+run(async () => {
+  const agent = new HarnessAgent({
+    harness: fx,
+  });
+
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
+  try {
+    session = await agent.createSession({ sandboxSession });
+    console.log('--- turn 1: create ---');
+    const first = await agent.stream({
+      session,
+      prompt: 'Create a file at `notes.md` containing the text "hello world".',
+    });
+    await printFullStream({ result: first });
+
+    console.log('--- turn 2: edit ---');
+    const second = await agent.stream({
+      session,
+      prompt: 'Edit `notes.md` to replace "hello" with "Hello" (capitalized).',
+    });
+    await printFullStream({ result: second });
+
+    console.log('--- turn 3: read ---');
+    const third = await agent.stream({
+      session,
+      prompt: 'Read `notes.md` and print its contents in your reply.',
+    });
+    await printFullStream({ result: third });
+  } finally {
+    await session?.destroy();
+    await sandboxSession.destroy();
+  }
+});

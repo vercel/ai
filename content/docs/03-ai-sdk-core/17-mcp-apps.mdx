@@ -48,7 +48,12 @@ MCP Apps tools can declare `_meta.ui.visibility`. Tools with `"model"` visibilit
 
 ```ts filename="app/api/chat/route.ts"
 import { splitMCPAppTools } from '@ai-sdk/mcp';
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 import { createMCPAppsClient } from './mcp-client';
 import { openai } from '@ai-sdk/openai';
 
@@ -63,15 +68,17 @@ export async function POST(req: Request) {
     const tools = client.toolsFromDefinitions(modelVisible);
 
     const result = streamText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       messages: await convertToModelMessages(messages),
-      onFinish: async () => {
+      onEnd: async () => {
         await client.close();
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return createUIMessageStreamResponse({
+      stream: toUIMessageStream({ stream: result.stream }),
+    });
   } catch (error) {
     await client.close();
     throw error;
@@ -85,9 +92,9 @@ When the model calls an app-backed tool, the MCP client preserves the app metada
 
 Use `readMCPAppResource` to read and normalize an app resource before sending it to the browser host.
 
-```ts filename="app/api/mcp-app-host/route.ts"
+```ts filename="app/api/mcp-app-host/read-resource/route.ts"
 import { readMCPAppResource } from '@ai-sdk/mcp';
-import { createMCPAppsClient } from '../chat/mcp-client';
+import { createMCPAppsClient } from '../../chat/mcp-client';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
@@ -110,11 +117,11 @@ The iframe cannot connect directly to your MCP server. It sends JSON-RPC message
 
 For app-initiated tool calls, validate that the requested tool is app-visible before calling the MCP server.
 
-```ts filename="app/api/mcp-app-host/route.ts"
+```ts filename="app/api/mcp-app-host/call-tool/route.ts"
 import { splitMCPAppTools } from '@ai-sdk/mcp';
-import { createMCPAppsClient } from '../chat/mcp-client';
+import { createMCPAppsClient } from '../../chat/mcp-client';
 
-export async function callAppVisibleTool(req: Request) {
+export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
   const { name, arguments: toolArguments } = await req.json();
   const client = await createMCPAppsClient(requestUrl.origin);
@@ -235,7 +242,7 @@ export default function Chat() {
 }
 ```
 
-`experimental_MCPAppRenderer` renders nothing for ordinary tools. For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
+For ordinary tools, `experimental_MCPAppRenderer` renders the provided `fallback` (or nothing when no fallback is provided). For app-backed tools, it loads the resource, creates the sandbox bridge, sends tool input and result notifications to the iframe, and forwards supported app requests through your handlers.
 
 ## Best Practices
 
@@ -257,10 +264,6 @@ export default function Chat() {
     {
       title: 'MCP App Renderer',
       link: '/docs/reference/ai-sdk-ui/mcp-app-renderer',
-    },
-    {
-      title: 'Build MCP Apps with Next.js',
-      link: '/cookbook/next/mcp-apps',
     },
   ]}
 />

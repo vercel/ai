@@ -128,13 +128,15 @@ export async function POST(req: Request) {
   const { messages, temperature, userId } = await req.json();
 
   const result = streamText({
-    model: 'openai/gpt-5-mini',
+    model: 'openai/gpt-4.1-mini', // Supports dynamic temperature settings
     messages: await convertToModelMessages(messages),
     temperature, // Use the dynamic temperature from the request
     // ... other configuration
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 

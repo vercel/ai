@@ -3,8 +3,8 @@ import { streamText } from 'ai';
 import { run } from '../../lib/run';
 
 run(async () => {
-  const { fullStream } = streamText({
-    model: xai.responses('grok-4-fast-non-reasoning'),
+  const { stream } = streamText({
+    model: xai.responses('grok-4-1-fast-non-reasoning'),
     tools: {
       web_search: xai.tools.webSearch(),
       x_search: xai.tools.xSearch(),
@@ -15,7 +15,7 @@ run(async () => {
 
   let toolCallCount = 0;
 
-  for await (const event of fullStream) {
+  for await (const event of stream) {
     if (event.type === 'tool-call') {
       toolCallCount++;
       console.log(

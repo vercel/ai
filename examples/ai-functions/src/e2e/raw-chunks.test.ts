@@ -26,7 +26,7 @@ describe('Raw Chunks E2E Tests', () => {
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 
@@ -43,7 +43,7 @@ describe('Raw Chunks E2E Tests', () => {
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 
@@ -60,7 +60,7 @@ describe('Raw Chunks E2E Tests', () => {
         });
 
         const chunks = [];
-        for await (const chunk of result.fullStream) {
+        for await (const chunk of result.stream) {
           chunks.push(chunk);
         }
 

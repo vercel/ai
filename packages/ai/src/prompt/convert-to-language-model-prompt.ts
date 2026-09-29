@@ -25,6 +25,7 @@ import {
   createDefaultDownloadFunction,
   type DownloadFunction,
 } from '../util/download/download-function';
+import { mergeObjects } from '../util/merge-objects';
 import { convertToLanguageModelV4FilePart } from './file-part-data';
 import { logWarnings } from '../logger/log-warnings';
 import type { Warning } from '../types/warning';
@@ -35,7 +36,8 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
   // `provider` is only needed here to convert legacy tool output types via `mapToolResultOutput`.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
   provider,
@@ -43,11 +45,12 @@ export async function convertToLanguageModelPrompt({
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
   provider?: string;
 }): Promise<LanguageModelV4Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
 
@@ -108,7 +111,19 @@ export async function convertToLanguageModelPrompt({
 
     const lastCombinedMessage = combinedMessages.at(-1);
     if (lastCombinedMessage?.role === 'tool') {
+      const lastContentPart = lastCombinedMessage.content.at(-1);
+      if (
+        lastContentPart != null &&
+        lastCombinedMessage.providerOptions != null
+      ) {
+        lastContentPart.providerOptions = mergeObjects(
+          lastCombinedMessage.providerOptions,
+          lastContentPart.providerOptions,
+        );
+      }
+
       lastCombinedMessage.content.push(...message.content);
+      lastCombinedMessage.providerOptions = message.providerOptions;
     } else {
       combinedMessages.push(message);
     }
@@ -426,7 +441,7 @@ function convertImagePartToFilePart(
 /**
  * Downloads files from URLs in the user messages.
  */
-async function downloadAssets(
+export async function downloadAssets(
   messages: ModelMessage[],
   download: DownloadFunction,
   supportedUrls: Record<string, RegExp[]>,
@@ -592,7 +607,7 @@ function convertPartToLanguageModelPart(
   };
 }
 
-function mapToolResultOutput({
+export function mapToolResultOutput({
   output,
   // `provider` is only needed here to convert legacy "file-id" and "image-file-id" types to provider references, in case they are using string ID values.
   // TODO: remove in v8 when "file-id" and "image-file-id" types are removed
@@ -646,6 +661,7 @@ function mapToolResultOutput({
         }
         case 'file-url': {
           const mediaType = item.mediaType ?? getMediaTypeFromUrl(item.url);
+          const url = new URL(item.url);
           let message = `The "file-url" type for tool result content is deprecated. Use the "file" type with mediaType and { type: 'url', url } instead.`;
           if (!item.mediaType) {
             const inferenceSuffix =
@@ -661,7 +677,11 @@ function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType,
             providerOptions: item.providerOptions,
           };
@@ -717,6 +737,7 @@ function mapToolResultOutput({
           };
         }
         case 'image-url': {
+          const url = new URL(item.url);
           warnings.push({
             type: 'deprecated',
             setting: '"tool-result" content of type "image-url"',
@@ -724,7 +745,11 @@ function mapToolResultOutput({
           });
           return {
             type: 'file' as const,
-            data: { type: 'url' as const, url: new URL(item.url) },
+            data: {
+              type: 'url' as const,
+              url,
+              ...(url.toString() !== item.url ? { originalUrl: item.url } : {}),
+            },
             mediaType: 'image',
             providerOptions: item.providerOptions,
           };
@@ -826,9 +851,12 @@ function getMediaTypeFromUrl(
 ): string {
   try {
     const pathname = new URL(url).pathname;
-    const ext = pathname.split('.').pop()?.toLowerCase();
-    if (ext && Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, ext)) {
-      return URL_EXTENSION_TO_MEDIA_TYPE[ext];
+    const fileExtension = pathname.split('.').pop()?.toLowerCase();
+    if (
+      fileExtension &&
+      Object.hasOwn(URL_EXTENSION_TO_MEDIA_TYPE, fileExtension)
+    ) {
+      return URL_EXTENSION_TO_MEDIA_TYPE[fileExtension];
     }
   } catch {
     // ignore URL parse errors

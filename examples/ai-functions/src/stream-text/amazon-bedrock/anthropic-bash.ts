@@ -35,7 +35,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.text;

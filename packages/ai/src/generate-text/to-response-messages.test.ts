@@ -1,6 +1,7 @@
 import { tool } from '@ai-sdk/provider-utils';
 import z from 'zod/v4';
 import { DefaultGeneratedFile } from './generated-file';
+import { parseToolCall } from './parse-tool-call';
 import { toResponseMessages } from './to-response-messages';
 import { describe, it, expect } from 'vitest';
 
@@ -288,6 +289,65 @@ describe('toResponseMessages', () => {
         },
       ]
     `);
+  });
+
+  it('should serialize parallel tool results in tool call order', async () => {
+    const result = await toResponseMessages({
+      content: [
+        {
+          type: 'text',
+          text: 'Using tools',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-a',
+          toolName: 'toolA',
+          input: {},
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-b',
+          toolName: 'toolB',
+          input: {},
+        },
+        // Simulates parallel execution where toolB resolved before toolA.
+        {
+          type: 'tool-result',
+          toolCallId: 'call-b',
+          toolName: 'toolB',
+          output: 'B result',
+          input: {},
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'call-a',
+          toolName: 'toolA',
+          output: 'A result',
+          input: {},
+        },
+      ],
+      tools: {
+        toolA: tool({
+          description: 'Tool A',
+          inputSchema: z.object({}),
+        }),
+        toolB: tool({
+          description: 'Tool B',
+          inputSchema: z.object({}),
+        }),
+      },
+    });
+
+    const toolMessage = result[1];
+    expect(toolMessage?.role).toBe('tool');
+    if (toolMessage?.role !== 'tool') {
+      throw new Error('Expected a tool message');
+    }
+    expect(
+      toolMessage.content
+        .filter(part => part.type === 'tool-result')
+        .map(part => part.toolCallId),
+    ).toEqual(['call-a', 'call-b']);
   });
 
   it('should handle undefined text', async () => {
@@ -855,6 +915,56 @@ describe('toResponseMessages', () => {
   });
 
   describe('tool approval request', () => {
+    it('should preserve schema input when the approved input was transformed', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const toolCall = await parseToolCall({
+        toolCall: {
+          type: 'tool-call',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: '{"count":"3"}',
+        },
+        tools,
+        repairToolCall: undefined,
+        messages: [],
+        instructions: undefined,
+      });
+
+      const result = await toResponseMessages({
+        content: [
+          toolCall,
+          {
+            type: 'tool-approval-request',
+            approvalId: 'approval-1',
+            toolCall,
+          },
+        ],
+        tools,
+      });
+
+      expect(result).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: { count: 3 },
+            },
+            {
+              type: 'tool-approval-request',
+              inputSchemaInput: { count: '3' },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('should include tool approval request in the assistant message', async () => {
       const result = await toResponseMessages({
         content: [

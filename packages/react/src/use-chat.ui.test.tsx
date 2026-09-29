@@ -5,7 +5,13 @@ import {
   TestResponseController,
 } from '@ai-sdk/test-server/with-vitest';
 import { mockId } from '@ai-sdk/provider-utils/test';
-import { fireEvent, screen, waitFor, render } from '@testing-library/react';
+import {
+  cleanup,
+  fireEvent,
+  screen,
+  waitFor,
+  render,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   DefaultChatTransport,
@@ -227,7 +233,9 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-send'));
 
       await screen.findByTestId('error');
-      expect(screen.getByTestId('error')).toHaveTextContent('Error: Not found');
+      expect(screen.getByTestId('error')).toHaveTextContent(
+        'AI_APICallError: Not found',
+      );
     });
 
     it('should show error response when there is a streaming error', async () => {
@@ -887,6 +895,56 @@ describe('use-chat', () => {
     });
   });
 
+  describe('stale transport', () => {
+    afterEach(cleanup);
+
+    it('should use the latest transport body after a state change (no stale closure)', async () => {
+      const Test = () => {
+        const [subagent, setSubagent] = React.useState('todos-agent');
+        const { sendMessage } = useChat({
+          transport: new DefaultChatTransport({
+            body: { subagent },
+          }),
+        });
+
+        return (
+          <div>
+            <button
+              data-testid="change-subagent"
+              onClick={() => setSubagent('research-agent')}
+            />
+            <button
+              data-testid="do-send"
+              onClick={() => {
+                sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+          </div>
+        );
+      };
+
+      render(<Test />);
+
+      server.urls['/api/chat'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          formatChunk({ type: 'text-start', id: '0' }),
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+          formatChunk({ type: 'text-end', id: '0' }),
+        ],
+      };
+
+      await userEvent.click(screen.getByTestId('change-subagent'));
+      await userEvent.click(screen.getByTestId('do-send'));
+
+      await vi.waitUntil(() => server.calls.length > 0, { timeout: 2000 });
+
+      expect((await server.calls[0].requestBodyJson).subagent).toBe(
+        'research-agent',
+      );
+    });
+  });
+
   describe('tool invocations', () => {
     setupTestComponent(() => {
       const { messages, sendMessage, addToolOutput } = useChat({
@@ -986,6 +1044,7 @@ describe('use-chat', () => {
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
+          rawInput: '{"testArg":"t',
         });
       });
 
@@ -1005,6 +1064,7 @@ describe('use-chat', () => {
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
+          rawInput: '{"testArg":"test-value"}}',
         });
       });
 
@@ -2043,6 +2103,96 @@ describe('use-chat', () => {
     });
   });
 
+  describe('automatic stream resumption with a shared Chat', () => {
+    it('should only reconnect once for multiple useChat consumers', async () => {
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'shared',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <>
+          <Consumer />
+          <Consumer />
+          <Consumer />
+        </>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(1));
+    });
+
+    it('should abort the first reconnect when StrictMode starts another', async () => {
+      let reconnectCount = 0;
+      const reconnectAbortSignals: AbortSignal[] = [];
+      const chat = new Chat({
+        id: 'strict-mode',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async ({ abortSignal }) => {
+            reconnectCount++;
+            reconnectAbortSignals.push(abortSignal!);
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <React.StrictMode>
+          <Consumer />
+        </React.StrictMode>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(2));
+      expect(reconnectAbortSignals[0].aborted).toBe(true);
+      expect(reconnectAbortSignals[1].aborted).toBe(false);
+    });
+
+    it('should reconnect again after all consumers unmount', async () => {
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'remounted',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      const firstRender = render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      firstRender.unmount();
+      await act(async () => {});
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(2));
+    });
+  });
+
   describe('resume with no active stream should not flash submitted status', () => {
     setupTestComponent(
       () => {
@@ -2247,7 +2397,7 @@ describe('use-chat', () => {
     });
   });
 
-  describe('experimental_throttle', () => {
+  describe('throttle', () => {
     const throttleMs = 50;
 
     beforeEach(() => {
@@ -2260,14 +2410,18 @@ describe('use-chat', () => {
     });
 
     setupTestComponent(() => {
-      const { messages, sendMessage, status } = useChat({
-        experimental_throttle: throttleMs,
+      const [id, setId] = useState('first-id');
+      const { error, messages, sendMessage, status, stop } = useChat({
+        id,
+        throttle: throttleMs,
         generateId: mockId(),
       });
+      const [, forceUnrelatedRender] = useState(0);
 
       return (
         <div>
           <div data-testid="status">{status.toString()}</div>
+          {error != null && <div data-testid="error">{error.message}</div>}
           {messages.map((m, idx) => (
             <div data-testid={`message-${idx}`} key={m.id}>
               {m.role === 'user' ? 'User: ' : 'AI: '}
@@ -2282,11 +2436,20 @@ describe('use-chat', () => {
               sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
             }}
           />
+          <button
+            data-testid="force-unrelated-render"
+            onClick={() => forceUnrelatedRender(count => count + 1)}
+          />
+          <button
+            data-testid="change-chat"
+            onClick={() => setId('second-id')}
+          />
+          <button data-testid="stop" onClick={stop} />
         </div>
       );
     });
 
-    it('should throttle UI updates when experimental_throttle is set', async () => {
+    it('should throttle UI updates when throttle is set', async () => {
       const controller = new TestResponseController();
 
       server.urls['/api/chat'].response = {
@@ -2329,6 +2492,225 @@ describe('use-chat', () => {
       expect(screen.getByTestId('message-1')).toHaveTextContent(
         'AI: Hello There',
       );
+    });
+
+    it('should not publish a new message snapshot during an unrelated render', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+      );
+      fireEvent.click(screen.getByTestId('force-unrelated-render'));
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+
+    it('should publish the final message snapshot with ready status', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+      controller.close();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+
+    it('should publish the latest message snapshot with error status', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+      );
+      controller.write(
+        formatChunk({ type: 'error', errorText: 'stream failed' }),
+      );
+      controller.close();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('error');
+      expect(screen.getByTestId('error')).toHaveTextContent('stream failed');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+
+    it('should publish the latest message snapshot when an abort becomes ready', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
+      });
+
+      expect(screen.queryByTestId('message-1')).not.toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId('stop'));
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('ready');
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
+    });
+
+    it('should ignore a delayed publication after changing chats', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      await act(async () => {
+        await controller.write(formatChunk({ type: 'text-start', id: '0' }));
+        await controller.write(
+          formatChunk({ type: 'text-delta', id: '0', delta: 'Hello' }),
+        );
+      });
+
+      expect(screen.getByTestId('status')).toHaveTextContent('streaming');
+      expect(screen.queryByTestId('message-1')).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId('change-chat'));
+      expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+      await controller.close().catch(() => {});
+    });
+  });
+
+  describe('experimental_throttle (deprecated)', () => {
+    const throttleMs = 50;
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    setupTestComponent(() => {
+      const { messages, sendMessage, status } = useChat({
+        experimental_throttle: throttleMs,
+        generateId: mockId(),
+      });
+
+      return (
+        <div>
+          <div data-testid="status">{status.toString()}</div>
+          {messages.map((m, idx) => (
+            <div data-testid={`message-${idx}`} key={m.id}>
+              {m.role === 'user' ? 'User: ' : 'AI: '}
+              {m.parts
+                .map(part => (part.type === 'text' ? part.text : ''))
+                .join('')}
+            </div>
+          ))}
+          <button
+            data-testid="do-send"
+            onClick={() => {
+              sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+            }}
+          />
+        </div>
+      );
+    });
+
+    it('should throttle UI updates when the deprecated experimental_throttle option is set', async () => {
+      const controller = new TestResponseController();
+
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      fireEvent.click(screen.getByTestId('do-send'));
+      expect(screen.getByTestId('message-0')).toHaveTextContent('User: hi');
+
+      controller.write(formatChunk({ type: 'text-start', id: '0' }));
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'Hel' }),
+      );
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hel');
+
+      controller.write(
+        formatChunk({ type: 'text-delta', id: '0', delta: 'lo' }),
+      );
+      controller.write(formatChunk({ type: 'text-end', id: '0' }));
+
+      expect(screen.getByTestId('message-1')).not.toHaveTextContent(
+        'AI: Hello',
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(throttleMs + 10);
+      });
+
+      expect(screen.getByTestId('message-1')).toHaveTextContent('AI: Hello');
     });
   });
 
@@ -2422,17 +2804,226 @@ describe('use-chat', () => {
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
     });
+
+    it('should abort the previous stream when the id changes', async () => {
+      const controller = new TestResponseController();
+      const abortStream = vi.spyOn(controller, 'error');
+      server.urls['/api/chat'].response = {
+        type: 'controlled-stream',
+        controller,
+      };
+
+      await userEvent.click(screen.getByTestId('do-send'));
+      await waitFor(() => {
+        expect(screen.getByTestId('status')).toHaveTextContent('submitted');
+      });
+
+      await userEvent.click(screen.getByTestId('do-change-id'));
+
+      try {
+        await vi.waitUntil(() => abortStream.mock.calls.length > 0, {
+          timeout: 1000,
+        });
+        expect(abortStream).toHaveBeenCalledOnce();
+      } finally {
+        await controller.close().catch(() => {});
+      }
+    });
+  });
+
+  describe('suspended id changes', () => {
+    let requestSignal: AbortSignal | undefined;
+    let responseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    const pending = new Promise<never>(() => {});
+
+    setupTestComponent(
+      () => {
+        const [id, setId] = React.useState('initial-id');
+        const [shouldSuspend, setShouldSuspend] = React.useState(false);
+        const {
+          sendMessage,
+          id: chatId,
+          messages,
+        } = useChat({
+          id,
+          generateId: mockId(),
+          transport: {
+            sendMessages: async ({ abortSignal }) => {
+              requestSignal = abortSignal;
+              return new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  responseController = controller;
+                },
+              });
+            },
+            reconnectToStream: async () => null,
+          },
+        });
+
+        if (shouldSuspend) {
+          throw pending;
+        }
+
+        return (
+          <div>
+            <div data-testid="suspended-chat-id">{chatId}</div>
+            <div data-testid="suspended-chat-messages">
+              {JSON.stringify(messages)}
+            </div>
+            <button
+              data-testid="suspended-chat-send"
+              onClick={() => {
+                void sendMessage({ parts: [{ text: 'hi', type: 'text' }] });
+              }}
+            />
+            <button
+              data-testid="suspended-chat-change-id"
+              onClick={() => {
+                React.startTransition(() => {
+                  setId('second-id');
+                  setShouldSuspend(true);
+                });
+              }}
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => (
+          <React.Suspense fallback={<div>Loading</div>}>
+            <TestComponent />
+          </React.Suspense>
+        ),
+      },
+    );
+
+    it('should keep the active stream connected before an id change commits', async () => {
+      await userEvent.click(screen.getByTestId('suspended-chat-send'));
+      await waitFor(() => {
+        expect(requestSignal).toBeDefined();
+        expect(responseController).toBeDefined();
+      });
+
+      await userEvent.click(screen.getByTestId('suspended-chat-change-id'));
+
+      try {
+        expect(screen.getByTestId('suspended-chat-id')).toHaveTextContent(
+          'initial-id',
+        );
+        expect(requestSignal?.aborted).toBe(false);
+
+        await act(async () => {
+          responseController!.enqueue({ type: 'text-start', id: '0' });
+          responseController!.enqueue({
+            type: 'text-delta',
+            id: '0',
+            delta: 'Hello',
+          });
+        });
+
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('suspended-chat-messages'),
+          ).toHaveTextContent('Hello');
+        });
+      } finally {
+        responseController!.close();
+      }
+    });
+  });
+
+  describe('undefined id', () => {
+    setupTestComponent(
+      () => {
+        const [renderCount, setRenderCount] = React.useState(0);
+        const {
+          messages,
+          setMessages,
+          id: idKey,
+        } = useChat({
+          id: undefined,
+          generateId: mockId(),
+        });
+
+        return (
+          <div>
+            <div data-testid="id">{idKey}</div>
+            <div data-testid="render-count">{renderCount}</div>
+            <div data-testid="messages">
+              {JSON.stringify(messages, null, 2)}
+            </div>
+            <button
+              data-testid="set-message"
+              onClick={() => {
+                setMessages([
+                  {
+                    id: 'message-0',
+                    role: 'user',
+                    parts: [{ text: 'hi', type: 'text' }],
+                  },
+                ]);
+              }}
+            />
+            <button
+              data-testid="rerender"
+              onClick={() => {
+                setRenderCount(count => count + 1);
+              }}
+            />
+          </div>
+        );
+      },
+      {
+        init: TestComponent => <TestComponent />,
+      },
+    );
+
+    it('should not recreate chat when id is explicitly undefined', async () => {
+      const initialId = screen.getByTestId('id').textContent;
+
+      await userEvent.click(screen.getByTestId('set-message'));
+
+      await waitFor(() => {
+        expect(
+          JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+        ).toStrictEqual([
+          {
+            id: 'message-0',
+            role: 'user',
+            parts: [{ text: 'hi', type: 'text' }],
+          },
+        ]);
+      });
+
+      await userEvent.click(screen.getByTestId('rerender'));
+
+      expect(screen.getByTestId('id').textContent).toBe(initialId);
+      expect(
+        JSON.parse(screen.getByTestId('messages').textContent ?? ''),
+      ).toStrictEqual([
+        {
+          id: 'message-0',
+          role: 'user',
+          parts: [{ text: 'hi', type: 'text' }],
+        },
+      ]);
+    });
   });
 
   describe('chat instance changes', () => {
+    let initialChat: Chat<UIMessage>;
+
     setupTestComponent(
       () => {
-        const [chat, setChat] = React.useState<Chat<UIMessage>>(
-          new Chat({
+        const [chat, setChat] = React.useState<Chat<UIMessage>>(() => {
+          initialChat = new Chat({
             id: 'initial-id',
             generateId: mockId(),
-          }),
-        );
+          });
+          return initialChat;
+        });
 
         const {
           messages,
@@ -2522,6 +3113,14 @@ describe('use-chat', () => {
       await userEvent.click(screen.getByTestId('do-change-chat'));
 
       expect(screen.queryByTestId('message-0')).not.toBeInTheDocument();
+    });
+
+    it('should not stop a caller-managed chat when it is replaced', async () => {
+      const stop = vi.spyOn(initialChat, 'stop');
+
+      await userEvent.click(screen.getByTestId('do-change-chat'));
+
+      expect(stop).not.toHaveBeenCalled();
     });
 
     it('should handle streaming correctly when the id changes', async () => {

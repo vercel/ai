@@ -38,14 +38,14 @@ This provider currently supports three video generation modes: text-to-video, im
 
 Generate video from a text prompt.
 
-Available models: `kling-v1-t2v`, `kling-v1.6-t2v`, `kling-v2-master-t2v`, `kling-v2.1-master-t2v`, `kling-v2.5-turbo-t2v`, `kling-v2.6-t2v`
+Available models: `kling-v1-t2v`, `kling-v1.6-t2v`, `kling-v2-master-t2v`, `kling-v2.1-master-t2v`, `kling-v2.5-turbo-t2v`, `kling-v2.6-t2v`, `kling-v3.0-t2v`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-t2v'),
+  model: klingai.video('kling-v3.0-t2v'),
   prompt: 'A chicken flying into the sunset in the style of 90s anime.',
   aspectRatio: '16:9',
   duration: 5,
@@ -61,14 +61,14 @@ const { videos } = await experimental_generateVideo({
 
 Generate video from a start frame image, with optional end frame control.
 
-Available models: `kling-v1-i2v`, `kling-v1.5-i2v`, `kling-v1.6-i2v`, `kling-v2-master-i2v`, `kling-v2.1-i2v`, `kling-v2.1-master-i2v`, `kling-v2.5-turbo-i2v`, `kling-v2.6-i2v`
+Available models: `kling-v1-i2v`, `kling-v1.5-i2v`, `kling-v1.6-i2v`, `kling-v2-master-i2v`, `kling-v2.1-i2v`, `kling-v2.1-master-i2v`, `kling-v2.5-turbo-i2v`, `kling-v2.6-i2v`, `kling-v3.0-i2v`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-i2v'),
+  model: klingai.video('kling-v3.0-i2v'),
   prompt: {
     image: 'https://example.com/start-frame.png',
     text: 'The cat slowly turns its head and blinks',
@@ -89,14 +89,14 @@ const { videos } = await experimental_generateVideo({
 
 Generate video using a reference motion video.
 
-Available models: `kling-v2.6-motion-control`
+Available models: `kling-v2.6-motion-control`, `kling-v3.0-motion-control`
 
 ```ts
 import { klingai } from '@ai-sdk/klingai';
 import { experimental_generateVideo } from 'ai';
 
 const { videos } = await experimental_generateVideo({
-  model: klingai.video('kling-v2.6-motion-control'),
+  model: klingai.video('kling-v3.0-motion-control'),
   prompt: {
     image: 'https://example.com/character.png',
     text: 'The character performs a smooth dance move',
@@ -136,14 +136,30 @@ See the [KlingAI Capability Map](https://app.klingai.com/global/dev/document-api
 
 ## Authentication
 
-Kling AI uses access key / secret key authentication. Set the following environment variables:
+Kling AI uses API key authentication. Create a key in the [Kling AI developer console](https://kling.ai/dev/api-key) and set the following environment variable:
+
+```
+KLINGAI_API_KEY=your-api-key
+```
+
+Or pass it directly:
+
+```ts
+import { createKlingAI } from '@ai-sdk/klingai';
+
+const klingai = createKlingAI({
+  apiKey: 'your-api-key',
+});
+```
+
+### Legacy access key / secret key
+
+Kling AI's earlier access key / secret key pair is still supported. The provider uses it to sign a short-lived JWT for each request:
 
 ```
 KLINGAI_ACCESS_KEY=your-access-key
 KLINGAI_SECRET_KEY=your-secret-key
 ```
-
-Or pass them directly:
 
 ```ts
 import { createKlingAI } from '@ai-sdk/klingai';
@@ -153,6 +169,13 @@ const klingai = createKlingAI({
   secretKey: 'your-secret-key',
 });
 ```
+
+Credentials are resolved in this order, with explicit settings taking precedence over environment variables:
+
+1. The `apiKey` setting
+2. The `accessKey` and `secretKey` settings
+3. The `KLINGAI_API_KEY` environment variable
+4. The `KLINGAI_ACCESS_KEY` and `KLINGAI_SECRET_KEY` environment variables
 
 ## Documentation
 

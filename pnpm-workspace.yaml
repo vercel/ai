@@ -1,5 +1,39 @@
 packages:
+  - 'apps/*'
   - 'packages/*'
   - 'tools/*'
   - 'examples/*'
   - 'packages/rsc/tests/e2e/next-server'
+
+overrides:
+  shell-quote: 1.10.0
+  tinyexec: 1.0.2
+  oxlint: 1.56.0
+  tar: 7.5.19
+  '@workflow/world-local@4>undici': 7.29.0
+  '@workflow/world-vercel@4>undici': 7.29.0
+
+minimumReleaseAge: 4320 # 3 days
+
+minimumReleaseAgeExclude:
+  # First-party packages may be consumed immediately as part of their release flow.
+  - '@ai-sdk/*'
+  - '@vercel/*'
+  - 'ai'
+
+allowBuilds:
+  '@google/genai': false
+  '@mongodb-js/zstd': false
+  '@nestjs/core': false
+  '@parcel/watcher': false
+  '@sentry/cli': false
+  '@swc/core': false
+  '@xai-official/grok': false
+  cbor-extract: false
+  esbuild: true
+  lmdb: false
+  msgpackr-extract: false
+  msw: false
+  node-liblzma: false
+  protobufjs: false
+  sharp: false

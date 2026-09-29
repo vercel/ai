@@ -121,7 +121,7 @@ const result = await generateText({
     calculate: calculateTool,
     finalAnswer: {
       description: 'Provide the final answer to the user',
-      parameters: z.object({
+      inputSchema: z.object({
         answer: z.string(),
       }),
       execute: async ({ answer }) => answer,

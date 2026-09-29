@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: openai('gpt-5-mini'),
+  model: openai('gpt-6-luna'),
   tools: {
     weather: tool({
       description: 'Get the weather in a location',
@@ -33,8 +33,8 @@ const agent = new ToolLoopAgent({
       },
     };
   },
-  onFinish: ({ runtimeContext }) => {
-    console.log('onFinish runtimeContext:', runtimeContext);
+  onEnd: ({ runtimeContext }) => {
+    console.log('onEnd runtimeContext:', runtimeContext);
   },
   instructions: 'You are a helpful assistant.',
 });

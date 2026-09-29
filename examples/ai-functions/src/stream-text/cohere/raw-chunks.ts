@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: cohere('command-r-plus'),
+    model: cohere('command-a-03-2025'),
     prompt: 'Count from 1 to 3 slowly.',
     include: {
       rawChunks: true,
@@ -14,7 +14,7 @@ run(async () => {
   let textChunkCount = 0;
   let rawChunkCount = 0;
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     if (chunk.type === 'text-delta') {
       textChunkCount++;
       console.log('Text chunk', textChunkCount, ':', chunk.text);

@@ -1,11 +1,14 @@
-import { google } from '@ai-sdk/google';
+import {
+  google,
+  type GoogleLanguageModelInteractionsOptions,
+} from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { presentImages } from '../../lib/present-image';
 import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google.interactions('gemini-2.5-flash-image'),
+    model: google.interactions('gemini-3.1-flash-image-preview'),
     prompt:
       'Tell me a three sentence bedtime story about a unicorn, accompanied by a suitable illustration.',
     providerOptions: {
@@ -17,11 +20,11 @@ run(async () => {
             aspectRatio: '16:9',
           },
         ],
-      },
+      } satisfies GoogleLanguageModelInteractionsOptions,
     },
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     switch (part.type) {
       case 'text-delta': {
         process.stdout.write(part.text);

@@ -30,10 +30,27 @@ exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should ext
 exports[`OpenResponsesLanguageModel > doGenerate > basic generation > should produce correct content 1`] = `
 [
   {
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "rs_3l1z5wpifxkwxhj459ya7",
+        "reasoningContent": [
+          {
+            "text": "reasoning content",
+            "type": "reasoning_text",
+          },
+        ],
+        "reasoningSummary": [],
+      },
+    },
     "text": "reasoning content",
     "type": "reasoning",
   },
   {
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "msg_p1y190hl7hj1xyfqr1cir",
+      },
+    },
     "text": "text content",
     "type": "text",
   },
@@ -217,6 +234,11 @@ exports[`OpenResponsesLanguageModel > doGenerate > tool call parsing > should pa
 [
   {
     "input": "{"location":"San Francisco"}",
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "fc_ru0kcno9erlzp8573yub",
+      },
+    },
     "toolCallId": "call_2866856768160095",
     "toolName": "weather",
     "type": "tool-call",
@@ -1897,6 +1919,11 @@ exports[`OpenResponsesLanguageModel > doStream > basic generation > should strea
   },
   {
     "id": "msg_j8xwiqp4xj0qgn3hrsoit9",
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "msg_j8xwiqp4xj0qgn3hrsoit9",
+      },
+    },
     "type": "text-end",
   },
   {
@@ -2181,6 +2208,18 @@ exports[`OpenResponsesLanguageModel > doStream > reasoning with tool call > shou
   },
   {
     "id": "rs_jm2uvisepha7peu2y40spd",
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "rs_jm2uvisepha7peu2y40spd",
+        "reasoningContent": [
+          {
+            "text": "The user is asking for the weather in San Francisco. I have a weather function available that takes a location parameter. The user has provided the location as "San Francisco", so I have all the required parameters to make the function call.",
+            "type": "reasoning_text",
+          },
+        ],
+        "reasoningSummary": [],
+      },
+    },
     "type": "reasoning-end",
   },
   {
@@ -2254,10 +2293,20 @@ exports[`OpenResponsesLanguageModel > doStream > reasoning with tool call > shou
   },
   {
     "id": "msg_pgh5uhkjz68thx8ph44ia",
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "msg_pgh5uhkjz68thx8ph44ia",
+      },
+    },
     "type": "text-end",
   },
   {
     "input": "{"location":"San Francisco"}",
+    "providerMetadata": {
+      "lmstudio": {
+        "itemId": "fc_5ee21s0i48xzoskcmd67h",
+      },
+    },
     "toolCallId": "call_3466696471230001",
     "toolName": "weather",
     "type": "tool-call",

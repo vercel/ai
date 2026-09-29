@@ -12,7 +12,7 @@ export const maxDuration = 30;
  * The model to use for streaming
  */
 const model = new ChatOpenAI({
-  model: 'gpt-4o-mini',
+  model: 'gpt-4.1-mini',
   temperature: 0,
 });
 

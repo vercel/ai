@@ -1,7 +1,14 @@
 {
   "files": [],
   "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.server.json" }
+    {
+      "path": "../../packages/ai"
+    },
+    {
+      "path": "../../packages/angular"
+    },
+    {
+      "path": "../../packages/openai"
+    }
   ]
 }

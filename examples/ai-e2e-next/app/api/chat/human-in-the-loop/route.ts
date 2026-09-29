@@ -5,6 +5,7 @@ import {
   createUIMessageStream,
   convertToModelMessages,
   isStepCount,
+  toUIMessageStream,
 } from 'ai';
 import { processToolCalls } from './utils';
 import { tools } from './tools';
@@ -40,14 +41,17 @@ export async function POST(req: Request) {
       );
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         messages: await convertToModelMessages(processedMessages),
         tools,
         stopWhen: isStepCount(20),
       });
 
       writer.merge(
-        result.toUIMessageStream({ originalMessages: processedMessages }),
+        toUIMessageStream({
+          stream: result.stream,
+          originalMessages: processedMessages,
+        }),
       );
     },
     onStepFinish: ({ messages, responseMessage }) => {

@@ -33,7 +33,7 @@ import { gladia } from '@ai-sdk/gladia';
 
 ```ts
 import { gladia } from '@ai-sdk/gladia';
-import { experimental_transcribe as transcribe } from 'ai';
+import { transcribe } from 'ai';
 
 const { text } = await transcribe({
   model: gladia.transcription(),

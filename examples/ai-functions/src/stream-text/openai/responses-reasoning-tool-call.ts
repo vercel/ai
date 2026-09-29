@@ -8,7 +8,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai.responses('o3-mini'),
+    model: openai.responses('gpt-6-luna'),
     stopWhen: isStepCount(10),
     tools: {
       generateRandomText: tool({
@@ -46,7 +46,7 @@ run(async () => {
     },
   });
 
-  for await (const chunk of result.fullStream) {
+  for await (const chunk of result.stream) {
     switch (chunk.type) {
       case 'start':
         console.log('START');

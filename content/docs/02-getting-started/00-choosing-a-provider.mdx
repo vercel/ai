@@ -45,7 +45,7 @@ The AI Gateway is the default [global provider](/docs/ai-sdk-core/provider-manag
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-4.5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'What is love?',
 });
 ```
@@ -55,38 +55,23 @@ You can also explicitly import and use the gateway provider:
 ```ts
 // Option 1: Import from 'ai' package (included by default)
 import { gateway } from 'ai';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 
 // Option 2: Install and import from '@ai-sdk/gateway' package
 import { gateway } from '@ai-sdk/gateway';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 ```
 
 ## Using Dedicated Providers
 
 You can also use [first-party](/providers/ai-sdk-providers), [OpenAI-compatible](/providers/openai-compatible-providers), and [community](/providers/community-providers) provider packages directly. Install the package and create a provider instance. For example, to use Anthropic:
 
-<div className="my-4">
-  <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-    <Tab>
-      <Snippet text="pnpm add @ai-sdk/anthropic" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="npm install @ai-sdk/anthropic" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="yarn add @ai-sdk/anthropic" dark />
-    </Tab>
-    <Tab>
-      <Snippet text="bun add @ai-sdk/anthropic" dark />
-    </Tab>
-  </Tabs>
-</div>
+<InstallPackages packages="@ai-sdk/anthropic" />
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
 
-model: anthropic('claude-sonnet-4-5');
+model: anthropic('claude-sonnet-5-5');
 ```
 
 You can change the default global provider so string model references use your preferred provider everywhere in your application. Learn more about [provider management](/docs/ai-sdk-core/provider-management#global-provider-configuration).

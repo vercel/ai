@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: google.interactions('gemini-2.5-flash'),
+    model: google.interactions('gemini-3.8-flash'),
     tools: {
       google_search: google.tools.googleSearch({}),
     },
@@ -13,7 +13,7 @@ run(async () => {
       'Include the date for each item you mention.',
   });
 
-  for await (const part of result.fullStream) {
+  for await (const part of result.stream) {
     if (part.type === 'text-delta') {
       process.stdout.write(part.text);
     }

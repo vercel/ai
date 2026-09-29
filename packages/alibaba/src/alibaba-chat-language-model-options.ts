@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 // https://www.alibabacloud.com/help/en/model-studio/models
 export type AlibabaChatModelId =
   // commercial edition - hybrid-thinking mode (disabled by default)
+  | 'qwen3.7-max'
   | 'qwen3-max'
   | 'qwen3-max-preview'
   | 'qwen-plus'
@@ -41,6 +42,16 @@ export const alibabaLanguageModelChatOptions = z.object({
    * Maximum number of reasoning tokens to generate.
    */
   thinkingBudget: z.number().positive().optional(),
+
+  /**
+   * Whether to preserve reasoning from previous assistant messages.
+   *
+   * When enabled, historical reasoning is sent separately as
+   * `reasoning_content` and Alibaba receives `preserve_thinking: true`.
+   * Defaults to `true` for models that support preserved thinking; set to
+   * `false` to opt out.
+   */
+  preserveThinking: z.boolean().optional(),
 
   /**
    * Whether to enable parallel function calling during tool use.

@@ -33,6 +33,7 @@ const server = createTestServer({
   },
   'https://api.gladia.io/v2/pre-recorded': {},
   [initiateFixture.result_url]: {},
+  'https://cdn.evil.example/v2/pre-recorded/result': {},
 });
 
 function prepareJsonFixtureResponse(headers?: Record<string, string>) {
@@ -63,6 +64,30 @@ describe('doGenerate', () => {
       });
     });
 
+    it('does not send the API key when the result URL is on a foreign origin', async () => {
+      const foreignResultUrl =
+        'https://cdn.evil.example/v2/pre-recorded/result';
+      server.urls['https://api.gladia.io/v2/pre-recorded'].response = {
+        type: 'json-value',
+        body: { ...initiateFixture, result_url: foreignResultUrl },
+      };
+      server.urls[foreignResultUrl].response = {
+        type: 'json-value',
+        body: resultFixture,
+      };
+
+      await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const pollCall = server.calls.find(
+        call => call.requestUrl === foreignResultUrl,
+      );
+      expect(pollCall).toBeDefined();
+      expect(pollCall!.requestHeaders['x-gladia-key']).toBeUndefined();
+    });
+
     it('should pass headers', async () => {
       const provider = createGladia({
         apiKey: 'test-api-key',
@@ -86,7 +111,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/gladia/0.0.0-test`,
+        `ai-sdk-gladia/0.0.0-test`,
       );
     });
 
@@ -99,6 +124,55 @@ describe('doGenerate', () => {
       expect(result.text).toBe(
         resultFixture.result.transcription.full_transcript,
       );
+    });
+
+    it('should preserve utterance metadata in provider metadata', async () => {
+      const utterances = resultFixture.result.transcription.utterances.map(
+        (utterance: Record<string, unknown>, index: number) => ({
+          ...utterance,
+          speaker: index === 0 ? 0 : `speaker-${index}`,
+        }),
+      );
+      server.urls[initiateFixture.result_url].response = {
+        type: 'json-value',
+        body: {
+          ...resultFixture,
+          result: {
+            ...resultFixture.result,
+            transcription: {
+              ...resultFixture.result.transcription,
+              utterances,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      const gladiaMetadata = result.providerMetadata?.gladia;
+      expect(gladiaMetadata).toBeDefined();
+      const metadataUtterances = (
+        gladiaMetadata as {
+          result: {
+            transcription: {
+              utterances: Record<string, unknown>[];
+            };
+          };
+        }
+      ).result.transcription.utterances;
+
+      expect(metadataUtterances[0]).toMatchObject({
+        speaker: 0,
+        confidence: utterances[0].confidence,
+        language: utterances[0].language,
+        words: utterances[0].words,
+      });
+      expect(metadataUtterances[1]).toMatchObject({
+        speaker: 'speaker-1',
+      });
     });
 
     it('should generate full response', async () => {
@@ -117,7 +191,9 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
     });
   });
 

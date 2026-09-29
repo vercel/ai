@@ -9,6 +9,7 @@ import {
   createUIMessageStreamResponse,
   isStepCount,
   streamText,
+  toUIMessageStream,
   type InferUITools,
   type UIMessage,
 } from 'ai';
@@ -37,15 +38,14 @@ export async function POST(req: Request) {
     reqJson as PreviousResponseIdRequestBody;
 
   // Extract the prior OpenAI responseId so the Responses API can replay history.
-  const previousResponseId: string | null | undefined =
-    !!previousProviderMetadata
-      ? previousProviderMetadata.openai.responseId
-      : undefined;
+  const previousResponseId: string | null | undefined = previousProviderMetadata
+    ? previousProviderMetadata.openai.responseId
+    : undefined;
 
   const stream = createUIMessageStream<PreviousResponseIdUIMessage>({
     execute: async ({ writer }) => {
       const result = streamText({
-        model: openai('gpt-5-mini'),
+        model: openai('gpt-6-luna'),
         // Send only the latest user message; OpenAI will fetch prior turns via previousResponseId.
         messages: await convertToModelMessages([message]),
         tools,
@@ -59,8 +59,10 @@ export async function POST(req: Request) {
             previousResponseId,
           } satisfies OpenAILanguageModelResponsesOptions,
         },
-        onFinish: ({ providerMetadata }) => {
-          if (!!providerMetadata) {
+        onEnd: ({ finalStep }) => {
+          const providerMetadata = finalStep.providerMetadata;
+
+          if (providerMetadata) {
             // Return provider metadata so the client can persist the latest responseId.
             writer.write({
               type: 'data-providerMetadata',
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
           }
         },
       });
-      writer.merge(result.toUIMessageStream());
+      writer.merge(toUIMessageStream({ stream: result.stream }));
     },
   });
 

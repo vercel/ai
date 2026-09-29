@@ -8,7 +8,12 @@ description: Convert useChat messages to ModelMessages for AI functions (API Ref
 The `convertToModelMessages` function is used to transform an array of UI messages from the `useChat` hook into an array of `ModelMessage` objects. These `ModelMessage` objects are compatible with AI core functions like `streamText`.
 
 ```ts filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+} from 'ai';
 __PROVIDER_IMPORT__;
 
 export async function POST(req: Request) {
@@ -19,7 +24,9 @@ export async function POST(req: Request) {
     messages: await convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -63,12 +70,24 @@ A Promise that resolves to an array of [`ModelMessage`](/docs/reference/ai-sdk-c
   ]}
 />
 
+## Deprecated `rawInput` field
+
+Tool parts in the `output-error` state should store their tool arguments in
+`input`. The legacy `rawInput` field remains supported for persisted messages,
+but `convertToModelMessages` emits an AI SDK deprecation warning when it
+encounters a defined value.
+
+When both fields are present, `input` takes precedence when it is non-nullish.
+For backward compatibility, `rawInput` remains the fallback when `input` is
+`null` or `undefined`. Migrate stored messages to `input` before the next major
+version, when `rawInput` will be removed.
+
 ## Tool Approval States
 
 `convertToModelMessages` preserves tool approval state from UI messages when converting them back into `ModelMessage`s for a follow-up `generateText` or `streamText` call.
 
-- Tool parts in `approval-requested` state become `tool-approval-request` content parts.
-- Tool parts in `approval-responded` state become `tool-approval-response` content parts, including `reason` when present.
+- Tool parts with approval metadata produce `tool-approval-request` content parts. `approval.requestReason` is forwarded as the request `reason` when present.
+- Tool parts in `approval-responded` state also become `tool-approval-response` content parts. The separate response `reason` is forwarded when present.
 - Automatic approval metadata is preserved by forwarding `approval.isAutomatic` to the `tool-approval-request` part.
 - Denied tool approvals also produce a synthetic `tool-result` with `output: { type: 'execution-denied', reason?: string }`, so the model receives a complete tool lifecycle and can respond to the denial in the next step.
 
@@ -91,7 +110,7 @@ const screenshotTool = tool({
 
 const result = streamText({
   model: __MODEL__,
-  messages: convertToModelMessages(messages, {
+  messages: await convertToModelMessages(messages, {
     tools: {
       screenshot: screenshotTool,
     },
@@ -110,7 +129,13 @@ The `convertToModelMessages` function supports converting custom data parts atta
 By default, data parts in user messages are filtered out during conversion. To include them, provide a `convertDataPart` callback that transforms data parts into text or file parts that the model can understand:
 
 ```ts filename="app/api/chat/route.ts"
-import { convertToModelMessages, streamText } from 'ai';
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
 
 type CustomUIMessage = UIMessage<
   never,
@@ -125,7 +150,7 @@ export async function POST(req: Request) {
 
   const result = streamText({
     model: __MODEL__,
-    messages: convertToModelMessages<CustomUIMessage>(messages, {
+    messages: await convertToModelMessages<CustomUIMessage>(messages, {
       convertDataPart: part => {
         // Convert URL attachments to text
         if (part.type === 'data-url') {
@@ -148,7 +173,9 @@ export async function POST(req: Request) {
     }),
   });
 
-  return result.toUIMessageStreamResponse();
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
 }
 ```
 
@@ -193,7 +220,7 @@ Only data parts for which you return a text or file model message part are inclu
 all other data parts are ignored.
 
 ```ts
-const result = convertToModelMessages<
+const result = await convertToModelMessages<
   UIMessage<
     unknown,
     {
@@ -211,7 +238,7 @@ const result = convertToModelMessages<
       };
     }
 
-    // data-code and data-node are ignored
+    // data-code and data-note are ignored
   },
 });
 ```

@@ -1,18 +1,24 @@
 import { gateway } from '@ai-sdk/gateway';
-import type {
-  EmbeddingModelV4,
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  RerankingModelV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  NoSuchModelError,
+  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type EmbeddingModelV4,
+  type Experimental_SpeechTranslationModelV4,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type RerankingModelV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { EvaluationModel } from '../evaluate/evaluation-result';
+import type { EvaluationProvider } from '../evaluate/evaluation-provider';
 import { UnsupportedModelVersionError } from '../error';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
 import type { SpeechModel } from '../types/speech-model';
+import type { SpeechTranslationModel } from '../types/speech-translation-model';
 import type { TranscriptionModel } from '../types/transcription-model';
 import { asEmbeddingModelV4 } from './as-embedding-model-v4';
 import { asImageModelV4 } from './as-image-model-v4';
@@ -77,6 +83,39 @@ export function resolveTranscriptionModel(
   }
 
   return asTranscriptionModelV4(model);
+}
+
+export function resolveSpeechTranslationModel(
+  model: SpeechTranslationModel,
+): Experimental_SpeechTranslationModelV4 {
+  if (typeof model === 'string') {
+    // Use raw global provider because speechTranslationModel is experimental
+    // and not part of the ProviderV4 interface
+    const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
+    // TODO AI SDK v7
+    // @ts-expect-error - speechTranslationModel support is experimental
+    const speechTranslationModel = provider.speechTranslationModel;
+
+    if (!speechTranslationModel) {
+      throw new Error(
+        'The default provider does not support speech translation models. ' +
+          'Please pass a provider model instance that implements the experimental speech translation model specification.',
+      );
+    }
+
+    return speechTranslationModel(model);
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    const unsupportedModel: any = model;
+    throw new UnsupportedModelVersionError({
+      version: unsupportedModel.specificationVersion,
+      provider: unsupportedModel.provider,
+      modelId: unsupportedModel.modelId,
+    });
+  }
+
+  return model;
 }
 
 export function resolveSpeechModel(
@@ -176,6 +215,45 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   }
 
   return asRerankingModelV4(model);
+}
+
+export function resolveEvaluationModel(
+  model: EvaluationModel,
+): EvaluationModelV4 {
+  if (typeof model === 'string') {
+    // Use the original provider so experimental methods and their receiver survive.
+    const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
+      gateway) as EvaluationProvider;
+
+    if (typeof provider?.evaluationModel !== 'function') {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'evaluationModel',
+        message:
+          'The default provider does not support evaluation models. ' +
+          'Pass an evaluation model instance or configure AI_SDK_DEFAULT_PROVIDER with an evaluationModel method.',
+      });
+    }
+
+    const resolvedModel = provider.evaluationModel(model);
+    if (resolvedModel == null) {
+      throw new NoSuchModelError({
+        modelId: model,
+        modelType: 'evaluationModel',
+      });
+    }
+    model = resolvedModel;
+  }
+
+  if (model.specificationVersion !== 'v4') {
+    throw new UnsupportedModelVersionError({
+      version: model.specificationVersion,
+      provider: model.provider,
+      modelId: model.modelId,
+    });
+  }
+
+  return model;
 }
 
 function getGlobalProvider(): ProviderV4 {

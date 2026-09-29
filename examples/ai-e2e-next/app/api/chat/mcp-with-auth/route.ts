@@ -5,6 +5,7 @@ import {
   streamText,
   createUIMessageStream,
   createUIMessageStreamResponse,
+  toUIMessageStream,
 } from 'ai';
 import {
   createMCPClient,
@@ -238,7 +239,7 @@ export async function POST(req: Request) {
           const tools = await mcpClient.tools();
 
           const result = streamText({
-            model: openai('gpt-4o-mini'),
+            model: openai('gpt-6-luna'),
             tools,
             stopWhen: isStepCount(10),
             instructions:
@@ -247,7 +248,10 @@ export async function POST(req: Request) {
           });
 
           writer.merge(
-            result.toUIMessageStream({ originalMessages: messages }),
+            toUIMessageStream({
+              stream: result.stream,
+              originalMessages: messages,
+            }),
           );
         } finally {
           await mcpClient.close();

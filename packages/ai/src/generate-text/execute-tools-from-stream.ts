@@ -4,20 +4,28 @@ import type {
   IdGenerator,
   InferToolSetContext,
   ModelMessage,
-  Experimental_Sandbox as Sandbox,
+  Experimental_SandboxSession as SandboxSession,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { TimeoutConfiguration } from '../prompt/request-options';
-import type { Telemetry } from '../telemetry/telemetry';
+import type { Telemetry, TelemetryDispatcher } from '../telemetry/telemetry';
+import { getOwn } from '../util/get-own';
 import { executeToolCall } from './execute-tool-call';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { resolveToolApproval } from './resolve-tool-approval';
 import type { LanguageModelStreamPart } from './stream-language-model-call';
+import {
+  isStreamRetryAttemptBoundaryPart,
+  type StreamRetryAttemptBoundaryPart,
+} from './stream-retry-attempt-boundary';
+import { maybeSignApproval } from './tool-approval-signature';
 import type { ToolApprovalConfiguration } from './tool-approval-configuration';
 import type { TypedToolCall } from './tool-call';
 import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from './tool-execution-events';
+import type { StaticToolOutputDenied } from './tool-output-denied';
 
 export type ToolExecutionEndStreamPart = {
   type: 'tool-execution-end';
@@ -27,7 +35,13 @@ export type ToolExecutionEndStreamPart = {
 
 export type ExecuteToolsStreamPart<TOOLS extends ToolSet = ToolSet> =
   | LanguageModelStreamPart<TOOLS>
-  | ToolExecutionEndStreamPart;
+  | StaticToolOutputDenied<TOOLS>
+  | ToolExecutionEndStreamPart
+  | StreamRetryAttemptBoundaryPart;
+
+type ExecuteToolsInputStreamPart<TOOLS extends ToolSet> =
+  | LanguageModelStreamPart<TOOLS>
+  | StreamRetryAttemptBoundaryPart;
 
 export function executeToolsFromStream<
   TOOLS extends ToolSet,
@@ -43,42 +57,53 @@ export function executeToolsFromStream<
   toolsContext,
   toolApproval,
   runtimeContext,
+  toolApprovalSecret,
   generateId,
   onToolExecutionStart,
   onToolExecutionEnd,
   executeToolInTelemetryContext,
+  runInTracingChannelSpan,
 }: {
-  stream: ReadableStream<LanguageModelStreamPart<TOOLS>>;
+  stream: ReadableStream<ExecuteToolsInputStreamPart<TOOLS>>;
   tools: TOOLS | undefined;
   callId: string;
   messages: ModelMessage[];
   abortSignal: AbortSignal | undefined;
   timeout?: TimeoutConfiguration<TOOLS>;
-  experimental_sandbox?: Sandbox;
+  experimental_sandbox?: SandboxSession;
   toolsContext: InferToolSetContext<TOOLS>;
   toolApproval?: ToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>;
   runtimeContext: RUNTIME_CONTEXT;
+  toolApprovalSecret?: string | Uint8Array;
   generateId: IdGenerator;
   onToolExecutionStart?: Arrayable<OnToolExecutionStartCallback<TOOLS>>;
   onToolExecutionEnd?: Arrayable<OnToolExecutionEndCallback<TOOLS>>;
   executeToolInTelemetryContext?: Telemetry['executeTool'];
+  runInTracingChannelSpan?: NonNullable<
+    TelemetryDispatcher['runInTracingChannelSpan']
+  >;
 }): ReadableStream<ExecuteToolsStreamPart<TOOLS>> {
   const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // forward stream
   return stream.pipeThrough(
     new TransformStream<
-      LanguageModelStreamPart<TOOLS>,
+      ExecuteToolsInputStreamPart<TOOLS>,
       ExecuteToolsStreamPart<TOOLS>
     >({
       async transform(
-        chunk: LanguageModelStreamPart<TOOLS>,
+        chunk: ExecuteToolsInputStreamPart<TOOLS>,
         controller: TransformStreamDefaultController<
           ExecuteToolsStreamPart<TOOLS>
         >,
       ) {
         // immediately forward all chunks
         controller.enqueue(chunk);
+
+        if (isStreamRetryAttemptBoundaryPart(chunk)) {
+          toolCallsToExecute.length = 0;
+          return;
+        }
 
         const chunkType = chunk.type;
 
@@ -88,7 +113,7 @@ export function executeToolsFromStream<
               return;
             }
 
-            const tool = tools?.[chunk.toolName];
+            const tool = getOwn(tools, chunk.toolName);
 
             if (tool == null) {
               // ignore tool calls for tools that are not available,
@@ -105,25 +130,49 @@ export function executeToolsFromStream<
               runtimeContext,
             });
 
+            // Tools that don't require approval ('not-applicable') must not
+            // consume an approval id, so that id generation stays stable for
+            // callers that rely on deterministic id sequences. They execute
+            // directly (when not provider-executed).
+            if (toolApprovalStatus.type === 'not-applicable') {
+              if (tool.execute != null && chunk.providerExecuted !== true) {
+                toolCallsToExecute.push(chunk);
+              }
+
+              return;
+            }
+
+            const approvalId = generateId();
+            const signature = await maybeSignApproval({
+              secret: toolApprovalSecret,
+              approvalId,
+              toolCallId: chunk.toolCallId,
+              toolName: chunk.toolName,
+              input: chunk.input,
+            });
+
             switch (toolApprovalStatus.type) {
               case 'user-approval': {
                 controller.enqueue({
                   type: 'tool-approval-request',
-                  approvalId: generateId(),
+                  approvalId,
                   toolCall: chunk,
+                  ...(toolApprovalStatus.reason != null
+                    ? { reason: toolApprovalStatus.reason }
+                    : {}),
+                  ...(signature != null ? { signature } : {}),
                 });
 
                 return; // don't execute tool
               }
 
               case 'denied': {
-                const approvalId = generateId();
-
                 controller.enqueue({
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
+                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -133,18 +182,22 @@ export function executeToolsFromStream<
                   reason: toolApprovalStatus.reason,
                   providerExecuted: chunk.providerExecuted,
                 });
+                controller.enqueue({
+                  type: 'tool-output-denied',
+                  toolCallId: chunk.toolCallId,
+                  toolName: chunk.toolName,
+                } as StaticToolOutputDenied<TOOLS>);
 
                 return; // don't execute tool
               }
 
               case 'approved': {
-                const approvalId = generateId();
-
                 controller.enqueue({
                   type: 'tool-approval-request',
                   approvalId,
                   toolCall: chunk,
                   isAutomatic: true,
+                  ...(signature != null ? { signature } : {}),
                 });
                 controller.enqueue({
                   type: 'tool-approval-response',
@@ -157,12 +210,10 @@ export function executeToolsFromStream<
 
                 break; // continue with tool execution
               }
-
-              case 'not-applicable':
-                break; // continue with tool execution
             }
 
-            // Only execute tools that are not provider-executed:
+            // approved tool calls continue to execution (when not
+            // provider-executed):
             if (tool.execute != null && chunk.providerExecuted !== true) {
               toolCallsToExecute.push(chunk);
             }
@@ -171,6 +222,10 @@ export function executeToolsFromStream<
           }
 
           case 'model-call-end': {
+            if (!isToolExecutionAllowedFinishReason(chunk.finishReason)) {
+              return;
+            }
+
             await Promise.all(
               toolCallsToExecute.map(async toolCall => {
                 try {
@@ -189,6 +244,7 @@ export function executeToolsFromStream<
                     onToolExecutionStart,
                     onToolExecutionEnd,
                     executeToolInTelemetryContext,
+                    runInTracingChannelSpan,
                     onPreliminaryToolResult: result => {
                       controller.enqueue(result);
                     },
@@ -209,8 +265,6 @@ export function executeToolsFromStream<
                 }
               }),
             );
-
-            return;
           }
         }
       },

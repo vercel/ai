@@ -1,21 +1,22 @@
-import { Bash } from 'just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { run } from '../../lib/run';
-import { JustBashSandbox } from '../../sandbox/just-bash-sandbox';
 import { sandboxAgent } from './sandbox-agent';
 import { printFullStream } from '../../lib/print-full-stream';
 
 run(async () => {
-  const sandbox = new JustBashSandbox(
-    new Bash({
-      cwd: '/home/user',
-    }),
-  );
-
-  const result = await sandboxAgent.stream({
-    prompt:
-      'Create a file named greeting.txt with a short greeting, then list the files and show the file contents.',
-    experimental_sandbox: sandbox,
+  const sandboxSession = await createJustBashNetworkSandboxSession({
+    cwd: '/home/user',
   });
 
-  await printFullStream({ result });
+  try {
+    const result = await sandboxAgent.stream({
+      prompt:
+        'Create a file named greeting.txt with a short greeting, then list the files and show the file contents.',
+      experimental_sandbox: sandboxSession.restricted(),
+    });
+
+    await printFullStream({ result });
+  } finally {
+    await sandboxSession.destroy();
+  }
 });

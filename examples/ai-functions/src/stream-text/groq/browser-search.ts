@@ -17,7 +17,7 @@ run(async () => {
 
     console.log('Starting browser search...\n');
 
-    for await (const delta of result.fullStream) {
+    for await (const delta of result.stream) {
       switch (delta.type) {
         case 'text-delta': {
           process.stdout.write(delta.text);

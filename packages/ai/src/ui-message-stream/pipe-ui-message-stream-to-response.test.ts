@@ -1,7 +1,31 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { createMockServerResponse } from '../test/mock-server-response';
+import type { TextStreamPart } from '../generate-text/stream-text-result';
 import { pipeUIMessageStreamToResponse } from './pipe-ui-message-stream-to-response';
+import { toUIMessageStream } from './to-ui-message-stream';
 import { describe, it, expect } from 'vitest';
+
+const cookies = [
+  'theme=light; Expires=Wed, 21 Oct 2030 07:28:00 GMT; Path=/',
+  'locale=en; Path=/',
+];
+
+const multipleCookieHeaderInputs = [
+  {
+    name: 'Headers input',
+    headers: new Headers([
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ]),
+  },
+  {
+    name: 'header pair array input',
+    headers: [
+      ['set-cookie', cookies[0]],
+      ['set-cookie', cookies[1]],
+    ],
+  },
+] satisfies Array<{ name: string; headers: HeadersInit }>;
 
 describe('pipeUIMessageStreamToResponse', () => {
   it('should write to ServerResponse with correct headers and encoded stream', async () => {
@@ -60,6 +84,26 @@ describe('pipeUIMessageStreamToResponse', () => {
     `);
   });
 
+  it.each(multipleCookieHeaderInputs)(
+    'should preserve multiple Set-Cookie headers with $name',
+    async ({ headers }) => {
+      const mockResponse = createMockServerResponse();
+
+      pipeUIMessageStreamToResponse({
+        response: mockResponse,
+        headers,
+        stream: convertArrayToReadableStream([
+          { type: 'start', messageId: 'message-id' },
+          { type: 'finish' },
+        ]),
+      });
+
+      await mockResponse.waitForEnd();
+
+      expect(mockResponse.headers['set-cookie']).toStrictEqual(cookies);
+    },
+  );
+
   it('should handle errors in the stream', async () => {
     const mockResponse = createMockServerResponse();
 
@@ -79,6 +123,42 @@ describe('pipeUIMessageStreamToResponse', () => {
     expect(decodedChunks).toMatchInlineSnapshot(`
       [
         "data: {"type":"error","errorText":"Custom error message"}
+
+      ",
+        "data: [DONE]
+
+      ",
+      ]
+    `);
+  });
+
+  it('can pipe a stream created by toUIMessageStream', async () => {
+    const mockResponse = createMockServerResponse();
+
+    pipeUIMessageStreamToResponse({
+      response: mockResponse,
+      stream: toUIMessageStream({
+        stream: convertArrayToReadableStream([
+          { type: 'start' },
+          { type: 'text-start', id: 't1' },
+          { type: 'text-delta', id: 't1', text: 'Hello' },
+          { type: 'text-end', id: 't1' },
+        ] satisfies TextStreamPart<{}>[]),
+        sendStart: false,
+      }),
+    });
+
+    await mockResponse.waitForEnd();
+
+    expect(mockResponse.getDecodedChunks()).toMatchInlineSnapshot(`
+      [
+        "data: {"type":"text-start","id":"t1"}
+
+      ",
+        "data: {"type":"text-delta","id":"t1","delta":"Hello"}
+
+      ",
+        "data: {"type":"text-end","id":"t1"}
 
       ",
         "data: [DONE]

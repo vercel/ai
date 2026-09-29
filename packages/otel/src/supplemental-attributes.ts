@@ -1,12 +1,17 @@
 import type { Attributes, Tracer } from '@opentelemetry/api';
 import type { TelemetryOptions } from 'ai';
-import { selectAttributes, type AttributeSpecMap } from './select-attributes';
+import {
+  selectAttributes,
+  type AttributeSpec,
+  type AttributeSpecMap,
+} from './select-attributes';
 
 type SupplementalAttributeOption =
   | 'usage'
   | 'providerMetadata'
   | 'embedding'
   | 'reranking'
+  | 'experimental_evaluation'
   | 'runtimeContext'
   | 'headers'
   | 'toolChoice'
@@ -23,7 +28,8 @@ export type OpenTelemetrySpanType =
   | 'languageModel'
   | 'tool'
   | 'embedding'
-  | 'reranking';
+  | 'reranking'
+  | 'experimental_evaluation';
 
 export type EnrichSpan = (options: {
   spanType: OpenTelemetrySpanType;
@@ -65,6 +71,11 @@ export type OpenTelemetryOptions = {
   reranking?: boolean;
 
   /**
+   * Emit evaluation state, questions, and answers.
+   */
+  experimental_evaluation?: boolean;
+
+  /**
    * Emit runtime context values.
    */
   runtimeContext?: boolean;
@@ -90,6 +101,7 @@ const disabledSupplementalAttributes: SupplementalAttributeOptions = {
   providerMetadata: false,
   embedding: false,
   reranking: false,
+  experimental_evaluation: false,
   runtimeContext: false,
   headers: false,
   toolChoice: false,
@@ -105,6 +117,7 @@ export function normalizeSupplementalAttributes(
     providerMetadata: options.providerMetadata ?? false,
     embedding: options.embedding ?? false,
     reranking: options.reranking ?? false,
+    experimental_evaluation: options.experimental_evaluation ?? false,
     runtimeContext: options.runtimeContext ?? false,
     headers: options.headers ?? false,
     toolChoice: options.toolChoice ?? false,
@@ -115,11 +128,36 @@ export function normalizeSupplementalAttributes(
 export function getRuntimeContextAttributes(
   context: Record<string, unknown> | undefined,
 ): AttributeSpecMap {
-  return Object.fromEntries(
-    Object.entries(context ?? {})
-      .filter(([, value]) => value != null)
-      .map(([key, value]) => [`ai.settings.context.${key}`, value]),
-  ) as AttributeSpecMap;
+  const attributes: AttributeSpecMap = {};
+
+  for (const [key, value] of Object.entries(context ?? {})) {
+    addRuntimeContextAttribute(attributes, `ai.settings.context.${key}`, value);
+  }
+
+  return attributes;
+}
+
+/**
+ * Flattens nested runtime context objects into OTel-compatible attribute keys.
+ * Arrays are preserved because OTel supports primitive array attribute values.
+ */
+function addRuntimeContextAttribute(
+  attributes: AttributeSpecMap,
+  key: string,
+  value: unknown,
+): void {
+  if (value == null) {
+    return;
+  }
+
+  if (Array.isArray(value) || typeof value !== 'object') {
+    attributes[key] = value as AttributeSpec;
+    return;
+  }
+
+  for (const [nestedKey, nestedValue] of Object.entries(value)) {
+    addRuntimeContextAttribute(attributes, `${key}.${nestedKey}`, nestedValue);
+  }
 }
 
 export function getHeaderAttributes(

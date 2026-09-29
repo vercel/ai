@@ -13,7 +13,7 @@ run(async () => {
   let toolResponseAvailable = false;
 
   const result = streamText({
-    model: googleVertex('gemini-2.5-pro'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     tools: { code_execution: googleVertex.tools.codeExecution({}) },
     maxOutputTokens: 10000,
     prompt:
@@ -24,7 +24,7 @@ run(async () => {
   const toolCalls: ToolCallPart[] = [];
   const toolResponses: ToolResultPart[] = [];
 
-  for await (const delta of result.fullStream) {
+  for await (const delta of result.stream) {
     switch (delta.type) {
       case 'text-delta': {
         fullResponse += delta.text;

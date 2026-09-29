@@ -38,10 +38,17 @@ describe('GatewayEmbeddingModel', () => {
   function prepareJsonResponse({
     embeddings = dummyEmbeddings,
     usage = { tokens: 8 },
+    warnings,
     headers,
   }: {
     embeddings?: number[][];
     usage?: { tokens: number };
+    warnings?: Array<
+      | { type: 'unsupported'; feature: string; details?: string }
+      | { type: 'compatibility'; feature: string; details?: string }
+      | { type: 'deprecated'; setting: string; message: string }
+      | { type: 'other'; message: string }
+    >;
     headers?: Record<string, string>;
   } = {}) {
     server.urls['https://api.test.com/embedding-model'].response = {
@@ -50,6 +57,7 @@ describe('GatewayEmbeddingModel', () => {
       body: {
         embeddings,
         usage,
+        ...(warnings && { warnings }),
       },
     };
   }
@@ -99,6 +107,34 @@ describe('GatewayEmbeddingModel', () => {
 
       expect(embeddings).toStrictEqual(dummyEmbeddings);
       expect(usage).toStrictEqual({ tokens: 42 });
+    });
+
+    it('should extract warnings', async () => {
+      const mockWarnings = [
+        {
+          type: 'deprecated' as const,
+          setting: 'dimensions',
+          message: 'Use outputDimensions instead.',
+        },
+      ];
+
+      prepareJsonResponse({ warnings: mockWarnings });
+
+      const { warnings } = await createTestModel().doEmbed({
+        values: testValues,
+      });
+
+      expect(warnings).toStrictEqual(mockWarnings);
+    });
+
+    it('should default warnings to an empty array when absent', async () => {
+      prepareJsonResponse();
+
+      const { warnings } = await createTestModel().doEmbed({
+        values: testValues,
+      });
+
+      expect(warnings).toStrictEqual([]);
     });
 
     it('should send value as array', async () => {

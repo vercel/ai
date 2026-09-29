@@ -1,0 +1,28 @@
+{
+  "extends": "./node_modules/@vercel/ai-tsconfig/ts-library.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "ES2018",
+      "ES2022.Intl"
+    ],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "exclude": [
+    "dist",
+    "build",
+    "node_modules",
+    "tsup.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../ai"
+    },
+    {
+      "path": "../provider"
+    }
+  ]
+}

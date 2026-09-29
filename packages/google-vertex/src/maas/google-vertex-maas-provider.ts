@@ -11,6 +11,19 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
+const maxOutputTokensByModel: Record<string, number | undefined> = {
+  'meta/llama-4-maverick-17b-128e-instruct-maas': 8192,
+  'meta/llama-4-scout-17b-16e-instruct-maas': 8192,
+};
+
+function transformGoogleVertexMaasRequestBody(args: Record<string, any>) {
+  const maxOutputTokens = maxOutputTokensByModel[args.model];
+
+  return maxOutputTokens != null && args.max_tokens === undefined
+    ? { ...args, max_tokens: maxOutputTokens }
+    : args;
+}
+
 export interface GoogleVertexMaasProvider extends OpenAICompatibleProvider<
   GoogleVertexMaasModelId,
   string,
@@ -75,12 +88,21 @@ export function createGoogleVertexMaas(
       description: 'Google Vertex project',
     });
 
-  // Construct base URL: https://aiplatform.googleapis.com/v1/projects/{project}/locations/{location}/endpoints/openapi
+  const getHost = (location: string) => {
+    if (location === 'global') {
+      return 'aiplatform.googleapis.com';
+    } else if (location === 'eu' || location === 'us') {
+      return `aiplatform.${location}.rep.googleapis.com`;
+    } else {
+      return `${location}-aiplatform.googleapis.com`;
+    }
+  };
+
   const constructBaseURL = () => {
     const projectId = loadProject();
     const location = loadLocation() ?? 'global';
 
-    return `https://aiplatform.googleapis.com/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
+    return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };
 
   const loadBaseURL = () =>
@@ -92,6 +114,7 @@ export function createGoogleVertexMaas(
       name: 'vertex.maas',
       baseURL: loadBaseURL(),
       fetch: options.fetch,
+      transformRequestBody: transformGoogleVertexMaasRequestBody,
     }));
 
   const provider = (modelId: GoogleVertexMaasModelId) => getProvider()(modelId);
