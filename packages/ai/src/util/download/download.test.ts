@@ -103,6 +103,8 @@ describe('download SSRF redirect protection', () => {
   });
 
   it('should let the browser follow redirects natively on an opaque redirect', async () => {
+    // Model a portable runtime, so the Node-only transport is not selected.
+    vi.stubGlobal('EdgeRuntime', 'test');
     const globalThisAny = globalThis as { window?: unknown };
     globalThisAny.window = {};
     const content = new Uint8Array([1, 2, 3]);
@@ -146,6 +148,7 @@ describe('download SSRF redirect protection', () => {
       );
     } finally {
       delete globalThisAny.window;
+      vi.unstubAllGlobals();
     }
   });
 
@@ -374,7 +377,6 @@ describe('download', () => {
 
   it('should pass abortSignal to fetch', async () => {
     const controller = new AbortController();
-    controller.abort();
 
     globalThis.fetch = vi
       .fn()

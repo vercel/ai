@@ -30,6 +30,9 @@ async function getValidatedFetch(
  *
  * On Node.js, the default fetch validates and pins DNS results at connect time.
  * An injected fetch is responsible for equivalent connect-time validation.
+ * The default Node transport supports request bodies, headers, and abort signals;
+ * it rejects integrity, non-default cache, explicit referrer, and keepalive
+ * options. It does not implement browser CORS, cookies, or referrer policies.
  * Redirects are rejected by default. Callers using `redirect: 'manual'` must
  * validate the Location target before issuing another request.
  */

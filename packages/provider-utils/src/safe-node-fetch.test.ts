@@ -94,6 +94,10 @@ function runLookup(addresses: Address[]) {
         if (error) {
           reject(error);
         } else {
+          if (typeof result === 'string') {
+            reject(new Error('Expected all addresses'));
+            return;
+          }
           resolve(result);
         }
       });
@@ -128,6 +132,10 @@ describe('createSafeLookup', () => {
         if (error) {
           reject(error);
         } else {
+          if (typeof address !== 'string' || family == null) {
+            reject(new Error('Expected one address'));
+            return;
+          }
           resolve({ address, family });
         }
       });
@@ -139,6 +147,34 @@ describe('createSafeLookup', () => {
       { all: true },
       expect.any(Function),
     );
+  });
+
+  it('rejects empty DNS results', async () => {
+    await expect(runLookup([]).result).rejects.toThrow('did not resolve');
+  });
+
+  it('preserves DNS errors and invokes the connector callback once', () => {
+    const error = Object.assign(new Error('DNS unavailable'), {
+      code: 'EAI_AGAIN',
+    });
+    const lookup = createSafeLookup((_hostname, _options, callback) =>
+      callback(error, []),
+    );
+    const callback = vi.fn();
+    lookup('files.example.com', { all: true }, callback);
+    expect(callback).toHaveBeenCalledExactlyOnceWith(error, []);
+  });
+
+  it('does not catch and re-invoke a throwing connector callback', () => {
+    const { safeLookup } = createLookup([{ address: '8.8.8.8', family: 4 }]);
+    const error = new Error('connector failure');
+    const callback = vi.fn(() => {
+      throw error;
+    });
+    expect(() =>
+      safeLookup('files.example.com', { all: true }, callback),
+    ).toThrow(error);
+    expect(callback).toHaveBeenCalledTimes(1);
   });
 
   it('blocks a hostname that resolves to a private address', async () => {

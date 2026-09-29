@@ -1,3 +1,4 @@
+import type * as ProviderUtils from '@ai-sdk/provider-utils';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import {
   extractWWWAuthenticateParams,
@@ -20,6 +21,32 @@ import {
   UnauthorizedClientError,
 } from '../error/oauth-error';
 import { LATEST_PROTOCOL_VERSION } from './types';
+
+// These are OAuth protocol tests with partial fetch fixtures. Inject a custom
+// transport so they exercise URL/credential policy without pretending those
+// fixtures are native HTTP responses. Real socket coverage lives in provider-utils.
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<typeof ProviderUtils>();
+  const fetch: typeof globalThis.fetch = (input, init) =>
+    globalThis.fetch(input, init);
+  return {
+    ...actual,
+    fetchWithValidatedEndpoint: (
+      options: Parameters<typeof actual.fetchWithValidatedEndpoint>[0],
+    ) =>
+      actual.fetchWithValidatedEndpoint({
+        ...options,
+        fetch:
+          options.fetch == null || options.fetch === globalThis.fetch
+            ? fetch
+            : options.fetch,
+      }),
+    fetchUntrustedUrl: (
+      options: Parameters<typeof actual.fetchUntrustedUrl>[0],
+    ) =>
+      actual.fetchUntrustedUrl({ ...options, fetch: options.fetch ?? fetch }),
+  };
+});
 
 // Mock the pkce-challenge module
 vi.mock('pkce-challenge', () => ({

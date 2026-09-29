@@ -1,7 +1,5 @@
 import dns from 'node:dns';
-import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
-import { resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const originalFetch = globalThis.fetch;
@@ -104,16 +102,13 @@ describe.each(['before', 'after'] as const)(
                       : undefined,
                 });
 
-        // Undici wraps the validating lookup's DownloadError as the cause.
+        // The HTTP client propagates the validating lookup error.
         const dnsError = {
-          name: 'AI_DownloadError',
           message: expect.stringContaining(
             'resolved to disallowed IP address 127.0.0.1',
           ),
         };
-        await expect(request).rejects.toMatchObject({
-          cause: entryPoint === 'blob' ? { cause: dnsError } : dnsError,
-        });
+        await expect(request).rejects.toMatchObject(dnsError);
         expect(lookup).toHaveBeenCalledExactlyOnceWith(
           'files.example.com',
           expect.objectContaining({ all: true }),
@@ -132,12 +127,9 @@ it('still validates DNS when global fetch is unavailable at import time', async 
     await import('./fetch-with-validated-redirects');
 
   await expect(fetchWithValidatedEndpoint({ url })).rejects.toMatchObject({
-    cause: {
-      name: 'AI_DownloadError',
-      message: expect.stringContaining(
-        'resolved to disallowed IP address 127.0.0.1',
-      ),
-    },
+    message: expect.stringContaining(
+      'resolved to disallowed IP address 127.0.0.1',
+    ),
   });
   expect(lookup).toHaveBeenCalledTimes(1);
   expect(onConnection).not.toHaveBeenCalled();
@@ -169,12 +161,6 @@ it('does not fall back to global fetch when loading Node built-ins fails', async
   expect(fetchMock).not.toHaveBeenCalled();
   expect(lookup).not.toHaveBeenCalled();
   expect(onConnection).not.toHaveBeenCalled();
-});
-
-it('keeps the Undici dependency analyzable in the build output', async () => {
-  const builtSource = await readFile(resolve('dist/index.js'), 'utf8');
-
-  expect(builtSource).toMatch(/["']undici["']/);
 });
 
 it.each(['endpoint', 'redirects'] as const)(

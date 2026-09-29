@@ -1,17 +1,17 @@
 import { defineConfig } from 'tsup';
 
+const packageVersion = (
+  await import('./package.json', { with: { type: 'json' } })
+).default.version;
+
 export default defineConfig([
   {
     entry: ['src/index.ts'],
     format: ['esm'],
     dts: true,
     sourcemap: true,
-    platform: 'node',
     define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
+      __PACKAGE_VERSION__: JSON.stringify(packageVersion),
     },
   },
   {
@@ -43,10 +43,7 @@ export default defineConfig([
       'vitest/dist/node/chunks/*',
     ],
     define: {
-      __PACKAGE_VERSION__: JSON.stringify(
-        (await import('./package.json', { with: { type: 'json' } })).default
-          .version,
-      ),
+      __PACKAGE_VERSION__: JSON.stringify(packageVersion),
     },
   },
 ]);

@@ -51,12 +51,12 @@
     "@ai-sdk/provider": "workspace:*",
     "@standard-schema/spec": "^1.1.0",
     "@workflow/serde": "4.1.0",
-    "eventsource-parser": "^3.0.8",
-    "undici": "^7.29.0"
+    "eventsource-parser": "^3.0.8"
   },
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "esbuild": "^0.28.2",
     "msw": "2.7.0",
     "tsup": "^8.5.1",
     "typescript": "5.8.3",
