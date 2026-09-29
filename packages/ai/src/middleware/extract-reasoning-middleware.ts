@@ -111,17 +111,24 @@ export function extractReasoningMiddleware({
                 return;
               }
 
+<<<<<<< HEAD
               if (chunk.type === 'text-end' && delayedTextStart) {
                 controller.enqueue(delayedTextStart);
                 delayedTextStart = undefined;
               }
 
               if (chunk.type !== 'text-delta') {
+=======
+              if (chunk.type !== 'text-delta' && chunk.type !== 'text-end') {
+>>>>>>> 2a625cfb32 (fix: preserve streamed text ending with a partial reasoning tag (#21726))
                 controller.enqueue(chunk);
                 return;
               }
 
-              if (reasoningExtractions[chunk.id] == null) {
+              if (
+                chunk.type === 'text-delta' &&
+                reasoningExtractions[chunk.id] == null
+              ) {
                 reasoningExtractions[chunk.id] = {
                   isFirstReasoning: true,
                   isFirstText: true,
@@ -135,7 +142,14 @@ export function extractReasoningMiddleware({
 
               const activeExtraction = reasoningExtractions[chunk.id];
 
-              activeExtraction.buffer += chunk.delta;
+              if (activeExtraction == null) {
+                if (delayedTextStarts[chunk.id] != null) {
+                  controller.enqueue(delayedTextStarts[chunk.id]);
+                  delete delayedTextStarts[chunk.id];
+                }
+                controller.enqueue(chunk);
+                return;
+              }
 
               function publish(text: string) {
                 if (text.length > 0) {
@@ -184,6 +198,20 @@ export function extractReasoningMiddleware({
                   }
                 }
               }
+
+              if (chunk.type === 'text-end') {
+                publish(activeExtraction.buffer);
+                activeExtraction.buffer = '';
+
+                if (delayedTextStarts[chunk.id] != null) {
+                  controller.enqueue(delayedTextStarts[chunk.id]);
+                  delete delayedTextStarts[chunk.id];
+                }
+                controller.enqueue(chunk);
+                return;
+              }
+
+              activeExtraction.buffer += chunk.delta;
 
               do {
                 const nextTag = activeExtraction.isReasoning
