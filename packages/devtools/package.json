@@ -41,6 +41,7 @@
   "dependencies": {
     "@ai-sdk/provider": "workspace:*",
     "@hono/node-server": "^1.19.15",
+    "ai": "workspace:*",
     "hono": "^4.12.34"
   },
   "devDependencies": {
@@ -54,7 +55,6 @@
     "@types/react-dom": "^18.3.7",
     "@vercel/ai-tsconfig": "workspace:*",
     "@vitejs/plugin-react": "^4.7.0",
-    "ai": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "concurrently": "^9.2.1",

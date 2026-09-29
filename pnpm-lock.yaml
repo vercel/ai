@@ -2444,6 +2444,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.15
         version: 1.19.15(hono@4.12.34)
+      ai:
+        specifier: workspace:*
+        version: link:../ai
       hono:
         specifier: ^4.12.34
         version: 4.12.34
@@ -2478,9 +2481,6 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.7.0
         version: 4.7.0(supports-color@10.2.2)(vite@6.4.3(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))
-      ai:
-        specifier: workspace:*
-        version: link:../ai
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
