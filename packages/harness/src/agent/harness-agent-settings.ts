@@ -365,10 +365,12 @@ export type HarnessAgentSettings<
    * host-visible input for the current result slice, not the native agent's
    * full conversation history, and can be empty during continuation slices.
    *
-   * `not-applicable` runs the tool directly. `approved` emits an automatic
-   * approval request/response pair, including its reason, before running the
-   * tool. `user-approval` pauses the turn for a user decision, and `denied`
-   * emits an automatic denial before submitting an `execution-denied` result.
+   * `not-applicable` runs the tool directly. A callback result of `approved`
+   * emits an automatic approval request/response pair, including its reason,
+   * before running the tool; a static `approved` status preserves the existing
+   * silent-execution behavior. `user-approval` pauses the turn for a user
+   * decision, and `denied` emits an automatic denial before submitting an
+   * `execution-denied` result.
    */
   readonly toolApproval?: HarnessAgentToolApprovalConfiguration<
     NoInfer<TUserTools>,

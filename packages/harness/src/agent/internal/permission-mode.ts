@@ -28,6 +28,11 @@ export type CustomToolApprovalDecision = Exclude<
   string | undefined
 >;
 
+export type CustomToolApprovalResolution = {
+  decision: CustomToolApprovalDecision;
+  source: 'callback' | 'static';
+};
+
 export async function resolveCustomToolApproval<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context,
@@ -40,22 +45,28 @@ export async function resolveCustomToolApproval<
   toolApproval:
     | HarnessAgentToolApprovalConfiguration<TOOLS, RUNTIME_CONTEXT>
     | undefined;
-}): Promise<CustomToolApprovalDecision> {
-  const configuredStatus =
-    typeof input.toolApproval === 'function'
-      ? await input.toolApproval({
+}): Promise<CustomToolApprovalResolution> {
+  if (typeof input.toolApproval === 'function') {
+    return {
+      decision: normalizeToolApprovalStatus({
+        status: await input.toolApproval({
           toolCall: input.toolCall,
           tools: input.tools,
           toolsContext: input.toolsContext,
           messages: input.messages,
           runtimeContext: input.runtimeContext,
-        })
-      : input.toolApproval?.[input.toolCall.toolName];
-  const status = normalizeToolApprovalStatus({
-    status: configuredStatus,
-  });
+        }),
+      }),
+      source: 'callback',
+    };
+  }
 
-  return status;
+  return {
+    decision: normalizeToolApprovalStatus({
+      status: input.toolApproval?.[input.toolCall.toolName],
+    }),
+    source: 'static',
+  };
 }
 
 function normalizeToolApprovalStatus(input: {

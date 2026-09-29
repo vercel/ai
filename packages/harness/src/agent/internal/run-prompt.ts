@@ -1279,7 +1279,10 @@ export function runPrompt<
             });
             continue;
           }
-          const customToolApprovalDecision = await resolveCustomToolApproval({
+          const {
+            decision: customToolApprovalDecision,
+            source: customToolApprovalSource,
+          } = await resolveCustomToolApproval({
             toolCall: parsedToolCall as TypedToolCall<ToolSet>,
             tools: activeTools,
             toolsContext,
@@ -1322,7 +1325,10 @@ export function runPrompt<
             }
             continue;
           }
-          if (customToolApprovalDecision.type === 'approved') {
+          if (
+            customToolApprovalSource === 'callback' &&
+            customToolApprovalDecision.type === 'approved'
+          ) {
             const approvalId = generateId();
             enqueueApprovalRequest({
               approvalId,

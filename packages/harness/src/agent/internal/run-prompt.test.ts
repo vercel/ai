@@ -2486,6 +2486,65 @@ describe('runPrompt host tool generator results', () => {
     ]);
   });
 
+  test('preserves silent execution for statically approved custom tools', async () => {
+    const submitted: SubmittedResult[] = [];
+    const execute = vi.fn(async ({ city }: { city: string }) => ({
+      city,
+      temperature: 72,
+    }));
+    const weather = tool({
+      inputSchema: z.object({ city: z.string() }),
+      execute,
+    });
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession(
+        [
+          {
+            type: 'tool-call',
+            toolCallId: 'c1',
+            toolName: 'weather',
+            input: JSON.stringify({ city: 'SF' }),
+          },
+          ...finishEvents,
+        ],
+        input => submitted.push(input),
+      ),
+      prompt: 'check weather',
+      instructions: undefined,
+      tools: { weather },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      toolApproval: { weather: 'approved' },
+    });
+
+    const parts: TextStreamPart<{ weather: typeof weather }>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(
+      parts.filter(
+        part =>
+          part.type === 'tool-approval-request' ||
+          part.type === 'tool-approval-response',
+      ),
+    ).toEqual([]);
+    expect(execute).toHaveBeenCalledOnce();
+    expect(submitted).toEqual([
+      {
+        toolCallId: 'c1',
+        output: { city: 'SF', temperature: 72 },
+      },
+    ]);
+    expect((await result.steps)[0]!.content.map(part => part.type)).toEqual([
+      'tool-call',
+    ]);
+  });
+
   test('fails the turn when a generic approval callback rejects', async () => {
     const submitted: SubmittedResult[] = [];
     const execute = vi.fn(async () => ({ ok: true }));

@@ -272,9 +272,11 @@ const agent = new HarnessAgent({
 
 `toolApproval` accepts the same status values as AI SDK tool approval status
 objects: `not-applicable`, `approved`, `user-approval`, and `denied`.
-`approved` and `denied` emit automatic `tool-approval-request` and
-`tool-approval-response` parts. Object-form reasons are included on the
-automatic response; an approved tool then continues to host execution.
+In a static map, `not-applicable` and `approved` run the tool directly;
+`approved` preserves the existing silent-execution behavior. `user-approval`
+pauses the turn, while `denied` emits automatic `tool-approval-request` and
+`tool-approval-response` parts before submitting an `execution-denied` result.
+Object-form denial reasons are included on the automatic response.
 
 For input-dependent policies, pass AI SDK's generic approval callback:
 
@@ -324,13 +326,18 @@ host-executed tools; it does not override adapter-native built-in permissions.
 You can reuse the same `GenericToolApprovalFunction` with `streamText` or a
 `ToolLoopAgent` configured with the same tools.
 
+For callback results, `not-applicable` runs the tool directly, `approved` emits
+an automatic approval request/response pair before execution, `user-approval`
+pauses for a user decision, and `denied` emits an automatic denial. Object-form
+reasons are included on the approval request or response as appropriate.
+
 The callback context is limited to data held by the host:
 
 - `messages` contains the current result slice's host-visible user input. It is
   not the native agent's complete conversation history and is empty for
   continuation slices.
-- `toolsContext` and `runtimeContext` are currently empty objects for
-  `HarnessAgent`.
+- `toolsContext` and `runtimeContext` contain the configured or prepared values
+  for the current turn and default to empty objects when omitted.
 - The callback itself is not serialized into suspended or resumed session
   state. Recreate it with the agent and executable tools in the resuming host.
 - An approval response for an existing pending request continues that request
