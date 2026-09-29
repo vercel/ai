@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21740,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/mistral-structured-outputs-false-schema.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/mistral-structured-outputs-false-schema.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21740 REPRODUCED: structuredOutputs=false omitted the schema and output failed schema validation."
+  }
+}
