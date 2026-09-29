@@ -1641,6 +1641,7 @@ function createSession({
       'tool-call',
       'tool-approval-request',
       'tool-result',
+      'response-end',
       'finish-step',
       'compaction',
       'raw',

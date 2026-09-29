@@ -23,8 +23,8 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  * dynamic + provider-executed `tool-call` / `tool-result` pair so the event
  * is observable in `streamText`-style flows without a new stream-part type
  * needing first-class AI SDK support. Events with no consumer-facing AI SDK
- * equivalent (`stream-start`, `finish-step`, `finish` — consumed internally)
- * return an empty array.
+ * equivalent (`stream-start`, `response-end`, `finish-step`, `finish` —
+ * consumed internally) return an empty array.
  */
 export function translateStreamPart<TOOLS extends ToolSet>(
   event: HarnessV1StreamPart,
@@ -256,12 +256,12 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         { type: 'raw', rawValue: event.rawValue } as TextStreamPart<TOOLS>,
       ];
 
+    case 'response-end':
     case 'finish-step':
     case 'finish':
-      // finish-step / finish are consumed by the agent's result builder, not
-      // forwarded directly. The agent emits AI SDK `finish-step` / `finish`
-      // parts itself once it has assembled the surrounding step / response
-      // metadata.
+      // Boundaries are consumed by the agent, not forwarded directly. The
+      // agent emits AI SDK `finish-step` / `finish` parts itself once it has
+      // assembled the surrounding step / response metadata.
       return [];
   }
 }

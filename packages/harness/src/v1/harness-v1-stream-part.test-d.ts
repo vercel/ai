@@ -79,7 +79,10 @@ test('tool variants reuse V4 primitives verbatim', () => {
   >().toEqualTypeOf<LanguageModelV4ToolResult>();
 });
 
-test('finish + finish-step reuse exact V4 finish-reason + usage', () => {
+test('response-end, finish, and finish-step reuse exact V4 usage', () => {
+  expectTypeOf<
+    HPartByType<'response-end'>['usage']
+  >().toEqualTypeOf<LanguageModelV4Usage>();
   expectTypeOf<
     HPartByType<'finish'>['finishReason']
   >().toEqualTypeOf<LanguageModelV4FinishReason>();
