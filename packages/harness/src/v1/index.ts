@@ -12,13 +12,27 @@ export type {
 } from './harness-v1-bootstrap';
 export type {
   HarnessV1ContinueTurnOptions,
-  HarnessV1HistoryMessage,
-  HarnessV1HistoryPart,
   HarnessV1PromptTurnOptions,
   HarnessV1ReadHistoryResult,
   HarnessV1Session,
   HarnessV1StartOptions,
 } from './harness-v1-session';
+export type {
+  HarnessV1AssistantMessage,
+  HarnessV1CustomPart,
+  HarnessV1FilePart,
+  HarnessV1Message,
+  HarnessV1MessagePart,
+  HarnessV1ReasoningFilePart,
+  HarnessV1ReasoningPart,
+  HarnessV1TextPart,
+  HarnessV1ToolApprovalResponsePart,
+  HarnessV1ToolCallPart,
+  HarnessV1ToolMessage,
+  HarnessV1ToolResultOutput,
+  HarnessV1ToolResultPart,
+  HarnessV1UserMessage,
+} from './harness-v1-message';
 export type { HarnessV1Observability } from './harness-v1-observability';
 export type { HarnessV1PromptControl } from './harness-v1-prompt-control';
 export type { HarnessV1CallWarning } from './harness-v1-call-warning';

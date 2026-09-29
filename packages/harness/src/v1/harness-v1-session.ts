@@ -11,6 +11,7 @@ import type {
   HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
+import type { HarnessV1Message } from './harness-v1-message';
 import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
@@ -91,55 +92,10 @@ export type HarnessV1StartOptions = {
 };
 
 /**
- * One content part of a history message, in the same vocabulary as the live
- * stream parts so a UI renders history and stream with one component set.
- * History parts are settled rather than streamed: text and reasoning arrive
- * whole, and a tool call carries its result's data on the matching
- * `tool-result` part.
- */
-export type HarnessV1HistoryPart =
-  | { readonly type: 'text'; readonly text: string }
-  | { readonly type: 'reasoning'; readonly text: string }
-  | {
-      readonly type: 'tool-call';
-      /** The runtime's id for the call, when it records one. */
-      readonly toolCallId?: string;
-      /** Common tool name where one exists (`bash`, `read`, …), else native. */
-      readonly toolName: string;
-      /** The runtime's native name when it differs from `toolName`. */
-      readonly nativeName?: string;
-      readonly input?: unknown;
-    }
-  | {
-      readonly type: 'tool-result';
-      readonly toolCallId?: string;
-      readonly toolName?: string;
-      /** The full output as the runtime recorded it. */
-      readonly output?: unknown;
-      readonly isError?: boolean;
-    };
-
-/**
- * One message from the runtime's persisted conversation history.
- */
-export type HarnessV1HistoryMessage = {
-  readonly role: 'user' | 'assistant';
-  readonly parts: ReadonlyArray<HarnessV1HistoryPart>;
-  /** ISO timestamp, when the runtime recorded one. */
-  readonly at?: string;
-  /**
-   * The runtime's own record for this message, verbatim. Normalization into
-   * parts is necessarily lossy in the corners; this preserves everything the
-   * runtime wrote so a host can reproduce the exchange exactly.
-   */
-  readonly raw?: unknown;
-};
-
-/**
  * Result of `HarnessV1Session.doReadHistory`.
  */
 export type HarnessV1ReadHistoryResult = {
-  readonly messages: ReadonlyArray<HarnessV1HistoryMessage>;
+  readonly messages: ReadonlyArray<HarnessV1Message>;
   /** Opaque position; pass back as `since` to read only what follows. */
   readonly cursor: string;
 };
@@ -248,7 +204,7 @@ export type HarnessV1Session = {
 
   /**
    * Read the conversation history the runtime itself persisted, normalized
-   * to `HarnessV1HistoryMessage`.
+   * to `HarnessV1Message`.
    *
    * The session's history can grow outside the harness contract: the same
    * runtime conversation may be continued interactively (`claude --resume`),

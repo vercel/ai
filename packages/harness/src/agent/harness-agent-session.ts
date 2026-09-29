@@ -498,14 +498,6 @@ export class HarnessAgentSession {
   }
 
   /**
-   * Whether this session's adapter can read the runtime's persisted
-   * conversation history. Cheap feature detection for `readHistory()`.
-   */
-  get supportsHistory(): boolean {
-    return typeof this.underlyingSession?.doReadHistory === 'function';
-  }
-
-  /**
    * Read the conversation history the runtime itself persisted, normalized
    * by the adapter. Includes exchanges that happened outside this process —
    * the same conversation continued interactively in the agent's own CLI,
@@ -516,7 +508,7 @@ export class HarnessAgentSession {
    * `messages` array.
    *
    * Throws `HarnessCapabilityUnsupportedError` when the adapter does not
-   * implement history reads (check {@link supportsHistory} first), and
+   * implement history reads, and
    * `HarnessHistoryUnavailableError` when the adapter supports them but
    * cannot reach the runtime's store from this environment.
    */

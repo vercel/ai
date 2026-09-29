@@ -247,16 +247,16 @@ and the live event stream never sees those exchanges. Adapters that can reach
 their runtime's store expose them through `session.readHistory()`:
 
 ```ts
-if (session.supportsHistory) {
-  const { messages, cursor } = await session.readHistory();
-  // messages: text, reasoning, tool-call, and tool-result parts, with the
-  // runtime's raw record attached for full fidelity.
+const { messages, cursor } = await session.readHistory();
+// Messages use role/content shapes. Adapter-specific details, including the
+// runtime's raw record, are available under harnessMetadata.
 
-  // Later: read only what was recorded since.
-  const delta = await session.readHistory({ since: cursor });
-}
+// Later: read only what was recorded since.
+const delta = await session.readHistory({ since: cursor });
 ```
 
+History reads are adapter-specific; see the adapter capability table before
+calling this method.
 `readHistory()` throws `HarnessCapabilityUnsupportedError` when the adapter
 does not implement history reads, and `HarnessHistoryUnavailableError` when it
 does but cannot reach the runtime's store from this environment (for example,

@@ -3245,22 +3245,28 @@ describe('HarnessAgent', () => {
       messages: [
         {
           role: 'user' as const,
-          parts: [{ type: 'text' as const, text: 'hello' }],
+          content: [{ type: 'text' as const, text: 'hello' }],
         },
         {
           role: 'assistant' as const,
-          parts: [
+          at: '2026-09-29T12:00:00.000Z',
+          harnessMetadata: {
+            mock: { raw: { messageId: 'assistant-1' } },
+          },
+          content: [
             { type: 'reasoning' as const, text: 'thinking it over' },
             {
               type: 'tool-call' as const,
+              toolCallId: 'tool-1',
               toolName: 'bash',
               nativeName: 'Bash',
               input: { command: 'ls' },
             },
             {
               type: 'tool-result' as const,
+              toolCallId: 'tool-1',
               toolName: 'bash',
-              output: 'README.md',
+              output: { type: 'text' as const, value: 'README.md' },
             },
             { type: 'text' as const, text: 'done' },
           ],
@@ -3273,7 +3279,6 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
 
-    expect(session.supportsHistory).toBe(true);
     await expect(session.readHistory()).resolves.toEqual(history);
     await session.readHistory({ since: 'cursor-1' });
     expect(doReadHistory).toHaveBeenLastCalledWith({ since: 'cursor-1' });
@@ -3286,7 +3291,6 @@ describe('HarnessAgent', () => {
     const agent = new HarnessAgent({ harness, sandbox: makeSandboxProvider() });
     const session = await agent.createSession();
 
-    expect(session.supportsHistory).toBe(false);
     await expect(session.readHistory()).rejects.toSatisfy(error =>
       HarnessCapabilityUnsupportedError.isInstance(error),
     );
