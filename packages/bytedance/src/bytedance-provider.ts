@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type EmbeddingModelProviderV4,
   type ImageModelProviderV4,
@@ -7,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -84,17 +84,14 @@ export function createByteDance(
       fetch: options.fetch,
     });
 
-  const createEmbeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  const createEmbeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     embedding: createEmbeddingModel,
     embeddingModel: createEmbeddingModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     image: createImageModel,
     imageModel: createImageModel,
     video: createVideoModel,

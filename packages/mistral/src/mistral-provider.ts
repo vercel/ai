@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type LanguageModelProviderV4,
@@ -10,6 +9,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -151,9 +151,7 @@ export function createMistral(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

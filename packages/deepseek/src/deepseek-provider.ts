@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type LanguageModelProviderV4,
   type FilesProviderV4,
@@ -8,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -104,14 +104,11 @@ export function createDeepSeek(
   provider.chat = createLanguageModel;
   provider.files = createFiles;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

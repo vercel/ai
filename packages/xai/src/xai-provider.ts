@@ -3,7 +3,6 @@ import {
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   type Experimental_BatchV4 as BatchV4,
   type LanguageModelV4,
-  NoSuchModelError,
   type SpeechModelV4,
   type TranscriptionModelV4,
   type LanguageModelProviderV4,
@@ -15,6 +14,7 @@ import {
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -234,9 +234,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesLanguageModel;
   provider.responses = createResponsesLanguageModel;
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;

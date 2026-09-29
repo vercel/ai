@@ -151,3 +151,4 @@ export {
   EventSourceParserStream,
   type EventSourceMessage,
 } from 'eventsource-parser/stream';
+export { noSuchModel } from './no-such-model';

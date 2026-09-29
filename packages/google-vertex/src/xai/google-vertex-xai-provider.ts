@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type LanguageModelV4Usage,
   type LanguageModelProviderV4,
@@ -13,6 +12,7 @@ import {
 import {
   loadOptionalSetting,
   loadSetting,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -196,14 +196,12 @@ export function createGoogleVertexXai(
   provider.languageModel = createChatModel;
   provider.chatModel = (modelId: GoogleVertexXaiModelId) =>
     getProvider().chatModel(modelId);
-  provider.embeddingModel = (modelId: string): never => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string): never =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string): never => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string): never =>
+    noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

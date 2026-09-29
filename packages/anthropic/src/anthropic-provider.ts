@@ -1,6 +1,5 @@
 import {
   InvalidArgumentError,
-  NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
   type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type LanguageModelV4,
@@ -17,6 +16,7 @@ import {
   validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
+  noSuchModel,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
@@ -202,14 +202,11 @@ export function createAnthropic(
     });
   provider.experimental_batch = createBatch;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   provider.files = () =>

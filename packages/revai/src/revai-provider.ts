@@ -1,11 +1,11 @@
 import {
-  NoSuchModelError,
   type TranscriptionModelProviderV4,
   type EmbeddingModelProviderV4,
   type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -86,31 +86,14 @@ export function createRevai(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'Rev.ai does not provide language models',
-    });
-  };
+  provider.languageModel = () => noSuchModel('languageModel', 'languageModel');
 
-  provider.embeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'embeddingModel',
-      message: 'Rev.ai does not provide text embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'Rev.ai does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

@@ -4,13 +4,13 @@ import {
   type ProviderErrorStructure,
 } from '@ai-sdk/openai-compatible';
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -294,9 +294,7 @@ export function createBaseten(
   provider.specificationVersion = 'v4' as const;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   return provider;

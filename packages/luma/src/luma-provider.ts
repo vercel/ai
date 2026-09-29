@@ -1,10 +1,10 @@
 import {
-  NoSuchModelError,
   type ImageModelProviderV4,
   type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -69,23 +69,14 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     embeddingModel,
     embedding: embeddingModel,
     textEmbeddingModel: embeddingModel,

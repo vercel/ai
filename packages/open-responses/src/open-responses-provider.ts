@@ -1,12 +1,12 @@
 import {
   type APICallError,
-  NoSuchModelError,
   type LanguageModelProviderV4,
   type EmbeddingModelProviderV4,
   type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
   type ResponseHandler,
@@ -164,13 +164,10 @@ export function createOpenResponses(
   provider.languageModel = createLanguageModel;
   provider.tools = createOpenResponsesTools({ customToolId });
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider as OpenResponsesProvider;

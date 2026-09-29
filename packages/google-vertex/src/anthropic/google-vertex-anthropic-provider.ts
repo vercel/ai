@@ -1,11 +1,11 @@
 import {
-  NoSuchModelError,
   type LanguageModelProviderV4,
   type EmbeddingModelProviderV4,
   type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
@@ -240,14 +240,11 @@ export function createGoogleVertexAnthropic(
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   provider.tools = googleVertexAnthropicTools;

@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type SpeechModelProviderV4,
   type TranscriptionModelProviderV4,
@@ -8,6 +7,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -112,31 +112,15 @@ export function createFishAudio(
   provider.transcriptionModel = createTranscriptionModel;
 
   // Required ProviderV4 methods that are not supported
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Fish Audio does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Fish Audio does not provide embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Fish Audio does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

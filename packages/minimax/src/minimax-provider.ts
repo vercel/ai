@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type LanguageModelProviderV4,
   type VideoModelProviderV4,
@@ -9,6 +8,7 @@ import {
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -129,14 +129,11 @@ export function createMiniMax(
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

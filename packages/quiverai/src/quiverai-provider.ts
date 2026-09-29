@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelProviderV4,
   type ImageModelProviderV4,
   type EmbeddingModelProviderV4,
@@ -11,6 +10,7 @@ import {
 import {
   loadApiKey,
   loadOptionalSetting,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -119,12 +119,8 @@ export function createQuiverAI(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   const provider = function (modelId: QuiverAILanguageModelId) {
     return createLanguageModel(modelId);

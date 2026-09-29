@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type ImageModelProviderV4,
   type VideoModelProviderV4,
@@ -7,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -101,12 +101,8 @@ export function createProdia(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4',

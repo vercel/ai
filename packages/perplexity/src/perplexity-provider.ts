@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelProviderV4,
   type EmbeddingModelProviderV4,
@@ -8,6 +7,7 @@ import {
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -100,9 +100,7 @@ export function createPerplexity(
   provider.embeddingModel = createEmbeddingModel;
   provider.embedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

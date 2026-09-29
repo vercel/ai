@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type TranscriptionModelV4,
   type LanguageModelV4,
   type EmbeddingModelProviderV4,
@@ -7,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -88,31 +88,15 @@ export function createGladia(
   provider.transcriptionModel = createTranscriptionModel;
 
   // Required ProviderV4 methods that are not supported
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Gladia does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Gladia does not provide embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Gladia does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

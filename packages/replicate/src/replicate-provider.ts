@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type ImageModelProviderV4,
   type EmbeddingModelProviderV4,
@@ -7,6 +6,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   validateBaseURL,
   withoutTrailingSlash,
   withUserAgentSuffix,
@@ -95,23 +95,14 @@ export function createReplicate(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     embeddingModel,
     embedding: embeddingModel,
     textEmbeddingModel: embeddingModel,

@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
   type LanguageModelProviderV4,
   type EmbeddingModelProviderV4,
@@ -9,6 +8,7 @@ import {
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -134,9 +134,7 @@ export function createCohere(
   provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

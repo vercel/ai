@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type ImageModelProviderV4,
   type TranscriptionModelProviderV4,
@@ -8,6 +7,7 @@ import {
   type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -153,23 +153,14 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     speech: createSpeechModel,
     speechModel: createSpeechModel,
     embedding: embeddingModel,

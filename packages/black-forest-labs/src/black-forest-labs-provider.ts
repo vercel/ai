@@ -1,11 +1,11 @@
 import {
-  NoSuchModelError,
   type ImageModelProviderV4,
   type VideoModelProviderV4,
   type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -103,12 +103,8 @@ export function createBlackForestLabs(
       pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4',
@@ -116,12 +112,7 @@ export function createBlackForestLabs(
     image: createImageModel,
     videoModel: createVideoModel,
     video: createVideoModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     embedding: embeddingModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,

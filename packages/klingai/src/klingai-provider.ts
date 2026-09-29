@@ -1,11 +1,11 @@
 import {
-  NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
   type VideoModelProviderV4,
   type EmbeddingModelProviderV4,
   type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -97,20 +97,6 @@ export function createKlingAI(
       headers: getHeaders,
       fetch: options.fetch,
     });
-
-  const noSuchModel = (
-    modelId: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): never => {
-    throw new NoSuchModelError({ modelId, modelType });
-  };
-
   const provider: KlingAIProvider = {
     specificationVersion: 'v4' as const,
     video: createVideoModel,

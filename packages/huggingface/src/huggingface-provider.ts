@@ -1,5 +1,4 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type LanguageModelProviderV4,
   type ImageModelProviderV4,
@@ -8,6 +7,7 @@ import {
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -87,25 +87,12 @@ export function createHuggingFace(
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message:
-        'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message:
-        'Hugging Face Responses API does not support image generation. Use the Hugging Face Inference API directly for image models.',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
   provider.image = provider.imageModel;
 
   return provider;

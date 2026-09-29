@@ -1,14 +1,15 @@
 import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  NoSuchModelError,
   type TranscriptionModelProviderV4,
   type SpeechModelProviderV4,
   type EmbeddingModelProviderV4,
   type LanguageModelV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
   type WebSocketConstructor,
@@ -31,7 +32,8 @@ export interface CartesiaProvider
   extends
     TranscriptionModelProviderV4<CartesiaTranscriptionModelId>,
     SpeechModelProviderV4<CartesiaSpeechModelId>,
-    EmbeddingModelProviderV4 {
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: CartesiaSpeechModelId,
     settings?: {},
@@ -159,31 +161,16 @@ export function createCartesia(
   provider.experimental_realtime = experimentalRealtimeFactory;
 
   // Required ProviderV4 methods that are not supported
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Cartesia does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Cartesia does not provide embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
   provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Cartesia does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }
