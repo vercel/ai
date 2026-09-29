@@ -76,12 +76,17 @@ export interface AnthropicAssistantMessage {
   >;
 }
 
-export interface AnthropicFallbackContent {
-  type: 'fallback';
-  from: { model: string };
-  to: { model: string };
+export const anthropicFallbackContentSchema = z.object({
+  type: z.literal('fallback'),
+  from: z.object({ model: z.string() }),
+  to: z.object({ model: z.string() }),
+});
+
+export type AnthropicFallbackContent = InferSchema<
+  typeof anthropicFallbackContentSchema
+> & {
   cache_control?: never;
-}
+};
 
 export interface AnthropicCompactionContent {
   type: 'compaction';
@@ -1041,11 +1046,7 @@ export const anthropicResponseSchema = lazySchema(() =>
               }),
             ]),
           }),
-          z.object({
-            type: z.literal('fallback'),
-            from: z.object({ model: z.string() }),
-            to: z.object({ model: z.string() }),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       ),
       stop_reason: z.string().nullish(),
@@ -1409,11 +1410,7 @@ export const anthropicChunkSchema = lazySchema(() =>
               }),
             ]),
           }),
-          z.object({
-            type: z.literal('fallback'),
-            from: z.object({ model: z.string() }),
-            to: z.object({ model: z.string() }),
-          }),
+          anthropicFallbackContentSchema,
         ]),
       }),
       z.object({
@@ -1555,16 +1552,6 @@ export const anthropicReasoningMetadataSchema = lazySchema(() =>
     z.object({
       signature: z.string().optional(),
       redactedData: z.string().optional(),
-    }),
-  ),
-);
-
-export const anthropicFallbackMetadataSchema = lazySchema(() =>
-  zodSchema(
-    z.object({
-      type: z.literal('fallback'),
-      from: z.object({ model: z.string() }),
-      to: z.object({ model: z.string() }),
     }),
   ),
 );

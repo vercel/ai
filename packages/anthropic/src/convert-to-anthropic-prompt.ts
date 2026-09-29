@@ -21,7 +21,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
-  anthropicFallbackMetadataSchema,
+  anthropicFallbackContentSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
@@ -833,7 +833,7 @@ export async function convertToAnthropicPrompt({
 
                 const fallbackMetadata = await safeValidateTypes({
                   value: part.providerOptions?.anthropic,
-                  schema: anthropicFallbackMetadataSchema,
+                  schema: anthropicFallbackContentSchema,
                 });
 
                 if (!fallbackMetadata.success) {
