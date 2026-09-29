@@ -440,7 +440,7 @@ const result = streamText({
 
 result.toDataStream();
 result.pipeDataStreamToResponse(response);
-result.toUIMessageStreamResponse();
+result.toDataStreamResponse();
 ```
 
 ### Renamed "formatStreamPart" to "formatDataStreamPart"
@@ -573,7 +573,7 @@ const result = await streamText({
   // ...
 });
 
-result.toUIMessageStreamResponse(response, {
+result.pipeDataStreamToResponse(response, {
   init: {
     headers: {
       'X-Custom-Header': 'value',
@@ -588,7 +588,7 @@ const result = streamText({
   // ...
 });
 
-result.toUIMessageStreamResponse(response, {
+result.pipeDataStreamToResponse(response, {
   headers: {
     'X-Custom-Header': 'value',
   },
@@ -710,7 +710,7 @@ const warnings = await result.warnings;
   code manually.
 </Note>
 
-The `simulateReadableStream` function from `ai/test` has been renamed to `chunks`.
+The `values` option of the `simulateReadableStream` function from `ai/test` has been renamed to `chunks`.
 
 ```ts filename="AI SDK 3.4"
 import { simulateReadableStream } from 'ai/test';

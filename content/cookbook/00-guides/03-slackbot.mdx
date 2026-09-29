@@ -156,7 +156,7 @@ Here's the code for the `handleNewAppMention` function:
 ```typescript filename="lib/handle-app-mention.ts"
 import { AppMentionEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 const updateStatusUtil = async (
   initialStatus: string,
@@ -268,7 +268,7 @@ Here's the code for the `handleNewAssistantMessage` function:
 ```typescript filename="lib/handle-messages.ts"
 import type { GenericMessageEvent } from '@slack/web-api';
 import { client, getThread } from './slack-utils';
-import { generateResponse } from './ai';
+import { generateResponse } from './generate-response';
 
 export async function handleNewAssistantMessage(
   event: GenericMessageEvent,

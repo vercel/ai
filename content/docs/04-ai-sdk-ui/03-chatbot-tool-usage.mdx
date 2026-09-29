@@ -228,9 +228,7 @@ export default function Chat() {
                     return <div key={callId}>Approval response received.</div>;
                   case 'output-available':
                     return (
-                      <div key={callId}>
-                        Location access allowed: {part.output}
-                      </div>
+                      <div key={callId}>Confirmation result: {part.output}</div>
                     );
                   case 'output-error':
                     return <div key={callId}>Error: {part.errorText}</div>;
@@ -356,22 +354,22 @@ export default function Chat() {
         return;
       }
 
-      if (toolCall.toolName === 'getWeatherInformation') {
+      if (toolCall.toolName === 'getLocation') {
         try {
-          const weather = await getWeatherInformation(toolCall.input);
+          const location = await getLocation();
 
           // No await - avoids potential deadlocks
           addToolOutput({
-            tool: 'getWeatherInformation',
+            tool: 'getLocation',
             toolCallId: toolCall.toolCallId,
-            output: weather,
+            output: location,
           });
         } catch (err) {
           addToolOutput({
-            tool: 'getWeatherInformation',
+            tool: 'getLocation',
             toolCallId: toolCall.toolCallId,
             state: 'output-error',
-            errorText: 'Unable to get the weather information',
+            errorText: 'Unable to get the user location',
           });
         }
       }
