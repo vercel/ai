@@ -121,8 +121,10 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
 
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
-        : new Blob([convertBase64ToUint8Array(audio)]);
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
+        : new Blob([
+            convertBase64ToUint8Array(audio) as Uint8Array<ArrayBuffer>,
+          ]);
     const fileExtension = mediaTypeToExtension(mediaType);
 
     // xAI requires `file` to be the final multipart field.

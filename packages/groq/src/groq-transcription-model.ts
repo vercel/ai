@@ -71,8 +71,10 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     const formData = new FormData();
     const blob =
       audio instanceof Uint8Array
-        ? new Blob([audio])
-        : new Blob([convertBase64ToUint8Array(audio)]);
+        ? new Blob([audio as Uint8Array<ArrayBuffer>])
+        : new Blob([
+            convertBase64ToUint8Array(audio) as Uint8Array<ArrayBuffer>,
+          ]);
 
     formData.append('model', this.modelId);
     const fileExtension = mediaTypeToExtension(mediaType);
