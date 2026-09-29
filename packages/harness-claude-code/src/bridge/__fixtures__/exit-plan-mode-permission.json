@@ -1,0 +1,162 @@
+{
+  "metadata": {
+    "recordedAt": "2026-09-29",
+    "claudeAgentSdkVersion": "0.3.281",
+    "claudeCodeVersion": "2.1.281",
+    "model": "claude-sonnet-4-6",
+    "initialPermissionMode": "bypassPermissions",
+    "allowDangerouslySkipPermissions": true
+  },
+  "withoutCanUseTool": [
+    {
+      "type": "assistant",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "enter-plan-mode",
+            "name": "EnterPlanMode",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "system",
+      "subtype": "status",
+      "permissionMode": "plan"
+    },
+    {
+      "type": "user",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "enter-plan-mode",
+            "content": "Entered plan mode."
+          }
+        ]
+      },
+      "tool_use_result": {
+        "message": "Entered plan mode."
+      }
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "exit-plan-mode",
+            "name": "ExitPlanMode",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "user",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "exit-plan-mode",
+            "content": "Tool permission request failed: Error: canUseTool callback is not provided.",
+            "is_error": true
+          }
+        ]
+      },
+      "tool_use_result": "Error: Tool permission request failed: Error: canUseTool callback is not provided."
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "result": "ExitPlanMode failed because canUseTool callback is not provided.",
+      "permission_denials": [
+        {
+          "tool_name": "ExitPlanMode",
+          "tool_use_id": "exit-plan-mode",
+          "tool_input": {}
+        }
+      ]
+    }
+  ],
+  "withCanUseTool": [
+    {
+      "type": "assistant",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "enter-plan-mode",
+            "name": "EnterPlanMode",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "system",
+      "subtype": "status",
+      "permissionMode": "plan"
+    },
+    {
+      "type": "user",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "enter-plan-mode",
+            "content": "Entered plan mode."
+          }
+        ]
+      },
+      "tool_use_result": {
+        "message": "Entered plan mode."
+      }
+    },
+    {
+      "type": "assistant",
+      "message": {
+        "content": [
+          {
+            "type": "tool_use",
+            "id": "exit-plan-mode",
+            "name": "ExitPlanMode",
+            "input": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "system",
+      "subtype": "status",
+      "permissionMode": "default"
+    },
+    {
+      "type": "user",
+      "message": {
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "exit-plan-mode",
+            "content": "User has approved exiting plan mode. You can now proceed."
+          }
+        ]
+      },
+      "tool_use_result": {
+        "plan": null,
+        "isAgent": false,
+        "filePath": "/home/agent/.claude/plans/exit-plan-mode.md"
+      }
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "result": "Plan mode has been exited.",
+      "permission_denials": []
+    }
+  ]
+}
