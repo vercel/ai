@@ -1124,7 +1124,7 @@ describe('createOpenCode adapter', () => {
     await session.doDestroy();
   });
 
-  it('drains an aborted turn before attaching the next turn', async () => {
+  it('drains an aborted turn through error and finish before attaching the next turn', async () => {
     harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
     const sandbox = {
       async run({ command }: { command: string }) {
@@ -1209,6 +1209,14 @@ describe('createOpenCode adapter', () => {
 
     expect(secondTurnResolved).toBe(false);
     expect(channel.sent.at(-1)).toEqual({ type: 'abort' });
+
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(secondTurnResolved).toBe(false);
 
     channel.emit('finish', { type: 'finish' });
     const secondTurn = await secondTurnPromise;

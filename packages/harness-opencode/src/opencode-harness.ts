@@ -1032,7 +1032,7 @@ function createSession({
     unsubs.push(
       channel.on('error', msg => {
         if (drainingAfterAbort) {
-          finishTurn();
+          // The bridge emits finish from its finally block after an error.
           return;
         }
         forward(msg);
