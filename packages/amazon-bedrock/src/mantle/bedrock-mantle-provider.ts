@@ -3,13 +3,15 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
-  NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   loadSetting,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -25,18 +27,11 @@ import type {
 } from './bedrock-mantle-options';
 import { VERSION } from '../version';
 
-export interface BedrockMantleProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation using the Chat Completions API.
-   * Chat Completions has the broadest model support on Mantle.
-   */
-  (modelId: BedrockMantleChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation using the Chat Completions API.
-   */
-  languageModel(modelId: BedrockMantleChatModelId): LanguageModelV4;
-
+export interface BedrockMantleProvider
+  extends
+    LanguageModelProviderV4<BedrockMantleChatModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a model for text generation using the Chat Completions API.
    */
@@ -272,15 +267,14 @@ export function createBedrockMantle(
   provider.chat = createChatModel;
   provider.responses = createResponsesModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
-  return provider as BedrockMantleProvider;
+  return provider;
 }
 
 /**

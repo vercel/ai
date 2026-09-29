@@ -3,9 +3,11 @@ import type {
   EmbeddingModelProviderV4,
   LanguageModelProviderV4,
   VideoModelProviderV4,
+  ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -25,7 +27,8 @@ export interface AlibabaProvider
   extends
     LanguageModelProviderV4<AlibabaChatModelId>,
     EmbeddingModelProviderV4<AlibabaEmbeddingModelId>,
-    VideoModelProviderV4<AlibabaVideoModelId> {
+    VideoModelProviderV4<AlibabaVideoModelId>,
+    ImageModelProviderV4 {
   chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
 }
 
@@ -149,6 +152,8 @@ export function createAlibaba(
   provider.embeddingModel = createEmbeddingModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
+  provider.image = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.imageModel = provider.image;
 
   return provider;
 }
