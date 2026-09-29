@@ -270,6 +270,139 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes native settings policy objects unchanged to the Agent SDK', async () => {
+    const settingSources = ['user', 'project'] as const;
+    const settings = {
+      permissions: { deny: ['WebFetch(*)'] },
+      customSetting: { nested: true },
+    };
+    const managedSettings = {
+      permissions: { deny: ['Bash(rm -rf *)'] },
+    };
+    state.start = {
+      ...state.start,
+      settingSources,
+      settings,
+      managedSettings,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options?.settingSources).toBe(settingSources);
+    expect(options?.settings).toBe(settings);
+    expect(options?.managedSettings).toBe(managedSettings);
+  });
+
+  test('passes a settings file path unchanged to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      settings: '/tmp/harness-claude-code-test/settings.json',
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options.settings).toBe(
+      '/tmp/harness-claude-code-test/settings.json',
+    );
+  });
+
+  test('omits native settings policy options when they are not configured', async () => {
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options).not.toHaveProperty('settingSources');
+    expect(options).not.toHaveProperty('managedSettings');
+    expect(options).not.toHaveProperty('settings');
+  });
+
+  test('preserves harness permission gating with caller settings', async () => {
+    const settings = { permissions: { allow: ['Bash(*)'] } };
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-reads',
+      settings,
+    };
+
+    await import('./index');
+
+    const options = state.queryArgs[0]?.options;
+    expect(options?.settings).toBe(settings);
+    expect(options?.canUseTool).toBeTypeOf('function');
+
+    const hooks = options?.hooks as {
+      PreToolUse: Array<{
+        matcher?: string;
+        hooks: Array<(input: Record<string, unknown>) => Promise<unknown>>;
+      }>;
+    };
+    const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+    await expect(
+      permissionHook({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Bash',
+        tool_input: { command: 'pwd' },
+        tool_use_id: 'bash-1',
+      }),
+    ).resolves.toEqual({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'ask',
+      },
+    });
+    await expect(
+      permissionHook({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Read',
+        tool_input: { file_path: '/tmp/file' },
+        tool_use_id: 'read-1',
+      }),
+    ).resolves.toEqual({});
+  });
+
+  test('preserves allow-edits permission gating with caller settings', async () => {
+    state.start = {
+      ...state.start,
+      permissionMode: 'allow-edits',
+      settings: { sandbox: { enabled: true } },
+    };
+
+    await import('./index');
+
+    const hooks = state.queryArgs[0]?.options.hooks as {
+      PreToolUse: Array<{
+        hooks: Array<(input: Record<string, unknown>) => Promise<unknown>>;
+      }>;
+    };
+    const permissionHook = hooks.PreToolUse[0]?.hooks[0];
+
+    await expect(
+      permissionHook({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Edit',
+        tool_input: {
+          file_path: '/tmp/file',
+          old_string: 'before',
+          new_string: 'after',
+        },
+        tool_use_id: 'edit-1',
+      }),
+    ).resolves.toEqual({});
+    await expect(
+      permissionHook({
+        hook_event_name: 'PreToolUse',
+        tool_name: 'Bash',
+        tool_input: { command: 'pwd' },
+        tool_use_id: 'bash-1',
+      }),
+    ).resolves.toEqual({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'ask',
+      },
+    });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;

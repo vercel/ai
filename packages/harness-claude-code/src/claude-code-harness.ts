@@ -80,6 +80,19 @@ type ClaudeCodeChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 
 /**
+ * Filesystem settings sources supported by the Claude Agent SDK.
+ */
+export type ClaudeCodeSettingSource = 'user' | 'project' | 'local';
+
+/**
+ * Inline Claude Code settings forwarded to the Claude Agent SDK.
+ *
+ * The settings schema is owned by Claude Code and can grow independently of
+ * this adapter, so the adapter intentionally preserves arbitrary setting keys.
+ */
+export type ClaudeCodeSettings = Record<string, unknown>;
+
+/**
  * Value to use in User-Agent and `x-client-app` headers.
  */
 const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
@@ -102,6 +115,20 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Selects which Claude Code settings files are loaded inside the sandbox.
+   * Pass an empty array to disable filesystem settings.
+   */
+  readonly settingSources?: ClaudeCodeSettingSource[];
+  /**
+   * Additional Claude Code settings. A string is resolved as a settings file
+   * path inside the sandbox; an object is forwarded as inline settings.
+   */
+  readonly settings?: string | ClaudeCodeSettings;
+  /**
+   * Policy-tier Claude Code settings supplied to the Agent SDK.
+   */
+  readonly managedSettings?: ClaudeCodeSettings;
   /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
@@ -1036,6 +1063,9 @@ export function createClaudeCode(
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            settingSources: settings.settingSources,
+            claudeSettings: settings.settings,
+            managedSettings: settings.managedSettings,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1197,6 +1227,9 @@ export function createClaudeCode(
         finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        settingSources: settings.settingSources,
+        claudeSettings: settings.settings,
+        managedSettings: settings.managedSettings,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1513,6 +1546,9 @@ function createSession({
   finishListenerAttachment,
   proc,
   maxTurns,
+  settingSources,
+  claudeSettings,
+  managedSettings,
   env,
   thinking,
   effort,
@@ -1538,6 +1574,9 @@ function createSession({
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  settingSources: ClaudeCodeSettingSource[] | undefined;
+  claudeSettings: string | ClaudeCodeSettings | undefined;
+  managedSettings: ClaudeCodeSettings | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1811,6 +1850,9 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(settingSources !== undefined ? { settingSources } : {}),
+        ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
+        ...(managedSettings !== undefined ? { managedSettings } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
@@ -1875,6 +1917,9 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(settingSources !== undefined ? { settingSources } : {}),
+          ...(claudeSettings !== undefined ? { settings: claudeSettings } : {}),
+          ...(managedSettings !== undefined ? { managedSettings } : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
