@@ -504,6 +504,48 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should inject JSON schema when structured outputs are disabled', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string' as const },
+      },
+    };
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema,
+      },
+      providerOptions: {
+        mistral: {
+          structuredOutputs: false,
+        },
+      },
+    });
+
+    expect(request).toMatchObject({
+      body: {
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: {
+          type: 'json_object',
+        },
+      },
+    });
+  });
+
   it('should pass parallelToolCalls option', async () => {
     prepareJsonFixtureResponse('mistral-text');
 
