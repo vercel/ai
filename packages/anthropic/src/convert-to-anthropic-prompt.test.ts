@@ -2043,6 +2043,42 @@ describe('assistant messages', () => {
     ]);
   });
 
+  it('should warn and omit fallback boundaries with invalid metadata', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'anthropic fallback metadata must include from.model and to.model',
+      },
+    ]);
+  });
+
   it('should omit empty compaction blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [

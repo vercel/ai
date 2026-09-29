@@ -15,11 +15,13 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   secureJsonParse,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicFallbackMetadataSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
@@ -73,15 +75,6 @@ function extractErrorValue(value: unknown): { errorCode?: string } {
     };
   }
   return {};
-}
-
-function getFallbackModel(value: JSONValue | undefined): string | undefined {
-  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
-    return undefined;
-  }
-
-  const model = (value as JSONObject).model;
-  return typeof model === 'string' ? model : undefined;
 }
 
 export async function convertToAnthropicPrompt({
@@ -838,15 +831,12 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
-                const fallbackMetadata = part.providerOptions?.anthropic;
-                const fromModel = getFallbackModel(fallbackMetadata?.from);
-                const toModel = getFallbackModel(fallbackMetadata?.to);
+                const fallbackMetadata = await safeValidateTypes({
+                  value: part.providerOptions?.anthropic,
+                  schema: anthropicFallbackMetadataSchema,
+                });
 
-                if (
-                  fallbackMetadata?.type !== 'fallback' ||
-                  fromModel == null ||
-                  toModel == null
-                ) {
+                if (!fallbackMetadata.success) {
                   warnings.push({
                     type: 'other',
                     message:
@@ -857,8 +847,8 @@ export async function convertToAnthropicPrompt({
 
                 anthropicContent.push({
                   type: 'fallback',
-                  from: { model: fromModel },
-                  to: { model: toModel },
+                  from: fallbackMetadata.value.from,
+                  to: fallbackMetadata.value.to,
                 });
                 break;
               }

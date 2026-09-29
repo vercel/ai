@@ -1559,6 +1559,16 @@ export const anthropicReasoningMetadataSchema = lazySchema(() =>
   ),
 );
 
+export const anthropicFallbackMetadataSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      type: z.literal('fallback'),
+      from: z.object({ model: z.string() }),
+      to: z.object({ model: z.string() }),
+    }),
+  ),
+);
+
 export type AnthropicReasoningMetadata = InferSchema<
   typeof anthropicReasoningMetadataSchema
 >;
