@@ -496,6 +496,35 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends configured subagent activity options to the bridge', async () => {
+    const harness = createClaudeCode({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Hello',
+      emit: () => {},
+    });
+
+    expect(lastStart()).toMatchObject({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+    await session.doDestroy();
+  });
+
   it('sets the client app for AI Gateway auth', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const harness = createClaudeCode({

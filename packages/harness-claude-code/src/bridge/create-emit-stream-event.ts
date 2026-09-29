@@ -113,6 +113,13 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+const RAW_TASK_MESSAGE_SUBTYPES = new Set([
+  'background_tasks_changed',
+  'task_started',
+  'task_progress',
+  'task_updated',
+  'task_notification',
+]);
 
 export function isExternalMcpTool(nativeName: string): boolean {
   return (
@@ -215,10 +222,20 @@ export function createEmitStreamEvent({
       return;
     }
 
+    if (
+      type === 'system' &&
+      msg.subtype != null &&
+      RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype)
+    ) {
+      emit({ type: 'raw', rawValue: msg });
+      return;
+    }
+
     // Messages emitted by a Task-tool subagent carry the parent tool-use id.
-    // They belong to the subagent stream and must not affect the parent step,
-    // including partial stream events that arrive before assistant messages.
+    // Forward them for correlation and nested rendering, but do not map them
+    // into regular stream parts or let them affect the parent step.
     if (msg.parent_tool_use_id != null) {
+      emit({ type: 'raw', rawValue: msg });
       return;
     }
 
