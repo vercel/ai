@@ -124,7 +124,13 @@ export function extractReasoningMiddleware({
                 delete delayedTextStarts[chunk.id];
               }
 
-              if (chunk.type !== 'text-delta') {
+              // a partial tag held back in the buffer at the end of the text
+              // block can no longer be completed, so it is published as-is
+              const isFlushingBuffer =
+                chunk.type === 'text-end' &&
+                (reasoningExtractions[chunk.id]?.buffer.length ?? 0) > 0;
+
+              if (chunk.type !== 'text-delta' && !isFlushingBuffer) {
                 controller.enqueue(chunk);
                 return;
               }
@@ -143,7 +149,9 @@ export function extractReasoningMiddleware({
 
               const activeExtraction = reasoningExtractions[chunk.id];
 
-              activeExtraction.buffer += chunk.delta;
+              if (chunk.type === 'text-delta') {
+                activeExtraction.buffer += chunk.delta;
+              }
 
               function getReasoningId() {
                 return (activeExtraction.reasoningId ??= `reasoning-${reasoningIdCounter++}`);
@@ -197,6 +205,13 @@ export function extractReasoningMiddleware({
                     activeExtraction.isFirstText = false;
                   }
                 }
+              }
+
+              if (isFlushingBuffer) {
+                publish(activeExtraction.buffer);
+                activeExtraction.buffer = '';
+                controller.enqueue(chunk);
+                return;
               }
 
               do {

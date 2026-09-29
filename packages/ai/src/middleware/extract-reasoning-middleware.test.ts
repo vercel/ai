@@ -1182,6 +1182,64 @@ describe('extractReasoningMiddleware', () => {
       `);
     });
 
+    it('should not drop text that ends with a partial opening tag', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'Use the <th' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      expect(await result.text).toBe('Use the <th');
+    });
+
+    it('should not drop reasoning that ends with a partial closing tag', async () => {
+      const mockModel = new MockLanguageModelV4({
+        async doStream() {
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: '<think>a </th' },
+              { type: 'text-end', id: '1' },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      });
+
+      const result = streamText({
+        model: wrapLanguageModel({
+          model: mockModel,
+          middleware: extractReasoningMiddleware({ tagName: 'think' }),
+        }),
+        prompt: 'Hello, how can I help?',
+      });
+
+      expect(await result.reasoningText).toBe('a </th');
+    });
+
     it('should preserve overlapping text parts', async () => {
       const mockModel = new MockLanguageModelV4({
         async doStream() {
