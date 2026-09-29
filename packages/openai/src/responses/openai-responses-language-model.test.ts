@@ -4119,6 +4119,34 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should expose visited URLs as sources and keep citations in text metadata', () => {
+        const sources = result.content.filter(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4Content,
+            { type: 'source'; sourceType: 'url' }
+          > => part.type === 'source' && part.sourceType === 'url',
+        );
+        const textParts = result.content.filter(part => part.type === 'text');
+
+        expect(sources).toHaveLength(16);
+        expect(sources.map(source => source.url)).toContain(
+          'https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199',
+        );
+        expect(sources.map(source => source.url)).not.toContain(
+          'https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai',
+        );
+        expect(
+          textParts.flatMap(
+            part =>
+              (part.providerMetadata?.openai?.annotations as
+                | unknown[]
+                | null) ?? [],
+          ),
+        ).toHaveLength(10);
+      });
     });
 
     it('should not include web search sources when disabled by provider options', async () => {
@@ -5771,15 +5799,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "type": "text",
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
             "filename": "resource1.json",
-            "id": "id-1",
+            "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
@@ -10360,15 +10381,8 @@ describe('OpenAIResponsesLanguageModel', () => {
             "warnings": [],
           },
           {
-            "id": "id-0",
-            "sourceType": "url",
-            "title": "Example URL",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
             "filename": "resource1.json",
-            "id": "id-1",
+            "id": "id-0",
             "mediaType": "text/plain",
             "providerMetadata": {
               "openai": {
