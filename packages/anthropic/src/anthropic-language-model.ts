@@ -1721,10 +1721,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
 
-        // Server-side fallback marker: the AI SDK has no content primitive for
-        // a model hop, so drop it. The hop is still observable via
-        // usage.iterations.
         case 'fallback': {
+          content.push({
+            type: 'custom',
+            kind: 'anthropic.fallback',
+            providerMetadata: {
+              anthropic: {
+                type: 'fallback',
+                from: part.from,
+                to: part.to,
+              },
+            },
+          });
           break;
         }
       }
@@ -1965,10 +1973,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const part = value.content_block;
               const contentBlockType = part.type;
 
-              // Server-side fallback marker: the AI SDK has no content
-              // primitive for a model hop, so drop it. The hop is still
-              // observable via usage.iterations.
               if (contentBlockType === 'fallback') {
+                controller.enqueue({
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerMetadata: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: part.from,
+                      to: part.to,
+                    },
+                  },
+                });
                 return;
               }
 
