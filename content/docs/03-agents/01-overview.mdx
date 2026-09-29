@@ -139,10 +139,10 @@ Error handling is critical for building robust agent applications. When agents m
 
 ### Common Error Types
 
-The AI SDK provides several error classes that extend `AISDKError` from `@ai-sdk/provider`:
+The AI SDK provides several error classes that extend `AISDKError` from `@ai-sdk/provider`. These errors are re-exported from the main `ai` package for convenience.
 
 #### `APICallError`
-Thrown when an API call fails (e.g., rate limits, server errors, network issues).
+Thrown when an API call fails (e.g., rate limits, server errors, network issues). This error includes useful metadata like the request URL, status code, and response body.
 
 ```typescript
 import { streamText, APICallError } from 'ai';
@@ -155,12 +155,17 @@ try {
 } catch (error) {
   if (error instanceof APICallError) {
     // Handle API failures (rate limits, server errors, etc.)
-    console.error(`API Error: ${error.status} - ${error.message}`);
+    console.error(`API Error: ${error.statusCode} - ${error.message}`);
     
-    // Implement retry logic with exponential backoff
-    if (error.status === 429 || error.status >= 500) {
-      await retryWithBackoff();
+    // APICallError has built-in retry logic detection
+    // isRetryable is true for: 408, 409, 429, and >= 500
+    if (error.isRetryable) {
+      await retryWithExponentialBackoff();
     }
+    
+    // Access response metadata for debugging
+    console.error(`Request URL: ${error.url}`);
+    console.error(`Response body: ${error.responseBody}`);
   }
 }
 ```
@@ -174,7 +179,7 @@ import { generateText, InvalidArgumentError } from 'ai';
 try {
   await generateText({
     model: createOpenAI().chat('gpt-4o'),
-    prompt: '', // Invalid: empty prompt
+    prompt: '', // Invalid: empty or too short prompt
   });
 } catch (error) {
   if (error instanceof InvalidArgumentError) {
@@ -184,7 +189,7 @@ try {
 ```
 
 #### `TypeValidationError`
-Occurs when schema validation fails, typically in structured output generation.
+Occurs when schema validation fails during structured output generation. This happens when the model's output doesn't match the expected Zod schema.
 
 ```typescript
 import { generateObject, TypeValidationError } from 'ai';
@@ -193,18 +198,24 @@ import { z } from 'zod';
 try {
   const result = await generateObject({
     model: createOpenAI().chat('gpt-4o'),
-    schema: z.object({ name: z.string() }),
-    output: 'invalid json', // Would fail validation
+    schema: z.object({ 
+      name: z.string().min(1), // Validate that name is not empty
+      age: z.number().int().min(0) 
+    }),
+    output: 'invalid json or schema', // Would fail validation
   });
 } catch (error) {
   if (error instanceof TypeValidationError) {
     console.error(`Validation failed: ${error.message}`);
+    
+    // The error contains details about what validation failed
+    console.error(`Cause:`, error.cause);
   }
 }
 ```
 
 #### `JSONParseError`
-Thrown when JSON parsing fails during structured output processing.
+Thrown when the SDK encounters malformed JSON during structured output processing. This is rare as the SDK uses safe JSON parsing internally, but can occur with malformed model outputs.
 
 ```typescript
 import { generateObject, JSONParseError } from 'ai';
@@ -218,6 +229,24 @@ try {
 } catch (error) {
   if (error instanceof JSONParseError) {
     console.error(`JSON parsing failed: ${error.message}`);
+    
+    // Access the problematic text that couldn't be parsed
+    console.error(`Problematic text:`, error.text);
+  }
+}
+```
+
+#### `LoadAPIKeyError`
+Thrown when the API key cannot be loaded from configuration or environment variables.
+
+```typescript
+import { loadAPIKey, LoadAPIKeyError } from 'ai';
+
+try {
+  const apiKey = await loadAPIKey({ provider: 'openai' });
+} catch (error) {
+  if (error instanceof LoadAPIKeyError) {
+    console.error(`API key loading failed: ${error.message}`);
   }
 }
 ```
@@ -238,12 +267,16 @@ const weatherTool = tool({
   }),
   execute: async ({ location, units }) => {
     try {
-      // Simulate API call
+      // Make the actual API call
       const response = await fetch(`https://api.weather.com/${location}`);
       
       if (!response.ok) {
+        // Throw APICallError with full context for the agent to handle
         throw new APICallError({
           message: `Failed to fetch weather data for ${location}`,
+          url: `https://api.weather.com/${location}`,
+          requestBodyValues: { location, units },
+          statusCode: response.status,
           cause: new Error(`HTTP ${response.status}`),
         });
       }
@@ -256,9 +289,9 @@ const weatherTool = tool({
         throw error;
       }
       
-      // Handle other errors gracefully
-      console.error(`Weather tool failed: ${location}`);
-      throw new Error(`Unable to get weather for ${location}`);
+      // Handle other errors gracefully - don't expose internal implementation details
+      console.error(`Weather tool failed for ${location}`);
+      throw new Error(`Unable to get weather data for ${location}. Please try again.`);
     }
   },
 });
@@ -266,15 +299,17 @@ const weatherTool = tool({
 
 ### Best Practices
 
-1. **Catch specific errors first** - Always catch more specific error types before general ones
-2. **Preserve error context** - Don't lose the original error when rethrowing
-3. **Implement retry logic** - For transient failures (rate limits, network issues)
-4. **Provide fallbacks** - Have alternative actions when tools fail
-5. **Log errors appropriately** - Use structured logging for debugging
+1. **Catch specific errors first** - Always catch more specific error types before general ones to avoid masking important errors
+2. **Preserve error context** - Don't lose the original error when rethrowing; use the `cause` property
+3. **Implement retry logic** - For transient failures (rate limits, network issues), use exponential backoff
+4. **Provide fallbacks** - Have alternative actions when tools fail (e.g., use cached data, ask user for input)
+5. **Log errors appropriately** - Use structured logging with error codes and contexts for debugging
+6. **Don't expose sensitive information** - Never log API keys, tokens, or other sensitive data in error messages
+7. **User-friendly messages** - Provide clear, actionable error messages for end users
 
 ### Related Documentation
 
-- [Error Reference](/docs/ai-sdk-errors) - Complete list of all error types
+- [`@ai-sdk/provider` errors](https://github.com/vercel/ai/tree/main/packages/provider/src/errors) - Complete list of all error types in the SDK
 - [Runtime and Tool Context](/docs/ai-sdk-core/runtime-and-tool-context) - Error handling with context
 - [Workflow Patterns](/docs/agents/workflows) - Structured error handling in workflows
 
