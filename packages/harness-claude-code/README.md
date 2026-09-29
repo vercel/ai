@@ -73,8 +73,6 @@ values override variables inherited from the sandbox bridge process.
 
 ```ts
 const harness = createClaudeCode({
-  agentProgressSummaries: true,
-  forwardSubagentText: true,
   env: {
     DEPLOYMENT_ENV: 'staging',
   },
