@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "issueId": 9254,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9254.ts",
+  "artifactPaths": [
+    "examples/ai-functions/package.json",
+    "examples/ai-functions/src/reproduction/issue-9254.ts",
+    "packages/openai/src/responses/__fixtures__/issue-9254-live-openai.json",
+    "packages/openai/src/responses/issue-9254.test.ts",
+    "packages/anthropic/src/__fixtures__/issue-9254-live-anthropic.json",
+    "packages/anthropic/src/issue-9254.test.ts",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #9254 reproduced: AI SDK does not expose web-search sources and citations as distinct normalized output categories."
+  }
+}
