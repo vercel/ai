@@ -90,7 +90,7 @@ export interface OpenResponsesProviderSettings {
   /**
    * User-agent suffix for requests.
    *
-   * @default `ai-sdk/open-responses/<version>`
+   * @default `ai-sdk-open-responses/<version>`
    */
   userAgentSuffix?: string;
 
@@ -123,7 +123,7 @@ export function createOpenResponses(
           ? options.headers()
           : options.headers),
       },
-      options.userAgentSuffix ?? `ai-sdk/open-responses/${VERSION}`,
+      options.userAgentSuffix ?? `ai-sdk-open-responses/${VERSION}`,
     );
 
   const createResponsesModel = (modelId: string) => {

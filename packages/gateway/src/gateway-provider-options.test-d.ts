@@ -141,6 +141,23 @@ it('types conditional evaluation model fallbacks', () => {
     // @ts-expect-error Direct conditions cannot include combinators.
     any: [confidence],
   };
+  const anyChoiceOrScore = {
+    confidenceBelow: 0.6,
+  } satisfies EvaluationFallbackCondition<QuestionId>;
+  const anyBoolean = {
+    probabilityBetween: [0.4, 0.6],
+  } satisfies EvaluationFallbackCondition<QuestionId>;
+  const anyUnsure = {
+    any: [anyChoiceOrScore, anyBoolean],
+  } satisfies EvaluationFallbackCondition<QuestionId>;
+  expectTypeOf({
+    model: 'openai/gpt-5.6-sol',
+    when: anyUnsure,
+  }).toMatchTypeOf<GatewayModelFallback<QuestionId>>();
+
+  // @ts-expect-error A condition needs a check, not only a question.
+  const questionOnly: EvaluationFallbackCondition = { question: 'department' };
+
   const unknownQuestion: EvaluationFallbackCondition<QuestionId> = {
     // @ts-expect-error The question ID must come from the configured question set.
     question: 'missing',
@@ -169,6 +186,7 @@ it('types conditional evaluation model fallbacks', () => {
   void mixedCombinators;
   void mixedDirectAndCombinator;
   void unknownQuestion;
+  void questionOnly;
   void conditionalAfterString;
   void multipleConditionals;
 });

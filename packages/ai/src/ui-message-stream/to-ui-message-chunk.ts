@@ -18,6 +18,11 @@ export type ToUIMessageChunkOptions<
   sendSources?: boolean;
   sendStart?: boolean;
   sendFinish?: boolean;
+  /**
+   * Formats stream errors, invalid tool calls, and application-executed tool
+   * errors. Provider-executed tool execution errors bypass this callback so
+   * their original error data survives model-message round trips.
+   */
   onError?: (error: unknown) => string;
   messageMetadata?: InferUIMessageMetadata<UI_MESSAGE>;
   responseMessageId?: string;
@@ -40,7 +45,7 @@ export function toUIMessageChunk<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
     messageMetadata,
     responseMessageId,
   }: ToUIMessageChunkOptions<TOOLS, UI_MESSAGE> = {},
@@ -305,6 +310,9 @@ export function toUIMessageChunk<
     case 'tool-error': {
       const dynamic = isDynamic(part);
 
+      // Preserve provider error codes for model-message round trips and harness
+      // runtime error messages. These execution errors intentionally bypass
+      // onError; invalid tool calls and stream errors still go through it.
       return {
         type: 'tool-output-error',
         toolCallId: part.toolCallId,

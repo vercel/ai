@@ -7,6 +7,7 @@ import { showcaseProjects } from '@/lib/showcase';
 import { tools } from '@/lib/tools-registry';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/resources' },
   title: 'AI SDK Resources',
   description:
     'Explore AI SDK recipes, tools, templates, and products from Vercel and the community.',

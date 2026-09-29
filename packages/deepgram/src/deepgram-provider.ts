@@ -73,7 +73,7 @@ export function createDeepgram(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepgram/${VERSION}`,
+      `ai-sdk-deepgram/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: DeepgramTranscriptionModelId) =>

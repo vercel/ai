@@ -5099,6 +5099,8 @@ describe('doGenerate', () => {
       'anthropic.claude-opus-5-5',
       'us.anthropic.claude-opus-5-5',
       'global.anthropic.claude-opus-5-5',
+      'anthropic.claude-sonnet-5-5',
+      'us.anthropic.claude-sonnet-5-5',
     ])(
       'should build an auto tool choice for required choice on %s',
       async modelId => {
@@ -8359,6 +8361,103 @@ describe('doGenerate', () => {
           type: 'enabled',
           maxReasoningEffort: 'high',
         },
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 high reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'maxOutputTokens',
+        details: `maxOutputTokens is not supported by ${novaModelId} when high reasoning is enabled and will be ignored`,
+      });
+    });
+
+    it('should preserve maxOutputTokens for Nova 2 medium reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBe(1024);
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      );
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 xhigh portable reasoning (max effort)', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 explicit max reasoning effort', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'max',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
       );
     });
 

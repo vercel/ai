@@ -758,6 +758,15 @@ With `streamText`, you can control how error messages and usage information are 
 
 By default, the error message is masked for security reasons.
 The default error message is "An error occurred."
+
+Tool execution errors marked `providerExecuted: true` are an exception. They
+bypass the UI stream's `onError` callback: strings are forwarded unchanged, and
+other error values are serialized with `JSON.stringify`. This preserves provider
+error codes when chat history is converted back into model messages, as well as
+error messages from harness runtimes. Stream errors and invalid tool calls still
+use `onError`, even for provider-executed tools. Do not rely on this callback to
+redact provider-executed tool execution errors before they reach the client.
+
 You can forward error messages or send your own error message by providing an `onError` function:
 
 ```ts filename="app/api/chat/route.ts" highlight="21-35"
@@ -947,7 +956,7 @@ Check out the [stream protocol guide](/docs/ai-sdk-ui/stream-protocol) for more 
 ## Reasoning
 
 Some models such as DeepSeek `deepseek-r1`
-and Anthropic `claude-sonnet-5` support reasoning tokens.
+and Anthropic `claude-sonnet-5-5` support reasoning tokens.
 These tokens are typically sent before the message content.
 You can forward them to the client with the `sendReasoning` option:
 

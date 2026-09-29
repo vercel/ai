@@ -1,5 +1,6 @@
 export type AmazonBedrockAnthropicModelId =
   | 'anthropic.claude-sonnet-5'
+  | 'anthropic.claude-sonnet-5-5'
   | 'anthropic.claude-fable-5'
   | 'anthropic.claude-fable-5-1'
   | 'anthropic.claude-opus-5'
@@ -22,6 +23,7 @@ export type AmazonBedrockAnthropicModelId =
   | 'anthropic.claude-3-sonnet-20240229-v1:0'
   | 'anthropic.claude-3-haiku-20240307-v1:0'
   | 'us.anthropic.claude-sonnet-5'
+  | 'us.anthropic.claude-sonnet-5-5'
   | 'us.anthropic.claude-fable-5'
   | 'us.anthropic.claude-fable-5-1'
   | 'us.anthropic.claude-opus-5'

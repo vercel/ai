@@ -80,7 +80,7 @@ export function createPerplexity(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/perplexity/${VERSION}`,
+      `ai-sdk-perplexity/${VERSION}`,
     );
 
   const baseURL = withoutTrailingSlash(

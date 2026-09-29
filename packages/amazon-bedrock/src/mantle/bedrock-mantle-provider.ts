@@ -234,7 +234,7 @@ export function createBedrockMantle(
   const getHeaders = (): Record<string, string | undefined> =>
     withUserAgentSuffix(
       options.headers ?? {},
-      `ai-sdk/amazon-bedrock/${VERSION}`,
+      `ai-sdk-amazon-bedrock/${VERSION}`,
     );
 
   const url = ({ path, modelId }: { path: string; modelId: string }): string =>

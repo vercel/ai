@@ -49,7 +49,7 @@ const identityHref: ResolveHref = href => href;
 const GATEWAY_MODELS_URL = 'https://ai-gateway.vercel.sh/v1/models';
 
 const DEFAULT_MODEL_IDS: Record<ModelKind, string> = {
-  text: 'anthropic/claude-sonnet-5',
+  text: 'anthropic/claude-sonnet-5.5',
   image: 'openai/gpt-image-2.5-sunburst',
   video: 'google/veo-3.1-generate-001',
 };
@@ -263,7 +263,7 @@ const getDefaultModelOption = (kind: ModelKind): ModelOption => {
         ? 'GPT Image 2.5 Sunburst'
         : kind === 'video'
           ? 'Veo 3.1'
-          : 'Claude Sonnet 5',
+          : 'Claude Sonnet 5.5',
     provider,
     providerTitle: providerTitles[provider] ?? provider,
     code: DEFAULT_MODEL_IDS[kind].split('/')[1] || DEFAULT_MODEL_IDS[kind],
