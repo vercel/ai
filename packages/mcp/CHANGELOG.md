@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 2.0.62
+
+### Patch Changes
+
+- 868c475: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 2.0.61
 
 ### Patch Changes

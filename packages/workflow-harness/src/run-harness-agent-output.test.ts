@@ -193,6 +193,7 @@ function collectingWritable() {
 function fakeSession(options: {
   unfinishedTurn?: boolean;
   suspendState?: HarnessV1ContinueTurnState;
+  detachError?: Error;
 }) {
   const session = {
     sessionId: 'session-1',
@@ -211,6 +212,9 @@ function fakeSession(options: {
     },
     async detach() {
       session.detachCalls++;
+      if (options.detachError != null) {
+        throw options.detachError;
+      }
       return {
         type: 'resume-session',
         harnessId: 'mock',
@@ -386,6 +390,39 @@ describe('runHarnessAgentStep output', () => {
 
     expect(state.status).toBe('finished');
     expect(state.finalResult?.output).toBeUndefined();
+  });
+
+  test('surfaces detach failures instead of returning stale resume state', async () => {
+    const session = fakeSession({
+      detachError: new Error('could not persist resume state'),
+    });
+    const result = streamResult({ output: async () => undefined });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
+    };
+    const staleResumeState = {
+      type: 'resume-session' as const,
+      harnessId: 'mock',
+      specificationVersion: 'harness-v1' as const,
+      data: { cursor: 'before-finished-turn' },
+    };
+
+    await expect(
+      runHarnessAgentStep({
+        agent,
+        state: {
+          ...createHarnessWorkflowState({
+            prompt: 'Finish this turn.',
+            sessionId: 'session-1',
+          }),
+          resumeFrom: staleResumeState,
+        },
+        writable: collectingWritable().writable,
+      }),
+    ).rejects.toThrow('could not persist resume state');
+    expect(session.detachCalls).toBe(1);
   });
 
   test('does not read output while the turn is unfinished', async () => {

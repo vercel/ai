@@ -65,7 +65,7 @@ This code snippet will generate a type-safe recipe that conforms to the specifie
 The Responses API supports tool calling out of the box, allowing it to interact with external systems and perform discrete tasks. Here's an example of using tool calling with the AI SDK:
 
 ```ts
-import { generateText, tool } from 'ai';
+import { generateText, isStepCount, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 

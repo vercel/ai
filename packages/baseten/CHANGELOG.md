@@ -1,5 +1,14 @@
 # @ai-sdk/baseten
 
+## 2.1.37
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/openai-compatible@3.0.59
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 2.1.36
 
 ### Patch Changes

@@ -369,6 +369,151 @@ describe('runPrompt usage', () => {
 });
 
 describe('runPrompt telemetry lifecycle', () => {
+  test('publishes concurrent host tool lifecycle events and results as each tool runs', async () => {
+    const events: string[] = [];
+    let releaseSlow!: () => void;
+    const slowGate = new Promise<void>(resolve => {
+      releaseSlow = resolve;
+    });
+    const completedToolCalls = new Set<string>();
+    const session: HarnessV1Session = {
+      sessionId: 'concurrent-tools',
+      isResume: false,
+      async doPromptTurn(options) {
+        let resolveDone!: () => void;
+        const done = new Promise<void>(resolve => {
+          resolveDone = resolve;
+        });
+        queueMicrotask(() => {
+          options.emit({ type: 'stream-start', modelId: 'fake-model' });
+          options.emit({
+            type: 'tool-call',
+            toolCallId: 'fast-call',
+            toolName: 'work',
+            input: JSON.stringify({ label: 'fast' }),
+            stepToolCallCount: 2,
+          });
+          options.emit({
+            type: 'tool-call',
+            toolCallId: 'slow-call',
+            toolName: 'work',
+            input: JSON.stringify({ label: 'slow' }),
+            stepToolCallCount: 2,
+          });
+        });
+        return {
+          async submitToolResult(submission) {
+            const label =
+              submission.toolCallId === 'fast-call' ? 'fast' : 'slow';
+            options.emit({
+              type: 'tool-result',
+              toolCallId: submission.toolCallId,
+              toolName: 'work',
+              result: submission.output as { label: string },
+            });
+            completedToolCalls.add(submission.toolCallId);
+            if (completedToolCalls.size === 2) {
+              for (const event of finishEvents) options.emit(event);
+              resolveDone();
+            }
+            events.push(`runtime-result:${label}`);
+          },
+          done,
+        };
+      },
+      async doContinueTurn() {
+        throw new Error('not used');
+      },
+      async doCompact() {},
+      async doDetach() {
+        return {
+          type: 'resume-session',
+          harnessId: 'fake',
+          specificationVersion: 'harness-v1',
+          data: {},
+        };
+      },
+      async doStop() {
+        return {
+          type: 'resume-session',
+          harnessId: 'fake',
+          specificationVersion: 'harness-v1',
+          data: {},
+        };
+      },
+      async doDestroy() {},
+      async doSuspendTurn() {
+        return {
+          type: 'continue-turn',
+          harnessId: 'fake',
+          specificationVersion: 'harness-v1',
+          data: {},
+        };
+      },
+    };
+    const work = tool({
+      inputSchema: z.object({ label: z.enum(['fast', 'slow']) }),
+      execute: async ({ label }) => {
+        events.push(`execute-start:${label}`);
+        if (label === 'slow') await slowGate;
+        events.push(`execute-end:${label}`);
+        return { label };
+      },
+    });
+    const { result, done } = runPrompt({
+      harness,
+      session,
+      prompt: 'go',
+      instructions: undefined,
+      tools: { work },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      callbacks: {
+        onToolExecutionStart({ toolCall }) {
+          events.push(
+            `callback-start:${(toolCall.input as { label: string }).label}`,
+          );
+        },
+        onToolExecutionEnd({ toolCall }) {
+          events.push(
+            `callback-end:${(toolCall.input as { label: string }).label}`,
+          );
+        },
+      },
+    });
+
+    for await (const part of result.fullStream) {
+      if (part.type !== 'tool-result') continue;
+      const label = (part.output as { label: string }).label;
+      events.push(`stream-result:${label}`);
+      if (label === 'fast') releaseSlow();
+    }
+    await done;
+
+    const eventIndex = (event: string) => {
+      const index = events.indexOf(event);
+      expect(index, `missing event: ${event}`).toBeGreaterThanOrEqual(0);
+      return index;
+    };
+    for (const label of ['fast', 'slow']) {
+      expect(eventIndex(`callback-start:${label}`)).toBeLessThan(
+        eventIndex(`execute-start:${label}`),
+      );
+      expect(eventIndex(`execute-end:${label}`)).toBeLessThan(
+        eventIndex(`callback-end:${label}`),
+      );
+      expect(eventIndex(`callback-end:${label}`)).toBeLessThan(
+        eventIndex(`stream-result:${label}`),
+      );
+    }
+    expect(eventIndex('stream-result:fast')).toBeLessThan(
+      eventIndex('execute-end:slow'),
+    );
+  });
+
   test('does not settle until async end callbacks complete in order', async () => {
     const events: string[] = [];
     let resolveLanguageModelEnd!: () => void;
@@ -2359,9 +2504,9 @@ describe('runPrompt host tool generator results', () => {
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);
     expect(telemetryEvents).toEqual([
+      'tool-start',
       'wrapper-start',
       'wrapper-end',
-      'tool-start',
       'tool-end',
     ]);
     expect(parts).toContainEqual(
@@ -2799,10 +2944,10 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(events).toEqual([
+      'tool-start',
       'wrapper-start',
       'execute',
       'wrapper-end',
-      'tool-start',
     ]);
     expect(new Set(callIds).size).toBe(1);
   });

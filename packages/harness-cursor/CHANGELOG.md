@@ -1,5 +1,33 @@
 # @ai-sdk/harness-cursor
 
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness-acp@1.0.71
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.45
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+- @ai-sdk/harness-acp@1.0.70
+
+## 1.0.44
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/harness-acp@1.0.69
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
 ## 1.0.43
 
 ### Patch Changes

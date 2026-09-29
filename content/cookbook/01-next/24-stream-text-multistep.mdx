@@ -31,11 +31,13 @@ export async function POST(req: Request) {
 
   const stream = createUIMessageStream({
     execute: async ({ writer }) => {
+      const modelMessages = await convertToModelMessages(messages);
+
       // step 1 example: forced tool call
       const result1 = streamText({
         model: 'openai/gpt-6-luna',
         instructions: 'Extract the user goal from the conversation.',
-        messages,
+        messages: modelMessages,
         toolChoice: 'required', // force the model to call a tool
         tools: {
           extractGoal: tool({
@@ -60,10 +62,7 @@ export async function POST(req: Request) {
         instructions:
           'You are a helpful assistant with a different system prompt. Repeat the extract user goal in your answer.',
         // continue the workflow stream with the messages from the previous step:
-        messages: [
-          ...convertToModelMessages(messages),
-          ...(await result1.response).messages,
-        ],
+        messages: [...modelMessages, ...(await result1.response).messages],
       });
 
       // forward the 2nd result to the client (incl. the finish event):

@@ -1,5 +1,16 @@
 # @ai-sdk/google-vertex
 
+## 5.0.98
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/google@4.0.85
+  - @ai-sdk/openai-compatible@3.0.59
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 5.0.97
 
 ### Patch Changes

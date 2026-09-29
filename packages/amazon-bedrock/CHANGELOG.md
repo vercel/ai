@@ -1,5 +1,22 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [4e94782]
+  - @ai-sdk/openai@4.0.81
+
+## 5.0.100
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/openai@4.0.80
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 5.0.99
 
 ### Patch Changes

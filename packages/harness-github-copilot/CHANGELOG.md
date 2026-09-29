@@ -1,5 +1,33 @@
 # @ai-sdk/harness-github-copilot
 
+## 1.0.28
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness-acp@1.0.71
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.27
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+- @ai-sdk/harness-acp@1.0.70
+
+## 1.0.26
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/harness-acp@1.0.69
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
 ## 1.0.25
 
 ### Patch Changes

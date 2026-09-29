@@ -29,13 +29,10 @@ const agent = new ToolLoopAgent({
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
-  // Optional: support cancellation (aborts on disconnect, etc.)
-  const abortController = new AbortController();
-
   return createAgentUIStreamResponse({
     agent,
     uiMessages: messages,
-    abortSignal: abortController.signal, // optional
+    abortSignal: request.signal, // optional: aborts when the client disconnects
     // experimental_sandbox, // optional: passed through to tool execution
     // ...other UIMessageStreamOptions like sendSources, experimental_transform, etc.
   });

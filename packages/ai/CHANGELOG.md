@@ -1,5 +1,28 @@
 # ai
 
+## 7.0.122
+
+### Patch Changes
+
+- f3575f8: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data and harness runtime messages. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 27ab8d4: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- Updated dependencies [870f509]
+- Updated dependencies [a75f1fd]
+  - @ai-sdk/gateway@4.0.100
+
+## 7.0.121
+
+### Patch Changes
+
+- c5e90bb: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- 868c475: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- 119536f: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+- 9941f32: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [dbddb5b]
+- Updated dependencies [c2511c1]
+  - @ai-sdk/gateway@4.0.99
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 7.0.120
 
 ### Patch Changes

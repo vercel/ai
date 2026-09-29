@@ -1,5 +1,14 @@
 # @ai-sdk/gmicloud
 
+## 3.0.30
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/openai-compatible@3.0.59
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 3.0.29
 
 ### Patch Changes

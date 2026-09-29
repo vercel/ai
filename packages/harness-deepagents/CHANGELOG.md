@@ -1,5 +1,31 @@
 # @ai-sdk/harness-deepagents
 
+## 1.0.133
+
+### Patch Changes
+
+- b2049fa: fix(harness): expose `resolveSandboxCredentialEnvironment()` helper in favor of `createSandboxCredentialEnvironment()` and use it across bridge backed adapters
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
 ## 1.0.130
 
 ### Patch Changes

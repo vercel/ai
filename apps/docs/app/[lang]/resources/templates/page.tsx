@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Templates } from '@/components/docs/templates';
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/resources/templates' },
   title: 'AI SDK Templates',
   description:
     'Official app templates, examples, and framework integrations built with the AI SDK.',

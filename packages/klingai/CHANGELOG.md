@@ -1,5 +1,13 @@
 # @ai-sdk/klingai
 
+## 4.0.53
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 4.0.52
 
 ### Patch Changes
