@@ -1,0 +1,114 @@
+{
+  "toolProgressMessages": [
+    {
+      "type": "tool_progress",
+      "tool_use_id": "toolu_01EvoHjgongHipd4eFYTHM29-heartbeat-0",
+      "tool_name": "mcp__slow__slow_tool",
+      "parent_tool_use_id": "toolu_01EvoHjgongHipd4eFYTHM29",
+      "elapsed_time_seconds": 30,
+      "heartbeat": true,
+      "session_id": "7b67c884-277e-4337-866d-a4c43ea1c368",
+      "uuid": "56579303-f2ec-4d21-99f3-c498198292f0"
+    }
+  ],
+  "responseBoundaryMessages": [
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "tool_use",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 19053,
+          "cache_read_input_tokens": 0,
+          "output_tokens": 87,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 87,
+              "cache_read_input_tokens": 0,
+              "cache_creation_input_tokens": 19053,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 19053,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "message"
+            }
+          ]
+        },
+        "context_management": {
+          "applied_edits": []
+        }
+      },
+      "session_id": "7f2ba1c1-031f-47c6-8048-92ed93660082",
+      "parent_tool_use_id": null,
+      "uuid": "318148f0-aea5-46df-a483-93312f0178a5"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      },
+      "session_id": "7f2ba1c1-031f-47c6-8048-92ed93660082",
+      "parent_tool_use_id": null,
+      "uuid": "d180caad-ebd7-45b8-8d4b-9668c7db4d20"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_delta",
+        "delta": {
+          "stop_reason": "end_turn",
+          "stop_sequence": null,
+          "stop_details": null,
+          "container": null
+        },
+        "usage": {
+          "input_tokens": 2,
+          "cache_creation_input_tokens": 117,
+          "cache_read_input_tokens": 19053,
+          "output_tokens": 3,
+          "output_tokens_details": {
+            "thinking_tokens": 0
+          },
+          "iterations": [
+            {
+              "input_tokens": 2,
+              "output_tokens": 3,
+              "cache_read_input_tokens": 19053,
+              "cache_creation_input_tokens": 117,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 117,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "type": "message"
+            }
+          ]
+        },
+        "context_management": {
+          "applied_edits": []
+        }
+      },
+      "session_id": "7f2ba1c1-031f-47c6-8048-92ed93660082",
+      "parent_tool_use_id": null,
+      "uuid": "50391a3c-36eb-42e1-9cad-9d3908f6390b"
+    },
+    {
+      "type": "stream_event",
+      "event": {
+        "type": "message_stop"
+      },
+      "session_id": "7f2ba1c1-031f-47c6-8048-92ed93660082",
+      "parent_tool_use_id": null,
+      "uuid": "a52399b3-c54f-4bf3-932c-2dc0d21aa23f"
+    }
+  ]
+}
