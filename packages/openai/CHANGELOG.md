@@ -1,5 +1,19 @@
 # @ai-sdk/openai
 
+## 4.0.81
+
+### Patch Changes
+
+- 4e94782: fix(openai): rewrite recursive Zod schemas that use `allOf` wrappers
+
+## 4.0.80
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 4.0.79
 
 ### Patch Changes

@@ -460,7 +460,7 @@ See the [Amazon Bedrock Guardrails with Converse API documentation](https://docs
 Amazon Bedrock supports citations for document-based inputs across compatible models. When enabled:
 
 - Some models can read documents with visual understanding, not just extracting text
-- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (Not Supported Yet)
+- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (the AI SDK does not return citation data in results yet)
 
 ```ts
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -1454,7 +1454,7 @@ network requests made of the Bedrock servers.
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const { text } = await generateText({
+const result = await generateText({
   model: amazonBedrock('meta.llama3-70b-instruct-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });

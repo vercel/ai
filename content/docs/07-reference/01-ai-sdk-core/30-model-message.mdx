@@ -228,7 +228,7 @@ export interface ToolResultPart {
   /**
    * Result of the tool call. This is a JSON-serializable object.
    */
-  output: LanguageModelV4ToolResultOutput;
+  output: ToolResultOutput;
 
   /**
   Additional provider-specific metadata. They are passed through
@@ -239,7 +239,7 @@ export interface ToolResultPart {
 }
 ```
 
-### `LanguageModelV4ToolResultOutput`
+### `ToolResultOutput`
 
 ```ts
 /**

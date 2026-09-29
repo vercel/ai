@@ -68,6 +68,38 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   resume?: boolean;
 };
 
+const automaticResumeRegistrations = new WeakMap<object, Set<object>>();
+
+function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
+  chat,
+  registration,
+}: {
+  chat: Chat<UI_MESSAGE>;
+  registration: object;
+}) {
+  let registrations = automaticResumeRegistrations.get(chat);
+
+  if (registrations == null) {
+    registrations = new Set();
+    automaticResumeRegistrations.set(chat, registrations);
+  }
+
+  const shouldResume = registrations.size === 0;
+  registrations.add(registration);
+
+  if (shouldResume) {
+    void chat.resumeStream();
+  }
+
+  return () => {
+    registrations.delete(registration);
+
+    if (registrations.size === 0) {
+      automaticResumeRegistrations.delete(chat);
+    }
+  };
+}
+
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   throttle,
   experimental_throttle,
@@ -75,6 +107,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
   const throttleWaitMs = throttle ?? experimental_throttle;
+  const automaticResumeRegistration = useRef({});
   // the Chat instance is created once and not recreated when options change,
   // so it would normally keep the callbacks/transport from the first render forever
 
@@ -231,7 +264,10 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
 
   useEffect(() => {
     if (resume) {
-      chat.resumeStream();
+      return registerAutomaticResume({
+        chat,
+        registration: automaticResumeRegistration.current,
+      });
     }
   }, [resume, chat]);
 

@@ -1,5 +1,35 @@
 # @ai-sdk/harness
 
+## 1.0.133
+
+### Patch Changes
+
+- b2049fa: fix(harness): expose `resolveSandboxCredentialEnvironment()` helper in favor of `createSandboxCredentialEnvironment()` and use it across bridge backed adapters
+- 11f0e71: feat (harness): add `HarnessAgentSession.readHistory({ since })` contract to return normalized session history, to implement per individual harness adapter
+- 2b9195b: fix(harness): emit tool lifecycle events and results as each tool runs
+- 446725d: fix(harness): surface detach failures and keep session handles usable
+  - ai@7.0.122
+
+## 1.0.132
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+
+## 1.0.131
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [c2511c1]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 1.0.130
 
 ### Patch Changes

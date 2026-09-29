@@ -2238,3 +2238,39 @@ describe('responses', () => {
     });
   });
 });
+
+describe('resourceName validation', () => {
+  it.each([
+    'user@internal:8080/#',
+    '169.254.169.254:80/x#',
+    'evil.example.com/#',
+  ])('rejects %j before sending a request', async resourceName => {
+    const fetch = vi.fn();
+    const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('accepts a DNS-label resource name', async () => {
+    const fetch = vi.fn(
+      async (_url: RequestInfo | URL, _init?: RequestInit) =>
+        new Response('{}', { status: 500 }),
+    );
+    const provider = createAzure({
+      resourceName: 'my-resource',
+      apiKey: 'test-key',
+      fetch,
+    });
+    await expect(
+      provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toBeDefined();
+    expect(String(fetch.mock.calls[0]?.[0])).toContain(
+      'https://my-resource.openai.azure.com/',
+    );
+  });
+});

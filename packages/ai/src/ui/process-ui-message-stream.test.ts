@@ -12,6 +12,7 @@ import {
   type InferUIMessageData,
   type UIMessage,
 } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { UIMessageStreamError } from '../error/ui-message-stream-error';
 
@@ -3349,7 +3350,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"t",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -3375,7 +3376,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{"testArg":"test-value"}}",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-0",
@@ -5414,7 +5415,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -5786,7 +5787,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": true,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -6394,7 +6395,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "query": "test" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "tool-call-1",
@@ -7055,7 +7056,7 @@ describe('processUIMessageStream', () => {
                   "output": undefined,
                   "preliminary": undefined,
                   "providerExecuted": undefined,
-                  "rawInput": undefined,
+                  "rawInput": "{ "cities": "San Francisco" }",
                   "state": "input-streaming",
                   "title": undefined,
                   "toolCallId": "call-1",
@@ -7138,6 +7139,90 @@ describe('processUIMessageStream', () => {
         ]
       `);
     });
+  });
+
+  describe('dynamic tool errors after input streaming', () => {
+    const terminalChunks: Array<{
+      name: string;
+      chunk: UIMessageChunk;
+    }> = [
+      {
+        name: 'tool input error',
+        chunk: {
+          type: 'tool-input-error',
+          toolCallId: 'call-1',
+          toolName: 'cityAttractions',
+          input: { cities: ['San Francisco'] },
+          errorText: 'Invalid input for tool cityAttractions',
+          dynamic: true,
+        },
+      },
+      {
+        name: 'tool output error',
+        chunk: {
+          type: 'tool-output-error',
+          toolCallId: 'call-1',
+          errorText: 'Tool execution failed',
+          dynamic: true,
+        },
+      },
+    ];
+
+    it.each(terminalChunks)(
+      'clears raw input on $name',
+      async ({ chunk: terminalChunk }) => {
+        const warningLogger = vi.fn();
+        globalThis.AI_SDK_LOG_WARNINGS = warningLogger;
+
+        const stream = createUIMessageStream([
+          { type: 'start' },
+          { type: 'start-step' },
+          {
+            type: 'tool-input-start',
+            toolCallId: 'call-1',
+            toolName: 'cityAttractions',
+            dynamic: true,
+          },
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'call-1',
+            inputTextDelta: '{ "cities": ["San Francisco"] }',
+          },
+          terminalChunk,
+          { type: 'finish-step' },
+          { type: 'finish' },
+        ]);
+
+        state = createStreamingUIMessageState({
+          messageId: 'msg-123',
+          lastMessage: undefined,
+        });
+
+        await consumeStream({
+          stream: processUIMessageStream({
+            stream,
+            runUpdateMessageJob,
+            onError: error => {
+              throw error;
+            },
+          }),
+        });
+
+        const toolPart = state.message.parts.find(
+          (part: any) => part.toolCallId === 'call-1',
+        );
+
+        expect(toolPart).toMatchObject({
+          type: 'dynamic-tool',
+          state: 'output-error',
+        });
+        expect((toolPart as any).rawInput).toBeUndefined();
+
+        await validateUIMessages({ messages: [state.message] });
+
+        expect(warningLogger).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('tool input error with dynamic flag mismatch', () => {

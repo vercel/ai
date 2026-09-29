@@ -1,5 +1,28 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.133
+
+### Patch Changes
+
+- 446725d: fix(harness): surface detach failures and keep session handles usable
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.131
+
 ## 1.0.130
 
 ### Patch Changes

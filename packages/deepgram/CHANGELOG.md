@@ -1,5 +1,13 @@
 # @ai-sdk/deepgram
 
+## 3.1.22
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 3.1.21
 
 ### Patch Changes

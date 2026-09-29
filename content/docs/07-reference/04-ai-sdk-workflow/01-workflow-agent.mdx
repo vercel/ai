@@ -1022,7 +1022,7 @@ const result = await agent.stream({
   messages,
 
   // Per-call callbacks (both fire)
-  onStepEnd({ usage }) {
+  async onStepEnd({ usage }) {
     await trackUsage(usage);
   },
 

@@ -1,5 +1,21 @@
 # @ai-sdk/gateway
 
+## 4.0.100
+
+### Patch Changes
+
+- 870f509: chore(provider/gateway): update gateway model settings files
+- a75f1fd: chore(provider/gateway): update gateway model settings files
+
+## 4.0.99
+
+### Patch Changes
+
+- dbddb5b: feat(provider/gateway): allow evaluation fallback conditions without a question
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
 ## 4.0.98
 
 ### Patch Changes

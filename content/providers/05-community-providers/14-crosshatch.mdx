@@ -58,28 +58,28 @@ This example uses `gpt-4o-mini` to generate text.
 
 ```ts
 import { generateText } from 'ai';
-import createCrosshatch from '@crosshatch/ai-provider':
+import createCrosshatch from '@crosshatch/ai-provider';
 const crosshatch = createCrosshatch();
 
 const { text } = await generateText({
-  model: crosshatch.languageModel("gpt-4o-mini", {
+  model: crosshatch.languageModel('gpt-4o-mini', {
     token: 'YOUR_ACCESS_TOKEN',
     replace: {
       restaurants: {
-        select: ["entity_name", "entity_city", "entity_region"],
-        from: "personalTimeline",
+        select: ['entity_name', 'entity_city', 'entity_region'],
+        from: 'personalTimeline',
         where: [
-          { field: "event", op: "=", value: "confirmed" },
-          { field: "entity_subtype2", op: "=", value: "RESTAURANTS" }
+          { field: 'event', op: '=', value: 'confirmed' },
+          { field: 'entity_subtype2', op: '=', value: 'RESTAURANTS' },
         ],
-        groupby: ["entity_name", "entity_city", "entity_region"],
-        orderby: "count DESC",
-        limit: 5
-      }
-    }
+        groupby: ['entity_name', 'entity_city', 'entity_region'],
+        orderby: 'count DESC',
+        limit: 5,
+      },
+    },
   }),
   system: `The user recently ate at these restaurants: {restaurants}`,
-  messages: [{role: "user", content: "Where should I stay in Paris?"}]
+  messages: [{ role: 'user', content: 'Where should I stay in Paris?' }],
 });
 ```
 
@@ -88,36 +88,48 @@ const { text } = await generateText({
 Use crosshatch to re-rank items based on recent user purchases.
 
 ```ts
-import { streamText, Output } from 'ai';
-import createCrosshatch from `@crosshatch/ai-provider`
+import { streamText, Output, jsonSchema } from 'ai';
+import createCrosshatch from '@crosshatch/ai-provider';
 const crosshatch = createCrosshatch();
 
-const itemSummaries = [...]; // list of items
+const itemSummaries: { itemId: string }[] = [
+  /* your items */
+];
 const ids = (itemSummaries?.map(({ itemId }) => itemId) ?? []) as string[];
 
 const { elementStream } = streamText({
   output: Output.array({
     element: jsonSchema<{ id: string; reason: string }>({
-      type: "object",
+      type: 'object',
       properties: {
-        id: { type: "string", enum: ids },
-        reason: { type: "string", description: "Explain your ranking." },
+        id: { type: 'string', enum: ids },
+        reason: { type: 'string', description: 'Explain your ranking.' },
       },
     }),
   }),
-  model: crosshatch.languageModel("gpt-4o-mini", {
-    token,
+  model: crosshatch.languageModel('gpt-4o-mini', {
+    token: 'YOUR_ACCESS_TOKEN',
     replace: {
-      "orders": {
-        select: ["originalTimestamp", "entity_name", "order_total", "order_summary"],
-        from: "personalTimeline",
-        where: [{ field: "event", op: "=", value: "purchased" }],
-        orderBy: [{ field: "originalTimestamp", dir: "desc" }],
+      orders: {
+        select: [
+          'originalTimestamp',
+          'entity_name',
+          'order_total',
+          'order_summary',
+        ],
+        from: 'personalTimeline',
+        where: [{ field: 'event', op: '=', value: 'purchased' }],
+        orderBy: [{ field: 'originalTimestamp', dir: 'desc' }],
         limit: 5,
       },
     },
   }),
   system: `Rerank the following items based on alignment with users recent purchases {orders}`,
-  messages: [{role: "user", content: "Heres a list of item: ${JSON.stringify(itemSummaries)"},],
-})
+  messages: [
+    {
+      role: 'user',
+      content: `Here's a list of items: ${JSON.stringify(itemSummaries)}`,
+    },
+  ],
+});
 ```
