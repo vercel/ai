@@ -1113,6 +1113,84 @@ describe('createClaudeCode adapter', () => {
     await session.doDestroy();
   });
 
+  it('sends native settings policy values to the bridge', async () => {
+    const settingSources = ['project', 'local'] as const;
+    const settings = {
+      permissions: { deny: ['WebFetch(*)'] },
+      customSetting: { nested: true },
+    };
+    const managedSettings = {
+      permissions: { deny: ['Bash(rm -rf *)'] },
+    };
+    const harness = createClaudeCode({
+      settingSources: [...settingSources],
+      settings,
+      managedSettings,
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'inspect the project',
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      settingSources,
+      settings,
+      managedSettings,
+    });
+
+    await session.doDestroy();
+  });
+
+  it('sends a sandbox-local settings path when rerunning a continued turn', async () => {
+    const harness = createClaudeCode({
+      settingSources: [],
+      settings: '/vercel/sandbox/claude-settings.json',
+      managedSettings: { permissions: { deny: ['WebFetch(*)'] } },
+    });
+    const session = await harness.doStart({
+      sessionId: 's1',
+      sandboxSession: fakeNetworkSandboxSessionForStartupSuccess({
+        bridgePortUrl: 'ws://127.0.0.1:1',
+        writes: [],
+        runs: [],
+      }),
+      sessionWorkDir: '/vercel/sandbox/claude-code-s1',
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'claude-code',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    const control = await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    void Promise.resolve(control.done).catch(() => {});
+
+    expect(lastStart()).toMatchObject({
+      settingSources: [],
+      settings: '/vercel/sandbox/claude-settings.json',
+      managedSettings: { permissions: { deny: ['WebFetch(*)'] } },
+      continue: true,
+    });
+
+    await session.doDestroy();
+  });
+
   it('defaults to summarized adaptive thinking', async () => {
     const harness = createClaudeCode();
     const session = await harness.doStart({

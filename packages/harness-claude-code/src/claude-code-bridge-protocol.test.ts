@@ -101,6 +101,46 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
+  it('preserves native settings policy values', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      settingSources: ['user', 'project', 'local'] as const,
+      settings: {
+        permissions: { deny: ['WebFetch(*)'] },
+        customSetting: { nested: true },
+      },
+      managedSettings: {
+        permissions: { deny: ['Bash(rm -rf *)'] },
+      },
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it('accepts a sandbox-local settings file path', () => {
+    const message = {
+      type: 'start' as const,
+      prompt: 'hi',
+      thinking: { type: 'disabled' as const },
+      settings: '/vercel/sandbox/settings.json',
+    };
+
+    expect(inboundMessageSchema.parse(message)).toEqual(message);
+  });
+
+  it('rejects unknown settings sources', () => {
+    expect(() =>
+      inboundMessageSchema.parse({
+        type: 'start',
+        prompt: 'hi',
+        thinking: { type: 'disabled' },
+        settingSources: ['organization'],
+      }),
+    ).toThrow();
+  });
+
   it('accepts a start message naming the exact conversation to resume', () => {
     expect(() =>
       inboundMessageSchema.parse({

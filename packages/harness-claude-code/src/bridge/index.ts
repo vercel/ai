@@ -169,10 +169,19 @@ function createPermissionOptions(input: {
 }): Record<string, unknown> {
   const permissionMode = input.start.permissionMode ?? 'allow-all';
   const inactiveNativeTools = new Set(input.inactiveNativeTools);
-  const permissionSettings = createPermissionSettings({
-    permissionMode,
-    inactiveNativeTools,
-  });
+  /*
+   * The Agent SDK has one flag-settings slot. Keep using it for the adapter's
+   * generated ask rules when the caller leaves `settings` unset; when the
+   * caller supplies native settings, preserve that value unchanged and enforce
+   * the same harness approval boundary with the PreToolUse hook below.
+   */
+  const permissionSettings =
+    input.start.settings === undefined
+      ? createPermissionSettings({
+          permissionMode,
+          inactiveNativeTools,
+        })
+      : undefined;
 
   const baseOptions = {
     permissionMode:
@@ -246,6 +255,40 @@ function createPermissionOptions(input: {
             toolUseID: approvalId,
           };
     },
+  };
+}
+
+/**
+ * Forces tools covered by the harness permission mode through the Agent SDK's
+ * permission callback without occupying its public `settings` option. Native
+ * settings and managed policy still run in the SDK and may further restrict
+ * the tool call.
+ */
+function createPermissionPreToolUseHook(input: {
+  permissionMode: 'allow-reads' | 'allow-edits' | 'allow-all';
+  inactiveNativeTools: ReadonlySet<string>;
+}): HookCallback {
+  return async hookInput => {
+    if (hookInput.hook_event_name !== 'PreToolUse') {
+      return {};
+    }
+
+    if (
+      !input.inactiveNativeTools.has(hookInput.tool_name) &&
+      !nativeToolRequiresApproval({
+        nativeName: hookInput.tool_name,
+        permissionMode: input.permissionMode,
+      })
+    ) {
+      return {};
+    }
+
+    return {
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'ask',
+      },
+    };
   };
 }
 
@@ -473,6 +516,10 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     nativeToolCallNames: streamEventState.nativeToolCallNames,
     approvalRequestedToolUseIds: streamEventState.approvalRequestedToolUseIds,
   });
+  const permissionPreToolUseHook = createPermissionPreToolUseHook({
+    permissionMode: start.permissionMode ?? 'allow-all',
+    inactiveNativeTools: new Set(inactiveNativeTools),
+  });
   const questionPreToolUseHook = createQuestionPreToolUseHook({
     turn,
     emit,
@@ -484,6 +531,13 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.settingSources !== undefined
+        ? { settingSources: start.settingSources }
+        : {}),
+      ...(start.settings !== undefined ? { settings: start.settings } : {}),
+      ...(start.managedSettings !== undefined
+        ? { managedSettings: start.managedSettings }
+        : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
@@ -508,6 +562,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
       // `compaction` event; return an empty output so compaction proceeds.
       hooks: {
         PreToolUse: [
+          ...(start.settings === undefined
+            ? []
+            : [{ hooks: [permissionPreToolUseHook] }]),
           {
             matcher: 'AskUserQuestion',
             hooks: [questionPreToolUseHook],

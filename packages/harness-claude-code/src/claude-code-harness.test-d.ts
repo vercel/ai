@@ -10,6 +10,8 @@ import {
   claudeCode,
   createClaudeCode,
   type ClaudeCodeHarnessSettings,
+  type ClaudeCodeSettings,
+  type ClaudeCodeSettingSource,
 } from './index';
 
 /*
@@ -76,6 +78,40 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
         env: { DEPLOYMENT_ENV: 'staging' },
       }),
     ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts native settings policy configuration', () => {
+    const settingSources: ClaudeCodeSettingSource[] = [
+      'user',
+      'project',
+      'local',
+    ];
+    const settings: ClaudeCodeSettings = {
+      permissions: { deny: ['WebFetch(*)'] },
+    };
+    const managedSettings: ClaudeCodeSettings = {
+      permissions: { deny: ['Bash(rm -rf *)'] },
+    };
+
+    expectTypeOf(
+      createClaudeCode({
+        settingSources,
+        settings,
+        managedSettings,
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+    expectTypeOf(
+      createClaudeCode({
+        settings: '/vercel/sandbox/settings.json',
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode rejects unknown settings sources', () => {
+    createClaudeCode({
+      // @ts-expect-error - only native Claude Agent SDK settings sources are accepted
+      settingSources: ['organization'],
+    });
   });
 
   test('createClaudeCode accepts asynchronous credential forwarding', () => {

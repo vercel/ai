@@ -30,11 +30,16 @@ const thinkingSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('disabled') }),
 ]);
 
+const settingsSchema = z.record(z.string(), z.unknown());
+
 export const startMessageSchema = harnessV1BridgeStartBaseSchema.extend({
   instructions: z.string().optional(),
   thinking: thinkingSchema,
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
   maxTurns: z.number().optional(),
+  settingSources: z.array(z.enum(['user', 'project', 'local'])).optional(),
+  settings: z.union([z.string(), settingsSchema]).optional(),
+  managedSettings: settingsSchema.optional(),
   env: z.record(z.string(), z.string()).optional(),
   skills: z.array(z.string()).optional(),
   mcpServers: z.record(z.string(), z.unknown()).optional(),

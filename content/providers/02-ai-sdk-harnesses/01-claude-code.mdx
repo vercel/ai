@@ -106,6 +106,14 @@ Settings:
   the host process.
 - `mcpServers`: MCP server definitions keyed by server name.
 - `maxTurns`: maximum internal turns before yielding.
+- `settingSources`: filesystem settings sources to load inside the sandbox.
+  Supported values are `user`, `project`, and `local`. Pass `[]` for an
+  isolated session that does not load settings files. When omitted, Claude
+  Code loads all three sources.
+- `settings`: invocation-specific Claude Code settings, provided as an inline
+  object or as a settings file path inside the sandbox.
+- `managedSettings`: policy-tier Claude Code settings supplied by the
+  embedding application.
 - `env`: environment variables for the Claude Code process. Values are merged
   over the sandbox bridge process environment and take precedence.
 - `thinking`: extended-thinking configuration. `type` can be `enabled`,
@@ -125,6 +133,56 @@ Settings:
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
+
+### Native Settings Policies
+
+Use the native Claude Agent SDK settings options to control which settings
+sources are loaded and to supply invocation-specific or managed policy:
+
+```ts
+const harness = createClaudeCode({
+  settingSources: [],
+  settings: {
+    permissions: {
+      deny: ['WebFetch(*)'],
+    },
+  },
+  managedSettings: {
+    permissions: {
+      deny: ['Bash(curl *)'],
+    },
+  },
+});
+```
+
+To load project settings while ignoring user and local settings:
+
+```ts
+const harness = createClaudeCode({
+  settingSources: ['project'],
+});
+```
+
+`settings` also accepts a file path:
+
+```ts
+const harness = createClaudeCode({
+  settings: '/vercel/sandbox/claude-settings.json',
+});
+```
+
+Settings sources and file paths are resolved by Claude Code inside the sandbox,
+not on the host running your application. Native settings can load
+instructions, hooks, commands, environment configuration, and permissions, so
+only enable sources and files that you trust.
+
+Inline or file-based `settings` use Claude Code's flag-settings layer, which is
+the highest-priority user-controlled settings layer. `managedSettings` use the
+policy tier. A higher-priority administrative policy can ignore parent-managed
+settings unless it opts into merging them, and managed values are subject to
+Claude Code's restrictive-policy filtering. The adapter continues to apply its
+harness permission mode and built-in tool approval behavior in addition to the
+native settings policy.
 
 ## Structured Output
 

@@ -78,3 +78,26 @@ const harness = createClaudeCode({
   },
 });
 ```
+
+Use Claude Code's native settings policy options to select sandbox-local
+settings sources and supply inline or managed settings:
+
+```ts
+const harness = createClaudeCode({
+  settingSources: [],
+  settings: {
+    permissions: {
+      deny: ['WebFetch(*)'],
+    },
+  },
+  managedSettings: {
+    permissions: {
+      deny: ['Bash(curl *)'],
+    },
+  },
+});
+```
+
+`settings` also accepts a file path resolved inside the sandbox. Treat enabled
+settings sources and supplied files as trusted configuration because Claude
+Code settings can load instructions, hooks, commands, and environment values.
