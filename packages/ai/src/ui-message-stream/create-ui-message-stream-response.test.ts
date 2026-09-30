@@ -3,9 +3,17 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createUIMessageStreamResponse } from './create-ui-message-stream-response';
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
 describe('createUIMessageStreamResponse', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should create a Response with correct headers and encoded stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,
@@ -50,6 +58,31 @@ describe('createUIMessageStreamResponse', () => {
       ",
       ]
     `);
+  });
+
+  it('should send opening and keep-alive comments for an idle stream', async () => {
+    const response = createUIMessageStreamResponse({
+      stream: new ReadableStream(),
+      keepAliveMs: 100,
+    });
+    const reader = response
+      .body!.pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    await expect(reader.read()).resolves.toEqual({
+      done: false,
+      value: ': stream-open\n\n',
+    });
+
+    const keepAlive = reader.read();
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(keepAlive).resolves.toEqual({
+      done: false,
+      value: ': keep-alive\n\n',
+    });
+
+    await reader.cancel();
   });
 
   it('should handle errors in the stream', async () => {
@@ -120,7 +153,7 @@ describe('createUIMessageStreamResponse', () => {
     `);
 
     // Wait for consumeSseStream to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await vi.advanceTimersByTimeAsync(0);
 
     // Verify consumeSseStream received the same data
     expect(consumedData).toMatchInlineSnapshot(`

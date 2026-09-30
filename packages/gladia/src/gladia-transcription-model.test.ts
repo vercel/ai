@@ -89,7 +89,7 @@ describe('doGenerate', () => {
                 end: 3,
                 confidence: 0.95,
                 channel: 1,
-                speaker: 1,
+                speaker: 0,
                 words: [
                   {
                     word: 'Smoke',
@@ -111,6 +111,23 @@ describe('doGenerate', () => {
                   },
                 ],
                 text: 'Smoke from hundreds of wildfires.',
+              },
+              {
+                language: 'en',
+                start: 3,
+                end: 4,
+                confidence: 0.9,
+                channel: 1,
+                speaker: 'speaker-1',
+                words: [
+                  {
+                    word: 'Today',
+                    start: 3,
+                    end: 4,
+                    confidence: 0.9,
+                  },
+                ],
+                text: 'Today.',
               },
             ],
           },
@@ -170,6 +187,56 @@ describe('doGenerate', () => {
     });
 
     expect(result.text).toBe('Smoke from hundreds of wildfires.');
+  });
+
+  it('should preserve utterance metadata in provider metadata', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const gladiaMetadata = result.providerMetadata?.gladia;
+    expect(gladiaMetadata).toBeDefined();
+    const metadataUtterances = (
+      gladiaMetadata as {
+        result: {
+          transcription: {
+            utterances: Record<string, unknown>[];
+          };
+        };
+      }
+    ).result.transcription.utterances;
+
+    expect(metadataUtterances[0]).toMatchObject({
+      speaker: 0,
+      confidence: 0.95,
+      language: 'en',
+      words: [
+        {
+          word: 'Smoke',
+          start: 0,
+          end: 1,
+          confidence: 0.95,
+        },
+        {
+          word: 'from',
+          start: 1,
+          end: 2,
+          confidence: 0.95,
+        },
+        {
+          word: 'hundreds',
+          start: 2,
+          end: 3,
+          confidence: 0.95,
+        },
+      ],
+    });
+    expect(metadataUtterances[1]).toMatchObject({
+      speaker: 'speaker-1',
+    });
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

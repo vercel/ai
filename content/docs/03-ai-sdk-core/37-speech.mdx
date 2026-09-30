@@ -21,21 +21,6 @@ const audio = await generateSpeech({
 });
 ```
 
-### Language Setting
-
-You can specify the language for speech generation (provider support varies):
-
-```ts
-import { experimental_generateSpeech as generateSpeech } from 'ai';
-import { lmnt } from '@ai-sdk/lmnt';
-
-const audio = await generateSpeech({
-  model: lmnt.speech('aurora'),
-  text: 'Hola, mundo!',
-  language: 'es', // Spanish
-});
-```
-
 To access the generated audio:
 
 ```ts
@@ -139,7 +124,7 @@ try {
     text: 'Hello, world!',
   });
 } catch (error) {
-  if (NoSpeechGeneratedError.isInstance(error)) {
+  if (error instanceof NoSpeechGeneratedError) {
     console.log('AI_NoSpeechGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
@@ -154,14 +139,13 @@ try {
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1`                  |
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `tts-1-hd`               |
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models)         | `gpt-4o-mini-tts`        |
+| [Mistral](/providers/ai-sdk-providers/mistral#speech-models)       | `voxtral-mini-tts-2603`  |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_v3`              |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_multilingual_v2` |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2_5`      |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_flash_v2`        |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2_5`      |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models) | `eleven_turbo_v2`        |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `aurora`                 |
-| [LMNT](/providers/ai-sdk-providers/lmnt#speech-models)             | `blizzard`               |
 | [Hume](/providers/ai-sdk-providers/hume#speech-models)             | `default`                |
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.

@@ -2,6 +2,7 @@ import {
   type LanguageModelV2CallWarning,
   type LanguageModelV2Prompt,
   type LanguageModelV2ToolCallPart,
+  type SharedV2ProviderOptions,
   UnsupportedFunctionalityError,
 } from '@ai-sdk/provider';
 import {
@@ -10,6 +11,7 @@ import {
   validateTypes,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-options';
 import {
   localShellInputSchema,
   localShellOutputSchema,
@@ -20,6 +22,16 @@ import type {
   OpenAIResponsesInput,
   OpenAIResponsesReasoning,
 } from './openai-responses-api';
+
+type OpenAIPromptCacheBreakpoint = { mode: 'explicit' };
+
+function getPromptCacheBreakpoint(
+  providerOptions: SharedV2ProviderOptions | undefined,
+): OpenAIPromptCacheBreakpoint | undefined {
+  return providerOptions?.openai?.promptCacheBreakpoint as
+    | OpenAIPromptCacheBreakpoint
+    | undefined;
+}
 
 /**
  * Check if a string is a file ID based on the given prefixes
@@ -33,14 +45,20 @@ function isFileId(data: string, prefixes?: readonly string[]): boolean {
 export async function convertToOpenAIResponsesInput({
   prompt,
   systemMessageMode,
+  providerOptionsName = 'openai',
+  explicitMessageItemType = false,
   fileIdPrefixes,
   store,
+  configurationUpdateUnsupportedReason,
   hasLocalShellTool = false,
 }: {
   prompt: LanguageModelV2Prompt;
   systemMessageMode: 'system' | 'developer' | 'remove';
+  providerOptionsName?: string;
+  explicitMessageItemType?: boolean;
   fileIdPrefixes?: readonly string[];
   store: boolean;
+  configurationUpdateUnsupportedReason?: string;
   hasLocalShellTool?: boolean;
 }): Promise<{
   input: OpenAIResponsesInput;
@@ -49,16 +67,82 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<LanguageModelV2CallWarning> = [];
 
-  for (const { role, content } of prompt) {
+  for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
+        // Keep effort updates at their original positions so they apply to
+        // the same parts of the conversation when the history is sent again.
+        let options = await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: openaiResponsesSystemMessageOptionsSchema,
+        });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
+        const effort = options?.reasoningEffortUpdate;
+        if (effort != null) {
+          const unsupportedReason =
+            content !== ''
+              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              : configurationUpdateUnsupportedReason;
+
+          if (unsupportedReason != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level reasoningEffortUpdate',
+              message: unsupportedReason,
+            });
+          }
+
+          input.push({
+            type: 'configuration_update',
+            reasoning: { effort },
+          });
+          // The control is independent of systemMessageMode's text handling.
+          break;
+        }
+
         switch (systemMessageMode) {
           case 'system': {
-            input.push({ role: 'system', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
+              role: 'system',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'developer': {
-            input.push({ role: 'developer', content });
+            const promptCacheBreakpoint =
+              getPromptCacheBreakpoint(providerOptions);
+            input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
+              role: 'developer',
+              content:
+                promptCacheBreakpoint == null
+                  ? content
+                  : [
+                      {
+                        type: 'input_text',
+                        text: content,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ],
+            });
             break;
           }
           case 'remove': {
@@ -80,13 +164,26 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
               case 'text': {
-                return { type: 'input_text', text: part.text };
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
+                return {
+                  type: 'input_text',
+                  text: part.text,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
               }
               case 'file': {
+                const promptCacheBreakpoint = getPromptCacheBreakpoint(
+                  part.providerOptions,
+                );
                 if (part.mediaType.startsWith('image/')) {
                   const mediaType =
                     part.mediaType === 'image/*'
@@ -104,12 +201,18 @@ export async function convertToOpenAIResponsesInput({
                             image_url: `data:${mediaType};base64,${convertToBase64(part.data)}`,
                           }),
                     detail: part.providerOptions?.openai?.imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else if (part.mediaType === 'application/pdf') {
                   if (part.data instanceof URL) {
                     return {
                       type: 'input_file',
                       file_url: part.data.toString(),
+                      ...(promptCacheBreakpoint != null && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
                     };
                   }
                   return {
@@ -121,6 +224,9 @@ export async function convertToOpenAIResponsesInput({
                           filename: part.filename ?? `part-${index}.pdf`,
                           file_data: `data:application/pdf;base64,${convertToBase64(part.data)}`,
                         }),
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
                   };
                 } else {
                   throw new UnsupportedFunctionalityError({
@@ -158,6 +264,7 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
                 content: [{ type: 'output_text', text: part.text }],
                 id,
@@ -175,6 +282,9 @@ export async function convertToOpenAIResponsesInput({
 
               const id = part.providerOptions?.openai?.itemId as
                 | string
+                | undefined;
+              const isAsync = part.providerOptions?.openai?.async as
+                | boolean
                 | undefined;
 
               // item references reduce the payload size
@@ -210,6 +320,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: part.toolName,
                 arguments: JSON.stringify(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 id,
               });
               break;
@@ -309,6 +420,9 @@ export async function convertToOpenAIResponsesInput({
       case 'tool': {
         for (const part of content) {
           const output = part.output;
+          const promptCacheBreakpoint = getPromptCacheBreakpoint(
+            part.providerOptions,
+          );
 
           if (
             hasLocalShellTool &&
@@ -332,28 +446,61 @@ export async function convertToOpenAIResponsesInput({
           switch (output.type) {
             case 'text':
             case 'error-text':
-              contentValue = output.value;
+              contentValue =
+                promptCacheBreakpoint == null
+                  ? output.value
+                  : [
+                      {
+                        type: 'input_text',
+                        text: output.value,
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ];
               break;
             case 'json':
             case 'error-json':
-              contentValue = JSON.stringify(output.value);
+              contentValue =
+                promptCacheBreakpoint == null
+                  ? JSON.stringify(output.value)
+                  : [
+                      {
+                        type: 'input_text',
+                        text: JSON.stringify(output.value),
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      },
+                    ];
               break;
             case 'content':
-              contentValue = output.value.map(item => {
+              contentValue = output.value.map((item, index) => {
+                const isBreakpoint =
+                  promptCacheBreakpoint != null &&
+                  index === output.value.length - 1;
                 switch (item.type) {
                   case 'text': {
-                    return { type: 'input_text' as const, text: item.text };
+                    return {
+                      type: 'input_text' as const,
+                      text: item.text,
+                      ...(isBreakpoint && {
+                        prompt_cache_breakpoint: promptCacheBreakpoint,
+                      }),
+                    };
                   }
                   case 'media': {
                     return item.mediaType.startsWith('image/')
                       ? {
                           type: 'input_image' as const,
                           image_url: `data:${item.mediaType};base64,${item.data}`,
+                          ...(isBreakpoint && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         }
                       : {
                           type: 'input_file' as const,
                           filename: 'data',
                           file_data: `data:${item.mediaType};base64,${item.data}`,
+                          ...(isBreakpoint && {
+                            prompt_cache_breakpoint: promptCacheBreakpoint,
+                          }),
                         };
                   }
                 }

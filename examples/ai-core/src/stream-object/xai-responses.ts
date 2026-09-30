@@ -5,7 +5,7 @@ import { run } from '../lib/run';
 
 run(async () => {
   const result = streamObject({
-    model: xai.responses('grok-3-beta'),
+    model: xai.responses('grok-4.5'),
     schema: z.object({
       characters: z.array(
         z.object({

@@ -34,7 +34,18 @@ export type XaiResponsesAssistantMessage = {
 export type XaiResponsesFunctionCallOutput = {
   type: 'function_call_output';
   call_id: string;
-  output: string;
+  output:
+    | string
+    | Array<
+        | {
+            type: 'input_text';
+            text: string;
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+          }
+      >;
 };
 
 export type XaiResponsesReasoning = {
@@ -124,6 +135,31 @@ const toolCallSchema = z.object({
   status: z.string(),
   action: z.any().optional(),
 });
+
+export const webSearchWireSourceSchema = z.object({
+  type: z.literal('url'),
+  url: z.string(),
+});
+
+export const webSearchWireActionSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('search'),
+    query: z.string().nullish(),
+    queries: z.array(z.string()).nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('open_page'),
+    url: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+  z.object({
+    type: z.literal('find_in_page'),
+    url: z.string().nullish(),
+    pattern: z.string().nullish(),
+    sources: z.array(z.unknown()).nullish(),
+  }),
+]);
 
 const outputItemSchema = z.discriminatedUnion('type', [
   z.object({
