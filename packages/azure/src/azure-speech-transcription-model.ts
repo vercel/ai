@@ -11,7 +11,7 @@ import {
 import { z } from 'zod/v4';
 import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
 import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
-import { isMAITranscribe2 } from './azure-transcription-model-options';
+import { getMAITranscribeModel } from './azure-transcription-model-options';
 
 export class AzureSpeechTranscriptionModel implements TranscriptionModelV3 {
   readonly specificationVersion = 'v3';
@@ -31,6 +31,7 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV3 {
     azureOptions: AzureTranscriptionModelSpeechOptions = {},
   ): Promise<Awaited<ReturnType<TranscriptionModelV3['doGenerate']>>> {
     const timestamp = new Date();
+    const maiModel = getMAITranscribeModel(this.modelId);
     const formData = new FormData();
     formData.append(
       'audio',
@@ -49,11 +50,11 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV3 {
       JSON.stringify({
         enhancedMode: {
           enabled: true,
-          model: isMAITranscribe2(this.modelId)
-            ? 'MAI-Transcribe-2'
-            : this.modelId,
+          model: maiModel?.name ?? this.modelId,
           modelOptions: {
-            timestamps: azureOptions.timestamps ?? 'segment',
+            timestamps:
+              azureOptions.timestamps ??
+              (maiModel?.supportsTimestamps === false ? undefined : 'segment'),
             transcribeStyle: azureOptions.transcribeStyle,
           },
         },
