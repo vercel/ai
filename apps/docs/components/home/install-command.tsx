@@ -9,7 +9,7 @@ import {
 
 export function InstallCommand({ command }: { command: string }) {
   return (
-    <CommandPromptRoot defaultValue="install">
+    <CommandPromptRoot className="w-auto items-start" defaultValue="install">
       <CommandPromptSurface>
         <CommandPromptPrefix>$</CommandPromptPrefix>
         <CommandPromptViewport>

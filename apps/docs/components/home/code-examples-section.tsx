@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { Button } from '@vercel/geistdocs/components/button';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
+import { Fragment, useState } from 'react';
 import { CORE_EXAMPLES, type Mode } from '@/lib/home/code-examples';
 import { UI_EXAMPLES } from '@/lib/home/ui-examples';
 import { CodeWindow } from './code-window';
 import { DemoTabs } from './demo-tabs';
-import styles from './home.module.css';
 
 export function CodeExamplesSection() {
   const [section, setSection] = useState<'core' | 'ui'>('core');
@@ -18,39 +19,46 @@ export function CodeExamplesSection() {
   return (
     <section
       aria-label="Explore the AI SDK"
-      className={styles.codeSection}
+      className="grid grid-cols-1 items-center gap-12 py-12 md:py-20 lg:grid-cols-12 lg:gap-x-12"
       data-testid="home-code-examples"
     >
-      <div className={`${styles.cell} flex flex-col justify-center gap-10`}>
-        {(['core', 'ui'] as const).map(value => (
-          <button
-            aria-pressed={section === value}
-            className="text-left"
-            key={value}
-            onClick={() => {
-              setSection(value);
-              setActive(0);
-            }}
-            type="button"
-          >
-            <h2
-              className={`text-heading-24 ${section === value ? 'text-gray-1000' : 'text-gray-700'}`}
+      <div className="flex flex-col items-start gap-8 lg:col-span-5 lg:max-w-xl">
+        {(['core', 'ui'] as const).map((value, index) => (
+          <Fragment key={value}>
+            {index > 0 ? <hr className="w-full border-gray-alpha-400" /> : null}
+            <button
+              aria-pressed={section === value}
+              className="text-left"
+              onClick={() => {
+                setSection(value);
+                setActive(0);
+              }}
+              type="button"
             >
-              AI SDK {value === 'core' ? 'Core' : 'UI'}
-            </h2>
-            <p className="mt-3 text-copy-16 text-gray-900">
-              {value === 'core'
-                ? 'A unified API for generating text, structured objects, tool calls, and building agents with LLMs.'
-                : 'A set of framework-agnostic hooks for quickly building chat and generative user interfaces.'}
-            </p>
-          </button>
+              <h2
+                className={`text-heading-32 ${section === value ? 'text-gray-1000' : 'text-gray-700'}`}
+              >
+                AI SDK {value === 'core' ? 'Core' : 'UI'}
+              </h2>
+              <p
+                className={`mt-3 text-copy-18 ${section === value ? 'text-gray-900' : 'text-gray-700'}`}
+              >
+                {value === 'core'
+                  ? 'A unified API for generating text, structured objects, tool calls, and building agents with LLMs.'
+                  : 'A set of framework-agnostic hooks for quickly building chat and generative user interfaces.'}
+              </p>
+            </button>
+          </Fragment>
         ))}
-        <a
-          className="w-fit rounded-full bg-gray-1000 px-5 py-3 text-sm font-medium text-background-100"
+        <Button
+          className="rounded-full"
+          Component="a"
           href="https://playground.ai-sdk.dev"
+          size="large"
+          suffix={<ArrowUpRight aria-hidden="true" size={16} />}
         >
-          Go to playground ↗
-        </a>
+          Go to playground
+        </Button>
         <Link
           className="text-sm text-gray-900 underline-offset-4 hover:underline"
           href="/providers/ai-sdk-providers"
@@ -59,7 +67,7 @@ export function CodeExamplesSection() {
           Explore supported providers →
         </Link>
       </div>
-      <div className={`${styles.cell} min-w-0`}>
+      <div className="min-w-0 lg:col-span-7">
         <DemoTabs
           active={active}
           items={examples.map(item => item.label)}

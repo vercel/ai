@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@vercel/geistdocs/utils';
 import { useRef, useState } from 'react';
 import {
   HERO_EXAMPLES,
@@ -14,7 +15,7 @@ import { CodeWindow } from './code-window';
 import { DemoTabs } from './demo-tabs';
 import { PreviewPanel } from './preview-panel';
 
-export function HeroInteractive() {
+export function HeroInteractive({ className }: { className?: string }) {
   const [active, setActive] = useState(0);
   const [provider, setProvider] = useState<Provider>('grok');
   const [mode, setMode] = useState<Mode>('gateway');
@@ -48,10 +49,7 @@ export function HeroInteractive() {
   };
 
   return (
-    <div
-      className="mx-auto mt-20 w-full max-w-4xl"
-      data-testid="home-hero-demo"
-    >
+    <div className={cn('min-w-0', className)} data-testid="home-hero-demo">
       <DemoTabs
         active={active}
         items={HERO_EXAMPLES.map(item => item.label)}
@@ -61,7 +59,7 @@ export function HeroInteractive() {
           reveal();
         }}
       >
-        <div className="mb-4 flex items-center justify-center gap-3">
+        <div className="mb-4 flex items-center gap-3">
           <button
             aria-label="Previous provider"
             className="rounded p-2 text-gray-900 hover:bg-gray-200 disabled:opacity-40"
@@ -118,7 +116,7 @@ export function HeroInteractive() {
           <PreviewPanel key={`${active}-${selected}`} kind={example.kind} />
         </div>
       </DemoTabs>
-      <p className="mt-4 text-center text-sm text-gray-900">
+      <p className="mt-4 text-sm text-gray-900">
         See all{' '}
         <a
           className="font-medium text-gray-1000 underline-offset-4 hover:underline"

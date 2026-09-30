@@ -21,11 +21,7 @@ export function DemoTabs({
   const id = useId();
   return (
     <div className={className}>
-      <div
-        aria-label={label}
-        className="flex flex-wrap justify-center gap-1"
-        role="tablist"
-      >
+      <div aria-label={label} className="flex flex-wrap gap-1" role="tablist">
         {items.map((item, index) => (
           <button
             aria-controls={`${id}-panel`}

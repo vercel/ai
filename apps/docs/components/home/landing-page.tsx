@@ -1,3 +1,4 @@
+import { Button } from '@vercel/geistdocs/components/button';
 import {
   CommandPromptContent,
   CommandPromptCopy,
@@ -10,7 +11,13 @@ import {
   CommandPromptViewport,
 } from '@vercel/geistdocs/components/command-prompt';
 import { LogoAiSdk } from '@vercel/geistdocs/assets/logos/logo-ai-sdk';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
+  ShieldCheck,
+  ToggleRight,
+} from 'lucide-react';
 import Link from 'next/link';
 import {
   NextIcon,
@@ -25,7 +32,6 @@ import { InstallCommand } from './install-command';
 import { OssStatsSection } from './oss-stats-section';
 import { AngularIcon, ReactIcon, VueIcon } from './framework-icons';
 import { StarterPrompt } from './starter-prompt';
-import styles from './home.module.css';
 
 const frameworks = [
   { name: 'Next.js', Icon: NextIcon },
@@ -35,6 +41,23 @@ const frameworks = [
   { name: 'Vue', Icon: VueIcon },
   { name: 'Nuxt', Icon: NuxtIcon },
   { name: 'Solid', Icon: SolidIcon },
+];
+const features = [
+  {
+    title: 'Multi-provider support',
+    description: 'Switch providers with one line of code.',
+    Icon: ToggleRight,
+  },
+  {
+    title: 'Streaming that just works',
+    description: 'Real-time responses without custom parsing.',
+    Icon: ArrowDown,
+  },
+  {
+    title: 'Built-in fallbacks',
+    description: 'Reliable production behavior by default.',
+    Icon: ShieldCheck,
+  },
 ];
 const integrations = [
   {
@@ -65,230 +88,240 @@ const integrations = [
     command: 'npx ai-elements',
   },
 ];
+const testimonials = [
+  {
+    quote:
+      'We built a full AI agent with 40+ tools, resumable streams, and multi-step reasoning on AI SDK. Every hard problem we’d solved with duct tape before, streaming, tool call repair, message management, tool based UI, they already had a clean API for. It feels like their team hit every wall we did, just before us.',
+    name: 'Adir Duchan',
+    role: 'Senior AI Engineer',
+    company: 'Elementor',
+  },
+  {
+    quote: 'OpenCode uses AI SDK.',
+    name: 'Dax Raad',
+    role: 'CEO & Founder',
+    company: 'OpenCode',
+  },
+];
+
+const sectionHeading = 'text-heading-32 lg:text-heading-48';
+const card =
+  'flex min-w-0 flex-col justify-between gap-8 rounded-lg border border-gray-alpha-400 bg-background-100 p-6 md:p-8';
 
 export function LandingPage() {
   return (
-    <main className={styles.home}>
-      <aside className="flex items-center justify-center gap-2 border-b border-blue-300 bg-blue-100 px-4 py-3 text-center text-sm text-blue-900">
-        <Sparkles aria-hidden="true" className="shrink-0" size={18} />
-        <p>
-          Grok 4.7 is now available in the AI SDK.{' '}
-          <Link
-            className="font-medium text-gray-1000 underline-offset-4 hover:underline"
-            href="/providers/ai-sdk-providers/xai"
-            prefetch={true}
-          >
-            Learn more.
-          </Link>
-        </p>
-      </aside>
-      <section
-        aria-labelledby="home-title"
-        className="flex flex-col items-center px-4 py-28 sm:py-48"
+    <main>
+      <Link
+        className="group flex items-center justify-center gap-x-2 gap-y-1 bg-gray-1000 px-4 py-3 text-center text-xs text-background-100 md:text-sm"
+        href="/providers/ai-sdk-providers/xai"
+        prefetch={true}
       >
-        <h1
-          className="max-w-5xl text-center text-heading-40 md:text-heading-48 lg:text-heading-64"
-          id="home-title"
+        <span className="inline-flex shrink-0 items-center rounded-full bg-background-100/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide md:text-[11px]">
+          New
+        </span>
+        <span className="text-pretty">
+          Grok 4.7 is now available in the AI SDK.
+        </span>
+        <ArrowRight
+          aria-hidden="true"
+          className="hidden size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 sm:inline-block"
+        />
+      </Link>
+      <div className="mx-auto w-full max-w-[1448px] px-4 pb-12 sm:px-6 lg:pb-20">
+        <section
+          aria-labelledby="home-title"
+          className="grid grid-cols-1 items-center gap-y-12 py-16 md:py-24 lg:grid-cols-12 lg:gap-x-12 lg:py-32"
         >
-          Universal AI layer for building frameworks and agents
-        </h1>
-        <p className="mt-5 max-w-2xl text-center text-copy-16 text-gray-900 md:text-copy-18 lg:text-copy-20">
-          A unified TypeScript SDK for building AI apps with modern streaming,
-          fallbacks, and multi-model support—powered by Vercel
-        </p>
-        <CommandPromptRoot
-          className="mt-8 flex w-full flex-col items-center gap-2"
-          defaultValue="humans"
-        >
-          <CommandPromptList>
-            <CommandPromptTrigger value="humans">
-              For humans
-            </CommandPromptTrigger>
-            <CommandPromptTriggerDivider />
-            <CommandPromptTrigger value="agents">
-              For agents
-            </CommandPromptTrigger>
-          </CommandPromptList>
-          <CommandPromptSurface>
-            <CommandPromptPrefix>$</CommandPromptPrefix>
-            <CommandPromptViewport>
-              <CommandPromptContent value="humans">
-                npm install ai
-              </CommandPromptContent>
-              <CommandPromptContent value="agents">
-                npx skills add vercel/ai
-              </CommandPromptContent>
-            </CommandPromptViewport>
-            <CommandPromptCopy aria-label="Copy install command" />
-          </CommandPromptSurface>
-        </CommandPromptRoot>
-        <HeroInteractive />
-      </section>
-      <div className={styles.grid}>
+          <div className="flex flex-col items-start gap-8 lg:col-span-5">
+            <h1
+              className="text-balance text-heading-40 md:text-heading-48 xl:text-heading-64"
+              id="home-title"
+            >
+              Universal AI layer for building frameworks and agents
+            </h1>
+            <p className="max-w-[64ch] text-pretty text-copy-18 text-gray-900">
+              A unified TypeScript SDK for building AI apps with modern
+              streaming, fallbacks, and multi-model support—powered by Vercel
+            </p>
+            <div className="flex flex-wrap items-end gap-3">
+              <Link
+                className="shrink-0"
+                href="/docs/introduction"
+                prefetch={true}
+              >
+                <Button Component="span" className="rounded-full" size="large">
+                  Read the docs
+                </Button>
+              </Link>
+              <CommandPromptRoot
+                className="flex w-auto flex-col items-start gap-2"
+                defaultValue="humans"
+              >
+                <CommandPromptList>
+                  <CommandPromptTrigger value="humans">
+                    For humans
+                  </CommandPromptTrigger>
+                  <CommandPromptTriggerDivider />
+                  <CommandPromptTrigger value="agents">
+                    For agents
+                  </CommandPromptTrigger>
+                </CommandPromptList>
+                <CommandPromptSurface className="h-10 py-0 pr-2">
+                  <CommandPromptPrefix>$</CommandPromptPrefix>
+                  <CommandPromptViewport>
+                    <CommandPromptContent value="humans">
+                      npm install ai
+                    </CommandPromptContent>
+                    <CommandPromptContent value="agents">
+                      npx skills add vercel/ai
+                    </CommandPromptContent>
+                  </CommandPromptViewport>
+                  <CommandPromptCopy aria-label="Copy install command" />
+                </CommandPromptSurface>
+              </CommandPromptRoot>
+            </div>
+          </div>
+          <HeroInteractive className="lg:col-span-7" />
+        </section>
         <OssStatsSection />
         <section
           aria-labelledby="home-frameworks"
-          className="px-6 py-20 text-center"
+          className="grid grid-cols-1 items-center gap-10 py-12 md:py-20 lg:grid-cols-12 lg:gap-x-12"
         >
-          <h2
-            className="text-heading-32 md:text-heading-40"
-            id="home-frameworks"
-          >
-            The Framework Agnostic AI Toolkit
-          </h2>
-          <p className="mx-auto mt-8 max-w-3xl text-copy-16 text-gray-900 md:text-copy-18 lg:text-copy-20">
-            The open-source AI toolkit designed to help developers build
-            AI-powered applications and agents with React, Next.js, Vue, Svelte,
-            Node.js, and more.
-          </p>
-          <ul className="mt-10 flex flex-wrap items-center justify-center gap-8">
+          <div className="lg:col-span-5">
+            <h2 className={sectionHeading} id="home-frameworks">
+              The framework agnostic AI toolkit
+            </h2>
+            <p className="mt-4 max-w-xl text-pretty text-copy-18 text-gray-900">
+              The open-source AI toolkit designed to help developers build
+              AI-powered applications and agents with React, Next.js, Vue,
+              Svelte, Node.js, and more.
+            </p>
+          </div>
+          <ul className="flex flex-wrap items-center gap-6 lg:col-span-7 lg:flex-nowrap lg:justify-between lg:gap-0">
             {frameworks.map(({ name, Icon }) => (
-              <li className="flex flex-col items-center gap-2" key={name}>
-                <span
-                  aria-hidden="true"
-                  className="flex size-12 items-center justify-center [&_svg]:size-12"
-                >
-                  <Icon />
-                </span>
-                <span className="text-xs text-gray-900">{name}</span>
+              <li
+                className="flex size-12 items-center justify-center [&_svg]:size-12"
+                key={name}
+                title={name}
+              >
+                <Icon />
+                <span className="sr-only">{name}</span>
               </li>
             ))}
           </ul>
         </section>
-        <div className={styles.features}>
-          {[
-            [
-              'Multi-provider support.',
-              'Switch providers with one line of code.',
-            ],
-            [
-              'Streaming that just works.',
-              'Real-time responses without custom parsing.',
-            ],
-            ['Built-in fallbacks.', 'Reliable production behavior by default.'],
-          ].map(([title, description]) => (
-            <p className={`${styles.cell} text-heading-20`} key={title}>
-              {title}{' '}
-              <span className="font-medium text-gray-900">{description}</span>
-            </p>
-          ))}
-        </div>
+        <section aria-label="AI SDK features" className="py-12 md:py-20">
+          <ul className="grid gap-10 md:grid-cols-3 md:gap-12">
+            {features.map(({ title, description, Icon }) => (
+              <li className="flex flex-col gap-3" key={title}>
+                <h3 className="flex items-center gap-2 text-copy-16 font-medium text-gray-900">
+                  <Icon aria-hidden="true" size={16} />
+                  {title}
+                </h3>
+                <p className="text-copy-18 text-gray-900">{description}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
         <CodeExamplesSection />
-        <section aria-labelledby="home-scale" className={styles.integrations}>
-          <div className={`${styles.cell} ${styles.integrationIntro}`}>
-            <h2 className="text-heading-24" id="home-scale">
+        <section aria-labelledby="home-scale" className="py-12 md:py-20">
+          <div className="grid grid-cols-1 items-end gap-4 lg:grid-cols-12 lg:gap-x-12">
+            <h2 className={`${sectionHeading} lg:col-span-5`} id="home-scale">
               Scale with confidence
             </h2>
-            <p className="mt-4 text-copy-16 text-gray-900">
+            <p className="text-pretty text-copy-18 text-gray-900 lg:col-span-5 lg:col-start-8">
               Plug the AI SDK into an entire ecosystem designed for modern AI
               applications that scale.
             </p>
           </div>
-          {integrations.map(item => (
-            <article
-              className={`${styles.cell} flex min-w-0 flex-col justify-between gap-8`}
-              key={item.title}
-            >
-              <div>
-                <a
-                  className="flex items-center justify-between gap-3 font-mono text-base underline-offset-4 hover:underline"
-                  href={item.href}
-                >
-                  {item.title}
-                  <ArrowUpRight aria-hidden="true" size={16} />
-                </a>
-                <p className="mt-3 text-sm text-gray-900">{item.description}</p>
-              </div>
-              <InstallCommand command={item.command} />
-            </article>
-          ))}
+          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {integrations.map(item => (
+              <article className={card} key={item.title}>
+                <div>
+                  <a
+                    className="flex items-center justify-between gap-3 text-heading-20 underline-offset-4 hover:underline"
+                    href={item.href}
+                  >
+                    {item.title}
+                    <ArrowUpRight aria-hidden="true" size={16} />
+                  </a>
+                  <p className="mt-3 text-copy-16 text-gray-900">
+                    {item.description}
+                  </p>
+                </div>
+                <InstallCommand command={item.command} />
+              </article>
+            ))}
+          </div>
         </section>
-        <section aria-label="What builders say" className={styles.testimonials}>
-          <figure
-            className={`${styles.cell} flex flex-col justify-between gap-10`}
-          >
-            <blockquote className="text-copy-18 text-gray-900">
-              <span
-                aria-hidden="true"
-                className="mb-4 block text-5xl text-gray-400"
+        <section aria-labelledby="home-testimonials" className="py-12 md:py-20">
+          <h2 className={sectionHeading} id="home-testimonials">
+            What builders say about the AI SDK
+          </h2>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            {testimonials.map(item => (
+              <figure
+                className={`${card} justify-between gap-10`}
+                key={item.name}
               >
-                “
-              </span>
-              We built a full AI agent with 40+ tools, resumable streams, and
-              multi-step reasoning on AI SDK. Every hard problem we’d solved
-              with duct tape before, streaming, tool call repair, message
-              management, tool based UI, they already had a clean API for. It
-              feels like their team hit every wall we did, just before us.
-            </blockquote>
-            <figcaption className="flex flex-wrap justify-between gap-4">
-              <span>
-                <strong className="font-medium">Adir Duchan</strong>
-                <span className="block text-sm text-gray-900">
-                  Senior AI Engineer
-                </span>
-              </span>
-              <span className="font-semibold">Elementor</span>
-            </figcaption>
-          </figure>
-          <figure
-            className={`${styles.cell} flex flex-col justify-between gap-10`}
-          >
-            <blockquote className="text-copy-18 text-gray-900">
-              <span
-                aria-hidden="true"
-                className="mb-4 block text-5xl text-gray-400"
-              >
-                “
-              </span>
-              OpenCode uses AI SDK.
-            </blockquote>
-            <figcaption className="flex flex-wrap justify-between gap-4">
-              <span>
-                <strong className="font-medium">Dax Raad</strong>
-                <span className="block text-sm text-gray-900">
-                  CEO &amp; Founder
-                </span>
-              </span>
-              <span className="font-mono font-semibold">OpenCode</span>
-            </figcaption>
-          </figure>
+                <blockquote className="text-pretty text-copy-20 text-gray-1000">
+                  “{item.quote}”
+                </blockquote>
+                <figcaption className="flex flex-wrap items-end justify-between gap-4">
+                  <span>
+                    <strong className="font-medium">{item.name}</strong>
+                    <span className="block text-sm text-gray-900">
+                      {item.role}
+                    </span>
+                  </span>
+                  <span
+                    className={
+                      item.company === 'OpenCode'
+                        ? 'font-mono font-semibold'
+                        : 'font-semibold'
+                    }
+                  >
+                    {item.company}
+                  </span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
         </section>
-        <section aria-labelledby="home-get-started">
-          <div
-            className={`${styles.cell} flex flex-wrap items-start justify-between gap-8`}
-          >
+        <section aria-labelledby="home-get-started" className="py-12 md:py-20">
+          <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-center">
             <div>
               <h2
-                className="flex flex-wrap items-baseline gap-2 text-heading-32"
+                className={`${sectionHeading} flex flex-wrap items-baseline gap-x-3`}
                 id="home-get-started"
               >
-                Build with our{' '}
+                Build with the{' '}
                 <span aria-label="AI SDK">
-                  <LogoAiSdk className="h-6 w-auto" />
+                  <LogoAiSdk className="h-7 w-auto lg:h-9" />
                 </span>{' '}
                 today
               </h2>
-              <p className="mt-4 max-w-sm text-copy-18 text-gray-900">
+              <p className="mt-4 max-w-md text-copy-18 text-gray-900">
                 Get started with the AI SDK by using our recipes or templates.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                className="rounded-full bg-gray-1000 px-5 py-3 text-sm font-medium text-background-100"
+                className="shrink-0"
                 href="/docs/introduction"
                 prefetch={true}
               >
-                Visit Documentation
+                <Button Component="span" className="rounded-full" size="large">
+                  Read the docs
+                </Button>
               </Link>
               <InstallCommand command="npm i ai" />
             </div>
           </div>
-          <div className={styles.features}>
+          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {PROMPT_TEMPLATES.map(template => (
-              <article
-                className={`${styles.cell} flex min-w-0 flex-col justify-between gap-8`}
-                key={template.title}
-              >
+              <article className={card} key={template.title}>
                 <div>
                   <h3 className="text-heading-20">
                     <a

@@ -82,8 +82,9 @@ generative UI demos.
 
 `components/home/` restores the landing page from `vercel/ai-studio`
 (`8bf26cccd9d29f65460435388b25f170bbbb0fb1`), using the public Geistdocs
-controls and CSS grids. The existing site layout supplies navigation, search,
-Ask AI, analytics, and the footer. Framework marks in
+controls in a full-width layout that aligns with the navbar (following
+flags-sdk.dev and vercel.com/ai-sdk). The existing site layout supplies
+navigation, search, Ask AI, analytics, and the footer. Framework marks in
 `components/home/framework-icons.tsx` are also third-party logos covered by
 the notice above; standard marks replace the old private pixel artwork.
 
