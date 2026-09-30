@@ -85,6 +85,9 @@
       "path": "../../packages/gladia"
     },
     {
+      "path": "../../packages/gmicloud"
+    },
+    {
       "path": "../../packages/google"
     },
     {
@@ -101,9 +104,6 @@
     },
     {
       "path": "../../packages/klingai"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/luma"
@@ -136,6 +136,9 @@
       "path": "../../packages/provider"
     },
     {
+      "path": "../../packages/provider-utils"
+    },
+    {
       "path": "../../packages/quiverai"
     },
     {
@@ -158,6 +161,9 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/zai"
     }
   ]
 }

@@ -9,7 +9,11 @@ import {
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { ToolCallRepairError } from '../error/tool-call-repair-error';
-import type { DynamicToolCall, TypedToolCall } from './tool-call';
+import {
+  setToolCallInputSchemaInput,
+  type DynamicToolCall,
+  type TypedToolCall,
+} from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolSet } from './tool-set';
 
@@ -167,26 +171,29 @@ async function doParseToolCall<TOOLS extends ToolSet>({
     });
   }
 
-  return tool.type === 'dynamic'
-    ? {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName: toolCall.toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        dynamic: true,
-        title: tool.title,
-      }
-    : {
-        type: 'tool-call',
-        toolCallId: toolCall.toolCallId,
-        toolName,
-        input: parseResult.value,
-        providerExecuted: toolCall.providerExecuted,
-        providerMetadata: toolCall.providerMetadata,
-        ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
-        title: tool.title,
-      };
+  return setToolCallInputSchemaInput(
+    tool.type === 'dynamic'
+      ? {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName: toolCall.toolName,
+          input: parseResult.value,
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+          ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
+          dynamic: true,
+          title: tool.title,
+        }
+      : {
+          type: 'tool-call',
+          toolCallId: toolCall.toolCallId,
+          toolName,
+          input: parseResult.value,
+          providerExecuted: toolCall.providerExecuted,
+          providerMetadata: toolCall.providerMetadata,
+          ...(tool.metadata != null ? { toolMetadata: tool.metadata } : {}),
+          title: tool.title,
+        },
+    parseResult.rawValue,
+  );
 }

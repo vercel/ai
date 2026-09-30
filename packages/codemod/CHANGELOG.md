@@ -1,5 +1,11 @@
 # @ai-sdk/codemod
 
+## 3.0.8
+
+### Patch Changes
+
+- 0a64435: Fix codemod scaffolding when target directories are missing.
+
 ## 3.0.7
 
 ### Patch Changes

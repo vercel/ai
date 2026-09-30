@@ -70,6 +70,10 @@ export type OpenAIChatModelId =
   | 'gpt-5.6-luna'
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
+  | 'gpt-6-astra'
+  | 'gpt-6.1-sol'
+  | 'gpt-6-luna'
+  | 'gpt-6-sol'
   | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
@@ -107,6 +111,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
+       * GPT-6 and later models support 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
        */
       reasoningEffort: z
         .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
@@ -138,11 +143,14 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
        *           Project settings. Unless otherwise configured, the Project will use 'default'.
        * - 'flex': 50% cheaper processing at the cost of increased latency. Only available for o3 and o4-mini models.
        * - 'priority': Higher-speed processing with predictably low latency at premium cost. Available for Enterprise customers.
+       * - 'fast': OpenAI's newer name for the 'priority' tier. Interchangeable with it.
        * - 'default': The request will be processed with the standard pricing and performance for the selected model.
        *
        * @default 'auto'
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).optional(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .optional(),
 
       /**
        * Whether to use strict JSON schema validation.

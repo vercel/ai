@@ -434,6 +434,10 @@ export type GoogleInteractionsImageSize = '1K' | '2K' | '4K' | '512';
  *
  *   { type: 'image', mime_type, aspect_ratio?, image_size? }
  *     -- image generation. `mime_type` defaults to `image/png`.
+ *
+ *   { type: 'video', aspect_ratio?, resolution?, duration?, delivery?,
+ *     gcs_uri? }
+ *     -- video generation and delivery configuration.
  */
 export type GoogleInteractionsResponseFormatTextEntry = {
   type: 'text';
@@ -453,10 +457,20 @@ export type GoogleInteractionsResponseFormatAudioEntry = {
   mime_type?: string;
 };
 
+export type GoogleInteractionsResponseFormatVideoEntry = {
+  type: 'video';
+  aspect_ratio?: '16:9' | '9:16';
+  resolution?: '360p' | '720p' | '1080p' | '4k';
+  duration?: string;
+  delivery?: 'inline' | 'uri';
+  gcs_uri?: string;
+};
+
 export type GoogleInteractionsResponseFormatEntry =
   | GoogleInteractionsResponseFormatTextEntry
   | GoogleInteractionsResponseFormatImageEntry
-  | GoogleInteractionsResponseFormatAudioEntry;
+  | GoogleInteractionsResponseFormatAudioEntry
+  | GoogleInteractionsResponseFormatVideoEntry;
 
 export type GoogleInteractionsGenerationConfig = {
   temperature?: number;

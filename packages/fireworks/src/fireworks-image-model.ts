@@ -195,7 +195,7 @@ export class FireworksImageModel implements ImageModelV3 {
       samples: n,
       ...(inputImage && { input_image: inputImage }),
       ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
-      ...(providerOptions.fireworks ?? {}),
+      ...providerOptions.fireworks,
     };
 
     // Handle async models that require polling (e.g., flux-kontext-*)

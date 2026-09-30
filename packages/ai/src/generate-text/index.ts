@@ -15,6 +15,7 @@ export {
   type GeneratedFile,
 } from './generated-file';
 export * as Output from './output';
+export type { Output as OutputInterface } from './output';
 export type {
   InferCompleteOutput as InferGenerateOutput,
   InferPartialOutput as InferStreamOutput,
@@ -32,7 +33,9 @@ export {
 } from './stop-condition';
 export {
   streamText,
+  type StreamTextEndEvent,
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
   type StreamTextOnStartCallback,

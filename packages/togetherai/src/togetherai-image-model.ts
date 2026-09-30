@@ -107,7 +107,7 @@ export class TogetherAIImageModel implements ImageModelV3 {
         }),
         ...(imageUrl != null ? { image_url: imageUrl } : {}),
         response_format: 'base64',
-        ...(togetheraiOptions ?? {}),
+        ...togetheraiOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: togetheraiErrorSchema,

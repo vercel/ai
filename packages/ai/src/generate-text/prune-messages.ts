@@ -121,6 +121,7 @@ export function pruneMessages({
       }
     }
 
+    const approvalIdToToolCallId = new Map<string, string>();
     const approvalIdToToolName = new Map<string, string>();
     for (const message of messages) {
       if (
@@ -129,12 +130,24 @@ export function pruneMessages({
       ) {
         for (const part of message.content) {
           if (part.type === 'tool-approval-request') {
+            approvalIdToToolCallId.set(part.approvalId, part.toolCallId);
+
             const toolName = toolCallIdToToolName.get(part.toolCallId);
             if (toolName != null) {
               approvalIdToToolName.set(part.approvalId, toolName);
             }
           }
         }
+      }
+    }
+
+    // Approval requests depend on their originating tool call. When an
+    // approval response is in the retained messages, trace through its request
+    // so pruning does not leave a pending approval without the call to execute.
+    for (const approvalId of keptApprovalIds) {
+      const toolCallId = approvalIdToToolCallId.get(approvalId);
+      if (toolCallId != null) {
+        keptToolCallIds.add(toolCallId);
       }
     }
 

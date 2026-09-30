@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: deepseek('deepseek-chat'),
+    model: deepseek('deepseek-v4-flash'),
     prompt: 'How many "r"s are in the word "strawberry"?',
     providerOptions: {
       deepseek: {

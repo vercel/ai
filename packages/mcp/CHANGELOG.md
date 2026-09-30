@@ -1,5 +1,174 @@
 # @ai-sdk/mcp
 
+## 1.0.90
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- a9cea74: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 1.0.89
+
+### Patch Changes
+
+- cdc5b56: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+
+## 1.0.88
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 1.0.87
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 1.0.86
+
+### Patch Changes
+
+- 86fcba3: fix(mcp): preserve explicit stdio transport environment values
+
+## 1.0.85
+
+### Patch Changes
+
+- 03c91a0: fix(mcp): preserve pre-registered OAuth clients after client authentication errors and require explicit provider provenance before replacing dynamically registered credentials
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 1.0.84
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 1.0.83
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 1.0.82
+
+### Patch Changes
+
+- 1620182: fix(mcp): avoid duplicate legacy SSE OAuth refreshes for stale 401 responses
+
+## 1.0.81
+
+### Patch Changes
+
+- 5246507: fix(mcp): use the stored authorization server for OAuth callbacks when protected resource metadata rediscovery fails
+
+## 1.0.80
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 1.0.79
+
+### Patch Changes
+
+- 3d2db73: fix(mcp): accept trailing slashes on origin-only OAuth issuers
+
+## 1.0.78
+
+### Patch Changes
+
+- 172d3c0: feat(mcp): surface server-provided tool annotations in tool metadata
+
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 1.0.75
+
+### Patch Changes
+
+- 878bdb9: Apply MCP scope selection to dynamic client registration as well as authorization.
+- 204ce6c: fix(mcp): reject private OAuth endpoints before sending credentials
+
+## 1.0.74
+
+### Patch Changes
+
+- e7d359e: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 1.0.73
+
+### Patch Changes
+
+- b8e4215: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 1.0.72
+
+### Patch Changes
+
+- 0075ed5: fix(mcp): reject SSE requests when POST responses are unsuccessful
+
+## 1.0.71
+
+### Patch Changes
+
+- b0e77c0: Select MCP OAuth authorization scopes from `WWW-Authenticate` challenges or Protected Resource Metadata.
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 1.0.70
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 1.0.69
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 1.0.68
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
 ## 1.0.67
 
 ### Patch Changes

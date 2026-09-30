@@ -1,5 +1,152 @@
 # @ai-sdk/togetherai
 
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/openai-compatible@2.0.81
+
+## 2.0.86
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/openai-compatible@2.0.80
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/openai-compatible@2.0.79
+
+## 2.0.84
+
+### Patch Changes
+
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/openai-compatible@2.0.78
+
+## 2.0.83
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/openai-compatible@2.0.77
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/openai-compatible@2.0.76
+
+## 2.0.81
+
+### Patch Changes
+
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.80
+
+### Patch Changes
+
+- Updated dependencies [6d44462]
+- Updated dependencies [cc23556]
+  - @ai-sdk/openai-compatible@2.0.74
+  - @ai-sdk/provider-utils@4.0.50
+
+## 2.0.79
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/openai-compatible@2.0.73
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai-compatible@2.0.72
+
+## 2.0.77
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
+## 2.0.76
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
+## 2.0.75
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 2.0.74
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 2.0.73
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 2.0.72
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/openai-compatible@2.0.65
+
 ## 2.0.70
 
 ### Patch Changes

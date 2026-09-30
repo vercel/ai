@@ -1,7 +1,11 @@
 export type { AnthropicProviderOptions } from '@ai-sdk/anthropic';
 
-export type { AmazonBedrockEmbeddingModelOptions } from './bedrock-embedding-options';
 export type {
+  AmazonBedrockEmbeddingModelOptions,
+  AmazonBedrockEmbeddingModelSettings,
+} from './bedrock-embedding-options';
+export type {
+  AmazonBedrockChatModelSettings,
   AmazonBedrockLanguageModelOptions,
   /** @deprecated Use `AmazonBedrockLanguageModelOptions` instead. */
   AmazonBedrockLanguageModelOptions as BedrockProviderOptions,

@@ -11,6 +11,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -97,6 +98,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     const isReasoningModel =
       openaiOptions.forceReasoning ?? modelCapabilities.isReasoningModel;
 
+    let resolvedReasoningEffort = openaiOptions.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     if (topK != null) {
       warnings.push({ type: 'unsupported', feature: 'topK' });
     }
@@ -168,7 +186,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
       prompt_cache_options: openaiOptions.promptCacheOptions,
@@ -178,6 +196,19 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       // messages:
       messages,
     };
+
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -283,7 +314,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
     // Validate priority processing support
     if (
-      openaiOptions.serviceTier === 'priority' &&
+      (openaiOptions.serviceTier === 'priority' ||
+        openaiOptions.serviceTier === 'fast') &&
       !modelCapabilities.supportsPriorityProcessing
     ) {
       warnings.push({
@@ -339,10 +371,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV3Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }
@@ -441,15 +483,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
       responseHeaders,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV3FinishReason = {
       unified: 'other',
@@ -468,6 +502,10 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
           LanguageModelV3StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'if-present',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -559,87 +597,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
-                if (toolCalls[index] == null) {
-                  if (
-                    toolCallDelta.type != null &&
-                    toolCallDelta.type !== 'function'
-                  ) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -662,25 +620,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
-            // Finalize any unfinished tool calls. Tool calls are only
-            // finalized here (on stream end) to prevent premature
-            // execution when partial JSON is coincidentally parsable.
-            for (const toolCall of toolCalls) {
-              if (!toolCall.hasFinished) {
-                controller.enqueue({
-                  type: 'tool-input-end',
-                  id: toolCall.id,
-                });
-
-                controller.enqueue({
-                  type: 'tool-call',
-                  toolCallId: toolCall.id ?? generateId(),
-                  toolName: toolCall.function.name,
-                  input: toolCall.function.arguments,
-                });
-                toolCall.hasFinished = true;
-              }
-            }
+            toolCallTracker.flush();
 
             controller.enqueue({
               type: 'finish',

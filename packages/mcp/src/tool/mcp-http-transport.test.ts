@@ -7,7 +7,7 @@ import { createMCPClient } from './mcp-client';
 import { HttpMCPTransport } from './mcp-http-transport';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import { MCPClientError } from '../error/mcp-client-error';
-import type { OAuthClientProvider } from './oauth';
+import { UnauthorizedError, type OAuthClientProvider } from './oauth';
 import type { OAuthTokens } from './oauth-types';
 
 function createAbortableSseResponse({
@@ -853,6 +853,90 @@ describe('HttpMCPTransport', () => {
     await client.close();
 
     expect(refreshRequests).toHaveLength(1);
+  });
+
+  it('should use the scope from an OAuth challenge for authorization', async () => {
+    let authorizationUrl: URL | undefined;
+    const authProvider: OAuthClientProvider = {
+      tokens: vi.fn(async () => undefined),
+      saveTokens: vi.fn(),
+      redirectToAuthorization: vi.fn(async url => {
+        authorizationUrl = url;
+      }),
+      saveCodeVerifier: vi.fn(),
+      codeVerifier: vi.fn(async () => 'verifier'),
+      redirectUrl: 'http://localhost:4000/callback',
+      clientMetadata: {
+        redirect_uris: ['http://localhost:4000/callback'],
+      },
+      clientInformation: vi.fn(async () => ({ client_id: 'test-client' })),
+      saveAuthorizationServerInformation: vi.fn(),
+    };
+
+    const fetchFn = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input));
+
+        if (url.href === 'http://localhost:4000/mcp') {
+          return new Response(null, {
+            status: init?.method === 'POST' ? 401 : 405,
+            headers:
+              init?.method === 'POST'
+                ? {
+                    'www-authenticate':
+                      'Bearer resource_metadata="http://localhost:4000/.well-known/oauth-protected-resource", scope="mcp.challenge"',
+                  }
+                : undefined,
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-protected-resource'
+        ) {
+          return Response.json({
+            resource: 'http://localhost:4000/mcp',
+            authorization_servers: ['http://localhost:4000'],
+            scopes_supported: ['mcp.read', 'mcp.write'],
+          });
+        }
+
+        if (
+          url.href ===
+          'http://localhost:4000/.well-known/oauth-authorization-server'
+        ) {
+          return Response.json({
+            issuer: 'http://localhost:4000',
+            authorization_endpoint: 'http://localhost:4000/authorize',
+            token_endpoint: 'http://localhost:4000/token',
+            response_types_supported: ['code'],
+            code_challenge_methods_supported: ['S256'],
+          });
+        }
+
+        throw new Error(`Unexpected request: ${url.href}`);
+      },
+    );
+
+    transport = new HttpMCPTransport({
+      url: 'http://localhost:4000/mcp',
+      authProvider,
+      fetch: fetchFn,
+    });
+
+    await transport.start();
+
+    await expect(
+      transport.send({
+        jsonrpc: '2.0',
+        method: 'initialize',
+        id: 1,
+        params: {},
+      }),
+    ).rejects.toBeInstanceOf(UnauthorizedError);
+
+    expect(authorizationUrl?.searchParams.get('scope')).toBe('mcp.challenge');
+    await transport.close();
   });
 
   describe('redirect option', () => {

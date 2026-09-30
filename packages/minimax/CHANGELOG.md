@@ -1,5 +1,172 @@
 # @ai-sdk/minimax
 
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/anthropic@3.0.126
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [358683e]
+- Updated dependencies [eeabdce]
+  - @ai-sdk/anthropic@3.0.125
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/anthropic@3.0.124
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+- Updated dependencies [f04da68]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/anthropic@3.0.123
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/anthropic@3.0.122
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/anthropic@3.0.121
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [bd8bf1f]
+  - @ai-sdk/anthropic@3.0.120
+
+## 2.0.17
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/anthropic@3.0.119
+
+## 2.0.16
+
+### Patch Changes
+
+- Updated dependencies [c11f450]
+  - @ai-sdk/anthropic@3.0.118
+
+## 2.0.15
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/anthropic@3.0.117
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [57d88f5]
+  - @ai-sdk/anthropic@3.0.116
+
+## 2.0.13
+
+### Patch Changes
+
+- 2c90e90: fix(provider/minimax): send a default `16:9` ratio for MiniMax-H3 text-to-video
+
+## 2.0.12
+
+### Patch Changes
+
+- 658d7d9: Add model-aware MiniMax 480P and 768P video resolutions, duration limits, and reference-input validation.
+- 658d7d9: Map MiniMax 480P and 768P frame sizes onto their named video resolution tiers, so a typed top-level `resolution` can reach them.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/anthropic@3.0.115
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/anthropic@3.0.114
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/anthropic@3.0.113
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/anthropic@3.0.112
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [8533108]
+- Updated dependencies [31205a4]
+  - @ai-sdk/anthropic@3.0.111
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/anthropic@3.0.110
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/anthropic@3.0.109
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/anthropic@3.0.108
+
 ## 2.0.4
 
 ### Patch Changes

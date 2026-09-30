@@ -6,7 +6,6 @@ import type {
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
-  createJsonErrorResponseHandler,
   createJsonResponseHandler,
   postJsonToApi,
   resolve,
@@ -17,7 +16,7 @@ import {
   modelMaxImagesPerCall,
   type BedrockImageModelId,
 } from './bedrock-image-settings';
-import { BedrockErrorSchema } from './bedrock-error';
+import { bedrockFailedResponseHandler } from './bedrock-error';
 import { z } from 'zod/v4';
 
 type BedrockImageModelConfig = {
@@ -223,10 +222,7 @@ export class BedrockImageModel implements ImageModelV3 {
         combineHeaders(await resolve(this.config.headers), headers),
       ),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: bedrockFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         bedrockImageResponseSchema,
       ),

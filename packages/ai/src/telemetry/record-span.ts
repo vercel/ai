@@ -12,12 +12,14 @@ export async function recordSpan<T>({
   attributes,
   fn,
   endWhenDone = true,
+  endOnError = endWhenDone,
 }: {
   name: string;
   tracer: Tracer;
   attributes: Attributes | PromiseLike<Attributes>;
   fn: (span: Span) => Promise<T>;
   endWhenDone?: boolean;
+  endOnError?: boolean;
 }) {
   return tracer.startActiveSpan(
     name,
@@ -40,8 +42,9 @@ export async function recordSpan<T>({
         try {
           recordErrorOnSpan(span, error);
         } finally {
-          // always stop the span when there is an error:
-          span.end();
+          if (endOnError) {
+            span.end();
+          }
         }
 
         throw error;

@@ -1,0 +1,52 @@
+{
+  "id": "resp_parallel",
+  "object": "response",
+  "created_at": 1787162400,
+  "status": "completed",
+  "error": null,
+  "incomplete_details": null,
+  "input": [],
+  "instructions": null,
+  "max_output_tokens": null,
+  "model": "gpt-5.4",
+  "output": [
+    {
+      "type": "function_call",
+      "id": "fc_parallel",
+      "call_id": "call_parallel",
+      "name": "parallel",
+      "arguments": "{\"tool_uses\":[{\"recipient_name\":\"functions.weather\",\"parameters\":{\"location\":\"San Francisco\"}},{\"recipient_name\":\"functions.cityAttractions\",\"parameters\":{\"city\":\"Rome\"}}]}",
+      "status": "completed"
+    }
+  ],
+  "parallel_tool_calls": true,
+  "previous_response_id": null,
+  "reasoning": {
+    "effort": null,
+    "summary": null
+  },
+  "store": true,
+  "temperature": 1,
+  "text": {
+    "format": {
+      "type": "text"
+    }
+  },
+  "tool_choice": "auto",
+  "tools": [],
+  "top_p": 1,
+  "truncation": "disabled",
+  "usage": {
+    "input_tokens": 34,
+    "input_tokens_details": {
+      "cached_tokens": 0
+    },
+    "output_tokens": 28,
+    "output_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 62
+  },
+  "user": null,
+  "metadata": {}
+}

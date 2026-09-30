@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { SharedV3Warning } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt, SharedV3Warning } from '@ai-sdk/provider';
 import { createToolNameMapping } from '@ai-sdk/provider-utils';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
@@ -8,6 +8,332 @@ import { CacheControlValidator } from './get-cache-control';
 const defaultToolNameMapping = createToolNameMapping({
   tools: [],
   providerToolNames: {},
+});
+
+describe('orphaned programmatic callers', () => {
+  it.each(['code_execution_20250825', 'code_execution_20260120'])(
+    'should normalize historical %s callers without changing calls or results',
+    async callerType => {
+      const prompt: LanguageModelV3Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'lookup-call',
+              toolName: 'lookup',
+              input: { ticker: 'AAPL' },
+              providerOptions: {
+                anthropic: {
+                  caller: { type: callerType, toolId: 'pruned-source' },
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'lookup-call',
+              toolName: 'lookup',
+              output: { type: 'json', value: { price: 185.42 } },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'The price is $185.42.' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Now look up MSFT.' }],
+        },
+      ];
+      const originalPrompt = structuredClone(prompt);
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt,
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'lookup-call',
+              name: 'lookup',
+              input: { ticker: 'AAPL' },
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'lookup-call',
+              content: '{"price":185.42}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The price is $185.42.',
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Now look up MSFT.',
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'Omitted caller metadata for tool lookup-call because source code execution tool pruned-source is missing from the conversation history.',
+        },
+      ]);
+      expect(prompt).toEqual(originalPrompt);
+    },
+  );
+
+  it.each([false, true])(
+    'should preserve callers in an active continuation (source present: %s)',
+    async includeSource => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Look up AAPL.' }] },
+          {
+            role: 'assistant',
+            content: [
+              ...(includeSource
+                ? [
+                    {
+                      type: 'tool-call' as const,
+                      toolCallId: 'source-call',
+                      toolName: 'code_execution',
+                      providerExecuted: true,
+                      input: {
+                        type: 'programmatic-tool-call',
+                        code: 'await lookup({})',
+                      },
+                    },
+                  ]
+                : []),
+              {
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: {},
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'source-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                output: { type: 'text', value: '185.42' },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[1].content.at(-1)).toMatchObject({
+        type: 'tool_use',
+        caller: { type: 'code_execution_20260120', tool_id: 'source-call' },
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it.each([
+    { toolName: 'run_code', providerExecuted: true, keepsCaller: true },
+    { toolName: 'code_execution', providerExecuted: false, keepsCaller: false },
+    { toolName: 'web_search', providerExecuted: true, keepsCaller: false },
+    { toolName: 'unsupported', providerExecuted: true, keepsCaller: false },
+  ])(
+    'should resolve historical sources from emitted code execution blocks: $toolName',
+    async ({ toolName, providerExecuted, keepsCaller }) => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'source-call',
+                toolName,
+                providerExecuted,
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await lookup({})',
+                },
+                providerOptions: { anthropic: { caller: { type: 'direct' } } },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: {},
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'source-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue.' }] },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: createToolNameMapping({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'run_code',
+              args: {},
+            },
+          ],
+          providerToolNames: {
+            'anthropic.code_execution_20260120': 'code_execution',
+          },
+        }),
+      });
+
+      const content = result.prompt.messages[0].content;
+      const lookup = content.find(
+        part => 'id' in part && part.id === 'lookup-call',
+      );
+      expect(lookup).toMatchObject({ type: 'tool_use', id: 'lookup-call' });
+      if (keepsCaller) {
+        expect(lookup).toHaveProperty('caller', {
+          type: 'code_execution_20260120',
+          tool_id: 'source-call',
+        });
+        expect(warnings).toEqual([]);
+      } else {
+        expect(lookup).not.toHaveProperty('caller');
+        expect(warnings).toContainEqual({
+          type: 'other',
+          message:
+            'Omitted caller metadata for tool lookup-call because source code execution tool source-call is missing from the conversation history.',
+        });
+      }
+      if (toolName !== 'unsupported') {
+        expect(
+          content.find(part => 'id' in part && part.id === 'source-call'),
+        ).toHaveProperty('caller', { type: 'direct' });
+      }
+    },
+  );
+
+  it('should normalize callers on historical server calls and results', async () => {
+    const caller = {
+      anthropic: {
+        caller: { type: 'code_execution_20260120', toolId: 'pruned-source' },
+      },
+    };
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'search-call',
+              toolName: 'web_search',
+              providerExecuted: true,
+              input: { query: 'AI SDK' },
+              providerOptions: caller,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'search-call',
+              toolName: 'web_search',
+              output: { type: 'json', value: [] },
+              providerOptions: caller,
+            },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Tell me more.' }] },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'server_tool_use',
+        id: 'search-call',
+        name: 'web_search',
+        input: { query: 'AI SDK' },
+        cache_control: undefined,
+      },
+      {
+        type: 'web_search_tool_result',
+        tool_use_id: 'search-call',
+        content: [],
+        cache_control: undefined,
+      },
+    ]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'Omitted caller metadata for tool search-call because source code execution tool pruned-source is missing from the conversation history.',
+      },
+    ]);
+  });
 });
 
 describe('system messages', () => {
@@ -51,6 +377,153 @@ describe('system messages', () => {
     });
   });
 
+  describe('effort-only system messages', () => {
+    const lowEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'low' } },
+    } as const;
+    const highEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'high' } },
+    } as const;
+    const instruction = { role: 'system', content: 'initial' } as const;
+    const user = {
+      role: 'user',
+      content: [{ type: 'text', text: 'hi' }],
+    } satisfies LanguageModelV3Prompt[number];
+
+    it.each([
+      { name: 'alone', initial: [lowEffort], text: [], efforts: ['low'] },
+      {
+        name: 'after initial instructions',
+        initial: [instruction, lowEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'before initial instructions',
+        initial: [lowEffort, instruction],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'consecutively',
+        initial: [lowEffort, highEffort],
+        text: [],
+        efforts: ['low', 'high'],
+      },
+      {
+        name: 'around initial instructions',
+        initial: [lowEffort, instruction, highEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low', 'high'],
+      },
+    ])(
+      'should preserve initial effort messages $name',
+      async ({ initial, text, efforts }) => {
+        const warnings: SharedV3Warning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [...initial, user],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result).toEqual({
+          prompt: {
+            system: text,
+            messages: [
+              ...efforts.map(effort => ({
+                role: 'system',
+                content: [],
+                output_config: { effort },
+              })),
+              user,
+            ],
+          },
+          betas: new Set(['mid-conversation-output-config-2026-07-01']),
+        });
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([false, true])(
+      'should preserve later consecutive effort messages with initial instructions: %s',
+      async hasInitial => {
+        const warnings: SharedV3Warning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [
+            ...(hasInitial ? [instruction] : []),
+            user,
+            lowEffort,
+            highEffort,
+            { role: 'system', content: 'later instructions' },
+          ],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result.prompt.system).toEqual(
+          hasInitial ? [{ type: 'text', text: 'initial' }] : undefined,
+        );
+        expect(result.prompt.messages).toEqual([
+          user,
+          { role: 'system', content: [], output_config: { effort: 'low' } },
+          { role: 'system', content: [], output_config: { effort: 'high' } },
+          {
+            role: 'system',
+            content: [{ type: 'text', text: 'later instructions' }],
+          },
+        ]);
+        expect(result.betas).toEqual(
+          new Set([
+            'mid-conversation-system-2026-04-07',
+            'mid-conversation-output-config-2026-07-01',
+          ]),
+        );
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([
+      { content: 'initial', options: { effort: 'low' } },
+      { content: '', options: { clearAt: 'next_user_message' } },
+      { content: '', options: { clearAt: 'next_user_message', effort: 'low' } },
+    ])(
+      'should warn and ignore unsupported initial system options: $options',
+      async ({ content, options }) => {
+        const warnings: SharedV3Warning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [
+            {
+              role: 'system',
+              content,
+              providerOptions: { anthropic: options },
+            },
+            user,
+          ],
+          sendReasoning: true,
+          warnings,
+          toolNameMapping: defaultToolNameMapping,
+        });
+
+        expect(result.prompt.messages).toEqual([user]);
+        expect(result.betas).toEqual(new Set());
+        expect(warnings).toEqual([
+          {
+            type: 'other',
+            message: expect.stringContaining(
+              'These options have been ignored.',
+            ),
+          },
+        ]);
+      },
+    );
+  });
+
   it('should emit a mid-conversation system message inline and add the beta', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -71,6 +544,106 @@ describe('system messages', () => {
       content: [{ type: 'text', text: 'switch tone' }],
     });
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
+  });
+
+  it('should serialize effort updates and turn-scoped reminders on separate system messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: {
+              effort: 'high',
+            },
+          },
+        },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+        {
+          role: 'system',
+          content: 'this instruction applies to the current turn',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
+        {
+          role: 'system',
+          content: 'this instruction persists',
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      { role: 'assistant', content: [{ type: 'text', text: 'hello' }] },
+      { role: 'system', content: [], output_config: { effort: 'high' } },
+      { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'this instruction applies to the current turn',
+          },
+        ],
+        clear_at: 'next_user_message',
+      },
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'this instruction persists' }],
+      },
+    ]);
+    expect(
+      result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
+    ).toBe(true);
+    expect(result.betas.has('mid-conversation-output-config-2026-07-01')).toBe(
+      true,
+    );
+  });
+
+  it('should preserve per-message options on consecutive mid-conversation system messages', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        { role: 'system', content: 'initial' },
+        { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+        {
+          role: 'system',
+          content: 'temporary',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
+        {
+          role: 'system',
+          content: '',
+          providerOptions: {
+            anthropic: { effort: 'high' },
+          },
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages.slice(-2)).toEqual([
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'temporary' }],
+        clear_at: 'next_user_message',
+      },
+      {
+        role: 'system',
+        content: [],
+        output_config: { effort: 'high' },
+      },
+    ]);
   });
 
   it('should emit tool change blocks on a mid-conversation system message and add the beta', async () => {
@@ -2879,6 +3452,294 @@ describe('assistant messages', () => {
   });
 
   describe('code_execution 20260120', () => {
+    it('should preserve caller metadata and response order for dynamic filtering', async () => {
+      const caller = {
+        anthropic: {
+          caller: {
+            type: 'code_execution_20260120',
+            toolId: 'code-execution-call',
+          },
+        },
+      } as const;
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await web_search({ query: "AI SDK" })',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { caller: { type: 'direct' } },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search-call-1',
+                toolName: 'web_search',
+                input: { query: 'AI SDK' },
+                providerExecuted: true,
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search-call-1',
+                toolName: 'web_search',
+                output: { type: 'json', value: [] },
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'web-search-call-2',
+                toolName: 'web_search',
+                input: { query: 'Anthropic' },
+                providerExecuted: true,
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'web-search-call-2',
+                toolName: 'web_search',
+                output: { type: 'json', value: [] },
+                providerOptions: caller,
+              },
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toHaveLength(1);
+      expect(result.prompt.messages[0]).toMatchObject({
+        role: 'assistant',
+        content: [
+          {
+            type: 'server_tool_use',
+            id: 'code-execution-call',
+            caller: { type: 'direct' },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'web-search-call-1',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'web-search-call-1',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'server_tool_use',
+            id: 'web-search-call-2',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'web_search_tool_result',
+            tool_use_id: 'web-search-call-2',
+            caller: {
+              type: 'code_execution_20260120',
+              tool_id: 'code-execution-call',
+            },
+          },
+          {
+            type: 'code_execution_tool_result',
+            tool_use_id: 'code-execution-call',
+          },
+        ],
+      });
+    });
+
+    it('should preserve a deferred server result across a client tool continuation', async () => {
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await fetch_url({ url: "https://example.com" })',
+                },
+                providerExecuted: true,
+                providerOptions: {
+                  anthropic: { caller: { type: 'direct' } },
+                },
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                input: { url: 'https://example.com' },
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'code-execution-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'client-tool-call',
+                toolName: 'fetch_url',
+                output: { type: 'text', value: 'Example Domain' },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'code-execution-call',
+                toolName: 'code_execution',
+                output: {
+                  type: 'json',
+                  value: {
+                    type: 'encrypted_code_execution_result',
+                    encrypted_stdout: 'encrypted-output',
+                    stderr: '',
+                    return_code: 0,
+                    content: [],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings: [],
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      // Anthropic pairs a deferred server result by tool_use_id across
+      // responses; the intervening client tool exchange must stay intact.
+      expect(result.prompt.messages).toHaveLength(3);
+      expect(result.prompt.messages).toMatchObject([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'code-execution-call',
+              caller: { type: 'direct' },
+            },
+            {
+              type: 'tool_use',
+              id: 'client-tool-call',
+              caller: {
+                type: 'code_execution_20260120',
+                tool_id: 'code-execution-call',
+              },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'client-tool-call',
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'code_execution_tool_result',
+              tool_use_id: 'code-execution-call',
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should replay server_tool_use input without the internal discriminator', async () => {
+      const warnings: SharedV3Warning[] = [];
+      const result = await convertToAnthropicMessagesPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'srvtoolu_cache_replay',
+                toolName: 'code_execution',
+                input: {
+                  type: 'bash_code_execution',
+                  command: 'echo cache-compatible',
+                },
+                providerExecuted: true,
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'server_tool_use',
+              id: 'srvtoolu_cache_replay',
+              name: 'bash_code_execution',
+              input: {
+                command: 'echo cache-compatible',
+              },
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([]);
+    });
+
     it('should convert anthropic code_execution tool call and result parts', async () => {
       const warnings: SharedV3Warning[] = [];
       const result = await convertToAnthropicMessagesPrompt({
@@ -4212,5 +5073,174 @@ describe('citations', () => {
         }
       `);
     });
+  });
+});
+
+describe('toolsets', () => {
+  const toolsetToolNameMapping = createToolNameMapping({
+    tools: [
+      {
+        type: 'provider',
+        id: 'anthropic.computer_toolset_20260801',
+        name: 'computer',
+        args: {},
+      },
+    ],
+    providerToolNames: { 'anthropic.computer_toolset_20260801': 'computer' },
+  });
+
+  it('should serialize toolset tool calls and results with toolset_name', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              input: { action: 'left_click', coordinate: [640, 60] },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: toolsetToolNameMapping,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "id": "toolu_click",
+              "input": {
+                "coordinate": [
+                  640,
+                  60,
+                ],
+              },
+              "name": "left_click",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "content": "OK",
+              "is_error": undefined,
+              "tool_use_id": "toolu_click",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should detect toolset tool calls through provider metadata when the tool is not passed', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'desktop',
+              input: { action: 'screenshot' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'desktop',
+              output: { type: 'text', value: 'OK' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_use',
+        id: 'toolu_screenshot',
+        name: 'screenshot',
+        toolset_name: 'computer',
+        input: {},
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.prompt.messages[1].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_screenshot',
+        toolset_name: 'computer',
+        content: 'OK',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should warn and skip toolset tool calls without an action', async () => {
+    const warnings: SharedV3Warning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_bad',
+              toolName: 'computer',
+              input: { coordinate: [1, 2] },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: toolsetToolNameMapping,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'toolset tool call for tool computer is missing the action',
+      },
+    ]);
   });
 });

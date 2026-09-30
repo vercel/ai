@@ -53,7 +53,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.openai.com/v1`.
+  It defaults to the `OPENAI_BASE_URL` environment variable, and then to
+  `https://api.openai.com/v1`.
   The default OpenAI model factory (`openai('model-id')`) uses the Responses
   API. If your custom base URL only supports the Chat Completions API, create
   chat models with `openai.chat('model-id')` instead, or use the
@@ -205,9 +206,23 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  Supported reasoning efforts vary by model. GPT-5.6 supports `'none'`, `'low'`,
-  `'medium'`, `'high'`, `'xhigh'`, and `'max'`.
+  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, and GPT-6 Luna
+  support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6
+  Astra and GPT-6.1 Sol do not support `'none'`.
 </Note>
+
+<Note>
+  GPT-6 and later models do not support `temperature`, `topP`, `logprobs`, or
+  the legacy `promptCacheRetention` option. The provider removes these settings
+  and returns a warning. Use the Responses API for GPT-6 tool calling.
+</Note>
+
+- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+  Updates the reasoning effort for GPT-6 and later models starting with the
+  current response without changing the request-level effort. Use this with
+  `previousResponseId` to preserve the original prompt prefix for caching.
+  Configuration updates require standard, single-agent mode and cannot be
+  combined with automatic truncation.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
@@ -231,10 +246,12 @@ The following provider options are available:
   `.nullable()`.
 </Note>
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+  'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
+  gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
 
   Defaults to 'auto'.
 
@@ -305,6 +322,107 @@ The following OpenAI-specific metadata may be returned:
   Service tier information returned by the API.
 - **reasoningContext** _(optional)_
   Effective persisted-reasoning context returned by GPT-5.6 (`'current_turn'` or `'all_turns'`).
+
+#### Changing Reasoning Effort Mid-Conversation
+
+You can increase reasoning effort for difficult work or reduce it for routine
+follow-ups while preserving the conversation prefix for prompt caching:
+
+- Set the initial effort with request-level `providerOptions.openai.reasoningEffort` and keep that setting
+  unchanged throughout the conversation.
+- For later changes, add a message-level `reasoningEffortUpdate` before the next
+  user message, following
+  [OpenAI's configuration update guidance](https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation).
+
+The new effort applies until another update changes it. When sending conversation
+history in `messages`, include earlier effort updates along with the other messages.
+
+Represent an update as an empty system message with
+`providerOptions.openai.reasoningEffortUpdate`.
+
+Set `allowSystemInMessages: true` to explicitly allow these trusted system messages
+and suppress the warning for system messages in `messages`.
+
+In this example, the conversation starts at low effort and switches to high
+effort for the follow-up. Both requests keep `providerOptions.openai.reasoningEffort: 'low'`.
+
+```ts
+import {
+  openai,
+  type OpenAIResponsesSystemMessageOptions,
+} from '@ai-sdk/openai';
+import { generateText, type ModelMessage } from 'ai';
+
+const messages: ModelMessage[] = [
+  { role: 'user', content: 'Draft a migration plan.' },
+];
+
+const first = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  providerOptions: { openai: { reasoningEffort: 'low' } },
+  messages,
+});
+
+messages.push(...first.response.messages);
+messages.push(
+  {
+    role: 'system',
+    content: '',
+    providerOptions: {
+      openai: {
+        reasoningEffortUpdate: 'high',
+      } satisfies OpenAIResponsesSystemMessageOptions,
+    },
+  },
+  { role: 'user', content: 'Analyze the failure modes.' },
+);
+
+const second = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  providerOptions: { openai: { reasoningEffort: 'low' } },
+  allowSystemInMessages: true,
+  messages,
+});
+
+messages.push(...second.response.messages);
+```
+
+<Note>
+  The OpenAI Responses provider sends each message-level effort update as a
+  `configuration_update` input item.
+</Note>
+
+Message-level updates also work with `streamText` and `previousResponseId`.
+
+##### Restrictions
+
+Effort updates are supported on GPT-6-family models with these settings:
+
+| Setting             | Required value         |
+| ------------------- | ---------------------- |
+| `reasoningMode`     | `'standard'` (default) |
+| `truncation`        | `'disabled'` (default) |
+
+- Each update **must** use exactly `content: ''`.
+- Updates cannot be consecutive, even with the same effort. This also applies
+  across the boundary with history referenced by previousResponseId or
+  conversation.
+
+Requests that violate these restrictions are rejected.
+
+<Note>
+  Effort update messages are sent even if `systemMessageMode` is set to
+  `remove`.
+</Note>
+
+##### Request-Level Update Option
+
+The request-level `providerOptions.openai.reasoningEffortUpdate` option is a
+convenience that prepends a configuration update to the input. When using
+message-level updates, omit this option.
+
+The request-level option continues to warn and omit updates for unsupported
+models or configurations.
 
 #### Reasoning Output
 
@@ -479,6 +597,55 @@ If you persist or reconstruct messages for later turns, preserve the OpenAI prov
 metadata on tool-call parts. The SDK uses `providerMetadata.openai.namespace` or
 `providerOptions.openai.namespace` to round-trip the namespace back to OpenAI on
 subsequent requests.
+
+#### Async Tool Calling
+
+GPT-6 Astra and later Responses models support
+[async tool calling](https://developers.openai.com/api/docs/guides/async-tool-calling).
+An async tool lets the model continue generating independent output after issuing
+the call instead of waiting for its result. Your application still executes the
+tool and sends its result in a later request using the original tool call ID.
+
+Enable async calling on a function tool with `providerOptions.openai.async`:
+
+```ts
+import { openai, type OpenAIToolOptions } from '@ai-sdk/openai';
+import { generateText, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: openai.responses('gpt-6-astra'),
+  tools: {
+    getWeather: tool({
+      description: 'Get the weather for a city.',
+      inputSchema: z.object({ city: z.string() }),
+      outputSchema: z.object({
+        city: z.string(),
+        temperatureC: z.number(),
+      }),
+      providerOptions: {
+        openai: { async: true } satisfies OpenAIToolOptions,
+      },
+    }),
+  },
+  prompt:
+    'Start the weather lookup for Paris, then list three general packing essentials without waiting.',
+});
+```
+
+The generated tool call exposes the provider marker as
+`providerMetadata.openai.async`. Use `providerMetadata.openai.responseId` as the
+next request's `previousResponseId`, and submit the result in a tool message with
+the original `toolCallId`.
+
+With `streamText`, OpenAI can continue streaming text after the completed
+`tool-call` part. Use the tool's `onInputAvailable` callback to start work as soon
+as that part arrives. If `execute` returns the same already-running promise, tool
+execution overlaps the rest of the model stream. Omit `execute` when the job
+should outlive the current generation and submit its result in a later request.
+
+Async calling applies to directly called function and custom tools. It does not
+apply to hosted tools.
 
 #### Web Search Tool
 
@@ -667,6 +834,16 @@ for await (const part of result.fullStream) {
   accessible by the model. We recommend using the image generation tool without
   setting `store: false`.
 </Note>
+
+To use `xhigh` or `max` quality, select `gpt-image-2.5-flare` or
+`gpt-image-2.5-sunburst` as the image generation tool's model:
+
+```ts
+openai.tools.imageGeneration({
+  model: 'gpt-image-2.5-flare',
+  quality: 'xhigh',
+});
+```
 
 For complete details on model availability, image quality controls, supported sizes, and tool-specific parameters,
 refer to the OpenAI documentation:
@@ -1275,6 +1452,63 @@ The custom tool can be configured with:
   - **definition** _string_ - (grammar only) The grammar definition string (a regex pattern or Lark grammar).
 - **execute** _function_ (optional) - An async function that receives the raw string input and returns a string result. Enables multi-turn tool calling.
 
+#### Restricting Callable Tools
+
+The `allowedTools` provider option restricts which of the tools you declared the model is allowed to
+call, while still sending the full `tools` list to OpenAI. Because the tools list stays byte-identical
+across requests, the prompt cache is preserved — unlike `activeTools`, which removes tools from the
+request and invalidates the cache whenever the allow-list changes.
+
+`allowedTools` is only supported by the Responses API, and it overrides the request-level `toolChoice`.
+
+```ts
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: openai.responses('gpt-5.5'),
+  tools: {
+    weather: weatherTool,
+    cityAttractions: cityAttractionsTool,
+    search: openai.tools.webSearch(),
+  },
+  providerOptions: {
+    openai: {
+      allowedTools: { toolNames: ['weather', 'search'], mode: 'auto' },
+    },
+  },
+  prompt: 'What is the weather in San Francisco?',
+});
+```
+
+- **toolNames** _string[]_ - The tools the model may call, named as you declared them in `tools`. For
+  provider-defined tools you may also use the canonical OpenAI name (for example `web_search`).
+- **mode** _'auto' | 'required'_ (optional) - `'auto'` (default) lets the model pick one of the allowed
+  tools or answer with a message; `'required'` forces it to call at least one of them.
+
+Both function tools and provider-defined tools can be allow-listed, including web search, file search,
+image generation, code interpreter, apply patch, shell, custom tools, and MCP servers.
+
+If a name matches both a tool you declared and the canonical OpenAI name of a different tool, the tool
+you declared under that name wins, and a warning reports the ambiguity. If several tools share the same
+canonical name — two MCP servers, for example — that name is ambiguous, so it is dropped with a warning;
+name those tools as you declared them instead.
+
+<Note>
+  Three kinds of tools cannot be allow-listed, because OpenAI's `allowed_tools`
+  only sees the eagerly-loaded tool list: the [tool search tool](#tool-search),
+  tools marked with `deferLoading`, and tools grouped into a namespace. Naming
+  one of these in `allowedTools` removes it from the allow-list and emits a
+  warning; if that leaves no tools at all, the request fails with an error
+  instead of silently sending no restriction.
+</Note>
+
+<Note>
+  An MCP server is allow-listed as a whole: the entry carries the server label,
+  so every tool on that server is callable. To restrict which tools on a server
+  the model may call, use the MCP tool's own `allowedTools` argument.
+</Note>
+
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
@@ -1709,11 +1943,13 @@ The following optional provider options are available for OpenAI chat models:
 
   Parameters for prediction mode.
 
-- **serviceTier** _'auto' | 'flex' | 'priority' | 'default'_
+- **serviceTier** _'auto' | 'flex' | 'priority' | 'fast' | 'default'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
   at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
   Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+  'fast' is OpenAI's newer name for the 'priority' tier; the two are interchangeable, and responses from
+  gpt-5.6 and earlier report `serviceTier: 'priority'` for either.
 
   Defaults to 'auto'.
 
@@ -2322,6 +2558,10 @@ The following optional provider options are available for OpenAI completion mode
 
 | Model                 | Image Input         | Audio Input         | Object Generation   | Tool Usage          |
 | --------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gpt-6-astra`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6.1-sol`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6-luna`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-6-sol`           | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6`             | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6-luna`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-5.6-sol`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -2432,7 +2672,7 @@ Transform an existing image using text prompts:
 const imageBuffer = readFileSync('./input-image.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Turn the cat into a dog but retain the style of the original image',
     images: [imageBuffer],
@@ -2449,7 +2689,7 @@ const image = readFileSync('./input-image.png');
 const mask = readFileSync('./mask.png'); // Transparent areas = edit regions
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'A sunlit indoor lounge area with a pool containing a flamingo',
     images: [image],
@@ -2494,7 +2734,7 @@ const owl = readFileSync('./owl.png');
 const bear = readFileSync('./bear.png');
 
 const { images } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-sunburst'),
   prompt: {
     text: 'Combine these animals into a group photo, retaining the original style',
     images: [cat, dog, owl, bear],
@@ -2510,14 +2750,23 @@ const { images } = await generateImage({
 
 ### Model Capabilities
 
-| Model              | Sizes                           |
-| ------------------ | ------------------------------- |
-| `gpt-image-2`      | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1.5`    | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1-mini` | 1024x1024, 1536x1024, 1024x1536 |
-| `gpt-image-1`      | 1024x1024, 1536x1024, 1024x1536 |
-| `dall-e-3`         | 1024x1024, 1792x1024, 1024x1792 |
-| `dall-e-2`         | 256x256, 512x512, 1024x1024     |
+| Model                    | Sizes                                  |
+| ------------------------ | -------------------------------------- |
+| `gpt-image-2.5-flare`    | Standard presets and custom dimensions |
+| `gpt-image-2.5-sunburst` | Standard presets and custom dimensions |
+| `gpt-image-2`            | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1.5`          | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1-mini`       | 1024x1024, 1536x1024, 1024x1536        |
+| `gpt-image-1`            | 1024x1024, 1536x1024, 1024x1536        |
+| `dall-e-3`               | 1024x1024, 1792x1024, 1024x1792        |
+| `dall-e-2`               | 256x256, 512x512, 1024x1024            |
+
+Use `gpt-image-2.5-flare` for fast, general-purpose image generation and
+`gpt-image-2.5-sunburst` when editing precision and instruction following are
+the priority. Both models accept custom `WIDTHxHEIGHT` sizes whose dimensions
+are multiples of 16, with aspect ratios from 1:3 through 3:1, no edge longer
+than 3840 pixels, and a total area from 655,360 through 8,294,400 pixels.
+Resolutions above 2560x1440 are experimental.
 
 You can pass optional `providerOptions` to the image model. These are prone to change by OpenAI and are model dependent. For example, the `gpt-image-*` models support the `quality` option:
 
@@ -2529,10 +2778,23 @@ import {
 import { generateImage } from 'ai';
 
 const { image, providerMetadata } = await generateImage({
-  model: openai.image('gpt-image-2'),
+  model: openai.image('gpt-image-2.5-flare'),
   prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
   providerOptions: {
     openai: { quality: 'high' } satisfies OpenAIImageModelGenerationOptions,
+  },
+});
+```
+
+The `gpt-image-2.5-flare` and `gpt-image-2.5-sunburst` models also support
+`quality: 'xhigh'` and `quality: 'max'` for both image generation and editing:
+
+```ts
+const { image } = await generateImage({
+  model: openai.image('gpt-image-2.5-sunburst'),
+  prompt: 'A salamander at sunrise in a forest pond in the Seychelles.',
+  providerOptions: {
+    openai: { quality: 'max' } satisfies OpenAIImageModelGenerationOptions,
   },
 });
 ```
@@ -2550,7 +2812,7 @@ is available:
   - `revisedPrompt` _string_ - The revised prompt that was actually used to generate the image (OpenAI may modify your prompt for safety or clarity)
   - `created` _number_ - The Unix timestamp (in seconds) of when the image was created
   - `size` _string_ - The size of the generated image. One of `1024x1024`, `1024x1536`, or `1536x1024`
-  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, or `high`
+  - `quality` _string_ - The quality of the generated image. One of `low`, `medium`, `high`, `xhigh`, or `max`
   - `background` _string_ - The background parameter used for the image generation. Either `transparent` or `opaque`
   - `outputFormat` _string_ - The output format of the generated image. One of `png`, `webp`, or `jpeg`
 

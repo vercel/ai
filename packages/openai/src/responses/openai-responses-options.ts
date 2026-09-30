@@ -57,6 +57,10 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.6-luna',
   'gpt-5.6-sol',
   'gpt-5.6-terra',
+  'gpt-6-astra',
+  'gpt-6.1-sol',
+  'gpt-6-luna',
+  'gpt-6-sol',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -129,6 +133,10 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.6-luna'
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
+  | 'gpt-6-astra'
+  | 'gpt-6.1-sol'
+  | 'gpt-6-luna'
+  | 'gpt-6-sol'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -258,9 +266,22 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Reasoning effort for reasoning models. Defaults to `medium`. If you use
        * `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
        * GPT-5.6 supports 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
+       * GPT-6 and later models support 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
        * Supported values vary by model.
        */
       reasoningEffort: z.string().nullish(),
+
+      /**
+       * Updates the reasoning effort for GPT-6 and later models starting with this response
+       * without changing the request-level reasoning effort. This preserves the
+       * request prefix for prompt caching.
+       *
+       * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
+       * combined with automatic truncation.
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
 
       /**
        * Controls how much model work GPT-5.6 performs before returning a final answer.
@@ -293,10 +314,13 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        * Service tier for the request.
        * Set to 'flex' for 50% cheaper processing at the cost of increased latency (available for o3, o4-mini, and gpt-5 models).
        * Set to 'priority' for faster processing with Enterprise access (available for gpt-4, gpt-5, gpt-5-mini, o3, o4-mini; gpt-5-nano is not supported).
+       * Set to 'fast' for the same tier as 'priority' (OpenAI's newer name for it).
        *
        * Defaults to 'auto'.
        */
-      serviceTier: z.enum(['auto', 'flex', 'priority', 'default']).nullish(),
+      serviceTier: z
+        .enum(['auto', 'flex', 'priority', 'fast', 'default'])
+        .nullish(),
 
       /**
        * Whether to store the generation. Defaults to `true`.
@@ -382,4 +406,26 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
 export type OpenAILanguageModelResponsesOptions = InferSchema<
   typeof openaiLanguageModelResponsesOptionsSchema
+>;
+
+export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Emit a configuration update at this position in Responses history.
+       * Requires empty system message content and the same supported
+       * configuration as the request-level reasoningEffortUpdate option.
+       * Unsupported historical updates throw instead of being omitted.
+       *
+       * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesSystemMessageOptions = InferSchema<
+  typeof openaiResponsesSystemMessageOptionsSchema
 >;

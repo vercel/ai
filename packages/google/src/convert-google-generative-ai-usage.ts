@@ -8,13 +8,16 @@ export type GoogleGenerativeAITokenDetail = {
 export type GoogleGenerativeAIUsageMetadata = {
   promptTokenCount?: number | null;
   candidatesTokenCount?: number | null;
+  toolUsePromptTokenCount?: number | null;
   totalTokenCount?: number | null;
   cachedContentTokenCount?: number | null;
   thoughtsTokenCount?: number | null;
   trafficType?: string | null;
   serviceTier?: string | null;
   promptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+  cacheTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
   candidatesTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
+  toolUsePromptTokensDetails?: GoogleGenerativeAITokenDetail[] | null;
 };
 
 export function convertGoogleGenerativeAIUsage(

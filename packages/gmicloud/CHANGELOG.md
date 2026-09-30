@@ -1,0 +1,121 @@
+# @ai-sdk/gmicloud
+
+## 2.0.14
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/openai-compatible@2.0.81
+
+## 2.0.13
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/openai-compatible@2.0.80
+
+## 2.0.12
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/openai-compatible@2.0.79
+
+## 2.0.11
+
+### Patch Changes
+
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/openai-compatible@2.0.78
+
+## 2.0.10
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/openai-compatible@2.0.77
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.9
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/openai-compatible@2.0.76
+
+## 2.0.8
+
+### Patch Changes
+
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.7
+
+### Patch Changes
+
+- Updated dependencies [6d44462]
+- Updated dependencies [cc23556]
+  - @ai-sdk/openai-compatible@2.0.74
+  - @ai-sdk/provider-utils@4.0.50
+
+## 2.0.6
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/openai-compatible@2.0.73
+
+## 2.0.5
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai-compatible@2.0.72
+
+## 2.0.4
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
+## 2.0.3
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 2.0.1
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68

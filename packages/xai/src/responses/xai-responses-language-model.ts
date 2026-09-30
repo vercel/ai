@@ -16,15 +16,19 @@ import {
   parseProviderOptions,
   postJsonToApi,
   type FetchFunction,
+  type InferSchema,
   type ParseResult,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { getResponseMetadata } from '../get-response-metadata';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { xaiFailedResponseHandler } from '../xai-error';
 import { convertToXaiResponsesInput } from './convert-to-xai-responses-input';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { mapXaiResponsesFinishReason } from './map-xai-responses-finish-reason';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
   type XaiResponsesIncludeOptions,
@@ -197,6 +201,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.serviceTier != null && {
+        service_tier: options.serviceTier,
+      }),
     };
 
     if (xaiTools && xaiTools.length > 0) {
@@ -339,6 +346,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
           providerExecuted: true,
         });
 
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
+
         continue;
       }
 
@@ -432,6 +448,11 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
             inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
+      ...(response.service_tier != null && {
+        providerMetadata: {
+          xai: { serviceTier: response.service_tier },
+        },
+      }),
       request: { body },
       response: {
         ...getResponseMetadata(response),
@@ -477,6 +498,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
     };
     let hasFunctionCall = false;
     let usage: LanguageModelV3Usage | undefined = undefined;
+    let serviceTier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -669,6 +691,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
               if (response.usage) {
                 usage = convertXaiResponsesUsage(response.usage);
               }
+
+              serviceTier = response.service_tier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -921,7 +945,10 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                     type: 'tool-result',
                     toolCallId: part.id,
                     toolName,
-                    result: {},
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
                   });
                 }
 
@@ -1022,6 +1049,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
+              ...(serviceTier != null && {
+                providerMetadata: { xai: { serviceTier } },
+              }),
             });
           },
         }),
@@ -1029,5 +1059,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV3 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferSchema<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }

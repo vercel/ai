@@ -1,5 +1,157 @@
 # @ai-sdk/deepseek
 
+## 2.0.71
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 2.0.70
+
+### Patch Changes
+
+- f6a20b4: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 2.0.67
+
+### Patch Changes
+
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 2.0.66
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.65
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 2.0.64
+
+### Patch Changes
+
+- 1b70db6: fix(provider/deepseek): treat the `deepseek-flash` alias as a V4 model so prior-turn `reasoning_content` is preserved in multi-turn requests
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 2.0.63
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 2.0.62
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 2.0.61
+
+### Patch Changes
+
+- 32e32c4: fix(provider/deepseek): preserve complete raw chat usage objects
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 2.0.59
+
+### Patch Changes
+
+- df5a697: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- ae1a6de: feat(provider/deepseek): add the `userId` chat option and serialize it as `user_id`
+- 00bfad5: feat(provider/deepseek): add DeepSeek V4 Flash and Pro model IDs
+- 52095cb: Add provider-specific names for DeepSeek system, user, and assistant messages.
+- 7d45c74: Validate DeepSeek strict tool calls against beta endpoint requirements.
+- 5beec8d: Preserve documented DeepSeek chat response metadata for generate and stream.
+- f682d94: Add DeepSeek chat completion log probability request and response support.
+- 793a38d: Add support for DeepSeek beta assistant prefix completion through message provider options.
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- ce3fccc: Expose DeepSeek response system fingerprints in provider metadata for generated and streamed text.
+- c35e7e1: Align DeepSeek thinking and reasoning effort options with the documented API values while mapping legacy options with compatibility warnings.
+- 344484d: Add DeepSeek image detail and inline file-data content part support.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 2.0.57
+
+### Patch Changes
+
+- 504da15: feat: add DeepSeek V4 Flash Vision Exp image input support
+
+## 2.0.56
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
 ## 2.0.52
 
 ### Patch Changes

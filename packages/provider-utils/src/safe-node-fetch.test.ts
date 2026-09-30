@@ -8,6 +8,75 @@ import {
 
 type Address = { address: string; family: number };
 
+describe('module initialization', () => {
+  it('succeeds when the global fetch function is unavailable', async () => {
+    vi.resetModules();
+    vi.stubGlobal('fetch', undefined);
+
+    try {
+      await expect(import('./safe-node-fetch')).resolves.toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('getDefaultDownloadFetch outside Node.js', () => {
+  it.each([
+    { runtime: 'browser', process: undefined },
+    { runtime: 'edge', process: { versions: {} } },
+    {
+      runtime: 'framework edge with a Node-compatible process',
+      process: { release: { name: 'node' }, versions: { node: '24.0.0' } },
+      edgeRuntime: 'edge-runtime',
+    },
+    {
+      runtime: 'bun',
+      process: { release: { name: 'node' }, versions: { bun: '1.3.0' } },
+    },
+    {
+      runtime: 'deno with a Node-compatible process',
+      process: {
+        release: { name: 'node' },
+        versions: { node: '24.0.0', deno: '2.4.0', uv: '1.51.0' },
+      },
+    },
+    {
+      runtime: 'Workers process-v2 without navigator',
+      process: {
+        title: 'workerd',
+        release: { name: 'node', lts: true, sourceUrl: '', headersUrl: '' },
+        versions: { node: '24.0.0', uv: '', v8: '', undici: '' },
+      },
+    },
+  ])('uses global fetch in $runtime', async ({ process, edgeRuntime }) => {
+    const { getDefaultDownloadFetch } = await import('./safe-node-fetch');
+    const fetchMock = vi.fn().mockResolvedValue(new Response('content'));
+    const getBuiltinModule = vi.fn(() => {
+      throw new Error('Unexpected Node-only module load');
+    });
+    vi.stubGlobal('EdgeRuntime', edgeRuntime);
+    vi.stubGlobal('fetch', fetchMock);
+    vi.stubGlobal('navigator', undefined);
+    vi.stubGlobal(
+      'process',
+      process == null ? undefined : { ...process, getBuiltinModule },
+    );
+
+    try {
+      const fetch = await getDefaultDownloadFetch();
+      const response = await fetch('https://files.example.com/file');
+      await expect(response.text()).resolves.toBe('content');
+      expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
+        'https://files.example.com/file',
+      );
+      expect(getBuiltinModule).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
 function createLookup(addresses: Address[]) {
   const lookup = vi.fn((_hostname, options, callback) => {
     callback(null, addresses);
@@ -103,37 +172,26 @@ describe('createSafeLookup', () => {
 });
 
 describe('getDefaultDownloadFetch', () => {
-  it('loads Node modules without process.getBuiltinModule', async () => {
+  it('rejects when Node modules are unavailable without process.getBuiltinModule', async () => {
     if (!isNodeRuntime()) {
       return;
     }
 
-    const nodeModules = new Map<string, unknown>([
-      ['node:dns', await import('node:dns')],
-      ['node:module', await import('node:module')],
-    ]);
-    const dynamicImport = vi.fn(async (id: string) => nodeModules.get(id));
-    const functionConstructor = vi.fn(() => dynamicImport);
+    // No dynamic-import fallback exists: Metro rejects non-static import()
+    // expressions while parsing, and Next.js Edge Runtime rejects the
+    // Function-constructor shim. See #18545, #18559.
     const runtimeProcess = globalThis.process as unknown as {
       getBuiltinModule: ((id: string) => unknown) | undefined;
     };
     const originalGetBuiltinModule = runtimeProcess.getBuiltinModule;
-    vi.stubGlobal('Function', functionConstructor);
     runtimeProcess.getBuiltinModule = undefined;
 
     try {
-      await expect(getDefaultDownloadFetch()).resolves.not.toBe(
-        globalThis.fetch,
+      await expect(getDefaultDownloadFetch()).rejects.toThrow(
+        'Node.js built-in module node:module is unavailable',
       );
-      expect(functionConstructor).toHaveBeenCalledWith(
-        'specifier',
-        'return import(specifier)',
-      );
-      expect(dynamicImport).toHaveBeenCalledWith('node:module');
-      expect(dynamicImport).toHaveBeenCalledWith('node:dns');
     } finally {
       runtimeProcess.getBuiltinModule = originalGetBuiltinModule;
-      vi.unstubAllGlobals();
     }
   });
 });

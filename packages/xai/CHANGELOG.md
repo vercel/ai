@@ -1,5 +1,198 @@
 # @ai-sdk/xai
 
+## 3.0.139
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/openai-compatible@2.0.81
+
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/openai-compatible@2.0.80
+
+## 3.0.137
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/openai-compatible@2.0.79
+
+## 3.0.136
+
+### Patch Changes
+
+- f7f36d2: chore: enable dead code lint rules
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/openai-compatible@2.0.78
+
+## 3.0.135
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/openai-compatible@2.0.77
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.134
+
+### Patch Changes
+
+- 1096a27: feat(xai): add grok 4.7 model ID
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/openai-compatible@2.0.76
+
+## 3.0.133
+
+### Patch Changes
+
+- 8825c65: fix(xai): preserve `additionalProperties: false` in tool schemas
+
+## 3.0.132
+
+### Patch Changes
+
+- 4bd2599: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 3.0.131
+
+### Patch Changes
+
+- Updated dependencies [f3c1980]
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai-compatible@2.0.75
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [6d44462]
+- Updated dependencies [cc23556]
+  - @ai-sdk/openai-compatible@2.0.74
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.129
+
+### Patch Changes
+
+- 0331d34: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/openai-compatible@2.0.73
+
+## 3.0.127
+
+### Patch Changes
+
+- d44b071: Preserve complete xAI Responses usage objects in raw usage metadata.
+- 47ae3e5: Preserve complete xAI Chat Completions usage objects in generated and streamed results.
+
+## 3.0.126
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/openai-compatible@2.0.72
+
+## 3.0.125
+
+### Patch Changes
+
+- f33a407: fix(provider/xai): report image moderation blocks as content policy errors
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/openai-compatible@2.0.71
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [c79dd10]
+  - @ai-sdk/openai-compatible@2.0.70
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [7440d89]
+  - @ai-sdk/openai-compatible@2.0.69
+
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/openai-compatible@2.0.68
+
+## 3.0.121
+
+### Patch Changes
+
+- 70a6c3b: feat (provider/xai): support Grok Imagine Video 1.5. Adds the `grok-imagine-video-1.5` model id and native `1080p` for text-to-video and image-to-video (the standard `resolution: '1920x1080'` now maps to `1080p`). Reference-to-video remains capped at `720p`, so a `1080p` request in that mode is downgraded with a warning. Also fixes reference routing: previously any non-empty `inputReferences` array selected reference-to-video, so an array holding only a non-image reference sent `reference_images: []` with no usable references.
+- 70a6c3b: feat (provider/xai): add `referenceVoiceIds` for reference-to-video reference audio. Pass up to 3 xAI preset voice ids (e.g. `['eve']`) and reference them from the prompt with `<AUDIO_0>`–`<AUDIO_2>`; they are sent as `reference_audios: [{ voice_id }]` on `POST /v1/videos/generations`.
+
+## 3.0.120
+
+### Patch Changes
+
+- 3283e3e: feat(xai): support the priority service tier on chat and responses
+
+## 3.0.119
+
+### Patch Changes
+
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.118
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/openai-compatible@2.0.67
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [de18066]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai-compatible@2.0.66
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/openai-compatible@2.0.65
+
 ## 3.0.115
 
 ### Patch Changes

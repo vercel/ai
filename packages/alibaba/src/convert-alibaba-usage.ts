@@ -1,10 +1,5 @@
-<<<<<<< HEAD
 import { convertOpenAICompatibleChatUsage } from '@ai-sdk/openai-compatible/internal';
 import type { LanguageModelV3Usage } from '@ai-sdk/provider';
-=======
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
-import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
->>>>>>> 15dce62eb1 (fix(alibaba): preserve unmapped usage fields in usage.raw (#18563))
 
 /**
  * Usage as reported by Alibaba's OpenAI-compatible chat completions API.
@@ -38,37 +33,22 @@ export type AlibabaUsage = {
 
 export function convertAlibabaUsage(
   usage: AlibabaUsage | undefined | null,
-<<<<<<< HEAD
 ): LanguageModelV3Usage {
   const baseUsage = convertOpenAICompatibleChatUsage(usage);
-=======
-): LanguageModelV4Usage {
-  if (usage == null) {
-    return createNullLanguageModelUsage();
-  }
->>>>>>> 15dce62eb1 (fix(alibaba): preserve unmapped usage fields in usage.raw (#18563))
 
-  const promptTokens = usage.prompt_tokens ?? 0;
-  const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_tokens_details?.cached_tokens ?? 0;
   const cacheWriteTokens =
-    usage.prompt_tokens_details?.cache_creation_input_tokens ?? 0;
-  const reasoningTokens =
-    usage.completion_tokens_details?.reasoning_tokens ?? 0;
+    usage?.prompt_tokens_details?.cache_creation_input_tokens ?? 0;
+  const noCacheTokens =
+    (baseUsage.inputTokens.total ?? 0) -
+    (baseUsage.inputTokens.cacheRead ?? 0) -
+    cacheWriteTokens;
 
   return {
+    ...baseUsage,
     inputTokens: {
-      total: promptTokens,
-      // Alibaba counts both cache reads and cache writes inside prompt_tokens.
-      noCache: promptTokens - cacheReadTokens - cacheWriteTokens,
-      cacheRead: cacheReadTokens,
+      ...baseUsage.inputTokens,
       cacheWrite: cacheWriteTokens,
+      noCache: noCacheTokens,
     },
-    outputTokens: {
-      total: completionTokens,
-      text: completionTokens - reasoningTokens,
-      reasoning: reasoningTokens,
-    },
-    raw: usage,
   };
 }

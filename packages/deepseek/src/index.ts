@@ -5,8 +5,11 @@ export type {
 } from './deepseek-provider';
 export { VERSION } from './version';
 export type {
+  DeepSeekAssistantMessageProviderOptions,
   DeepSeekLanguageModelOptions,
+  DeepSeekMessageProviderOptions,
   /** @deprecated Use `DeepSeekLanguageModelOptions` instead. */
   DeepSeekLanguageModelOptions as DeepSeekChatOptions,
 } from './chat/deepseek-chat-options';
 export type { DeepSeekErrorData } from './chat/deepseek-chat-api-types';
+export type { DeepSeekFilePartProviderOptions } from './chat/deepseek-file-part-options';

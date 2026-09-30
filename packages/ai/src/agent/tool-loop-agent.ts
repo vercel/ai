@@ -143,10 +143,12 @@ export class ToolLoopAgent<
   }: AgentCallParameters<CALL_OPTIONS, TOOLS>): Promise<
     GenerateTextResult<TOOLS, OUTPUT>
   > {
+    const preparedCall = await this.prepareCall(options);
+
     return generateText({
-      ...(await this.prepareCall(options)),
+      ...preparedCall,
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });
   }
@@ -163,10 +165,12 @@ export class ToolLoopAgent<
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS>): Promise<
     StreamTextResult<TOOLS, OUTPUT>
   > {
+    const preparedCall = await this.prepareCall(options);
+
     return streamText({
-      ...(await this.prepareCall(options)),
+      ...preparedCall,
       abortSignal,
-      timeout,
+      timeout: timeout ?? preparedCall.timeout,
       experimental_transform,
       onStepFinish: this.mergeOnStepFinishCallbacks(onStepFinish),
     });

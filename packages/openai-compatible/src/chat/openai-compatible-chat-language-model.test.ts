@@ -1,6 +1,9 @@
 import fs from 'fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV3Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -108,7 +111,7 @@ describe('doGenerate', () => {
     model = 'grok-3',
     headers,
   }: {
-    content?: string;
+    content?: string | Array<Record<string, unknown>>;
     reasoning_content?: string;
     reasoning?: string;
     tool_calls?: Array<{
@@ -189,6 +192,34 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should reject a response without choices', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-empty',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'grok-3',
+        choices: [],
+        usage: {
+          prompt_tokens: 4,
+          total_tokens: 4,
+          completion_tokens: 0,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidResponseDataError.isInstance(error) &&
+        error.message === 'Response did not contain any choices.',
+    );
+  });
+
   describe('tool call (fixture)', () => {
     beforeEach(() => {
       prepareJsonFixtureResponse('xai-tool-call');
@@ -220,13 +251,14 @@ describe('doGenerate', () => {
         },
         "outputTokens": {
           "reasoning": 320,
-          "text": -318,
+          "text": 0,
           "total": 2,
         },
         "raw": {
           "completion_tokens": 2,
           "completion_tokens_details": {
             "accepted_prediction_tokens": 0,
+            "audio_tokens": 0,
             "reasoning_tokens": 320,
             "rejected_prediction_tokens": 0,
           },
@@ -234,7 +266,10 @@ describe('doGenerate', () => {
           "num_sources_used": 0,
           "prompt_tokens": 12,
           "prompt_tokens_details": {
+            "audio_tokens": 0,
             "cached_tokens": 2,
+            "image_tokens": 0,
+            "text_tokens": 12,
           },
           "total_tokens": 334,
         },
@@ -343,6 +378,49 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should normalize text and thinking content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'thinking',
+          thinking: [
+            { type: 'text', text: 'Let me think' },
+            { type: 'text', text: ' this through.' },
+          ],
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([
+      { type: 'reasoning', text: 'Let me think this through.' },
+      { type: 'text', text: 'The answer is 391.' },
+    ]);
+  });
+
+  it('should ignore unknown content parts', async () => {
+    prepareJsonResponse({
+      content: [
+        {
+          type: 'future-part',
+          text: { nested: true },
+          thinking: { nested: true },
+        },
+        { type: 'text', text: 'The answer is 391.' },
+      ],
+    });
+
+    const { content } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(content).toEqual([{ type: 'text', text: 'The answer is 391.' }]);
   });
 
   it('should support partial usage', async () => {
@@ -1627,6 +1705,63 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it('should preserve extra usage fields nested inside token details', async () => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-test',
+          object: 'chat.completion',
+          created: 1711115037,
+          model: 'grok-3',
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: 'Hello!',
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 50,
+            total_tokens: 150,
+            prompt_tokens_details: {
+              cached_tokens: 80,
+              // Provider-specific detail, e.g. Alibaba's caching-mode
+              // discriminator, which decides the rate a cache read bills at.
+              cache_type: 'ephemeral',
+            },
+            completion_tokens_details: {
+              reasoning_tokens: 10,
+              provider_specific_detail: 7,
+            },
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.usage.raw).toMatchInlineSnapshot(`
+        {
+          "completion_tokens": 50,
+          "completion_tokens_details": {
+            "provider_specific_detail": 7,
+            "reasoning_tokens": 10,
+          },
+          "prompt_tokens": 100,
+          "prompt_tokens_details": {
+            "cache_type": "ephemeral",
+            "cached_tokens": 80,
+          },
+          "total_tokens": 150,
+        }
+      `);
+    });
   });
 });
 
@@ -1712,6 +1847,59 @@ describe('doStream', () => {
       }
     `);
   });
+
+  it.each([
+    {
+      scenario: 'the connection closes',
+      finalChunks: [],
+    },
+    {
+      scenario: '[DONE] is received',
+      finalChunks: ['data: [DONE]\n\n'],
+    },
+  ])(
+    'should report an error when $scenario without a finish reason',
+    async ({ finalChunks }) => {
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}]}\n\n`,
+          `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1702657020,"model":"grok-3",` +
+            `"choices":[{"index":0,"delta":{"content":" World"},"finish_reason":null}]}\n\n`,
+          ...finalChunks,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const events = await convertReadableStreamToArray(stream);
+
+      expect(events.filter(event => event.type === 'text-delta')).toStrictEqual(
+        [
+          { type: 'text-delta', delta: 'Hello', id: 'txt-0' },
+          { type: 'text-delta', delta: ' World', id: 'txt-0' },
+        ],
+      );
+
+      const errors = events.filter(event => event.type === 'error');
+      expect(errors).toHaveLength(1);
+      expect(InvalidResponseDataError.isInstance(errors[0].error)).toBe(true);
+      expect(errors[0].error).toMatchObject({
+        message: 'Response stream ended without a finish reason.',
+      });
+
+      expect(events.filter(event => event.type === 'finish')).toStrictEqual([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: { unified: 'error', raw: undefined },
+        }),
+      ]);
+    },
+  );
 
   it('should handle empty string role in delta chunks', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
@@ -1870,6 +2058,37 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should keep reasoning active when deltas include empty tool calls', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","model":"test-model",` +
+          `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(
+      events.filter(({ type }) => type.startsWith('reasoning-')),
+    ).toStrictEqual([
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+    ]);
   });
 
   it('should stream reasoning from reasoning field when reasoning_content is not provided', async () => {
@@ -2334,6 +2553,40 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('keeps same-name id-less tool calls separate when the index is reused', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":1}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":2}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const toolCalls = (await convertReadableStreamToArray(stream)).filter(
+      part => part.type === 'tool-call',
+    );
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'same_tool', input: '{"value":1}' },
+      { toolName: 'same_tool', input: '{"value":2}' },
+    ]);
   });
 
   it('should error when streamed tool call never receives a function.name', async () => {

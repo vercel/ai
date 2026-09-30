@@ -1,5 +1,314 @@
 # @ai-sdk/azure
 
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/deepseek@2.0.71
+  - @ai-sdk/openai@3.0.122
+
+## 3.0.129
+
+### Patch Changes
+
+- Updated dependencies [4972874]
+- Updated dependencies [f6a20b4]
+  - @ai-sdk/openai@3.0.121
+  - @ai-sdk/deepseek@2.0.70
+
+## 3.0.128
+
+### Patch Changes
+
+- 8fff951: Add MAI-Transcribe-2 file transcription through `azure.transcription()` using the Azure Speech API, with diarization, word/segment timestamps, transcript styles, locale forcing, and phrase lists. Select the API with `providerOptions.azure.api` to override model-based routing, add a `speechBaseURL` setting for the Speech endpoint, and add `azure.transcriptionModel()` as an alias of `azure.transcription()`.
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/openai@3.0.120
+  - @ai-sdk/deepseek@2.0.69
+
+## 3.0.127
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/deepseek@2.0.68
+  - @ai-sdk/openai@3.0.119
+
+## 3.0.126
+
+### Patch Changes
+
+- 0fb3a22: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [0fb3a22]
+  - @ai-sdk/openai@3.0.118
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [a3e970b]
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+- Updated dependencies [57256a0]
+  - @ai-sdk/openai@3.0.117
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/deepseek@2.0.67
+
+## 3.0.124
+
+### Patch Changes
+
+- Updated dependencies [ad8de8d]
+- Updated dependencies [da2e17b]
+- Updated dependencies [0b9d00b]
+  - @ai-sdk/openai@3.0.116
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/deepseek@2.0.66
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.123
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+  - @ai-sdk/deepseek@2.0.65
+  - @ai-sdk/openai@3.0.115
+
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [e53d917]
+  - @ai-sdk/openai@3.0.114
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [90757ce]
+  - @ai-sdk/openai@3.0.113
+
+## 3.0.120
+
+### Patch Changes
+
+- Updated dependencies [1b70db6]
+- Updated dependencies [4bd2599]
+  - @ai-sdk/deepseek@2.0.64
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [1336501]
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/openai@3.0.112
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/deepseek@2.0.63
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.118
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- Updated dependencies [1f75808]
+- Updated dependencies [65150c2]
+  - @ai-sdk/openai@3.0.111
+
+## 3.0.117
+
+### Patch Changes
+
+- Updated dependencies [447ba18]
+- Updated dependencies [46c6820]
+  - @ai-sdk/openai@3.0.110
+
+## 3.0.116
+
+### Patch Changes
+
+- Updated dependencies [7f3b8f0]
+  - @ai-sdk/openai@3.0.109
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [019eec8]
+  - @ai-sdk/openai@3.0.108
+
+## 3.0.114
+
+### Patch Changes
+
+- Updated dependencies [8844beb]
+- Updated dependencies [cf1ba03]
+  - @ai-sdk/openai@3.0.107
+
+## 3.0.113
+
+### Patch Changes
+
+- 9ec31aa: Construct OpenAI v1 URLs for Azure AI Foundry (`*.services.ai.azure.com`) and Cognitive Services (`*.cognitiveservices.azure.com`) hostnames while preserving complete v1 and Foundry project base URLs.
+- Updated dependencies [85ba0b0]
+  - @ai-sdk/openai@3.0.106
+
+## 3.0.112
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+  - @ai-sdk/deepseek@2.0.62
+  - @ai-sdk/openai@3.0.105
+
+## 3.0.111
+
+### Patch Changes
+
+- Updated dependencies [32e32c4]
+  - @ai-sdk/deepseek@2.0.61
+
+## 3.0.110
+
+### Patch Changes
+
+- Updated dependencies [426c9b3]
+- Updated dependencies [34d045d]
+  - @ai-sdk/openai@3.0.104
+
+## 3.0.109
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/openai@3.0.103
+  - @ai-sdk/provider-utils@4.0.49
+  - @ai-sdk/deepseek@2.0.60
+
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [087d7e2]
+  - @ai-sdk/openai@3.0.102
+
+## 3.0.107
+
+### Patch Changes
+
+- df5a697: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- Updated dependencies [5642849]
+- Updated dependencies [df5a697]
+- Updated dependencies [ae1a6de]
+- Updated dependencies [00bfad5]
+- Updated dependencies [52095cb]
+- Updated dependencies [7d45c74]
+- Updated dependencies [5beec8d]
+- Updated dependencies [f682d94]
+- Updated dependencies [793a38d]
+- Updated dependencies [313a441]
+- Updated dependencies [ce3fccc]
+- Updated dependencies [c35e7e1]
+- Updated dependencies [344484d]
+  - @ai-sdk/provider-utils@4.0.48
+  - @ai-sdk/deepseek@2.0.59
+  - @ai-sdk/openai@3.0.101
+
+## 3.0.106
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+  - @ai-sdk/deepseek@2.0.58
+  - @ai-sdk/openai@3.0.100
+
+## 3.0.105
+
+### Patch Changes
+
+- Updated dependencies [504da15]
+  - @ai-sdk/deepseek@2.0.57
+
+## 3.0.104
+
+### Patch Changes
+
+- Updated dependencies [f40afcf]
+  - @ai-sdk/openai@3.0.99
+
+## 3.0.103
+
+### Patch Changes
+
+- Updated dependencies [91880b9]
+  - @ai-sdk/openai@3.0.98
+
+## 3.0.102
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+  - @ai-sdk/deepseek@2.0.56
+  - @ai-sdk/openai@3.0.97
+
+## 3.0.101
+
+### Patch Changes
+
+- Updated dependencies [64facff]
+  - @ai-sdk/openai@3.0.96
+
+## 3.0.100
+
+### Patch Changes
+
+- Updated dependencies [bdb46fe]
+  - @ai-sdk/openai@3.0.95
+
+## 3.0.99
+
+### Patch Changes
+
+- Updated dependencies [d3247d7]
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/openai@3.0.94
+  - @ai-sdk/provider-utils@4.0.45
+  - @ai-sdk/deepseek@2.0.55
+
+## 3.0.98
+
+### Patch Changes
+
+- Updated dependencies [f471a1c]
+- Updated dependencies [2171d15]
+  - @ai-sdk/openai@3.0.93
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/deepseek@2.0.54
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.97
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+  - @ai-sdk/deepseek@2.0.53
+  - @ai-sdk/openai@3.0.92
+
 ## 3.0.96
 
 ### Patch Changes

@@ -41,6 +41,31 @@ describe('UIMessagePart', () => {
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
   });
 
+  it('allows resumable input-streaming tool parts with raw input text', () => {
+    type StaticPart = {
+      type: 'tool-weather';
+      state: 'input-streaming';
+      toolCallId: 'static-call';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Static = AssertAssignable<ToolUIPart<TestTools>, StaticPart>;
+
+    type DynamicPart = {
+      type: 'dynamic-tool';
+      state: 'input-streaming';
+      toolCallId: 'dynamic-call';
+      toolName: 'weather';
+      input: {
+        city: 'San';
+      };
+      rawInput: '{"city":"San';
+    };
+    type _Dynamic = AssertAssignable<DynamicToolUIPart, DynamicPart>;
+  });
+
   it('allows static input-streaming tool parts with explicit undefined input', () => {
     type Part = {
       type: 'tool-weather';
@@ -50,5 +75,37 @@ describe('UIMessagePart', () => {
     };
 
     type _ = AssertAssignable<ToolUIPart<TestTools>, Part>;
+  });
+
+  it('allows approval descriptors in request and response states', () => {
+    type RequestedPart = {
+      type: 'tool-weather';
+      state: 'approval-requested';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      approval: {
+        id: 'approval-1';
+        descriptor: {
+          action: 'getWeather';
+        };
+      };
+    };
+    type _Requested = AssertAssignable<ToolUIPart<TestTools>, RequestedPart>;
+
+    type RespondedPart = {
+      type: 'tool-weather';
+      state: 'approval-responded';
+      toolCallId: 'call-1';
+      input: { city: 'Tokyo' };
+      approval: {
+        id: 'approval-1';
+        approved: true;
+        descriptor: {
+          action: 'getWeather';
+        };
+        reason: 'approved by operator';
+      };
+    };
+    type _Responded = AssertAssignable<ToolUIPart<TestTools>, RespondedPart>;
   });
 });

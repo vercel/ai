@@ -33,6 +33,7 @@ describe('recordSpan', () => {
     });
 
     expect(tracer.spans).toHaveLength(1);
+    expect(tracer.spans[0].endCalls).toBe(1);
   });
 
   it('should not end span when endWhenDone is false', async () => {
@@ -45,6 +46,7 @@ describe('recordSpan', () => {
     });
 
     expect(tracer.spans).toHaveLength(1);
+    expect(tracer.spans[0].endCalls).toBe(0);
   });
 
   it('should record error and end span on exception', async () => {
@@ -68,6 +70,49 @@ describe('recordSpan', () => {
     });
     expect(tracer.spans[0].events).toHaveLength(1);
     expect(tracer.spans[0].events[0].name).toBe('exception');
+    expect(tracer.spans[0].endCalls).toBe(1);
+  });
+
+  it('should not end span on exception when endWhenDone is false', async () => {
+    const error = new Error('Test error');
+
+    await expect(
+      recordSpan({
+        name: 'test-span',
+        tracer,
+        attributes: {},
+        fn: async () => {
+          throw error;
+        },
+        endWhenDone: false,
+      }),
+    ).rejects.toThrow('Test error');
+
+    expect(tracer.spans).toHaveLength(1);
+    expect(tracer.spans[0].status).toEqual({
+      code: 2,
+      message: 'Test error',
+    });
+    expect(tracer.spans[0].events).toHaveLength(1);
+    expect(tracer.spans[0].events[0].name).toBe('exception');
+    expect(tracer.spans[0].endCalls).toBe(0);
+  });
+
+  it('should end span on exception when endOnError is true', async () => {
+    await expect(
+      recordSpan({
+        name: 'test-span',
+        tracer,
+        attributes: {},
+        fn: async () => {
+          throw new Error('Test error');
+        },
+        endWhenDone: false,
+        endOnError: true,
+      }),
+    ).rejects.toThrow('Test error');
+
+    expect(tracer.spans[0].endCalls).toBe(1);
   });
 
   it('should support async attributes', async () => {

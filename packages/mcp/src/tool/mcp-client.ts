@@ -53,6 +53,7 @@ import {
   type ListResourcesResult,
   type ListPromptsResult,
   type ListToolsResult,
+  type McpProviderMetadata,
   type McpToolSet,
   type Notification,
   type PaginatedRequest,
@@ -756,24 +757,20 @@ class DefaultMCPClient implements MCPClient {
     args: Record<string, unknown>;
     options?: ToolExecutionOptions;
   }): Promise<CallToolResult> {
-    try {
-      return this.callToolWithRetry({
-        options,
-        execute: () =>
-          this.request({
-            request: {
-              method: 'tools/call',
-              params: { name, arguments: args },
-            },
-            resultSchema: CallToolResultSchema,
-            options: {
-              signal: options?.abortSignal,
-            },
-          }),
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.callToolWithRetry({
+      options,
+      execute: () =>
+        this.request({
+          request: {
+            method: 'tools/call',
+            params: { name, arguments: args },
+          },
+          resultSchema: CallToolResultSchema,
+          options: {
+            signal: options?.abortSignal,
+          },
+        }),
+    });
   }
 
   private async listResourcesInternal({
@@ -783,15 +780,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListResourcesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/list', params },
-        resultSchema: ListResourcesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/list', params },
+      resultSchema: ListResourcesResultSchema,
+      options,
+    });
   }
 
   private async readResourceInternal({
@@ -801,15 +794,11 @@ class DefaultMCPClient implements MCPClient {
     uri: string;
     options?: RequestOptions;
   }): Promise<ReadResourceResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/read', params: { uri } },
-        resultSchema: ReadResourceResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/read', params: { uri } },
+      resultSchema: ReadResourceResultSchema,
+      options,
+    });
   }
 
   private async listResourceTemplatesInternal({
@@ -817,15 +806,11 @@ class DefaultMCPClient implements MCPClient {
   }: {
     options?: RequestOptions;
   } = {}): Promise<ListResourceTemplatesResult> {
-    try {
-      return this.request({
-        request: { method: 'resources/templates/list' },
-        resultSchema: ListResourceTemplatesResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'resources/templates/list' },
+      resultSchema: ListResourceTemplatesResultSchema,
+      options,
+    });
   }
 
   private async listPromptsInternal({
@@ -835,15 +820,11 @@ class DefaultMCPClient implements MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   } = {}): Promise<ListPromptsResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/list', params },
-        resultSchema: ListPromptsResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/list', params },
+      resultSchema: ListPromptsResultSchema,
+      options,
+    });
   }
 
   private async getPromptInternal({
@@ -855,15 +836,11 @@ class DefaultMCPClient implements MCPClient {
     args?: Record<string, unknown>;
     options?: RequestOptions;
   }): Promise<GetPromptResult> {
-    try {
-      return this.request({
-        request: { method: 'prompts/get', params: { name, arguments: args } },
-        resultSchema: GetPromptResultSchema,
-        options,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return this.request({
+      request: { method: 'prompts/get', params: { name, arguments: args } },
+      resultSchema: GetPromptResultSchema,
+      options,
+    });
   }
 
   private async completeInternal({
@@ -903,8 +880,17 @@ class DefaultMCPClient implements MCPClient {
   }: {
     schemas?: TOOL_SCHEMAS;
   } = {}): Promise<McpToolSet<TOOL_SCHEMAS>> {
-    const definitions = await this.listTools();
-    return this.toolsFromDefinitions(definitions, {
+    let definitions = await this.listTools();
+    const tools = [...definitions.tools];
+
+    while (definitions.nextCursor != null) {
+      definitions = await this.listTools({
+        params: { cursor: definitions.nextCursor },
+      });
+      tools.push(...definitions.tools);
+    }
+
+    return this.toolsFromDefinitions({ ...definitions, tools }, {
       schemas,
     } as { schemas?: TOOL_SCHEMAS });
   }
@@ -918,7 +904,8 @@ class DefaultMCPClient implements MCPClient {
       schemas?: TOOL_SCHEMAS;
     },
   ): McpToolSet<TOOL_SCHEMAS> {
-    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> =
+      Object.create(null);
 
     for (const {
       name,
@@ -939,6 +926,30 @@ class DefaultMCPClient implements MCPClient {
       const self = this;
       const outputSchema =
         schemas !== 'automatic' ? schemas[name]?.outputSchema : undefined;
+      const metadata = {
+        clientName: this.clientInfo.name,
+        ...(annotations != null
+          ? {
+              annotations: {
+                ...(annotations.title != null
+                  ? { title: annotations.title }
+                  : {}),
+                ...(annotations.readOnlyHint != null
+                  ? { readOnlyHint: annotations.readOnlyHint }
+                  : {}),
+                ...(annotations.destructiveHint != null
+                  ? { destructiveHint: annotations.destructiveHint }
+                  : {}),
+                ...(annotations.idempotentHint != null
+                  ? { idempotentHint: annotations.idempotentHint }
+                  : {}),
+                ...(annotations.openWorldHint != null
+                  ? { openWorldHint: annotations.openWorldHint }
+                  : {}),
+              },
+            }
+          : {}),
+      } satisfies McpProviderMetadata;
 
       const execute = async (
         args: any,
@@ -963,9 +974,7 @@ class DefaultMCPClient implements MCPClient {
           ? dynamicTool({
               description,
               title: resolvedTitle,
-              metadata: {
-                clientName: this.clientInfo.name,
-              },
+              metadata,
               inputSchema: jsonSchema({
                 ...inputSchema,
                 properties: inputSchema.properties ?? {},
@@ -977,9 +986,7 @@ class DefaultMCPClient implements MCPClient {
           : tool({
               description,
               title: resolvedTitle,
-              metadata: {
-                clientName: this.clientInfo.name,
-              },
+              metadata,
               inputSchema: schemas[name].inputSchema,
               ...(outputSchema != null ? { outputSchema } : {}),
               execute,

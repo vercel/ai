@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { InvalidToolApprovalSignatureError } from '../error/invalid-tool-approval-signature-error';
 import { InvalidToolInputError } from '../error/invalid-tool-input-error';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import type { CollectedToolApprovals } from './collect-tool-approvals';
 import { isApprovalNeeded } from './is-approval-needed';
 import { verifyToolApprovalSignature } from './tool-approval-signature';
@@ -17,9 +18,11 @@ import type { ToolSet } from './tool-set';
  * input against the tool's input schema, and re-resolves whether the tool
  * actually requires approval.
  *
- * Approvals that fail signature or schema validation throw (fail-closed).
- * Approvals for tools that no longer require approval are moved to the denied
- * list, since the server would never have issued an approval request for them.
+ * Approvals that fail signature validation throw (fail-closed). Approvals with
+ * invalid tool input are returned separately so the model can recover without
+ * executing a different operation. Approvals for tools that no longer require
+ * approval are moved to the denied list, since the server would never have
+ * issued an approval request for them.
  */
 export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
   approvedToolApprovals,
@@ -36,9 +39,15 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
 }): Promise<{
   approvedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
   deniedToolApprovals: Array<CollectedToolApprovals<TOOLS>>;
+  invalidToolApprovals: Array<
+    CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
+  >;
 }> {
   const approved: Array<CollectedToolApprovals<TOOLS>> = [];
   const denied: Array<CollectedToolApprovals<TOOLS>> = [];
+  const invalid: Array<
+    CollectedToolApprovals<TOOLS> & { error: InvalidToolInputError }
+  > = [];
 
   for (const approval of approvedToolApprovals) {
     const { toolCall, approvalRequest } = approval;
@@ -78,17 +87,38 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
       typeof tool.execute === 'function' &&
       tool.inputSchema != null
     ) {
+      const hasInputSchemaInput = Object.prototype.hasOwnProperty.call(
+        approvalRequest,
+        'inputSchemaInput',
+      );
       const validation = await safeValidateTypes({
-        value: toolCall.input,
+        value: hasInputSchemaInput
+          ? approvalRequest.inputSchemaInput
+          : toolCall.input,
         schema: asSchema(tool.inputSchema),
       });
 
+      let validationError: unknown;
       if (!validation.success) {
-        throw new InvalidToolInputError({
-          toolName: toolCall.toolName,
-          toolInput: JSON.stringify(toolCall.input),
-          cause: validation.error,
+        validationError = validation.error;
+      } else if (!isDeepEqualData(validation.value, toolCall.input)) {
+        // Revalidation must never change the operation that was approved,
+        // including when older or projected history omits the schema input.
+        validationError = new Error(
+          'Approved tool input does not match the validated schema output.',
+        );
+      }
+
+      if (validationError != null) {
+        invalid.push({
+          ...approval,
+          error: new InvalidToolInputError({
+            toolName: toolCall.toolName,
+            toolInput: JSON.stringify(toolCall.input),
+            cause: validationError,
+          }),
         });
+        continue;
       }
     }
 
@@ -120,5 +150,9 @@ export async function validateApprovedToolApprovals<TOOLS extends ToolSet>({
     }
   }
 
-  return { approvedToolApprovals: approved, deniedToolApprovals: denied };
+  return {
+    approvedToolApprovals: approved,
+    deniedToolApprovals: denied,
+    invalidToolApprovals: invalid,
+  };
 }

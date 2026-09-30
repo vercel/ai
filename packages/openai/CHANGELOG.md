@@ -1,5 +1,243 @@
 # @ai-sdk/openai
 
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.121
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+
+## 3.0.120
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 3.0.118
+
+### Patch Changes
+
+- 0fb3a22: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 3.0.117
+
+### Patch Changes
+
+- a3e970b: fix(openai): expose Chat Completions audio transcripts as generated text
+- f7f36d2: chore: enable dead code lint rules
+- 57256a0: fix(openai): preserve retryability for early stream errors
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 3.0.116
+
+### Patch Changes
+
+- ad8de8d: fix(openai): accept `incomplete` function_call and custom_tool_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 0b9d00b: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 3.0.114
+
+### Patch Changes
+
+- e53d917: fix(openai): preserve provider file references in Responses tool results
+
+## 3.0.113
+
+### Patch Changes
+
+- 90757ce: fix(openai): report apply patch responses with a tool-calls finish reason
+
+## 3.0.112
+
+### Patch Changes
+
+- 1336501: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.111
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- 65150c2: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+
+## 3.0.110
+
+### Patch Changes
+
+- 447ba18: feat(openai): add async tool calling
+- 46c6820: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
+## 3.0.109
+
+### Patch Changes
+
+- 7f3b8f0: feat(openai): add GPT-6 reasoning configuration updates
+
+## 3.0.108
+
+### Patch Changes
+
+- 019eec8: feat(openai): add support for the gpt-6-astra
+
+## 3.0.107
+
+### Patch Changes
+
+- 8844beb: fix(openai): flatten mid-stream Responses error events
+- cf1ba03: fix(openai): preserve complete Responses API raw usage objects
+
+## 3.0.106
+
+### Patch Changes
+
+- 85ba0b0: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+
+## 3.0.105
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.104
+
+### Patch Changes
+
+- 426c9b3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+- 34d045d: Fix Responses history serialization for regular functions named `tool_search`.
+
+## 3.0.103
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 3.0.102
+
+### Patch Changes
+
+- 087d7e2: Signal schema-invalid known Responses stream events and preserve the error finish reason.
+
+## 3.0.101
+
+### Patch Changes
+
+- 313a441: Prevent negative text output token counts when providers report reasoning tokens. Perplexity reasoning tokens are now treated as separate from completion tokens.
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 3.0.100
+
+### Patch Changes
+
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 3.0.99
+
+### Patch Changes
+
+- f40afcf: fix(openai): expand internal parallel tool call wrappers from the Responses API while preserving stateful continuation and streaming fallbacks
+
+## 3.0.98
+
+### Patch Changes
+
+- 91880b9: fix(openai): support built-in and provider-defined tools in the Responses `allowedTools` option
+
+  `allowedTools` emitted every allow-list entry as `{ type: 'function', name }`, but OpenAI identifies
+  built-in tools by type. Allow-listing a declared provider-defined tool (web search, image generation,
+  MCP, custom, ...) therefore failed with `Tool choice '<name>' not found in 'tools' parameter`. Entries
+  are now derived from the declared tool, including the MCP server label and custom tool name.
+
+  Tools that OpenAI cannot allow-list (the tool search tool, deferred tools, and namespaced tools) are
+  dropped from the allow-list with a warning, and an error is thrown if that would leave the allow-list
+  empty rather than silently sending an unrestricted request.
+
+  Ambiguous names are now reported instead of resolved silently. A name that matches both a declared tool
+  and another tool's provider tool name resolves to the declared tool and warns; a provider tool name
+  shared by several tools in the same request (two MCP servers, for example) is dropped with a warning.
+  A name that matches no declared tool keeps its existing behavior and is now warned about.
+
+## 3.0.97
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.96
+
+### Patch Changes
+
+- 64facff: Reconstruct provider-executed shell calls when continuing OpenAI Responses with storage disabled.
+
+## 3.0.95
+
+### Patch Changes
+
+- bdb46fe: Avoid duplicate MCP approval request references when continuing stored OpenAI Responses.
+
+## 3.0.94
+
+### Patch Changes
+
+- d3247d7: Keep client-executed function calls paired with their outputs when chaining OpenAI Responses with a previous response ID.
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.93
+
+### Patch Changes
+
+- f471a1c: Accept `serviceTier: 'fast'` on OpenAI chat and responses models. OpenAI renamed priority processing to Fast mode and accepts `service_tier: 'fast'` and `'priority'` interchangeably, so `'fast'` is now passed through verbatim and gated on the same model capability as `'priority'`.
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.92
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
 ## 3.0.91
 
 ### Patch Changes

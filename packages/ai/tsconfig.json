@@ -28,6 +28,9 @@
       "path": "../gateway"
     },
     {
+      "path": "../google"
+    },
+    {
       "path": "../provider"
     },
     {

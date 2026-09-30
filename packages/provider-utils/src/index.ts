@@ -12,10 +12,18 @@ export { convertToFormData } from './convert-to-form-data';
 export { downloadBlob } from './download-blob';
 export { DownloadError } from './download-error';
 export {
+  EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL as EXPERIMENTAL_EMBEDDING_MODEL_MAX_INPUT_BYTES_PER_CALL,
+  EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER as EXPERIMENTAL_EMBEDDING_MODEL_PROVIDER_OPTIONS_TRANSFORMER,
+  type EmbeddingModelProviderOptionsTransformer,
+} from './embedding-model-capabilities';
+export {
   readResponseWithSizeLimit,
   DEFAULT_MAX_DOWNLOAD_SIZE,
 } from './read-response-with-size-limit';
-export { fetchWithValidatedRedirects } from './fetch-with-validated-redirects';
+export {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
+} from './fetch-with-validated-redirects';
 export * from './fetch-function';
 export { createIdGenerator, generateId, type IdGenerator } from './generate-id';
 export * from './get-error-message';
@@ -60,6 +68,11 @@ export {
   type ValidationResult,
 } from './schema';
 export { secureJsonParse } from './secure-json-parse';
+export {
+  StreamingToolCallTracker,
+  type StreamingToolCallDelta,
+  type StreamingToolCallTrackerOptions,
+} from './streaming-tool-call-tracker';
 export { stripFileExtension } from './strip-file-extension';
 export * from './uint8-utils';
 export { validateDownloadUrl } from './validate-download-url';

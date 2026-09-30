@@ -8,7 +8,7 @@ import {
   convertModelMessages,
 } from './adapter';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { ModelMessage, UIMessage } from 'ai';
+import { readUIMessageStream, type ModelMessage, type UIMessage } from 'ai';
 import {
   AIMessage,
   AIMessageChunk,
@@ -64,6 +64,7 @@ describe('toUIMessageStream', () => {
     const toolMsg = new ToolMessage({
       tool_call_id: 'call-1',
       content: 'Sunny, 72°F',
+      name: 'get_weather',
     });
     toolMsg.id = 'msg-1';
 
@@ -82,6 +83,12 @@ describe('toUIMessageStream', () => {
           "type": "start",
         },
         {
+          "dynamic": true,
+          "toolCallId": "call-1",
+          "toolName": "get_weather",
+          "type": "tool-input-start",
+        },
+        {
           "output": "Sunny, 72°F",
           "toolCallId": "call-1",
           "type": "tool-output-available",
@@ -91,6 +98,345 @@ describe('toUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve bare tool lifecycles when tool call ids repeat across steps', async () => {
+    const firstToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'first result',
+      name: 'first_tool',
+      id: 'tool-message-1',
+    });
+    const secondToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'second result',
+      name: 'second_tool',
+      id: 'tool-message-2',
+    });
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [firstToolMessage, { langgraph_step: 1, langgraph_node: 'tools' }],
+      ],
+      [
+        'messages',
+        [secondToolMessage, { langgraph_step: 2, langgraph_node: 'tools' }],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-output-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          ...('toolName' in chunk ? { toolName: chunk.toolName } : {}),
+          ...('output' in chunk ? { output: chunk.output } : {}),
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'first result',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'second result',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: 'output' in part ? part.output : undefined,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        output: 'first result',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        output: 'second result',
+      },
+    ]);
+  });
+
+  it('should preserve bare tool lifecycles when tool call ids repeat across namespaces', async () => {
+    const firstNamespace = ['tools:first'];
+    const secondNamespace = ['tools:second'];
+    const firstToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'first result',
+      name: 'first_tool',
+      id: 'tool-message-1',
+    });
+    const secondToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'second result',
+      name: 'second_tool',
+      id: 'tool-message-2',
+    });
+    const inputStream = convertArrayToReadableStream([
+      [
+        firstNamespace,
+        'messages',
+        [firstToolMessage, { langgraph_step: 1, langgraph_node: 'tools' }],
+      ],
+      [
+        secondNamespace,
+        'messages',
+        [secondToolMessage, { langgraph_step: 1, langgraph_node: 'tools' }],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-output-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          providerMetadata: chunk.providerMetadata,
+          ...('toolName' in chunk ? { toolName: chunk.toolName } : {}),
+          ...('output' in chunk ? { output: chunk.output } : {}),
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        providerMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'first result',
+        providerMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'second result',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: 'output' in part ? part.output : undefined,
+          callProviderMetadata: part.callProviderMetadata,
+          resultProviderMetadata:
+            'resultProviderMetadata' in part
+              ? part.resultProviderMetadata
+              : undefined,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        output: 'first result',
+        callProviderMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+        resultProviderMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        output: 'second result',
+        callProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+        resultProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should keep an unfinished tool call separate from a bare same-id lifecycle in another namespace', async () => {
+    const firstNamespace = ['tools:first'];
+    const secondNamespace = ['tools:second'];
+    const secondToolMessage = new ToolMessage({
+      tool_call_id: 'call-reused',
+      content: 'second result',
+      name: 'second_tool',
+      id: 'tool-message-2',
+    });
+    const inputStream = convertArrayToReadableStream([
+      [
+        firstNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'first_tool',
+                args: '{"query":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1, langgraph_node: 'model' },
+        ],
+      ],
+      [
+        secondNamespace,
+        'messages',
+        [secondToolMessage, { langgraph_step: 1, langgraph_node: 'tools' }],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-output-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          providerMetadata: chunk.providerMetadata,
+          ...('toolName' in chunk ? { toolName: chunk.toolName } : {}),
+          ...('output' in chunk ? { output: chunk.output } : {}),
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        providerMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+      {
+        type: 'tool-output-available',
+        toolCallId: 'call-reused',
+        output: 'second result',
+        providerMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          output: 'output' in part ? part.output : undefined,
+          callProviderMetadata: part.callProviderMetadata,
+          resultProviderMetadata:
+            'resultProviderMetadata' in part
+              ? part.resultProviderMetadata
+              : undefined,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'first_tool',
+        output: undefined,
+        callProviderMetadata: {
+          langchain: { namespace: firstNamespace },
+        },
+        resultProviderMetadata: undefined,
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'second_tool',
+        output: 'second result',
+        callProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+        resultProviderMetadata: {
+          langchain: { namespace: secondNamespace },
+        },
+      },
+    ]);
   });
 
   it('should handle custom events', async () => {
@@ -125,7 +471,7 @@ describe('toUIMessageStream', () => {
 
   it('should handle three-element arrays (with namespace)', async () => {
     const inputStream = convertArrayToReadableStream([
-      ['namespace', 'custom', { data: 'value' }],
+      [['namespace'], 'custom', { data: 'value' }],
       ['values', {}],
     ]);
 
@@ -151,6 +497,600 @@ describe('toUIMessageStream', () => {
         },
       ]
     `);
+  });
+
+  it('should preserve interleaved subgraph namespaces without splitting root reasoning', async () => {
+    const rootMessageId = 'root-message';
+    const subgraphMessageId = 'subgraph-message';
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-before' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        ['tools:subgraph-call'],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: subgraphMessageId,
+            content: [{ type: 'reasoning', reasoning: 'subgraph' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root-after' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-start',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: subgraphMessageId,
+        delta: 'subgraph',
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root-after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: subgraphMessageId,
+        providerMetadata: {
+          langchain: { namespace: ['tools:subgraph-call'] },
+        },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
+  });
+
+  it('should keep child reasoning active when the root step advances', async () => {
+    const rootMessageId = 'root-step-message';
+    const nextRootMessageId = 'next-root-step-message';
+    const childMessageId = 'child-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root step' }],
+          }),
+          { langgraph_step: 5 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: 'child before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: nextRootMessageId,
+            content: 'next root step',
+          }),
+          { langgraph_step: 6 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: ' child after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(
+      result.filter(
+        chunk =>
+          chunk.type === 'reasoning-start' && chunk.id === childMessageId,
+      ),
+    ).toHaveLength(1);
+    expect(
+      result.filter(
+        chunk => chunk.type === 'reasoning-end' && chunk.id === childMessageId,
+      ),
+    ).toHaveLength(1);
+    expect(result.filter(chunk => chunk.type === 'start-step')).toHaveLength(2);
+    expect(result.filter(chunk => chunk.type === 'finish-step')).toHaveLength(
+      1,
+    );
+
+    const childReasoningChunks = result.filter(
+      chunk =>
+        'id' in chunk &&
+        chunk.id === childMessageId &&
+        (chunk.type === 'reasoning-start' ||
+          chunk.type === 'reasoning-delta' ||
+          chunk.type === 'reasoning-end'),
+    );
+    expect(childReasoningChunks).toEqual([
+      {
+        type: 'reasoning-start',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: 'child before',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: ' child after',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should preserve repeated root tool lifecycles while child reasoning remains active', async () => {
+    const childMessageId = 'child-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: 'child before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'root-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: childMessageId,
+            content: [{ type: 'reasoning', reasoning: ' child after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === childMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
+      {
+        type: 'reasoning-start',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: 'child before',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-delta',
+        id: childMessageId,
+        delta: ' child after',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        type: 'reasoning-end',
+        id: childMessageId,
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+  });
+
+  it('should preserve repeated child tool lifecycles across child steps', async () => {
+    const rootMessageId = 'root-message';
+    const childNamespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: 'root before' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        childNamespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        [],
+        'messages',
+        [
+          new AIMessageChunk({
+            id: rootMessageId,
+            content: [{ type: 'reasoning', reasoning: ' root after' }],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(chunk => chunk.type === 'tool-input-start')
+        .map(chunk => ({
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+          providerMetadata: chunk.providerMetadata,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        providerMetadata: {
+          langchain: { namespace: childNamespace },
+        },
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+    expect(
+      rawChunks.filter(
+        chunk =>
+          'id' in chunk &&
+          chunk.id === rootMessageId &&
+          (chunk.type === 'reasoning-start' ||
+            chunk.type === 'reasoning-delta' ||
+            chunk.type === 'reasoning-end'),
+      ),
+    ).toEqual([
+      {
+        type: 'reasoning-start',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: 'root before',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-delta',
+        id: rootMessageId,
+        delta: ' root after',
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+      {
+        type: 'reasoning-end',
+        id: rootMessageId,
+        providerMetadata: { langchain: { namespace: [] } },
+      },
+    ]);
+  });
+
+  it('should emit step boundaries for a stream filtered to one subgraph', async () => {
+    const namespace = ['tools:child-call'];
+    const inputStream = convertArrayToReadableStream([
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-step-1',
+            content: 'first child step',
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        namespace,
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'child-step-2',
+            content: 'second child step',
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+    ]);
+
+    const result = await convertReadableStreamToArray(
+      toUIMessageStream(inputStream),
+    );
+
+    expect(result).toEqual([
+      { type: 'start' },
+      { type: 'start-step' },
+      {
+        type: 'text-start',
+        id: 'child-step-1',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-delta',
+        id: 'child-step-1',
+        delta: 'first child step',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-end',
+        id: 'child-step-1',
+        providerMetadata: { langchain: { namespace } },
+      },
+      { type: 'finish-step' },
+      { type: 'start-step' },
+      {
+        type: 'text-start',
+        id: 'child-step-2',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-delta',
+        id: 'child-step-2',
+        delta: 'second child step',
+        providerMetadata: { langchain: { namespace } },
+      },
+      {
+        type: 'text-end',
+        id: 'child-step-2',
+        providerMetadata: { langchain: { namespace } },
+      },
+      { type: 'finish-step' },
+      { type: 'finish' },
+    ]);
   });
 
   it('should handle non-array events as model stream', async () => {
@@ -281,6 +1221,12 @@ describe('toUIMessageStream', () => {
       [
         {
           "type": "start",
+        },
+        {
+          "dynamic": true,
+          "toolCallId": "call-abc",
+          "toolName": "unknown",
+          "type": "tool-input-start",
         },
         {
           "output": "Tool result here",
@@ -457,6 +1403,244 @@ describe('toUIMessageStream', () => {
       toolName: 'get_weather',
       dynamic: true,
     });
+  });
+
+  it('should preserve tool lifecycles when tool call ids repeat across steps', async () => {
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-1',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'write_column',
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'messages',
+        [
+          new AIMessageChunk({
+            id: 'message-2',
+            content: '',
+            tool_call_chunks: [
+              {
+                id: 'call-reused',
+                name: 'deploy_creatives',
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          }),
+          { langgraph_step: 2 },
+        ],
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks.filter(chunk => chunk.type === 'tool-input-start'),
+    ).toMatchObject([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
+  });
+
+  it('should preserve values-recovered tool lifecycles when tool call ids repeat across steps', async () => {
+    const firstToolCall = {
+      id: 'call-reused',
+      name: 'write_column',
+      args: { column: 'first' },
+    };
+    const secondToolCall = {
+      id: 'call-reused',
+      name: 'deploy_creatives',
+      args: { column: 'second' },
+    };
+    const inputStream = convertArrayToReadableStream([
+      [
+        'messages',
+        [
+          {
+            id: 'message-1',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: firstToolCall.name,
+                args: '{"column":"first"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 1 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+          ],
+        },
+      ],
+      [
+        'messages',
+        [
+          {
+            id: 'message-2',
+            type: 'ai',
+            content: '',
+            tool_call_chunks: [
+              {
+                name: secondToolCall.name,
+                args: '{"column":"second"}',
+                index: 0,
+              },
+            ],
+          },
+          { langgraph_step: 2 },
+        ],
+      ],
+      [
+        'values',
+        {
+          messages: [
+            {
+              id: 'message-1',
+              type: 'ai',
+              content: '',
+              tool_calls: [firstToolCall],
+            },
+            {
+              id: 'tool-message-1',
+              type: 'tool',
+              content: 'done',
+              tool_call_id: 'call-reused',
+            },
+            {
+              id: 'message-2',
+              type: 'ai',
+              content: '',
+              tool_calls: [secondToolCall],
+            },
+          ],
+        },
+      ],
+    ]);
+
+    const [rawStream, messageStream] = toUIMessageStream(inputStream).tee();
+    const rawChunks = await convertReadableStreamToArray(rawStream);
+
+    let finalMessage: UIMessage | undefined;
+    for await (const message of readUIMessageStream({
+      stream: messageStream,
+    })) {
+      finalMessage = message;
+    }
+
+    expect(
+      rawChunks
+        .filter(
+          chunk =>
+            chunk.type === 'tool-input-start' ||
+            chunk.type === 'tool-input-available',
+        )
+        .map(chunk => ({
+          type: chunk.type,
+          toolCallId: chunk.toolCallId,
+          toolName: chunk.toolName,
+        })),
+    ).toEqual([
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+      },
+      {
+        type: 'tool-input-start',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+      {
+        type: 'tool-input-available',
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+      },
+    ]);
+    expect(
+      finalMessage?.parts
+        .filter(part => part.type === 'dynamic-tool')
+        .map(part => ({
+          toolCallId: part.toolCallId,
+          toolName: part.toolName,
+          input: part.input,
+        })),
+    ).toEqual([
+      {
+        toolCallId: 'call-reused',
+        toolName: 'write_column',
+        input: { column: 'first' },
+      },
+      {
+        toolCallId: 'call-reused',
+        toolName: 'deploy_creatives',
+        input: { column: 'second' },
+      },
+    ]);
   });
 
   it('should skip tool call chunks without id and use values instead', async () => {

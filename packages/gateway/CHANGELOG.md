@@ -1,5 +1,321 @@
 # @ai-sdk/gateway
 
+## 3.0.207
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.206
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+- 03e5a25: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.205
+
+### Patch Changes
+
+- 358683e: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+## 3.0.204
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 3.0.203
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 3.0.202
+
+### Patch Changes
+
+- 2cf7cb4: feat (provider/gateway): add Browserbase Search and Fetch tool support
+- af4a3e4: feat(provider/gateway): accept structured-output in the has provider option
+
+## 3.0.201
+
+### Patch Changes
+
+- 1915a6f: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.200
+
+### Patch Changes
+
+- be4ca16: feat(provider/gateway): add quantization conditions to the has provider option
+- ffb9507: Backport: chore(provider/gateway): update gateway model settings files
+- bbd0115: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 3.0.199
+
+### Patch Changes
+
+- 0b9d00b: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.198
+
+### Patch Changes
+
+- bd8bf1f: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 3.0.197
+
+### Patch Changes
+
+- 5f2d078: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- 1096a27: feat(xai): add grok 4.7 model ID
+- 2a82d35: Backport: chore(provider/gateway): update gateway model settings files
+- eea6869: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 3.0.196
+
+### Patch Changes
+
+- 88d0bad: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.195
+
+### Patch Changes
+
+- 09e0817: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.194
+
+### Patch Changes
+
+- dc9fa12: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.193
+
+### Patch Changes
+
+- e4ff9e7: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 3.0.192
+
+### Patch Changes
+
+- 1b7ff26: Backport: chore(provider/gateway): update gateway model settings files
+- 4d228f2: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.191
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- b273f40: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.190
+
+### Patch Changes
+
+- fc032e8: Backport: chore(provider/gateway): update gateway model settings files
+- 761dae9: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.189
+
+### Patch Changes
+
+- 8839d87: feat(gateway): add support for gpt-6-astra
+
+## 3.0.188
+
+### Patch Changes
+
+- 13507cb: feat(google): add gemini-3.8-flash model
+- 7782fec: Backport: chore(provider/gateway): update gateway model settings files
+- 978e084: Backport: chore(provider/gateway): update gateway model settings files
+- d0c255c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.187
+
+### Patch Changes
+
+- 57d88f5: feat(anthropic): add fable 5.1 support
+
+## 3.0.186
+
+### Patch Changes
+
+- 5ab6f63: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.185
+
+### Patch Changes
+
+- cc23556: Mark transient network errors that occur while reading successful response bodies as retryable.
+- 823cc03: Backport: chore(provider/gateway): update gateway model settings files
+- 3f96cf8: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
+## 3.0.184
+
+### Patch Changes
+
+- 8ddf255: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [9a521b9]
+  - @ai-sdk/provider-utils@4.0.49
+
+## 3.0.183
+
+### Patch Changes
+
+- ad28ecb: Backport: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+
+## 3.0.182
+
+### Patch Changes
+
+- 845ad6d: Remove the internal-only `relevance_score` and `citation_number` fields from
+  published Tako Search response types and schemas. Code that reads either field
+  must be updated; Gateway responses still pass the values through at runtime,
+  but they are no longer typed. Also document data surcharge controls.
+- fe80a3c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.181
+
+### Patch Changes
+
+- Updated dependencies [5642849]
+  - @ai-sdk/provider-utils@4.0.48
+
+## 3.0.180
+
+### Patch Changes
+
+- f6efa51: Backport: chore(provider/gateway): update gateway model settings files
+- 3539755: feat (provider/gateway): add Tako Search tool support
+- Updated dependencies [2d172fb]
+  - @ai-sdk/provider-utils@4.0.47
+
+## 3.0.179
+
+### Patch Changes
+
+- 1e70580: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.178
+
+### Patch Changes
+
+- 7de3226: Backport: chore(provider/gateway): update gateway model settings files
+- 504da15: feat: add DeepSeek V4 Flash Vision Exp image input support
+
+## 3.0.177
+
+### Patch Changes
+
+- def7999: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.176
+
+### Patch Changes
+
+- 96304fc: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.175
+
+### Patch Changes
+
+- 000b243: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.174
+
+### Patch Changes
+
+- Updated dependencies [31205a4]
+  - @ai-sdk/provider-utils@4.0.46
+
+## 3.0.173
+
+### Patch Changes
+
+- 71e94ad: feat(google): add `gemini-3.7-flash` model
+
+## 3.0.172
+
+### Patch Changes
+
+- 0ec239b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.171
+
+### Patch Changes
+
+- 18b0965: Serialize structured Gateway error responses in nested API call error messages.
+- 451d2c3: feat(xai): Add the Grok 4.6 model IDs and support its `xhigh` reasoning effort
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [b2a4d5a]
+  - @ai-sdk/provider-utils@4.0.45
+
+## 3.0.169
+
+### Patch Changes
+
+- b39f987: Backport: chore(provider/gateway): update gateway model settings files
+- d79117b: Backport: chore(provider/gateway): update gateway model settings files
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+  - @ai-sdk/provider-utils@4.0.44
+
+## 3.0.167
+
+### Patch Changes
+
+- Updated dependencies [dab0a08]
+  - @ai-sdk/provider-utils@4.0.43
+
 ## 3.0.166
 
 ### Patch Changes

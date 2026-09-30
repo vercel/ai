@@ -1,5 +1,6 @@
 import {
   LanguageModelV3ProviderTool,
+  type JSONSchema7,
   type LanguageModelV3Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -44,6 +45,29 @@ const SAFETY_RATINGS = [
     probability: 'NEGLIGIBLE',
   },
 ];
+
+const COMPLETE_USAGE_METADATA = {
+  promptTokenCount: 12,
+  cachedContentTokenCount: 4,
+  candidatesTokenCount: 71,
+  toolUsePromptTokenCount: 65,
+  thoughtsTokenCount: 89,
+  totalTokenCount: 237,
+  promptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 12, nestedSentinel: 'prompt' },
+  ],
+  cacheTokensDetails: [
+    { modality: 'TEXT', tokenCount: 4, nestedSentinel: 'cache' },
+  ],
+  candidatesTokensDetails: [
+    { modality: 'TEXT', tokenCount: 71, nestedSentinel: 'candidate' },
+  ],
+  toolUsePromptTokensDetails: [
+    { modality: 'TEXT', tokenCount: 65, nestedSentinel: 'tool' },
+  ],
+  serviceTier: 'standard',
+  topLevelSentinel: 'preserve-me',
+};
 
 const provider = createGoogleGenerativeAI({
   apiKey: 'test-api-key',
@@ -509,6 +533,12 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_99_PRO =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-99-pro-preview:generateContent';
 
+  const TEST_URL_GEMINI_2_5_PRO =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent';
+
+  const TEST_URL_GEMINI_2_5_FLASH =
+    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
@@ -522,7 +552,9 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_1_0_PRO]: {},
     [TEST_URL_GEMINI_1_5_FLASH]: {},
     [TEST_URL_GEMINI_99_PRO]: {},
+    [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
+    [TEST_URL_GEMINI_2_5_FLASH]: {},
     [TEST_URL_GEMINI_3_PRO]: {},
   });
 
@@ -538,7 +570,10 @@ describe('doGenerate', () => {
         | typeof TEST_URL_GEMINI_2_0_PRO
         | typeof TEST_URL_GEMINI_2_0_FLASH_EXP
         | typeof TEST_URL_GEMINI_1_0_PRO
-        | typeof TEST_URL_GEMINI_1_5_FLASH;
+        | typeof TEST_URL_GEMINI_1_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_PRO
+        | typeof TEST_URL_GEMINI_2_5_FLASH
+        | typeof TEST_URL_GEMINI_2_5_FLASH_LITE;
     } = {},
   ) {
     server.urls[url].response = {
@@ -856,6 +891,40 @@ describe('doGenerate', () => {
       expect(usage).toMatchSnapshot();
     });
 
+    it('should preserve complete raw usage metadata', async () => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toEqual({
+        inputTokens: {
+          total: 12,
+          noCache: 8,
+          cacheRead: 4,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 160,
+          text: 71,
+          reasoning: 89,
+        },
+        raw: COMPLETE_USAGE_METADATA,
+      });
+    });
+
     it('should send additional response information', async () => {
       const { response } = await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -874,6 +943,39 @@ describe('doGenerate', () => {
       `);
     });
   });
+
+  it.each([
+    { toolUsePromptTokenCount: '65' },
+    {
+      cacheTokensDetails: [{ modality: 'TEXT', tokenCount: '4' }],
+    },
+    {
+      toolUsePromptTokensDetails: [{ modality: 1, tokenCount: 65 }],
+    },
+  ])('should reject invalid usage metadata values: %j', async invalidUsage => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: 'Blue.' }], role: 'model' },
+            finishReason: 'STOP',
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 12,
+          ...invalidUsage,
+        },
+      },
+    };
+
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+      }),
+    ).rejects.toThrow();
+  });
+
   it('should handle MALFORMED_FUNCTION_CALL finish reason and empty content object', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'json-value',
@@ -1293,6 +1395,92 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    ['frequencyPenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['presencePenalty', 'gemini-2.5-pro', TEST_URL_GEMINI_2_5_PRO],
+    ['frequencyPenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    ['presencePenalty', 'gemini-2.5-flash', TEST_URL_GEMINI_2_5_FLASH],
+    [
+      'frequencyPenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+    [
+      'presencePenalty',
+      'gemini-2.5-flash-lite',
+      TEST_URL_GEMINI_2_5_FLASH_LITE,
+    ],
+  ] as const)(
+    'should omit unsupported %s for %s',
+    async (penalty, modelId, url) => {
+      prepareJsonFixtureResponse('google-text', { url });
+
+      const result = await provider.languageModel(modelId).doGenerate({
+        prompt: TEST_PROMPT,
+        [penalty]: 0.5,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.generationConfig).toEqual({});
+      expect(result.warnings).toEqual([
+        {
+          type: 'unsupported',
+          feature: penalty,
+        },
+      ]);
+    },
+  );
+
+  it('should pass penalty settings for Gemini 2.0 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_0_PRO,
+    });
+
+    const result = await provider.languageModel('gemini-2.0-pro').doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('should pass penalty settings for Vertex Gemini 2.5 models', async () => {
+    prepareJsonFixtureResponse('google-text', {
+      url: TEST_URL_GEMINI_2_5_FLASH,
+    });
+
+    const vertexModel = new GoogleGenerativeAILanguageModel(
+      'gemini-2.5-flash',
+      {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+      },
+    );
+
+    const result = await vertexModel.doGenerate({
+      prompt: TEST_PROMPT,
+      frequencyPenalty: 0.5,
+      presencePenalty: 0.5,
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      generationConfig: {
+        frequencyPenalty: 0.5,
+        presencePenalty: 0.5,
+      },
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
   it('should only pass valid provider options', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -1477,6 +1665,94 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should inline local JSON Schema references in tool requests', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'format-date',
+          description: 'Format a date',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              locale: {
+                $ref: '#/$defs/Locale',
+                description: 'Locale for formatting',
+              },
+            },
+            required: ['locale'],
+            additionalProperties: false,
+            $defs: {
+              Locale: { type: 'string', enum: ['de', 'en'] },
+            },
+          } as JSONSchema7,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
+        .parameters,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: {
+          type: 'string',
+          enum: ['de', 'en'],
+          description: 'Locale for formatting',
+        },
+      },
+      required: ['locale'],
+    });
+  });
+
+  it('should send recursive tool schemas as JSON Schema', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    const inputSchema = {
+      type: 'object',
+      properties: {
+        condition: { $ref: '#/$defs/Condition' },
+      },
+      required: ['condition'],
+      $defs: {
+        Condition: {
+          type: 'object',
+          properties: {
+            children: {
+              type: 'array',
+              items: { $ref: '#/$defs/Condition' },
+            },
+          },
+        },
+      },
+    } as JSONSchema7;
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'search',
+          description: 'Search with a condition tree',
+          inputSchema,
+        },
+      ],
+      prompt: TEST_PROMPT,
+    });
+
+    expect(server.calls).toHaveLength(1);
+    expect(
+      (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0],
+    ).toEqual({
+      name: 'search',
+      description: 'Search with a condition tree',
+      parametersJsonSchema: inputSchema,
+    });
+  });
+
   it('should set response mime type with responseFormat', async () => {
     prepareJsonFixtureResponse('google-text');
 
@@ -1516,6 +1792,37 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should inline local JSON Schema references in response schemas', async () => {
+    prepareJsonFixtureResponse('google-text');
+
+    await model.doGenerate({
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            locale: { $ref: '#/$defs/Locale' },
+          },
+          required: ['locale'],
+          $defs: {
+            Locale: { type: 'string', enum: ['de', 'en'] },
+          },
+        } as JSONSchema7,
+      },
+      prompt: TEST_PROMPT,
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).generationConfig.responseSchema,
+    ).toEqual({
+      type: 'object',
+      properties: {
+        locale: { type: 'string', enum: ['de', 'en'] },
+      },
+      required: ['locale'],
+    });
   });
 
   it('should pass specification with responseFormat and structuredOutputs = true (default)', async () => {
@@ -2380,6 +2687,79 @@ describe('doGenerate', () => {
       }
     `);
   });
+
+  it('should surface prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        promptFeedback: {
+          blockReason: 'PROHIBITED_CONTENT',
+        },
+        usageMetadata: {
+          promptTokenCount: 9,
+          totalTokenCount: 9,
+          serviceTier: 'standard',
+        },
+        responseId: 'blocked-response-id',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toEqual([]);
+    expect(result.finishReason).toEqual({
+      unified: 'content-filter',
+      raw: 'PROHIBITED_CONTENT',
+    });
+    expect(result.providerMetadata?.google).toMatchObject({
+      promptFeedback: {
+        blockReason: 'PROHIBITED_CONTENT',
+      },
+      groundingMetadata: null,
+      urlContextMetadata: null,
+      safetyRatings: null,
+      usageMetadata: {
+        promptTokenCount: 9,
+        totalTokenCount: 9,
+        serviceTier: 'standard',
+      },
+      finishMessage: null,
+      serviceTier: 'standard',
+    });
+    expect(result.response?.id).toBe('blocked-response-id');
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'json-value',
+        body: {
+          candidates: [],
+          promptFeedback: { blockReason },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+          },
+        },
+      };
+
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.content).toEqual([]);
+      expect(result.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+      expect(result.providerMetadata?.google.promptFeedback).toEqual({
+        blockReason,
+      });
+    },
+  );
 
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
@@ -4910,6 +5290,205 @@ describe('doStream', () => {
     `);
   });
 
+  it('should surface streamed prompt-level blocks without candidates', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          responseId: 'blocked-response-id',
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events).toContainEqual({
+      type: 'response-metadata',
+      id: 'blocked-response-id',
+    });
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'PROHIBITED_CONTENT',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: {
+            blockReason: 'PROHIBITED_CONTENT',
+          },
+          groundingMetadata: null,
+          urlContextMetadata: null,
+          safetyRatings: null,
+          usageMetadata: {
+            promptTokenCount: 9,
+            totalTokenCount: 9,
+            serviceTier: 'standard',
+          },
+          finishMessage: null,
+          serviceTier: 'standard',
+        },
+      },
+    });
+  });
+
+  it.each(['', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED'])(
+    'should not classify the default prompt block reason %j as a content filter',
+    async blockReason => {
+      server.urls[TEST_URL_GEMINI_PRO].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            candidates: [],
+            promptFeedback: { blockReason },
+            usageMetadata: {
+              promptTokenCount: 9,
+              totalTokenCount: 9,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+      });
+
+      const finishEvent = (await convertReadableStreamToArray(stream)).find(
+        event => event.type === 'finish',
+      );
+
+      expect(finishEvent?.finishReason).toEqual({
+        unified: 'other',
+        raw: undefined,
+      });
+    },
+  );
+
+  it('should preserve prompt feedback and trailing usage from separate chunks', async () => {
+    const promptFeedback = {
+      blockReason: 'BLOCK_REASON_UNSPECIFIED',
+      safetyRatings: [],
+    };
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 3,
+      totalTokenCount: 13,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({ promptFeedback })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({ usageMetadata })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'stop',
+        raw: 'STOP',
+      },
+      usage: {
+        outputTokens: {
+          total: 3,
+        },
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback,
+          usageMetadata,
+        },
+      },
+    });
+  });
+
+  it('should keep a confirmed prompt block terminal across later chunks', async () => {
+    const usageMetadata = {
+      promptTokenCount: 10,
+      candidatesTokenCount: 0,
+      totalTokenCount: 10,
+    };
+
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          promptFeedback: { blockReason: 'SAFETY' },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: {
+                role: 'model',
+                parts: [{ text: 'Fixture text.' }],
+              },
+              finishReason: 'STOP',
+            },
+          ],
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          promptFeedback: {
+            blockReason: 'BLOCK_REASON_UNSPECIFIED',
+          },
+          usageMetadata,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const events = await convertReadableStreamToArray(stream);
+
+    expect(events.filter(event => event.type === 'text-delta')).toEqual([]);
+    expect(events.find(event => event.type === 'finish')).toMatchObject({
+      type: 'finish',
+      finishReason: {
+        unified: 'content-filter',
+        raw: 'SAFETY',
+      },
+      providerMetadata: {
+        google: {
+          promptFeedback: { blockReason: 'SAFETY' },
+          usageMetadata,
+        },
+      },
+    });
+  });
+
   it('should expose finishMessage in provider metadata on finish', async () => {
     server.urls[TEST_URL_GEMINI_PRO].response = {
       type: 'stream-chunks',
@@ -4996,6 +5575,58 @@ describe('doStream', () => {
       finishEvent?.type === 'finish' &&
         finishEvent.providerMetadata?.google.serviceTier,
     ).toBe('priority');
+  });
+
+  it('should preserve the final complete raw usage metadata', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: 'Blue' }], role: 'model' },
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 1,
+            candidatesTokenCount: 1,
+            totalTokenCount: 2,
+          },
+        })}\n\n`,
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '.' }], role: 'model' },
+              finishReason: 'STOP',
+            },
+          ],
+          usageMetadata: COMPLETE_USAGE_METADATA,
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+    });
+
+    const finishEvent = (await convertReadableStreamToArray(stream)).find(
+      event => event.type === 'finish',
+    );
+
+    expect(finishEvent?.usage).toEqual({
+      inputTokens: {
+        total: 12,
+        noCache: 8,
+        cacheRead: 4,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 160,
+        text: 71,
+        reasoning: 89,
+      },
+      raw: COMPLETE_USAGE_METADATA,
+    });
   });
 
   it('should expose null serviceTier in provider metadata on finish when not present', async () => {
@@ -5761,7 +6392,11 @@ describe('doStream', () => {
               ],
               "serviceTier": null,
               "urlContextMetadata": null,
-              "usageMetadata": null,
+              "usageMetadata": {
+                "candidatesTokenCount": 233,
+                "promptTokenCount": 294,
+                "totalTokenCount": 527,
+              },
             },
           },
           "type": "finish",

@@ -102,53 +102,52 @@ export function createSafeLookup(lookup: Lookup): SafeLookup {
 }
 
 let safeNodeFetchPromise: Promise<FetchFunction> | undefined;
-const initialGlobalFetch = globalThis.fetch;
-const initialGlobalFetchIsNodeDefault = isNodeDefaultFetch(initialGlobalFetch);
 
 export function isNodeRuntime(): boolean {
   const runtimeProcess = globalThis.process as
     | {
         release?: { name?: string };
-        versions?: { bun?: string };
+        title?: string;
+        versions?: { bun?: string; deno?: string };
       }
     | undefined;
 
+  // Node-compatible process objects do not imply support for Node DNS/socket
+  // hooks. Workers identifies itself as workerd, including without navigator.
   return (
     runtimeProcess?.release?.name === 'node' &&
-    runtimeProcess.versions?.bun == null
+    runtimeProcess.versions?.bun == null &&
+    runtimeProcess.versions?.deno == null &&
+    runtimeProcess.title !== 'workerd' &&
+    (globalThis as { EdgeRuntime?: unknown }).EdgeRuntime == null
   );
 }
 
 export async function getDefaultDownloadFetch(): Promise<FetchFunction> {
-  if (
-    !isNodeRuntime() ||
-    !initialGlobalFetchIsNodeDefault ||
-    globalThis.fetch !== initialGlobalFetch
-  ) {
+  if (!isNodeRuntime()) {
     return globalThis.fetch;
   }
 
+  // Global fetch wrappers cannot be relied on to preserve the dispatcher
+  // that pins connections to validated DNS results.
   return (safeNodeFetchPromise ??= createSafeNodeFetch());
 }
 
-function isNodeDefaultFetch(fetch: FetchFunction): boolean {
-  const source = Function.prototype.toString.call(fetch);
-  return (
-    source.includes('internal/deps/undici') ||
-    source.includes('lazy loading of undici')
-  );
-}
-
 async function createSafeNodeFetch(): Promise<FetchFunction> {
-  // Node 20.16+ exposes getBuiltinModule; older supported Node versions use an
-  // indirect dynamic import that is hidden from browser bundle parsers.
-  const [{ createRequire }, { lookup }] = await Promise.all([
+  // Load Node-only modules indirectly so browser bundlers do not pull undici
+  // and Node built-ins into the browser-facing provider-utils entry point.
+  // @vercel/nft (node file trace) only recognizes an indirectly loaded createRequire when its receiver
+  // is named `module` and the returned require function is assigned.
+  // eslint-disable-next-line @next/next/no-assign-module-variable
+  const [module, { lookup }] = await Promise.all([
     loadNodeModule<NodeModule>('node:module'),
     loadNodeModule<NodeDns>('node:dns'),
   ]);
-  const { Agent, fetch } = createRequire(getCurrentModulePath())(
-    'undici',
-  ) as Undici;
+
+  // Assign the created require function so deployment tracers can recognize
+  // the static dependency without bundlers inlining undici.
+  const nodeRequire = module.createRequire(getCurrentModulePath());
+  const { Agent, fetch } = nodeRequire('undici') as Undici;
 
   const dispatcher = new Agent({
     connect: {
@@ -174,23 +173,16 @@ async function loadNodeModule<T>(id: string): Promise<T> {
     | undefined;
   const builtinModule = processWithBuiltins?.getBuiltinModule?.(id);
 
-  return builtinModule == null
-    ? ((await importNodeModule(id)) as T)
-    : (builtinModule as T);
-}
+  if (builtinModule == null) {
+    // There is no bundle-safe way to load Node built-ins without
+    // process.getBuiltinModule (Node <20.16): Metro rejects non-static
+    // import() expressions while parsing, and Next.js Edge Runtime rejects
+    // the Function-constructor shim during static analysis. Throw rather
+    // than ship either, matching the v7 implementation. See #18545, #18559.
+    throw new Error(`Node.js built-in module ${id} is unavailable`);
+  }
 
-let dynamicImport: ((specifier: string) => Promise<unknown>) | undefined;
-
-function importNodeModule(id: string): Promise<unknown> {
-  // Metro rejects non-static dynamic imports while parsing, even though this
-  // Node-only fallback is never executed in React Native. Construct the import
-  // function lazily so the distributed module contains no import expression for
-  // Metro to analyze and runtimes with process.getBuiltinModule avoid it.
-  dynamicImport ??= Function('specifier', 'return import(specifier)') as (
-    specifier: string,
-  ) => Promise<unknown>;
-
-  return dynamicImport(id);
+  return builtinModule as T;
 }
 
 function getCurrentModulePath(): string {

@@ -1,5 +1,107 @@
 # @ai-sdk/provider-utils
 
+## 4.0.57
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- a9cea74: fix(mcp): prevent SSRF in OAuth metadata discovery
+- a9cea74: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
+## 4.0.56
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+
+## 4.0.55
+
+### Patch Changes
+
+- 3983fea: fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+
+## 4.0.54
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- d1a36d2: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- f7f36d2: chore: enable dead code lint rules
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+
+## 4.0.52
+
+### Patch Changes
+
+- 82e18b0: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+
+## 4.0.50
+
+### Patch Changes
+
+- cc23556: Mark transient network errors that occur while reading successful response bodies as retryable.
+
+## 4.0.49
+
+### Patch Changes
+
+- 9a521b9: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 4.0.48
+
+### Patch Changes
+
+- 5642849: fix(provider-utils): allow imports in runtimes without a global fetch function
+
+## 4.0.47
+
+### Patch Changes
+
+- 2d172fb: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 4.0.46
+
+### Patch Changes
+
+- 31205a4: chore(provider-utils): upgrade undici to a maintained release
+
+## 4.0.45
+
+### Patch Changes
+
+- b2a4d5a: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 4.0.44
+
+### Patch Changes
+
+- Updated dependencies [2171d15]
+  - @ai-sdk/provider@3.0.15
+
+## 4.0.43
+
+### Patch Changes
+
+- dab0a08: fix(provider-utils): drop Function-constructor dynamic import shim rejected by Next.js Edge Runtime builds
+
 ## 4.0.42
 
 ### Patch Changes

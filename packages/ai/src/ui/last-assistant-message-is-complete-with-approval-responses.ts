@@ -35,8 +35,9 @@ export function lastAssistantMessageIsCompleteWithApprovalResponses({
     // all tool approvals must have a response
     lastStepToolInvocations.every(
       part =>
-        part.state === 'output-available' ||
+        (part.state === 'output-available' && part.preliminary !== true) ||
         part.state === 'output-error' ||
+        part.state === 'output-denied' ||
         part.state === 'approval-responded',
     )
   );

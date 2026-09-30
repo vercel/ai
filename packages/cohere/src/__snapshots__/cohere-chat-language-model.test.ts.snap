@@ -223,8 +223,15 @@ exports[`doGenerate > citations > should extract citations from response 1`] = `
       "total": 62,
     },
     "raw": {
-      "input_tokens": 1683,
-      "output_tokens": 62,
+      "billed_units": {
+        "input_tokens": 39,
+        "output_tokens": 27,
+      },
+      "cached_tokens": 992,
+      "tokens": {
+        "input_tokens": 1683,
+        "output_tokens": 62,
+      },
     },
   },
   "warnings": [],
@@ -332,8 +339,15 @@ exports[`doGenerate > reasoning > should extract reasoning from response 1`] = `
       "total": 582,
     },
     "raw": {
-      "input_tokens": 1394,
-      "output_tokens": 582,
+      "billed_units": {
+        "input_tokens": 8,
+        "output_tokens": 578,
+      },
+      "cached_tokens": 1344,
+      "tokens": {
+        "input_tokens": 1394,
+        "output_tokens": 582,
+      },
     },
   },
   "warnings": [],
@@ -422,8 +436,15 @@ exports[`doGenerate > text > should extract text response 1`] = `
       "total": 10,
     },
     "raw": {
-      "input_tokens": 507,
-      "output_tokens": 10,
+      "billed_units": {
+        "input_tokens": 12,
+        "output_tokens": 7,
+      },
+      "cached_tokens": 448,
+      "tokens": {
+        "input_tokens": 507,
+        "output_tokens": 10,
+      },
     },
   },
   "warnings": [],
@@ -554,8 +575,15 @@ exports[`doGenerate > tool call > should extract tool calls 1`] = `
       "total": 103,
     },
     "raw": {
-      "input_tokens": 1549,
-      "output_tokens": 103,
+      "billed_units": {
+        "input_tokens": 119,
+        "output_tokens": 52,
+      },
+      "cached_tokens": 992,
+      "tokens": {
+        "input_tokens": 1549,
+        "output_tokens": 103,
+      },
     },
   },
   "warnings": [],
@@ -606,8 +634,15 @@ exports[`doStream > empty tool call > should handle empty tool call arguments 1`
         "total": 43,
       },
       "raw": {
-        "input_tokens": 1445,
-        "output_tokens": 43,
+        "billed_units": {
+          "input_tokens": 46,
+          "output_tokens": 14,
+        },
+        "cached_tokens": 704,
+        "tokens": {
+          "input_tokens": 1445,
+          "output_tokens": 43,
+        },
       },
     },
   },
@@ -919,8 +954,15 @@ exports[`doStream > reasoning > should stream reasoning deltas 1`] = `
         "total": 54,
       },
       "raw": {
-        "input_tokens": 1394,
-        "output_tokens": 54,
+        "billed_units": {
+          "input_tokens": 8,
+          "output_tokens": 50,
+        },
+        "cached_tokens": 1360,
+        "tokens": {
+          "input_tokens": 1394,
+          "output_tokens": 54,
+        },
       },
     },
   },
@@ -1160,8 +1202,15 @@ exports[`doStream > text > should stream text deltas 1`] = `
         "total": 10,
       },
       "raw": {
-        "input_tokens": 507,
-        "output_tokens": 10,
+        "billed_units": {
+          "input_tokens": 12,
+          "output_tokens": 7,
+        },
+        "cached_tokens": 448,
+        "tokens": {
+          "input_tokens": 507,
+          "output_tokens": 10,
+        },
       },
     },
   },
@@ -1297,8 +1346,15 @@ exports[`doStream > tool call > should stream tool deltas 1`] = `
         "total": 95,
       },
       "raw": {
-        "input_tokens": 1549,
-        "output_tokens": 95,
+        "billed_units": {
+          "input_tokens": 119,
+          "output_tokens": 44,
+        },
+        "cached_tokens": 1504,
+        "tokens": {
+          "input_tokens": 1549,
+          "output_tokens": 95,
+        },
       },
     },
   },

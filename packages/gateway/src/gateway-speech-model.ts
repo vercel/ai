@@ -3,6 +3,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -69,7 +70,7 @@ export class GatewaySpeechModel implements SpeechModelV3 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

@@ -28,6 +28,7 @@ import {
   type GeneratedFile,
 } from './generated-file';
 import { isApprovalNeeded } from './is-approval-needed';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import { maybeSignApproval } from './tool-approval-signature';
 import { parseToolCall } from './parse-tool-call';
 import type { ToolApprovalRequestOutput } from './tool-approval-request-output';
@@ -200,6 +201,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
   // keep track of outstanding tool results for stream closing:
   const outstandingToolResults = new Set<string>();
+  const toolCallsToExecute: Array<TypedToolCall<TOOLS>> = [];
 
   // keep track of parsed tool calls so provider-emitted approval requests can reference them
   // keep track of tool inputs for provider-side tool results
@@ -224,6 +226,45 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
     }
   }
 
+  function executeToolCallAfterFinish(toolCall: TypedToolCall<TOOLS>) {
+    const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
+    outstandingToolResults.add(toolExecutionId);
+
+    executeToolCall({
+      toolCall,
+      tools,
+      tracer,
+      telemetry,
+      messages,
+      abortSignal,
+      experimental_context,
+      stepNumber,
+      model,
+      onToolCallStart,
+      onToolCallFinish,
+      onPreliminaryToolResult: result => {
+        enqueueToolResult(result);
+      },
+    })
+      .then(result => {
+        enqueueToolResult(result);
+      })
+      .catch(error => {
+        enqueueToolResult({
+          type: 'error',
+          error,
+        });
+      })
+      .finally(() => {
+        outstandingToolResults.delete(toolExecutionId);
+        attemptClose();
+      });
+  }
+
+  // Keep input callbacks in the same transform so input availability cannot
+  // overtake pending start or delta callbacks in a downstream stream.
+  const activeToolCallToolNames = new Map<string, string>();
+
   // forward stream
   const forwardStream = new TransformStream<
     LanguageModelV3StreamPart,
@@ -246,13 +287,43 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
         case 'reasoning-start':
         case 'reasoning-delta':
         case 'reasoning-end':
-        case 'tool-input-start':
-        case 'tool-input-delta':
-        case 'tool-input-end':
         case 'source':
         case 'response-metadata':
         case 'error':
         case 'raw': {
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-start': {
+          activeToolCallToolNames.set(chunk.id, chunk.toolName);
+          await tools?.[chunk.toolName]?.onInputStart?.({
+            toolCallId: chunk.id,
+            messages,
+            abortSignal,
+            experimental_context,
+          });
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-delta': {
+          const toolName = activeToolCallToolNames.get(chunk.id);
+          if (toolName != null) {
+            await tools?.[toolName]?.onInputDelta?.({
+              inputTextDelta: chunk.delta,
+              toolCallId: chunk.id,
+              messages,
+              abortSignal,
+              experimental_context,
+            });
+          }
+          controller.enqueue(chunk);
+          break;
+        }
+
+        case 'tool-input-end': {
+          activeToolCallToolNames.delete(chunk.id);
           controller.enqueue(chunk);
           break;
         }
@@ -279,6 +350,15 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             usage: asLanguageModelUsage(chunk.usage),
             providerMetadata: chunk.providerMetadata,
           };
+
+          if (isToolExecutionAllowedFinishReason(chunk.finishReason.unified)) {
+            for (const toolCall of toolCallsToExecute.splice(0)) {
+              executeToolCallAfterFinish(toolCall);
+            }
+          } else {
+            toolCallsToExecute.length = 0;
+          }
+
           break;
         }
 
@@ -315,7 +395,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
             });
 
             toolCallsByToolCallId.set(toolCall.toolCallId, toolCall);
-            controller.enqueue(toolCall);
+            controller.enqueue({ ...toolCall });
 
             if (toolCall.invalid) {
               if (!toolCall.providerExecuted) {
@@ -381,41 +461,7 @@ export function runToolsTransformation<TOOLS extends ToolSet>({
 
             // Only execute tools that are not provider-executed:
             if (tool.execute != null && toolCall.providerExecuted !== true) {
-              const toolExecutionId = generateId(); // use our own id to guarantee uniqueness
-              outstandingToolResults.add(toolExecutionId);
-
-              // Note: we don't await the tool execution here (by leaving out 'await' on recordSpan),
-              // because we want to process the next chunk as soon as possible.
-              // This is important for the case where the tool execution takes a long time.
-              executeToolCall({
-                toolCall,
-                tools,
-                tracer,
-                telemetry,
-                messages,
-                abortSignal,
-                experimental_context,
-                stepNumber,
-                model,
-                onToolCallStart,
-                onToolCallFinish,
-                onPreliminaryToolResult: result => {
-                  enqueueToolResult(result);
-                },
-              })
-                .then(result => {
-                  enqueueToolResult(result);
-                })
-                .catch(error => {
-                  enqueueToolResult({
-                    type: 'error',
-                    error,
-                  });
-                })
-                .finally(() => {
-                  outstandingToolResults.delete(toolExecutionId);
-                  attemptClose();
-                });
+              toolCallsToExecute.push(toolCall);
             }
           } catch (error) {
             enqueueToolResult({ type: 'error', error });

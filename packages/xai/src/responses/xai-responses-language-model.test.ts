@@ -564,6 +564,30 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('none');
         });
 
+        it('reasoningEffort xhigh', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          await createModel('grok-4.6').doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                reasoningEffort: 'xhigh',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.model).toBe('grok-4.6');
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+        });
+
         it('logprobs and topLogprobs', async () => {
           prepareJsonResponse({
             id: 'resp_123',
@@ -684,6 +708,54 @@ describe('XaiResponsesLanguageModel', () => {
 
           const requestBody = await server.calls[0].requestBodyJson;
           expect(requestBody.previous_response_id).toBe('resp_456');
+        });
+
+        it('serviceTier', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'priority',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.service_tier).toBe('priority');
+          expect(providerMetadata?.xai.serviceTier).toBe('priority');
+        });
+
+        it('serviceTier reports a downgrade to default', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+            service_tier: 'default',
+          });
+
+          const { providerMetadata } = await createModel().doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: {
+              xai: {
+                serviceTier: 'priority',
+              } satisfies XaiLanguageModelResponsesOptions,
+            },
+          });
+
+          expect(providerMetadata?.xai.serviceTier).toBe('default');
         });
 
         it('include with file_search_call.results', async () => {
@@ -1195,6 +1267,126 @@ describe('XaiResponsesLanguageModel', () => {
           }
         `);
       });
+
+      it('should forward web_search_call action and sources to tool-result', async () => {
+        prepareJsonResponse({
+          id: 'resp_123',
+          object: 'response',
+          status: 'completed',
+          model: 'grok-4-fast-non-reasoning',
+          output: [
+            {
+              type: 'web_search_call',
+              id: 'ws_action_1',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'latest AI news',
+                sources: [
+                  { type: 'url', url: 'https://example.com/a' },
+                  { type: 'url', url: 'https://example.com/b' },
+                ],
+              },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_2',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: 'https://example.com/a' },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_3',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'find_in_page',
+                url: 'https://example.com/a',
+                pattern: 'climate',
+              },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_4',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'search', query: null, sources: null },
+            },
+            {
+              type: 'web_search_call',
+              id: 'ws_action_5',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: null },
+            },
+          ],
+          usage: { input_tokens: 10, output_tokens: 5 },
+        });
+
+        const result = await createModel().doGenerate({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_1',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'search', query: 'latest AI news' },
+            sources: [
+              { type: 'url', url: 'https://example.com/a' },
+              { type: 'url', url: 'https://example.com/b' },
+            ],
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_2',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'openPage', url: 'https://example.com/a' },
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_3',
+          toolName: 'web_search',
+          result: {
+            action: {
+              type: 'findInPage',
+              url: 'https://example.com/a',
+              pattern: 'climate',
+            },
+          },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_4',
+          toolName: 'web_search',
+          result: { action: { type: 'search' } },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action_5',
+          toolName: 'web_search',
+          result: { action: { type: 'openPage', url: null } },
+        });
+      });
     });
 
     describe('x_search tool', () => {
@@ -1415,144 +1607,6 @@ describe('XaiResponsesLanguageModel', () => {
           ]
         `);
       });
-
-      it('should omit additionalProperties from serialized function tool schemas', async () => {
-        prepareJsonResponse({
-          id: 'resp_123',
-          object: 'response',
-          status: 'completed',
-          model: 'grok-4-fast-non-reasoning',
-          output: [],
-          usage: { input_tokens: 10, output_tokens: 5 },
-        });
-
-        await createModel().doGenerate({
-          prompt: TEST_PROMPT,
-          tools: [
-            {
-              type: 'function',
-              name: 'saveContactWithAddress',
-              description: 'Save a contact with an address.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  address: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['address'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-            {
-              type: 'function',
-              name: 'saveContactWithProperties',
-              description: 'Save a contact with a properties field.',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  properties: {
-                    type: 'object',
-                    properties: {
-                      city: { type: 'string' },
-                      country: { type: 'string' },
-                    },
-                    required: ['city', 'country'],
-                    additionalProperties: false,
-                  },
-                },
-                required: ['properties'],
-                additionalProperties: false,
-                $schema: 'http://json-schema.org/draft-07/schema#',
-              },
-            },
-          ],
-        });
-
-        expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
-          {
-            "input": [
-              {
-                "content": [
-                  {
-                    "text": "hello",
-                    "type": "input_text",
-                  },
-                ],
-                "role": "user",
-              },
-            ],
-            "model": "grok-4-fast-non-reasoning",
-            "tools": [
-              {
-                "description": "Save a contact with an address.",
-                "name": "saveContactWithAddress",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "address": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "address",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-              {
-                "description": "Save a contact with a properties field.",
-                "name": "saveContactWithProperties",
-                "parameters": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "properties": {
-                    "properties": {
-                      "properties": {
-                        "city": {
-                          "type": "string",
-                        },
-                        "country": {
-                          "type": "string",
-                        },
-                      },
-                      "required": [
-                        "city",
-                        "country",
-                      ],
-                      "type": "object",
-                    },
-                  },
-                  "required": [
-                    "properties",
-                  ],
-                  "type": "object",
-                },
-                "type": "function",
-              },
-            ],
-          }
-        `);
-      });
     });
 
     describe('citations', () => {
@@ -1665,9 +1719,10 @@ describe('XaiResponsesLanguageModel', () => {
           ],
         });
 
-        expect(result.content).toHaveLength(2);
+        expect(result.content).toHaveLength(3);
         expect(result.content[0].type).toBe('tool-call');
-        expect(result.content[1].type).toBe('tool-call');
+        expect(result.content[1].type).toBe('tool-result');
+        expect(result.content[2].type).toBe('tool-call');
       });
     });
 
@@ -1710,6 +1765,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'web_search',
             input: '{"query":"test"}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'web_search',
+            result: {},
           },
         ]);
       });
@@ -1878,6 +1939,12 @@ describe('XaiResponsesLanguageModel', () => {
             toolName: 'my_custom_search',
             input: '{}',
             providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'ws_123',
+            toolName: 'my_custom_search',
+            result: {},
           },
         ]);
       });
@@ -2679,6 +2746,170 @@ describe('XaiResponsesLanguageModel', () => {
           toolCallId: 'ws_123',
           toolName: 'web_search',
           result: {},
+        });
+      });
+
+      it('should forward web_search_call action and sources to tool-result', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.added',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_action',
+              name: 'web_search',
+              call_id: '',
+              status: 'in_progress',
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_action',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'search',
+                query: 'latest AI news',
+                sources: [{ type: 'url', url: 'https://example.com/a' }],
+              },
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_action',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'search', query: 'latest AI news' },
+            sources: [{ type: 'url', url: 'https://example.com/a' }],
+          },
+        });
+      });
+
+      it('should map open_page and find_in_page actions in stream tool-results', async () => {
+        prepareStreamChunks([
+          JSON.stringify({
+            type: 'response.created',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              model: 'grok-4-fast-non-reasoning',
+              status: 'in_progress',
+              output: [],
+            },
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_open',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: { type: 'open_page', url: 'https://example.com/a' },
+            },
+            output_index: 0,
+          }),
+          JSON.stringify({
+            type: 'response.output_item.done',
+            item: {
+              type: 'web_search_call',
+              id: 'ws_find',
+              name: 'web_search',
+              call_id: '',
+              status: 'completed',
+              action: {
+                type: 'find_in_page',
+                url: 'https://example.com/a',
+                pattern: 'climate',
+              },
+            },
+            output_index: 1,
+          }),
+          JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_123',
+              object: 'response',
+              status: 'completed',
+              output: [],
+              usage: { input_tokens: 10, output_tokens: 5 },
+            },
+          }),
+        ]);
+
+        const { stream } = await createModel().doStream({
+          prompt: TEST_PROMPT,
+          tools: [
+            {
+              type: 'provider',
+              id: 'xai.web_search',
+              name: 'web_search',
+              args: {},
+            },
+          ],
+        });
+
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_open',
+          toolName: 'web_search',
+          result: {
+            action: { type: 'openPage', url: 'https://example.com/a' },
+          },
+        });
+        expect(parts).toContainEqual({
+          type: 'tool-result',
+          toolCallId: 'ws_find',
+          toolName: 'web_search',
+          result: {
+            action: {
+              type: 'findInPage',
+              url: 'https://example.com/a',
+              pattern: 'climate',
+            },
+          },
         });
       });
 

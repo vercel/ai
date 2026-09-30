@@ -5,10 +5,16 @@ export type CohereUsageTokens = {
   output_tokens: number;
 };
 
+export type CohereUsage = {
+  billed_units?: CohereUsageTokens | null;
+  tokens: CohereUsageTokens;
+  cached_tokens?: number | null;
+};
+
 export function convertCohereUsage(
-  tokens: CohereUsageTokens | undefined | null,
+  usage: CohereUsage | undefined | null,
 ): LanguageModelV3Usage {
-  if (tokens == null) {
+  if (usage == null) {
     return {
       inputTokens: {
         total: undefined,
@@ -25,6 +31,7 @@ export function convertCohereUsage(
     };
   }
 
+  const tokens = usage.tokens;
   const inputTokens = tokens.input_tokens;
   const outputTokens = tokens.output_tokens;
 
@@ -40,6 +47,6 @@ export function convertCohereUsage(
       text: outputTokens,
       reasoning: undefined,
     },
-    raw: tokens,
+    raw: usage,
   };
 }
