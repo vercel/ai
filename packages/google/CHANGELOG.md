@@ -1,5 +1,29 @@
 # @ai-sdk/google
 
+## 2.0.101
+
+### Patch Changes
+
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.98
 
 ### Patch Changes

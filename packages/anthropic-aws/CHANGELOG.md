@@ -1,5 +1,39 @@
 # @ai-sdk/anthropic-aws
 
+## 0.1.23
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/anthropic@2.0.108
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/anthropic@2.0.107
+  - @ai-sdk/provider-utils@3.0.40
+
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [214d440]
+  - @ai-sdk/anthropic@2.0.106
+
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/anthropic@2.0.105
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 0.1.19
 
 ### Patch Changes

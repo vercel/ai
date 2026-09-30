@@ -1,5 +1,53 @@
 # @ai-sdk/azure
 
+## 2.0.140
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/deepseek@1.0.62
+  - @ai-sdk/openai@2.0.133
+
+## 2.0.139
+
+### Patch Changes
+
+- Updated dependencies [07e394b]
+- Updated dependencies [e2831de]
+  - @ai-sdk/openai@2.0.132
+  - @ai-sdk/deepseek@1.0.61
+
+## 2.0.138
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai@2.0.131
+  - @ai-sdk/deepseek@1.0.60
+
+## 2.0.137
+
+### Patch Changes
+
+- f912d4a: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [f912d4a]
+  - @ai-sdk/openai@2.0.130
+
+## 2.0.136
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [1c05ff4]
+- Updated dependencies [bf29419]
+  - @ai-sdk/openai@2.0.129
+  - @ai-sdk/deepseek@1.0.59
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.135
 
 ### Patch Changes

@@ -922,6 +922,7 @@ describe('tool invocations', () => {
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 't' },
+        rawInput: '{"testArg":"t',
       });
     });
 
@@ -941,6 +942,7 @@ describe('tool invocations', () => {
         toolCallId: 'tool-call-0',
         type: 'tool-test-tool',
         input: { testArg: 'test-value' },
+        rawInput: '{"testArg":"test-value"}}',
       });
     });
 

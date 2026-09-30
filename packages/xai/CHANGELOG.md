@@ -1,5 +1,32 @@
 # @ai-sdk/xai
 
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 2.0.98
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 2.0.97
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
 ## 2.0.96
 
 ### Patch Changes

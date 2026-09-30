@@ -1,5 +1,32 @@
 # @ai-sdk/huggingface
 
+## 0.0.41
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 0.0.40
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 0.0.39
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
 ## 0.0.38
 
 ### Patch Changes

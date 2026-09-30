@@ -49,6 +49,16 @@ export type DeepSeekChatConfig = {
   supportsStructuredOutputs?: boolean;
 };
 
+function getDeepSeekCacheReadTokens(
+  usage: DeepSeekChatTokenUsage | undefined | null,
+): number | undefined {
+  return (
+    usage?.prompt_cache_hit_tokens ??
+    usage?.prompt_tokens_details?.cached_tokens ??
+    undefined
+  );
+}
+
 function mapDeepSeekProviderReasoningEffort({
   reasoningEffort,
   warnings,
@@ -325,6 +335,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       content.push({ type: 'text', text });
     }
 
+    const cacheReadTokens = getDeepSeekCacheReadTokens(responseBody.usage);
+
     return {
       content,
       finishReason: mapDeepSeekFinishReason(choice.finish_reason),
@@ -335,13 +347,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
         reasoningTokens:
           responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
           undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
+        cachedInputTokens: cacheReadTokens,
       },
       providerMetadata: {
         [this.providerOptionsName]: {
-          promptCacheHitTokens:
-            responseBody.usage?.prompt_cache_hit_tokens ?? null,
+          promptCacheHitTokens: cacheReadTokens ?? null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
           ...(responseBody.object != null && {
@@ -696,6 +706,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               });
             }
 
+            const cacheReadTokens = getDeepSeekCacheReadTokens(usage);
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -706,11 +718,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                 reasoningTokens:
                   usage?.completion_tokens_details?.reasoning_tokens ??
                   undefined,
-                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
+                cachedInputTokens: cacheReadTokens,
               },
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
+                  promptCacheHitTokens: cacheReadTokens ?? null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
                   ...(responseObject != null && { responseObject }),

@@ -1,5 +1,43 @@
 # @ai-sdk/openai
 
+## 2.0.133
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.132
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+
+## 2.0.131
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.130
+
+### Patch Changes
+
+- f912d4a: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 2.0.129
+
+### Patch Changes
+
+- 1c05ff4: fix(openai): expose Chat Completions audio transcripts as generated text
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.128
 
 ### Patch Changes

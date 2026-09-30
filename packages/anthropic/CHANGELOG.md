@@ -1,5 +1,42 @@
 # @ai-sdk/anthropic
 
+## 2.0.108
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.107
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.106
+
+### Patch Changes
+
+- 214d440: Preserve effort updates on empty system messages at the beginning of a conversation, including consecutive updates.
+
+## 2.0.105
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.104
 
 ### Patch Changes

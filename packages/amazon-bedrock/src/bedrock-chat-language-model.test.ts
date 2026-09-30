@@ -188,7 +188,6 @@ function prepareJsonFixtureResponse(filename: string) {
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
     ),
   };
-  return;
 }
 
 function prepareChunksFixtureResponse(filename: string) {

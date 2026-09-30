@@ -1,5 +1,35 @@
 # @ai-sdk/deepseek
 
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 1.0.61
+
+### Patch Changes
+
+- e2831de: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 1.0.59
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 1.0.58
 
 ### Patch Changes

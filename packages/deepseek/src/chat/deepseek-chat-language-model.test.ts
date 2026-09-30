@@ -79,8 +79,35 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
+
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          choices: [
+            {
+              finish_reason: 'stop',
+              index: 0,
+              message: { content: 'Hello', role: 'assistant' },
+            },
+          ],
+          usage: {
+            completion_tokens: 10,
+            prompt_tokens: 100,
+            prompt_tokens_details: { cached_tokens: 80 },
+            total_tokens: 110,
+          },
+        },
+      };
+
+      const result = await provider
+        .chat('deepseek-v4-flash')
+        .doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.usage.cachedInputTokens).toBe(80);
+      expect(result.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(80);
+    });
 
     describe('text', () => {
       beforeEach(() => {
@@ -1079,6 +1106,35 @@ describe('DeepSeekChatLanguageModel', () => {
         chunks,
       };
     }
+
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+            usage: {
+              completion_tokens: 10,
+              prompt_tokens: 100,
+              prompt_tokens_details: { cached_tokens: 80 },
+              total_tokens: 110,
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await provider
+        .chat('deepseek-v4-flash')
+        .doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(result.stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.usage.cachedInputTokens).toBe(80);
+      expect(finishPart?.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(
+        80,
+      );
+    });
 
     describe('text', () => {
       beforeEach(() => {

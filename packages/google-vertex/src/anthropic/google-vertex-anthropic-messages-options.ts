@@ -1,6 +1,7 @@
 // https://cloud.google.com/vertex-ai/generative-ai/docs/partner-models/claude
 export type GoogleVertexAnthropicMessagesModelId =
   | 'claude-sonnet-5'
+  | 'claude-sonnet-5-5'
   | 'claude-fable-5'
   | 'claude-opus-5'
   | 'claude-opus-5-5'

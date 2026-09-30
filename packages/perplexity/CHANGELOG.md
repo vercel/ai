@@ -1,5 +1,35 @@
 # @ai-sdk/perplexity
 
+## 2.1.2
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.1.1
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.1.0
+
+### Minor Changes
+
+- 9e05839: BREAKING: Migrate language generation from the Sonar Chat Completions API (supported by Perplexity only until September 27, 2026) to the Agent API. Replace Sonar model IDs and provider options with Agent API presets, models, and tools. The new API changes request and response metadata, raw stream events, usage and cost data, and does not support Sonar PDF input or image and video results. Reasoning effort is configured through `providerOptions.perplexity.reasoning`. Agent API stream events with `null` fields are accepted.
+
+## 2.0.45
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.44
 
 ### Patch Changes

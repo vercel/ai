@@ -1,5 +1,32 @@
 # @ai-sdk/togetherai
 
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 1.0.61
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 1.0.60
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
 ## 1.0.59
 
 ### Patch Changes

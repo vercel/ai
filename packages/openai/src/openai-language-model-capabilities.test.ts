@@ -129,6 +129,19 @@ describe('getOpenAILanguageModelCapabilities', () => {
   });
 
   describe('GPT-6 and later reasoning capabilities', () => {
+    it('supports the documented GPT-6.1 Sol capabilities', () => {
+      expect(getOpenAILanguageModelCapabilities('gpt-6.1-sol')).toEqual({
+        isReasoningModel: true,
+        systemMessageMode: 'developer',
+        supportsFlexProcessing: true,
+        supportsPriorityProcessing: true,
+        supportsConfigurationUpdate: true,
+        supportsAsyncToolCalling: true,
+        supportedReasoningEfforts: ['low', 'medium', 'high', 'xhigh', 'max'],
+        supportsNonReasoningParameters: false,
+      });
+    });
+
     it.each([
       ['gpt-5.6', false],
       ['gpt-6-astra', true],

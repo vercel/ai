@@ -1,5 +1,57 @@
 # @ai-sdk/gateway
 
+## 2.0.162
+
+### Patch Changes
+
+- 0fa5517: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.161
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+- b6cf409: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.160
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.159
+
+### Patch Changes
+
+- 3569298: feat(provider/gateway): accept structured-output in the has provider option
+
+## 2.0.158
+
+### Patch Changes
+
+- cd9b333: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.157
+
+### Patch Changes
+
+- 0430ee6: Backport: chore(provider/gateway): update gateway model settings files
+- 14ecfdc: feat(provider/gateway): add quantization conditions to the has provider option
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
 ## 2.0.156
 
 ### Patch Changes
