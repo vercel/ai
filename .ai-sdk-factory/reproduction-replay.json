@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21849,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21849.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21849.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21849_REPRODUCED: useChat streaming starved App Router navigation"
+  }
+}
