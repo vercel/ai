@@ -295,6 +295,7 @@ describe('ProdiaLanguageModel', () => {
         temperature: 0.5,
         topP: 0.9,
         topK: 40,
+        seed: 42,
         maxOutputTokens: 1000,
         stopSequences: ['stop'],
         presencePenalty: 0.1,
@@ -317,6 +318,7 @@ describe('ProdiaLanguageModel', () => {
       expect(warningSettings).toContain('temperature');
       expect(warningSettings).toContain('topP');
       expect(warningSettings).toContain('topK');
+      expect(warningSettings).toContain('seed');
       expect(warningSettings).toContain('maxOutputTokens');
       expect(warningSettings).toContain('stopSequences');
       expect(warningSettings).toContain('presencePenalty');

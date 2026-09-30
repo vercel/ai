@@ -122,12 +122,15 @@ export function convertToLanguageModelMessage({
                 const { data, mediaType } = convertToLanguageModelV2DataContent(
                   part.data,
                 );
+                const originalUrl = getOriginalUrl(part.data, data);
+
                 return {
                   type: 'file',
                   data,
                   filename: part.filename,
                   mediaType: mediaType ?? part.mediaType,
                   providerOptions,
+                  ...(originalUrl != null ? { originalUrl } : {}),
                 };
               }
               case 'reasoning': {
@@ -257,6 +260,17 @@ async function downloadAssets(
   );
 }
 
+function getOriginalUrl(
+  originalData: DataContent | URL,
+  convertedData: Uint8Array | string | URL,
+): string | undefined {
+  return typeof originalData === 'string' &&
+    convertedData instanceof URL &&
+    convertedData.toString() !== originalData
+    ? originalData
+    : undefined;
+}
+
 /**
  * Convert part of a message to a LanguageModelV2Part.
  * @param part The part to convert.
@@ -299,6 +313,7 @@ function convertPartToLanguageModelPart(
 
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
+  let originalUrl = getOriginalUrl(originalData, convertedData);
 
   // If the content is a URL, we check if it was downloaded:
   if (data instanceof URL) {
@@ -306,6 +321,7 @@ function convertPartToLanguageModelPart(
     if (downloadedFile) {
       data = downloadedFile.data;
       mediaType ??= downloadedFile.mediaType;
+      originalUrl = undefined;
     }
   }
 
@@ -328,6 +344,7 @@ function convertPartToLanguageModelPart(
         filename: undefined,
         data,
         providerOptions: part.providerOptions,
+        ...(originalUrl != null ? { originalUrl } : {}),
       };
     }
 
@@ -343,6 +360,7 @@ function convertPartToLanguageModelPart(
         filename: part.filename,
         data,
         providerOptions: part.providerOptions,
+        ...(originalUrl != null ? { originalUrl } : {}),
       };
     }
   }

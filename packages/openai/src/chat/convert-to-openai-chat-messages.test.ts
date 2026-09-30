@@ -23,6 +23,33 @@ describe('system messages', () => {
     ]);
   });
 
+  it('should add a prompt cache breakpoint to a system message', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant.',
+          providerOptions: {
+            openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+          },
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'You are a helpful assistant.',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+      },
+    ]);
+  });
+
   it('should remove system messages when requested', async () => {
     const result = convertToOpenAIChatMessages({
       prompt: [{ role: 'system', content: 'You are a helpful assistant.' }],
@@ -45,6 +72,70 @@ describe('user messages', () => {
     });
 
     expect(result.messages).toEqual([{ role: 'user', content: 'Hello' }]);
+  });
+
+  it('should add prompt cache breakpoints to supported content blocks', () => {
+    const promptCacheBreakpoint = { mode: 'explicit' } as const;
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Hello',
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'image/png',
+              data: new URL('https://example.com/image.png'),
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'audio/wav',
+              data: 'AAECAw==',
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+            {
+              type: 'file',
+              mediaType: 'application/pdf',
+              data: 'file-pdf-123',
+              providerOptions: { openai: { promptCacheBreakpoint } },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Hello',
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'wav' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+          {
+            type: 'file',
+            file: { file_id: 'file-pdf-123' },
+            prompt_cache_breakpoint: promptCacheBreakpoint,
+          },
+        ],
+      },
+    ]);
   });
 
   it('should convert messages with image parts', async () => {
@@ -423,7 +514,135 @@ describe('user messages', () => {
   });
 });
 
+describe('assistant messages', () => {
+  it('should use null content when there are only tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              input: { city: 'San Francisco' },
+              toolCallId: 'weather-call',
+              toolName: 'weather',
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"city":"San Francisco"}",
+                "name": "weather",
+              },
+              "id": "weather-call",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty content when there are no tool calls', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: '' }],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+});
+
 describe('tool calls', () => {
+  it('should add a prompt cache breakpoint to assistant text content', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Cached assistant content',
+              providerOptions: {
+                openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'Cached assistant content',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+        tool_calls: undefined,
+      },
+    ]);
+  });
+
+  it('should add a prompt cache breakpoint to tool text content', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'cached-tool',
+              toolName: 'cached-tool',
+              output: { type: 'text', value: 'Cached tool content' },
+              providerOptions: {
+                openai: { promptCacheBreakpoint: { mode: 'explicit' } },
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toEqual([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'text',
+            text: 'Cached tool content',
+            prompt_cache_breakpoint: { mode: 'explicit' },
+          },
+        ],
+        tool_call_id: 'cached-tool',
+      },
+    ]);
+  });
+
   it('should stringify arguments to tool calls', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
@@ -455,7 +674,7 @@ describe('tool calls', () => {
     expect(result.messages).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -473,6 +692,62 @@ describe('tool calls', () => {
         tool_call_id: 'quux',
       },
     ]);
+  });
+
+  it('should normalize malformed tool call input and preserve the tool error', () => {
+    const result = convertToOpenAIChatMessages({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              input: '{"foo":"bar"',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'quux',
+              toolName: 'thwomp',
+              output: {
+                type: 'error-text',
+                value: 'Invalid input: JSON parsing failed',
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "thwomp",
+              },
+              "id": "quux",
+              "type": "function",
+            },
+          ],
+        },
+        {
+          "content": "Invalid input: JSON parsing failed",
+          "role": "tool",
+          "tool_call_id": "quux",
+        },
+      ]
+    `);
   });
 
   it('should handle different tool output types', () => {
