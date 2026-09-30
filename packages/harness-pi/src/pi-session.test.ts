@@ -548,15 +548,14 @@ describe('createPiSession', () => {
   it('registers configured MCP servers as direct Pi extension tools', async () => {
     const bindExtensions = vi.fn(async () => {});
     const dispose = vi.fn();
-    const reload = vi.fn(async () => {});
     piMock.session = {
       bindExtensions,
       dispose,
+      extensionRunner: { emit: vi.fn(async () => {}) },
       getSessionStats: () => ({
         tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       }),
       prompt: vi.fn(async () => {}),
-      reload,
       subscribe: vi.fn(() => () => {}),
     } as unknown as AgentSession;
 
@@ -601,8 +600,54 @@ describe('createPiSession', () => {
       expect.objectContaining({ noTools: 'builtin' }),
     );
     expect(bindExtensions).toHaveBeenCalledWith({ mode: 'print' });
-    expect(reload).toHaveBeenCalledTimes(1);
     expect(dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shuts down MCP servers on dispose without reloading the Pi session', async () => {
+    const emit = vi.fn(async () => {});
+    const dispose = vi.fn();
+    const reload = vi.fn(async () => {});
+    piMock.session = {
+      bindExtensions: vi.fn(async () => {}),
+      dispose,
+      extensionRunner: { emit },
+      getSessionStats: () => ({
+        tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      }),
+      prompt: vi.fn(async () => {}),
+      reload,
+      subscribe: vi.fn(() => () => {}),
+    } as unknown as AgentSession;
+
+    const session = await createPiSession({
+      sessionId: 'session-mcp-dispose',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {
+        mcpServers: {
+          memory: { command: 'memory-mcp', args: [], lifecycle: 'eager' },
+        },
+      },
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+    const control = await session.doPromptTurn({
+      skills: [],
+      prompt: 'Use an MCP tool.',
+      tools: [],
+      emit: vi.fn(),
+    });
+    await control.done;
+    await session.doDestroy();
+
+    expect(reload).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith({
+      type: 'session_shutdown',
+      reason: 'quit',
+    });
+    expect(emit.mock.invocationCallOrder[0]).toBeLessThan(
+      dispose.mock.invocationCallOrder[0],
+    );
   });
 
   it('loads configured MCP servers alongside caller-supplied extension factories', async () => {
