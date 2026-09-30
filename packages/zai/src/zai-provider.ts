@@ -1,10 +1,12 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -36,17 +38,11 @@ export interface ZaiProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ZaiProvider extends ProviderV4 {
-  /**
-   * Creates a Z.AI chat model for text generation.
-   */
-  (modelId: ZaiChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a Z.AI language model.
-   */
-  languageModel(modelId: ZaiChatModelId): LanguageModelV4;
-
+export interface ZaiProvider
+  extends
+    LanguageModelProviderV4<ZaiChatModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a Z.AI chat model.
    */
@@ -89,13 +85,12 @@ export function createZai(options: ZaiProviderSettings = {}): ZaiProvider {
   provider.languageModel = createLanguageModel;
   provider.chat = createLanguageModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

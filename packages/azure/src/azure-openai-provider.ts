@@ -13,10 +13,12 @@ import {
   UnsupportedFunctionalityError,
   type EmbeddingModelV4,
   type LanguageModelV4,
-  type ProviderV4,
-  type ImageModelV4,
   type SpeechModelV4,
   type TranscriptionModelV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
+  type LanguageModelProviderV4,
+  type TranscriptionModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -38,14 +40,12 @@ import {
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
-export interface AzureOpenAIProvider extends ProviderV4 {
-  (deploymentId: string): LanguageModelV4;
-
-  /**
-   * Creates an Azure OpenAI responses API model for text generation.
-   */
-  languageModel(deploymentId: string): LanguageModelV4;
-
+export interface AzureOpenAIProvider
+  extends
+    LanguageModelProviderV4,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4,
+    TranscriptionModelProviderV4 {
   /**
    * Creates an Azure OpenAI chat model for text generation.
    */
@@ -67,16 +67,6 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   completion(deploymentId: string): LanguageModelV4;
 
   /**
-   * Creates an Azure OpenAI model for text embeddings.
-   */
-  embedding(deploymentId: string): EmbeddingModelV4;
-
-  /**
-   * Creates an Azure OpenAI model for text embeddings.
-   */
-  embeddingModel(deploymentId: string): EmbeddingModelV4;
-
-  /**
    * @deprecated Use `embedding` instead.
    */
   textEmbedding(deploymentId: string): EmbeddingModelV4;
@@ -85,27 +75,6 @@ export interface AzureOpenAIProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(deploymentId: string): EmbeddingModelV4;
-
-  /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
-   */
-  image(deploymentId: string): ImageModelV4;
-
-  /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
-   */
-  imageModel(deploymentId: string): ImageModelV4;
-
-  /**
-   * Creates an Azure transcription model. MAI-Transcribe-2 uses the Speech API
-   * by default; other IDs use OpenAI. Override with providerOptions.azure.api.
-   */
-  transcription(deploymentId: string): TranscriptionModelV4;
-
-  /**
-   * Creates an Azure transcription model. Alias of `transcription`.
-   */
-  transcriptionModel(deploymentId: string): TranscriptionModelV4;
 
   /**
    * Creates an Azure OpenAI model for speech generation.

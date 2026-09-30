@@ -1,19 +1,20 @@
 import {
   type Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   type Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
-  type Experimental_VideoModelV4,
   type Experimental_BatchV4 as BatchV4,
-  type FilesV4,
-  type ImageModelV4,
   type LanguageModelV4,
-  NoSuchModelError,
-  type ProviderV4,
   type SpeechModelV4,
   type TranscriptionModelV4,
+  type LanguageModelProviderV4,
+  type ImageModelProviderV4,
+  type VideoModelProviderV4,
+  type FilesProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -33,14 +34,13 @@ import type { XaiVideoModelId } from './xai-video-settings';
 import { XaiSpeechModel } from './xai-speech-model';
 import { XaiTranscriptionModel } from './xai-transcription-model';
 
-export interface XaiProvider extends ProviderV4 {
-  (modelId: XaiResponsesModelId): LanguageModelV4;
-
-  /**
-   * Creates an Xai language model for text generation.
-   */
-  languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
-
+export interface XaiProvider
+  extends
+    LanguageModelProviderV4<XaiResponsesModelId>,
+    ImageModelProviderV4<XaiImageModelId>,
+    VideoModelProviderV4<XaiVideoModelId>,
+    FilesProviderV4,
+    EmbeddingModelProviderV4 {
   /**
    * Creates an Xai responses model for text generation.
    */
@@ -53,26 +53,6 @@ export interface XaiProvider extends ProviderV4 {
     text: XaiResponsesModelId;
     image: XaiImageModelId;
   }>;
-
-  /**
-   * Creates an Xai image model for image generation.
-   */
-  image(modelId: XaiImageModelId): ImageModelV4;
-
-  /**
-   * Creates an Xai image model for image generation.
-   */
-  imageModel(modelId: XaiImageModelId): ImageModelV4;
-
-  /**
-   * Creates an Xai video model for video generation.
-   */
-  video(modelId: XaiVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates an Xai video model for video generation.
-   */
-  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
 
   experimental_realtime: RealtimeFactoryV4;
 
@@ -95,11 +75,6 @@ export interface XaiProvider extends ProviderV4 {
    * Creates an xAI model for speech-to-text transcription.
    */
   transcriptionModel(): TranscriptionModelV4;
-
-  /**
-   * Returns the xAI files interface for uploading files.
-   */
-  files(): FilesV4;
 
   /**
    * Server-side agentic tools for use with the responses API.
@@ -259,9 +234,9 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
   provider.specificationVersion = 'v4' as const;
   provider.languageModel = createResponsesLanguageModel;
   provider.responses = createResponsesLanguageModel;
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
   provider.imageModel = createImageModel;
   provider.image = createImageModel;

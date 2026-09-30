@@ -1,11 +1,12 @@
 import {
   type APICallError,
-  NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
   type ResponseHandler,
@@ -19,9 +20,11 @@ import { OpenResponsesLanguageModel } from './responses/open-responses-language-
 import { VERSION } from './version';
 import type { OpenResponsesConfig } from './responses/open-responses-config';
 
-export interface OpenResponsesProvider extends ProviderV4 {
-  (modelId: string): LanguageModelV4;
-
+export interface OpenResponsesProvider
+  extends
+    LanguageModelProviderV4,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   tools: ReturnType<typeof createOpenResponsesTools>;
 }
 
@@ -161,12 +164,11 @@ export function createOpenResponses(
   provider.languageModel = createLanguageModel;
   provider.tools = createOpenResponsesTools({ customToolId });
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider as OpenResponsesProvider;
 }

@@ -1,10 +1,10 @@
 import {
-  NoSuchModelError,
   type Experimental_EvaluationModelV4 as EvaluationModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -52,15 +52,9 @@ export function createTypeSafeAi(
         headers,
         fetch: options.fetch,
       }),
-    languageModel: modelId => {
-      throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
-    },
-    embeddingModel: modelId => {
-      throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-    },
-    imageModel: modelId => {
-      throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-    },
+    languageModel: modelId => noSuchModel(modelId, 'languageModel'),
+    embeddingModel: modelId => noSuchModel(modelId, 'embeddingModel'),
+    imageModel: modelId => noSuchModel(modelId, 'imageModel'),
   };
 }
 

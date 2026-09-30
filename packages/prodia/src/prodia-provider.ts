@@ -1,12 +1,12 @@
 import {
-  NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
   type LanguageModelV4,
-  type ProviderV4,
+  type ImageModelProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -42,31 +42,15 @@ export interface ProdiaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface ProdiaProvider extends ProviderV4 {
+export interface ProdiaProvider
+  extends
+    ImageModelProviderV4<ProdiaImageModelId>,
+    VideoModelProviderV4<ProdiaVideoModelId>,
+    EmbeddingModelProviderV4 {
   /**
    * Creates a language model for multimodal generation (img2img with text+image output).
    */
   languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: ProdiaImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -117,12 +101,8 @@ export function createProdia(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4',
@@ -131,6 +111,7 @@ export function createProdia(
     image: createImageModel,
     videoModel: createVideoModel,
     video: createVideoModel,
+    embedding: embeddingModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
   };

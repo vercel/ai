@@ -1,11 +1,12 @@
-import {
-  NoSuchModelError,
-  type LanguageModelV4,
-  type ProviderV4,
+import type {
+  LanguageModelProviderV4,
+  EmbeddingModelProviderV4,
+  ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadOptionalSetting,
   loadSetting,
+  noSuchModel,
   resolve,
   withUserAgentSuffix,
   type FetchFunction,
@@ -57,17 +58,11 @@ const BEDROCK_TOOL_BETA_MAP: Record<string, string> = {
   tool_search_tool_bm25_20251119: 'tool-search-tool-2025-10-19',
 };
 
-export interface AmazonBedrockAnthropicProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: AmazonBedrockAnthropicModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: AmazonBedrockAnthropicModelId): LanguageModelV4;
-
+export interface AmazonBedrockAnthropicProvider
+  extends
+    LanguageModelProviderV4<AmazonBedrockAnthropicModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Anthropic-specific computer use tool.
    */
@@ -386,13 +381,12 @@ export function createAmazonBedrockAnthropic(
   provider.chat = createChatModel;
   provider.messages = createChatModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   provider.tools = anthropicTools;
 

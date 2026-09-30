@@ -1,10 +1,10 @@
 import {
-  NoSuchModelError,
-  type ImageModelV4,
-  type ProviderV4,
+  type ImageModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -34,16 +34,9 @@ export interface LumaProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface LumaProvider extends ProviderV4 {
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: LumaImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: LumaImageModelId): ImageModelV4;
+export interface LumaProvider
+  extends ImageModelProviderV4<LumaImageModelId>, EmbeddingModelProviderV4 {
+  languageModel(modelId: string): never;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -76,24 +69,16 @@ export function createLuma(options: LumaProviderSettings = {}): LumaProvider {
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     image: createImageModel,
     imageModel: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     embeddingModel,
+    embedding: embeddingModel,
     textEmbeddingModel: embeddingModel,
   };
 }

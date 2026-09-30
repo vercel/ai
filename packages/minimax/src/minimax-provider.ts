@@ -1,12 +1,14 @@
 import {
-  NoSuchModelError,
-  type Experimental_VideoModelV4,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -44,31 +46,16 @@ export interface MiniMaxProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface MiniMaxProvider extends ProviderV4 {
-  /**
-   * Creates a MiniMax model for text generation.
-   */
-  (modelId: MiniMaxChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a MiniMax language model for text generation.
-   */
-  languageModel(modelId: MiniMaxChatModelId): LanguageModelV4;
-
+export interface MiniMaxProvider
+  extends
+    LanguageModelProviderV4<MiniMaxChatModelId>,
+    VideoModelProviderV4<MiniMaxVideoModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a MiniMax chat model for text generation.
    */
   chat(modelId: MiniMaxChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a MiniMax video model for video generation.
-   */
-  video(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a MiniMax video model for video generation.
-   */
-  videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -142,13 +129,12 @@ export function createMiniMax(
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

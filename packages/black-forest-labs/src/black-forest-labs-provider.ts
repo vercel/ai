@@ -1,11 +1,11 @@
 import {
-  NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
+  type ImageModelProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -51,26 +51,12 @@ export interface BlackForestLabsProviderSettings {
   pollTimeoutMillis?: number;
 }
 
-export interface BlackForestLabsProvider extends ProviderV4 {
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+export interface BlackForestLabsProvider
+  extends
+    ImageModelProviderV4<BlackForestLabsImageModelId>,
+    VideoModelProviderV4<BlackForestLabsVideoModelId>,
+    EmbeddingModelProviderV4 {
+  languageModel(modelId: string): never;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -117,12 +103,8 @@ export function createBlackForestLabs(
       pollTimeoutMillis: options.pollTimeoutMillis,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4',
@@ -130,12 +112,8 @@ export function createBlackForestLabs(
     image: createImageModel,
     videoModel: createVideoModel,
     video: createVideoModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
+    embedding: embeddingModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
   };

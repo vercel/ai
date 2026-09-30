@@ -1,11 +1,13 @@
 import {
-  NoSuchModelError,
-  type TranscriptionModelV4,
-  type SpeechModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type TranscriptionModelProviderV4,
+  type SpeechModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -15,24 +17,19 @@ import { DeepgramSpeechModel } from './deepgram-speech-model';
 import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
-export interface DeepgramProvider extends ProviderV4 {
+export interface DeepgramProvider
+  extends
+    TranscriptionModelProviderV4<DeepgramTranscriptionModelId>,
+    SpeechModelProviderV4<DeepgramSpeechModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: DeepgramTranscriptionModelId,
     settings?: {},
   ): {
     transcription: DeepgramTranscriptionModel;
   };
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: DeepgramSpeechModelId): SpeechModelV4;
-
+  languageModel(modelId: string): LanguageModelV4;
   /**
    * @deprecated Use `embeddingModel` instead.
    */
@@ -105,32 +102,18 @@ export function createDeepgram(
   provider.speechModel = createSpeechModel;
 
   // Required ProviderV4 methods that are not supported
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Deepgram does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Deepgram does not provide text embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Deepgram does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
-  return provider as DeepgramProvider;
+  return provider;
 }
 
 /**

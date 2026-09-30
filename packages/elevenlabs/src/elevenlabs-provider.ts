@@ -1,11 +1,13 @@
 import {
-  NoSuchModelError,
-  type TranscriptionModelV4,
-  type SpeechModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type TranscriptionModelProviderV4,
+  type SpeechModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
   type WebSocketConstructor,
@@ -16,7 +18,12 @@ import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
 import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
-export interface ElevenLabsProvider extends ProviderV4 {
+export interface ElevenLabsProvider
+  extends
+    TranscriptionModelProviderV4<ElevenLabsTranscriptionModelId>,
+    SpeechModelProviderV4<ElevenLabsSpeechModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: ElevenLabsTranscriptionModelId,
     settings?: {},
@@ -24,15 +31,7 @@ export interface ElevenLabsProvider extends ProviderV4 {
     transcription: ElevenLabsTranscriptionModel;
   };
 
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+  languageModel(modelId: string): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -112,32 +111,18 @@ export function createElevenLabs(
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'ElevenLabs does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'ElevenLabs does not provide embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'ElevenLabs does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
-  return provider as ElevenLabsProvider;
+  return provider;
 }
 
 /**

@@ -1,10 +1,11 @@
 import {
-  NoSuchModelError,
-  type TranscriptionModelV4,
-  type ProviderV4,
+  type TranscriptionModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -12,18 +13,17 @@ import { RevaiTranscriptionModel } from './revai-transcription-model';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
-export interface RevaiProvider extends ProviderV4 {
+export interface RevaiProvider
+  extends
+    TranscriptionModelProviderV4<RevaiTranscriptionModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   (
     modelId: 'machine',
     settings?: {},
   ): {
     transcription: RevaiTranscriptionModel;
   };
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -86,32 +86,17 @@ export function createRevai(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
 
-  provider.languageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'languageModel',
-      message: 'Rev.ai does not provide language models',
-    });
-  };
+  provider.languageModel = () => noSuchModel('languageModel', 'languageModel');
 
-  provider.embeddingModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'embeddingModel',
-      message: 'Rev.ai does not provide text embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = () => {
-    throw new NoSuchModelError({
-      modelId: 'unknown',
-      modelType: 'imageModel',
-      message: 'Rev.ai does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
-  return provider as RevaiProvider;
+  return provider;
 }
 
 /**

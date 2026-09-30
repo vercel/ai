@@ -1,20 +1,25 @@
 import {
-  NoSuchModelError,
   type SpeechModelV4,
-  type ProviderV4,
+  type LanguageModelV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { HumeSpeechModel } from './hume-speech-model';
 import { VERSION } from './version';
 
-export interface HumeProvider extends ProviderV4 {
+export interface HumeProvider
+  extends EmbeddingModelProviderV4, ImageModelProviderV4 {
   (settings?: {}): {
     speech: HumeSpeechModel;
   };
+
+  languageModel(modelId: string): LanguageModelV4;
 
   /**
    * Creates a model for speech synthesis.
@@ -75,31 +80,17 @@ export function createHume(options: HumeProviderSettings = {}): HumeProvider {
   provider.speech = createSpeechModel;
   provider.speechModel = createSpeechModel;
 
-  provider.languageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'languageModel',
-      message: 'Hume does not provide language models',
-    });
-  };
+  provider.languageModel = (modelId: string) =>
+    noSuchModel(modelId, 'languageModel');
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message: 'Hume does not provide embedding models',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message: 'Hume does not provide image models',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
-  return provider as HumeProvider;
+  return provider;
 }
 
 /**

@@ -6,9 +6,10 @@ import {
 } from '@ai-sdk/openai-compatible';
 import type {
   EmbeddingModelV4,
-  ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
+  LanguageModelProviderV4,
+  EmbeddingModelProviderV4,
+  ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
@@ -66,12 +67,11 @@ export interface FireworksProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface FireworksProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: FireworksChatModelId): LanguageModelV4;
-
+export interface FireworksProvider
+  extends
+    LanguageModelProviderV4<FireworksChatModelId>,
+    EmbeddingModelProviderV4<FireworksEmbeddingModelId>,
+    ImageModelProviderV4<FireworksImageModelId> {
   /**
    * Creates a chat model for text generation.
    */
@@ -83,29 +83,9 @@ export interface FireworksProvider extends ProviderV4 {
   completionModel(modelId: FireworksCompletionModelId): LanguageModelV4;
 
   /**
-   * Creates a chat model for text generation.
-   */
-  languageModel(modelId: FireworksChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a text embedding model for text generation.
-   */
-  embeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV4;
-
-  /**
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: FireworksEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: FireworksImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: FireworksImageModelId): ImageModelV4;
 }
 
 const defaultBaseURL = 'https://api.fireworks.ai/inference/v1';
@@ -222,6 +202,7 @@ export function createFireworks(
   provider.completionModel = createCompletionModel;
   provider.chatModel = createChatModel;
   provider.languageModel = createChatModel;
+  provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;

@@ -1,11 +1,13 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type ImageModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
@@ -34,17 +36,11 @@ export interface HuggingFaceProviderSettings {
   generateId?: () => string;
 }
 
-export interface HuggingFaceProvider extends ProviderV4 {
-  /**
-   * Creates a Hugging Face responses model for text generation.
-   */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
-
-  /**
-   * Creates a Hugging Face responses model for text generation.
-   */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
-
+export interface HuggingFaceProvider
+  extends
+    LanguageModelProviderV4<HuggingFaceResponsesModelId>,
+    ImageModelProviderV4,
+    EmbeddingModelProviderV4 {
   /**
    * Creates a Hugging Face responses model for text generation.
    */
@@ -91,24 +87,13 @@ export function createHuggingFace(
   provider.languageModel = createResponsesModel;
   provider.responses = createResponsesModel;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-      message:
-        'Hugging Face Responses API does not support text embeddings. Use the Hugging Face Inference API directly for embeddings.',
-    });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'imageModel',
-      message:
-        'Hugging Face Responses API does not support image generation. Use the Hugging Face Inference API directly for image models.',
-    });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

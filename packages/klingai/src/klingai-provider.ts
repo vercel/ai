@@ -1,9 +1,11 @@
 import {
-  NoSuchModelError,
   type Experimental_VideoModelV4 as VideoModelV4,
-  type ProviderV4,
+  type VideoModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -53,16 +55,12 @@ export interface KlingAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface KlingAIProvider extends ProviderV4 {
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: KlingAIVideoModelId): VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: KlingAIVideoModelId): VideoModelV4;
+export interface KlingAIProvider
+  extends
+    VideoModelProviderV4<KlingAIVideoModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
+  languageModel(modelId: string): never;
 }
 
 const defaultBaseURL = 'https://api-singapore.klingai.com';
@@ -99,26 +97,14 @@ export function createKlingAI(
       headers: getHeaders,
       fetch: options.fetch,
     });
-
-  const noSuchModel = (
-    modelId: string,
-    modelType:
-      | 'languageModel'
-      | 'embeddingModel'
-      | 'imageModel'
-      | 'transcriptionModel'
-      | 'speechModel'
-      | 'rerankingModel',
-  ): never => {
-    throw new NoSuchModelError({ modelId, modelType });
-  };
-
   const provider: KlingAIProvider = {
     specificationVersion: 'v4' as const,
     video: createVideoModel,
     videoModel: createVideoModel,
     languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
+    embedding: (modelId: string) => noSuchModel(modelId, 'embeddingModel'),
     embeddingModel: (modelId: string) => noSuchModel(modelId, 'embeddingModel'),
+    image: (modelId: string) => noSuchModel(modelId, 'imageModel'),
     imageModel: (modelId: string) => noSuchModel(modelId, 'imageModel'),
   };
 

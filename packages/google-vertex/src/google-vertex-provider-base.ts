@@ -7,12 +7,13 @@ import {
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
 import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
   LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+  LanguageModelProviderV4,
+  ImageModelProviderV4,
+  EmbeddingModelProviderV4,
+  VideoModelProviderV4,
+  SpeechModelProviderV4,
+  TranscriptionModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -71,14 +72,14 @@ function createExpressModeFetch(
   };
 }
 
-export interface GoogleVertexProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: GoogleVertexModelId): LanguageModelV4;
-
-  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV4;
-
+export interface GoogleVertexProvider
+  extends
+    LanguageModelProviderV4<GoogleVertexModelId>,
+    ImageModelProviderV4<GoogleVertexImageModelId>,
+    EmbeddingModelProviderV4<GoogleVertexEmbeddingModelId>,
+    VideoModelProviderV4<GoogleVertexVideoModelId>,
+    SpeechModelProviderV4<GoogleVertexSpeechModelId>,
+    TranscriptionModelProviderV4<GoogleVertexTranscriptionModelId> {
   /**
    * Creates a language model targeting the Gemini Interactions API
    * (`.../locations/{region}/interactions`) on Vertex, reusing the Vertex
@@ -92,16 +93,6 @@ export interface GoogleVertexProvider extends ProviderV4 {
       | { managedAgent: string },
   ): LanguageModelV4;
 
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: GoogleVertexImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: GoogleVertexImageModelId): ImageModelV4;
-
   tools: typeof googleVertexTools;
 
   /**
@@ -110,40 +101,6 @@ export interface GoogleVertexProvider extends ProviderV4 {
   textEmbeddingModel(
     modelId: GoogleVertexEmbeddingModelId,
   ): GoogleVertexEmbeddingModel;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speech(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for speech generation (text-to-speech).
-   */
-  speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
-
-  /**
-   * Creates a model for transcription (speech-to-text).
-   */
-  transcription(
-    modelId: GoogleVertexTranscriptionModelId,
-  ): TranscriptionModelV4;
-
-  /**
-   * Creates a model for transcription (speech-to-text).
-   */
-  transcriptionModel(
-    modelId: GoogleVertexTranscriptionModelId,
-  ): TranscriptionModelV4;
 }
 
 export interface GoogleVertexProviderSettings {
@@ -422,6 +379,7 @@ export function createGoogleVertex(
   provider.languageModel = createChatModel;
   provider.interactions = createInteractionsModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.embedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;

@@ -1,8 +1,7 @@
 import {
-  NoSuchModelError,
-  type ImageModelV4,
-  type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type ImageModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   createOpenResponses,
@@ -11,6 +10,7 @@ import {
 import {
   loadApiKey,
   loadOptionalSetting,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -50,27 +50,11 @@ export interface QuiverAIProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface QuiverAIProvider extends ProviderV4 {
-  /**
-   * Creates a language model for the QuiverAI Responses API.
-   */
-  (modelId: QuiverAILanguageModelId): LanguageModelV4;
-
-  /**
-   * Creates a language model for the QuiverAI Responses API.
-   */
-  languageModel(modelId: QuiverAILanguageModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: QuiverAIImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: QuiverAIImageModelId): ImageModelV4;
-
+export interface QuiverAIProvider
+  extends
+    LanguageModelProviderV4<QuiverAILanguageModelId>,
+    ImageModelProviderV4<QuiverAIImageModelId>,
+    EmbeddingModelProviderV4 {
   /**
    * @deprecated Use `embeddingModel` instead.
    */
@@ -135,12 +119,8 @@ export function createQuiverAI(
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   const provider = function (modelId: QuiverAILanguageModelId) {
     return createLanguageModel(modelId);
@@ -151,10 +131,11 @@ export function createQuiverAI(
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
   provider.embeddingModel = embeddingModel;
+  provider.embedding = embeddingModel;
   provider.textEmbeddingModel = embeddingModel;
   provider.tools = responsesProvider.tools;
 
-  return provider as QuiverAIProvider;
+  return provider;
 }
 
 export const quiverai = createQuiverAI();

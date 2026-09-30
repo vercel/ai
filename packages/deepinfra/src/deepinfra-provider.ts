@@ -1,8 +1,9 @@
 import type {
   LanguageModelV4,
   EmbeddingModelV4,
-  ProviderV4,
-  ImageModelV4,
+  LanguageModelProviderV4,
+  ImageModelProviderV4,
+  EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   OpenAICompatibleCompletionLanguageModel,
@@ -42,41 +43,20 @@ export interface DeepInfraProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface DeepInfraProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: DeepInfraChatModelId): LanguageModelV4;
-
+export interface DeepInfraProvider
+  extends
+    LanguageModelProviderV4<DeepInfraChatModelId>,
+    ImageModelProviderV4<DeepInfraImageModelId>,
+    EmbeddingModelProviderV4<DeepInfraEmbeddingModelId> {
   /**
    * Creates a chat model for text generation.
    */
   chatModel(modelId: DeepInfraChatModelId): LanguageModelV4;
 
   /**
-   * Creates a model for image generation.
-   */
-  image(modelId: DeepInfraImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: DeepInfraImageModelId): ImageModelV4;
-
-  /**
-   * Creates a chat model for text generation.
-   */
-  languageModel(modelId: DeepInfraChatModelId): LanguageModelV4;
-
-  /**
    * Creates a completion model for text generation.
    */
   completionModel(modelId: DeepInfraCompletionModelId): LanguageModelV4;
-
-  /**
-   * Creates a embedding model for text generation.
-   */
-  embeddingModel(modelId: DeepInfraEmbeddingModelId): EmbeddingModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -153,6 +133,7 @@ export function createDeepInfra(
   provider.imageModel = createImageModel;
   provider.languageModel = createChatModel;
   provider.embeddingModel = createEmbeddingModel;
+  provider.embedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
 
   return provider;

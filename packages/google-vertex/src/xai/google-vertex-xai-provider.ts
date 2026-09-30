@@ -1,8 +1,9 @@
 import {
-  NoSuchModelError,
   type LanguageModelV4,
   type LanguageModelV4Usage,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
@@ -11,23 +12,18 @@ import {
 import {
   loadOptionalSetting,
   loadSetting,
+  noSuchModel,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexXaiModelId } from './google-vertex-xai-options';
 
-export interface GoogleVertexXaiProvider extends ProviderV4 {
-  /**
-   * Creates a model for text generation.
-   */
-  (modelId: GoogleVertexXaiModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: GoogleVertexXaiModelId): LanguageModelV4;
-
+export interface GoogleVertexXaiProvider
+  extends
+    LanguageModelProviderV4<GoogleVertexXaiModelId>,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a chat model for text generation.
    */
@@ -200,13 +196,13 @@ export function createGoogleVertexXai(
   provider.languageModel = createChatModel;
   provider.chatModel = (modelId: GoogleVertexXaiModelId) =>
     getProvider().chatModel(modelId);
-  provider.embeddingModel = (modelId: string): never => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string): never =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string): never => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string): never =>
+    noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

@@ -1,13 +1,14 @@
 import {
-  NoSuchModelError,
   type EmbeddingModelV4,
-  type LanguageModelV4,
-  type RerankingModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type EmbeddingModelProviderV4,
+  type RerankingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -20,24 +21,12 @@ import { CohereRerankingModel } from './reranking/cohere-reranking-model';
 import type { CohereEmbeddingModelId } from './cohere-embedding-model-options';
 import { VERSION } from './version';
 
-export interface CohereProvider extends ProviderV4 {
-  (modelId: CohereChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: CohereChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
-
+export interface CohereProvider
+  extends
+    LanguageModelProviderV4<CohereChatModelId>,
+    EmbeddingModelProviderV4<CohereEmbeddingModelId>,
+    RerankingModelProviderV4<CohereRerankingModelId>,
+    ImageModelProviderV4 {
   /**
    * @deprecated Use `embedding` instead.
    */
@@ -47,16 +36,6 @@ export interface CohereProvider extends ProviderV4 {
    * @deprecated Use `embeddingModel` instead.
    */
   textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for reranking.
-   */
-  reranking(modelId: CohereRerankingModelId): RerankingModelV4;
-
-  /**
-   * Creates a model for reranking.
-   */
-  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV4;
 }
 
 export interface CohereProviderSettings {
@@ -155,9 +134,8 @@ export function createCohere(
   provider.reranking = createRerankingModel;
   provider.rerankingModel = createRerankingModel;
 
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

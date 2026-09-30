@@ -1,12 +1,13 @@
 import {
-  NoSuchModelError,
-  type Experimental_VideoModelV4,
-  type ImageModelV4,
-  type ProviderV4,
-  type SpeechModelV4,
-  type TranscriptionModelV4,
+  type LanguageModelV4,
+  type ImageModelProviderV4,
+  type TranscriptionModelProviderV4,
+  type VideoModelProviderV4,
+  type SpeechModelProviderV4,
+  type EmbeddingModelProviderV4,
 } from '@ai-sdk/provider';
 import {
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -46,36 +47,14 @@ export interface FalProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface FalProvider extends ProviderV4 {
-  /**
-   * Creates a model for image generation.
-   */
-  image(modelId: FalImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for image generation.
-   */
-  imageModel(modelId: FalImageModelId): ImageModelV4;
-
-  /**
-   * Creates a model for transcription.
-   */
-  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: FalVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: FalVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for speech generation.
-   */
-  speech(modelId: FalSpeechModelId): SpeechModelV4;
+export interface FalProvider
+  extends
+    ImageModelProviderV4<FalImageModelId>,
+    TranscriptionModelProviderV4<FalTranscriptionModelId>,
+    VideoModelProviderV4<FalVideoModelId>,
+    SpeechModelProviderV4<FalSpeechModelId>,
+    EmbeddingModelProviderV4 {
+  languageModel(modelId: string): LanguageModelV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -174,27 +153,21 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
       fetch: options.fetch,
     });
 
-  const embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({
-      modelId,
-      modelType: 'embeddingModel',
-    });
-  };
+  const embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
 
   return {
     specificationVersion: 'v4' as const,
     imageModel: createImageModel,
     image: createImageModel,
-    languageModel: (modelId: string) => {
-      throw new NoSuchModelError({
-        modelId,
-        modelType: 'languageModel',
-      });
-    },
+    languageModel: (modelId: string) => noSuchModel(modelId, 'languageModel'),
     speech: createSpeechModel,
+    speechModel: createSpeechModel,
+    embedding: embeddingModel,
     embeddingModel,
     textEmbeddingModel: embeddingModel,
     transcription: createTranscriptionModel,
+    transcriptionModel: createTranscriptionModel,
     video: createVideoModel,
     videoModel: createVideoModel,
   };

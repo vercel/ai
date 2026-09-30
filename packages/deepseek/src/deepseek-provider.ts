@@ -1,11 +1,13 @@
 import {
-  type FilesV4,
-  NoSuchModelError,
   type LanguageModelV4,
-  type ProviderV4,
+  type LanguageModelProviderV4,
+  type FilesProviderV4,
+  type EmbeddingModelProviderV4,
+  type ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -38,26 +40,16 @@ export interface DeepSeekProviderSettings {
   fetch?: FetchFunction;
 }
 
-export interface DeepSeekProvider extends ProviderV4 {
-  /**
-   * Creates a DeepSeek model for text generation.
-   */
-  (modelId: DeepSeekChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a DeepSeek model for text generation.
-   */
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV4;
-
+export interface DeepSeekProvider
+  extends
+    LanguageModelProviderV4<DeepSeekChatModelId>,
+    FilesProviderV4,
+    EmbeddingModelProviderV4,
+    ImageModelProviderV4 {
   /**
    * Creates a DeepSeek chat model for text generation.
    */
   chat(modelId: DeepSeekChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a DeepSeek files interface for uploading images.
-   */
-  files(): FilesV4;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -112,13 +104,12 @@ export function createDeepSeek(
   provider.chat = createLanguageModel;
   provider.files = createFiles;
 
-  provider.embeddingModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
-  };
+  provider.embeddingModel = (modelId: string) =>
+    noSuchModel(modelId, 'embeddingModel');
+  provider.embedding = provider.embeddingModel;
   provider.textEmbeddingModel = provider.embeddingModel;
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.imageModel = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.image = provider.imageModel;
 
   return provider;
 }

@@ -1,12 +1,13 @@
-import {
-  NoSuchModelError,
-  type EmbeddingModelV4,
-  type Experimental_VideoModelV4,
-  type LanguageModelV4,
-  type ProviderV4,
+import type {
+  LanguageModelV4,
+  EmbeddingModelProviderV4,
+  LanguageModelProviderV4,
+  VideoModelProviderV4,
+  ImageModelProviderV4,
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  noSuchModel,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -22,38 +23,13 @@ import { VERSION } from './version';
 export type { AlibabaErrorData } from './alibaba-error';
 export { alibabaFailedResponseHandler } from './alibaba-error';
 
-export interface AlibabaProvider extends ProviderV4 {
-  (modelId: AlibabaChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text generation.
-   */
-  languageModel(modelId: AlibabaChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a chat model for text generation.
-   */
+export interface AlibabaProvider
+  extends
+    LanguageModelProviderV4<AlibabaChatModelId>,
+    EmbeddingModelProviderV4<AlibabaEmbeddingModelId>,
+    VideoModelProviderV4<AlibabaVideoModelId>,
+    ImageModelProviderV4 {
   chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for text embeddings.
-   */
-  embeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
-
-  /**
-   * Creates a model for video generation.
-   */
-  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
 }
 
 export interface AlibabaProviderSettings {
@@ -176,10 +152,8 @@ export function createAlibaba(
   provider.embeddingModel = createEmbeddingModel;
   provider.video = createVideoModel;
   provider.videoModel = createVideoModel;
-
-  provider.imageModel = (modelId: string) => {
-    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
-  };
+  provider.image = (modelId: string) => noSuchModel(modelId, 'imageModel');
+  provider.imageModel = provider.image;
 
   return provider;
 }
