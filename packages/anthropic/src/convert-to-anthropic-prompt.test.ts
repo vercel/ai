@@ -5879,7 +5879,7 @@ describe('toolsets', () => {
     ]);
   });
 
-  it('should warn and skip toolset tool calls without an action', async () => {
+  it('should warn and skip toolset tool calls without an action and their results', async () => {
     const warnings: SharedV4Warning[] = [];
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -5891,6 +5891,20 @@ describe('toolsets', () => {
               toolCallId: 'toolu_bad',
               toolName: 'computer',
               input: { coordinate: [1, 2] },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_bad',
+              toolName: 'computer',
+              output: {
+                type: 'error-text',
+                value: 'Invalid input for tool computer',
+              },
             },
           ],
         },
