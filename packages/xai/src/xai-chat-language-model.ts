@@ -539,7 +539,7 @@ export class XaiChatLanguageModel implements LanguageModelV2 {
             }
 
             // process tool calls
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (
                 activeReasoningBlockId != null &&

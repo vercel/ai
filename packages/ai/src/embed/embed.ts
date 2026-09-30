@@ -2,6 +2,7 @@ import {
   type ProviderOptions,
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
+import { InvalidResponseDataError } from '../error';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -150,6 +151,13 @@ Only applicable for HTTP-based providers.
                 },
               }),
             );
+
+            if (embedding == null) {
+              throw new InvalidResponseDataError({
+                data: modelResponse.embeddings,
+                message: 'No embedding generated.',
+              });
+            }
 
             return {
               embedding,

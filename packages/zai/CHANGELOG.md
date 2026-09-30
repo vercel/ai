@@ -1,0 +1,75 @@
+# @ai-sdk/zai
+
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 1.0.2
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 1.0.1
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 1.0.0
+
+### Major Changes
+
+- 326a47b: feat(zai): add the Z.AI provider with GLM chat completions, streaming, reasoning, tools, and multimodal inputs
+
+### Patch Changes
+
+- 326a47b: Backport: Add GLM-5.3-Flash model support to the Z.AI provider and AI Gateway.
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
