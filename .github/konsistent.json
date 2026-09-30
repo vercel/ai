@@ -191,7 +191,80 @@
           "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
           "for": { "files": ["src/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "./v1" }]
+            "exportValues": [{ "name": "*", "from": "./v1" }],
+            "exportValuesFrom": ["./v1", "./errors/*"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ],
+            "exportTypesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-agent-entrypoint-must-export-agent-api",
+          "description": "The harness layer agent entrypoint must export the entire HarnessAgent API.",
+          "for": { "files": ["agent/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/agent" }],
+            "exportValuesFrom": ["../src/agent"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-bridge-entrypoint-must-export-bridge-api",
+          "description": "The harness layer bridge entrypoint must export the entire bridge API.",
+          "for": { "files": ["bridge/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/bridge" }],
+            "exportValuesFrom": ["../src/bridge"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
           }
         },
         {
@@ -199,7 +272,26 @@
           "description": "The harness layer utils entrypoint must export all utilities.",
           "for": { "files": ["utils/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "../src/utils" }]
+            "exportValues": [{ "name": "*", "from": "../src/utils" }],
+            "exportValuesFrom": ["../src/utils"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
           }
         }
       ]
