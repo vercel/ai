@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: openai.chat('gpt-5'),
+    model: openai.chat('gpt-5.6'),
     prompt: 'Write a poem about a boy and his first pet dog.',
     providerOptions: {
       openai: {

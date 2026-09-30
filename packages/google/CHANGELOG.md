@@ -1,5 +1,167 @@
 # @ai-sdk/google
 
+## 2.0.101
+
+### Patch Changes
+
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.100
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.98
+
+### Patch Changes
+
+- 594787e: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.97
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.96
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+
+## 2.0.95
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.94
+
+### Patch Changes
+
+- c43ba7d: Surface prompt-level Google safety blocks without candidates as content-filter results with prompt feedback metadata.
+- 7a292cd: Omit unsupported frequency and presence penalties from Gemini 2.5 requests and return warnings instead.
+
+## 2.0.93
+
+### Patch Changes
+
+- a3fe2a8: fix(google): convert enum values to the Gemini schema format
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 2.0.91
+
+### Patch Changes
+
+- b616db6: Preserve recursive tool input schemas without aborting Google model calls.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 2.0.89
+
+### Patch Changes
+
+- 1284605: Inline local JSON Schema references in Google tool and structured-output schemas.
+
+## 2.0.88
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+
+## 2.0.87
+
+### Patch Changes
+
+- 1f51a4b: Preserve Google API error details in `APICallError.data`.
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.86
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 2.0.85
+
+### Patch Changes
+
+- 5e9957e: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+
+## 2.0.84
+
+### Patch Changes
+
+- b05bffb: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+
+## 2.0.83
+
+### Patch Changes
+
+- e5f1c62: fix(provider/google): associate multiple code execution results with their tool call
+
+## 2.0.82
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+
+## 2.0.81
+
+### Patch Changes
+
+- c6552b9: fix(provider/google): forward Vertex-only imageConfig options (personGeneration, prominentPeople, imageOutputOptions)
+
+## 2.0.80
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
+## 2.0.79
+
+### Patch Changes
+
+- af229e7: Expand standalone Google `threshold` provider options into safety settings.
+
 ## 2.0.78
 
 ### Patch Changes

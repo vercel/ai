@@ -1,13 +1,14 @@
 import type { LanguageModelV2StreamPart } from '@ai-sdk/provider';
-import { delay } from '@ai-sdk/provider-utils';
+import { delay, tool } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { NoSuchToolError } from '../error/no-such-tool-error';
 import { MockTracer } from '../test/mock-tracer';
+import { createResolvablePromise } from '../util/create-resolvable-promise';
 import { runToolsTransformation } from './run-tools-transformation';
 
 const testUsage = {
@@ -18,6 +19,56 @@ const testUsage = {
   cachedInputTokens: undefined,
 };
 describe('runToolsTransformation', () => {
+  it('awaits input callbacks in stream order before input availability', async () => {
+    const events: string[] = [];
+    const transformedStream = runToolsTransformation({
+      tools: {
+        test: tool({
+          inputSchema: z.object({ value: z.string() }),
+          onInputStart: async () => {
+            await Promise.resolve();
+            events.push('start');
+          },
+          onInputDelta: async ({ inputTextDelta }) => {
+            await Promise.resolve();
+            events.push(inputTextDelta);
+          },
+          onInputAvailable: () => {
+            events.push('available');
+          },
+        }),
+      },
+      generatorStream: convertArrayToReadableStream([
+        { type: 'tool-input-start', id: 'call-1', toolName: 'test' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '{"value":' },
+        { type: 'tool-input-delta', id: 'call-1', delta: '"test"}' },
+        { type: 'tool-input-end', id: 'call-1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'test',
+          input: '{"value":"test"}',
+        },
+        {
+          type: 'finish',
+          finishReason: 'stop',
+          usage: testUsage,
+        },
+      ]),
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    await convertReadableStreamToArray(transformedStream);
+
+    expect(events).toEqual(['start', '{"value":', '"test"}', 'available']);
+  });
+
   it('should forward text deltas correctly', async () => {
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =
       convertArrayToReadableStream([
@@ -222,6 +273,49 @@ describe('runToolsTransformation', () => {
       `);
   });
 
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+
+      const inputStream: ReadableStream<LanguageModelV2StreamPart> =
+        convertArrayToReadableStream([
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: `{ "value": "test" }`,
+          },
+          {
+            type: 'finish',
+            finishReason,
+            usage: testUsage,
+          },
+        ]);
+
+      const transformedStream = runToolsTransformation({
+        tools: {
+          testTool: {
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          },
+        },
+        generatorStream: inputStream,
+        tracer: new MockTracer(),
+        telemetry: undefined,
+        messages: [],
+        system: undefined,
+        abortSignal: undefined,
+        repairToolCall: undefined,
+        experimental_context: undefined,
+      });
+
+      await convertReadableStreamToArray(transformedStream);
+
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
   it('should hold off on sending finish until the delayed tool result is received', async () => {
     const inputStream: ReadableStream<LanguageModelV2StreamPart> =
       convertArrayToReadableStream([
@@ -297,6 +391,70 @@ describe('runToolsTransformation', () => {
         },
       ]
     `);
+  });
+
+  it('should not produce an unhandled rejection when tool executions finish after the model stream errors', async () => {
+    let inputStreamController!: ReadableStreamDefaultController<LanguageModelV2StreamPart>;
+    const inputStream = new ReadableStream<LanguageModelV2StreamPart>({
+      start(controller) {
+        inputStreamController = controller;
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'delayedToolA',
+          input: `{ "value": "test-a" }`,
+        });
+        controller.enqueue({
+          type: 'tool-call',
+          toolCallId: 'call-2',
+          toolName: 'delayedToolB',
+          input: `{ "value": "test-b" }`,
+        });
+      },
+    });
+
+    const toolResultA = createResolvablePromise<string>();
+    const toolResultB = createResolvablePromise<string>();
+
+    const transformedStream = runToolsTransformation({
+      tools: {
+        delayedToolA: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultA.promise,
+        },
+        delayedToolB: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: () => toolResultB.promise,
+        },
+      },
+      generatorStream: inputStream,
+      tracer: new MockTracer(),
+      telemetry: undefined,
+      messages: [],
+      system: undefined,
+      abortSignal: undefined,
+      repairToolCall: undefined,
+      experimental_context: undefined,
+    });
+
+    const reader = transformedStream.getReader();
+
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-1' },
+    });
+    expect(await reader.read()).toMatchObject({
+      value: { type: 'tool-call', toolCallId: 'call-2' },
+    });
+
+    const modelStreamError = new Error('model stream error');
+    inputStreamController.error(modelStreamError);
+
+    await expect(reader.read()).rejects.toBe(modelStreamError);
+
+    toolResultA.resolve('result-a');
+    await delay(0);
+    toolResultB.resolve('result-b');
+    await delay(0);
   });
 
   it('should try to repair tool call when the tool name is not found', async () => {

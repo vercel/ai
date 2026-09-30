@@ -1,0 +1,3 @@
+{"id":"chatcmpl-usage-precedence","object":"chat.completion.chunk","created":1787685040,"model":"kimi-k2.5","choices":[{"index":0,"delta":{"content":"OK"},"finish_reason":null}]}
+{"id":"chatcmpl-usage-precedence","object":"chat.completion.chunk","created":1787685040,"model":"kimi-k2.5","choices":[{"index":0,"delta":{},"finish_reason":"stop","usage":{"prompt_tokens":12,"completion_tokens":5,"total_tokens":17}}]}
+{"id":"chatcmpl-usage-precedence","object":"chat.completion.chunk","created":1787685040,"model":"kimi-k2.5","choices":[],"usage":{"prompt_tokens":99,"completion_tokens":33,"total_tokens":132}}

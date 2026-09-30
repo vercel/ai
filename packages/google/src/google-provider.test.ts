@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-=======
-import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { isUrlSupported } from '@ai-sdk/provider-utils';
->>>>>>> afee362504 ([v6.0] fix: Google provider marks Gemini external HTTPS file URLs as unsupported (#16795))
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGoogleGenerativeAI } from './google-provider';
 import { GoogleGenerativeAILanguageModel } from './google-generative-ai-language-model';
