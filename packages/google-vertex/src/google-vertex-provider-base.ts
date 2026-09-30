@@ -6,16 +6,18 @@ import {
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  InvalidArgumentError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   normalizeHeaders,
@@ -27,7 +29,6 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
-import { validateGoogleVertexLocation } from './validate-google-vertex-location';
 import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-model-options';
@@ -226,13 +227,22 @@ export function createGoogleVertex(
       description: 'Google Vertex project',
     });
 
-  const loadGoogleVertexLocation = () =>
-    loadSetting({
+  const loadGoogleVertexLocation = () => {
+    const location = loadSetting({
       settingValue: options.location,
       settingName: 'location',
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
       description: 'Google Vertex location',
     });
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
@@ -248,7 +258,7 @@ export function createGoogleVertex(
       return baseURL;
     }
 
-    const region = validateGoogleVertexLocation(loadGoogleVertexLocation());
+    const region = loadGoogleVertexLocation();
     const project = loadGoogleVertexProject();
 
     const getHost = () => {
@@ -398,7 +408,7 @@ export function createGoogleVertex(
         fetch: config.fetch,
         webSocket: options.webSocket,
         project: loadGoogleVertexProject(),
-        location: validateGoogleVertexLocation(loadGoogleVertexLocation()),
+        location: loadGoogleVertexLocation(),
       });
     }
 
@@ -407,7 +417,7 @@ export function createGoogleVertex(
       headers: config.headers,
       fetch: config.fetch,
       project: loadGoogleVertexProject(),
-      location: validateGoogleVertexLocation(loadGoogleVertexLocation()),
+      location: loadGoogleVertexLocation(),
     });
   };
 

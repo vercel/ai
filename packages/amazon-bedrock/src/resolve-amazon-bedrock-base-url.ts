@@ -1,8 +1,9 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { validateAmazonBedrockRegion } from './validate-amazon-bedrock-region';
 
 const AWS_PARTITION_DNS_SUFFIXES = [
   { regionPrefix: 'cn-', dnsSuffix: 'amazonaws.com.cn' },
@@ -41,7 +42,14 @@ export function resolveAmazonBedrockBaseURL({
     return withoutTrailingSlash(resolvedBaseURL) ?? resolvedBaseURL;
   }
 
-  const region = validateAmazonBedrockRegion(getRegion());
+  const region = getRegion();
+  if (!isValidHostnamePart(region)) {
+    throw new InvalidArgumentError({
+      argument: 'region',
+      message:
+        'Invalid AWS region. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+    });
+  }
   const dnsSuffix =
     AWS_PARTITION_DNS_SUFFIXES.find(({ regionPrefix }) =>
       region.startsWith(regionPrefix),

@@ -1,15 +1,16 @@
+import { InvalidArgumentError } from '@ai-sdk/provider';
 import {
   createOpenAICompatible,
   type OpenAICompatibleProvider,
 } from '@ai-sdk/openai-compatible';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
-import { validateGoogleVertexLocation } from '../validate-google-vertex-location';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
 const maxOutputTokensByModel: Record<string, number | undefined> = {
@@ -75,11 +76,21 @@ export function createGoogleVertexMaas(
   options: GoogleVertexMaasProviderSettings = {},
 ): GoogleVertexMaasProvider {
   // Lazy-load settings to support loading from environment variables at runtime
-  const loadLocation = () =>
-    loadOptionalSetting({
-      settingValue: options.location,
-      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-    });
+  const loadLocation = () => {
+    const location =
+      loadOptionalSetting({
+        settingValue: options.location,
+        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+      }) ?? 'global';
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   const loadProject = () =>
     loadSetting({
@@ -101,7 +112,7 @@ export function createGoogleVertexMaas(
 
   const constructBaseURL = () => {
     const projectId = loadProject();
-    const location = validateGoogleVertexLocation(loadLocation() ?? 'global');
+    const location = loadLocation();
 
     return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };

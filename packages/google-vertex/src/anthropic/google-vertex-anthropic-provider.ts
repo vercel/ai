@@ -1,9 +1,11 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   withoutTrailingSlash,
   type FetchFunction,
@@ -13,7 +15,6 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
-import { validateGoogleVertexLocation } from '../validate-google-vertex-location';
 import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
 type GoogleVertexAnthropicTools = Pick<
@@ -187,8 +188,12 @@ export function createGoogleVertexAnthropic(
       settingValue: options.location,
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
     });
-    if (location != null) {
-      validateGoogleVertexLocation(location);
+    if (location != null && !isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
     }
     const project = loadOptionalSetting({
       settingValue: options.project,

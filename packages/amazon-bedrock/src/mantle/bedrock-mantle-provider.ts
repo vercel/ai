@@ -3,11 +3,13 @@ import {
   OpenAIResponsesLanguageModel,
 } from '@ai-sdk/openai/internal';
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
@@ -24,7 +26,6 @@ import type {
   BedrockMantleResponsesModelId,
 } from './bedrock-mantle-options';
 import { VERSION } from '../version';
-import { validateAmazonBedrockRegion } from '../validate-amazon-bedrock-region';
 
 export interface BedrockMantleProvider extends ProviderV4 {
   /**
@@ -216,23 +217,33 @@ export function createBedrockMantle(
         'bedrock-mantle',
       );
 
-  const getBaseURL = (modelId: string): string =>
-    withoutTrailingSlash(
-      options.baseURL ??
-        `https://bedrock-mantle.${validateAmazonBedrockRegion(
-          loadSetting({
-            settingValue: options.region,
-            settingName: 'region',
-            environmentVariableName: 'AWS_REGION',
-            description: 'AWS region',
-          }),
-        )}.api.aws/${
-          // Mantle serves these models under its separate OpenAI route.
-          /^(?:openai\.gpt-(?!oss-)|google\.gemma-4|xai\.)/.test(modelId)
-            ? 'openai/v1'
-            : 'v1'
-        }`,
-    ) ?? 'https://bedrock-mantle.us-east-1.api.aws/v1';
+  const getBaseURL = (modelId: string): string => {
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
+    }
+
+    const region = loadSetting({
+      settingValue: options.region,
+      settingName: 'region',
+      environmentVariableName: 'AWS_REGION',
+      description: 'AWS region',
+    });
+    if (!isValidHostnamePart(region)) {
+      throw new InvalidArgumentError({
+        argument: 'region',
+        message:
+          'Invalid AWS region. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+
+    return `https://bedrock-mantle.${region}.api.aws/${
+      // Mantle serves these models under its separate OpenAI route.
+      /^(?:openai\.gpt-(?!oss-)|google\.gemma-4|xai\.)/.test(modelId)
+        ? 'openai/v1'
+        : 'v1'
+    }`;
+  };
 
   const getHeaders = (): Record<string, string | undefined> =>
     withUserAgentSuffix(
