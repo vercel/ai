@@ -1,5 +1,12 @@
 # @ai-sdk/code-mode
 
+## 1.0.82
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
 ## 1.0.81
 
 ### Patch Changes

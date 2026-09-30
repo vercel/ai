@@ -1,5 +1,12 @@
 # @ai-sdk/azure
 
+## 4.0.88
+
+### Patch Changes
+
+- 560ac0b: Route `mai-transcribe-1.5` to the Azure Speech API by default, like `mai-transcribe-2`. MAI-Transcribe-1.5 requests no longer send the `segment` timestamps default, which the model rejects.
+- 00f2a59: Add MAI-Voice-2-Flash and MAI-Voice-2 speech generation through `azure.speech()` using Azure Speech text to speech (SSML), with voice, output format, speed, and `style`/`styleDegree` provider options. `language` picks a default voice when no voice is set. Select the API with `providerOptions.azure.api` to override model-based routing, and add `azure.speechModel()` as an alias of `azure.speech()`.
+
 ## 4.0.87
 
 ### Patch Changes
