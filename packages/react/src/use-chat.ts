@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-import type { AbstractChat, ChatInit, CreateUIMessage, UIMessage } from 'ai';
-=======
 import {
   type AbstractChat,
   type ChatInit,
@@ -9,7 +6,6 @@ import {
   type UIMessage,
   DefaultChatTransport,
 } from 'ai';
->>>>>>> 1a0240bb8e ([v6.0] fix(react): use the latest transport in useChat instead of a stale one (#16806))
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Chat } from './chat.react';
 
@@ -65,65 +61,38 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   resume = false,
   ...options
 }: UseChatOptions<UI_MESSAGE> = {}): UseChatHelpers<UI_MESSAGE> {
-<<<<<<< HEAD
-  const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(options),
-=======
   // the Chat instance is created once and not recreated when options change,
-  // so it would normally keep the callbacks/transport from the first render forever
-
-  // keep latest values in a ref that is refreshed on every render,
-  // and hand `Chat` stable wrappers that read from it to avoid stale closures
-  const latestRef = useRef<
-    Partial<
-      Pick<
-        ChatInit<UI_MESSAGE>,
-        | 'onToolCall'
-        | 'onData'
-        | 'onFinish'
-        | 'onError'
-        | 'sendAutomaticallyWhen'
-        | 'transport'
-      >
-    >
-  >({});
+  // so it would keep the transport from the first render forever.
+  // keep the latest transport in a ref that is refreshed on every render and
+  // hand `Chat` a stable proxy transport that always delegates to it
+  const latestTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    undefined,
+  );
+  const defaultTransportRef = useRef<ChatTransport<UI_MESSAGE> | undefined>(
+    undefined,
+  );
 
   if (!('chat' in options)) {
-    latestRef.current = {
-      onToolCall: options.onToolCall,
-      onData: options.onData,
-      onFinish: options.onFinish,
-      onError: options.onError,
-      sendAutomaticallyWhen: options.sendAutomaticallyWhen,
-      transport: options.transport,
-    };
+    latestTransportRef.current = options.transport;
   }
 
   // resolve the latest transport and fallback to a lazily created default transport
-  let defaultTransport: ChatTransport<UI_MESSAGE> | undefined;
   const getTransport = () =>
-    latestRef.current.transport ??
-    (defaultTransport ??= new DefaultChatTransport<UI_MESSAGE>());
+    latestTransportRef.current ??
+    (defaultTransportRef.current ??= new DefaultChatTransport<UI_MESSAGE>());
 
-  // give `Chat` stable wrappers that always read the latest values from `latestRef`
-  const chatOptions: typeof options = {
-    ...options,
-    transport: {
-      sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
-      reconnectToStream: reconnectOptions =>
-        getTransport().reconnectToStream(reconnectOptions),
-    },
-    onToolCall: arg => latestRef.current.onToolCall?.(arg),
-    onData: arg => latestRef.current.onData?.(arg),
-    onFinish: arg => latestRef.current.onFinish?.(arg),
-    onError: arg => latestRef.current.onError?.(arg),
-    sendAutomaticallyWhen: arg =>
-      latestRef.current.sendAutomaticallyWhen?.(arg) ?? false,
-  };
+  const createChat = (init: ChatInit<UI_MESSAGE>) =>
+    new Chat<UI_MESSAGE>({
+      ...init,
+      transport: {
+        sendMessages: sendOptions => getTransport().sendMessages(sendOptions),
+        reconnectToStream: reconnectOptions =>
+          getTransport().reconnectToStream(reconnectOptions),
+      },
+    });
 
   const chatRef = useRef<Chat<UI_MESSAGE>>(
-    'chat' in options ? options.chat : new Chat(chatOptions),
->>>>>>> 1a0240bb8e ([v6.0] fix(react): use the latest transport in useChat instead of a stale one (#16806))
+    'chat' in options ? options.chat : createChat(options),
   );
 
   const shouldRecreateChat =
@@ -131,31 +100,84 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     ('id' in options && chatRef.current.id !== options.id);
 
   if (shouldRecreateChat) {
-<<<<<<< HEAD
-    chatRef.current = 'chat' in options ? options.chat : new Chat(options);
-=======
-    chatRef.current = 'chat' in options ? options.chat : new Chat(chatOptions);
->>>>>>> 1a0240bb8e ([v6.0] fix(react): use the latest transport in useChat instead of a stale one (#16806))
+    chatRef.current = 'chat' in options ? options.chat : createChat(options);
+  }
+
+  const chat = chatRef.current;
+  const messagesSnapshotRef = useRef({
+    chat,
+    messages: chat.messages,
+  });
+
+  if (messagesSnapshotRef.current.chat !== chat) {
+    messagesSnapshotRef.current = { chat, messages: chat.messages };
   }
 
   const subscribeToMessages = useCallback(
-    (update: () => void) =>
-      chatRef.current['~registerMessagesCallback'](update, throttleWaitMs),
-    // `chatRef.current.id` is required to trigger re-subscription when the chat ID changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [throttleWaitMs, chatRef.current.id],
+    (update: () => void) => {
+      let isSubscribed = true;
+
+      const updateMessages = () => {
+        if (!isSubscribed || messagesSnapshotRef.current.chat !== chat) {
+          return;
+        }
+
+        messagesSnapshotRef.current = { chat, messages: chat.messages };
+        update();
+      };
+
+      const unsubscribe = chat['~registerMessagesCallback'](
+        updateMessages,
+        throttleWaitMs,
+      );
+
+      // Synchronize changes that may have happened between render and
+      // subscription. useSyncExternalStore checks the snapshot after
+      // subscribing and schedules a render when it changed.
+      messagesSnapshotRef.current = { chat, messages: chat.messages };
+
+      return () => {
+        isSubscribed = false;
+        unsubscribe();
+      };
+    },
+    [chat, throttleWaitMs],
+  );
+
+  const getMessagesSnapshot = useCallback(
+    () => messagesSnapshotRef.current.messages,
+    [],
   );
 
   const messages = useSyncExternalStore(
     subscribeToMessages,
-    () => chatRef.current.messages,
-    () => chatRef.current.messages,
+    getMessagesSnapshot,
+    getMessagesSnapshot,
   );
 
+  const subscribeToStatus = useCallback(
+    (update: () => void) =>
+      chat['~registerStatusCallback'](() => {
+        if (messagesSnapshotRef.current.chat !== chat) {
+          return;
+        }
+
+        if (chat.status === 'ready' || chat.status === 'error') {
+          // Publish the latest messages before the terminal status can render.
+          messagesSnapshotRef.current = { chat, messages: chat.messages };
+        }
+
+        update();
+      }),
+    [chat],
+  );
+
+  const getStatusSnapshot = useCallback(() => chat.status, [chat]);
+
   const status = useSyncExternalStore(
-    chatRef.current['~registerStatusCallback'],
-    () => chatRef.current.status,
-    () => chatRef.current.status,
+    subscribeToStatus,
+    getStatusSnapshot,
+    getStatusSnapshot,
   );
 
   const error = useSyncExternalStore(

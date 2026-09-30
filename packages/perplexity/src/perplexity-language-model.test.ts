@@ -1,961 +1,1257 @@
-// TEST FILE DOES NOT USE THE PROVIDER `createPerplexity`
-
-import { describe, it, expect } from 'vitest';
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
-import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  APICallError,
+  InvalidArgumentError,
+  type LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
   mockId,
 } from '@ai-sdk/provider-utils/test';
-import type { z } from 'zod/v4';
-import {
-  type perplexityImageSchema,
-  PerplexityLanguageModel,
-} from './perplexity-language-model';
+import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { PerplexityLanguageModel } from './perplexity-language-model';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-describe('PerplexityLanguageModel', () => {
-  describe('doGenerate', () => {
-    const modelId = 'perplexity-001';
+const AGENT_URL = 'https://api.perplexity.ai/v1/agent';
 
-    const perplexityModel = new PerplexityLanguageModel(modelId, {
+const model = new PerplexityLanguageModel('low', {
+  baseURL: 'https://api.perplexity.ai',
+  headers: () => ({
+    authorization: 'Bearer test-token',
+    'content-type': 'application/json',
+  }),
+  generateId: mockId(),
+});
+
+const server = createTestServer({
+  [AGENT_URL]: {},
+});
+
+function createUsage() {
+  return {
+    input_tokens: 120,
+    input_tokens_details: {
+      cache_creation_input_tokens: 10,
+      cache_read_input_tokens: 20,
+    },
+    output_tokens: 45,
+    output_tokens_details: { reasoning_tokens: 5 },
+    total_tokens: 165,
+    tool_calls_details: { search_web: { invocation: 2 } },
+    cost: {
+      currency: 'USD',
+      input_cost: 0.001,
+      output_cost: 0.002,
+      tool_calls_cost: 0.003,
+      total_cost: 0.006,
+    },
+  };
+}
+
+const financeOutput = {
+  type: 'finance_results',
+  categories: ['quote'],
+  tickers: ['AAPL'],
+  results: [
+    {
+      category: 'quote',
+      content: 'AAPL: $230.00',
+      sources: ['https://example.com/quote'],
+      tickers: ['AAPL'],
+    },
+  ],
+};
+
+function createResponse(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'resp-123',
+    created_at: 1784292159,
+    model: 'openai/gpt-5.1',
+    object: 'response',
+    output: [
+      {
+        type: 'search_results',
+        queries: ['latest AI news'],
+        results: [
+          {
+            id: 1,
+            title: 'Example source',
+            url: 'https://example.com/source',
+            snippet: 'An example search result.',
+            date: '2026-08-01',
+            source: 'web',
+          },
+        ],
+      },
+      {
+        id: 'msg-123',
+        type: 'message',
+        status: 'completed',
+        role: 'assistant',
+        content: [
+          {
+            type: 'output_text',
+            text: 'Hello from Perplexity.',
+            annotations: [],
+          },
+        ],
+      },
+    ],
+    status: 'completed',
+    usage: createUsage(),
+    ...overrides,
+  };
+}
+
+function prepareJsonResponse(
+  body: Record<string, unknown> = createResponse(),
+  headers?: Record<string, string>,
+) {
+  server.urls[AGENT_URL].response = {
+    type: 'json-value',
+    body,
+    headers,
+  };
+}
+
+function prepareStream(chunks: Record<string, unknown>[]) {
+  server.urls[AGENT_URL].response = {
+    type: 'stream-chunks',
+    chunks: [
+      ...chunks.map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+      'data: [DONE]\n\n',
+    ],
+  };
+}
+
+function createStreamChunks(responseOverrides: Record<string, unknown> = {}) {
+  const completedResponse = createResponse(responseOverrides);
+  return [
+    {
+      type: 'response.created',
+      sequence_number: 0,
+      response: createResponse({ output: [], usage: undefined }),
+    },
+    {
+      type: 'response.reasoning.search_results',
+      sequence_number: 1,
+      results: [
+        {
+          id: 1,
+          title: 'Example source',
+          url: 'https://example.com/source',
+          snippet: 'An example search result.',
+          source: 'web',
+        },
+      ],
+    },
+    {
+      type: 'response.output_text.delta',
+      sequence_number: 2,
+      item_id: 'msg-123',
+      output_index: 1,
+      content_index: 0,
+      delta: 'Hello ',
+    },
+    {
+      type: 'response.output_text.delta',
+      sequence_number: 3,
+      item_id: 'msg-123',
+      output_index: 1,
+      content_index: 0,
+      delta: 'from Perplexity.',
+    },
+    {
+      type: 'response.output_text.done',
+      sequence_number: 4,
+      item_id: 'msg-123',
+      output_index: 1,
+      content_index: 0,
+      text: 'Hello from Perplexity.',
+    },
+    {
+      type: 'response.completed',
+      sequence_number: 5,
+      response: completedResponse,
+    },
+  ];
+}
+
+describe('doGenerate', () => {
+  it('parses a captured Agent API web search response', async () => {
+    const response = JSON.parse(
+      readFileSync('src/__fixtures__/agent-web-search.json', 'utf8'),
+    );
+    prepareJsonResponse(response);
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    expect(result.content).toContainEqual(
+      expect.objectContaining({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://www.typescriptlang.org/',
+      }),
+    );
+    expect(
+      result.content.some(
+        part => part.type === 'text' && part.text.includes('TypeScript'),
+      ),
+    ).toBe(true);
+    expect(result.usage.inputTokens).toBe(response.usage.input_tokens);
+    expect(result.usage.outputTokens).toBe(response.usage.output_tokens);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('accepts native tool results without treating them as web search results', async () => {
+    const response = createResponse({
+      output: [financeOutput, ...createResponse().output],
+    });
+    prepareJsonResponse(response);
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toContainEqual({
+      type: 'text',
+      text: 'Hello from Perplexity.',
+    });
+    expect(result.response?.body).toEqual(response);
+    expect(result.finishReason).toBe('stop');
+  });
+
+  it('still rejects malformed handled output items', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          { type: 'search_results', results: [{ title: 'Missing URL' }] },
+        ],
+      }),
+    );
+
+    await expect(model.doGenerate({ prompt: TEST_PROMPT })).rejects.toThrow();
+  });
+
+  it('extracts text, sources, usage, cost, and response metadata', async () => {
+    prepareJsonResponse();
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toEqual([
+      expect.objectContaining({
+        type: 'source',
+        sourceType: 'url',
+        id: '1',
+        url: 'https://example.com/source',
+        title: 'Example source',
+      }),
+      { type: 'text', text: 'Hello from Perplexity.' },
+    ]);
+    expect(result.usage).toEqual({
+      inputTokens: 120,
+      outputTokens: 45,
+      totalTokens: 165,
+      reasoningTokens: 5,
+      cachedInputTokens: 20,
+    });
+    expect(result.providerMetadata).toEqual({
+      perplexity: {
+        usage: { citationTokens: null, numSearchQueries: 2 },
+        images: null,
+        cost: {
+          inputTokensCost: 0.001,
+          outputTokensCost: 0.002,
+          requestCost: null,
+          totalCost: 0.006,
+          currency: 'USD',
+          cacheCreationCost: null,
+          cacheReadCost: null,
+          toolCallsCost: 0.003,
+        },
+        toolCalls: { search_web: { invocation: 2 } },
+      },
+    });
+    expect(result.response).toEqual(
+      expect.objectContaining({
+        id: 'resp-123',
+        modelId: 'openai/gpt-5.1',
+        timestamp: new Date(1784292159 * 1000),
+      }),
+    );
+  });
+
+  it('sends an Agent API preset request', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      preset: 'low',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+    });
+  });
+
+  it('sends direct model IDs as Agent API models', async () => {
+    prepareJsonResponse();
+    const directModel = new PerplexityLanguageModel('openai/gpt-5.1', {
+      baseURL: 'https://api.perplexity.ai',
+      generateId: mockId(),
+    });
+
+    await directModel.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'openai/gpt-5.1',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+    });
+  });
+
+  it('does not map legacy Sonar model IDs to Agent API presets', async () => {
+    prepareJsonResponse();
+    const directModel = new PerplexityLanguageModel('sonar-pro', {
+      baseURL: 'https://api.perplexity.ai',
+      generateId: mockId(),
+    });
+
+    const result = await directModel.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      model: 'sonar-pro',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({ type: 'deprecated' }),
+    );
+  });
+
+  it('passes Agent API provider options and AI SDK function tools', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      maxOutputTokens: 200,
+      temperature: 0.4,
+      topP: 0.9,
+      responseFormat: {
+        type: 'json',
+        name: 'answer',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          description: 'Get the weather',
+          inputSchema: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ],
+      providerOptions: {
+        perplexity: {
+          max_steps: 4,
+          previous_response_id: 'resp-previous',
+          store: false,
+          reasoning: { effort: 'high' },
+          tools: [{ type: 'web_search', search_context_size: 'low' }],
+          future_option: { enabled: true },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      preset: 'low',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+      max_output_tokens: 200,
+      temperature: 0.4,
+      top_p: 0.9,
+      reasoning: { effort: 'high' },
+      max_steps: 4,
+      previous_response_id: 'resp-previous',
+      store: false,
+      future_option: { enabled: true },
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'answer',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+          strict: true,
+        },
+      },
+      tools: [
+        { type: 'web_search', search_context_size: 'low' },
+        {
+          type: 'function',
+          name: 'weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+          },
+        },
+      ],
+    });
+  });
+
+  it('rejects invalid provider options', async () => {
+    await expect(
+      model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          perplexity: { max_steps: 0 },
+        },
+      }),
+    ).rejects.toThrow(InvalidArgumentError);
+  });
+
+  it('extracts function calls', async () => {
+    prepareJsonResponse(
+      createResponse({
+        status: 'requires_action',
+        output: [
+          {
+            id: 'fc-123',
+            type: 'function_call',
+            status: 'completed',
+            call_id: 'call-123',
+            name: 'weather',
+            arguments: '{"city":"San Francisco"}',
+            thought_signature: 'signature-123',
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'call-123',
+        toolName: 'weather',
+        input: '{"city":"San Francisco"}',
+        providerMetadata: {
+          perplexity: {
+            itemId: 'fc-123',
+            thoughtSignature: 'signature-123',
+          },
+        },
+      },
+    ]);
+    expect(result.finishReason).toBe('tool-calls');
+  });
+
+  it('omits missing function call thought signatures', async () => {
+    prepareJsonResponse(
+      createResponse({
+        status: 'requires_action',
+        output: [
+          {
+            id: 'fc-123',
+            type: 'function_call',
+            call_id: 'call-123',
+            name: 'weather',
+            arguments: '{"city":"San Francisco"}',
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(result.content[0]).toEqual(
+      expect.objectContaining({
+        providerMetadata: { perplexity: { itemId: 'fc-123' } },
+      }),
+    );
+  });
+
+  it.each([
+    ['max_output_tokens', 'length'],
+    ['content_filter', 'content-filter'],
+  ] as const)(
+    'maps incomplete reason %s to %s',
+    async (incompleteReason, unifiedFinishReason) => {
+      prepareJsonResponse(
+        createResponse({
+          status: 'incomplete',
+          incomplete_details: { reason: incompleteReason },
+        }),
+      );
+
+      const result = await model.doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.finishReason).toBe(unifiedFinishReason);
+    },
+  );
+
+  it('throws an API call error for failed responses returned with HTTP 200', async () => {
+    prepareJsonResponse(
+      createResponse({
+        status: 'failed',
+        error: { message: 'Agent run failed', type: 'server_error' },
+        output: [],
+      }),
+    );
+
+    const promise = model.doGenerate({ prompt: TEST_PROMPT });
+    await expect(promise).rejects.toBeInstanceOf(APICallError);
+    await expect(promise).rejects.toMatchObject({
+      message: 'Agent run failed',
+      statusCode: 400,
+    });
+  });
+
+  it('rejects malformed successful responses', async () => {
+    prepareJsonResponse({
+      id: 'resp-123',
+      created_at: 1784292159,
+      model: 'openai/gpt-5.1',
+      object: 'response',
+      status: 'completed',
+    });
+
+    await expect(
+      model.doGenerate({ prompt: TEST_PROMPT }),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message: 'Invalid JSON response',
+      statusCode: 200,
+    });
+  });
+
+  it('keeps the search result ID when an annotation with the same URL appears first', async () => {
+    prepareJsonResponse(
+      createResponse({
+        output: [
+          {
+            id: 'msg-123',
+            type: 'message',
+            role: 'assistant',
+            content: [
+              {
+                type: 'output_text',
+                text: 'Answer',
+                annotations: [
+                  {
+                    type: 'url_citation',
+                    url: 'https://example.com/source',
+                    title: 'Annotation title',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: 'search_results',
+            results: [
+              {
+                id: 7,
+                title: 'Search result title',
+                url: 'https://example.com/source',
+                snippet: 'Search result snippet.',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+
+    const result = await model.doGenerate({ prompt: TEST_PROMPT });
+    const source = result.content.find(part => part.type === 'source');
+
+    expect(source).toEqual(
+      expect.objectContaining({
+        id: '7',
+        title: 'Search result title',
+        providerMetadata: {
+          perplexity: expect.objectContaining({ resultId: 7 }),
+        },
+      }),
+    );
+  });
+
+  it('passes request and provider headers and exposes response headers', async () => {
+    prepareJsonResponse(createResponse(), { 'test-header': 'test-value' });
+    const customModel = new PerplexityLanguageModel('fast', {
       baseURL: 'https://api.perplexity.ai',
       headers: () => ({
-        authorization: 'Bearer test-token',
-        'content-type': 'application/json',
+        authorization: 'Bearer custom-key',
+        'custom-provider-header': 'provider-value',
       }),
       generateId: mockId(),
     });
 
-    // Create a unified test server to handle JSON responses.
-    const jsonServer = createTestServer({
-      'https://api.perplexity.ai/chat/completions': {
-        response: {
-          type: 'json-value',
-          headers: { 'content-type': 'application/json' },
-          body: {},
-        },
-      },
+    const result = await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      headers: { 'custom-request-header': 'request-value' },
     });
 
-    // Helper to prepare the JSON response for doGenerate.
-    function prepareJsonResponse({
-      content = '',
-      usage = { prompt_tokens: 10, completion_tokens: 20 },
-      id = 'test-id',
-      created = 1680000000,
-      model = modelId,
-      headers = {},
-      citations = [],
-      images,
-    }: {
-      content?: string;
-      usage?: {
-        prompt_tokens: number;
-        completion_tokens: number;
-        citation_tokens?: number;
-        num_search_queries?: number;
-        reasoning_tokens?: number;
-      };
-      id?: string;
-      created?: number;
-      model?: string;
-      headers?: Record<string, string>;
-      citations?: string[];
-      images?: z.infer<typeof perplexityImageSchema>[];
-    } = {}) {
-      jsonServer.urls['https://api.perplexity.ai/chat/completions'].response = {
-        type: 'json-value',
-        headers: { 'content-type': 'application/json', ...headers },
-        body: {
-          id,
-          created,
-          model,
-          choices: [
-            {
-              message: {
-                role: 'assistant',
-                content,
+    expect(server.calls[0].requestHeaders).toEqual(
+      expect.objectContaining({
+        authorization: 'Bearer custom-key',
+        'custom-provider-header': 'provider-value',
+        'custom-request-header': 'request-value',
+      }),
+    );
+    expect(result.response?.headers).toEqual(
+      expect.objectContaining({ 'test-header': 'test-value' }),
+    );
+  });
+});
+
+describe('doStream', () => {
+  it('parses captured Agent API web search events', async () => {
+    const events = readFileSync(
+      'src/__fixtures__/agent-web-search.chunks.txt',
+      'utf8',
+    )
+      .split('\n')
+      .filter(Boolean)
+      .map(line => JSON.parse(line));
+    prepareStream(events);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    const text = chunks
+      .filter(chunk => chunk.type === 'text-delta')
+      .map(chunk => chunk.delta)
+      .join('');
+    const response = events.find(
+      event => event.type === 'response.completed',
+    ).response;
+    expect(text).toBe(
+      response.output
+        .filter((item: any) => item.type === 'message')
+        .flatMap((item: any) => item.content)
+        .filter((part: any) => part.type === 'output_text')
+        .map((part: any) => part.text)
+        .join(''),
+    );
+    const sources = chunks.filter(
+      chunk => chunk.type === 'source' && chunk.sourceType === 'url',
+    );
+    expect(sources.length).toBeGreaterThan(0);
+    expect(new Set(sources.map(source => source.url)).size).toBe(
+      sources.length,
+    );
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: 'stop',
+      }),
+    );
+  });
+
+  it.each(['response.completed', 'response.incomplete'])(
+    'preserves citation annotations from output items and %s',
+    async terminalType => {
+      const message = {
+        id: 'msg-123',
+        type: 'message',
+        content: [
+          {
+            type: 'output_text',
+            text: 'A cited answer.',
+            annotations: [
+              {
+                type: 'url_citation',
+                url: 'https://example.com/first',
+                title: 'First',
               },
-              finish_reason: 'stop',
-            },
-          ],
-          citations,
-          images,
-          usage,
-        },
-      };
-    }
-
-    it('should extract content correctly', async () => {
-      prepareJsonResponse({ content: 'Hello, World!' });
-
-      const result = await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "text": "Hello, World!",
-            "type": "text",
-          },
-        ]
-      `);
-
-      expect(result.usage).toEqual({ inputTokens: 10, outputTokens: 20 });
-
-      expect({
-        id: result.response?.id,
-        timestamp: result.response?.timestamp,
-        modelId: result.response?.modelId,
-      }).toStrictEqual({
-        id: 'test-id',
-        timestamp: new Date(1680000000 * 1000),
-        modelId,
-      });
-    });
-
-    it('should send the correct request body', async () => {
-      prepareJsonResponse({ content: '' });
-      await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-      expect(await jsonServer.calls[0].requestBodyJson).toEqual({
-        model: modelId,
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
-    });
-
-    it('should pass through perplexity provider options', async () => {
-      prepareJsonResponse({ content: '' });
-      await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          perplexity: {
-            search_recency_filter: 'month',
-            return_images: true,
-          },
-        },
-      });
-
-      expect(await jsonServer.calls[0].requestBodyJson).toEqual({
-        model: modelId,
-        messages: [{ role: 'user', content: 'Hello' }],
-        search_recency_filter: 'month',
-        return_images: true,
-      });
-    });
-
-    it('should handle PDF files with base64 encoding', async () => {
-      const mockPdfData = 'mock-pdf-data';
-      const prompt: LanguageModelV2Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Analyze this PDF' },
-            {
-              type: 'file',
-              mediaType: 'application/pdf',
-              data: mockPdfData,
-              filename: 'test.pdf',
-            },
-          ],
-        },
-      ];
-
-      prepareJsonResponse({
-        content: 'This is an analysis of the PDF',
-      });
-
-      const result = await perplexityModel.doGenerate({ prompt });
-
-      // Verify the request contains the correct PDF format
-      const requestBody =
-        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
-      expect(requestBody.messages[0].content).toEqual([
-        {
-          type: 'text',
-          text: 'Analyze this PDF',
-        },
-        {
-          type: 'file_url',
-          file_url: {
-            url: expect.stringContaining(mockPdfData),
-          },
-          file_name: 'test.pdf',
-        },
-      ]);
-
-      // Verify the response is processed correctly
-      expect(result.content).toEqual([
-        {
-          type: 'text',
-          text: 'This is an analysis of the PDF',
-        },
-      ]);
-    });
-
-    it('should handle PDF files with URLs', async () => {
-      const pdfUrl = 'https://example.com/test.pdf';
-      const prompt: LanguageModelV2Prompt = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: 'Analyze this PDF' },
-            {
-              type: 'file',
-              mediaType: 'application/pdf',
-              data: new URL(pdfUrl),
-              filename: 'test.pdf',
-            },
-          ],
-        },
-      ];
-
-      prepareJsonResponse({
-        content: 'This is an analysis of the PDF from URL',
-      });
-
-      const result = await perplexityModel.doGenerate({ prompt });
-
-      // Verify the request contains the correct PDF URL format
-      const requestBody =
-        await jsonServer.calls[jsonServer.calls.length - 1].requestBodyJson;
-      expect(requestBody.messages[0].content).toEqual([
-        {
-          type: 'text',
-          text: 'Analyze this PDF',
-        },
-        {
-          type: 'file_url',
-          file_url: {
-            url: pdfUrl,
-          },
-          file_name: 'test.pdf',
-        },
-      ]);
-
-      // Verify the response is processed correctly
-      expect(result.content).toEqual([
-        {
-          type: 'text',
-          text: 'This is an analysis of the PDF from URL',
-        },
-      ]);
-    });
-
-    it('should extract citations as sources', async () => {
-      prepareJsonResponse({
-        citations: ['http://example.com/123', 'https://example.com/456'],
-      });
-
-      const result = await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.content).toMatchInlineSnapshot(`
-        [
-          {
-            "id": "id-0",
-            "sourceType": "url",
-            "type": "source",
-            "url": "http://example.com/123",
-          },
-          {
-            "id": "id-1",
-            "sourceType": "url",
-            "type": "source",
-            "url": "https://example.com/456",
-          },
-        ]
-      `);
-    });
-
-    it('should extract images', async () => {
-      prepareJsonResponse({
-        images: [
-          {
-            image_url: 'https://example.com/image.jpg',
-            origin_url: 'https://example.com/image.jpg',
-            height: 100,
-            width: 100,
+              { type: 'file_citation', file_id: 'file-123' },
+            ],
           },
         ],
-      });
-
-      const result = await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.providerMetadata).toStrictEqual({
-        perplexity: {
-          cost: null,
-          images: [
-            {
-              imageUrl: 'https://example.com/image.jpg',
-              originUrl: 'https://example.com/image.jpg',
-              height: 100,
-              width: 100,
-            },
-          ],
-          usage: {
-            citationTokens: null,
-            numSearchQueries: null,
-          },
+      };
+      prepareStream([
+        { type: 'response.output_item.done', item: message, output_index: 0 },
+        {
+          type: terminalType,
+          response: createResponse({
+            status:
+              terminalType === 'response.incomplete'
+                ? 'incomplete'
+                : 'completed',
+            output: [
+              message,
+              {
+                type: 'message',
+                content: [
+                  {
+                    type: 'output_text',
+                    text: 'Another citation.',
+                    annotations: [
+                      {
+                        type: 'url_citation',
+                        url: 'https://example.com/second',
+                        title: 'Second',
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          }),
         },
-      });
-    });
+      ]);
 
-    it('should extract usage', async () => {
-      prepareJsonResponse({
-        usage: {
-          prompt_tokens: 10,
-          completion_tokens: 20,
-          citation_tokens: 30,
-          num_search_queries: 40,
-          reasoning_tokens: 50,
-        },
-      });
+      const result = await model.doStream({ prompt: TEST_PROMPT });
+      const chunks = await convertReadableStreamToArray(result.stream);
 
-      const result = await perplexityModel.doGenerate({
-        prompt: TEST_PROMPT,
-      });
-
-      expect(result.usage).toEqual({
-        inputTokens: 10,
-        outputTokens: 20,
-        reasoningTokens: 50,
-      });
-
-      expect(result.providerMetadata).toEqual({
-        perplexity: {
-          cost: null,
-          images: null,
-          usage: {
-            citationTokens: 30,
-            numSearchQueries: 40,
-          },
-        },
-      });
-    });
-
-    it('should pass headers from provider and request', async () => {
-      prepareJsonResponse({ content: '' });
-      const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
-        baseURL: 'https://api.perplexity.ai',
-        headers: () => ({
-          authorization: 'Bearer test-api-key',
-          'Custom-Provider-Header': 'provider-header-value',
+      expect(chunks.filter(chunk => chunk.type === 'source')).toEqual([
+        expect.objectContaining({
+          url: 'https://example.com/first',
+          title: 'First',
         }),
-        generateId: mockId(),
-      });
+        expect.objectContaining({
+          url: 'https://example.com/second',
+          title: 'Second',
+        }),
+      ]);
+    },
+  );
 
-      await lmWithCustomHeaders.doGenerate({
-        prompt: TEST_PROMPT,
-        headers: { 'Custom-Request-Header': 'request-header-value' },
-      });
+  it('preserves native tool traces in raw chunks without rejecting the response', async () => {
+    const events = [
+      {
+        type: 'response.output_item.done',
+        output_index: 0,
+        item: financeOutput,
+      },
+      ...createStreamChunks({
+        output: [financeOutput, ...createResponse().output],
+      }),
+    ];
+    prepareStream(events);
 
-      expect(jsonServer.calls[0].requestHeaders).toEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toContainEqual({ type: 'raw', rawValue: events[0] });
+    expect(chunks).toContainEqual(
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: 'stop',
+      }),
+    );
+  });
+
+  it('streams typed Agent API events as text, sources, usage, and metadata', async () => {
+    prepareStream(createStreamChunks());
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks).toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'response-metadata',
+        id: 'resp-123',
+        modelId: 'openai/gpt-5.1',
+        timestamp: new Date(1784292159 * 1000),
+      },
+      expect.objectContaining({
+        type: 'source',
+        sourceType: 'url',
+        url: 'https://example.com/source',
+      }),
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello ' },
+      {
+        type: 'text-delta',
+        id: 'msg-123',
+        delta: 'from Perplexity.',
+      },
+      { type: 'text-end', id: 'msg-123' },
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: 'stop',
+        usage: expect.objectContaining({
+          inputTokens: 120,
+          outputTokens: 45,
+        }),
+      }),
+    ]);
+  });
+
+  it('sends the Agent API streaming request body', async () => {
+    prepareStream(createStreamChunks());
+
+    await model.doStream({ prompt: TEST_PROMPT });
+
+    expect(await server.calls[0].requestBodyJson).toEqual({
+      preset: 'low',
+      input: [{ type: 'message', role: 'user', content: 'Hello' }],
+      stream: true,
     });
   });
 
-  describe('doStream', () => {
-    const modelId = 'perplexity-001';
+  it('streams raw Agent API events when requested', async () => {
+    prepareStream(createStreamChunks());
 
-    const streamServer = createTestServer({
-      'https://api.perplexity.ai/chat/completions': {
-        response: {
-          type: 'stream-chunks',
-          headers: {
-            'content-type': 'text/event-stream',
-            'cache-control': 'no-cache',
-            connection: 'keep-alive',
-          },
-          chunks: [],
-        },
+    const result = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: true,
+    });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(6);
+    expect(chunks[1]).toEqual({
+      type: 'raw',
+      rawValue: createStreamChunks()[0],
+    });
+  });
+
+  it('streams function calls from output items', async () => {
+    const functionCall = {
+      id: 'fc-123',
+      type: 'function_call',
+      status: 'completed',
+      call_id: 'call-123',
+      name: 'weather',
+      arguments: '{"city":"San Francisco"}',
+    };
+    prepareStream([
+      {
+        type: 'response.created',
+        sequence_number: 0,
+        response: createResponse({ output: [], usage: undefined }),
       },
-    });
+      {
+        type: 'response.output_item.done',
+        sequence_number: 1,
+        output_index: 0,
+        item: functionCall,
+      },
+      {
+        type: 'response.completed',
+        sequence_number: 2,
+        response: createResponse({
+          status: 'requires_action',
+          output: [functionCall],
+        }),
+      },
+    ]);
 
-    const perplexityLM = new PerplexityLanguageModel(modelId, {
-      baseURL: 'https://api.perplexity.ai',
-      headers: () => ({ authorization: 'Bearer test-token' }),
-      generateId: mockId(),
-    });
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
 
-    // Helper to prepare the stream response.
-    function prepareStreamResponse({
-      contents,
-      usage = { prompt_tokens: 10, completion_tokens: 20 },
-      citations = [],
-      images,
-    }: {
-      contents: string[];
-      usage?: {
-        prompt_tokens: number;
-        completion_tokens: number;
-        citation_tokens?: number;
-        num_search_queries?: number;
-        reasoning_tokens?: number;
-      };
-      citations?: string[];
-      images?: z.infer<typeof perplexityImageSchema>[];
-    }) {
-      const baseChunk = (
-        content: string,
-        finish_reason: string | null = null,
-        includeUsage = false,
-      ) => {
-        const chunkObj: any = {
-          id: 'stream-id',
-          created: 1680003600,
-          model: modelId,
-          images,
-          citations,
-          choices: [
-            {
-              delta: { role: 'assistant', content },
-              finish_reason,
-            },
-          ],
-        };
-        if (includeUsage) {
-          chunkObj.usage = usage;
-        }
-        return `data: ${JSON.stringify(chunkObj)}\n\n`;
-      };
-
-      streamServer.urls['https://api.perplexity.ai/chat/completions'].response =
+    expect(chunks).toEqual(
+      expect.arrayContaining([
         {
-          type: 'stream-chunks',
-          headers: {
-            'content-type': 'text/event-stream',
-            'cache-control': 'no-cache',
-            connection: 'keep-alive',
-          },
-          chunks: [
-            ...contents.slice(0, -1).map(text => baseChunk(text)),
-            // Final chunk: include finish_reason and usage.
-            baseChunk(contents[contents.length - 1], 'stop', true),
-            'data: [DONE]\n\n',
-          ],
-        };
-    }
+          type: 'tool-input-start',
+          id: 'call-123',
+          toolName: 'weather',
+        },
+        {
+          type: 'tool-input-delta',
+          id: 'call-123',
+          delta: '{"city":"San Francisco"}',
+        },
+        { type: 'tool-input-end', id: 'call-123' },
+        expect.objectContaining({
+          type: 'tool-call',
+          toolCallId: 'call-123',
+          toolName: 'weather',
+        }),
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: 'tool-calls',
+        }),
+      ]),
+    );
+  });
 
-    it('should stream text deltas', async () => {
-      prepareStreamResponse({ contents: ['Hello', ', ', 'World!'] });
-
-      const { stream } = await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-
-      expect(result).toMatchInlineSnapshot(`
-        [
+  it('streams sources from fetch URL reasoning events', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.fetch_url_results',
+        sequence_number: 0,
+        contents: [
           {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "stream-id",
-            "modelId": "perplexity-001",
-            "timestamp": 2023-03-28T11:40:00.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": "World!",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "perplexity": {
-                "cost": null,
-                "images": null,
-                "usage": {
-                  "citationTokens": null,
-                  "numSearchQueries": null,
-                },
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
-            },
-          },
-        ]
-      `);
-    });
-
-    it('should stream sources', async () => {
-      prepareStreamResponse({
-        contents: ['Hello', ', ', 'World!'],
-        citations: ['http://example.com/123', 'https://example.com/456'],
-      });
-
-      const { stream } = await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "stream-id",
-            "modelId": "perplexity-001",
-            "timestamp": 2023-03-28T11:40:00.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "id-0",
-            "sourceType": "url",
-            "type": "source",
-            "url": "http://example.com/123",
-          },
-          {
-            "id": "id-1",
-            "sourceType": "url",
-            "type": "source",
-            "url": "https://example.com/456",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": "World!",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "perplexity": {
-                "cost": null,
-                "images": null,
-                "usage": {
-                  "citationTokens": null,
-                  "numSearchQueries": null,
-                },
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
-            },
-          },
-        ]
-      `);
-    });
-
-    it('should send the correct streaming request body', async () => {
-      prepareStreamResponse({ contents: [] });
-
-      await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      expect(await streamServer.calls[0].requestBodyJson).toEqual({
-        model: modelId,
-        messages: [{ role: 'user', content: 'Hello' }],
-        stream: true,
-      });
-    });
-
-    it('should send usage', async () => {
-      prepareStreamResponse({
-        contents: ['Hello', ', ', 'World!'],
-        images: [
-          {
-            image_url: 'https://example.com/image.jpg',
-            origin_url: 'https://example.com/image.jpg',
-            height: 100,
-            width: 100,
+            title: 'Fetched page',
+            url: 'https://example.com/fetched',
+            snippet: 'Fetched content.',
           },
         ],
-      });
-      const { stream } = await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
+      },
+    ]);
 
-      const result = await convertReadableStreamToArray(stream);
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
 
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "stream-id",
-            "modelId": "perplexity-001",
-            "timestamp": 2023-03-28T11:40:00.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": "World!",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "perplexity": {
-                "cost": null,
-                "images": [
-                  {
-                    "height": 100,
-                    "imageUrl": "https://example.com/image.jpg",
-                    "originUrl": "https://example.com/image.jpg",
-                    "width": 100,
-                  },
-                ],
-                "usage": {
-                  "citationTokens": null,
-                  "numSearchQueries": null,
-                },
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": 10,
-              "outputTokens": 20,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
-            },
-          },
-        ]
-      `);
-    });
-
-    it('should send images', async () => {
-      prepareStreamResponse({
-        contents: ['Hello', ', ', 'World!'],
-        usage: {
-          prompt_tokens: 11,
-          completion_tokens: 21,
-          citation_tokens: 30,
-          num_search_queries: 40,
-          reasoning_tokens: 50,
-        },
-      });
-
-      const { stream } = await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-      });
-
-      const result = await convertReadableStreamToArray(stream);
-
-      expect(result).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "id": "stream-id",
-            "modelId": "perplexity-001",
-            "timestamp": 2023-03-28T11:40:00.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": ", ",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "delta": "World!",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "stop",
-            "providerMetadata": {
-              "perplexity": {
-                "cost": null,
-                "images": null,
-                "usage": {
-                  "citationTokens": 30,
-                  "numSearchQueries": 40,
-                },
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": 11,
-              "outputTokens": 21,
-              "reasoningTokens": 50,
-              "totalTokens": undefined,
-            },
-          },
-        ]
-      `);
-    });
-
-    it('should pass headers', async () => {
-      prepareStreamResponse({ contents: [] });
-      const lmWithCustomHeaders = new PerplexityLanguageModel(modelId, {
-        baseURL: 'https://api.perplexity.ai',
-        headers: () => ({
-          authorization: 'Bearer test-api-key',
-          'Custom-Provider-Header': 'provider-header-value',
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'source',
+          sourceType: 'url',
+          url: 'https://example.com/fetched',
+          title: 'Fetched page',
         }),
-        generateId: mockId(),
-      });
+      ]),
+    );
+  });
 
-      await lmWithCustomHeaders.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: false,
-        headers: { 'Custom-Request-Header': 'request-header-value' },
-      });
+  it('accepts null fields in stream events', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: null,
+      },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        call_id: 'call-1',
+        sequence_number: 1,
+        thought: 'Fetched content from 0 URLs',
+        contents: null,
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 2,
+        results: null,
+      },
+      { type: 'response.reasoning.stopped', sequence_number: 3 },
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        delta: 'Hello',
+      },
+      {
+        type: 'response.output_text.done',
+        item_id: 'msg-1',
+        output_index: 0,
+        content_index: null,
+        text: null,
+      },
+    ]);
 
-      expect(streamServer.calls[0].requestHeaders).toEqual({
-        authorization: 'Bearer test-api-key',
-        'content-type': 'application/json',
-        'custom-provider-header': 'provider-header-value',
-        'custom-request-header': 'request-header-value',
-      });
-    });
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
 
-    it('should stream raw chunks when includeRawChunks is true', async () => {
-      streamServer.urls['https://api.perplexity.ai/chat/completions'].response =
+    expect(chunks.filter(chunk => chunk.type === 'error')).toEqual([]);
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        { type: 'reasoning-start', id: 'reasoning-0' },
         {
-          type: 'stream-chunks',
-          headers: {
-            'content-type': 'text/event-stream',
-            'cache-control': 'no-cache',
-            connection: 'keep-alive',
+          type: 'reasoning-delta',
+          id: 'reasoning-0',
+          delta: 'Fetched content from 0 URLs',
+        },
+        { type: 'reasoning-end', id: 'reasoning-0' },
+        { type: 'text-start', id: 'msg-1' },
+        { type: 'text-delta', id: 'msg-1', delta: 'Hello' },
+        { type: 'text-end', id: 'msg-1' },
+      ]),
+    );
+  });
+
+  it('emits a fetched URL only once with its later search result ID', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.fetch_url_results',
+        sequence_number: 0,
+        contents: [
+          {
+            title: 'Fetched page',
+            url: 'https://example.com/source',
+            snippet: 'Fetched content.',
           },
-          chunks: [
-            `data: {"id":"ppl-123","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"role":"assistant","content":"Hello"},"finish_reason":null}],"citations":["https://example.com"]}\n\n`,
-            `data: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}\n\n`,
-            `data: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}\n\n`,
-            'data: [DONE]\n\n',
+        ],
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 1,
+        results: [
+          {
+            id: 7,
+            title: 'Search result',
+            url: 'https://example.com/source',
+            snippet: 'Search result content.',
+          },
+        ],
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    const sources = chunks.filter(chunk => chunk.type === 'source');
+
+    expect(sources).toHaveLength(1);
+    expect(sources[0]).toEqual(
+      expect.objectContaining({
+        id: '7',
+        providerMetadata: {
+          perplexity: expect.objectContaining({ resultId: 7 }),
+        },
+      }),
+    );
+  });
+
+  it('deduplicates a URL across annotations, search results, and fetched contents', async () => {
+    const searchResult = {
+      id: 7,
+      title: 'Search result',
+      url: 'https://example.com/source',
+      snippet: 'Search result content.',
+    };
+    const message = {
+      type: 'message',
+      content: [
+        {
+          type: 'output_text',
+          text: 'Answer',
+          annotations: [{ type: 'url_citation', url: searchResult.url }],
+        },
+      ],
+    };
+    prepareStream([
+      { type: 'response.output_item.done', item: message },
+      { type: 'response.reasoning.search_results', results: [searchResult] },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        contents: [searchResult],
+      },
+      {
+        type: 'response.completed',
+        response: createResponse({
+          output: [
+            { type: 'search_results', results: [searchResult] },
+            message,
           ],
-        };
+        }),
+      },
+    ]);
 
-      const { stream } = await perplexityLM.doStream({
-        prompt: TEST_PROMPT,
-        includeRawChunks: true,
-      });
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type === 'source')).toEqual([
+      expect.objectContaining({ id: '7', url: searchResult.url }),
+    ]);
+  });
 
-      const chunks = await convertReadableStreamToArray(stream);
+  it('streams Agent API reasoning thoughts', async () => {
+    prepareStream([
+      {
+        type: 'response.reasoning.started',
+        sequence_number: 0,
+        thought: 'Planning. ',
+      },
+      {
+        type: 'response.reasoning.search_queries',
+        sequence_number: 1,
+        queries: ['latest AI news'],
+        thought: 'Searching. ',
+      },
+      {
+        type: 'response.reasoning.search_results',
+        sequence_number: 2,
+        results: [],
+        thought: 'Reviewing results. ',
+      },
+      {
+        type: 'response.reasoning.fetch_url_queries',
+        sequence_number: 3,
+        urls: ['https://example.com/source'],
+        thought: 'Fetching details. ',
+      },
+      {
+        type: 'response.reasoning.fetch_url_results',
+        sequence_number: 4,
+        contents: [],
+        thought: 'Checking details. ',
+      },
+      {
+        type: 'response.reasoning.stopped',
+        sequence_number: 5,
+        thought: 'Done.',
+      },
+    ]);
 
-      expect(chunks).toMatchInlineSnapshot(`
-        [
-          {
-            "type": "stream-start",
-            "warnings": [],
-          },
-          {
-            "rawValue": {
-              "choices": [
-                {
-                  "delta": {
-                    "content": "Hello",
-                    "role": "assistant",
-                  },
-                  "finish_reason": null,
-                  "index": 0,
-                },
-              ],
-              "citations": [
-                "https://example.com",
-              ],
-              "created": 1234567890,
-              "id": "ppl-123",
-              "model": "perplexity-001",
-              "object": "chat.completion.chunk",
-            },
-            "type": "raw",
-          },
-          {
-            "id": "ppl-123",
-            "modelId": "perplexity-001",
-            "timestamp": 2009-02-13T23:31:30.000Z,
-            "type": "response-metadata",
-          },
-          {
-            "id": "id-2",
-            "sourceType": "url",
-            "type": "source",
-            "url": "https://example.com",
-          },
-          {
-            "id": "0",
-            "type": "text-start",
-          },
-          {
-            "delta": "Hello",
-            "id": "0",
-            "type": "text-delta",
-          },
-          {
-            "rawValue": {
-              "choices": [
-                {
-                  "delta": {
-                    "content": " world",
-                  },
-                  "finish_reason": null,
-                  "index": 0,
-                },
-              ],
-              "created": 1234567890,
-              "id": "ppl-456",
-              "model": "perplexity-001",
-              "object": "chat.completion.chunk",
-            },
-            "type": "raw",
-          },
-          {
-            "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-456","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{"content":" world"},"finish_reason":null}]}.
-        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""}]],
-            "type": "error",
-          },
-          {
-            "rawValue": {
-              "choices": [
-                {
-                  "delta": {},
-                  "finish_reason": "stop",
-                  "index": 0,
-                },
-              ],
-              "created": 1234567890,
-              "id": "ppl-789",
-              "model": "perplexity-001",
-              "object": "chat.completion.chunk",
-              "usage": {
-                "citation_tokens": 2,
-                "completion_tokens": 5,
-                "num_search_queries": 1,
-                "prompt_tokens": 10,
-                "total_tokens": 15,
-              },
-            },
-            "type": "raw",
-          },
-          {
-            "error": [AI_TypeValidationError: Type validation failed: Value: {"id":"ppl-789","object":"chat.completion.chunk","created":1234567890,"model":"perplexity-001","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":10,"completion_tokens":5,"total_tokens":15,"citation_tokens":2,"num_search_queries":1}}.
-        Error message: [{"code":"invalid_value","values":["assistant"],"path":["choices",0,"delta","role"],"message":"Invalid input: expected \\"assistant\\""},{"expected":"string","code":"invalid_type","path":["choices",0,"delta","content"],"message":"Invalid input: expected string, received undefined"}]],
-            "type": "error",
-          },
-          {
-            "id": "0",
-            "type": "text-end",
-          },
-          {
-            "finishReason": "unknown",
-            "providerMetadata": {
-              "perplexity": {
-                "cost": null,
-                "images": null,
-                "usage": {
-                  "citationTokens": null,
-                  "numSearchQueries": null,
-                },
-              },
-            },
-            "type": "finish",
-            "usage": {
-              "inputTokens": undefined,
-              "outputTokens": undefined,
-              "reasoningTokens": undefined,
-              "totalTokens": undefined,
-            },
-          },
-        ]
-      `);
-    });
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks).toEqual([
+      { type: 'stream-start', warnings: [] },
+      { type: 'reasoning-start', id: 'reasoning-0' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Planning. ' },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Searching. ' },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Reviewing results. ',
+      },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Fetching details. ',
+      },
+      {
+        type: 'reasoning-delta',
+        id: 'reasoning-0',
+        delta: 'Checking details. ',
+      },
+      { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Done.' },
+      { type: 'reasoning-end', id: 'reasoning-0' },
+      expect.objectContaining({ type: 'finish' }),
+    ]);
+  });
+
+  it('handles incomplete terminal events and preserves usage', async () => {
+    prepareStream([
+      {
+        type: 'response.incomplete',
+        sequence_number: 0,
+        response: createResponse({
+          status: 'incomplete',
+          incomplete_details: { reason: 'max_output_tokens' },
+        }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello from Perplexity.' },
+      { type: 'text-end', id: 'msg-123' },
+    ]);
+    expect(chunks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'finish',
+          finishReason: 'length',
+          usage: expect.objectContaining({
+            inputTokens: 120,
+            outputTokens: 45,
+          }),
+        }),
+      ]),
+    );
+  });
+
+  it.each([
+    'response.output_text.done',
+    'response.output_item.done',
+    'response.completed',
+  ])('recovers text from %s without deltas', async type => {
+    const response = createResponse({ output: [createResponse().output[1]] });
+    prepareStream([
+      {
+        type,
+        item_id: 'msg-123',
+        output_index: 0,
+        content_index: 0,
+        text: 'Hello from Perplexity.',
+        item: response.output[0],
+        response,
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello from Perplexity.' },
+      { type: 'text-end', id: 'msg-123' },
+    ]);
+  });
+
+  it('appends only missing text and does not repeat completed content parts', async () => {
+    const message = {
+      type: 'message',
+      id: 'msg-123',
+      content: [
+        { type: 'output_text', text: 'Hello world.' },
+        { type: 'output_text', text: 'Second part.' },
+      ],
+    };
+    prepareStream([
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-123',
+        content_index: 0,
+        delta: 'Hello ',
+      },
+      {
+        type: 'response.output_text.done',
+        item_id: 'msg-123',
+        content_index: 0,
+        text: 'Hello world.',
+      },
+      {
+        type: 'response.output_text.delta',
+        item_id: 'msg-123',
+        content_index: 1,
+        delta: 'Second ',
+      },
+      { type: 'response.output_item.done', item: message, output_index: 0 },
+      {
+        type: 'response.completed',
+        response: createResponse({ output: [message] }),
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+    expect(chunks.filter(chunk => chunk.type.startsWith('text-'))).toEqual([
+      { type: 'text-start', id: 'msg-123' },
+      { type: 'text-delta', id: 'msg-123', delta: 'Hello ' },
+      { type: 'text-delta', id: 'msg-123', delta: 'world.' },
+      { type: 'text-end', id: 'msg-123' },
+      { type: 'text-start', id: 'msg-123:1' },
+      { type: 'text-delta', id: 'msg-123:1', delta: 'Second ' },
+      { type: 'text-delta', id: 'msg-123:1', delta: 'part.' },
+      { type: 'text-end', id: 'msg-123:1' },
+    ]);
+  });
+
+  it('emits stream failures as errors', async () => {
+    prepareStream([
+      {
+        type: 'response.failed',
+        sequence_number: 0,
+        error: { message: 'Agent run failed', type: 'server_error' },
+      },
+    ]);
+
+    const result = await model.doStream({ prompt: TEST_PROMPT });
+    const chunks = await convertReadableStreamToArray(result.stream);
+
+    expect(chunks).toEqual([
+      { type: 'stream-start', warnings: [] },
+      {
+        type: 'error',
+        error: { message: 'Agent run failed', type: 'server_error' },
+      },
+      expect.objectContaining({
+        type: 'finish',
+        finishReason: 'error',
+      }),
+    ]);
   });
 });

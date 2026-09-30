@@ -2,7 +2,7 @@ import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
 import { smoothStream } from './smooth-stream';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('smoothStream', () => {
   let events: any[] = [];
@@ -1024,6 +1024,242 @@ describe('smoothStream', () => {
           },
         ]
       `);
+    });
+  });
+
+  describe('providerMetadata preservation', () => {
+    const providerMetadataA = {
+      anthropic: { signature: 'sig-a' },
+    };
+    const providerMetadataB = {
+      anthropic: { signature: 'sig-b' },
+    };
+
+    async function smoothParts(parts: TextStreamPart<ToolSet>[]) {
+      const stream = convertArrayToReadableStream(parts).pipeThrough(
+        smoothStream({
+          delayInMs: null,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      return events.filter(event => typeof event !== 'string');
+    }
+
+    it.each([
+      {
+        chunking: 'word' as const,
+        inputText: 'First second final',
+        expectedText: ['First ', 'second ', 'final'],
+      },
+      {
+        chunking: 'line' as const,
+        inputText: 'First line\nSecond line\nfinal line',
+        expectedText: ['First line\n', 'Second line\n', 'final line'],
+      },
+    ])(
+      'should preserve providerMetadata on every $chunking-chunked text delta',
+      async ({ chunking, inputText, expectedText }) => {
+        const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+          { type: 'text-start', id: '1' },
+          {
+            type: 'text-delta',
+            id: '1',
+            text: inputText,
+            providerMetadata: providerMetadataA,
+          },
+          { type: 'text-end', id: '1' },
+        ]).pipeThrough(
+          smoothStream({
+            chunking,
+            delayInMs: null,
+            _internal: { delay },
+          })({ tools: {} }),
+        );
+
+        await consumeStream(stream);
+
+        expect(events.filter(event => event.type === 'text-delta')).toEqual(
+          expectedText.map(text => ({
+            type: 'text-delta',
+            text,
+            id: '1',
+            providerMetadata: providerMetadataA,
+          })),
+        );
+      },
+    );
+
+    it('should preserve an empty metadata delta after an exact boundary', async () => {
+      const output = await smoothParts([
+        { text: 'Done ', type: 'text-delta', id: '1' },
+        {
+          text: '',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'text-end', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        { text: 'Done ', type: 'text-delta', id: '1' },
+        {
+          text: '',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { type: 'text-end', id: '1' },
+      ]);
+    });
+
+    it('should not carry metadata to a metadata-free delta with the same id', async () => {
+      const output = await smoothParts([
+        {
+          text: 'Signed',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'text-delta', id: '1' },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'Signed',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: ' plain ', type: 'text-delta', id: '1' },
+      ]);
+    });
+
+    it('should keep different metadata values with their source deltas', async () => {
+      const output = await smoothParts([
+        {
+          text: 'First',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'First',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        {
+          text: ' second ',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataB,
+        },
+      ]);
+    });
+
+    it('should not carry metadata to a subsequent text id', async () => {
+      const output = await smoothParts([
+        {
+          text: 'Signed ',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: 'Plain ', type: 'text-delta', id: '2' },
+      ]);
+
+      expect(output).toEqual([
+        {
+          text: 'Signed ',
+          type: 'text-delta',
+          id: '1',
+          providerMetadata: providerMetadataA,
+        },
+        { text: 'Plain ', type: 'text-delta', id: '2' },
+      ]);
+    });
+  });
+
+  describe('document visibility', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('should skip delays while the document is hidden', async () => {
+      vi.stubGlobal('document', { visibilityState: 'hidden' });
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        {
+          text: 'Hello, World! This is an example text.',
+          type: 'text-delta',
+          id: '1',
+        },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
+    });
+
+    it('should resume without delays when the document becomes hidden', async () => {
+      const fakeDocument = {
+        visibilityState: 'visible' as DocumentVisibilityState,
+      };
+      vi.stubGlobal('document', fakeDocument);
+
+      const visibilityAwareDelay = (delayInMs: number | null) => {
+        events.push(`delay ${delayInMs}`);
+        fakeDocument.visibilityState = 'hidden';
+        return Promise.resolve();
+      };
+
+      const stream = convertArrayToReadableStream<TextStreamPart<ToolSet>>([
+        { type: 'text-start', id: '1' },
+        { type: 'text-delta', id: '1', text: 'one two three ' },
+        { type: 'text-end', id: '1' },
+      ]).pipeThrough(
+        smoothStream({
+          delayInMs: 10,
+          _internal: { delay: visibilityAwareDelay },
+        })({ tools: {} }),
+      );
+
+      await consumeStream(stream);
+
+      expect(events.filter(event => typeof event === 'string')).toEqual([
+        'delay 10',
+        'delay null',
+        'delay null',
+      ]);
+      expect(events.at(-1)).toEqual({ type: 'text-end', id: '1' });
     });
   });
 });

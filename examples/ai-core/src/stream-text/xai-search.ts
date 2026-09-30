@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: xai('grok-3-latest'),
+    model: xai('grok-4.5'),
     prompt:
       'What are the latest posts and activities from @nishimiya? Summarize their recent content and interests.',
     providerOptions: {

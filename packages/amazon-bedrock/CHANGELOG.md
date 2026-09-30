@@ -1,5 +1,270 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/anthropic@2.0.108
+
+## 3.0.137
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/anthropic@2.0.107
+  - @ai-sdk/provider-utils@3.0.40
+
+## 3.0.136
+
+### Patch Changes
+
+- Updated dependencies [214d440]
+  - @ai-sdk/anthropic@2.0.106
+
+## 3.0.135
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/anthropic@2.0.105
+  - @ai-sdk/provider-utils@3.0.39
+
+## 3.0.134
+
+### Patch Changes
+
+- dc710c5: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [594787e]
+- Updated dependencies [dc710c5]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/anthropic@2.0.104
+  - @ai-sdk/provider-utils@3.0.38
+
+## 3.0.133
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/anthropic@2.0.103
+
+## 3.0.132
+
+### Patch Changes
+
+- f6f8b61: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- 8399d3e: fix(amazon-bedrock): preserve API error messages when the error type is omitted
+
+## 3.0.131
+
+### Patch Changes
+
+- 24bda53: fix(amazon-bedrock): resolve endpoints for non-standard AWS partitions and endpoint overrides
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+
+## 3.0.129
+
+### Patch Changes
+
+- 1a80de8: fix(amazon-bedrock): return text from non-streaming citation responses
+
+## 3.0.128
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/anthropic@2.0.101
+
+## 3.0.127
+
+### Patch Changes
+
+- 27787e5: Add a structured output mode option and default Claude Sonnet 4.6 and Claude Haiku 4.5 to the JSON tool fallback.
+
+## 3.0.126
+
+### Patch Changes
+
+- 07ef4be: Omit assistant messages when only cache points remain after unsigned reasoning is filtered.
+- 0393692: Accept citation deltas in Amazon Bedrock streaming responses.
+- Updated dependencies [cd8f35c]
+- Updated dependencies [26165ee]
+  - @ai-sdk/anthropic@2.0.100
+  - @ai-sdk/provider-utils@3.0.36
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [78c7304]
+  - @ai-sdk/anthropic@2.0.99
+
+## 3.0.124
+
+### Patch Changes
+
+- 7a7a971: Forward the Anthropic option for disabling parallel tool use through Amazon Bedrock without sending conflicting tool choice fields.
+
+## 3.0.123
+
+### Patch Changes
+
+- 1f9e026: Omit assistant messages that become empty after unsupported reasoning content is removed.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+
+## 3.0.122
+
+### Patch Changes
+
+- 5f3c624: Send nested reasoning effort for CRIS-prefixed OpenAI GPT-5.x Converse requests while preserving the flat gpt-oss format.
+
+## 3.0.121
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/anthropic@2.0.97
+
+## 3.0.120
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/anthropic@2.0.96
+
+## 3.0.119
+
+### Patch Changes
+
+- 1cc3b4a: fix(amazon-bedrock): surface modeled event-stream exceptions
+
+## 3.0.118
+
+### Patch Changes
+
+- 44081a8: fix (provider/amazon-bedrock): support `reasoningContent.redactedContent` from the Converse API and replay it on subsequent turns
+
+## 3.0.117
+
+### Patch Changes
+
+- 834f16b: Reject Amazon Bedrock event streams that end with an incomplete buffered frame instead of completing normally with partial output.
+- e108d16: Surface Amazon Bedrock event stream frame decoding and processing failures instead of silently completing the stream.
+
+## 3.0.116
+
+### Patch Changes
+
+- 0ecface: fix(bedrock): wrap invalid tool input in object
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+
+## 3.0.114
+
+### Patch Changes
+
+- Updated dependencies [e7afc18]
+  - @ai-sdk/anthropic@2.0.94
+
+## 3.0.113
+
+### Patch Changes
+
+- Updated dependencies [950eec8]
+  - @ai-sdk/anthropic@2.0.93
+
+## 3.0.112
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/anthropic@2.0.92
+
+## 3.0.111
+
+### Patch Changes
+
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+  - @ai-sdk/anthropic@2.0.91
+
+## 3.0.110
+
+### Patch Changes
+
+- Updated dependencies [db28434]
+  - @ai-sdk/anthropic@2.0.90
+
+## 3.0.109
+
+### Patch Changes
+
+- 1b0e540: Use native structured output on supported Bedrock Anthropic models when thinking is enabled instead of forcing a JSON tool call.
+- a5065c5: Pass through `s3://` image URLs to Amazon Bedrock Converse as S3 image sources instead of downloading them.
+- 503e809: fix(provider/amazon-bedrock): omit unsigned reasoning from conversation history
+- de443c2: Sanitize invalid characters in replayed tool call names before sending conversation history to Amazon Bedrock.
+- Updated dependencies [1b0e540]
+- Updated dependencies [5bb3ae4]
+  - @ai-sdk/anthropic@2.0.89
+
+## 3.0.108
+
+### Patch Changes
+
+- Updated dependencies [30c69e6]
+  - @ai-sdk/anthropic@2.0.88
+
+## 3.0.107
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+- Updated dependencies [5082ee8]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/anthropic@2.0.87
+
+## 3.0.106
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/anthropic@2.0.86
+
 ## 3.0.105
 
 ### Patch Changes

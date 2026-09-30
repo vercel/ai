@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = await generateText({
-    model: 'xai/grok-2-vision',
+    model: 'xai/grok-4.5',
     messages: [
       {
         role: 'user',
