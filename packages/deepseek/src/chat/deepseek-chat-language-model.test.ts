@@ -81,7 +81,7 @@ describe('DeepSeekChatLanguageModel', () => {
       };
     }
 
-    it('ignores OpenAI-compatible cached prompt tokens by default', async () => {
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
       server.urls['https://api.deepseek.com/chat/completions'].response = {
         type: 'json-value',
         body: {
@@ -105,10 +105,8 @@ describe('DeepSeekChatLanguageModel', () => {
         .chat('deepseek-v4-flash')
         .doGenerate({ prompt: TEST_PROMPT });
 
-      expect(result.usage.cachedInputTokens).toBeUndefined();
-      expect(
-        result.providerMetadata?.deepseek?.promptCacheHitTokens,
-      ).toBeNull();
+      expect(result.usage.cachedInputTokens).toBe(80);
+      expect(result.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(80);
     });
 
     describe('text', () => {
@@ -1109,7 +1107,7 @@ describe('DeepSeekChatLanguageModel', () => {
       };
     }
 
-    it('ignores OpenAI-compatible cached prompt tokens by default', async () => {
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
       server.urls['https://api.deepseek.com/chat/completions'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -1132,10 +1130,10 @@ describe('DeepSeekChatLanguageModel', () => {
       const parts = await convertReadableStreamToArray(result.stream);
       const finishPart = parts.find(part => part.type === 'finish');
 
-      expect(finishPart?.usage.cachedInputTokens).toBeUndefined();
-      expect(
-        finishPart?.providerMetadata?.deepseek?.promptCacheHitTokens,
-      ).toBeNull();
+      expect(finishPart?.usage.cachedInputTokens).toBe(80);
+      expect(finishPart?.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(
+        80,
+      );
     });
 
     describe('text', () => {
