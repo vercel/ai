@@ -306,19 +306,19 @@ describe('Speech requests', () => {
     ]);
   });
 
-  it('warns about unsupported instructions and language', async () => {
-    const { provider, request } = setup();
+  it('warns about unsupported instructions', async () => {
+    const { provider } = setup();
     const result = await provider.speech('mai-voice-2').doGenerate({
       text: 'Hi',
       instructions: 'Speak slowly',
-      language: 'de',
     });
-    expect(request().body).toBe(ssml('en-US-Harper:MAI-Voice-2', 'Hi'));
-    expect(
-      result.warnings.map(warning =>
-        warning.type === 'unsupported' ? warning.feature : warning.type,
-      ),
-    ).toEqual(['instructions', 'language']);
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'instructions',
+        details: 'Use providerOptions.azure.style to control speaking style.',
+      },
+    ]);
   });
 
   it('does not apply Azure OpenAI URL settings to Speech requests', async () => {
@@ -358,6 +358,82 @@ describe('Speech requests', () => {
   });
 });
 
+describe('language', () => {
+  it.each([
+    ['mai-voice-2', 'de', 'de-DE-Mia:MAI-Voice-2', 'de-DE'],
+    ['mai-voice-2-flash', 'es', 'es-MX-Valeria:MAI-Voice-2-Flash', 'es-MX'],
+    ['mai-voice-2', 'pt', 'pt-BR-Luana:MAI-Voice-2', 'pt-BR'],
+    ['mai-voice-2', 'zh', 'zh-CN-Mei:MAI-Voice-2', 'zh-CN'],
+    ['mai-voice-2', 'en', 'en-US-Harper:MAI-Voice-2', 'en-US'],
+    ['mai-voice-2', 'FR', 'fr-FR-Soleil:MAI-Voice-2', 'fr-FR'],
+    ['mai-voice-2', 'ko-KR', 'ko-KR-Haena:MAI-Voice-2', 'ko-KR'],
+  ])(
+    'uses the %s default voice for language %s',
+    async (id, language, voice, locale) => {
+      const { provider, request } = setup();
+      const result = await provider
+        .speech(id)
+        .doGenerate({ text: 'Hi', language });
+      expect(request().body).toBe(ssml(voice, 'Hi', locale));
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it.each([
+    ['ja', 'No default MAI voice for language "ja". en-US-Harper was used.'],
+    [
+      'constructor',
+      'No default MAI voice for language "constructor". en-US-Harper was used.',
+    ],
+    [
+      'auto',
+      'Automatic language detection is not supported. en-US-Harper was used.',
+    ],
+  ])(
+    'falls back to en-US-Harper with a warning for %s',
+    async (language, details) => {
+      const { provider, request } = setup();
+      const result = await provider
+        .speech('mai-voice-2')
+        .doGenerate({ text: 'Hi', language });
+      expect(request().body).toBe(ssml('en-US-Harper:MAI-Voice-2', 'Hi'));
+      expect(result.warnings).toEqual([
+        { type: 'unsupported', feature: 'language', details },
+      ]);
+    },
+  );
+
+  it.each(['de', 'de-AT', 'auto'])(
+    'keeps an explicit voice without a warning for language %s',
+    async language => {
+      const { provider, request } = setup();
+      const result = await provider
+        .speech('mai-voice-2')
+        .doGenerate({ text: 'Hallo', voice: 'de-DE-Klaus', language });
+      expect(request().body).toBe(
+        ssml('de-DE-Klaus:MAI-Voice-2', 'Hallo', 'de-DE'),
+      );
+      expect(result.warnings).toEqual([]);
+    },
+  );
+
+  it('keeps an explicit voice and warns when the language conflicts', async () => {
+    const { provider, request } = setup();
+    const result = await provider
+      .speech('mai-voice-2')
+      .doGenerate({ text: 'Hi', voice: 'en-US-Ethan', language: 'de' });
+    expect(request().body).toBe(ssml('en-US-Ethan:MAI-Voice-2', 'Hi'));
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'language',
+        details:
+          'The voice en-US-Ethan selects the language. Language "de" was ignored.',
+      },
+    ]);
+  });
+});
+
 describe('Speech errors', () => {
   it('explains empty 400 responses', async () => {
     const { provider } = setup({}, () => new Response(null, { status: 400 }));
@@ -385,18 +461,19 @@ describe('Speech errors', () => {
     ).rejects.toMatchObject({ statusCode: 401, message: 'Access denied' });
   });
 
-  it('does not retry connection resets caused by unknown voices or styles', async () => {
-    const { provider } = setup(
-      {},
-      () =>
-        new Response(
-          'upstream connect error or disconnect/reset before headers. reset reason: protocol error',
-          { status: 502 },
-        ),
-    );
+  it.each([
+    'upstream connect error or disconnect/reset before headers. reset reason: connection termination',
+    'unavailable',
+  ])('keeps 502 responses retryable (%s)', async body => {
+    const { provider } = setup({}, () => new Response(body, { status: 502 }));
     await expect(
       provider.speech('mai-voice-2').doGenerate({ text: 'Hi' }),
-    ).rejects.toMatchObject({ statusCode: 502, isRetryable: false });
+    ).rejects.toMatchObject({
+      statusCode: 502,
+      isRetryable: true,
+      message: 'Azure Speech request failed with status 502.',
+      responseBody: body,
+    });
   });
 
   it.each([429, 503])('keeps HTTP %s retryable', async status => {

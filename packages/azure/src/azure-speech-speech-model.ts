@@ -17,6 +17,26 @@ import { getMAIVoiceModel } from './azure-speech-model-options';
 import type { AzureSpeechModelSpeechOptions } from './azure-speech-speech-model-options';
 
 const DEFAULT_VOICE = 'en-US-Harper';
+
+// Default voice per ISO 639-1 language; available on MAI-Voice-2 and
+// MAI-Voice-2-Flash.
+const DEFAULT_VOICES = new Map([
+  ['de', 'de-DE-Mia'],
+  ['en', DEFAULT_VOICE],
+  ['es', 'es-MX-Valeria'],
+  ['fr', 'fr-FR-Soleil'],
+  ['hi', 'hi-IN-Kavya'],
+  ['hu', 'hu-HU-Lilla'],
+  ['it', 'it-IT-Rosa'],
+  ['ko', 'ko-KR-Haena'],
+  ['nl', 'nl-NL-Fleur'],
+  ['pt', 'pt-BR-Luana'],
+  ['ro', 'ro-RO-Elena'],
+  ['ru', 'ru-RU-Masha'],
+  ['th', 'th-TH-Krit'],
+  ['tr', 'tr-TR-Elif'],
+  ['zh', 'zh-CN-Mei'],
+]);
 const DEFAULT_OUTPUT_FORMAT = 'audio-24khz-160kbitrate-mono-mp3';
 
 // Shorthand formats for `outputFormat`; other X-Microsoft-OutputFormat values
@@ -63,12 +83,15 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
         details: 'Use providerOptions.azure.style to control speaking style.',
       });
     }
-    if (options.language != null) {
+    const { voice, languageWarning } = resolveVoice(
+      options.voice,
+      options.language,
+    );
+    if (languageWarning != null) {
       warnings.push({
         type: 'unsupported',
         feature: 'language',
-        details:
-          'The voice locale selects the language, e.g. de-DE-Mia for German.',
+        details: languageWarning,
       });
     }
     if (styleDegree != null && style == null) {
@@ -96,7 +119,6 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
       }
     }
 
-    const voice = options.voice ?? DEFAULT_VOICE;
     const ssml = buildSsml({
       text: options.text,
       voiceName: voice.includes(':')
@@ -185,12 +207,49 @@ function escapeXml(value: string) {
   return value.replace(/[&<>"']/g, char => XML_ESCAPES[char]);
 }
 
+// Uses the language's default voice when no voice is set. An explicit voice
+// wins, and its locale selects the language.
+function resolveVoice(
+  voice: string | undefined,
+  language: string | undefined,
+): { voice: string; languageWarning?: string } {
+  const code = language ? language.split('-')[0].toLowerCase() : undefined;
+  if (voice == null) {
+    if (code == null) return { voice: DEFAULT_VOICE };
+    if (code === 'auto') {
+      return {
+        voice: DEFAULT_VOICE,
+        languageWarning: `Automatic language detection is not supported. ${DEFAULT_VOICE} was used.`,
+      };
+    }
+    const defaultVoice = DEFAULT_VOICES.get(code);
+    return defaultVoice != null
+      ? { voice: defaultVoice }
+      : {
+          voice: DEFAULT_VOICE,
+          languageWarning: `No default MAI voice for language "${language}". ${DEFAULT_VOICE} was used.`,
+        };
+  }
+  const voiceLanguage = /^([a-z]{2,3})-[a-z]{2,4}-/i
+    .exec(voice)?.[1]
+    ?.toLowerCase();
+  return code != null &&
+    code !== 'auto' &&
+    voiceLanguage != null &&
+    code !== voiceLanguage
+    ? {
+        voice,
+        languageWarning: `The voice ${voice} selects the language. Language "${language}" was ignored.`,
+      }
+    : { voice };
+}
+
 const errorSchema = z.object({
   error: z.object({ message: z.string() }),
 });
 
-// Azure Speech answers most invalid requests (unknown voice, style, or output
-// format) with an empty 400 body, and sometimes resets the connection (502).
+// Azure Speech answers invalid requests (unknown voice, style, or output
+// format) with an empty 400 body.
 const failedResponseHandler: ResponseHandler<APICallError> = async ({
   response,
   url,
@@ -202,14 +261,12 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
     text: responseBody,
     schema: errorSchema,
   });
-  const isVoiceReset =
-    response.status === 502 && responseBody.includes('reset reason');
 
   const message = parsed.success
     ? parsed.value.error.message
-    : isVoiceReset
-      ? 'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.'
-      : `Azure Speech request failed with status ${response.status}. Check the voice name, style, and output format.`;
+    : response.status === 400
+      ? 'Azure Speech request failed with status 400. Check the voice name, style, and output format.'
+      : `Azure Speech request failed with status ${response.status}.`;
 
   return {
     responseHeaders,
@@ -220,7 +277,6 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
       statusCode: response.status,
       responseHeaders,
       responseBody,
-      isRetryable: isVoiceReset ? false : undefined,
     }),
   };
 };

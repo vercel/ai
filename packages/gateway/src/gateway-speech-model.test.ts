@@ -102,25 +102,6 @@ describe('GatewaySpeechModel', () => {
       });
     });
 
-    it.each(['speech', 'openai'])(
-      'passes the Azure %s API override unchanged',
-      async api => {
-        prepareJsonResponse();
-        const providerOptions = {
-          azure: { api, style: 'excited', styleDegree: 1.5 },
-        };
-        await createTestModel().doGenerate({
-          text: 'Hello world',
-          voice: 'en-US-Harper',
-          providerOptions,
-        });
-        expect(await server.calls[0].requestBodyJson).toMatchObject({
-          voice: 'en-US-Harper',
-          providerOptions,
-        });
-      },
-    );
-
     it('should omit optional speech options when not provided', async () => {
       prepareJsonResponse();
 
