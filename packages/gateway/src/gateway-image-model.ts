@@ -5,8 +5,9 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   type Resolvable,
@@ -70,7 +71,7 @@ export class GatewayImageModel implements ImageModelV2 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -78,6 +79,9 @@ export class GatewayImageModel implements ImageModelV2 {
 
       return {
         images: responseBody.images, // Always base64 strings from server
+        ...(responseBody.isRetryable != null && {
+          isRetryable: responseBody.isRetryable,
+        }),
         warnings: responseBody.warnings ?? [],
         providerMetadata:
           responseBody.providerMetadata as ImageModelV2ProviderMetadata,
@@ -125,6 +129,7 @@ const gatewayImageUsageSchema = z.object({
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
+  isRetryable: z.boolean().optional(),
   warnings: z
     .array(
       z.object({

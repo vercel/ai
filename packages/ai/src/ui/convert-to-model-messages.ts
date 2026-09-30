@@ -59,7 +59,8 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
         part =>
           !isToolOrDynamicToolUIPart(part) ||
           (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
+            part.state !== 'input-available' &&
+            (part.state !== 'output-available' || part.preliminary !== true)),
       ),
     }));
   }

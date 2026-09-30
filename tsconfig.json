@@ -16,6 +16,9 @@
       "path": "packages/anthropic"
     },
     {
+      "path": "packages/anthropic-aws"
+    },
+    {
       "path": "packages/assemblyai"
     },
     {
@@ -61,6 +64,9 @@
       "path": "packages/gladia"
     },
     {
+      "path": "packages/gmicloud"
+    },
+    {
       "path": "packages/google-vertex"
     },
     {
@@ -80,9 +86,6 @@
     },
     {
       "path": "packages/llamaindex"
-    },
-    {
-      "path": "packages/lmnt"
     },
     {
       "path": "packages/luma"
@@ -146,6 +149,9 @@
     },
     {
       "path": "packages/xai"
+    },
+    {
+      "path": "packages/zai"
     }
   ],
   "include": []

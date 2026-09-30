@@ -1,5 +1,6 @@
 import {
   type JSONObject,
+  type JSONValue,
   type LanguageModelV2Message,
   type LanguageModelV2Prompt,
   type SharedV2ProviderMetadata,
@@ -39,6 +40,10 @@ async function shouldEnableCitations(
   });
 
   return bedrockOptions?.citations?.enabled ?? false;
+}
+
+function sanitizeToolName(toolName: string): string {
+  return toolName.replace(/[^a-zA-Z0-9_-]/g, '') || '_';
 }
 
 export async function convertToBedrockChatMessages(
@@ -99,10 +104,26 @@ export async function convertToBedrockChatMessages(
 
                   case 'file': {
                     if (part.data instanceof URL) {
-                      // The AI SDK automatically downloads files for user file parts with URLs
-                      throw new UnsupportedFunctionalityError({
-                        functionality: 'File URL data',
+                      if (
+                        part.data.protocol !== 's3:' ||
+                        !part.mediaType.startsWith('image/')
+                      ) {
+                        throw new UnsupportedFunctionalityError({
+                          functionality: 'File URL data',
+                        });
+                      }
+
+                      bedrockContent.push({
+                        image: {
+                          format: getBedrockImageFormat(part.mediaType),
+                          source: {
+                            s3Location: {
+                              uri: part.data.toString(),
+                            },
+                          },
+                        },
                       });
+                      break;
                     }
 
                     if (part.mediaType.startsWith('image/')) {
@@ -210,7 +231,12 @@ export async function convertToBedrockChatMessages(
           }
         }
 
-        messages.push({ role: 'user', content: bedrockContent });
+        const previousMessage = messages.at(-1);
+        if (previousMessage?.role === 'user') {
+          previousMessage.content.push(...bedrockContent);
+        } else {
+          messages.push({ role: 'user', content: bedrockContent });
+        }
 
         break;
       }
@@ -275,6 +301,12 @@ export async function convertToBedrockChatMessages(
                         },
                       },
                     });
+                  } else if (reasoningMetadata.redactedContent != null) {
+                    bedrockContent.push({
+                      reasoningContent: {
+                        redactedContent: reasoningMetadata.redactedContent,
+                      },
+                    });
                   } else if (reasoningMetadata.redactedData != null) {
                     bedrockContent.push({
                       reasoningContent: {
@@ -284,35 +316,9 @@ export async function convertToBedrockChatMessages(
                       },
                     });
                   }
-                } else if (
-                  part.providerOptions == null ||
-                  Object.keys(part.providerOptions).every(
-                    k => k === 'bedrock' || k === 'amazonBedrock',
-                  )
-                ) {
-                  // No foreign-provider metadata — preserve text. This covers
-                  // the prefill case where the caller hand-crafts a reasoning
-                  // block without a signature. Forwarding reasoning that was
-                  // signed by a different provider (e.g. anthropic) would
-                  // cause Bedrock to reject with
-                  // `thinking.signature: Field required`, so we drop those.
-                  // trim the last text part if it's the last message in the
-                  // block because Bedrock does not allow trailing whitespace
-                  // in pre-filled assistant responses
-                  bedrockContent.push({
-                    reasoningContent: {
-                      reasoningText: {
-                        text: trimIfLast(
-                          isLastBlock,
-                          isLastMessage,
-                          isLastContentPart,
-                          part.text,
-                        ),
-                      },
-                    },
-                  });
                 }
 
+                // Unsigned reasoning cannot be safely replayed to Bedrock.
                 break;
               }
 
@@ -320,8 +326,8 @@ export async function convertToBedrockChatMessages(
                 bedrockContent.push({
                   toolUse: {
                     toolUseId: part.toolCallId,
-                    name: part.toolName,
-                    input: part.input as JSONObject,
+                    name: sanitizeToolName(part.toolName),
+                    input: toBedrockToolInput(part.input),
                   },
                 });
                 break;
@@ -333,7 +339,9 @@ export async function convertToBedrockChatMessages(
           }
         }
 
-        messages.push({ role: 'assistant', content: bedrockContent });
+        if (bedrockContent.some(block => !('cachePoint' in block))) {
+          messages.push({ role: 'assistant', content: bedrockContent });
+        }
 
         break;
       }
@@ -346,6 +354,13 @@ export async function convertToBedrockChatMessages(
   }
 
   return { system, messages };
+}
+
+// wrap invalid tool call input because Bedrock requires it to be an object
+function toBedrockToolInput(input: unknown): JSONObject {
+  return typeof input === 'object' && input !== null && !Array.isArray(input)
+    ? (input as JSONObject)
+    : { rawInvalidInput: input as JSONValue };
 }
 
 function isBedrockImageFormat(format: string): format is BedrockImageFormat {
