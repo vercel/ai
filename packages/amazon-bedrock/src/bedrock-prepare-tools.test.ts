@@ -4,6 +4,31 @@ import { prepareTools } from './bedrock-prepare-tools';
 const ANTHROPIC_MODEL = 'anthropic.claude-sonnet-4-5-20250929-v1:0';
 
 describe('prepareTools', () => {
+  it('should use Anthropic tool choice fields for a declared Anthropic application inference profile', async () => {
+    const result = await prepareTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'testFunction',
+          description: 'Test',
+          inputSchema: {},
+        },
+      ],
+      modelId:
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile',
+      modelFamily: 'anthropic',
+      disableParallelToolUse: true,
+    });
+
+    expect(result.additionalTools).toEqual({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(result.toolConfig.toolChoice).toBeUndefined();
+  });
+
   it.each([
     {
       toolChoice: undefined,

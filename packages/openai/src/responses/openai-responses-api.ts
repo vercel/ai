@@ -431,7 +431,7 @@ export const openaiResponsesChunkSchema = lazyValidator(() =>
             name: z.string(),
             arguments: z.string(),
             async: z.boolean().nullish(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
           }),
           z.object({
             type: z.literal('code_interpreter_call'),

@@ -68,11 +68,13 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
     initialDelayInMs = 2000,
     backoffFactor = 2,
     abortSignal,
+    additionalRetryableError,
   }: {
     maxRetries?: number;
     initialDelayInMs?: number;
     backoffFactor?: number;
     abortSignal?: AbortSignal;
+    additionalRetryableError?: (error: unknown) => boolean;
   } = {}): RetryFunction =>
   async <OUTPUT>(f: () => PromiseLike<OUTPUT>) =>
     _retryWithExponentialBackoff(f, {
@@ -80,6 +82,7 @@ export const retryWithExponentialBackoffRespectingRetryHeaders =
       delayInMs: initialDelayInMs,
       backoffFactor,
       abortSignal,
+      additionalRetryableError,
     });
 
 async function _retryWithExponentialBackoff<OUTPUT>(
@@ -89,11 +92,13 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     delayInMs,
     backoffFactor,
     abortSignal,
+    additionalRetryableError,
   }: {
     maxRetries: number;
     delayInMs: number;
     backoffFactor: number;
     abortSignal: AbortSignal | undefined;
+    additionalRetryableError: ((error: unknown) => boolean) | undefined;
   },
   errors: unknown[] = [],
 ): Promise<OUTPUT> {
@@ -121,9 +126,10 @@ async function _retryWithExponentialBackoff<OUTPUT>(
     }
 
     if (
-      error instanceof Error &&
-      ((APICallError.isInstance(error) && error.isRetryable === true) ||
-        (GatewayError.isInstance(error) && error.isRetryable === true)) &&
+      ((error instanceof Error &&
+        ((APICallError.isInstance(error) && error.isRetryable === true) ||
+          (GatewayError.isInstance(error) && error.isRetryable === true))) ||
+        additionalRetryableError?.(error) === true) &&
       tryNumber <= maxRetries
     ) {
       await delay(
@@ -141,6 +147,7 @@ async function _retryWithExponentialBackoff<OUTPUT>(
           delayInMs: backoffFactor * delayInMs,
           backoffFactor,
           abortSignal,
+          additionalRetryableError,
         },
         newErrors,
       );

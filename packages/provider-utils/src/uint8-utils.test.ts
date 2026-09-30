@@ -21,7 +21,7 @@ describe('convertUint8ArrayToBase64', () => {
   });
 
   it('round-trips arrays larger than a single conversion chunk', () => {
-    const bytes = createBytes(100_000);
+    const bytes = createBytes(4097);
 
     expect(convertBase64ToUint8Array(convertUint8ArrayToBase64(bytes))).toEqual(
       bytes,

@@ -1,5 +1,69 @@
 # @ai-sdk/alibaba
 
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 0.0.29
+
+### Patch Changes
+
+- 1f0e0af: fix(alibaba): use model-specific structured output modes
+
+## 0.0.28
+
+### Patch Changes
+
+- b6cae9b: feat(alibaba): preserve reasoning in multi-turn requests by default on supported models
+
+## 0.0.27
+
+### Patch Changes
+
+- 2c72feb: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 0.0.25
 
 ### Patch Changes

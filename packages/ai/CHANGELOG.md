@@ -1,5 +1,158 @@
 # ai
 
+## 5.0.271
+
+### Patch Changes
+
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [0fa5517]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/gateway@2.0.162
+  - @ai-sdk/provider-utils@3.0.41
+
+## 5.0.270
+
+### Patch Changes
+
+- 1849a5f: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- 5381c08: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- 06e8d1c: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- 58d303f: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- 430ae0a: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [07e394b]
+- Updated dependencies [b6cf409]
+  - @ai-sdk/gateway@2.0.161
+
+## 5.0.269
+
+### Patch Changes
+
+- 11f5cda: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+
+## 5.0.268
+
+### Patch Changes
+
+- dfffb7e: fix(ai): cancel response streams when clients disconnect
+- 1d0096a: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/gateway@2.0.160
+  - @ai-sdk/provider-utils@3.0.40
+
+## 5.0.267
+
+### Patch Changes
+
+- Updated dependencies [3569298]
+  - @ai-sdk/gateway@2.0.159
+
+## 5.0.266
+
+### Patch Changes
+
+- Updated dependencies [cd9b333]
+  - @ai-sdk/gateway@2.0.158
+
+## 5.0.265
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- 0519802: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [0430ee6]
+- Updated dependencies [bf29419]
+- Updated dependencies [14ecfdc]
+  - @ai-sdk/gateway@2.0.157
+  - @ai-sdk/provider-utils@3.0.39
+
+## 5.0.264
+
+### Patch Changes
+
+- 594787e: fix(provider): preserve opaque file URI strings for provider serialization
+- 7b19d17: fix(ai): prevent duplicate content types in chat transport requests
+- 907e4c9: Fix streamed tool input callbacks firing out of order on newer Node.js versions by awaiting start and delta callbacks before invoking `onInputAvailable`.
+- Updated dependencies [594787e]
+- Updated dependencies [391ad4a]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/gateway@2.0.156
+  - @ai-sdk/provider-utils@3.0.38
+
+## 5.0.263
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/gateway@2.0.155
+
+## 5.0.262
+
+### Patch Changes
+
+- Updated dependencies [d22c28b]
+- Updated dependencies [d3e1726]
+- Updated dependencies [450d168]
+- Updated dependencies [82b6405]
+  - @ai-sdk/gateway@2.0.154
+
+## 5.0.261
+
+### Patch Changes
+
+- 69879fe: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+
+## 5.0.260
+
+### Patch Changes
+
+- ab8aa35: fix(ai): preserve provider metadata when simulating text streams
+
+## 5.0.259
+
+### Patch Changes
+
+- bf32c45: fix(ai): reject embedding model responses that contain no embeddings
+- Updated dependencies [5728a51]
+- Updated dependencies [6d3e199]
+  - @ai-sdk/gateway@2.0.153
+
+## 5.0.258
+
+### Patch Changes
+
+- Updated dependencies [4a75d2c]
+  - @ai-sdk/gateway@2.0.152
+
+## 5.0.257
+
+### Patch Changes
+
+- Updated dependencies [0d4a425]
+  - @ai-sdk/gateway@2.0.151
+
+## 5.0.256
+
+### Patch Changes
+
+- Updated dependencies [73fa129]
+- Updated dependencies [5a19081]
+  - @ai-sdk/gateway@2.0.150
+
+## 5.0.255
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- 7f4e217: fix(ai): decode text data URLs in Node.js
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/gateway@2.0.149
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 5.0.254
 
 ### Patch Changes

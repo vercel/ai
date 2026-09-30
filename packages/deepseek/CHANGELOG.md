@@ -1,5 +1,59 @@
 # @ai-sdk/deepseek
 
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 1.0.61
+
+### Patch Changes
+
+- e2831de: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 1.0.59
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 1.0.57
+
+### Patch Changes
+
+- 41fda08: fix(provider/deepseek): treat the `deepseek-flash` alias as a V4 model so prior-turn `reasoning_content` is preserved in multi-turn requests
+- 2c72feb: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 1.0.55
 
 ### Patch Changes

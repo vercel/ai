@@ -24,9 +24,11 @@ export type AnthropicMessagesModelId =
   | 'claude-opus-4-7'
   | 'claude-opus-4-8'
   | 'claude-opus-5'
+  | 'claude-opus-5-5'
   | 'claude-fable-5'
   | 'claude-fable-5-1'
   | 'claude-sonnet-5'
+  | 'claude-sonnet-5-5'
   | (string & {});
 
 /**
@@ -78,9 +80,10 @@ export const anthropicSystemMessageProviderOptions = z.object({
   clearAt: z.literal('next_user_message').optional(),
 
   /**
-   * Overrides the effort for the turn following this mid-conversation system
-   * message. The required `mid-conversation-effort-2026-08-01` beta is added
-   * automatically.
+   * Sets the model effort from the next user turn until a later message
+   * changes it. An effort-only system message with empty content can appear
+   * first. The required `mid-conversation-output-config-2026-07-01` beta is
+   * added automatically.
    */
   effort: z.enum(['low', 'medium', 'high', 'xhigh', 'max']).optional(),
 
@@ -140,7 +143,7 @@ export const anthropicProviderOptions = z.object({
    *
    * - `outputFormat`: Use the `output_format` parameter to specify the structured output format.
    * - `jsonTool`: Use a special JSON response tool to specify the structured output format (default for most models).
-   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Fable 5.1).
+   * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default for Sonnet 5.5, Opus 5.5, and Fable 5.1).
    */
   structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
 
@@ -149,6 +152,14 @@ export const anthropicProviderOptions = z.object({
    *
    * When enabled, responses include thinking content blocks showing Claude's thinking process before the final answer.
    * Requires a minimum budget of 1,024 tokens and counts towards the `max_tokens` limit.
+   *
+   * Models that always use adaptive thinking (e.g. `claude-opus-5-5`,
+   * `claude-fable-5-1`) reject `enabled` and `disabled`. For those models the
+   * provider drops the unsupported setting, emits a warning, and sends an
+   * adaptive thinking request. Use `effort` to control how much they think.
+   *
+   * `claude-sonnet-5-5` supports `between_tools`, its lowest thinking setting,
+   * and the provider uses it in place of `disabled` for that model.
    */
   thinking: z
     .union([
@@ -180,6 +191,14 @@ export const anthropicProviderOptions = z.object({
       }),
       z.object({
         type: z.literal('disabled'),
+      }),
+      z.object({
+        /**
+         * for `claude-sonnet-5-5`: no upfront thinking, but progress notes
+         * between tool calls are returned as summarized thinking blocks.
+         * Only supported at `low`, `medium`, and `high` effort.
+         */
+        type: z.literal('between_tools'),
       }),
       z.object({
         /**

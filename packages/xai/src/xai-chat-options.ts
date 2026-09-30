@@ -3,6 +3,7 @@ import { z } from 'zod/v4';
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
   | 'grok-4.6'
+  | 'grok-4.7'
   | 'grok-4.5'
   | 'grok-4-1'
   | 'grok-4-1-fast-reasoning'

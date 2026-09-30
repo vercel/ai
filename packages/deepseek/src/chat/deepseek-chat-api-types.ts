@@ -75,6 +75,11 @@ const tokenUsageSchema = z
     prompt_cache_hit_tokens: z.number().nullish(),
     prompt_cache_miss_tokens: z.number().nullish(),
     total_tokens: z.number().nullish(),
+    prompt_tokens_details: z
+      .object({
+        cached_tokens: z.number().nullish(),
+      })
+      .nullish(),
     completion_tokens_details: z
       .object({
         reasoning_tokens: z.number().nullish(),

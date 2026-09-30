@@ -62,6 +62,9 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-6-astra',
+  'gpt-6.1-sol',
+  'gpt-6-luna',
+  'gpt-6-sol',
 ] as const;
 
 export const openaiResponsesModelIds = [
@@ -146,6 +149,9 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
   | 'gpt-6-astra'
+  | 'gpt-6.1-sol'
+  | 'gpt-6-luna'
+  | 'gpt-6-sol'
   | 'gpt-5-2025-08-07'
   | 'gpt-5-chat-latest'
   | 'gpt-5-codex'
@@ -281,4 +287,26 @@ export const openaiResponsesProviderOptionsSchema = lazyValidator(() =>
 
 export type OpenAIResponsesProviderOptions = InferValidator<
   typeof openaiResponsesProviderOptionsSchema
+>;
+
+export const openaiResponsesSystemMessageOptionsSchema = lazyValidator(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Emit a configuration update at this position in Responses history.
+       * Requires empty system message content and the same supported
+       * configuration as the request-level reasoningEffortUpdate option.
+       * Unsupported historical updates throw instead of being omitted.
+       *
+       * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+       */
+      reasoningEffortUpdate: z
+        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesSystemMessageOptions = InferValidator<
+  typeof openaiResponsesSystemMessageOptionsSchema
 >;

@@ -466,4 +466,22 @@ describe('retryWithExponentialBackoffRespectingRetryHeaders', () => {
     await expect(promise).resolves.toBe('success');
     expect(fn).toHaveBeenCalledTimes(2);
   });
+
+  it('should retry errors accepted by the additional retry predicate', async () => {
+    const retryableError = new Error('retryable custom error');
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(retryableError)
+      .mockResolvedValue('success');
+
+    const promise = retryWithExponentialBackoffRespectingRetryHeaders({
+      initialDelayInMs: 100,
+      additionalRetryableError: error => error === retryableError,
+    })(fn);
+
+    await vi.advanceTimersByTimeAsync(100);
+
+    await expect(promise).resolves.toBe('success');
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
 });

@@ -96,18 +96,37 @@ const gatewayProviderOptions = lazyValidator(() =>
         })
         .optional(),
       /**
-       * Restrict routing to provider models that have all of the given
-       * capabilities:
+       * Restrict routing to provider models that satisfy every given entry:
        *
        * - `'implicit-caching'`: models that perform automatic (implicit)
        *   prompt caching
+       * - `'reasoning'`: models that support reasoning
+       * - `'structured-output'`: models that support schema-constrained output
+       * - `'tool-use'`: models that support tool calling
        * - `'vision'`: models that accept image input
+       * - `'quantization:<value>'`: providers serving that weight format
+       * - `'!quantization:<value>'`: exclude providers serving that weight
+       *   format (providers with no recorded format still pass an exclusion)
        *
        * The capability is a property of the model, so the filter applies to
        * both BYOK and system credentials. If no provider model for the
        * requested model satisfies the capabilities, the request fails.
        */
-      has: z.array(z.enum(['implicit-caching', 'vision'])).optional(),
+      has: z
+        .array(
+          z.union([
+            z.enum([
+              'implicit-caching',
+              'reasoning',
+              'structured-output',
+              'tool-use',
+              'vision',
+            ]),
+            z.templateLiteral(['quantization:', z.string()]),
+            z.templateLiteral(['!quantization:', z.string()]),
+          ]),
+        )
+        .optional(),
     }),
   ),
 );

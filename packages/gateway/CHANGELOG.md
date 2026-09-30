@@ -1,5 +1,129 @@
 # @ai-sdk/gateway
 
+## 2.0.162
+
+### Patch Changes
+
+- 0fa5517: Backport: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.161
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+- b6cf409: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.160
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.159
+
+### Patch Changes
+
+- 3569298: feat(provider/gateway): accept structured-output in the has provider option
+
+## 2.0.158
+
+### Patch Changes
+
+- cd9b333: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.157
+
+### Patch Changes
+
+- 0430ee6: Backport: chore(provider/gateway): update gateway model settings files
+- 14ecfdc: feat(provider/gateway): add quantization conditions to the has provider option
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.156
+
+### Patch Changes
+
+- 391ad4a: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.155
+
+### Patch Changes
+
+- 79c34cc: feat(anthropic): add Claude Opus 5.5 support
+
+  - add the `claude-opus-5-5` model ID to `@ai-sdk/anthropic` and `anthropic/claude-opus-5.5` to `@ai-sdk/gateway`
+  - models that always use adaptive thinking (`claude-opus-5-5`, `claude-fable-5`, `claude-fable-5-1`) no longer receive `thinking: { type: 'disabled' }` or budget-based thinking; the provider drops the unsupported setting and emits a warning
+  - models that reject forced tool use (`claude-opus-5-5`, `claude-fable-5-1`) fall back to `auto` tool choice for `required` and named tool choices, and to native structured outputs when `structuredOutputMode: 'jsonTool'` is requested, each with a warning
+  - add the `computerToolset_20260801` computer use tool (`computer_toolset_20260801`), which is required for computer use on `claude-opus-5-5`
+  - use the documented `mid-conversation-output-config-2026-07-01` beta header for per-message effort
+
+## 2.0.154
+
+### Patch Changes
+
+- d22c28b: feat(provider/gateway): support `reasoning` and `tool-use` in `has` model filtering
+- d3e1726: feat(xai): add grok 4.7 model ID
+- 450d168: Backport: chore(provider/gateway): update gateway model settings files
+- 82b6405: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.153
+
+### Patch Changes
+
+- 5728a51: Backport: chore(provider/gateway): update gateway model settings files
+- 6d3e199: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.152
+
+### Patch Changes
+
+- 4a75d2c: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.151
+
+### Patch Changes
+
+- 0d4a425: fix(gateway): forward server-returned warnings on language model doGenerate
+
+  `generateText(...).warnings` through the gateway provider was always an empty
+  array: `doGenerate` spread the gateway response body and then overwrote the
+  server's `warnings` with a locally constructed empty array. The warnings the
+  gateway relays from the upstream provider (and gateway-originated warnings)
+  are now forwarded, matching the streaming path and every other modality.
+
+## 2.0.150
+
+### Patch Changes
+
+- 73fa129: Backport: chore(provider/gateway): update gateway model settings files
+- 5a19081: Backport: chore(provider/gateway): update gateway model settings files
+
+## 2.0.149
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 2.0.148
 
 ### Patch Changes

@@ -46,6 +46,48 @@ import { CacheControlValidator } from './get-cache-control';
 import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 import { sanitizeJsonSchema } from './sanitize-json-schema';
 
+/**
+ * Maps the tool names of toolset tools (e.g. the computer toolset) to the
+ * toolset name that the Anthropic API uses in `toolset_name`.
+ */
+function getAnthropicToolsetNames(
+  tools: Parameters<LanguageModelV2['doGenerate']>[0]['tools'],
+): Record<string, string> {
+  const toolsetNames: Record<string, string> = {};
+
+  for (const tool of tools ?? []) {
+    if (
+      tool.type === 'provider-defined' &&
+      tool.id === 'anthropic.computer_toolset_20260801'
+    ) {
+      toolsetNames[tool.name] = 'computer';
+    }
+  }
+
+  return toolsetNames;
+}
+
+/**
+ * Toolset member calls (e.g. `left_click` from the computer toolset) are
+ * exposed as a single tool call on the toolset tool. The member name is
+ * injected as the `action` property, matching the input shape of the older
+ * computer tool versions.
+ */
+function toToolsetMemberInput({
+  memberName,
+  input,
+}: {
+  memberName: string;
+  input: unknown;
+}): JSONObject {
+  return {
+    action: memberName,
+    ...(typeof input === 'object' && input !== null && !Array.isArray(input)
+      ? (input as JSONObject)
+      : {}),
+  };
+}
+
 function getJsonResponseToolName(
   tools: Parameters<LanguageModelV2['doGenerate']>[0]['tools'],
 ): string {
@@ -226,6 +268,9 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       supportsStructuredOutput,
       rejectsSamplingParameters,
       rejectsThinkingDisabledAboveHighEffort,
+      rejectsThinkingDisabled,
+      rejectsForcedToolUse,
+      supportsBetweenToolsThinking,
       isKnownModel,
     } = getModelCapabilities(this.modelId);
 
@@ -270,10 +315,34 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
 
     const structureOutputMode =
       anthropicOptions?.structuredOutputMode ??
-      (this.modelId.includes('claude-fable-5-1') ? 'auto' : 'jsonTool');
-    const useStructuredOutput =
+      (this.modelId.includes('claude-fable-5-1') ||
+      this.modelId.includes('claude-opus-5-5') ||
+      this.modelId.includes('claude-sonnet-5-5')
+        ? 'auto'
+        : 'jsonTool');
+    let useStructuredOutput =
       structureOutputMode === 'outputFormat' ||
       (structureOutputMode === 'auto' && supportsStructuredOutput);
+
+    // The JSON response tool relies on forced tool use, which some models
+    // reject (e.g. Opus 5.5, Fable 5.1). Fall back to native structured
+    // outputs when the model supports them.
+    if (
+      !useStructuredOutput &&
+      rejectsForcedToolUse &&
+      supportsStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'providerOptions.anthropic.structuredOutputMode',
+        details:
+          `structuredOutputMode 'jsonTool' is not supported by ${this.modelId} because it rejects forced tool use. ` +
+          `Using 'outputFormat' instead.`,
+      });
+      useStructuredOutput = true;
+    }
 
     const jsonResponseToolName = getJsonResponseToolName(tools);
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
@@ -304,13 +373,61 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
     // Create a shared cache control validator to track breakpoints across tools and messages
     const cacheControlValidator = new CacheControlValidator();
 
+    const toolsetNames = getAnthropicToolsetNames(tools);
+
     const { prompt: messagesPrompt, betas } =
       await convertToAnthropicMessagesPrompt({
         prompt,
         sendReasoning: anthropicOptions?.sendReasoning ?? true,
         warnings,
         cacheControlValidator,
+        toolsetNames,
       });
+
+    // Some models always run adaptive thinking and reject `disabled` and
+    // budget-based `enabled` thinking with a 400. Drop the unsupported
+    // setting and keep the request adaptive so it still succeeds.
+    if (rejectsThinkingDisabled && anthropicOptions?.thinking != null) {
+      const thinking = anthropicOptions.thinking;
+
+      if (
+        'type' in thinking &&
+        thinking.type === 'disabled' &&
+        supportsBetweenToolsThinking
+      ) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${this.modelId}. ` +
+            `Using 'between_tools' thinking, the lowest thinking setting, instead.`,
+        });
+        anthropicOptions.thinking = { type: 'between_tools' };
+      } else if ('type' in thinking && thinking.type === 'disabled') {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions.anthropic.thinking',
+          details:
+            `thinking cannot be disabled for ${this.modelId}; it always uses adaptive thinking. ` +
+            `The thinking setting has been removed. Lower 'effort' to reduce thinking.`,
+        });
+        anthropicOptions.thinking = undefined;
+      } else if ('type' in thinking && thinking.type === 'enabled') {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'providerOptions.anthropic.thinking',
+          details:
+            `budget-based thinking is not supported by ${this.modelId}; it always uses adaptive thinking. ` +
+            `Using adaptive thinking instead. Use 'effort' to control how much the model thinks.`,
+        });
+        anthropicOptions.thinking = {
+          type: 'adaptive',
+          ...(thinking.blockBinding != null && {
+            blockBinding: thinking.blockBinding,
+          }),
+        };
+      }
+    }
 
     const thinkingOptions = anthropicOptions?.thinking;
     const thinkingType =
@@ -338,8 +455,28 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
       anthropicOptions.effort = 'high';
     }
 
+    // `between_tools` thinking is only accepted at `low`, `medium`, and
+    // `high` effort. Lower the effort to `high` to keep the minimal thinking
+    // setting instead of sending a request that the API would reject.
+    if (
+      thinkingType === 'between_tools' &&
+      anthropicOptions != null &&
+      (anthropicOptions.effort === 'xhigh' || anthropicOptions.effort === 'max')
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'providerOptions.anthropic.effort',
+        details:
+          `effort '${anthropicOptions.effort}' is not supported with 'between_tools' thinking. ` +
+          `The effort has been lowered to 'high'.`,
+      });
+      anthropicOptions.effort = 'high';
+    }
+
     const isThinking =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
+      thinkingType === 'enabled' ||
+      thinkingType === 'adaptive' ||
+      thinkingType === 'between_tools';
     let thinkingBudget =
       thinkingOptions != null && 'budgetTokens' in thinkingOptions
         ? thinkingOptions.budgetTokens
@@ -650,12 +787,14 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                 : { type: 'tool', toolName: jsonResponseTool.name },
             disableParallelToolUse: true,
             cacheControlValidator,
+            rejectsForcedToolUse,
           }
         : {
             tools: tools ?? [],
             toolChoice,
             disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
             cacheControlValidator,
+            rejectsForcedToolUse,
           },
     );
 
@@ -886,6 +1025,23 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
             content.push({
               type: 'text',
               text: JSON.stringify(part.input),
+            });
+          } else if (part.toolset_name != null) {
+            // toolset member calls (e.g. the computer toolset) are mapped to
+            // the toolset tool with the member name as the `action`:
+            content.push({
+              type: 'tool-call',
+              toolCallId: part.id,
+              toolName: part.toolset_name,
+              input: JSON.stringify(
+                toToolsetMemberInput({
+                  memberName: part.name,
+                  input: part.input,
+                }),
+              ),
+              providerMetadata: {
+                anthropic: { toolsetName: part.toolset_name },
+              },
             });
           } else {
             content.push({
@@ -1247,6 +1403,12 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
           input: string;
           providerExecuted?: boolean;
           firstDelta: boolean;
+          /**
+           * Set for toolset member calls (e.g. the computer toolset). The raw
+           * member input is accumulated and emitted as a single delta with the
+           * member name injected as `action` when the block completes.
+           */
+          toolset?: { name: string; memberName: string };
         }
       | { type: 'text'; citations: Citation[] }
       | { type: 'reasoning' }
@@ -1397,6 +1559,26 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     controller.enqueue({
                       type: 'text-start',
                       id: String(value.index),
+                    });
+                  } else if (value.content_block.toolset_name != null) {
+                    // toolset member input is accumulated and emitted when the
+                    // block completes (see content_block_stop):
+                    contentBlocks[value.index] = {
+                      type: 'tool-call',
+                      toolCallId: value.content_block.id,
+                      toolName: value.content_block.toolset_name,
+                      input: '',
+                      firstDelta: true,
+                      toolset: {
+                        name: value.content_block.toolset_name,
+                        memberName: value.content_block.name,
+                      },
+                    };
+
+                    controller.enqueue({
+                      type: 'tool-input-start',
+                      id: value.content_block.id,
+                      toolName: value.content_block.toolset_name,
                     });
                   } else {
                     contentBlocks[value.index] = {
@@ -1638,6 +1820,37 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                   }
 
                   case 'tool-call': {
+                    // toolset member calls: emit the accumulated input with
+                    // the member name injected as `action` in one delta.
+                    if (contentBlock.toolset != null) {
+                      let memberInput: unknown = {};
+                      try {
+                        memberInput =
+                          contentBlock.input === ''
+                            ? {}
+                            : JSON.parse(contentBlock.input);
+                      } catch {
+                        // ignore parse errors, fall back to the raw input
+                        memberInput = undefined;
+                      }
+
+                      contentBlock.input =
+                        memberInput === undefined
+                          ? contentBlock.input
+                          : JSON.stringify(
+                              toToolsetMemberInput({
+                                memberName: contentBlock.toolset.memberName,
+                                input: memberInput,
+                              }),
+                            );
+
+                      controller.enqueue({
+                        type: 'tool-input-delta',
+                        id: contentBlock.toolCallId,
+                        delta: contentBlock.input,
+                      });
+                    }
+
                     controller.enqueue({
                       type: 'tool-input-end',
                       id: contentBlock.toolCallId,
@@ -1657,6 +1870,11 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                       input:
                         contentBlock.input === '' ? '{}' : contentBlock.input,
                       providerExecuted: contentBlock.providerExecuted,
+                      ...(contentBlock.toolset && {
+                        providerMetadata: {
+                          anthropic: { toolsetName: contentBlock.toolset.name },
+                        },
+                      }),
                     });
                     break;
                   }
@@ -1747,6 +1965,13 @@ export class AnthropicMessagesLanguageModel implements LanguageModelV2 {
                     });
                   } else {
                     if (contentBlock?.type !== 'tool-call') {
+                      return;
+                    }
+
+                    // toolset member input is emitted as a single delta once
+                    // the block is complete (the member name is injected):
+                    if (contentBlock.toolset != null) {
+                      contentBlock.input += delta;
                       return;
                     }
 
@@ -2081,21 +2306,80 @@ export function getModelCapabilities(modelId: string): {
   supportsStructuredOutput: boolean;
   rejectsSamplingParameters: boolean;
   rejectsThinkingDisabledAboveHighEffort: boolean;
+  /**
+   * Thinking is always adaptive: `thinking.type` `disabled` and `enabled`
+   * are rejected with a 400.
+   */
+  rejectsThinkingDisabled: boolean;
+  /**
+   * Forced tool use (`tool_choice` `any` or a named tool) is rejected with a 400.
+   */
+  rejectsForcedToolUse: boolean;
+  /**
+   * Supports `thinking.type` `between_tools`, the lowest thinking setting on
+   * models that reject disabled thinking.
+   */
+  supportsBetweenToolsThinking: boolean;
   isKnownModel: boolean;
 } {
-  if (modelId.includes('claude-opus-5')) {
+  if (modelId.includes('claude-sonnet-5-5')) {
     return {
       maxOutputTokens: 128000,
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: true,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-5-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-opus-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-fable-5-1')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: true,
+      supportsBetweenToolsThinking: false,
+      isKnownModel: true,
+    };
+  } else if (modelId.includes('claude-fable-5')) {
+    return {
+      maxOutputTokens: 128000,
+      supportsStructuredOutput: true,
+      rejectsSamplingParameters: true,
+      rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: true,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
     modelId.includes('claude-opus-4-8') ||
     modelId.includes('claude-opus-4-7') ||
-    modelId.includes('claude-fable-5-1') ||
-    modelId.includes('claude-fable-5') ||
     modelId.includes('claude-sonnet-5')
   ) {
     return {
@@ -2103,6 +2387,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2114,6 +2401,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2126,6 +2416,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-1')) {
@@ -2134,6 +2427,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2145,6 +2441,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-opus-4-')) {
@@ -2153,6 +2452,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (modelId.includes('claude-3-haiku')) {
@@ -2161,6 +2463,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: true,
     };
   } else if (
@@ -2171,6 +2476,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else if (modelId.includes('claude-')) {
@@ -2182,6 +2490,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: true,
       rejectsSamplingParameters: true,
       rejectsThinkingDisabledAboveHighEffort: true,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   } else {
@@ -2192,6 +2503,9 @@ export function getModelCapabilities(modelId: string): {
       supportsStructuredOutput: false,
       rejectsSamplingParameters: false,
       rejectsThinkingDisabledAboveHighEffort: false,
+      rejectsThinkingDisabled: false,
+      rejectsForcedToolUse: false,
+      supportsBetweenToolsThinking: false,
       isKnownModel: false,
     };
   }

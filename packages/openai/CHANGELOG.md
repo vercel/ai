@@ -1,5 +1,63 @@
 # @ai-sdk/openai
 
+## 2.0.133
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.132
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+
+## 2.0.131
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.130
+
+### Patch Changes
+
+- f912d4a: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 2.0.129
+
+### Patch Changes
+
+- 1c05ff4: fix(openai): expose Chat Completions audio transcripts as generated text
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.128
+
+### Patch Changes
+
+- 0f8e4fe: fix(openai): accept `incomplete` function_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 391ad4a: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.127
+
+### Patch Changes
+
+- fd889a3: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
 ## 2.0.126
 
 ### Patch Changes

@@ -79,8 +79,35 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
+
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          choices: [
+            {
+              finish_reason: 'stop',
+              index: 0,
+              message: { content: 'Hello', role: 'assistant' },
+            },
+          ],
+          usage: {
+            completion_tokens: 10,
+            prompt_tokens: 100,
+            prompt_tokens_details: { cached_tokens: 80 },
+            total_tokens: 110,
+          },
+        },
+      };
+
+      const result = await provider
+        .chat('deepseek-v4-flash')
+        .doGenerate({ prompt: TEST_PROMPT });
+
+      expect(result.usage.cachedInputTokens).toBe(80);
+      expect(result.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(80);
+    });
 
     describe('text', () => {
       beforeEach(() => {
@@ -1080,6 +1107,35 @@ describe('DeepSeekChatLanguageModel', () => {
       };
     }
 
+    it('uses OpenAI-compatible cached prompt tokens as a fallback', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+            usage: {
+              completion_tokens: 10,
+              prompt_tokens: 100,
+              prompt_tokens_details: { cached_tokens: 80 },
+              total_tokens: 110,
+            },
+          })}\n\n`,
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const result = await provider
+        .chat('deepseek-v4-flash')
+        .doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(result.stream);
+      const finishPart = parts.find(part => part.type === 'finish');
+
+      expect(finishPart?.usage.cachedInputTokens).toBe(80);
+      expect(finishPart?.providerMetadata?.deepseek?.promptCacheHitTokens).toBe(
+        80,
+      );
+    });
+
     describe('text', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-text');
@@ -1372,6 +1428,36 @@ describe('DeepSeekChatLanguageModel', () => {
     describe('reasoning', () => {
       beforeEach(() => {
         prepareChunksFixtureResponse('deepseek-reasoning');
+      });
+
+      it('should keep reasoning active when deltas include empty tool calls', async () => {
+        server.urls['https://api.deepseek.com/chat/completions'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"role":"assistant","content":"","reasoning_content":"Think ","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"","reasoning_content":"more...","tool_calls":[]},"finish_reason":null}]}\n\n`,
+            `data: {"id":"chatcmpl-test","object":"chat.completion.chunk","created":1,"model":"test-model",` +
+              `"choices":[{"index":0,"delta":{"content":"Hello","reasoning_content":"","tool_calls":[]},"finish_reason":"stop"}]}\n\n`,
+            'data: [DONE]\n\n',
+          ],
+        };
+
+        const { stream } = await provider.chat('deepseek-reasoner').doStream({
+          prompt: TEST_PROMPT,
+        });
+
+        const events = await convertReadableStreamToArray(stream);
+
+        expect(
+          events.filter(({ type }) => type.startsWith('reasoning-')),
+        ).toStrictEqual([
+          { type: 'reasoning-start', id: 'reasoning-0' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'Think ' },
+          { type: 'reasoning-delta', id: 'reasoning-0', delta: 'more...' },
+          { type: 'reasoning-end', id: 'reasoning-0' },
+        ]);
       });
 
       it('should map legacy provider options to canonical request values', async () => {

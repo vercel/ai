@@ -136,6 +136,11 @@ export interface AnthropicToolCallContent {
   id: string;
   name: string;
   input: unknown;
+  /**
+   * Present when this tool call is a member call of a toolset
+   * (e.g. `computer` for the computer toolset). `name` is then the member name.
+   */
+  toolset_name?: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -180,6 +185,10 @@ type AnthropicNestedDocumentContent = Omit<
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
+  /**
+   * Required for results of toolset member calls (e.g. `computer`).
+   */
+  toolset_name?: string;
   content:
     | string
     | Array<
@@ -317,6 +326,15 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      /**
+       * Computer toolset. Declared without a `name`; the API returns member
+       * tool calls (e.g. `left_click`) with `toolset_name: 'computer'`.
+       */
+      type: 'computer_toolset_20260801';
+      configs?: Record<string, { enabled?: boolean; defer_loading?: boolean }>;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -530,6 +548,8 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -768,6 +788,8 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),

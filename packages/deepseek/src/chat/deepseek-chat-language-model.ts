@@ -35,6 +35,7 @@ import {
 } from './deepseek-chat-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
+import { isDeepSeekV4Model } from './is-deepseek-v4-model';
 import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
@@ -47,6 +48,16 @@ export type DeepSeekChatConfig = {
   supportsThinking?: boolean;
   supportsStructuredOutputs?: boolean;
 };
+
+function getDeepSeekCacheReadTokens(
+  usage: DeepSeekChatTokenUsage | undefined | null,
+): number | undefined {
+  return (
+    usage?.prompt_cache_hit_tokens ??
+    usage?.prompt_tokens_details?.cached_tokens ??
+    undefined
+  );
+}
 
 function mapDeepSeekProviderReasoningEffort({
   reasoningEffort,
@@ -196,7 +207,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       thinking?.type !== 'disabled' &&
       (thinking != null ||
         this.modelId === 'deepseek-reasoner' ||
-        this.modelId.includes('deepseek-v4'));
+        isDeepSeekV4Model(this.modelId));
 
     if (isThinkingEnabled && temperature != null) {
       allWarnings.push({
@@ -324,6 +335,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       content.push({ type: 'text', text });
     }
 
+    const cacheReadTokens = getDeepSeekCacheReadTokens(responseBody.usage);
+
     return {
       content,
       finishReason: mapDeepSeekFinishReason(choice.finish_reason),
@@ -334,13 +347,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
         reasoningTokens:
           responseBody.usage?.completion_tokens_details?.reasoning_tokens ??
           undefined,
-        cachedInputTokens:
-          responseBody.usage?.prompt_cache_hit_tokens ?? undefined,
+        cachedInputTokens: cacheReadTokens,
       },
       providerMetadata: {
         [this.providerOptionsName]: {
-          promptCacheHitTokens:
-            responseBody.usage?.prompt_cache_hit_tokens ?? null,
+          promptCacheHitTokens: cacheReadTokens ?? null,
           promptCacheMissTokens:
             responseBody.usage?.prompt_cache_miss_tokens ?? null,
           ...(responseBody.object != null && {
@@ -543,7 +554,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            if (delta.tool_calls != null) {
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end reasoning when tool calls start:
               if (isActiveReasoning) {
                 controller.enqueue({
@@ -695,6 +706,8 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               });
             }
 
+            const cacheReadTokens = getDeepSeekCacheReadTokens(usage);
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -705,11 +718,11 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
                 reasoningTokens:
                   usage?.completion_tokens_details?.reasoning_tokens ??
                   undefined,
-                cachedInputTokens: usage?.prompt_cache_hit_tokens ?? undefined,
+                cachedInputTokens: cacheReadTokens,
               },
               providerMetadata: {
                 [providerOptionsName]: {
-                  promptCacheHitTokens: usage?.prompt_cache_hit_tokens ?? null,
+                  promptCacheHitTokens: cacheReadTokens ?? null,
                   promptCacheMissTokens:
                     usage?.prompt_cache_miss_tokens ?? null,
                   ...(responseObject != null && { responseObject }),

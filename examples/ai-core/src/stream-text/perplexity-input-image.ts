@@ -1,24 +1,21 @@
 import { perplexity } from '@ai-sdk/perplexity';
 import { streamText } from 'ai';
 import 'dotenv/config';
-import fs from 'fs';
 
 async function main() {
   const result = streamText({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     messages: [
       {
         role: 'user',
         content: [
-          {
-            type: 'text',
-            text: 'What is this document about? Provide a brief summary.',
-          },
+          { type: 'text', text: 'Describe this image.' },
           {
             type: 'file',
-            data: fs.readFileSync('./data/ai.pdf'),
-            mediaType: 'application/pdf',
-            filename: 'ai.pdf',
+            data: new URL(
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/Fronalpstock_big.jpg/1280px-Fronalpstock_big.jpg',
+            ),
+            mediaType: 'image/jpeg',
           },
         ],
       },
@@ -28,6 +25,9 @@ async function main() {
   for await (const textPart of result.textStream) {
     process.stdout.write(textPart);
   }
+
+  console.log();
+  console.log('Token usage:', await result.usage);
 }
 
 main().catch(console.error);

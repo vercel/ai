@@ -1,5 +1,88 @@
 # @ai-sdk/amazon-bedrock
 
+## 3.0.138
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/anthropic@2.0.108
+
+## 3.0.137
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/anthropic@2.0.107
+  - @ai-sdk/provider-utils@3.0.40
+
+## 3.0.136
+
+### Patch Changes
+
+- Updated dependencies [214d440]
+  - @ai-sdk/anthropic@2.0.106
+
+## 3.0.135
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/anthropic@2.0.105
+  - @ai-sdk/provider-utils@3.0.39
+
+## 3.0.134
+
+### Patch Changes
+
+- dc710c5: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [594787e]
+- Updated dependencies [dc710c5]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/anthropic@2.0.104
+  - @ai-sdk/provider-utils@3.0.38
+
+## 3.0.133
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/anthropic@2.0.103
+
+## 3.0.132
+
+### Patch Changes
+
+- f6f8b61: fix(amazon-bedrock): enable Anthropic features for application inference profile chat models
+- 8399d3e: fix(amazon-bedrock): preserve API error messages when the error type is omitted
+
+## 3.0.131
+
+### Patch Changes
+
+- 24bda53: fix(amazon-bedrock): resolve endpoints for non-standard AWS partitions and endpoint overrides
+
+## 3.0.130
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+
 ## 3.0.129
 
 ### Patch Changes

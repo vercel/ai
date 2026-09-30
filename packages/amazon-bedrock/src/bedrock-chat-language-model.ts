@@ -10,7 +10,10 @@ import type {
   SharedV2ProviderMetadata,
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
-import { sanitizeJsonSchema } from '@ai-sdk/anthropic/internal';
+import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
 import {
   type FetchFunction,
   type ParseResult,
@@ -18,6 +21,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  injectJsonInstructionIntoMessages,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -29,10 +33,15 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
+  type AmazonBedrockChatModelSettings,
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
-import { BedrockErrorSchema } from './bedrock-error';
+import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
+import {
+  bedrockFailedResponseHandler,
+  BedrockErrorSchema,
+} from './bedrock-error';
 import type { BedrockReasoningMetadata } from './bedrock-reasoning-metadata';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
@@ -44,6 +53,7 @@ type BedrockChatConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
 
 const anthropicProviderOptions = z.object({
@@ -145,7 +155,11 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
+    });
     const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
     const isOpenAIModel = openAIModelId != null;
     const isOpenAIGptOssModel =
@@ -153,6 +167,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
     const isThinkingRequested =
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
+
+    const { rejectsForcedToolUse } = getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
@@ -185,19 +201,30 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    const modelSupportsNativeStructuredOutput =
+      this.config.modelFamily === 'anthropic' ||
+      (supportsNativeStructuredOutput(this.modelId) && isThinkingRequested);
+
     const useNativeStructuredOutput =
       isAnthropicModel &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
       (structuredOutputMode === 'outputFormat' ||
         (structuredOutputMode === 'auto' &&
-          supportsNativeStructuredOutput(this.modelId) &&
-          isThinkingRequested));
+          modelSupportsNativeStructuredOutput));
+
+    const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      isAnthropicModel &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      rejectsForcedToolUse;
 
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !useNativeStructuredOutput
+      !useNativeStructuredOutput &&
+      !useJsonInstructionForStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -212,6 +239,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
         disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
@@ -420,6 +449,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             'Tool calls and results removed from conversation because Bedrock does not support tool content without active tools.',
         });
       }
+    }
+
+    if (useJsonInstructionForStructuredOutput) {
+      filteredPrompt = injectJsonInstructionIntoMessages({
+        messages: filteredPrompt,
+        schema: responseFormat!.schema,
+        schemaSuffix:
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      });
     }
 
     const { system, messages } =
@@ -640,10 +678,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: bedrockFailedResponseHandler,
       successfulResponseHandler:
         createBedrockEventStreamResponseHandler(BedrockStreamSchema),
       abortSignal: options.abortSignal,

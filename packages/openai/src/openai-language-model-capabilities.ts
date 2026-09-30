@@ -24,6 +24,8 @@ export function getOpenAILanguageModelCapabilities(
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
 
+  const isGpt6SolOrLuna = modelId === 'gpt-6-sol' || modelId === 'gpt-6-luna';
+
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
     (gptVersion != null && gptVersion.major >= 5 && !isGptChatModel);
@@ -59,9 +61,11 @@ export function getOpenAILanguageModelCapabilities(
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
     supportsAsyncToolCalling: isGpt6OrLaterModel,
-    supportedReasoningEfforts: isGpt6OrLaterModel
-      ? ['low', 'medium', 'high', 'xhigh', 'max']
-      : undefined,
+    supportedReasoningEfforts: isGpt6SolOrLuna
+      ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+      : isGpt6OrLaterModel
+        ? ['low', 'medium', 'high', 'xhigh', 'max']
+        : undefined,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

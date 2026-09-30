@@ -405,6 +405,53 @@ The following OpenAI-specific metadata is returned:
   not supported when using 'azure.chat' or 'azure.completion'
 </Note>
 
+#### Changing Reasoning Effort Mid-Conversation
+
+Azure Responses models support message-level reasoning effort updates through
+`providerOptions.azure.reasoningEffortUpdate`. The `openai` namespace is also
+accepted when the message has no `azure` options. Use the
+`OpenAIResponsesSystemMessageOptions` type exported from `@ai-sdk/azure` to
+validate these options:
+
+```ts
+import { azure, type OpenAIResponsesSystemMessageOptions } from '@ai-sdk/azure';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  // Use the name of your GPT-6 deployment.
+  model: azure.responses('gpt-6-astra'),
+  providerOptions: { openai: { reasoningEffort: 'low' } },
+  allowSystemInMessages: true,
+  messages: [
+    {
+      role: 'system',
+      content: '',
+      providerOptions: {
+        azure: {
+          reasoningEffortUpdate: 'high',
+        } satisfies OpenAIResponsesSystemMessageOptions,
+      },
+    },
+    { role: 'user', content: 'Analyze the failure modes of this migration.' },
+  ],
+});
+```
+
+Keep the request-level `providerOptions.openai.reasoningEffort` unchanged throughout the conversation and
+retain earlier effort updates when resending message history. These updates
+also work with `streamText`. See the [OpenAI reasoning effort
+guide](/providers/ai-sdk-providers/openai#changing-reasoning-effort-mid-conversation)
+for continuation and configuration restrictions.
+
+<Note>
+  The SDK infers support for effort updates from the deployment name passed to
+  `azure.responses()`. The name must identify a supported GPT-6-or-later model
+  family, such as `gpt-6-astra`. A custom name such as `production` is not
+  recognized, even when the underlying deployment runs GPT-6. In that case,
+  message-level updates throw, and request-level updates are omitted with a
+  warning.
+</Note>
+
 #### Web Search Tool
 
 The Azure OpenAI responses API supports web search through the `azure.tools.webSearch` tool.

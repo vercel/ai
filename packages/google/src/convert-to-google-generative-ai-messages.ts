@@ -65,7 +65,11 @@ export function convertToGoogleGenerativeAIMessages(
                   ? {
                       fileData: {
                         mimeType: mediaType,
-                        fileUri: part.data.toString(),
+                        fileUri:
+                          part.data.protocol === 'gs:' &&
+                          part.originalUrl != null
+                            ? part.originalUrl
+                            : part.data.toString(),
                       },
                     }
                   : {

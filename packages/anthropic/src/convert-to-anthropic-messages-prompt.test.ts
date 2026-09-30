@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import type { LanguageModelV2CallWarning } from '@ai-sdk/provider';
+import type {
+  JSONValue,
+  LanguageModelV2CallWarning,
+  LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import { convertToAnthropicMessagesPrompt } from './convert-to-anthropic-messages-prompt';
 import { CacheControlValidator } from './get-cache-control';
 
@@ -42,6 +46,152 @@ describe('system messages', () => {
     });
   });
 
+  describe('effort-only system messages', () => {
+    const lowEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'low' } },
+    } as const;
+    const highEffort = {
+      role: 'system',
+      content: '',
+      providerOptions: { anthropic: { effort: 'high' } },
+    } as const;
+    const instruction = { role: 'system', content: 'initial' } as const;
+    const user = {
+      role: 'user',
+      content: [{ type: 'text', text: 'hi' }],
+    } satisfies LanguageModelV2Prompt[number];
+
+    it.each([
+      { name: 'alone', initial: [lowEffort], text: [], efforts: ['low'] },
+      {
+        name: 'after initial instructions',
+        initial: [instruction, lowEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'before initial instructions',
+        initial: [lowEffort, instruction],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low'],
+      },
+      {
+        name: 'consecutively',
+        initial: [lowEffort, highEffort],
+        text: [],
+        efforts: ['low', 'high'],
+      },
+      {
+        name: 'around initial instructions',
+        initial: [lowEffort, instruction, highEffort],
+        text: [{ type: 'text', text: 'initial' }],
+        efforts: ['low', 'high'],
+      },
+    ])(
+      'should preserve initial effort messages $name',
+      async ({ initial, text, efforts }) => {
+        const warnings: LanguageModelV2CallWarning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [...initial, user],
+          sendReasoning: true,
+          warnings,
+        });
+
+        expect(result).toEqual({
+          prompt: {
+            system: text,
+            messages: [
+              ...efforts.map(effort => ({
+                role: 'system',
+                content: [],
+                output_config: { effort },
+              })),
+              user,
+            ],
+          },
+          betas: new Set(['mid-conversation-output-config-2026-07-01']),
+        });
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([false, true])(
+      'should preserve later consecutive effort messages with initial instructions: %s',
+      async hasInitial => {
+        const warnings: LanguageModelV2CallWarning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [
+            ...(hasInitial ? [instruction] : []),
+            user,
+            lowEffort,
+            highEffort,
+            { role: 'system', content: 'later instructions' },
+          ],
+          sendReasoning: true,
+          warnings,
+        });
+
+        expect(result.prompt.system).toEqual(
+          hasInitial ? [{ type: 'text', text: 'initial' }] : undefined,
+        );
+        expect(result.prompt.messages).toEqual([
+          user,
+          { role: 'system', content: [], output_config: { effort: 'low' } },
+          { role: 'system', content: [], output_config: { effort: 'high' } },
+          {
+            role: 'system',
+            content: [{ type: 'text', text: 'later instructions' }],
+          },
+        ]);
+        expect(result.betas).toEqual(
+          new Set([
+            'mid-conversation-system-2026-04-07',
+            'mid-conversation-output-config-2026-07-01',
+          ]),
+        );
+        expect(warnings).toEqual([]);
+      },
+    );
+
+    it.each([
+      { content: 'initial', options: { effort: 'low' } },
+      { content: '', options: { clearAt: 'next_user_message' } },
+      { content: '', options: { clearAt: 'next_user_message', effort: 'low' } },
+    ])(
+      'should warn and ignore unsupported initial system options: $options',
+      async ({ content, options }) => {
+        const warnings: LanguageModelV2CallWarning[] = [];
+        const result = await convertToAnthropicMessagesPrompt({
+          prompt: [
+            {
+              role: 'system',
+              content,
+              providerOptions: {
+                anthropic: options as Record<string, JSONValue>,
+              },
+            },
+            user,
+          ],
+          sendReasoning: true,
+          warnings,
+        });
+
+        expect(result.prompt.messages).toEqual([user]);
+        expect(result.betas).toEqual(new Set());
+        expect(warnings).toEqual([
+          {
+            type: 'other',
+            message: expect.stringContaining(
+              'These options have been ignored.',
+            ),
+          },
+        ]);
+      },
+    );
+  });
+
   it('should emit a mid-conversation system message inline and add the beta', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
@@ -63,36 +213,61 @@ describe('system messages', () => {
     expect(result.betas.has('mid-conversation-system-2026-04-07')).toBe(true);
   });
 
-  it('should serialize clearAt and effort on a mid-conversation system message', async () => {
+  it('should serialize effort updates and turn-scoped reminders on separate system messages', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
         { role: 'user', content: [{ type: 'text', text: 'hi' }] },
         {
           role: 'system',
-          content: 'Use concise answers for this turn.',
+          content: '',
           providerOptions: {
             anthropic: {
-              clearAt: 'next_user_message',
-              effort: 'low',
+              effort: 'high',
             },
           },
         },
-        { role: 'user', content: [{ type: 'text', text: 'continue' }] },
+        { role: 'user', content: [{ type: 'text', text: 'go' }] },
+        {
+          role: 'system',
+          content: 'this instruction applies to the current turn',
+          providerOptions: {
+            anthropic: { clearAt: 'next_user_message' },
+          },
+        },
+        {
+          role: 'system',
+          content: 'this instruction persists',
+        },
       ],
       sendReasoning: true,
       warnings: [],
     });
 
-    expect(result.prompt.messages).toContainEqual({
-      role: 'system',
-      content: [{ type: 'text', text: 'Use concise answers for this turn.' }],
-      clear_at: 'next_user_message',
-      output_config: { effort: 'low' },
-    });
+    expect(result.prompt.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'hi' }] },
+      { role: 'system', content: [], output_config: { effort: 'high' } },
+      { role: 'user', content: [{ type: 'text', text: 'go' }] },
+      {
+        role: 'system',
+        content: [
+          {
+            type: 'text',
+            text: 'this instruction applies to the current turn',
+          },
+        ],
+        clear_at: 'next_user_message',
+      },
+      {
+        role: 'system',
+        content: [{ type: 'text', text: 'this instruction persists' }],
+      },
+    ]);
     expect(
       result.betas.has('mid-conversation-system-clear-at-2026-08-21'),
     ).toBe(true);
-    expect(result.betas.has('mid-conversation-effort-2026-08-01')).toBe(true);
+    expect(result.betas.has('mid-conversation-output-config-2026-07-01')).toBe(
+      true,
+    );
   });
 
   it('should omit empty text for a system message that only sets turn effort', async () => {
@@ -1566,7 +1741,7 @@ describe('assistant messages', () => {
                   "cache_control": undefined,
                   "id": "srvtoolu_01XyZ1234567890",
                   "input": {
-                    "code": "print(\"Hello, world!\")",
+                    "code": "print("Hello, world!")",
                   },
                   "name": "code_execution",
                   "type": "server_tool_use",
@@ -1576,7 +1751,7 @@ describe('assistant messages', () => {
                   "content": {
                     "return_code": 0,
                     "stderr": "",
-                    "stdout": "Hello, world!\",
+                    "stdout": "Hello, world!",
                     "type": "code_execution_result",
                   },
                   "tool_use_id": "srvtoolu_01XyZ1234567890",
@@ -2640,5 +2815,159 @@ describe('citations', () => {
         },
       }
     `);
+  });
+});
+
+describe('toolsets', () => {
+  it('should serialize toolset tool calls and results with toolset_name', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              input: { action: 'left_click', coordinate: [640, 60] },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_click',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages).toMatchInlineSnapshot(`
+      [
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "id": "toolu_click",
+              "input": {
+                "coordinate": [
+                  640,
+                  60,
+                ],
+              },
+              "name": "left_click",
+              "toolset_name": "computer",
+              "type": "tool_use",
+            },
+          ],
+          "role": "assistant",
+        },
+        {
+          "content": [
+            {
+              "cache_control": undefined,
+              "content": "OK",
+              "is_error": undefined,
+              "tool_use_id": "toolu_click",
+              "toolset_name": "computer",
+              "type": "tool_result",
+            },
+          ],
+          "role": "user",
+        },
+      ]
+    `);
+  });
+
+  it('should detect toolset tool calls through provider metadata when the tool is not passed', async () => {
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              input: { action: 'screenshot' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'toolu_screenshot',
+              toolName: 'computer',
+              output: { type: 'text', value: 'OK' },
+              providerOptions: { anthropic: { toolsetName: 'computer' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'tool_use',
+        id: 'toolu_screenshot',
+        name: 'screenshot',
+        toolset_name: 'computer',
+        input: {},
+        cache_control: undefined,
+      },
+    ]);
+    expect(result.prompt.messages[1].content).toEqual([
+      {
+        type: 'tool_result',
+        tool_use_id: 'toolu_screenshot',
+        toolset_name: 'computer',
+        content: 'OK',
+        is_error: undefined,
+        cache_control: undefined,
+      },
+    ]);
+  });
+
+  it('should warn and skip toolset tool calls without an action', async () => {
+    const warnings: LanguageModelV2CallWarning[] = [];
+    const result = await convertToAnthropicMessagesPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'toolu_bad',
+              toolName: 'computer',
+              input: { coordinate: [1, 2] },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolsetNames: { computer: 'computer' },
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message: 'toolset tool call for tool computer is missing the action',
+      },
+    ]);
   });
 });

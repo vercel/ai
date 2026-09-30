@@ -161,6 +161,7 @@ const uiMessagesSchema = lazyValidator(() =>
                   toolCallId: z.string(),
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
+                  rawInput: z.string().optional(),
                   providerExecuted: z.boolean().optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
@@ -206,6 +207,7 @@ const uiMessagesSchema = lazyValidator(() =>
                   state: z.literal('input-streaming'),
                   providerExecuted: z.boolean().optional(),
                   input: z.unknown().optional(),
+                  rawInput: z.string().optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),
@@ -400,7 +402,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 
     if (metadataSchema) {
       for (const message of validatedMessages) {
-        await validateTypes({
+        message.metadata = await validateTypes({
           value: message.metadata,
           schema: metadataSchema,
         });
@@ -427,7 +429,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
             };
           }
 
-          await validateTypes({
+          dataPart.data = await validateTypes({
             value: dataPart.data,
             schema: dataSchema,
           });

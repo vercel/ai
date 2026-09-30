@@ -186,6 +186,32 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should return parsed metadata', async () => {
+      type TestMessage = UIMessage<{ attempts: number; label: string }>;
+      const input = [
+        {
+          id: '1',
+          role: 'user',
+          metadata: { label: 'ready' },
+          parts: [{ type: 'text', text: 'Hello, world!' }],
+        },
+      ];
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: input,
+        metadataSchema: z.object({
+          attempts: z.number().default(0),
+          label: z.string().transform(async value => value.toUpperCase()),
+        }),
+      });
+
+      expect(messages[0].metadata).toEqual({
+        attempts: 0,
+        label: 'READY',
+      });
+      expect(input[0].metadata).toEqual({ label: 'ready' });
+    });
+
     it('should throw type validation error when metadata is invalid ', async () => {
       await expect(
         validateUIMessages<UIMessage<{ foo: string }>>({
@@ -525,6 +551,30 @@ describe('validateUIMessages', () => {
       `);
     });
 
+    it('should return parsed data', async () => {
+      type TestMessage = UIMessage<never, { counter: { count: number } }>;
+
+      const messages = await validateUIMessages<TestMessage>({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [{ type: 'data-counter', data: { count: '12' } }],
+          },
+        ],
+        dataSchemas: {
+          counter: z.object({ count: z.coerce.number() }),
+        },
+      });
+
+      const part = messages[0].parts[0];
+      expect(part.type).toBe('data-counter');
+      if (part.type === 'data-counter') {
+        expect(part.data).toEqual({ count: 12 });
+        expect(part.data.count.toFixed(0)).toBe('12');
+      }
+    });
+
     it('should throw type validation error when data is invalid', async () => {
       await expect(
         validateUIMessages<UIMessage<never, { foo: { foo: string } }>>({
@@ -580,6 +630,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 'bar' },
+                rawInput: '{"foo":"bar',
               },
             ],
           },
@@ -597,6 +648,7 @@ describe('validateUIMessages', () => {
                 "input": {
                   "foo": "bar",
                 },
+                "rawInput": "{"foo":"bar",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "toolName": "foo",
@@ -1488,6 +1540,7 @@ describe('validateUIMessages', () => {
                 toolCallId: '1',
                 state: 'input-streaming',
                 input: { foo: 123 }, // wrong type but should not be validated
+                rawInput: '{"foo":123',
                 providerExecuted: true,
               },
             ],
@@ -1509,6 +1562,7 @@ describe('validateUIMessages', () => {
                   "foo": 123,
                 },
                 "providerExecuted": true,
+                "rawInput": "{"foo":123",
                 "state": "input-streaming",
                 "toolCallId": "1",
                 "type": "tool-foo",
@@ -1556,6 +1610,38 @@ describe('safeValidateUIMessages', () => {
         },
       ]
     `);
+  });
+
+  it('should return parsed metadata and data', async () => {
+    type TestMessage = UIMessage<
+      { attempts: number },
+      { counter: { count: number } }
+    >;
+
+    const result = await safeValidateUIMessages<TestMessage>({
+      messages: [
+        {
+          id: '1',
+          role: 'assistant',
+          metadata: {},
+          parts: [{ type: 'data-counter', data: { count: '12' } }],
+        },
+      ],
+      metadataSchema: z.object({
+        attempts: z.number().default(0),
+      }),
+      dataSchemas: {
+        counter: z.object({ count: z.coerce.number() }),
+      },
+    });
+
+    expectToBe(result.success, true);
+    expect(result.data[0]).toEqual({
+      id: '1',
+      role: 'assistant',
+      metadata: { attempts: 0 },
+      parts: [{ type: 'data-counter', data: { count: 12 } }],
+    });
   });
 
   it('should return failure result when messages parameter is null', async () => {
