@@ -2,7 +2,7 @@ import { alibaba, type AlibabaLanguageModelOptions } from '@ai-sdk/alibaba';
 import { streamText } from 'ai';
 import 'dotenv/config';
 
-let thinkingBudget: number | undefined;
+let thinkingBudget: number | undefined = undefined;
 // thinkingBudget = 100; // uncomment this line to run with budget
 
 async function main() {

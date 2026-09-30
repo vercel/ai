@@ -1,5 +1,89 @@
 # @ai-sdk/provider-utils
 
+## 3.0.41
+
+### Patch Changes
+
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2b1c2df: fix(mcp): prevent SSRF in OAuth metadata discovery
+- 2b1c2df: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
+## 3.0.40
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+
+## 3.0.39
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+
+## 3.0.38
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+
+## 3.0.37
+
+### Patch Changes
+
+- ab3990f: fix(provider-utils): avoid excessive memory usage when base64 encoding byte arrays
+- Updated dependencies [c2089a9]
+  - @ai-sdk/provider@2.0.4
+
+## 3.0.36
+
+### Patch Changes
+
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+
+## 3.0.35
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+
+## 3.0.34
+
+### Patch Changes
+
+- 2fff9f1: fix(provider-utils): allow imports in runtimes without a global fetch function
+- f364ea0: Preserve schema-valued additional properties when converting Zod 4 schemas.
+
+## 3.0.33
+
+### Patch Changes
+
+- 9e8e087: Stop re-exporting `createTestServer` and `TestResponseController` from `@ai-sdk/provider-utils/test` so `ai/test` can load without `msw` or `vitest`. Import these APIs from `@ai-sdk/test-server/with-vitest` instead.
+
+## 3.0.32
+
+### Patch Changes
+
+- 0e51b7b: Preserve streamed download size-limit errors when response cancellation fails.
+
+## 3.0.31
+
+### Patch Changes
+
+- 7a6bdbc: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+
+## 3.0.30
+
+### Patch Changes
+
+- 2fd6076: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+
+## 3.0.29
+
+### Patch Changes
+
+- c6e1d1a: Accept callable Standard Schema validators that do not provide JSON Schema conversion.
+
 ## 3.0.28
 
 ### Patch Changes

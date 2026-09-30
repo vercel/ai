@@ -191,11 +191,6 @@ describe('doGenerate', () => {
 
       const result = await model.doGenerate({
         text: 'Hello from the AI SDK!',
-        providerOptions: {
-          lmnt: {
-            format,
-          },
-        },
       });
 
       expect(result.audio).toStrictEqual(audio);

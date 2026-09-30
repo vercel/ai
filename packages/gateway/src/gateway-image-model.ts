@@ -5,15 +5,16 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
-  createJsonResponseHandler,
   createJsonErrorResponseHandler,
+  createJsonResponseHandler,
+  getErrorMessage,
   postJsonToApi,
   resolve,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { mapGatewayWarnings } from './map-gateway-warnings';
 import type { GatewayConfig } from './gateway-config';
+import { mapGatewayWarnings } from './map-gateway-warnings';
 import { asGatewayError } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 
@@ -71,7 +72,7 @@ export class GatewayImageModel implements ImageModelV2 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -79,6 +80,9 @@ export class GatewayImageModel implements ImageModelV2 {
 
       return {
         images: responseBody.images, // Always base64 strings from server
+        ...(responseBody.isRetryable != null && {
+          isRetryable: responseBody.isRetryable,
+        }),
         warnings: mapGatewayWarnings(responseBody.warnings),
         providerMetadata:
           responseBody.providerMetadata as ImageModelV2ProviderMetadata,
@@ -118,31 +122,6 @@ const providerMetadataEntrySchema = z
   })
   .catchall(z.unknown());
 
-<<<<<<< HEAD
-=======
-const gatewayImageWarningSchema = z.discriminatedUnion('type', [
-  z.object({
-    type: z.literal('unsupported'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('compatibility'),
-    feature: z.string(),
-    details: z.string().optional(),
-  }),
-  z.object({
-    type: z.literal('deprecated'),
-    setting: z.string(),
-    message: z.string(),
-  }),
-  z.object({
-    type: z.literal('other'),
-    message: z.string(),
-  }),
-]);
-
->>>>>>> 9c54a9f34c ([v6.0] fix(gateway): accept deprecated warnings in image, speech, transcription, and video responses (#16792))
 const gatewayImageUsageSchema = z.object({
   inputTokens: z.number().nullish(),
   outputTokens: z.number().nullish(),
@@ -151,12 +130,20 @@ const gatewayImageUsageSchema = z.object({
 
 const gatewayImageResponseSchema = z.object({
   images: z.array(z.string()), // Always base64 strings over the wire
+  isRetryable: z.boolean().optional(),
   warnings: z
     .array(
-      z.object({
-        type: z.literal('other'),
-        message: z.string(),
-      }),
+      z.discriminatedUnion('type', [
+        z.object({
+          type: z.literal('deprecated'),
+          setting: z.string(),
+          message: z.string(),
+        }),
+        z.object({
+          type: z.literal('other'),
+          message: z.string(),
+        }),
+      ]),
     )
     .optional(),
   providerMetadata: z

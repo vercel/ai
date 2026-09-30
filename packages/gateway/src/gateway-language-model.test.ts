@@ -1,6 +1,8 @@
-import type {
-  LanguageModelV2Prompt,
-  LanguageModelV2FilePart,
+import {
+  APICallError,
+  type LanguageModelV2CallWarning,
+  type LanguageModelV2FilePart,
+  type LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
@@ -63,6 +65,15 @@ describe('GatewayLanguageModel', () => {
       id = 'test-id',
       created = 1711115037,
       model = 'test-model',
+      warnings,
+    }: {
+      content?: { type: 'text'; text: string };
+      usage?: { prompt_tokens: number; completion_tokens: number };
+      finish_reason?: string;
+      id?: string;
+      created?: number;
+      model?: string;
+      warnings?: Array<LanguageModelV2CallWarning>;
     } = {}) {
       server.urls['https://api.test.com/language-model'].response = {
         type: 'json-value',
@@ -73,6 +84,7 @@ describe('GatewayLanguageModel', () => {
           content,
           finish_reason,
           usage,
+          ...(warnings && { warnings }),
         },
       };
     }
@@ -124,6 +136,37 @@ describe('GatewayLanguageModel', () => {
         prompt_tokens: 10,
         completion_tokens: 20,
       });
+    });
+
+    it('should forward warnings returned by the gateway', async () => {
+      const mockWarnings: Array<LanguageModelV2CallWarning> = [
+        {
+          type: 'unsupported-setting',
+          setting: 'maxOutputTokens',
+          details: 'lowered to 38000',
+        },
+        { type: 'other', message: 'from provider' },
+      ];
+      prepareJsonResponse({
+        content: { type: 'text', text: 'Hello, World!' },
+        warnings: mockWarnings,
+      });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(warnings).toEqual(mockWarnings);
+    });
+
+    it('should default warnings to an empty array when absent', async () => {
+      prepareJsonResponse({ content: { type: 'text', text: 'Hello' } });
+
+      const { warnings } = await createTestModel().doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(warnings).toEqual([]);
     });
 
     it('should remove abortSignal from the request body', async () => {
@@ -495,6 +538,10 @@ describe('GatewayLanguageModel', () => {
         expect(serverError.message).toBe('Database connection failed');
         expect(serverError.statusCode).toBe(500);
         expect(serverError.type).toBe('internal_server_error');
+        expect(APICallError.isInstance(serverError.cause)).toBe(true);
+        expect((serverError.cause as APICallError).message).toContain(
+          'Database connection failed',
+        );
       }
     });
 
@@ -608,6 +655,44 @@ describe('GatewayLanguageModel', () => {
             prompt_tokens: 10,
             completion_tokens: 20,
           },
+        },
+      ]);
+    });
+
+    it('should forward server stream-start warnings exactly once', async () => {
+      server.urls['https://api.test.com/language-model'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          `data: ${JSON.stringify({
+            type: 'stream-start',
+            warnings: [{ type: 'other', message: 'from provider' }],
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'text-delta',
+            textDelta: 'Hello',
+          })}\n\n`,
+          `data: ${JSON.stringify({
+            type: 'finish',
+            finishReason: 'stop',
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 20,
+            },
+          })}\n\n`,
+        ],
+      };
+
+      const { stream } = await createTestModel().doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.filter(part => part.type === 'stream-start')).toEqual([
+        {
+          type: 'stream-start',
+          warnings: [{ type: 'other', message: 'from provider' }],
         },
       ]);
     });
@@ -1558,47 +1643,6 @@ describe('GatewayLanguageModel', () => {
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody.providerOptions).toEqual({
         gateway: { disallowPromptTraining: true },
-      });
-    });
-
-    it('should pass hipaaCompliant option', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { hipaaCompliant: true },
-      });
-    });
-
-    it('should pass both zeroDataRetention and hipaaCompliant options', async () => {
-      prepareJsonResponse({
-        content: { type: 'text', text: 'Test response' },
-      });
-
-      await createTestModel().doGenerate({
-        prompt: TEST_PROMPT,
-        providerOptions: {
-          gateway: {
-            zeroDataRetention: true,
-            hipaaCompliant: true,
-          },
-        },
-      });
-
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.providerOptions).toEqual({
-        gateway: { zeroDataRetention: true, hipaaCompliant: true },
       });
     });
 

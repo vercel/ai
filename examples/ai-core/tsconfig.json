@@ -79,6 +79,9 @@
       "path": "../../packages/gladia"
     },
     {
+      "path": "../../packages/gmicloud"
+    },
+    {
       "path": "../../packages/google"
     },
     {
@@ -92,9 +95,6 @@
     },
     {
       "path": "../../packages/hume"
-    },
-    {
-      "path": "../../packages/lmnt"
     },
     {
       "path": "../../packages/luma"
@@ -137,6 +137,9 @@
     },
     {
       "path": "../../packages/xai"
+    },
+    {
+      "path": "../../packages/zai"
     }
   ]
 }
