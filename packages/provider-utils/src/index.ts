@@ -58,7 +58,7 @@ export { isNonNullable } from './is-non-nullable';
 export { isProviderReference } from './is-provider-reference';
 export { isRecord } from './is-record';
 export { isUrlSupported } from './is-url-supported';
-export { isValidDnsLabel } from './is-valid-dns-label';
+export { isValidHostnamePart } from './is-valid-hostname-part';
 export * from './load-api-key';
 export { loadOptionalSetting } from './load-optional-setting';
 export { loadSetting } from './load-setting';

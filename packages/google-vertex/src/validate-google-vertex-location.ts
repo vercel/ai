@@ -1,8 +1,8 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { isValidDnsLabel } from '@ai-sdk/provider-utils';
+import { isValidHostnamePart } from '@ai-sdk/provider-utils';
 
 export function validateGoogleVertexLocation(location: string): string {
-  if (!isValidDnsLabel(location)) {
+  if (!isValidHostnamePart(location)) {
     throw new InvalidArgumentError({
       argument: 'location',
       message:

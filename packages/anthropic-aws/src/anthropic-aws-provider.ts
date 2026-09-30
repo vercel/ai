@@ -7,7 +7,7 @@ import {
   type SkillsV4,
 } from '@ai-sdk/provider';
 import {
-  isValidDnsLabel,
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   withoutTrailingSlash,
@@ -216,7 +216,7 @@ export function createAnthropicAws(
       environmentVariableName: 'AWS_REGION',
       description: 'AWS region',
     });
-    if (!isValidDnsLabel(region)) {
+    if (!isValidHostnamePart(region)) {
       throw new InvalidArgumentError({
         argument: 'region',
         message:

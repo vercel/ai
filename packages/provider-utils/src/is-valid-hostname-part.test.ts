@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isValidDnsLabel } from './is-valid-dns-label';
+import { isValidHostnamePart } from './is-valid-hostname-part';
 
-describe('isValidDnsLabel', () => {
+describe('isValidHostnamePart', () => {
   it.each(['a', '0', 'us-east-1', 'MY-resource', 'global', 'a'.repeat(63)])(
     'accepts %j',
-    value => expect(isValidDnsLabel(value)).toBe(true),
+    value => expect(isValidHostnamePart(value)).toBe(true),
   );
   it.each([
     '',
@@ -24,5 +24,5 @@ describe('isValidDnsLabel', () => {
     'a\t',
     'a\0',
     '%61',
-  ])('rejects %j', value => expect(isValidDnsLabel(value)).toBe(false));
+  ])('rejects %j', value => expect(isValidHostnamePart(value)).toBe(false));
 });

@@ -19,7 +19,7 @@ import {
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
-  isValidDnsLabel,
+  isValidHostnamePart,
   loadApiKey,
   loadSetting,
   normalizeHeaders,
@@ -271,7 +271,7 @@ export function createAzure(
 
     // The resource name becomes part of the request host, so only a DNS label
     // is accepted (e.g. `user@internal:8080/#` would rewrite the host).
-    if (!isValidDnsLabel(resourceName)) {
+    if (!isValidHostnamePart(resourceName)) {
       throw new InvalidArgumentError({
         argument: 'resourceName',
         message:

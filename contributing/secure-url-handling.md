@@ -138,6 +138,6 @@ explanation lives in:
 ## Settings inserted into generated hostnames
 
 Before inserting a resource name, region, or location into a provider hostname,
-validate it with `isValidDnsLabel` from `@ai-sdk/provider-utils`. It accepts one
+validate it with `isValidHostnamePart` from `@ai-sdk/provider-utils`. It accepts one
 ASCII DNS label (1–63 letters, digits, or hyphens, with no leading or trailing
 hyphen). Throw `InvalidArgumentError` with the setting name when validation fails.

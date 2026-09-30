@@ -7,7 +7,7 @@ import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
-  isValidDnsLabel,
+  isValidHostnamePart,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -111,7 +111,7 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const region = googleOptions?.region ?? this.config.location;
-    if (!isValidDnsLabel(region)) {
+    if (!isValidHostnamePart(region)) {
       throw new InvalidArgumentError({
         argument: googleOptions?.region != null ? 'region' : 'location',
         message:

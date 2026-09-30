@@ -1,8 +1,8 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
-import { isValidDnsLabel } from '@ai-sdk/provider-utils';
+import { isValidHostnamePart } from '@ai-sdk/provider-utils';
 
 export function validateAmazonBedrockRegion(region: string): string {
-  if (!isValidDnsLabel(region)) {
+  if (!isValidHostnamePart(region)) {
     throw new InvalidArgumentError({
       argument: 'region',
       message:
