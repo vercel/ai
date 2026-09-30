@@ -1085,7 +1085,9 @@ export async function createPiSession(
     if (!session) return;
 
     if (hasMcpServers) {
-      await session.reload().catch(() => {});
+      await session.extensionRunner
+        .emit({ type: 'session_shutdown', reason: 'quit' })
+        .catch(() => {});
     }
     session.dispose();
   }
