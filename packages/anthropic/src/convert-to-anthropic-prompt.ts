@@ -108,6 +108,7 @@ export async function convertToAnthropicPrompt({
   let system: AnthropicPrompt['system'] = undefined;
   const messages: AnthropicPrompt['messages'] = [];
   let lastUserMessageIndex = -1;
+  const skippedToolCallIds = new Set<string>();
 
   async function shouldEnableCitations(
     providerMetadata: SharedV4ProviderMetadata | undefined,
@@ -289,6 +290,7 @@ export async function convertToAnthropicPrompt({
       case 'user': {
         // combines all user and tool messages in this block into a single message:
         const anthropicContent: AnthropicUserMessage['content'] = [];
+        let hasSkippedToolResult = false;
 
         for (const message of block.messages) {
           const { role, content } = message;
@@ -503,6 +505,11 @@ export async function convertToAnthropicPrompt({
                   continue;
                 }
 
+                if (skippedToolCallIds.has(part.toolCallId)) {
+                  hasSkippedToolResult = true;
+                  continue;
+                }
+
                 const output = part.output;
                 const outputProviderOptions =
                   'providerOptions' in output
@@ -688,7 +695,9 @@ export async function convertToAnthropicPrompt({
           }
         }
 
-        messages.push({ role: 'user', content: anthropicContent });
+        if (anthropicContent.length > 0 || !hasSkippedToolResult) {
+          messages.push({ role: 'user', content: anthropicContent });
+        }
 
         break;
       }
@@ -988,6 +997,7 @@ export async function convertToAnthropicPrompt({
                   );
 
                   if (typeof action !== 'string') {
+                    skippedToolCallIds.add(part.toolCallId);
                     warnings.push({
                       type: 'other',
                       message: `toolset tool call for tool ${part.toolName} is missing the action`,

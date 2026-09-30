@@ -1,8 +1,0 @@
-{
-  "type": "error",
-  "error": {
-    "type": "invalid_request_error",
-    "message": "messages.0.content.1: unexpected `tool_use_id` found in `tool_result` blocks: T1. Each `tool_result` block must have a corresponding `tool_use` block in the previous message."
-  },
-  "request_id": "req_011CfZv936tpvzgHtZ9ffjrD"
-}
