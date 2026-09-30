@@ -347,6 +347,36 @@
           }
         },
         {
+          "name": "harness-file-acp-backed-must-declare-bridge-contracts",
+          "description": "Every harness file for an ACP backed harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": {
+            "hasValueImport": {
+              "name": "createACP",
+              "from": "@ai-sdk/harness-acp"
+            }
+          },
+          "must": {
+            "callFunction": ["createACP"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
           "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
           "description": "Every harness file for a bridge harness must declare its bridge contracts.",
           "for": { "files": ["${harnessId}-harness.ts"] },
