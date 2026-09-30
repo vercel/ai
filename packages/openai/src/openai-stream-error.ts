@@ -118,6 +118,10 @@ function createOpenAIStreamError({
     responseHeaders,
     responseBody: JSON.stringify(frame),
     data: frame,
+    isRetryable:
+      streamError == null
+        ? true
+        : isRetryableStreamError(streamError, getStatusCode(streamError)),
   });
 }
 

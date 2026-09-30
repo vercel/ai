@@ -1,5 +1,122 @@
 # ai
 
+## 6.0.298
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/gateway@3.0.207
+
+## 6.0.297
+
+### Patch Changes
+
+- 8349396: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- ab0b94b: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- ce660b0: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 850d4d5: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- cdc5b56: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- d4203d2: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [4972874]
+- Updated dependencies [03e5a25]
+  - @ai-sdk/gateway@3.0.206
+
+## 6.0.296
+
+### Patch Changes
+
+- 0741da8: fix(ai): allow agent UI streams to use original messages as input
+- a63fa9b: fix(ai): preserve tool metadata from tool output chunks
+- a61bea9: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+
+## 6.0.295
+
+### Patch Changes
+
+- 0b38b6b: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [358683e]
+  - @ai-sdk/gateway@3.0.205
+
+## 6.0.294
+
+### Patch Changes
+
+- 16a04d7: fix(ai): cancel response streams when clients disconnect
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/gateway@3.0.204
+
+## 6.0.293
+
+### Patch Changes
+
+- 3983fea: fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/gateway@3.0.203
+
+## 6.0.292
+
+### Patch Changes
+
+- Updated dependencies [2cf7cb4]
+- Updated dependencies [af4a3e4]
+  - @ai-sdk/gateway@3.0.202
+
+## 6.0.291
+
+### Patch Changes
+
+- Updated dependencies [1915a6f]
+  - @ai-sdk/gateway@3.0.201
+
+## 6.0.290
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- 7f42b4d: fix(ai): resume tool approvals from earlier messages
+- d1a36d2: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- f7f36d2: chore: enable dead code lint rules
+- 7c41f5e: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+- Updated dependencies [be4ca16]
+- Updated dependencies [ffb9507]
+- Updated dependencies [bbd0115]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/gateway@3.0.200
+
+## 6.0.289
+
+### Patch Changes
+
+- 86f0089: fix(ai): prevent preliminary tool outputs from completing chats
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+- f211ce5: fix(ai): prevent duplicate content types in chat transport requests
+- 2f1488e: Fix streamed tool input callbacks firing out of order on newer Node.js versions by awaiting start and delta callbacks before invoking `onInputAvailable`.
+- Updated dependencies [da2e17b]
+- Updated dependencies [0b9d00b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/gateway@3.0.199
+  - @ai-sdk/provider-utils@4.0.53
+
+## 6.0.288
+
+### Patch Changes
+
+- Updated dependencies [bd8bf1f]
+  - @ai-sdk/gateway@3.0.198
+
 ## 6.0.287
 
 ### Patch Changes

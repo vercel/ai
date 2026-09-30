@@ -1,5 +1,98 @@
 # @ai-sdk/amazon-bedrock
 
+## 4.0.188
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/anthropic@3.0.126
+  - @ai-sdk/openai@3.0.122
+
+## 4.0.187
+
+### Patch Changes
+
+- Updated dependencies [4972874]
+  - @ai-sdk/openai@3.0.121
+
+## 4.0.186
+
+### Patch Changes
+
+- 358683e: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [358683e]
+- Updated dependencies [eeabdce]
+  - @ai-sdk/anthropic@3.0.125
+
+## 4.0.185
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/openai@3.0.120
+  - @ai-sdk/anthropic@3.0.124
+
+## 4.0.184
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+- Updated dependencies [f04da68]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/anthropic@3.0.123
+  - @ai-sdk/openai@3.0.119
+
+## 4.0.183
+
+### Patch Changes
+
+- Updated dependencies [0fb3a22]
+  - @ai-sdk/openai@3.0.118
+
+## 4.0.182
+
+### Patch Changes
+
+- Updated dependencies [a3e970b]
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+- Updated dependencies [57256a0]
+  - @ai-sdk/openai@3.0.117
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/anthropic@3.0.122
+
+## 4.0.181
+
+### Patch Changes
+
+- d0c9d86: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [ad8de8d]
+- Updated dependencies [da2e17b]
+- Updated dependencies [0b9d00b]
+  - @ai-sdk/openai@3.0.116
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/anthropic@3.0.121
+  - @ai-sdk/provider-utils@4.0.53
+
+## 4.0.180
+
+### Patch Changes
+
+- Updated dependencies [bd8bf1f]
+  - @ai-sdk/anthropic@3.0.120
+
 ## 4.0.179
 
 ### Patch Changes

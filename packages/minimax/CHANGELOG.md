@@ -1,5 +1,67 @@
 # @ai-sdk/minimax
 
+## 2.0.24
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/anthropic@3.0.126
+
+## 2.0.23
+
+### Patch Changes
+
+- Updated dependencies [358683e]
+- Updated dependencies [eeabdce]
+  - @ai-sdk/anthropic@3.0.125
+
+## 2.0.22
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+  - @ai-sdk/anthropic@3.0.124
+
+## 2.0.21
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+- Updated dependencies [f04da68]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+  - @ai-sdk/anthropic@3.0.123
+
+## 2.0.20
+
+### Patch Changes
+
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+  - @ai-sdk/anthropic@3.0.122
+
+## 2.0.19
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/anthropic@3.0.121
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.18
+
+### Patch Changes
+
+- Updated dependencies [bd8bf1f]
+  - @ai-sdk/anthropic@3.0.120
+
 ## 2.0.17
 
 ### Patch Changes

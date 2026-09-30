@@ -3559,7 +3559,7 @@ To see `streamText` in action, check out [these examples](#examples).
               type: '(error: unknown) => string',
               isOptional: true,
               description:
-                'Process an error, e.g. to log it. Returns error message to include in the data stream. Defaults to () => "An error occurred."',
+                'Process an error, e.g. to log it. Returns the error message to include in the data stream. Defaults to () => "An error occurred." Tool execution errors marked providerExecuted: true bypass this callback: strings pass through unchanged and other values are JSON-stringified to preserve provider error data for model-message round trips. Stream errors and invalid tool calls still use this callback.',
             },
             {
               name: 'consumeSseStream',

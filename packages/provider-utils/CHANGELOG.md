@@ -1,5 +1,45 @@
 # @ai-sdk/provider-utils
 
+## 4.0.57
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- a9cea74: fix(mcp): prevent SSRF in OAuth metadata discovery
+- a9cea74: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
+## 4.0.56
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+
+## 4.0.55
+
+### Patch Changes
+
+- 3983fea: fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+
+## 4.0.54
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- d1a36d2: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- f7f36d2: chore: enable dead code lint rules
+
+## 4.0.53
+
+### Patch Changes
+
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+
 ## 4.0.52
 
 ### Patch Changes

@@ -184,8 +184,10 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
       bedrockOptions.reasoningConfig?.type === 'enabled' ||
       bedrockOptions.reasoningConfig?.type === 'adaptive';
 
-    const { supportsStructuredOutput: modelSupportsStructuredOutput } =
-      getModelCapabilities(this.modelId);
+    const {
+      supportsStructuredOutput: modelSupportsStructuredOutput,
+      rejectsForcedToolUse,
+    } = getModelCapabilities(this.modelId);
 
     const structuredOutputMode =
       bedrockOptions.structuredOutputMode ??
@@ -234,13 +236,14 @@ export class BedrockChatLanguageModel implements LanguageModelV3 {
 
     const useJsonInstructionForStructuredOutput =
       !useNativeStructuredOutput &&
-      structuredOutputMode !== 'jsonTool' &&
       isAnthropicModel &&
-      !supportsStrictTools(this.modelId) &&
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      tools != null &&
-      tools.length > 0;
+      (rejectsForcedToolUse ||
+        (structuredOutputMode !== 'jsonTool' &&
+          !supportsStrictTools(this.modelId) &&
+          tools != null &&
+          tools.length > 0));
 
     const jsonResponseTool: LanguageModelV3FunctionTool | undefined =
       responseFormat?.type === 'json' &&

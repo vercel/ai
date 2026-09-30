@@ -500,7 +500,6 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV3 {
                 id: value.item_id,
                 delta: value.delta,
               });
-              return;
             }
           },
 

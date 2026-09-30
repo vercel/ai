@@ -79,7 +79,7 @@ createFeatureTestSuite({
     errorValidator: (error: APICallError) => {
       console.log(error);
       expect((error.data as GoogleErrorData).error.message).match(
-        /models\/no\-such\-model is not found/,
+        /models\/no-such-model is not found/,
       );
     },
   },

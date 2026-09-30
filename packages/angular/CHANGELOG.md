@@ -1,5 +1,101 @@
 # @ai-sdk/angular
 
+## 2.0.299
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - ai@6.0.298
+  - @ai-sdk/provider-utils@4.0.57
+
+## 2.0.298
+
+### Patch Changes
+
+- Updated dependencies [8349396]
+- Updated dependencies [ab0b94b]
+- Updated dependencies [ce660b0]
+- Updated dependencies [850d4d5]
+- Updated dependencies [cdc5b56]
+- Updated dependencies [d4203d2]
+  - ai@6.0.297
+
+## 2.0.297
+
+### Patch Changes
+
+- Updated dependencies [0741da8]
+- Updated dependencies [a63fa9b]
+- Updated dependencies [a61bea9]
+  - ai@6.0.296
+
+## 2.0.296
+
+### Patch Changes
+
+- Updated dependencies [0b38b6b]
+  - ai@6.0.295
+
+## 2.0.295
+
+### Patch Changes
+
+- Updated dependencies [16a04d7]
+- Updated dependencies [29dc427]
+  - ai@6.0.294
+  - @ai-sdk/provider-utils@4.0.56
+
+## 2.0.294
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - ai@6.0.293
+  - @ai-sdk/provider-utils@4.0.55
+
+## 2.0.293
+
+### Patch Changes
+
+- ai@6.0.292
+
+## 2.0.292
+
+### Patch Changes
+
+- ai@6.0.291
+
+## 2.0.291
+
+### Patch Changes
+
+- Updated dependencies [069a945]
+- Updated dependencies [7f42b4d]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+- Updated dependencies [7c41f5e]
+  - ai@6.0.290
+  - @ai-sdk/provider-utils@4.0.54
+
+## 2.0.290
+
+### Patch Changes
+
+- Updated dependencies [86f0089]
+- Updated dependencies [da2e17b]
+- Updated dependencies [f211ce5]
+- Updated dependencies [2f1488e]
+  - ai@6.0.289
+  - @ai-sdk/provider-utils@4.0.53
+
+## 2.0.289
+
+### Patch Changes
+
+- ai@6.0.288
+
 ## 2.0.288
 
 ### Patch Changes

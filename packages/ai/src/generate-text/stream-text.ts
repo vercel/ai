@@ -79,6 +79,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
@@ -123,7 +124,7 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import type { TypedToolCall } from './tool-call';
+import { getToolCallInputSchemaInput, type TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
@@ -1965,8 +1966,6 @@ class DefaultStreamTextResult<
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;
 
-            const activeToolCallToolNames: Record<string, string> = {};
-
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
 
@@ -2168,18 +2167,7 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-start': {
-                        activeToolCallToolNames[chunk.id] = chunk.toolName;
-
                         const tool = stepToolSet?.[chunk.toolName];
-                        if (tool?.onInputStart != null) {
-                          await tool.onInputStart({
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue({
                           ...chunk,
                           dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
@@ -2189,25 +2177,11 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-end': {
-                        delete activeToolCallToolNames[chunk.id];
                         controller.enqueue(chunk);
                         break;
                       }
 
                       case 'tool-input-delta': {
-                        const toolName = activeToolCallToolNames[chunk.id];
-                        const tool = stepToolSet?.[toolName];
-
-                        if (tool?.onInputDelta != null) {
-                          await tool.onInputDelta({
-                            inputTextDelta: chunk.delta,
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue(chunk);
                         break;
                       }
@@ -2724,7 +2698,7 @@ class DefaultStreamTextResult<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -3011,10 +2985,17 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-approval-request': {
+              const inputSchemaInput = getToolCallInputSchemaInput(
+                part.toolCall,
+              );
               controller.enqueue({
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(inputSchemaInput != null &&
+                !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+                  ? { inputSchemaInput: inputSchemaInput.value }
+                  : {}),
                 ...(part.signature != null
                   ? { signature: part.signature }
                   : {}),
@@ -3051,6 +3032,9 @@ class DefaultStreamTextResult<
             case 'tool-error': {
               const dynamic = isDynamic(part);
 
+              // Preserve provider error codes for model-message round trips.
+              // These execution errors intentionally bypass onError; invalid
+              // tool calls and stream errors still go through it.
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,

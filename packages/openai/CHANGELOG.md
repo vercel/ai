@@ -1,5 +1,64 @@
 # @ai-sdk/openai
 
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.121
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+
+## 3.0.120
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 3.0.118
+
+### Patch Changes
+
+- 0fb3a22: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 3.0.117
+
+### Patch Changes
+
+- a3e970b: fix(openai): expose Chat Completions audio transcripts as generated text
+- f7f36d2: chore: enable dead code lint rules
+- 57256a0: fix(openai): preserve retryability for early stream errors
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 3.0.116
+
+### Patch Changes
+
+- ad8de8d: fix(openai): accept `incomplete` function_call and custom_tool_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 0b9d00b: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
 ## 3.0.115
 
 ### Patch Changes

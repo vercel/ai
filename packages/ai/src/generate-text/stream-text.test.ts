@@ -47,6 +47,10 @@ import {
   asLanguageModelUsage,
   createNullLanguageModelUsage,
 } from '../types/usage';
+import { readUIMessageStream } from '../ui-message-stream/read-ui-message-stream';
+import { convertToModelMessages } from '../ui/convert-to-model-messages';
+import type { UIMessage } from '../ui/ui-messages';
+import { validateUIMessages } from '../ui/validate-ui-messages';
 import type { StepResult } from './step-result';
 import { isLoopFinished, stepCountIs } from './stop-condition';
 import {
@@ -18838,10 +18842,16 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -18851,7 +18861,7 @@ describe('streamText', () => {
           model: new MockLanguageModelV3({
             doStream: async () => ({
               stream: new ReadableStream({
-                pull(controller) {
+                async pull(controller) {
                   switch (pullCalls++) {
                     case 0:
                       controller.enqueue({
@@ -18873,6 +18883,8 @@ describe('streamText', () => {
                       });
                       break;
                     case 3:
+                      // Wait for the chunk to reach the output before aborting.
+                      await textChunkReceived.promise;
                       abortController.abort();
                       controller.error(
                         new DOMException(
@@ -18919,6 +18931,16 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello",
+                "type": "text-delta",
+              },
+              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -18935,6 +18957,15 @@ describe('streamText', () => {
               },
               {
                 "type": "start-step",
+              },
+              {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello",
+                "id": "1",
+                "type": "text-delta",
               },
               {
                 "reason": "This operation was aborted",
@@ -19019,11 +19050,17 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onAbort: event => {
             onAbortCalls.push(event);
           },
@@ -19034,7 +19071,7 @@ describe('streamText', () => {
                   streamCalls++;
                   pullCalls = 0;
                 },
-                pull(controller) {
+                async pull(controller) {
                   if (streamCalls === 1) {
                     switch (pullCalls++) {
                       case 0:
@@ -19085,6 +19122,8 @@ describe('streamText', () => {
                         });
                         break;
                       case 3:
+                        // Wait for the chunk to reach the output before aborting.
+                        await textChunkReceived.promise;
                         abortController.abort();
                         controller.error(
                           new DOMException(
@@ -19289,6 +19328,16 @@ describe('streamText', () => {
                 "warnings": [],
               },
               {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "id": "1",
+                "providerMetadata": undefined,
+                "text": "Hello",
+                "type": "text-delta",
+              },
+              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -19326,6 +19375,15 @@ describe('streamText', () => {
                 "type": "start-step",
               },
               {
+                "id": "1",
+                "type": "text-start",
+              },
+              {
+                "delta": "Hello",
+                "id": "1",
+                "type": "text-delta",
+              },
+              {
                 "reason": "This operation was aborted",
                 "type": "abort",
               },
@@ -19344,12 +19402,18 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const toolCallReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           ...defaultSettings(),
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'tool-call') {
+              toolCallReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -19437,6 +19501,8 @@ describe('streamText', () => {
             tool1: {
               inputSchema: z.object({ value: z.string() }),
               execute: async () => {
+                // Wait for the tool call to reach the output before aborting.
+                await toolCallReceived.promise;
                 abortController.abort();
                 return 'result1';
               },
@@ -22479,6 +22545,98 @@ describe('streamText', () => {
   });
 
   describe('tool execution approval', () => {
+    it('should execute transformed approved input after a persisted UI message round trip', async () => {
+      const execute = vi.fn(async ({ count }: { count: number }) => count);
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+          execute,
+          needsApproval: true,
+        }),
+      };
+      const firstResult = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: '{"count":"3"}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: undefined },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools,
+        prompt: 'Count three items.',
+        _internal: {
+          generateId: mockId({ prefix: 'id' }),
+        },
+      });
+
+      const uiMessages = await convertReadableStreamToArray(
+        readUIMessageStream({ stream: firstResult.toUIMessageStream() }),
+      );
+      const persistedMessage = JSON.parse(
+        JSON.stringify(uiMessages.at(-1)),
+      ) as UIMessage;
+      const toolPart = persistedMessage.parts.find(
+        part => part.type === 'tool-count',
+      );
+
+      if (
+        toolPart == null ||
+        toolPart.type !== 'tool-count' ||
+        toolPart.state !== 'approval-requested'
+      ) {
+        throw new Error('Expected a count tool approval request.');
+      }
+
+      Object.assign(toolPart, {
+        state: 'approval-responded',
+        approval: { ...toolPart.approval, approved: true },
+      });
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools: tools as any,
+      });
+      const modelMessages = await convertToModelMessages(validatedMessages, {
+        tools: tools as any,
+      });
+
+      const secondResult = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Done' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools,
+        messages: [
+          { role: 'user', content: 'Count three items.' },
+          ...modelMessages,
+        ],
+      });
+
+      expect(await secondResult.text).toBe('Done');
+      expect(execute).toHaveBeenCalledOnce();
+      expect(execute).toHaveBeenCalledWith({ count: 3 }, expect.anything());
+    });
+
     it('should stream invalid approved input as a tool error and continue', async () => {
       const executeFunction = vi.fn().mockReturnValue('result1');
       const prompts: LanguageModelV3Prompt[] = [];

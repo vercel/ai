@@ -937,7 +937,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             arguments: z.string(),
             async: z.boolean().nullish(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
             namespace: z.string().nullish(),
           }),
           z.object({
@@ -947,7 +947,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             name: z.string(),
             input: z.string(),
             async: z.boolean().nullish(),
-            status: z.literal('completed'),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
           }),
           z.object({
             type: z.literal('code_interpreter_call'),
