@@ -49,14 +49,14 @@ const { image } = await generateImage({
 
 ## Video Enhancement Example
 
-`generateVideo` requires a prompt, so pass an empty one. `resolution` sets the output resolution:
+`generateVideo` requires a prompt, so pass an empty one. `resolution` sets the output resolution. Starlight models also need the input video's properties in the `source` provider option:
 
 ```ts
 import { topaz } from '@ai-sdk/topaz';
 import { experimental_generateVideo as generateVideo } from 'ai';
 
 const { videos } = await generateVideo({
-  model: topaz.video('starlight-precise-2.6'),
+  model: topaz.video('proteus'),
   prompt: '',
   inputReferences: ['https://example.com/clip.mp4'],
   resolution: '3840x2160',

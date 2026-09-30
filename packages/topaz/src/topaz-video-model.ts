@@ -11,7 +11,6 @@ import {
 import {
   combineHeaders,
   convertBase64ToUint8Array,
-  createBinaryResponseHandler,
   createJsonResponseHandler,
   getFromApi,
   isSameOrigin,
@@ -84,17 +83,10 @@ const containerMediaTypes: Record<string, string> = {
 };
 
 /**
- * Presigned uploads are split into segments of at least this size, per the
- * Topaz accept endpoint.
- */
-const UPLOAD_SEGMENT_BYTES = 500_000_000;
-
-/**
  * Topaz video models enhance a video the caller supplies, passed through
- * `inputReferences`. `doStart` uses Topaz's express flow (create, then a
- * single upload, or no upload when Topaz fetches a URL input itself) unless
- * the caller supplies source metadata, in which case it uses the full flow
- * (create, accept, multi-part upload, complete-upload). `doStatus` polls.
+ * `inputReferences`. `doStart` creates an express request: Topaz fetches URL
+ * inputs itself, and file inputs are uploaded to the returned URL. Processing
+ * starts once Topaz has the video, and `doStatus` polls.
  */
 export class TopazVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
@@ -152,79 +144,39 @@ export class TopazVideoModel implements VideoModelV4 {
     const contentType =
       containerMediaTypes[source.container] ?? 'application/octet-stream';
 
+    const metadata = source.metadata;
+    const bytes = input.type === 'file' ? fileBytes(input) : undefined;
     let requestId: string | undefined;
 
     try {
-      if (source.type === 'express') {
-        // Topaz fetches URL inputs itself, so they skip the upload, and like
-        // other providers the SDK never downloads them.
-        const external =
-          input.type === 'url'
-            ? { provider: 's3', presignedUrl: input.url }
-            : undefined;
-
-        const { value: created, responseHeaders } = await postJsonToApi({
-          url: `${this.config.baseURL}/video/express`,
-          headers,
-          body: {
-            source: {
-              container: source.container,
-              ...(external != null ? { external } : {}),
-            },
-            output,
-            filters,
-          },
-          successfulResponseHandler: createJsonResponseHandler(
-            topazVideoExpressResponseSchema,
-          ),
-          failedResponseHandler: topazFailedResponseHandler,
-          abortSignal: options.abortSignal,
-          fetch: this.config.fetch,
-        });
-
-        requestId = requireRequestId(created.requestId);
-
-        if (input.type === 'file') {
-          await this.uploadVideo({
-            requestId,
-            bytes: fileBytes(input),
-            urls: created.uploadUrls,
-            contentType,
-            abortSignal: options.abortSignal,
-          });
-        }
-
-        return this.startResult({
-          requestId,
-          outputContainer: output.container,
-          estimatedCredits: created.estimates?.cost,
-          warnings,
-          currentDate,
-          responseHeaders,
-        });
-      }
-
-      // The full flow needs the file size up front, so URL inputs are
-      // downloaded first.
-      const bytes = await this.loadInputBytes(input, options.abortSignal);
-
       const { value: created, responseHeaders } = await postJsonToApi({
-        url: `${this.config.baseURL}/video/`,
+        url: `${this.config.baseURL}/video/express`,
         headers,
         body: {
           source: {
             container: source.container,
-            size: bytes.byteLength,
-            duration: source.duration,
-            frameCount: source.frameCount,
-            frameRate: source.frameRate,
-            resolution: { width: source.width, height: source.height },
+            ...(metadata != null
+              ? {
+                  duration: metadata.duration,
+                  frameCount: metadata.frameCount,
+                  frameRate: metadata.frameRate,
+                  resolution: {
+                    width: metadata.width,
+                    height: metadata.height,
+                  },
+                }
+              : {}),
+            ...(input.type === 'url'
+              ? // Topaz fetches URL inputs itself, so, like other providers,
+                // the SDK never downloads them.
+                { external: { provider: 's3', presignedUrl: input.url } }
+              : { size: bytes?.byteLength }),
           },
           output,
           filters,
         },
         successfulResponseHandler: createJsonResponseHandler(
-          topazVideoCreateResponseSchema,
+          topazVideoExpressResponseSchema,
         ),
         failedResponseHandler: topazFailedResponseHandler,
         abortSignal: options.abortSignal,
@@ -233,38 +185,37 @@ export class TopazVideoModel implements VideoModelV4 {
 
       requestId = requireRequestId(created.requestId);
 
-      // Accepting reserves the estimated credits.
-      const accepted = await this.patch({
-        path: `/video/${requestId}/accept`,
-        schema: topazVideoAcceptResponseSchema,
-        headers,
-        abortSignal: options.abortSignal,
-      });
+      if (bytes != null) {
+        await this.uploadVideo({
+          requestId,
+          bytes,
+          urls: created.uploadUrls,
+          contentType,
+          abortSignal: options.abortSignal,
+        });
+      }
 
-      const uploadResults = await this.uploadVideo({
-        requestId,
-        bytes,
-        urls: accepted.urls,
-        contentType,
-        abortSignal: options.abortSignal,
-      });
-
-      await this.patch({
-        path: `/video/${requestId}/complete-upload`,
-        body: { uploadResults },
-        schema: topazVideoCompleteUploadResponseSchema,
-        headers,
-        abortSignal: options.abortSignal,
-      });
-
-      return this.startResult({
-        requestId,
-        outputContainer: output.container,
-        estimatedCredits: created.estimates?.cost,
+      return {
+        // The output container travels with the operation so `doStatus` can
+        // report the right media type without re-deriving it.
+        operation: { requestId, outputContainer: output.container },
         warnings,
-        currentDate,
-        responseHeaders,
-      });
+        providerMetadata: {
+          topaz: {
+            requestId,
+            // Preliminary: Topaz estimates up front only when it gets source
+            // metadata, and the completed status carries the billed value.
+            ...(created.estimates?.cost != null
+              ? { estimatedCredits: created.estimates.cost }
+              : {}),
+          },
+        },
+        response: {
+          timestamp: currentDate,
+          modelId: this.modelId,
+          headers: responseHeaders,
+        },
+      };
     } catch (error) {
       // Canceling before processing starts refunds any reserved credits.
       if (requestId != null) {
@@ -272,42 +223,6 @@ export class TopazVideoModel implements VideoModelV4 {
       }
       throw error;
     }
-  }
-
-  private startResult({
-    requestId,
-    outputContainer,
-    estimatedCredits,
-    warnings,
-    currentDate,
-    responseHeaders,
-  }: {
-    requestId: string;
-    outputContainer: TopazOutputContainer;
-    estimatedCredits: number[] | null | undefined;
-    warnings: SharedV4Warning[];
-    currentDate: Date;
-    responseHeaders: Record<string, string> | undefined;
-  }): VideoModelV4OperationStartResult {
-    return {
-      // The output container travels with the operation so `doStatus` can
-      // report the right media type without re-deriving it.
-      operation: { requestId, outputContainer },
-      warnings,
-      providerMetadata: {
-        topaz: {
-          requestId,
-          // Preliminary: Topaz re-estimates once the upload is received, and
-          // the completed status carries the value that is billed.
-          ...(estimatedCredits != null ? { estimatedCredits } : {}),
-        },
-      },
-      response: {
-        timestamp: currentDate,
-        modelId: this.modelId,
-        headers: responseHeaders,
-      },
-    };
   }
 
   async doStatus(
@@ -523,27 +438,6 @@ export class TopazVideoModel implements VideoModelV4 {
     return videos[0];
   }
 
-  private async loadInputBytes(
-    input: VideoModelV4File,
-    abortSignal: AbortSignal | undefined,
-  ): Promise<Uint8Array> {
-    if (input.type === 'file') {
-      return fileBytes(input);
-    }
-
-    const { value } = await getFromApi({
-      url: input.url,
-      // A caller-supplied URL, so it is validated like any untrusted target.
-      validateUrl: true,
-      successfulResponseHandler: createBinaryResponseHandler(),
-      failedResponseHandler: topazFailedResponseHandler,
-      abortSignal,
-      fetch: this.config.fetch,
-    });
-
-    return value;
-  }
-
   private async uploadVideo({
     requestId,
     bytes,
@@ -556,75 +450,44 @@ export class TopazVideoModel implements VideoModelV4 {
     urls: string[] | null | undefined;
     contentType: string;
     abortSignal: AbortSignal | undefined;
-  }): Promise<Array<{ partNum: number; eTag: string }>> {
-    if (urls == null || urls.length === 0) {
+  }): Promise<void> {
+    const url = urls?.[0];
+    if (url == null) {
       throw new InvalidResponseDataError({
         data: urls,
-        message: `Topaz returned no upload URLs for request ${requestId}.`,
+        message: `Topaz returned no upload URL for request ${requestId}.`,
       });
+    }
+
+    // The upload URL comes from the Topaz response body. `getFromApi` cannot
+    // be used for a PUT, so the same trust decision is made explicitly here:
+    // validate unless the URL points back at the configured base URL, and
+    // never attach the API key (presigned URLs carry their own credentials).
+    if (!isSameOrigin(url, this.config.baseURL)) {
+      validateDownloadUrl(url);
     }
 
     const fetchImpl = this.config.fetch ?? globalThis.fetch;
-    // Topaz splits multi-part uploads into segments of at least 500 MB and
-    // issues ceil(size / 500 MB) URLs, capped at 150.
-    const partSize = Math.max(
-      UPLOAD_SEGMENT_BYTES,
-      Math.ceil(bytes.byteLength / urls.length),
-    );
-    const results: Array<{ partNum: number; eTag: string }> = [];
+    const response = await fetchImpl(url, {
+      method: 'PUT',
+      headers: withUserAgentSuffix(
+        { 'Content-Type': contentType },
+        `ai-sdk-topaz/${VERSION}`,
+      ) as HeadersInit,
+      body: bytes as BodyInit,
+      signal: abortSignal,
+    });
 
-    for (const [index, url] of urls.entries()) {
-      // The upload URL comes from the Topaz response body. `getFromApi` cannot
-      // be used for a PUT, so the same trust decision is made explicitly here:
-      // validate unless the URL points back at the configured base URL, and
-      // never attach the API key (presigned URLs carry their own credentials).
-      if (!isSameOrigin(url, this.config.baseURL)) {
-        validateDownloadUrl(url);
-      }
-
-      const part =
-        urls.length === 1
-          ? bytes
-          : bytes.subarray(index * partSize, (index + 1) * partSize);
-
-      const response = await fetchImpl(url, {
-        method: 'PUT',
-        headers: withUserAgentSuffix(
-          { 'Content-Type': contentType },
-          `ai-sdk-topaz/${VERSION}`,
-        ) as HeadersInit,
-        body: part as BodyInit,
-        signal: abortSignal,
+    if (!response.ok) {
+      throw new APICallError({
+        message: `Uploading the input video failed with status ${response.status}.`,
+        url,
+        requestBodyValues: {},
+        statusCode: response.status,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        responseBody: await response.text(),
       });
-
-      if (!response.ok) {
-        throw new APICallError({
-          message:
-            `Uploading part ${index + 1} of the input video failed with status ` +
-            `${response.status} ${response.statusText}.`,
-          url,
-          requestBodyValues: {},
-          statusCode: response.status,
-          responseHeaders: Object.fromEntries(response.headers.entries()),
-          responseBody: await response.text(),
-        });
-      }
-
-      const eTag = response.headers.get('etag')?.replace(/"/g, '');
-
-      // Single-URL uploads have no parts to reassemble, so Topaz ignores the
-      // ETag but still requires one entry in `uploadResults`.
-      if (eTag == null && urls.length > 1) {
-        throw new InvalidResponseDataError({
-          data: Object.fromEntries(response.headers.entries()),
-          message: `The upload of part ${index + 1} did not return an ETag header.`,
-        });
-      }
-
-      results.push({ partNum: index + 1, eTag: eTag ?? 'unused' });
     }
-
-    return results;
   }
 
   private async cancelQuietly(
@@ -643,54 +506,6 @@ export class TopazVideoModel implements VideoModelV4 {
     } catch {
       // Best effort: the original error is more useful to the caller.
     }
-  }
-
-  private async patch<T>({
-    path,
-    body,
-    schema,
-    headers,
-    abortSignal,
-  }: {
-    path: string;
-    body?: unknown;
-    schema: z.ZodType<T>;
-    headers: Record<string, string | undefined> | undefined;
-    abortSignal: AbortSignal | undefined;
-  }): Promise<T> {
-    // provider-utils only ships GET and POST helpers, so the Topaz PATCH steps
-    // are issued directly, reusing the shared error handler for parity.
-    const fetchImpl = this.config.fetch ?? globalThis.fetch;
-    const url = `${this.config.baseURL}${path}`;
-
-    const response = await fetchImpl(url, {
-      method: 'PATCH',
-      headers: removeUndefinedEntries(
-        combineHeaders(
-          headers,
-          body != null ? { 'Content-Type': 'application/json' } : {},
-        ),
-      ),
-      ...(body != null ? { body: JSON.stringify(body) } : {}),
-      signal: abortSignal,
-    });
-
-    if (!response.ok) {
-      const { value: error } = await topazFailedResponseHandler({
-        response,
-        url,
-        requestBodyValues: body ?? {},
-      });
-      throw error;
-    }
-
-    const { value } = await createJsonResponseHandler(schema)({
-      response,
-      url,
-      requestBodyValues: body ?? {},
-    });
-
-    return value;
   }
 }
 
@@ -766,23 +581,23 @@ function containerFromUrl(url: string): TopazSourceContainer | undefined {
   return extension != null ? extensionContainers[extension] : undefined;
 }
 
-type ResolvedSource =
-  | { type: 'express'; container: TopazSourceContainer }
-  | {
-      type: 'full';
-      container: TopazSourceContainer;
-      duration: number;
-      frameRate: number;
-      frameCount: number;
-      width: number;
-      height: number;
-    };
+type SourceMetadata = {
+  duration: number;
+  frameRate: number;
+  frameCount: number;
+  width: number;
+  height: number;
+};
+
+type ResolvedSource = {
+  container: TopazSourceContainer;
+  metadata: SourceMetadata | undefined;
+};
 
 /**
- * Picks the submission flow. Source metadata beyond the container is only
- * needed, and only accepted, by the full flow, so its presence opts in.
- * Nothing is read out of the video bytes: no provider package inspects media
- * files.
+ * Reads the optional source metadata, which is all or nothing. Starlight
+ * models require it, and it lets Topaz estimate the cost up front. Nothing is
+ * read out of the video bytes: no provider package inspects media files.
  */
 function resolveSource(
   topazOptions: TopazVideoModelOptions | undefined,
@@ -798,7 +613,7 @@ function resolveSource(
     frameRate == null &&
     source?.frameCount == null
   ) {
-    return { type: 'express', container };
+    return { container, metadata: undefined };
   }
 
   const frameCount =
@@ -823,21 +638,13 @@ function resolveSource(
   ) {
     throw new InvalidArgumentError({
       argument: 'providerOptions.topaz.source',
-      message:
-        'Source metadata switches Topaz to the full upload flow, which needs the ' +
-        `complete set. Missing: ${missing.join(', ')}. ` +
-        'Omit `source` metadata to use the express flow instead.',
+      message: `Source metadata must be complete. Missing: ${missing.join(', ')}.`,
     });
   }
 
   return {
-    type: 'full',
     container,
-    duration,
-    frameRate,
-    frameCount,
-    width,
-    height,
+    metadata: { duration, frameRate, frameCount, width, height },
   };
 }
 
@@ -865,14 +672,8 @@ function buildOutput({
   const output = topazOptions?.output;
   const resolution = parseResolution(options.resolution);
 
-  const width =
-    output?.width ??
-    resolution.width ??
-    (source.type === 'full' ? source.width : undefined);
-  const height =
-    output?.height ??
-    resolution.height ??
-    (source.type === 'full' ? source.height : undefined);
+  const width = output?.width ?? resolution.width ?? source.metadata?.width;
+  const height = output?.height ?? resolution.height ?? source.metadata?.height;
 
   if (width == null || height == null) {
     throw new InvalidArgumentError({
@@ -884,9 +685,7 @@ function buildOutput({
   }
 
   const frameRate =
-    output?.frameRate ??
-    options.fps ??
-    (source.type === 'full' ? source.frameRate : undefined);
+    output?.frameRate ?? options.fps ?? source.metadata?.frameRate;
   const audioTransfer = output?.audioTransfer ?? 'Copy';
 
   return {
@@ -986,22 +785,11 @@ const topazVideoEstimatesSchema = z
   })
   .nullish();
 
-const topazVideoCreateResponseSchema = z.object({
-  requestId: z.string().nullish(),
-  estimates: topazVideoEstimatesSchema,
-});
-
 const topazVideoExpressResponseSchema = z.object({
   requestId: z.string().nullish(),
   uploadUrls: z.array(z.string()).nullish(),
   estimates: topazVideoEstimatesSchema,
 });
-
-const topazVideoAcceptResponseSchema = z.object({
-  urls: z.array(z.string()).nullish(),
-});
-
-const topazVideoCompleteUploadResponseSchema = z.object({});
 
 const topazVideoStatusResponseSchema = z.object({
   status: z.string().nullish(),

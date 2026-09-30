@@ -18,13 +18,24 @@ run(async () => {
         // The output resolution. The source is 360x640.
         resolution: '1080x1920',
         providerOptions: {
-          topaz: { sharpness: 4 } satisfies TopazVideoModelOptions,
+          topaz: {
+            // Starlight models require the input video's properties, and
+            // Topaz prices them from these values.
+            source: {
+              width: 360,
+              height: 640,
+              duration: 5.133,
+              frameRate: 30,
+              frameCount: 154,
+            },
+            sharpness: 4,
+          } satisfies TopazVideoModelOptions,
         },
       }),
   );
 
-  // `topaz.credits` is the lower bound of the post-upload estimate, which is
-  // what Topaz bills.
+  // `topaz.credits` is the lower bound of Topaz's cost estimate, which is what
+  // it bills.
   console.log('Provider metadata:', JSON.stringify(providerMetadata, null, 2));
   await presentVideos(videos);
 });

@@ -18,8 +18,8 @@ run(async () => {
         resolution: '720x1280',
         providerOptions: {
           topaz: {
-            // Source metadata opts into Topaz's full flow, which returns a
-            // cost estimate before the upload starts.
+            // Optional for Proteus: lets Topaz estimate the cost as soon as
+            // the request is created.
             source: {
               width: 360,
               height: 640,

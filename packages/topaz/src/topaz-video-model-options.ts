@@ -46,13 +46,11 @@ export const topazOutputContainers = [
 /**
  * Metadata about the input video.
  *
- * By default the provider uses Topaz's express flow, which needs no source
- * metadata. Setting any of `width`, `height`, `duration`, `frameRate` or
- * `frameCount` switches to the full flow (create, accept, multi-part upload,
- * complete-upload), which returns a cost estimate before the upload and
- * supports multi-part uploads of large files. In that flow `width`, `height`,
- * `duration` and `frameRate` are required, because the AI SDK does not inspect
- * media files.
+ * Starlight models require `width`, `height`, `duration` and `frameRate`
+ * (Topaz prices them from these values), and for other models they let Topaz
+ * estimate the cost before it has the video. The AI SDK does not inspect
+ * media files, so the values come from the caller. Setting any of them
+ * requires all four.
  */
 export const topazVideoSourceSchema = z.object({
   /**

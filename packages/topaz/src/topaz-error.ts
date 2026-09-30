@@ -17,13 +17,22 @@ export const topazErrorDataSchema = z.object({
   message: z.string().nullish(),
   error: z.string().nullish(),
   errorCode: z.string().nullish(),
+  errors: z.array(z.object({ msg: z.string().nullish() }).loose()).nullish(),
 });
 
 export type TopazErrorData = z.infer<typeof topazErrorDataSchema>;
 
 export function topazErrorToMessage(data: TopazErrorData): string {
   const message = baseErrorMessage(data);
-  return data.errorCode != null ? `${message} (${data.errorCode})` : message;
+  const withCode =
+    data.errorCode != null ? `${message} (${data.errorCode})` : message;
+
+  // The video API lists field validation failures separately.
+  const issues = (data.errors ?? [])
+    .map(issue => issue.msg)
+    .filter((msg): msg is string => msg != null);
+
+  return issues.length > 0 ? `${withCode}: ${issues.join('; ')}` : withCode;
 }
 
 function baseErrorMessage(data: TopazErrorData): string {

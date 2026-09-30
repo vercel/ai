@@ -11,7 +11,6 @@ import { TopazVideoModel } from './topaz-video-model';
 const TEST_BASE_URL = 'https://api.topazlabs.com';
 const REQUEST_ID = 'req-abc-123';
 const UPLOAD_URL = 'https://uploads.topazlabs.example.com/part-1';
-const UPLOAD_URL_2 = 'https://uploads.topazlabs.example.com/part-2';
 const DOWNLOAD_URL = 'https://cdn.topazlabs.example.com/out.mp4';
 const SOURCE_URL = 'https://media.example.com/clips/input.mov';
 
@@ -77,15 +76,6 @@ function recordUploads(): { fetch: FetchFunction; uploads: Uint8Array[] } {
 
 describe('TopazVideoModel', () => {
   const server = createTestServer({
-    [`${TEST_BASE_URL}/video/`]: {
-      response: {
-        type: 'json-value',
-        body: {
-          requestId: REQUEST_ID,
-          estimates: { cost: [12, 15], time: [60, 90] },
-        },
-      },
-    },
     [`${TEST_BASE_URL}/video/express`]: {
       response: {
         type: 'json-value',
@@ -99,35 +89,11 @@ describe('TopazVideoModel', () => {
     [`${TEST_BASE_URL}/video/${REQUEST_ID}`]: {
       response: { type: 'empty', status: 204 },
     },
-    [`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`]: {
-      response: {
-        type: 'json-value',
-        body: { uploadId: 'upload-1', urls: [UPLOAD_URL] },
-      },
-    },
     [UPLOAD_URL]: {
       response: {
-        // `json-value` rather than `empty` because the test server only
-        // applies custom headers (here, the ETag) on a body-carrying response.
         type: 'json-value',
         body: {},
-        headers: { etag: '"etag-part-1"' },
       },
-    },
-    // Only used by the multipart-upload test; the default accept response
-    // returns a single URL.
-    [UPLOAD_URL_2]: {
-      response: {
-        type: 'json-value',
-        body: {},
-        headers: { etag: '"etag-part-2"' },
-      },
-    },
-    [SOURCE_URL]: {
-      response: { type: 'binary', body: Buffer.from(inputVideo.data) },
-    },
-    [`${TEST_BASE_URL}/video/${REQUEST_ID}/complete-upload`]: {
-      response: { type: 'json-value', body: { message: 'queued' } },
     },
     [`${TEST_BASE_URL}/video/${REQUEST_ID}/status`]: {
       response: {
@@ -184,21 +150,23 @@ describe('TopazVideoModel', () => {
   });
 
   describe('doStart', () => {
-    it('runs create, accept, upload and complete-upload in order', async () => {
+    it('creates an express request with the source metadata and uploads the file', async () => {
       const result = await createModel().doStart({ ...defaultOptions });
 
-      expect(server.calls.map(call => call.requestUrl)).toEqual([
-        `${TEST_BASE_URL}/video/`,
-        `${TEST_BASE_URL}/video/${REQUEST_ID}/accept`,
-        UPLOAD_URL,
-        `${TEST_BASE_URL}/video/${REQUEST_ID}/complete-upload`,
+      expect(
+        server.calls.map(call => [call.requestMethod, call.requestUrl]),
+      ).toEqual([
+        ['POST', `${TEST_BASE_URL}/video/express`],
+        ['PUT', UPLOAD_URL],
       ]);
-      expect(server.calls.map(call => call.requestMethod)).toEqual([
-        'POST',
-        'PATCH',
-        'PUT',
-        'PATCH',
-      ]);
+      expect((await server.calls[0].requestBodyJson).source).toEqual({
+        container: 'mp4',
+        duration: 10,
+        frameCount: 300,
+        frameRate: 30,
+        resolution: { width: 1920, height: 1080 },
+        size: 8,
+      });
       expect(result.operation).toEqual({
         requestId: REQUEST_ID,
         outputContainer: 'mp4',
@@ -207,6 +175,15 @@ describe('TopazVideoModel', () => {
     });
 
     it('reports the initial cost estimate without a billed amount', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
+        type: 'json-value',
+        body: {
+          requestId: REQUEST_ID,
+          uploadUrls: [UPLOAD_URL],
+          estimates: { cost: [12, 15], time: [60, 90] },
+        },
+      };
+
       const result = await createModel().doStart({ ...defaultOptions });
 
       expect(result.providerMetadata).toEqual({
@@ -225,8 +202,7 @@ describe('TopazVideoModel', () => {
       }).doStart({ ...defaultOptions });
 
       expect(server.calls[0].requestHeaders['x-api-key']).toBe('restored-key');
-      expect(server.calls[1].requestHeaders['x-api-key']).toBe('restored-key');
-      expect(server.calls[2].requestHeaders['x-api-key']).toBeUndefined();
+      expect(server.calls[1].requestHeaders['x-api-key']).toBeUndefined();
     });
 
     it('maps the model id onto the Topaz filter model name', async () => {
@@ -403,49 +379,24 @@ describe('TopazVideoModel', () => {
       ]);
     });
 
-    it('uploads the bytes with the container content type and reports the eTag', async () => {
-      await createModel().doStart({ ...defaultOptions });
-
-      expect(server.calls[2].requestHeaders['content-type']).toBe('video/mp4');
-
-      const completeBody = await server.calls[3].requestBodyJson;
-
-      expect(completeBody).toEqual({
-        uploadResults: [{ partNum: 1, eTag: 'etag-part-1' }],
-      });
-    });
-
-    it('splits the upload into segments of at least 500 MB, one per URL', async () => {
-      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
-        type: 'json-value',
-        body: { uploadId: 'upload-1', urls: [UPLOAD_URL, UPLOAD_URL_2] },
-      };
-
+    it('uploads the bytes with the container content type', async () => {
       const { fetch, uploads } = recordUploads();
       await createModel(undefined, fetch).doStart({ ...defaultOptions });
 
-      // The 8-byte fixture fits in the first 500 MB segment.
-      expect(uploads).toEqual([inputVideo.data, new Uint8Array()]);
-
-      const completeBody = await server.calls[4].requestBodyJson;
-
-      expect(completeBody.uploadResults).toEqual([
-        { partNum: 1, eTag: 'etag-part-1' },
-        { partNum: 2, eTag: 'etag-part-2' },
-      ]);
+      expect(server.calls[1].requestHeaders['content-type']).toBe('video/mp4');
+      expect(uploads).toEqual([inputVideo.data]);
     });
 
     it('does not send the API key to the upload URL', async () => {
       await createModel().doStart({ ...defaultOptions });
 
-      expect(server.calls[2].requestHeaders['x-api-key']).toBeUndefined();
+      expect(server.calls[1].requestHeaders['x-api-key']).toBeUndefined();
     });
 
     it('sends the API key to the Topaz endpoints', async () => {
       await createModel().doStart({ ...defaultOptions });
 
       expect(server.calls[0].requestHeaders['x-api-key']).toBe('test-key');
-      expect(server.calls[1].requestHeaders['x-api-key']).toBe('test-key');
     });
 
     it('does not warn about an empty prompt', async () => {
@@ -496,7 +447,7 @@ describe('TopazVideoModel', () => {
           providerOptions: { topaz: { source: { width: 1920 } } },
         }),
       ).rejects.toThrow(
-        /Missing: source\.height, source\.duration, source\.frameRate\./,
+        /must be complete\. Missing: source\.height, source\.duration, source\.frameRate\./,
       );
       expect(server.calls).toHaveLength(0);
     });
@@ -543,7 +494,7 @@ describe('TopazVideoModel', () => {
     });
 
     it('surfaces Topaz error details from the create call', async () => {
-      server.urls[`${TEST_BASE_URL}/video/`].response = {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({ detail: 'frameCount must be positive' }),
@@ -554,53 +505,24 @@ describe('TopazVideoModel', () => {
       ).rejects.toThrow(/frameCount must be positive/);
     });
 
-    it('surfaces Topaz error details from the accept call', async () => {
-      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
-        type: 'error',
-        status: 409,
-        body: JSON.stringify({ detail: 'request already accepted' }),
-      };
-
-      await expect(
-        createModel().doStart({ ...defaultOptions }),
-      ).rejects.toThrow(/request already accepted/);
-    });
-
-    it('throws when no upload URLs are returned', async () => {
-      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
+    it('throws when no upload URL is returned', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
         type: 'json-value',
-        body: { uploadId: 'upload-1', urls: [] },
+        body: { requestId: REQUEST_ID },
       };
 
       await expect(
         createModel().doStart({ ...defaultOptions }),
-      ).rejects.toThrow(/no upload URLs/);
+      ).rejects.toThrow(/returned no upload URL/);
     });
 
-    it('sends a placeholder ETag for a single-URL upload without one', async () => {
-      server.urls[UPLOAD_URL].response = { type: 'json-value', body: {} };
-
-      await createModel().doStart({ ...defaultOptions });
-
-      expect(await server.calls[3].requestBodyJson).toEqual({
-        uploadResults: [{ partNum: 1, eTag: 'unused' }],
-      });
-    });
-
-    it('throws when a multi-part upload response has no ETag', async () => {
-      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
+    it('lets Topaz fetch a URL input when source metadata is set', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
         type: 'json-value',
-        body: { uploadId: 'upload-1', urls: [UPLOAD_URL, UPLOAD_URL_2] },
+        body: { requestId: REQUEST_ID },
       };
-      server.urls[UPLOAD_URL].response = { type: 'json-value', body: {} };
 
-      await expect(
-        createModel().doStart({ ...defaultOptions }),
-      ).rejects.toThrow(/did not return an ETag/);
-    });
-
-    it('downloads a URL input to size the full-flow request', async () => {
-      await createModel().doStart({
+      const result = await createModel().doStart({
         ...defaultOptions,
         inputReferences: [
           { type: 'url', url: SOURCE_URL, mediaType: 'video/quicktime' },
@@ -609,21 +531,19 @@ describe('TopazVideoModel', () => {
 
       expect(
         server.calls.map(call => [call.requestMethod, call.requestUrl]),
-      ).toEqual([
-        ['GET', SOURCE_URL],
-        ['POST', `${TEST_BASE_URL}/video/`],
-        ['PATCH', `${TEST_BASE_URL}/video/${REQUEST_ID}/accept`],
-        ['PUT', UPLOAD_URL],
-        ['PATCH', `${TEST_BASE_URL}/video/${REQUEST_ID}/complete-upload`],
-      ]);
-
-      const body = await server.calls[1].requestBodyJson;
-      expect(body.source.container).toBe('mov');
-      expect(body.source.size).toBe(inputVideo.data.byteLength);
-      expect(body.source).not.toHaveProperty('external');
-      expect(server.calls[3].requestHeaders['content-type']).toBe(
-        'video/quicktime',
-      );
+      ).toEqual([['POST', `${TEST_BASE_URL}/video/express`]]);
+      expect((await server.calls[0].requestBodyJson).source).toEqual({
+        container: 'mov',
+        duration: 10,
+        frameCount: 300,
+        frameRate: 30,
+        resolution: { width: 1920, height: 1080 },
+        external: { provider: 's3', presignedUrl: SOURCE_URL },
+      });
+      expect(result.operation).toEqual({
+        requestId: REQUEST_ID,
+        outputContainer: 'mov',
+      });
     });
 
     it('cancels the request when a step after create fails', async () => {
@@ -639,8 +559,29 @@ describe('TopazVideoModel', () => {
       expect(cancel?.requestHeaders['x-api-key']).toBe('test-key');
     });
 
+    it('includes field validation errors in API errors', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
+        type: 'error',
+        status: 400,
+        body: JSON.stringify({
+          message: 'Invalid input',
+          errorCode: 'INVALID_INPUT',
+          errors: [
+            { type: 'field', msg: 'frameCount is required' },
+            { type: 'field', msg: 'resolution is required' },
+          ],
+        }),
+      };
+
+      await expect(
+        createModel().doStart({ ...defaultOptions }),
+      ).rejects.toThrow(
+        'Invalid input (INVALID_INPUT): frameCount is required; resolution is required',
+      );
+    });
+
     it('includes the Topaz error code in API errors', async () => {
-      server.urls[`${TEST_BASE_URL}/video/${REQUEST_ID}/accept`].response = {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
         type: 'error',
         status: 402,
         body: JSON.stringify({
@@ -692,7 +633,7 @@ describe('TopazVideoModel', () => {
         ['PUT', UPLOAD_URL],
       ]);
       expect(await server.calls[0].requestBodyJson).toEqual({
-        source: { container: 'mp4' },
+        source: { container: 'mp4', size: 8 },
         output: {
           resolution: { width: 3840, height: 2160 },
           audioTransfer: 'Copy',
@@ -736,7 +677,7 @@ describe('TopazVideoModel', () => {
       });
     });
 
-    it('uses the express flow when only the source container is declared', async () => {
+    it('lets a declared container stand alone', async () => {
       await createModel().doStart({
         ...expressOptions,
         providerOptions: { topaz: { source: { container: 'mov' } } },
@@ -745,6 +686,7 @@ describe('TopazVideoModel', () => {
       expect(server.calls[0].requestUrl).toBe(`${TEST_BASE_URL}/video/express`);
       expect((await server.calls[0].requestBodyJson).source).toEqual({
         container: 'mov',
+        size: 8,
       });
     });
 
