@@ -1,14 +1,4 @@
 import {
-<<<<<<< HEAD
-=======
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
-  type EmbeddingModelV4,
-  type Experimental_VideoModelV3,
-  type Experimental_VideoModelV4,
-  type FilesV4,
-  type ImageModelV4,
-  type LanguageModelV4,
->>>>>>> 8f72832752 (fix: preserve v3 video models in custom-provider fallbacks (#21119))
   NoSuchModelError,
   type EmbeddingModelV3,
   type Experimental_VideoModelV3,
@@ -23,9 +13,7 @@ import {
 import { asProviderV3 } from '../model/as-provider-v3';
 
 type ProviderWithOptionalVideoModel = {
-  videoModel?: (
-    modelId: string,
-  ) => Experimental_VideoModelV3 | Experimental_VideoModelV4;
+  videoModel?: (modelId: string) => Experimental_VideoModelV3;
 };
 
 /**
@@ -173,7 +161,7 @@ export function customProvider<
         | ProviderWithOptionalVideoModel
         | undefined;
       if (provider?.videoModel) {
-        return resolveVideoModel(provider.videoModel(modelId));
+        return provider.videoModel(modelId);
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'videoModel' });
