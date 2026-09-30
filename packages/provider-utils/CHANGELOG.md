@@ -1,5 +1,13 @@
 # @ai-sdk/provider-utils
 
+## 4.0.57
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- a9cea74: fix(mcp): prevent SSRF in OAuth metadata discovery
+- a9cea74: fix(provider-utils): make lazy Undici import visible to deployment tracers
+
 ## 4.0.56
 
 ### Patch Changes
