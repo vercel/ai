@@ -583,8 +583,11 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         abortSignal: options.abortSignal,
         includeRawChunks: options.includeRawChunks,
         formatTurns: assemblyaiOptions?.streaming?.formatTurns === true,
+        // Mirrors the server default: partials are off when PII redaction is
+        // on (the server only redacts final turns) unless explicitly enabled.
         includePartialTurns:
-          assemblyaiOptions?.streaming?.includePartialTurns !== false,
+          assemblyaiOptions?.streaming?.includePartialTurns ??
+          assemblyaiOptions?.redactPii !== true,
         initialLanguage:
           languageCodes?.length === 1 && languageCodes[0] !== 'multi'
             ? languageCodes[0]

@@ -909,6 +909,82 @@ describe('doStream', () => {
     });
 
     it.each([
+      {
+        includePartialTurns: undefined,
+        expectedPartials: [],
+        label: 'suppresses partials by default when redactPii is enabled',
+      },
+      {
+        includePartialTurns: true,
+        expectedPartials: [
+          {
+            type: 'transcript-partial',
+            id: 'turn-0',
+            text: 'call me at 555 0100',
+          },
+        ],
+        label: 'surfaces partials under redactPii only when explicitly enabled',
+      },
+    ])('$label', async ({ includePartialTurns, expectedPartials }) => {
+      const model = createModel('universal-streaming-english');
+
+      const result = await model.doStream({
+        audio: audio(),
+        inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+        providerOptions: {
+          assemblyai: {
+            redactPii: true,
+            redactPiiPolicies: ['phone_number'],
+            streaming: { formatTurns: true, includePartialTurns },
+          },
+        },
+      });
+      const partsPromise = convertReadableStreamToArray(result.stream);
+      const ws = MockWebSocket.instances[0];
+
+      // the option is only sent when set, so the server default applies too
+      expect(new URL(ws.url).searchParams.get('include_partial_turns')).toBe(
+        includePartialTurns == null ? null : String(includePartialTurns),
+      );
+
+      ws.open();
+      ws.message({
+        ...begin,
+        configuration: { model: 'universal-streaming-english' },
+      });
+      await flush();
+      // the server only redacts formatted final turns, so the unformatted
+      // end-of-turn frame Universal Streaming sends under formatTurns still
+      // carries the raw text:
+      ws.message({
+        type: 'Turn',
+        turn_order: 0,
+        turn_is_formatted: false,
+        end_of_turn: true,
+        transcript: 'call me at 555 0100',
+        end_of_turn_confidence: 0.9,
+        words: [],
+      });
+      ws.message(finalTurn(0, 'Call me at [PHONE_NUMBER].'));
+      ws.message(termination);
+
+      const parts = await partsPromise;
+      expect(parts.filter(part => part.type === 'transcript-partial')).toEqual(
+        expectedPartials,
+      );
+      expect(parts.filter(part => part.type === 'transcript-final')).toEqual([
+        expect.objectContaining({
+          id: 'turn-0',
+          text: 'Call me at [PHONE_NUMBER].',
+        }),
+      ]);
+      expect(parts.at(-1)).toMatchObject({
+        type: 'finish',
+        text: 'Call me at [PHONE_NUMBER].',
+      });
+    });
+
+    it.each([
       { assemblyai: { streaming: { languageCodes: ['es'] } } },
       { assemblyai: { languageCode: 'es' } },
     ])(

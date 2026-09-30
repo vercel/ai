@@ -321,10 +321,12 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
       voiceFocusThreshold: z.number().min(0).max(1).nullish(),
       /**
        * Whether to emit non-final `transcript-partial` parts. Defaults to
-       * `true`, or to `false` when `redactPii` is enabled (partials would
-       * contain unredacted text). Setting `false` also drops the unformatted
-       * end-of-turn message Universal Streaming models send when
-       * `formatTurns` is enabled.
+       * `true`, or to `false` when `redactPii` is enabled: the server only
+       * redacts final turns, so partials would contain unredacted text. The
+       * provider applies the same default on the client, so with `redactPii`
+       * no `transcript-partial` parts are emitted unless this is explicitly
+       * `true`. Setting `false` also drops the unformatted end-of-turn
+       * message Universal Streaming models send when `formatTurns` is enabled.
        */
       includePartialTurns: z.boolean().nullish(),
       /**
