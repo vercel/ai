@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.65
+
+### Patch Changes
+
+- 4d0500e: fix(mcp): identify failed OAuth tokens for conditional invalidation
+
 ## 2.0.64
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.62
+
+### Patch Changes
+
+- 04be48f: fix(openai-compatible): support multipart tool results for compatible providers
+
 ## 3.0.61
 
 ### Patch Changes

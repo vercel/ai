@@ -1,5 +1,12 @@
 # @ai-sdk/harness
 
+## 1.0.136
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
 ## 1.0.135
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.125
+
+### Patch Changes
+
+- ff3dcef: feat(ai): add `convertDataPart` to agent UI stream helpers
+
 ## 7.0.124
 
 ### Patch Changes

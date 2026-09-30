@@ -1,5 +1,13 @@
 # @ai-sdk/workflow
 
+## 2.0.56
+
+### Patch Changes
+
+- 165455d: fix(workflow): apply stream transformations before writing agent model parts
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
 ## 2.0.55
 
 ### Patch Changes
