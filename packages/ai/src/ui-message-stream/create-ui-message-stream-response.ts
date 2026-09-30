@@ -1,4 +1,5 @@
 import { prepareHeaders } from '../util/prepare-headers';
+import { createSseStreamWithKeepAlive } from './create-sse-stream-with-keep-alive';
 import { JsonToSseTransformStream } from './json-to-sse-transform-stream';
 import { UI_MESSAGE_STREAM_HEADERS } from './ui-message-stream-headers';
 import type { UIMessageChunk } from './ui-message-chunks';
@@ -9,11 +10,15 @@ export function createUIMessageStreamResponse({
   statusText,
   headers,
   stream,
+  keepAliveMs,
   consumeSseStream,
 }: UIMessageStreamResponseInit & {
   stream: ReadableStream<UIMessageChunk>;
 }): Response {
-  let sseStream = stream.pipeThrough(new JsonToSseTransformStream());
+  let sseStream = createSseStreamWithKeepAlive({
+    stream: stream.pipeThrough(new JsonToSseTransformStream()),
+    keepAliveMs,
+  });
 
   // when the consumeSseStream is provided, we need to tee the stream
   // and send the second part to the consumeSseStream function

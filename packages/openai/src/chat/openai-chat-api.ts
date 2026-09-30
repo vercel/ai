@@ -36,6 +36,11 @@ export const openaiChatResponseSchema = lazyValidator(() =>
           message: z.object({
             role: z.literal('assistant').nullish(),
             content: z.string().nullish(),
+            audio: z
+              .object({
+                transcript: z.string().nullish(),
+              })
+              .nullish(),
             tool_calls: z
               .array(
                 z.object({
@@ -92,6 +97,7 @@ export const openaiChatResponseSchema = lazyValidator(() =>
           prompt_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
             })
             .nullish(),
           completion_tokens_details: z
@@ -180,6 +186,7 @@ export const openaiChatChunkSchema = lazyValidator(() =>
             prompt_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
               })
               .nullish(),
             completion_tokens_details: z

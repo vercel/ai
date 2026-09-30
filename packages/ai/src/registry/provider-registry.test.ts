@@ -10,6 +10,35 @@ import { MockProviderV2 } from '../test/mock-provider-v2';
 import { describe, it, expect, vi } from 'vitest';
 
 describe('languageModel', () => {
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'does not resolve unregistered inherited provider %s',
+    providerName => {
+      const registry = createProviderRegistry<Record<string, MockProviderV2>>(
+        {},
+      );
+      expect(() =>
+        registry.languageModel(`${providerName}:model`),
+      ).toThrowError(NoSuchProviderError);
+    },
+  );
+
+  it.each(['__proto__', 'constructor', 'toString'])(
+    'registers provider %s without exposing its members as providers',
+    providerName => {
+      const model = new MockLanguageModelV2();
+      const provider = new MockProviderV2({ languageModels: { model } });
+      const registry = createProviderRegistry({ [providerName]: provider });
+
+      expect(registry.languageModel(`${providerName}:model`)).toBe(model);
+      expect(() => registry.languageModel('languageModel:model')).toThrowError(
+        NoSuchProviderError,
+      );
+      expect(() => registry.languageModel('missing:model')).toThrowError(
+        expect.objectContaining({ availableProviders: [providerName] }),
+      );
+    },
+  );
+
   it('should return language model from provider', () => {
     const model = new MockLanguageModelV2();
 
