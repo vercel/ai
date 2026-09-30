@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 2.0.132
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+
 ## 2.0.131
 
 ### Patch Changes
