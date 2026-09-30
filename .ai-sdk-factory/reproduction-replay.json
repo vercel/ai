@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21819,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21819-stream-error-telemetry.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21819-stream-error-telemetry.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_REPRODUCED: in-stream provider errors are not exported as ended ERROR telemetry spans"
+  }
+}
