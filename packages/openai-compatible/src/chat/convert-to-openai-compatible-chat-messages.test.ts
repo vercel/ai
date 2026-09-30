@@ -99,6 +99,62 @@ describe('user messages', () => {
   });
 });
 
+describe('assistant messages', () => {
+  it('should use null content when there are only tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'tool-call',
+            input: { city: 'San Francisco' },
+            toolCallId: 'weather-call',
+            toolName: 'weather',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": null,
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{"city":"San Francisco"}",
+                "name": "weather",
+              },
+              "id": "weather-call",
+              "type": "function",
+            },
+          ],
+        },
+      ]
+    `);
+  });
+
+  it('should preserve empty content when there are no tool calls', () => {
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: '' }],
+      },
+    ]);
+
+    expect(result).toMatchInlineSnapshot(`
+      [
+        {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": undefined,
+        },
+      ]
+    `);
+  });
+});
+
 describe('tool calls', () => {
   it('should stringify arguments to tool calls', () => {
     const result = convertToOpenAICompatibleChatMessages([
@@ -129,7 +185,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -178,7 +234,7 @@ describe('tool calls', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             type: 'function',
@@ -304,7 +360,7 @@ describe('provider-specific metadata merging', () => {
     expect(result).toEqual([
       {
         role: 'assistant',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'call1',
@@ -671,7 +727,7 @@ describe('provider-specific metadata merging', () => {
         role: 'assistant',
         cacheControl: { type: 'default' },
         sharedKey: 'assistantLevel',
-        content: '',
+        content: null,
         tool_calls: [
           {
             id: 'collisionToolCall',

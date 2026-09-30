@@ -166,7 +166,7 @@ async function main() {
 
   console.log();
 
-  await setTimeout(1000); // wait for it to be cached?g
+  await setTimeout(1000); // wait for the cache write to become available
 
   start = performance.now();
   const {
@@ -179,7 +179,7 @@ async function main() {
   console.log(`Second pass text:`, text2);
   console.log(`Second pass usage:`, usage2);
   console.log(`Second pass provider metadata:`, providerMetadata2);
-  console.log(`First pass time: ${Math.floor(end - start)} ms`);
+  console.log(`Second pass time: ${Math.floor(end - start)} ms`);
 }
 
 main().catch(console.error);

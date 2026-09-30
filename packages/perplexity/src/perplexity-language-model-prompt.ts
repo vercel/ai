@@ -1,25 +1,32 @@
-export type PerplexityPrompt = Array<PerplexityMessage>;
+export type PerplexityAgentInput = Array<PerplexityAgentInputItem>;
 
-export type PerplexityMessage = {
-  role: 'system' | 'user' | 'assistant';
-  content: string | PerplexityMessageContent[];
-};
-
-export type PerplexityMessageContent =
+export type PerplexityAgentInputItem =
   | {
-      type: 'text';
+      type: 'message';
+      role: 'system' | 'developer' | 'user' | 'assistant';
+      content: string | PerplexityAgentInputContent[];
+    }
+  | {
+      type: 'function_call';
+      call_id: string;
+      name: string;
+      arguments: string;
+      thought_signature?: string;
+    }
+  | {
+      type: 'function_call_output';
+      call_id: string;
+      name?: string;
+      output: string;
+      thought_signature?: string;
+    };
+
+export type PerplexityAgentInputContent =
+  | {
+      type: 'input_text';
       text: string;
     }
   | {
-      type: 'image_url';
-      image_url: {
-        url: string;
-      };
-    }
-  | {
-      type: 'file_url';
-      file_url: {
-        url: string;
-      };
-      file_name?: string;
+      type: 'input_image';
+      image_url: string;
     };

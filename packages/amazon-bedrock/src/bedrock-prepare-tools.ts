@@ -9,19 +9,27 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
+import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
 import type {
   BedrockTool,
   BedrockToolConfiguration,
 } from './bedrock-api-types';
+import type { AmazonBedrockChatModelSettings } from './bedrock-chat-options';
 
 export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  modelFamily,
+  reasoningBudgetTokens,
+  disableParallelToolUse,
 }: {
   tools: LanguageModelV2CallOptions['tools'];
   toolChoice?: LanguageModelV2CallOptions['toolChoice'];
   modelId: string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
+  reasoningBudgetTokens?: number;
+  disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: BedrockToolConfiguration;
   additionalTools: Record<string, unknown> | undefined;
@@ -66,10 +74,14 @@ export async function prepareTools({
     };
   }
 
-  const isAnthropicModel = modelId.includes('anthropic.');
   const providerDefinedTools = supportedTools.filter(
     t => t.type === 'provider-defined',
   );
+  const isAnthropicModel = detectAnthropicModel({
+    modelId,
+    modelFamily,
+    reasoningBudgetTokens,
+  });
   const functionTools = supportedTools.filter(t => t.type === 'function');
 
   let additionalTools: Record<string, unknown> | undefined = undefined;
@@ -96,6 +108,7 @@ export async function prepareTools({
     } = await prepareAnthropicTools({
       tools: providerDefinedTools,
       toolChoice,
+      disableParallelToolUse,
     });
 
     toolWarnings.push(...anthropicToolWarnings);
@@ -153,9 +166,35 @@ export async function prepareTools({
     });
   }
 
+  if (
+    isAnthropicModel &&
+    !usingAnthropicTools &&
+    disableParallelToolUse &&
+    bedrockTools.length > 0 &&
+    toolChoice?.type !== 'none'
+  ) {
+    additionalTools = {
+      tool_choice:
+        toolChoice?.type === 'required'
+          ? { type: 'any', disable_parallel_tool_use: true }
+          : toolChoice?.type === 'tool'
+            ? {
+                type: 'tool',
+                name: toolChoice.toolName,
+                disable_parallel_tool_use: true,
+              }
+            : { type: 'auto', disable_parallel_tool_use: true },
+    };
+  }
+
   // Handle toolChoice for standard Bedrock tools, but NOT for Anthropic provider-defined tools
   let bedrockToolChoice: BedrockToolConfiguration['toolChoice'] = undefined;
-  if (!usingAnthropicTools && bedrockTools.length > 0 && toolChoice) {
+  if (
+    !usingAnthropicTools &&
+    additionalTools?.tool_choice == null &&
+    bedrockTools.length > 0 &&
+    toolChoice
+  ) {
     const type = toolChoice.type;
     switch (type) {
       case 'auto':

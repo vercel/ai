@@ -85,7 +85,10 @@ Resolved when the response is finished.
   @param response A Node.js response-like object (ServerResponse).
   @param init Optional headers, status code, and status text.
      */
-  pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit): void;
+  pipeTextStreamToResponse(
+    response: ServerResponse,
+    init?: ResponseInit,
+  ): Promise<void>;
 
   /**
   Creates a simple text stream response.

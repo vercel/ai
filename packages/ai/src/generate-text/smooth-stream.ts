@@ -2,11 +2,21 @@ import { delay as originalDelay } from '@ai-sdk/provider-utils';
 import type { TextStreamPart } from './stream-text-result';
 import type { ToolSet } from './tool-set';
 import { InvalidArgumentError } from '@ai-sdk/provider';
+import type { ProviderMetadata } from '../types';
 
 const CHUNKING_REGEXPS = {
   word: /\S+\s+/m,
   line: /\n+/m,
 };
+
+// Browsers heavily throttle timers in hidden documents (e.g. background tabs),
+// which would stall the smoothing delay and, through backpressure, the entire
+// stream. Smoothing has no visual purpose there, so the delay is skipped.
+function isDocumentHidden(): boolean {
+  return (
+    typeof document !== 'undefined' && document.visibilityState === 'hidden'
+  );
+}
 
 /**
  * Detects the first chunk in a buffer.
@@ -20,7 +30,7 @@ export type ChunkDetector = (buffer: string) => string | undefined | null;
 /**
  * Smooths text streaming output.
  *
- * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay.
+ * @param delayInMs - The delay in milliseconds between each chunk. Defaults to 10ms. Can be set to `null` to skip the delay. The delay is skipped while the document is hidden (e.g. browser background tabs), where timer throttling would otherwise stall the stream.
  * @param chunking - Controls how the text is chunked for streaming. Use "word" to stream word by word (default), "line" to stream line by line, or provide a custom RegExp pattern for custom chunking.
  *
  * @returns A transform stream that smooths text streaming output.
@@ -88,34 +98,68 @@ export function smoothStream<TOOLS extends ToolSet>({
   return () => {
     let buffer = '';
     let id = '';
+    let providerMetadata: ProviderMetadata | undefined;
+
+    function flushBuffer(
+      controller: TransformStreamDefaultController<TextStreamPart<TOOLS>>,
+    ) {
+      if (buffer.length > 0 || providerMetadata != null) {
+        controller.enqueue({
+          type: 'text-delta',
+          text: buffer,
+          id,
+          ...(providerMetadata != null ? { providerMetadata } : {}),
+        });
+        buffer = '';
+        providerMetadata = undefined;
+      }
+    }
 
     return new TransformStream<TextStreamPart<TOOLS>, TextStreamPart<TOOLS>>({
       async transform(chunk, controller) {
         if (chunk.type !== 'text-delta') {
-          if (buffer.length > 0) {
-            controller.enqueue({ type: 'text-delta', text: buffer, id });
-            buffer = '';
-          }
-
+          flushBuffer(controller);
           controller.enqueue(chunk);
           return;
         }
 
-        if (chunk.id !== id && buffer.length > 0) {
-          controller.enqueue({ type: 'text-delta', text: buffer, id });
-          buffer = '';
+        if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+          flushBuffer(controller);
+          controller.enqueue(chunk);
+          return;
+        }
+
+        // Flush at metadata boundaries because one output part cannot preserve
+        // metadata from multiple input deltas.
+        if (
+          buffer.length > 0 &&
+          (chunk.id !== id ||
+            providerMetadata != null ||
+            chunk.providerMetadata != null)
+        ) {
+          flushBuffer(controller);
         }
 
         buffer += chunk.text;
         id = chunk.id;
+        providerMetadata = chunk.providerMetadata;
 
         let match;
 
         while ((match = detectChunk(buffer)) != null) {
-          controller.enqueue({ type: 'text-delta', text: match, id });
+          controller.enqueue({
+            type: 'text-delta',
+            text: match,
+            id,
+            ...(providerMetadata != null ? { providerMetadata } : {}),
+          });
           buffer = buffer.slice(match.length);
 
-          await delay(delayInMs);
+          await delay(isDocumentHidden() ? null : delayInMs);
+        }
+
+        if (buffer.length === 0) {
+          providerMetadata = undefined;
         }
       },
     });
