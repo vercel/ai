@@ -2241,6 +2241,13 @@ describe('responses', () => {
 
 describe('resourceName validation', () => {
   it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
     'user@internal:8080/#',
     '169.254.169.254:80/x#',
     'evil.example.com/#',
@@ -2273,4 +2280,14 @@ describe('resourceName validation', () => {
       'https://my-resource.openai.azure.com/',
     );
   });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });
