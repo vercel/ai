@@ -1,5 +1,21 @@
 # @ai-sdk/gateway
 
+## 3.0.207
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.206
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+- 03e5a25: Backport: chore(provider/gateway): update gateway model settings files
+
 ## 3.0.205
 
 ### Patch Changes

@@ -28,6 +28,8 @@ import {
 } from '../util/oauth-util';
 import { LATEST_PROTOCOL_VERSION } from './types';
 import {
+  fetchWithValidatedEndpoint,
+  fetchWithValidatedRedirects,
   parseJSON,
   validateDownloadUrl,
   type FetchFunction,
@@ -149,16 +151,20 @@ function isOAuthLoopbackHost(hostname: string): boolean {
 }
 
 /**
- * Guards metadata-derived token/registration URLs before credentials are sent.
- * Loopback is allowed for local OAuth; every other target uses the shared
- * download URL guard (http(s) only, no private/link-local IPs).
+ * Guards metadata-derived OAuth URLs before they are requested. Loopback is
+ * allowed only when the caller has established that it belongs to a locally
+ * configured OAuth server; every other target uses the shared URL guard.
  *
- * Credential POSTs use `redirect: 'error'` instead of
- * `fetchWithValidatedRedirects`, which is GET-only and would follow hops with
- * the authorization code, PKCE verifier, and client secret still attached.
+ * Credential POSTs use `fetchWithValidatedEndpoint`, which enforces
+ * `redirect: 'error'` so the authorization code, PKCE verifier, and client
+ * secret are never replayed to a redirect target.
  */
-function assertSafeOAuthEndpoint(endpointUrl: URL): void {
+function assertSafeOAuthEndpoint(
+  endpointUrl: URL,
+  { allowLoopback = false }: { allowLoopback?: boolean } = {},
+): void {
   if (
+    allowLoopback &&
     (endpointUrl.protocol === 'http:' || endpointUrl.protocol === 'https:') &&
     isOAuthLoopbackHost(endpointUrl.hostname)
   ) {
@@ -173,6 +179,13 @@ function assertSafeOAuthEndpoint(endpointUrl: URL): void {
       cause: error,
     });
   }
+}
+
+function getTrustedLoopbackOrigin(
+  authorizationServerUrl: string | URL,
+): string | undefined {
+  const url = new URL(authorizationServerUrl);
+  return isOAuthLoopbackHost(url.hostname) ? url.origin : undefined;
 }
 
 function createAuthorizationServerInformation(
@@ -408,13 +421,31 @@ async function fetchWithCorsRetry(
   url: URL,
   headers?: Record<string, string>,
   fetchFn: FetchFunction = fetch,
+  trustedOrigin?: string,
 ): Promise<Response | undefined> {
   try {
-    return await fetchFn(url, { headers });
+    return await fetchWithValidatedRedirects({
+      url: url.href,
+      fetch: async (input, init) =>
+        fetchWithValidatedEndpoint({
+          url: input as string | URL,
+          init: {
+            ...init,
+            headers: new Headers(init?.headers).has('MCP-Protocol-Version')
+              ? headers
+              : undefined,
+          },
+          fetch: fetchFn,
+          trustedOrigin,
+          redirect: 'manual',
+        }),
+      headers,
+      trustedOrigin,
+    });
   } catch (error) {
     if (error instanceof TypeError) {
       if (headers) {
-        return fetchWithCorsRetry(url, undefined, fetchFn);
+        return fetchWithCorsRetry(url, undefined, fetchFn, trustedOrigin);
       } else {
         return undefined;
       }
@@ -430,11 +461,12 @@ async function tryMetadataDiscovery(
   url: URL,
   protocolVersion: string,
   fetchFn: FetchFunction = fetch,
+  trustedOrigin?: string,
 ): Promise<Response | undefined> {
   const headers = {
     'MCP-Protocol-Version': protocolVersion,
   };
-  return await fetchWithCorsRetry(url, headers, fetchFn);
+  return await fetchWithCorsRetry(url, headers, fetchFn, trustedOrigin);
 }
 
 /**
@@ -461,6 +493,7 @@ async function discoverMetadataWithFallback(
     protocolVersion?: string;
     metadataUrl?: string | URL;
     metadataServerUrl?: string | URL;
+    trustedOrigin?: string;
   },
 ): Promise<Response | undefined> {
   const issuer = new URL(serverUrl);
@@ -475,11 +508,21 @@ async function discoverMetadataWithFallback(
     url.search = issuer.search;
   }
 
-  let response = await tryMetadataDiscovery(url, protocolVersion, fetchFn);
+  let response = await tryMetadataDiscovery(
+    url,
+    protocolVersion,
+    fetchFn,
+    opts?.trustedOrigin,
+  );
 
   if (!opts?.metadataUrl && shouldAttemptFallback(response, issuer.pathname)) {
     const rootUrl = new URL(`/.well-known/${wellKnownType}`, issuer);
-    response = await tryMetadataDiscovery(rootUrl, protocolVersion, fetchFn);
+    response = await tryMetadataDiscovery(
+      rootUrl,
+      protocolVersion,
+      fetchFn,
+      opts?.trustedOrigin,
+    );
   }
 
   return response;
@@ -497,6 +540,9 @@ export async function discoverOAuthProtectedResourceMetadata(
     {
       protocolVersion: opts?.protocolVersion,
       metadataUrl: opts?.resourceMetadataUrl,
+      // The configured MCP server is trusted as a request target. Redirects
+      // crossing its origin are still validated before they are followed.
+      trustedOrigin: new URL(serverUrl).origin,
     },
   );
 
@@ -609,9 +655,11 @@ export async function discoverAuthorizationServerMetadata(
   {
     fetchFn = fetch,
     protocolVersion = LATEST_PROTOCOL_VERSION,
+    trustedOrigin,
   }: {
     fetchFn?: FetchFunction;
     protocolVersion?: string;
+    trustedOrigin?: string;
   } = {},
 ): Promise<AuthorizationServerMetadata | undefined> {
   const headers = { 'MCP-Protocol-Version': protocolVersion };
@@ -619,7 +667,12 @@ export async function discoverAuthorizationServerMetadata(
   const urlsToTry = buildDiscoveryUrls(authorizationServerUrl);
 
   for (const { url: endpointUrl, type, expectedIssuer } of urlsToTry) {
-    const response = await fetchWithCorsRetry(endpointUrl, headers, fetchFn);
+    const response = await fetchWithCorsRetry(
+      endpointUrl,
+      headers,
+      fetchFn,
+      trustedOrigin,
+    );
 
     if (!response) {
       /**
@@ -929,7 +982,10 @@ export async function exchangeAuthorization(
   const tokenUrl = metadata?.token_endpoint
     ? new URL(metadata.token_endpoint)
     : new URL('/token', authorizationServerUrl);
-  assertSafeOAuthEndpoint(tokenUrl);
+  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
+  assertSafeOAuthEndpoint(tokenUrl, {
+    allowLoopback: tokenUrl.origin === trustedOrigin,
+  });
 
   if (
     metadata?.grant_types_supported &&
@@ -973,11 +1029,15 @@ export async function exchangeAuthorization(
     params.set('resource', resourceUrlStripSlash(resource));
   }
 
-  const response = await (fetchFn ?? fetch)(tokenUrl, {
-    method: 'POST',
-    headers,
-    body: params,
-    redirect: 'error',
+  const response = await fetchWithValidatedEndpoint({
+    url: tokenUrl,
+    init: {
+      method: 'POST',
+      headers,
+      body: params,
+    },
+    fetch: fetchFn,
+    trustedOrigin,
   });
 
   if (!response.ok) {
@@ -1034,7 +1094,10 @@ export async function refreshAuthorization(
   } else {
     tokenUrl = new URL('/token', authorizationServerUrl);
   }
-  assertSafeOAuthEndpoint(tokenUrl);
+  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
+  assertSafeOAuthEndpoint(tokenUrl, {
+    allowLoopback: tokenUrl.origin === trustedOrigin,
+  });
 
   const headers = new Headers({
     'Content-Type': 'application/x-www-form-urlencoded',
@@ -1067,11 +1130,15 @@ export async function refreshAuthorization(
     params.set('resource', resourceUrlStripSlash(resource));
   }
 
-  const response = await (fetchFn ?? fetch)(tokenUrl, {
-    method: 'POST',
-    headers,
-    body: params,
-    redirect: 'error',
+  const response = await fetchWithValidatedEndpoint({
+    url: tokenUrl,
+    init: {
+      method: 'POST',
+      headers,
+      body: params,
+    },
+    fetch: fetchFn,
+    trustedOrigin,
   });
   if (!response.ok) {
     throw await parseErrorResponse(response);
@@ -1111,15 +1178,22 @@ export async function registerClient(
   } else {
     registrationUrl = new URL('/register', authorizationServerUrl);
   }
-  assertSafeOAuthEndpoint(registrationUrl);
+  const trustedOrigin = getTrustedLoopbackOrigin(authorizationServerUrl);
+  assertSafeOAuthEndpoint(registrationUrl, {
+    allowLoopback: registrationUrl.origin === trustedOrigin,
+  });
 
-  const response = await (fetchFn ?? fetch)(registrationUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const response = await fetchWithValidatedEndpoint({
+    url: registrationUrl,
+    init: {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(clientMetadata),
     },
-    body: JSON.stringify(clientMetadata),
-    redirect: 'error',
+    fetch: fetchFn,
+    trustedOrigin,
   });
 
   if (!response.ok) {
@@ -1262,6 +1336,24 @@ async function authInternal(
       serverUrl;
   }
 
+  const parsedServerUrl = new URL(serverUrl);
+  const parsedAuthorizationServerUrl = new URL(authorizationServerUrl);
+  const serverOrigin = parsedServerUrl.origin;
+  const authorizationServerOrigin = parsedAuthorizationServerUrl.origin;
+  const trustedAuthorizationServerOrigin =
+    authorizationServerOrigin === serverOrigin ||
+    (isOAuthLoopbackHost(parsedServerUrl.hostname) &&
+      isOAuthLoopbackHost(parsedAuthorizationServerUrl.hostname))
+      ? authorizationServerOrigin
+      : undefined;
+
+  // An authorization server selected by response metadata is untrusted until
+  // its target has passed the SSRF guard. A same-origin server is already the
+  // developer-configured MCP request target.
+  if (!trustedAuthorizationServerOrigin) {
+    assertSafeOAuthEndpoint(new URL(authorizationServerUrl));
+  }
+
   /** Validate and select the resource value sent to the AS */
   const resource: URL | undefined = await selectResourceURL(
     serverUrl,
@@ -1280,6 +1372,7 @@ async function authInternal(
     authorizationServerUrl,
     {
       fetchFn,
+      trustedOrigin: trustedAuthorizationServerOrigin,
     },
   );
   const currentAuthorizationServerInformation =

@@ -6,6 +6,12 @@ export function convertDeepSeekUsage(
         prompt_tokens?: number | null | undefined;
         completion_tokens?: number | null | undefined;
         prompt_cache_hit_tokens?: number | null | undefined;
+        prompt_tokens_details?:
+          | {
+              cached_tokens?: number | null | undefined;
+            }
+          | null
+          | undefined;
         completion_tokens_details?:
           | {
               reasoning_tokens?: number | null | undefined;
@@ -35,7 +41,10 @@ export function convertDeepSeekUsage(
 
   const promptTokens = usage.prompt_tokens ?? 0;
   const completionTokens = usage.completion_tokens ?? 0;
-  const cacheReadTokens = usage.prompt_cache_hit_tokens ?? 0;
+  const cacheReadTokens =
+    usage.prompt_cache_hit_tokens ??
+    usage.prompt_tokens_details?.cached_tokens ??
+    0;
   const reasoningTokens =
     usage.completion_tokens_details?.reasoning_tokens ?? 0;
 

@@ -1,5 +1,20 @@
 # @ai-sdk/openai
 
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.121
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+
 ## 3.0.120
 
 ### Patch Changes
