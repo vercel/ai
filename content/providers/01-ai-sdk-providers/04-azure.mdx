@@ -148,7 +148,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 
 - **speechBaseURL** _string_
 
-  URL prefix for Azure Speech transcription requests (MAI-Transcribe-2), for example
+  URL prefix for Azure Speech transcription requests (MAI-Transcribe), for example
   a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
   Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
   Speech requests do not use `baseURL` or `apiVersion`.
@@ -1124,11 +1124,17 @@ The first argument is the model id e.g. `whisper-1`.
 const model = azure.transcription('whisper-1');
 ```
 
-### MAI-Transcribe-2
+### MAI-Transcribe
 
-MAI-Transcribe-2 is a multilingual speech-to-text model from Microsoft AI, served through Azure.
-`azure.transcription('mai-transcribe-2')` uses the Azure Speech API.
-The model ID is matched case-insensitively and sent to Azure as `MAI-Transcribe-2`.
+MAI-Transcribe models are multilingual speech-to-text models from Microsoft AI, served through Azure.
+The following model IDs use the Azure Speech API. They are matched case-insensitively
+and sent to Azure under their Azure model names:
+
+| Model ID             | Azure model          | Notes                                |
+| -------------------- | -------------------- | ------------------------------------ |
+| `mai-transcribe-2`   | `MAI-Transcribe-2`   | Supports every option below.         |
+| `mai-transcribe-1.5` | `MAI-Transcribe-1.5` | Supports `locales` and `phraseList`. |
+
 All other IDs use the OpenAI API by default, including custom deployment names.
 
 ```ts
@@ -1149,7 +1155,7 @@ const result = await transcribe({
 });
 ```
 
-MAI-Transcribe-2 requires a Microsoft Foundry (Speech) resource in a region where it is available:
+MAI-Transcribe models require a Microsoft Foundry (Speech) resource in a region where they are available:
 `centralindia`, `eastus`, `northeurope`, `southeastasia`, `westus`, or `westus2`
 (see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions?tabs=llmspeech)).
 Resources in other regions reject the request.
@@ -1177,17 +1183,19 @@ The following options are available through `providerOptions.azure`:
 
 - **api** _'openai' | 'speech'_
   Overrides model-based API selection for this request.
-  Set `openai` for an OpenAI deployment named `mai-transcribe-2`, or `speech` to
+  Set `openai` for an OpenAI deployment named after one of the model IDs above, or `speech` to
   send another model ID to Speech. Other Speech model IDs are sent unchanged.
 
 - **timestamps** _'word' | 'segment' | 'none'_
-  Timing granularity. The AI SDK defaults to `segment` so that results include
-  timed segments (Azure's own default is `none`). `segment` returns one segment
+  Timing granularity. For MAI-Transcribe-2 the AI SDK defaults to `segment` so that results
+  include timed segments (Azure's own default is `none`). `segment` returns one segment
   per sentence or speaker turn, `word` additionally returns word timing in provider
   metadata, and `none` returns a single segment that spans the whole audio.
+  MAI-Transcribe-1.5 only supports `none`, so the AI SDK does not send a default for it.
 
 - **transcribeStyle** _'verbatim' | 'clean'_
   `verbatim` keeps fillers and false starts, `clean` removes them. Defaults to `verbatim`.
+  `clean` requires MAI-Transcribe-2.
 
 - **locales** _string[]_
   Exactly one language code, such as `['en']`. This is a strong hint; omit it for
@@ -1195,15 +1203,18 @@ The following options are available through `providerOptions.azure`:
 
 - **diarization** _object_
   Set `enabled` to `true` to identify speakers. Speaker IDs are returned in
-  provider metadata. `maxSpeakers` is not supported by MAI-Transcribe-2.
+  provider metadata. Requires MAI-Transcribe-2. `maxSpeakers` is not supported.
 
 - **phraseList** _object_
   Set `phrases` to a list of names and domain terms to bias recognition toward them.
 
 Explicit `api` takes precedence over the model ID. Existing OpenAI transcription
 options remain under `providerOptions.openai`. Speech-only Azure options produce
-warnings when used with the OpenAI API. Unknown or unsupported `providerOptions.azure`
-keys (for example `diarization.maxSpeakers`) are rejected before the request is sent.
+warnings when used with the OpenAI API. Unknown `providerOptions.azure` keys
+(for example `diarization.maxSpeakers`) are rejected before the request is sent.
+Options that a model does not support, such as `timestamps: 'word'` with
+MAI-Transcribe-1.5, are sent unchanged, and Azure rejects the request with an
+error that names the option.
 
 Results include transcript text, timed segments, duration, and an ISO-639-1
 language code when the reported phrase locales identify one language. Mixed-language
@@ -1213,9 +1224,9 @@ timing are preserved in `providerMetadata.azure.phrases`; use the exported
 `AzureTranscriptionProviderMetadata` type to access them. Phrase timing is in
 milliseconds in metadata and seconds in normalized `segments`.
 
-MAI-Transcribe-2 is a file transcription model: it accepts WAV, MP3, or FLAC files
-shorter than 2 hours and smaller than 250 MB, and does not support streaming
-transcription. The model is in public preview. See
+MAI-Transcribe models are file transcription models: they accept WAV, MP3, or FLAC files
+shorter than 2 hours and smaller than 250 MB, and do not support streaming
+transcription. The models are in public preview. See
 [Azure's MAI-Transcribe guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-transcribe)
 for supported languages and diarization limits.
 
@@ -1289,6 +1300,7 @@ The following provider options are available:
 | `gpt-4o-mini-transcribe` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gpt-4o-transcribe`      | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `mai-transcribe-2`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `mai-transcribe-1.5`     | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 ## Speech Models
 
