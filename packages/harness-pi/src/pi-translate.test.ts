@@ -798,6 +798,67 @@ describe('translatePiEvent', () => {
     `);
   });
 
+  it('marks tools registered by an extension as dynamic and provider-executed', () => {
+    const state = createPiTranslatorState({
+      builtinToolNames: ['read'],
+      hostToolNames: ['deploy'],
+    });
+    const out = emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_update',
+          assistantMessageEvent: {
+            type: 'toolcall_start',
+            contentIndex: 0,
+            partial: {
+              content: [{ type: 'toolCall', id: 'task-call', name: 'Task' }],
+            },
+          },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_start',
+          toolCallId: 'task-call',
+          toolName: 'Task',
+          args: { prompt: 'Summarize the repo' },
+        } as PiSessionEvent,
+        {
+          type: 'tool_execution_end',
+          toolCallId: 'task-call',
+          result: { content: [{ type: 'text', text: '{"not":"mcp"}' }] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    expect(out).toMatchInlineSnapshot(`
+      [
+        {
+          "dynamic": true,
+          "id": "task-call",
+          "providerExecuted": true,
+          "toolName": "Task",
+          "type": "tool-input-start",
+        },
+        {
+          "dynamic": true,
+          "input": "{"prompt":"Summarize the repo"}",
+          "providerExecuted": true,
+          "toolCallId": "task-call",
+          "toolName": "Task",
+          "type": "tool-call",
+        },
+        {
+          "dynamic": true,
+          "result": "{"not":"mcp"}",
+          "toolCallId": "task-call",
+          "toolName": "Task",
+          "type": "tool-result",
+        },
+      ]
+    `);
+  });
+
   it('correlates tool-result with the prior tool-call by id', () => {
     const state = createPiTranslatorState({
       builtinToolNames: ['bash'],
@@ -924,6 +985,67 @@ describe('translatePiEvent', () => {
         tokensBefore: 90000,
       },
     ]);
+  });
+
+  it('closes a compaction that arrives after the step finished in its own step', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+        {
+          type: 'turn_end',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { summary: 'Condensed history.', tokensBefore: 90000 },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out.map(part => part.type)).toEqual(['compaction', 'finish-step']);
+    expect(out[1]).toMatchObject({
+      harnessMetadata: { pi: { inferredStep: true } },
+    });
+    expect(state.stepOpen).toBe(false);
+  });
+
+  it('leaves a compaction inside an open step for that step to close', () => {
+    const state = createPiTranslatorState();
+    emit(
+      [
+        { type: 'turn_start' } as PiSessionEvent,
+        {
+          type: 'message_start',
+          message: { role: 'assistant', content: [] },
+        } as PiSessionEvent,
+      ],
+      state,
+    );
+
+    const out = translatePiEvent(
+      {
+        type: 'compaction_end',
+        reason: 'threshold',
+        aborted: false,
+        result: { summary: 'Condensed history.' },
+      } as PiSessionEvent,
+      state,
+    );
+
+    expect(out.map(part => part.type)).toEqual(['compaction']);
+    expect(state.stepOpen).toBe(true);
   });
 
   it('maps reason "manual" to trigger "manual"', () => {
