@@ -32,9 +32,6 @@ const lookup = vi.fn(
 beforeEach(async () => {
   vi.resetModules();
   vi.clearAllMocks();
-  vi.spyOn(dns, 'lookup').mockImplementation(
-    lookup as unknown as typeof dns.lookup,
-  );
 
   server = createServer((_request, response) => {
     response.setHeader('Connection', 'close');
@@ -47,7 +44,12 @@ beforeEach(async () => {
     throw new Error('Expected a TCP listener');
   }
   url = `http://files.example.com:${address.port}/file`;
-  lookup.mockClear();
+
+  // Node 20 resolves even a literal listen host through dns.lookup(host, cb),
+  // so the spy must be installed after the listener is up.
+  vi.spyOn(dns, 'lookup').mockImplementation(
+    lookup as unknown as typeof dns.lookup,
+  );
 });
 
 afterEach(async () => {
