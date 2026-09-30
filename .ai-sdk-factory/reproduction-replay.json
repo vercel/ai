@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21858,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21858-tool-approval-output.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21858-tool-approval-output.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21858: addToolOutput makes a pending approval unanswerable"
+  }
+}
