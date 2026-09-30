@@ -38,15 +38,17 @@ import { MissingToolResultsError } from '../error/missing-tool-result-error';
 export async function convertToLanguageModelPrompt({
   prompt,
   supportedUrls,
-  download = createDefaultDownloadFunction(),
+  download,
+  abortSignal,
 }: {
   prompt: StandardizedPrompt;
   supportedUrls: Record<string, RegExp[]>;
   download: DownloadFunction | undefined;
+  abortSignal?: AbortSignal;
 }): Promise<LanguageModelV3Prompt> {
   const downloadedAssets = await downloadAssets(
     prompt.messages,
-    download,
+    download ?? createDefaultDownloadFunction(undefined, abortSignal),
     supportedUrls,
   );
 
@@ -407,7 +409,9 @@ async function downloadAssets(
             downloadableFiles.push({
               data: new URL(contentPart.url),
               mediaType:
-                contentPart.type === 'image-url' ? 'image/*' : undefined,
+                contentPart.type === 'image-url'
+                  ? 'image/*'
+                  : contentPart.mediaType,
             });
           }
         }
@@ -490,8 +494,11 @@ function convertPartToLanguageModelPart(
       throw new Error(`Unsupported part type: ${type}`);
   }
 
-  const { data: convertedData, mediaType: convertedMediaType } =
-    convertToLanguageModelV3DataContent(originalData);
+  const {
+    data: convertedData,
+    mediaType: convertedMediaType,
+    originalUrl,
+  } = convertToLanguageModelV3DataContent(originalData);
 
   let mediaType: string | undefined = convertedMediaType ?? part.mediaType;
   let data: Uint8Array | string | URL = convertedData; // binary | base64 | url
@@ -523,6 +530,7 @@ function convertPartToLanguageModelPart(
         mediaType: mediaType ?? 'image/*', // any image
         filename: undefined,
         data,
+        ...(data instanceof URL && originalUrl != null ? { originalUrl } : {}),
         providerOptions: part.providerOptions,
       };
     }
@@ -538,6 +546,7 @@ function convertPartToLanguageModelPart(
         mediaType,
         filename: part.filename,
         data,
+        ...(data instanceof URL && originalUrl != null ? { originalUrl } : {}),
         providerOptions: part.providerOptions,
       };
     }

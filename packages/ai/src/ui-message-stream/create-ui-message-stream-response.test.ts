@@ -52,6 +52,37 @@ describe('createUIMessageStreamResponse', () => {
     `);
   });
 
+  it('should send opening and keep-alive comments for an idle stream', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const response = createUIMessageStreamResponse({
+        stream: new ReadableStream(),
+        keepAliveMs: 100,
+      });
+      const reader = response
+        .body!.pipeThrough(new TextDecoderStream())
+        .getReader();
+
+      await expect(reader.read()).resolves.toEqual({
+        done: false,
+        value: ': stream-open\n\n',
+      });
+
+      const keepAlive = reader.read();
+      await vi.advanceTimersByTimeAsync(100);
+
+      await expect(keepAlive).resolves.toEqual({
+        done: false,
+        value: ': keep-alive\n\n',
+      });
+
+      await reader.cancel();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('should handle errors in the stream', async () => {
     const response = createUIMessageStreamResponse({
       status: 200,

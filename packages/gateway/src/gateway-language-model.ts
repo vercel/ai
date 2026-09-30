@@ -86,7 +86,7 @@ export class GatewayLanguageModel implements LanguageModelV3 {
         ...responseBody,
         request: { body: args },
         response: { headers: responseHeaders, body: rawResponse },
-        warnings,
+        warnings: [...(responseBody.warnings ?? []), ...warnings],
       };
     } catch (error) {
       throw await asGatewayError(error, await parseAuthMethod(resolvedHeaders));

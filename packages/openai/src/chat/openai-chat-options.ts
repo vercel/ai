@@ -70,6 +70,10 @@ export type OpenAIChatModelId =
   | 'gpt-5.6-luna'
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
+  | 'gpt-6-astra'
+  | 'gpt-6.1-sol'
+  | 'gpt-6-luna'
+  | 'gpt-6-sol'
   | (string & {});
 
 export const openaiLanguageModelChatOptions = lazySchema(() =>
@@ -107,6 +111,7 @@ export const openaiLanguageModelChatOptions = lazySchema(() =>
 
       /**
        * Reasoning effort for reasoning models. Defaults to `medium`.
+       * GPT-6 and later models support 'low' | 'medium' | 'high' | 'xhigh' | 'max'.
        */
       reasoningEffort: z
         .enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'])

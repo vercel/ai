@@ -324,6 +324,24 @@ data: {"type":"tool-input-available","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar
 
 ```
 
+### Tool Approval Request Part
+
+Indicates that a tool call requires approval.
+
+Format: Server-Sent Event with JSON object
+
+Example:
+
+```
+data: {"type":"tool-approval-request","toolCallId":"call_fJdQDqnXeGxTmr4E3YPSR7Ar","approvalId":"approval_123","approvalDescriptor":{"scope":"account:delete"}}
+
+```
+
+`approvalDescriptor` is optional opaque metadata for the approval. When the
+stream is processed into UI messages, it is available as
+`part.approval.descriptor` and is retained when the client records an approval
+response.
+
 ### Tool Output Available Part
 
 Contains the result of tool execution.

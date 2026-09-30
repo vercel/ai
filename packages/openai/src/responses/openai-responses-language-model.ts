@@ -1,4 +1,5 @@
 import {
+  UnsupportedFunctionalityError,
   APICallError,
   type JSONValue,
   type LanguageModelV3,
@@ -29,7 +30,10 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import {
+  createOpenAIProviderStreamError,
+  throwIfOpenAIStreamErrorBeforeOutput,
+} from '../openai-stream-error';
 import type { applyPatchInputSchema } from '../tool/apply-patch';
 import type {
   codeInterpreterInputSchema,
@@ -69,6 +73,7 @@ import {
 import {
   openaiLanguageModelResponsesOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAILanguageModelResponsesOptions,
   type OpenAIResponsesModelId,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
@@ -77,6 +82,7 @@ import type {
   ResponsesReasoningProviderMetadata,
   ResponsesSourceDocumentProviderMetadata,
   ResponsesTextProviderMetadata,
+  ResponsesToolCallProviderMetadata,
 } from './openai-responses-provider-metadata';
 
 /**
@@ -102,6 +108,30 @@ function extractApprovalRequestIdToToolCallIdMapping(
     }
   }
   return mapping;
+}
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAILanguageModelResponsesOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (options?.reasoningMode === 'pro' || options?.truncation === 'auto') {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation';
+  }
+
+  return undefined;
 }
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
@@ -183,6 +213,23 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
     const isReasoningModel =
       openaiOptions?.forceReasoning ?? modelCapabilities.isReasoningModel;
 
+    let resolvedReasoningEffort = openaiOptions?.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     if (openaiOptions?.conversation && openaiOptions?.previousResponseId) {
       warnings.push({
         type: 'unsupported',
@@ -222,11 +269,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       allowedTools: openaiOptions?.allowedTools ?? undefined,
       toolNameMapping,
       customProviderToolNames,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
+
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
 
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        configurationUpdateUnsupportedReason,
         toolNameMapping,
         systemMessageMode:
           openaiOptions?.systemMessageMode ??
@@ -234,6 +289,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             ? 'developer'
             : modelCapabilities.systemMessageMode),
         providerOptionsName,
+        explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
         passThroughUnsupportedFiles:
           openaiOptions?.passThroughUnsupportedFiles ?? false,
@@ -251,6 +307,44 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
       });
 
     warnings.push(...inputWarnings);
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    if (
+      reasoningEffortUpdate != null &&
+      configurationUpdateUnsupportedReason != null
+    ) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'reasoningEffortUpdate',
+        details: configurationUpdateUnsupportedReason,
+      });
+    } else if (reasoningEffortUpdate != null) {
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
+    }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? true;
 
@@ -358,13 +452,13 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
       // model-specific settings:
       ...(isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
+        (resolvedReasoningEffort != null ||
           openaiOptions?.reasoningSummary != null ||
           openaiOptions?.reasoningMode != null ||
           openaiOptions?.reasoningContext != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
@@ -378,6 +472,19 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           },
         }),
     };
+
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported',
+        feature: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -407,6 +514,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             details: 'topP is not supported for reasoning models',
           });
         }
+      }
+
+      if (
+        modelCapabilities.supportedReasoningEfforts != null &&
+        (baseArgs.top_logprobs != null ||
+          baseArgs.include?.includes('message.output_text.logprobs'))
+      ) {
+        baseArgs.top_logprobs = undefined;
+        const filteredInclude = baseArgs.include?.filter(
+          value => value !== 'message.output_text.logprobs',
+        );
+        baseArgs.include =
+          filteredInclude != null && filteredInclude.length > 0
+            ? filteredInclude
+            : undefined;
+        warnings.push({
+          type: 'unsupported',
+          feature: 'logprobs',
+          details: 'logprobs is not supported for reasoning models',
+        });
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
@@ -835,8 +962,9 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
+                ...(part.async != null && { async: part.async }),
                 ...(part.namespace != null && { namespace: part.namespace }),
-              },
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -854,7 +982,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             providerMetadata: {
               [providerOptionsName]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -1025,6 +1154,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
         }
 
         case 'apply_patch_call': {
+          hasFunctionCall = true;
+
           content.push({
             type: 'tool-call',
             toolCallId: part.call_id,
@@ -1167,6 +1298,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
           toolSearchExecution?: 'server' | 'client';
           suppressInputStreaming?: boolean;
           bufferedInputDeltas?: string[];
+          async?: boolean | null;
         }
       | undefined
     > = {};
@@ -1246,6 +1378,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   toolCallId: value.item.call_id,
                   suppressInputStreaming,
                   bufferedInputDeltas: suppressInputStreaming ? [] : undefined,
+                  async: value.item.async,
                 };
 
                 if (!suppressInputStreaming) {
@@ -1262,6 +1395,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                 ongoingToolCalls[value.output_index] = {
                   toolName,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -1432,7 +1566,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
               } else if (value.item.type === 'shell_call_output') {
                 // shell_call_output is handled in output_item.done
               } else if (value.item.type === 'message') {
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations.splice(0);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
@@ -1545,10 +1679,15 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     providerMetadata: {
                       [providerOptionsName]: {
                         itemId: item.id,
+                        ...(item.async != null
+                          ? { async: item.async }
+                          : ongoingToolCall?.async != null
+                            ? { async: ongoingToolCall.async }
+                            : {}),
                         ...(item.namespace != null && {
                           namespace: item.namespace,
                         }),
-                      },
+                      } satisfies ResponsesToolCallProviderMetadata,
                     },
                   });
                 };
@@ -1592,6 +1731,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   }
                 });
               } else if (value.item.type === 'custom_tool_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
                 const toolName = toolNameMapping.toCustomToolName(
@@ -1611,7 +1751,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   providerMetadata: {
                     [providerOptionsName]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
@@ -1840,6 +1985,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
                 // Emit the final tool-call with complete diff when status is 'completed'
                 if (toolCall && value.item.status === 'completed') {
+                  hasFunctionCall = true;
+
                   controller.enqueue({
                     type: 'tool-call',
                     toolCallId: toolCall.toolCallId,
@@ -2203,7 +2350,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                   raw: value.response.incomplete_details?.reason ?? undefined,
                 };
               }
-              usage = value.response.usage;
+              usage = value.response.usage ?? undefined;
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
@@ -2229,17 +2376,18 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
 
               if (!encounteredStreamError && value.response.error != null) {
                 encounteredStreamError = true;
+                const error = {
+                  type: 'response.failed',
+                  sequence_number: value.sequence_number,
+                  response: {
+                    error: value.response.error,
+                    incomplete_details: value.response.incomplete_details,
+                    service_tier: value.response.service_tier,
+                  },
+                };
                 controller.enqueue({
                   type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
+                  error: createOpenAIProviderStreamError(error) ?? error,
                 });
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
@@ -2313,7 +2461,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
             } else if (isErrorChunk(value)) {
               encounteredStreamError = true;
               finishReason = { unified: 'error', raw: 'error' };
-              controller.enqueue({ type: 'error', error: value });
+              controller.enqueue({
+                type: 'error',
+                error: createOpenAIProviderStreamError(value) ?? value,
+              });
             }
           },
 

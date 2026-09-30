@@ -57,7 +57,7 @@ async function getInputFromUser(
         properties: Record<string, any>;
         required?: string[];
       };
-      const requiredFields = new Set(objectSchema.required ?? []);
+      const requiredFields = new Set(objectSchema.required);
 
       for (const [key, propertySchema] of Object.entries(
         objectSchema.properties,

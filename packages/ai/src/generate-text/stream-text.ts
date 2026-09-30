@@ -79,6 +79,7 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { mergeAbortSignals } from '../util/merge-abort-signals';
 import { mergeObjects } from '../util/merge-objects';
 import { now as originalNow } from '../util/now';
@@ -123,7 +124,7 @@ import type {
   UIMessageStreamOptions,
 } from './stream-text-result';
 import { toResponseMessages } from './to-response-messages';
-import type { TypedToolCall } from './tool-call';
+import { getToolCallInputSchemaInput, type TypedToolCall } from './tool-call';
 import type { ToolCallRepairFunction } from './tool-call-repair-function';
 import type { ToolOutput } from './tool-output';
 import type { StaticToolOutputDenied } from './tool-output-denied';
@@ -214,14 +215,31 @@ export type StreamTextOnChunkCallback<TOOLS extends ToolSet> = (event: {
   >;
 }) => PromiseLike<void> | void;
 
+export type StreamTextEndEvent<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = OnFinishEvent<TOOLS> & {
+  /**
+   * The parsed output when an output setting was provided and parsing
+   * succeeded.
+   */
+  readonly output?: InferCompleteOutput<OUTPUT>;
+};
+
+export type StreamTextOnEndCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = (event: StreamTextEndEvent<TOOLS, OUTPUT>) => PromiseLike<void> | void;
+
 /**
  * Callback that is set using the `onFinish` option.
  *
  * @param event - The event that is passed to the callback.
  */
-export type StreamTextOnFinishCallback<TOOLS extends ToolSet> = (
-  event: OnFinishEvent<TOOLS>,
-) => PromiseLike<void> | void;
+export type StreamTextOnFinishCallback<
+  TOOLS extends ToolSet = ToolSet,
+  OUTPUT extends Output = Output,
+> = StreamTextOnEndCallback<TOOLS, OUTPUT>;
 
 /**
  * Callback that is set using the `onAbort` option.
@@ -492,7 +510,7 @@ export function streamText<
      *
      * The usage is the combined usage of all steps.
      */
-    onFinish?: StreamTextOnFinishCallback<TOOLS>;
+    onFinish?: StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<OUTPUT>>;
 
     onAbort?: StreamTextOnAbortCallback<TOOLS>;
 
@@ -648,7 +666,16 @@ function createOutputTransformStream<
   let text = '';
   let textChunk = '';
   let textProviderMetadata: ProviderMetadata | undefined = undefined;
-  let lastPublishedValue = '';
+  let lastPublishedValue: string | undefined = undefined;
+  let hasPublishedValue = false;
+
+  function resetOutputState() {
+    firstTextChunkId = undefined;
+    text = '';
+    textChunk = '';
+    textProviderMetadata = undefined;
+    lastPublishedValue = '';
+  }
 
   function publishTextChunk({
     controller,
@@ -676,6 +703,10 @@ function createOutputTransformStream<
     EnrichedStreamPart<TOOLS, InferPartialOutput<OUTPUT>>
   >({
     async transform(chunk, controller) {
+      if (chunk.type === 'start-step') {
+        resetOutputState();
+      }
+
       // ensure that we publish the last text chunk before the step finish:
       if (chunk.type === 'finish-step' && textChunk.length > 0) {
         publishTextChunk({ controller });
@@ -732,9 +763,10 @@ function createOutputTransformStream<
           typeof result.partial === 'string'
             ? result.partial
             : JSON.stringify(result.partial);
-        if (currentValue !== lastPublishedValue) {
+        if (!hasPublishedValue || currentValue !== lastPublishedValue) {
           publishTextChunk({ controller, partialOutput: result.partial });
           lastPublishedValue = currentValue;
+          hasPublishedValue = true;
         }
       }
     },
@@ -757,6 +789,8 @@ class DefaultStreamTextResult<
   private readonly _steps = new DelayedPromise<
     Awaited<StreamTextResult<TOOLS, OUTPUT>['steps']>
   >();
+
+  private outputPromise: Promise<InferCompleteOutput<OUTPUT>> | undefined;
 
   private readonly addStream: (
     stream: ReadableStream<TextStreamPart<TOOLS>>,
@@ -862,7 +896,9 @@ class DefaultStreamTextResult<
     // callbacks:
     onChunk: undefined | StreamTextOnChunkCallback<TOOLS>;
     onError: StreamTextOnErrorCallback;
-    onFinish: undefined | StreamTextOnFinishCallback<TOOLS>;
+    onFinish:
+      | undefined
+      | StreamTextOnFinishCallback<NoInfer<TOOLS>, NoInfer<OUTPUT>>;
     onAbort: undefined | StreamTextOnAbortCallback<TOOLS>;
     onStepFinish: undefined | StreamTextOnStepFinishCallback<TOOLS>;
     onStart: undefined | StreamTextOnStartCallback<TOOLS, OUTPUT>;
@@ -895,6 +931,7 @@ class DefaultStreamTextResult<
     const recordedSteps: StepResult<TOOLS>[] = [];
     let recordedNoOutputError: NoOutputGeneratedError | undefined;
     let currentStepToolSet = tools;
+    let currentStepModel = model;
 
     // provider-assigned text/reasoning part IDs are only unique within a
     // single model call (e.g. Anthropic uses the content block index, which
@@ -1135,7 +1172,10 @@ class DefaultStreamTextResult<
           // Add step information (after response messages are updated):
           const currentStepResult: StepResult<TOOLS> = new DefaultStepResult({
             stepNumber: recordedSteps.length,
-            model: modelInfo,
+            model: {
+              provider: currentStepModel.provider,
+              modelId: currentStepModel.modelId,
+            },
             ...callbackTelemetryProps,
             experimental_context,
             content: recordedContent,
@@ -1158,8 +1198,8 @@ class DefaultStreamTextResult<
 
           logWarnings({
             warnings: recordedWarnings,
-            provider: modelInfo.provider,
-            model: modelInfo.modelId,
+            provider: currentStepModel.provider,
+            model: currentStepModel.modelId,
           });
 
           recordedSteps.push(currentStepResult);
@@ -1211,43 +1251,61 @@ class DefaultStreamTextResult<
 
           // call onFinish callback:
           const finalStep = recordedSteps[recordedSteps.length - 1];
+          const onFinishEvent: OnFinishEvent<TOOLS> = {
+            stepNumber: finalStep.stepNumber,
+            model: finalStep.model,
+            functionId: finalStep.functionId,
+            metadata: finalStep.metadata,
+            experimental_context: finalStep.experimental_context,
+            finishReason: finalStep.finishReason,
+            rawFinishReason: finalStep.rawFinishReason,
+            totalUsage,
+            usage: finalStep.usage,
+            content: finalStep.content,
+            text: finalStep.text,
+            reasoningText: finalStep.reasoningText,
+            reasoning: finalStep.reasoning,
+            files: finalStep.files,
+            sources: finalStep.sources,
+            toolCalls: finalStep.toolCalls,
+            staticToolCalls: finalStep.staticToolCalls,
+            dynamicToolCalls: finalStep.dynamicToolCalls,
+            toolResults: finalStep.toolResults,
+            staticToolResults: finalStep.staticToolResults,
+            dynamicToolResults: finalStep.dynamicToolResults,
+            request: finalStep.request,
+            response: finalStep.response,
+            warnings: finalStep.warnings,
+            providerMetadata: finalStep.providerMetadata,
+            steps: recordedSteps,
+          };
+          const onFinishWithOutput =
+            onFinish == null
+              ? undefined
+              : async (event: OnFinishEvent<TOOLS>) => {
+                  const parsedOutput =
+                    output == null
+                      ? undefined
+                      : await self.getOutputPromise().catch(() => undefined);
 
-          await notify({
-            event: {
-              stepNumber: finalStep.stepNumber,
-              model: finalStep.model,
-              functionId: finalStep.functionId,
-              metadata: finalStep.metadata,
-              experimental_context: finalStep.experimental_context,
-              finishReason: finalStep.finishReason,
-              rawFinishReason: finalStep.rawFinishReason,
-              totalUsage,
-              usage: finalStep.usage,
-              content: finalStep.content,
-              text: finalStep.text,
-              reasoningText: finalStep.reasoningText,
-              reasoning: finalStep.reasoning,
-              files: finalStep.files,
-              sources: finalStep.sources,
-              toolCalls: finalStep.toolCalls,
-              staticToolCalls: finalStep.staticToolCalls,
-              dynamicToolCalls: finalStep.dynamicToolCalls,
-              toolResults: finalStep.toolResults,
-              staticToolResults: finalStep.staticToolResults,
-              dynamicToolResults: finalStep.dynamicToolResults,
-              request: finalStep.request,
-              response: finalStep.response,
-              warnings: finalStep.warnings,
-              providerMetadata: finalStep.providerMetadata,
-              steps: recordedSteps,
-            },
-            callbacks: [
-              onFinish,
-              globalTelemetry.onFinish as
+                  await onFinish({
+                    ...event,
+                    ...(output != null ? { output: parsedOutput } : {}),
+                  });
+                };
+
+          await Promise.all([
+            notify({
+              event: onFinishEvent,
+              callbacks: onFinishWithOutput,
+            }),
+            notify({
+              event: onFinishEvent,
+              callbacks: globalTelemetry.onFinish as
                 | undefined
-                | StreamTextOnFinishCallback<TOOLS>,
-            ],
-          });
+                | ((event: OnFinishEvent<TOOLS>) => PromiseLike<void> | void),
+            }),
+          ]);
 
           // Add response information to the root span:
           rootSpan.setAttributes(
@@ -1724,6 +1782,7 @@ class DefaultStreamTextResult<
             const stepModel = resolveLanguageModel(
               prepareStepResult?.model ?? model,
             );
+            currentStepModel = stepModel;
             const stepModelInfo = {
               provider: stepModel.provider,
               modelId: stepModel.modelId,
@@ -1736,6 +1795,7 @@ class DefaultStreamTextResult<
               },
               supportedUrls: await stepModel.supportedUrls,
               download,
+              abortSignal,
             });
 
             const stepActiveTools =
@@ -1906,8 +1966,6 @@ class DefaultStreamTextResult<
             const stepToolOutputs: ToolOutput<TOOLS>[] = [];
             let warnings: SharedV3Warning[] | undefined;
 
-            const activeToolCallToolNames: Record<string, string> = {};
-
             let stepFinishReason: FinishReason = 'other';
             let stepRawFinishReason: string | undefined = undefined;
 
@@ -1926,7 +1984,7 @@ class DefaultStreamTextResult<
               {
                 id: generateId(),
                 timestamp: new Date(),
-                modelId: modelInfo.modelId,
+                modelId: stepModelInfo.modelId,
               };
 
             // raw text as it comes from the provider. recorded for telemetry.
@@ -2109,18 +2167,7 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-start': {
-                        activeToolCallToolNames[chunk.id] = chunk.toolName;
-
                         const tool = stepToolSet?.[chunk.toolName];
-                        if (tool?.onInputStart != null) {
-                          await tool.onInputStart({
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue({
                           ...chunk,
                           dynamic: chunk.dynamic ?? tool?.type === 'dynamic',
@@ -2130,25 +2177,11 @@ class DefaultStreamTextResult<
                       }
 
                       case 'tool-input-end': {
-                        delete activeToolCallToolNames[chunk.id];
                         controller.enqueue(chunk);
                         break;
                       }
 
                       case 'tool-input-delta': {
-                        const toolName = activeToolCallToolNames[chunk.id];
-                        const tool = stepToolSet?.[toolName];
-
-                        if (tool?.onInputDelta != null) {
-                          await tool.onInputDelta({
-                            inputTextDelta: chunk.delta,
-                            toolCallId: chunk.id,
-                            messages: stepInputMessages,
-                            abortSignal,
-                            experimental_context,
-                          });
-                        }
-
                         controller.enqueue(chunk);
                         break;
                       }
@@ -2613,7 +2646,7 @@ class DefaultStreamTextResult<
           InferPartialOutput<OUTPUT>
         >({
           transform({ partialOutput }, controller) {
-            if (partialOutput != null) {
+            if (partialOutput !== undefined) {
               controller.enqueue(partialOutput);
             }
           },
@@ -2634,18 +2667,26 @@ class DefaultStreamTextResult<
     return createAsyncIterableStream(this.teeStream().pipeThrough(transform));
   }
 
+  private getOutputPromise(): Promise<InferCompleteOutput<OUTPUT>> {
+    if (this.outputPromise == null) {
+      this.outputPromise = this.finalStep.then(step => {
+        const output = this.outputSpecification ?? text();
+        return output.parseCompleteOutput(
+          { text: step.text },
+          {
+            response: step.response,
+            usage: step.usage,
+            finishReason: step.finishReason,
+          },
+        );
+      });
+    }
+
+    return this.outputPromise;
+  }
+
   get output(): Promise<InferCompleteOutput<OUTPUT>> {
-    return this.finalStep.then(step => {
-      const output = this.outputSpecification ?? text();
-      return output.parseCompleteOutput(
-        { text: step.text },
-        {
-          response: step.response,
-          usage: step.usage,
-          finishReason: step.finishReason,
-        },
-      );
-    });
+    return this.getOutputPromise();
   }
 
   toUIMessageStream<UI_MESSAGE extends UIMessage>({
@@ -2657,7 +2698,7 @@ class DefaultStreamTextResult<
     sendSources = false,
     sendStart = true,
     sendFinish = true,
-    onError = () => 'An error occurred.', // prevent leaking server error details to the client by default
+    onError = () => 'An error occurred.', // masks errors except provider-executed tool execution errors
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
@@ -2944,10 +2985,17 @@ class DefaultStreamTextResult<
             }
 
             case 'tool-approval-request': {
+              const inputSchemaInput = getToolCallInputSchemaInput(
+                part.toolCall,
+              );
               controller.enqueue({
                 type: 'tool-approval-request',
                 approvalId: part.approvalId,
                 toolCallId: part.toolCall.toolCallId,
+                ...(inputSchemaInput != null &&
+                !isDeepEqualData(inputSchemaInput.value, part.toolCall.input)
+                  ? { inputSchemaInput: inputSchemaInput.value }
+                  : {}),
                 ...(part.signature != null
                   ? { signature: part.signature }
                   : {}),
@@ -2984,6 +3032,9 @@ class DefaultStreamTextResult<
             case 'tool-error': {
               const dynamic = isDynamic(part);
 
+              // Preserve provider error codes for model-message round trips.
+              // These execution errors intentionally bypass onError; invalid
+              // tool calls and stream errors still go through it.
               controller.enqueue({
                 type: 'tool-output-error',
                 toolCallId: part.toolCallId,

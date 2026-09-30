@@ -480,6 +480,20 @@ export default function Chat() {
 }
 ```
 
+Approval request chunks can also include an `approvalDescriptor` with opaque
+application-specific metadata. UI message processing exposes it as
+`part.approval.descriptor` in the `approval-requested` state and preserves it in
+the `approval-responded` state after `addToolApprovalResponse` is called. This
+lets clients render or persist server-computed approval metadata without using
+it to determine whether the tool was approved.
+
+When a tool input schema transforms its input, approval requests also preserve
+the original value as `part.approval.inputSchemaInput`. Keep this field when
+persisting UI messages or model response messages so the SDK can reconstruct
+and verify the approved input before execution. The original value can include
+fields removed by the transform, so approval metadata should not be treated as
+redacted input.
+
 ### Auto-Submit After Approval
 
 <Note>
@@ -668,7 +682,16 @@ export async function POST(req: Request) {
 Language models can make errors when calling tools.
 By default, these errors are masked for security reasons, and show up as "An error occurred" in the UI.
 
-To surface the errors, you can use the `onError` function when calling `toUIMessageResponse`.
+Tool execution errors marked `providerExecuted: true` bypass this masking and the
+UI stream's `onError` callback. String errors pass through unchanged; other error
+values are serialized with `JSON.stringify`. The original error data is needed
+when converting persisted UI messages back into model messages, for example to
+preserve Anthropic tool error codes. The callback still handles invalid tool
+calls and stream errors, regardless of whether a tool is provider-executed.
+
+To customize masked errors, pass `onError` to `result.toUIMessageStream()` or
+`result.toUIMessageStreamResponse()`. This callback does not redact
+provider-executed tool execution errors sent to the client.
 
 ```tsx
 export function errorHandler(error: unknown) {

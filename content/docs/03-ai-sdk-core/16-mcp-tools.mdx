@@ -156,6 +156,63 @@ This hook is called before the SDK fetches authorization server metadata, so a
 rejected URL is not requested. It is optional and does not change existing OAuth
 flows unless you implement it.
 
+### OAuth Callback Issuer Validation
+
+When completing an OAuth authorization callback, pass the callback's `iss`
+parameter to `auth` as `callbackIssuer`:
+
+```typescript
+import { auth } from '@ai-sdk/mcp';
+
+const callbackUrl = new URL(request.url);
+
+await auth(myOAuthClientProvider, {
+  serverUrl: 'https://mcp.example.com',
+  authorizationCode: callbackUrl.searchParams.get('code')!,
+  callbackState: callbackUrl.searchParams.get('state') ?? undefined,
+  callbackIssuer: callbackUrl.searchParams.get('iss') ?? undefined,
+});
+```
+
+When `iss` is present, it must exactly match the discovered authorization
+server issuer. The authorization code is not exchanged when it does not match.
+
+Dynamic client registration requests include an OAuth `application_type`. The
+client infers `native` for loopback, localhost, and custom-scheme redirects,
+and `web` for remote HTTP(S) redirects. You can override this by setting
+`application_type` in the provider's `clientMetadata`.
+
+### Dynamic Client Credential Recovery
+
+To let the SDK replace invalid credentials created through dynamic client
+registration, implement `isClientInformationDynamicallyRegistered` on the
+OAuth client provider. Return `true` only when the current client information
+came from a dynamic registration response. Persist this provenance alongside
+the credentials when the provider is recreated between requests.
+
+```typescript
+const myOAuthClientProvider = {
+  // ...other OAuthClientProvider methods
+
+  async saveClientInformation(clientInformation) {
+    await saveClientRecord({
+      clientInformation,
+      dynamicallyRegistered: true,
+    });
+  },
+
+  async isClientInformationDynamicallyRegistered() {
+    return (await loadClientRecord())?.dynamicallyRegistered === true;
+  },
+};
+```
+
+When this method is omitted or returns `false`, client information is treated
+as pre-registered and is preserved after `invalid_client` and
+`unauthorized_client` errors. The SDK does not infer provenance from fields such
+as `redirect_uris`, because pre-registered clients can contain the same
+metadata as dynamically registered clients.
+
 ### Retrying Transient Tool Failures
 
 MCP tool calls can fail for transient transport reasons, such as rate limits,
@@ -239,6 +296,69 @@ const tools = await mcpClient.tools();
 ```
 
 This approach is simpler to implement and automatically stays in sync with server changes. However, you won't have TypeScript type safety during development, and all tools from the server will be loaded
+
+### Tool Annotations and Approval
+
+MCP servers can describe tool behavior with annotations such as
+`readOnlyHint`, `destructiveHint`, `idempotentHint`, and `openWorldHint`. The
+MCP client exposes these annotations on each tool's `metadata.annotations` and
+on the resulting tool call's `toolMetadata.annotations`.
+
+Annotations are untrusted, server-provided hints. The MCP client does not turn
+them into an approval policy automatically. Applications should combine them
+with deterministic controls such as tool allowlists, scoped credentials, and
+their own [`needsApproval`](/docs/ai-sdk-core/tools-and-tool-calling#tool-execution-approval)
+policy.
+
+The following conservative policy allows tools to run automatically only when
+the server explicitly marks them as read-only. Tools with `readOnlyHint: false`
+or no `readOnlyHint` require user approval:
+
+```typescript
+import { type McpProviderMetadata } from '@ai-sdk/mcp';
+
+const mcpTools = await mcpClient.tools();
+const tools = Object.fromEntries(
+  Object.entries(mcpTools).map(([name, mcpTool]) => {
+    const annotations = (mcpTool.metadata as McpProviderMetadata | undefined)
+      ?.annotations;
+
+    return [
+      name,
+      {
+        ...mcpTool,
+        needsApproval: annotations?.readOnlyHint !== true,
+      },
+    ];
+  }),
+);
+
+const result = streamText({
+  model: __MODEL__,
+  tools,
+  prompt,
+});
+```
+
+See the
+[local tool annotations example](https://github.com/vercel/ai/tree/main/examples/mcp/src/tool-annotations)
+for a complete annotated MCP server and application-layer approval
+configuration. Start the server and client in separate terminals:
+
+```bash
+cd examples/mcp
+pnpm server:tool-annotations
+```
+
+```bash
+cd examples/mcp
+pnpm client:tool-annotations
+```
+
+Ask the client to read, delete, or create a note. The read-only tool executes
+immediately. The destructive and unannotated tools prompt for approval; after
+you enter `y` or `n`, the client sends the decision back and prints the model's
+response.
 
 ### Schema Definition
 

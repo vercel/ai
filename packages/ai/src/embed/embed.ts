@@ -2,6 +2,7 @@ import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
+import { InvalidResponseDataError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
@@ -158,6 +159,13 @@ export async function embed({
                   },
                 }),
               );
+
+              if (embedding == null) {
+                throw new InvalidResponseDataError({
+                  data: modelResponse.embeddings,
+                  message: 'No embedding generated.',
+                });
+              }
 
               return {
                 embedding,

@@ -9,21 +9,29 @@ import {
   anthropicTools,
   prepareTools as prepareAnthropicTools,
 } from '@ai-sdk/anthropic/internal';
-import { supportsStrictTools } from './bedrock-anthropic-model-support';
+import {
+  isAnthropicModel as detectAnthropicModel,
+  supportsStrictTools,
+} from './bedrock-anthropic-model-support';
 import type {
   BedrockTool,
   BedrockToolConfiguration,
 } from './bedrock-api-types';
+import type { AmazonBedrockChatModelSettings } from './bedrock-chat-options';
 
 export async function prepareTools({
   tools,
   toolChoice,
   modelId,
+  modelFamily,
+  reasoningBudgetTokens,
   disableParallelToolUse,
 }: {
   tools: LanguageModelV3CallOptions['tools'];
   toolChoice?: LanguageModelV3CallOptions['toolChoice'];
   modelId: string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
+  reasoningBudgetTokens?: number;
   disableParallelToolUse?: boolean;
 }): Promise<{
   toolConfig: BedrockToolConfiguration;
@@ -69,7 +77,11 @@ export async function prepareTools({
     };
   }
 
-  const isAnthropicModel = modelId.includes('anthropic.');
+  const isAnthropicModel = detectAnthropicModel({
+    modelId,
+    modelFamily,
+    reasoningBudgetTokens,
+  });
   const ProviderTools = supportedTools.filter(t => t.type === 'provider');
   const functionTools = supportedTools.filter(t => t.type === 'function');
 

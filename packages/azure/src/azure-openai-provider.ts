@@ -21,11 +21,17 @@ import {
   loadApiKey,
   loadSetting,
   normalizeHeaders,
+  parseProviderOptions,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
+import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
+import {
+  azureTranscriptionModelOptions,
+  isMAITranscribe2,
+} from './azure-transcription-model-options';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV3 {
@@ -87,9 +93,15 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   imageModel(deploymentId: string): ImageModelV3;
 
   /**
-   * Creates an Azure OpenAI model for audio transcription.
+   * Creates an Azure transcription model. MAI-Transcribe-2 uses the Speech API
+   * by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   transcription(deploymentId: string): TranscriptionModelV3;
+
+  /**
+   * Creates an Azure transcription model. Alias of `transcription`.
+   */
+  transcriptionModel(deploymentId: string): TranscriptionModelV3;
 
   /**
    * Creates an Azure OpenAI model for speech generation.
@@ -114,7 +126,8 @@ export interface AzureOpenAIProviderSettings {
    * Use a different URL prefix for API calls, e.g. to use proxy servers. Either this or `resourceName` can be used.
    * When a baseURL is provided, the resourceName is ignored.
    *
-   * With an Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * With an unversioned Azure OpenAI baseURL, the resolved URL is `{baseURL}/v1{path}`.
+   * Azure OpenAI base URLs that already end in `/openai/v1` are used as-is.
    * With a non-Azure custom gateway baseURL, the resolved URL is `{baseURL}{path}`.
    */
   baseURL?: string;
@@ -143,7 +156,8 @@ export interface AzureOpenAIProviderSettings {
   fetch?: FetchFunction;
 
   /**
-   * Custom api version to use. Defaults to `preview`.
+   * Custom api version to use. Defaults to `v1`.
+   * Complete v1 base URLs are used as-is.
    */
   apiVersion?: string;
 
@@ -153,12 +167,40 @@ export interface AzureOpenAIProviderSettings {
    * `{baseURL}/v1{path}?api-version={apiVersion}`.
    */
   useDeploymentBasedUrls?: boolean;
+
+  /**
+   * URL prefix for Azure Speech transcription (MAI-Transcribe-2), e.g. a
+   * regional endpoint like `https://eastus.api.cognitive.microsoft.com`.
+   * Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
+   * Speech requests do not use `baseURL` or `apiVersion`.
+   */
+  speechBaseURL?: string;
 }
 
-function isAzureOpenAIBaseURL(baseURL: string | undefined) {
-  return (
-    baseURL == null || new URL(baseURL).hostname.endsWith('.openai.azure.com')
-  );
+function getAzureOpenAIBaseURLInfo(baseURL: string | undefined) {
+  if (baseURL == null) {
+    return {
+      isAzureOpenAI: true,
+      isFoundryProject: false,
+      isVersioned: false,
+    };
+  }
+
+  const url = new URL(baseURL);
+  const hostname = url.hostname;
+  const isAzureOpenAI =
+    hostname.endsWith('.openai.azure.com') ||
+    hostname.endsWith('.services.ai.azure.com') ||
+    hostname.endsWith('.cognitiveservices.azure.com');
+  const pathname = url.pathname.replace(/\/+$/, '');
+
+  return {
+    isAzureOpenAI,
+    isFoundryProject:
+      hostname.endsWith('.services.ai.azure.com') &&
+      pathname.startsWith('/api/projects/'),
+    isVersioned: isAzureOpenAI && pathname.toLowerCase().endsWith('/openai/v1'),
+  };
 }
 
 /**
@@ -177,15 +219,16 @@ export function createAzure(
     });
   }
 
-  const getHeaders = () => {
+  const getHeaders = (api: 'openai' | 'speech' = 'openai') => {
     const authHeaders = tokenProvider
       ? {}
       : {
-          'api-key': loadApiKey({
-            apiKey: options.apiKey,
-            environmentVariableName: 'AZURE_API_KEY',
-            description: 'Azure OpenAI',
-          }),
+          [api === 'speech' ? 'Ocp-Apim-Subscription-Key' : 'api-key']:
+            loadApiKey({
+              apiKey: options.apiKey,
+              environmentVariableName: 'AZURE_API_KEY',
+              description: api === 'speech' ? 'Azure Speech' : 'Azure OpenAI',
+            }),
         };
 
     return withUserAgentSuffix(
@@ -221,7 +264,11 @@ export function createAzure(
     });
 
   const apiVersion = options.apiVersion ?? 'v1';
-  const useAzureOpenAIEndpoint = isAzureOpenAIBaseURL(options.baseURL);
+  const {
+    isAzureOpenAI,
+    isFoundryProject,
+    isVersioned: isAzureOpenAIVersioned,
+  } = getAzureOpenAIBaseURLInfo(options.baseURL);
 
   const url = ({ path, modelId }: { path: string; modelId: string }) => {
     const baseUrlPrefix = withoutTrailingSlash(
@@ -232,15 +279,19 @@ export function createAzure(
     if (options.useDeploymentBasedUrls) {
       // Use deployment-based format for compatibility with certain Azure OpenAI models
       fullUrl = new URL(`${baseUrlPrefix}/deployments/${modelId}${path}`);
-    } else if (!useAzureOpenAIEndpoint) {
+    } else if (!isAzureOpenAI || isAzureOpenAIVersioned) {
       // Custom gateways can own Azure routing and versioning themselves.
+      // Complete Azure OpenAI v1 URLs also own their versioning.
       fullUrl = new URL(`${baseUrlPrefix}${path}`);
     } else {
       // Use v1 API format - no deployment ID in URL
       fullUrl = new URL(`${baseUrlPrefix}/v1${path}`);
     }
 
-    if (useAzureOpenAIEndpoint || options.useDeploymentBasedUrls) {
+    if (
+      options.useDeploymentBasedUrls ||
+      (isAzureOpenAI && !isAzureOpenAIVersioned && !isFoundryProject)
+    ) {
       fullUrl.searchParams.set('api-version', apiVersion);
     }
 
@@ -289,6 +340,7 @@ export function createAzure(
       url,
       headers: getHeaders,
       fetch,
+      explicitMessageItemType: isFoundryProject,
       fileIdPrefixes: ['assistant-'],
     });
 
@@ -301,12 +353,25 @@ export function createAzure(
     });
 
   const createTranscriptionModel = (modelId: string) =>
-    new OpenAITranscriptionModel(modelId, {
-      provider: 'azure.transcription',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
+    new AzureTranscriptionModel(
+      modelId,
+      options,
+      new OpenAITranscriptionModel(modelId, {
+        provider: 'azure.transcription',
+        url,
+        headers: getHeaders,
+        fetch,
+      }),
+      new AzureSpeechTranscriptionModel(modelId, {
+        url: () =>
+          `${
+            withoutTrailingSlash(options.speechBaseURL) ??
+            `https://${getResourceName()}.cognitiveservices.azure.com`
+          }/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
+        headers: () => getHeaders('speech'),
+        fetch,
+      }),
+    );
 
   const createSpeechModel = (modelId: string) =>
     new OpenAISpeechModel(modelId, {
@@ -339,6 +404,7 @@ export function createAzure(
   provider.imageModel = createImageModel;
   provider.responses = createResponsesModel;
   provider.transcription = createTranscriptionModel;
+  provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;
@@ -348,3 +414,55 @@ export function createAzure(
  * Default Azure OpenAI provider instance.
  */
 export const azure = createAzure();
+
+// Resolves the API per request: providerOptions also reach this model via Gateway.
+class AzureTranscriptionModel implements TranscriptionModelV3 {
+  readonly specificationVersion = 'v3';
+  readonly provider = 'azure.transcription';
+
+  constructor(
+    readonly modelId: string,
+    private readonly config: AzureOpenAIProviderSettings,
+    private readonly openai: OpenAITranscriptionModel,
+    private readonly speech: AzureSpeechTranscriptionModel,
+  ) {}
+
+  async doGenerate(options: Parameters<TranscriptionModelV3['doGenerate']>[0]) {
+    const { api, ...speechOptions } = await this.getOptions(
+      options.providerOptions,
+    );
+    if (api === 'speech') {
+      return this.speech.doGenerate(options, speechOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        ...Object.keys(speechOptions).map(key => ({
+          type: 'unsupported' as const,
+          feature: `providerOptions.azure.${key}`,
+          details: 'This option requires the Azure Speech API.',
+        })),
+      ],
+    };
+  }
+
+  private async getOptions(
+    providerOptions: Parameters<
+      TranscriptionModelV3['doGenerate']
+    >[0]['providerOptions'],
+  ) {
+    const options = await parseProviderOptions({
+      provider: 'azure',
+      providerOptions,
+      schema: azureTranscriptionModelOptions,
+    });
+    return {
+      ...options,
+      api:
+        options?.api ?? (isMAITranscribe2(this.modelId) ? 'speech' : 'openai'),
+    };
+  }
+}

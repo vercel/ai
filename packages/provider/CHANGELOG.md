@@ -1,5 +1,23 @@
 # @ai-sdk/provider
 
+## 3.0.18
+
+### Patch Changes
+
+- 3983fea: fix(provider): preserve media types on tool result file URLs and match full MIME types exactly when checking native URL support.
+
+## 3.0.17
+
+### Patch Changes
+
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+
+## 3.0.16
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+
 ## 3.0.15
 
 ### Patch Changes

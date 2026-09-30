@@ -650,6 +650,19 @@ const gladiaTranscriptionResultResponseSchema = z.object({
             start: z.number(),
             end: z.number(),
             text: z.string(),
+            speaker: z.union([z.string(), z.number()]).nullish(),
+            confidence: z.number().nullish(),
+            language: z.string().nullish(),
+            words: z
+              .array(
+                z.object({
+                  word: z.string(),
+                  start: z.number(),
+                  end: z.number(),
+                  confidence: z.number().nullish(),
+                }),
+              )
+              .nullish(),
           }),
         ),
       }),

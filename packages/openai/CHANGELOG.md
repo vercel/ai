@@ -1,5 +1,138 @@
 # @ai-sdk/openai
 
+## 3.0.122
+
+### Patch Changes
+
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.121
+
+### Patch Changes
+
+- 4972874: feat(openai): add GPT-6.1 Sol model support
+
+## 3.0.120
+
+### Patch Changes
+
+- 29dc427: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 3.0.119
+
+### Patch Changes
+
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 3.0.118
+
+### Patch Changes
+
+- 0fb3a22: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 3.0.117
+
+### Patch Changes
+
+- a3e970b: fix(openai): expose Chat Completions audio transcripts as generated text
+- f7f36d2: chore: enable dead code lint rules
+- 57256a0: fix(openai): preserve retryability for early stream errors
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 3.0.116
+
+### Patch Changes
+
+- ad8de8d: fix(openai): accept `incomplete` function_call and custom_tool_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 0b9d00b: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.115
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 3.0.114
+
+### Patch Changes
+
+- e53d917: fix(openai): preserve provider file references in Responses tool results
+
+## 3.0.113
+
+### Patch Changes
+
+- 90757ce: fix(openai): report apply patch responses with a tool-calls finish reason
+
+## 3.0.112
+
+### Patch Changes
+
+- 1336501: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.111
+
+### Patch Changes
+
+- 1f75808: Include explicit message item types in Azure AI Foundry Responses requests.
+- 65150c2: feat(openai): add GPT Image 2.5 Flare and Sunburst model IDs
+
+## 3.0.110
+
+### Patch Changes
+
+- 447ba18: feat(openai): add async tool calling
+- 46c6820: Add `xhigh` and `max` quality support for GPT Image 2.5 Flare and Sunburst in image generation, image editing, and the Responses API image generation tool.
+
+## 3.0.109
+
+### Patch Changes
+
+- 7f3b8f0: feat(openai): add GPT-6 reasoning configuration updates
+
+## 3.0.108
+
+### Patch Changes
+
+- 019eec8: feat(openai): add support for the gpt-6-astra
+
+## 3.0.107
+
+### Patch Changes
+
+- 8844beb: fix(openai): flatten mid-stream Responses error events
+- cf1ba03: fix(openai): preserve complete Responses API raw usage objects
+
+## 3.0.106
+
+### Patch Changes
+
+- 85ba0b0: Preserve explicit prompt cache breakpoints on scalar Responses tool results.
+
+## 3.0.105
+
+### Patch Changes
+
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 3.0.104
 
 ### Patch Changes

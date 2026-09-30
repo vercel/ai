@@ -5,6 +5,7 @@ export type {
   AmazonBedrockEmbeddingModelSettings,
 } from './bedrock-embedding-options';
 export type {
+  AmazonBedrockChatModelSettings,
   AmazonBedrockLanguageModelOptions,
   /** @deprecated Use `AmazonBedrockLanguageModelOptions` instead. */
   AmazonBedrockLanguageModelOptions as BedrockProviderOptions,

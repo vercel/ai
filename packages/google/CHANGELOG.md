@@ -1,5 +1,98 @@
 # @ai-sdk/google
 
+## 3.0.130
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
+## 3.0.129
+
+### Patch Changes
+
+- Updated dependencies [29dc427]
+  - @ai-sdk/provider-utils@4.0.56
+
+## 3.0.128
+
+### Patch Changes
+
+- 3983fea: fix(google): forward supported GCS tool result URLs as function response file data on Vertex Gemini 3 and later. Restrict forwarding to supported image, PDF, and text MIME types while preserving HTTP(S) downloads for tool results on all Gemini generations.
+- Updated dependencies [3983fea]
+  - @ai-sdk/provider@3.0.18
+  - @ai-sdk/provider-utils@4.0.55
+
+## 3.0.127
+
+### Patch Changes
+
+- 069a945: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- Updated dependencies [069a945]
+- Updated dependencies [d1a36d2]
+- Updated dependencies [f7f36d2]
+  - @ai-sdk/provider-utils@4.0.54
+
+## 3.0.126
+
+### Patch Changes
+
+- da2e17b: fix(provider): preserve opaque file URI strings for provider serialization
+- Updated dependencies [da2e17b]
+  - @ai-sdk/provider@3.0.17
+  - @ai-sdk/provider-utils@4.0.53
+
+## 3.0.125
+
+### Patch Changes
+
+- Updated dependencies [82e18b0]
+  - @ai-sdk/provider-utils@4.0.52
+
+## 3.0.124
+
+### Patch Changes
+
+- 9548d8e: fix(google): ignore default prompt block reasons in non-streaming responses
+
+## 3.0.123
+
+### Patch Changes
+
+- c36c87c: fix(google): preserve prompt feedback and metadata across streaming chunks
+
+## 3.0.122
+
+### Patch Changes
+
+- 1a4dbb1: Retry unclassified empty image results, preserve retry-attempt accounting, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google and Google Vertex content-filtered results as terminal.
+- Updated dependencies [1a4dbb1]
+  - @ai-sdk/provider@3.0.16
+  - @ai-sdk/provider-utils@4.0.51
+
+## 3.0.121
+
+### Patch Changes
+
+- 13507cb: feat(google): add gemini-3.8-flash model
+
+## 3.0.120
+
+### Patch Changes
+
+- daaa769: fix(google): support video response formats in Gemini Interactions
+
+## 3.0.119
+
+### Patch Changes
+
+- 1912e88: Preserve complete Google Generative Language usage metadata in raw usage results.
+- Updated dependencies [cc23556]
+  - @ai-sdk/provider-utils@4.0.50
+
 ## 3.0.118
 
 ### Patch Changes

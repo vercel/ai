@@ -10,6 +10,7 @@ import {
   processUIMessageStream,
 } from './process-ui-message-stream';
 import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 async function recordAssistantMessageFromChunks<
   UI_MESSAGE extends UIMessage = UIMessage,
@@ -590,6 +591,63 @@ describe('convertToModelMessages', () => {
     });
 
     describe('tool output error', () => {
+      it('should preserve result provider metadata on a failed tool call when call metadata is unavailable', async () => {
+        const result = await convertToModelMessages([
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-createWidget',
+                state: 'output-error',
+                toolCallId: 'call1',
+                input: undefined,
+                rawInput: {},
+                errorText: 'Invalid input',
+                resultProviderMetadata: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(result).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                input: {},
+                providerExecuted: undefined,
+                providerOptions: {
+                  openai: {
+                    namespace: 'widget_tools',
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call1',
+                toolName: 'createWidget',
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input',
+                },
+              },
+            ],
+          },
+        ]);
+      });
+
       it('should handle assistant message with tool output error that has raw input', async () => {
         const result = await convertToModelMessages([
           {
@@ -622,7 +680,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": "{\"operation\":\"add\",\"numbers\":[1,2]",
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -1348,6 +1406,88 @@ describe('convertToModelMessages', () => {
               type: 'tool-approval-request',
               approvalId: 'approval-1',
               toolCallId: 'call-approved',
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: 'approval-1',
+              approved: true,
+              reason: undefined,
+              providerExecuted: undefined,
+            },
+          ],
+        },
+      ]);
+    });
+
+    it('should preserve transformed approval input through a UI message round trip', async () => {
+      const tools = {
+        count: tool({
+          inputSchema: z.object({
+            count: z.string().transform(Number),
+          }),
+        }),
+      };
+      const assistantMessage = await recordAssistantMessageFromChunks([
+        {
+          type: 'tool-input-available',
+          toolCallId: 'count-call',
+          toolName: 'count',
+          input: { count: 3 },
+        },
+        {
+          type: 'tool-approval-request',
+          approvalId: 'approval-1',
+          toolCallId: 'count-call',
+          inputSchemaInput: { count: '3' },
+        },
+      ]);
+      const toolPart = assistantMessage.parts.find(
+        part => part.type === 'tool-count',
+      );
+      if (
+        toolPart == null ||
+        toolPart.type !== 'tool-count' ||
+        toolPart.state !== 'approval-requested'
+      ) {
+        throw new Error('Expected a count tool approval request.');
+      }
+      Object.assign(toolPart, {
+        state: 'approval-responded',
+        approval: { ...toolPart.approval, approved: true },
+      });
+      const persistedMessage = JSON.parse(
+        JSON.stringify(assistantMessage),
+      ) as UIMessage;
+
+      const validatedMessages = await validateUIMessages({
+        messages: [persistedMessage],
+        tools: tools as any,
+      });
+      const result = await convertToModelMessages(validatedMessages, {
+        tools: tools as any,
+      });
+
+      expect(result).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'count-call',
+              toolName: 'count',
+              input: { count: 3 },
+              providerExecuted: undefined,
+            },
+            {
+              type: 'tool-approval-request',
+              approvalId: 'approval-1',
+              toolCallId: 'count-call',
+              inputSchemaInput: { count: '3' },
             },
           ],
         },

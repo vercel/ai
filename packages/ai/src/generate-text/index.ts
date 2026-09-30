@@ -33,7 +33,9 @@ export {
 } from './stop-condition';
 export {
   streamText,
+  type StreamTextEndEvent,
   type StreamTextOnChunkCallback,
+  type StreamTextOnEndCallback,
   type StreamTextOnErrorCallback,
   type StreamTextOnFinishCallback,
   type StreamTextOnStartCallback,

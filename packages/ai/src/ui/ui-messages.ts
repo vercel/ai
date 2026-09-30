@@ -238,6 +238,13 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-streaming';
       input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -260,8 +267,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         reason?: never;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -273,8 +282,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -288,8 +299,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -303,8 +316,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -316,8 +331,10 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -351,6 +368,13 @@ export type DynamicToolUIPart = {
   | {
       state: 'input-streaming';
       input?: unknown;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -373,8 +397,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved?: never;
+        descriptor?: unknown;
         reason?: never;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -386,8 +412,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: boolean;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -401,8 +429,10 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -415,8 +445,10 @@ export type DynamicToolUIPart = {
       approval?: {
         id: string;
         approved: true;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -428,8 +460,10 @@ export type DynamicToolUIPart = {
       approval: {
         id: string;
         approved: false;
+        descriptor?: unknown;
         reason?: string;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );

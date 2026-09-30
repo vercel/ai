@@ -13,6 +13,7 @@ import {
   type SharedV3Warning,
 } from '@ai-sdk/provider';
 import {
+  StreamingToolCallTracker,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonErrorResponseHandler,
@@ -23,6 +24,7 @@ import {
   type FetchFunction,
   type ParseResult,
   type ResponseHandler,
+  type StreamingToolCallDelta,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { resolveProviderOptionsKey, toCamelCase } from '../utils/to-camel-case';
@@ -40,6 +42,20 @@ import {
 } from './openai-compatible-chat-options';
 import type { MetadataExtractor } from './openai-compatible-metadata-extractor';
 import { prepareTools } from './openai-compatible-prepare-tools';
+
+type OpenAICompatibleStreamingToolCallDelta = StreamingToolCallDelta & {
+  extra_content?: {
+    google?: {
+      thought_signature?: string | null;
+    } | null;
+  } | null;
+};
+
+type PendingToolCall = {
+  id: string | null;
+  bufferedArguments: string;
+  extraContent: OpenAICompatibleStreamingToolCallDelta['extra_content'];
+};
 
 export type OpenAICompatibleChatConfig = {
   provider: string;
@@ -299,13 +315,16 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
     });
 
     const choice = responseBody.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV3Content> = [];
 
-    // text content:
-    const text = choice.message.content;
-    if (text != null && text.length > 0) {
-      content.push({ type: 'text', text });
-    }
+    content.push(...convertOpenAICompatibleContent(choice.message.content));
 
     // reasoning content:
     const reasoning =
@@ -407,34 +426,70 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-      thoughtSignature?: string;
-    }> = [];
+    const providerOptionsName = metadataKey;
+    let toolCallTracker: StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>;
 
     // Buffers tool-call deltas by `index` until `function.name` is known.
     // Some OpenAI-compatible providers send the first delta without
-    // `function.name`.
-    const pendingToolCalls = new Map<
-      number,
-      {
-        id: string | null;
-        bufferedArguments: string;
-        thoughtSignature: string | undefined;
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<number, PendingToolCall>();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (
+      toolCallDelta: OpenAICompatibleStreamingToolCallDelta,
+    ) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta);
+        return;
       }
-    >();
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = {
+          id: toolCallDelta.id ?? null,
+          bufferedArguments: '',
+          extraContent: toolCallDelta.extra_content ?? null,
+        };
+        pendingToolCalls.set(index, pending);
+      } else {
+        if (pending.id == null && toolCallDelta.id != null) {
+          pending.id = toolCallDelta.id;
+        }
+        if (
+          pending.extraContent == null &&
+          toolCallDelta.extra_content != null
+        ) {
+          pending.extraContent = toolCallDelta.extra_content;
+        }
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        toolCallTracker.processDelta({
+          index,
+          id: pending.id,
+          function: {
+            name,
+            arguments: pending.bufferedArguments,
+          },
+          extra_content: pending.extraContent ?? undefined,
+        });
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
+    };
 
     let finishReason: LanguageModelV3FinishReason | undefined;
     let usage: z.infer<typeof openaiCompatibleTokenUsageSchema> | undefined =
       undefined;
     let isFirstChunk = true;
-    const providerOptionsName = metadataKey;
     let isActiveReasoning = false;
     let isActiveText = false;
     const convertUsage = (
@@ -448,6 +503,22 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
           LanguageModelV3StreamPart
         >({
           start(controller) {
+            toolCallTracker =
+              new StreamingToolCallTracker<OpenAICompatibleStreamingToolCallDelta>(
+                controller,
+                {
+                  generateId,
+                  extractMetadata: delta => {
+                    const thoughtSignature =
+                      delta.extra_content?.google?.thought_signature;
+
+                    return thoughtSignature
+                      ? { [providerOptionsName]: { thoughtSignature } }
+                      : undefined;
+                  },
+                  buildToolCallProviderMetadata: metadata => metadata,
+                },
+              );
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -508,9 +579,12 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
 
             const delta = choice.delta;
 
-            // enqueue reasoning before text deltas:
-            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
-            if (reasoningContent) {
+            const enqueueReasoningDelta = (reasoningDelta: string) => {
+              if (isActiveText) {
+                controller.enqueue({ type: 'text-end', id: 'txt-0' });
+                isActiveText = false;
+              }
+
               if (!isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-start',
@@ -522,12 +596,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'reasoning-delta',
                 id: 'reasoning-0',
-                delta: reasoningContent,
+                delta: reasoningDelta,
               });
-            }
+            };
 
-            if (delta.content) {
-              // end active reasoning block before text starts
+            const enqueueTextDelta = (textDelta: string) => {
               if (isActiveReasoning) {
                 controller.enqueue({
                   type: 'reasoning-end',
@@ -544,11 +617,27 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({
                 type: 'text-delta',
                 id: 'txt-0',
-                delta: delta.content,
+                delta: textDelta,
               });
+            };
+
+            // enqueue reasoning before text deltas:
+            const reasoningContent = delta.reasoning_content ?? delta.reasoning;
+            if (reasoningContent) {
+              enqueueReasoningDelta(reasoningContent);
             }
 
-            if (delta.tool_calls != null) {
+            for (const contentPart of convertOpenAICompatibleContent(
+              delta.content,
+            )) {
+              if (contentPart.type === 'reasoning') {
+                enqueueReasoningDelta(contentPart.text);
+              } else {
+                enqueueTextDelta(contentPart.text);
+              }
+            }
+
+            if (delta.tool_calls != null && delta.tool_calls.length > 0) {
               // end active reasoning block before tool calls start
               if (isActiveReasoning) {
                 controller.enqueue({
@@ -559,144 +648,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               }
 
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index ?? toolCalls.length;
-
-                if (toolCalls[index] == null) {
-                  if (toolCallDelta.index != null) {
-                    // Buffer deltas until `function.name` is known. Some
-                    // OpenAI-compatible providers send the first delta
-                    // without `function.name`.
-                    let pending = pendingToolCalls.get(index);
-                    if (pending == null) {
-                      pending = {
-                        id: toolCallDelta.id ?? null,
-                        bufferedArguments: '',
-                        thoughtSignature:
-                          toolCallDelta.extra_content?.google
-                            ?.thought_signature ?? undefined,
-                      };
-                      pendingToolCalls.set(index, pending);
-                    } else {
-                      if (pending.id == null && toolCallDelta.id != null) {
-                        pending.id = toolCallDelta.id;
-                      }
-                      if (
-                        pending.thoughtSignature == null &&
-                        toolCallDelta.extra_content?.google
-                          ?.thought_signature != null
-                      ) {
-                        pending.thoughtSignature =
-                          toolCallDelta.extra_content.google.thought_signature;
-                      }
-                    }
-
-                    const argumentsDelta = toolCallDelta.function?.arguments;
-                    if (argumentsDelta != null) {
-                      pending.bufferedArguments += argumentsDelta;
-                    }
-
-                    const name = toolCallDelta.function?.name;
-                    if (name == null) {
-                      continue; // wait for the delta that carries the name
-                    }
-
-                    pendingToolCalls.delete(index);
-
-                    if (pending.id == null) {
-                      throw new InvalidResponseDataError({
-                        data: toolCallDelta,
-                        message: `Expected 'id' to be a string.`,
-                      });
-                    }
-
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: pending.id,
-                      toolName: name,
-                    });
-
-                    toolCalls[index] = {
-                      id: pending.id,
-                      type: 'function',
-                      function: {
-                        name,
-                        arguments: pending.bufferedArguments,
-                      },
-                      hasFinished: false,
-                      thoughtSignature: pending.thoughtSignature,
-                    };
-                  } else {
-                    if (toolCallDelta.id == null) {
-                      throw new InvalidResponseDataError({
-                        data: toolCallDelta,
-                        message: `Expected 'id' to be a string.`,
-                      });
-                    }
-
-                    if (toolCallDelta.function?.name == null) {
-                      throw new InvalidResponseDataError({
-                        data: toolCallDelta,
-                        message: `Expected 'function.name' to be a string.`,
-                      });
-                    }
-
-                    controller.enqueue({
-                      type: 'tool-input-start',
-                      id: toolCallDelta.id,
-                      toolName: toolCallDelta.function.name,
-                    });
-
-                    toolCalls[index] = {
-                      id: toolCallDelta.id,
-                      type: 'function',
-                      function: {
-                        name: toolCallDelta.function.name,
-                        arguments: toolCallDelta.function.arguments ?? '',
-                      },
-                      hasFinished: false,
-                      thoughtSignature:
-                        toolCallDelta.extra_content?.google
-                          ?.thought_signature ?? undefined,
-                    };
-                  }
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
+                processToolCallDelta(toolCallDelta);
               }
             }
           },
@@ -710,44 +662,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV3 {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
 
-            // Tool-call deltas that never received a `function.name` are
-            // invalid, preserving the original invalid-response semantics.
+            // Forward pending deltas so the tracker preserves the existing
+            // invalid-response behavior for calls that never receive a name.
             for (const [index, pending] of pendingToolCalls) {
-              throw new InvalidResponseDataError({
-                data: {
-                  index,
-                  id: pending.id,
-                  function: { arguments: pending.bufferedArguments },
-                },
-                message: `Expected 'function.name' to be a string.`,
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
               });
             }
+            pendingToolCalls.clear();
 
-            // go through all tool calls and send the ones that are not finished
-            for (const toolCall of toolCalls.filter(
-              toolCall => !toolCall.hasFinished,
-            )) {
-              controller.enqueue({
-                type: 'tool-input-end',
-                id: toolCall.id,
-              });
-
-              controller.enqueue({
-                type: 'tool-call',
-                toolCallId: toolCall.id ?? generateId(),
-                toolName: toolCall.function.name,
-                input: toolCall.function.arguments,
-                ...(toolCall.thoughtSignature
-                  ? {
-                      providerMetadata: {
-                        [providerOptionsName]: {
-                          thoughtSignature: toolCall.thoughtSignature,
-                        },
-                      },
-                    }
-                  : {}),
-              });
-            }
+            toolCallTracker.flush();
 
             if (finishReason == null) {
               finishReason = { unified: 'error', raw: undefined };
@@ -815,6 +741,60 @@ const openaiCompatibleTokenUsageSchema = z
   })
   .nullish();
 
+const openAICompatibleContentSchema = z
+  .union([
+    z.string(),
+    z.array(
+      z.looseObject({
+        type: z.string(),
+      }),
+    ),
+  ])
+  .nullish();
+
+function convertOpenAICompatibleContent(
+  content: z.infer<typeof openAICompatibleContentSchema>,
+): Array<Extract<LanguageModelV3Content, { type: 'text' | 'reasoning' }>> {
+  if (content == null) {
+    return [];
+  }
+
+  if (typeof content === 'string') {
+    return content.length > 0 ? [{ type: 'text', text: content }] : [];
+  }
+
+  const result: Array<
+    Extract<LanguageModelV3Content, { type: 'text' | 'reasoning' }>
+  > = [];
+
+  for (const part of content) {
+    if (part.type === 'text' && typeof part.text === 'string') {
+      if (part.text.length > 0) {
+        result.push({ type: 'text', text: part.text });
+      }
+    } else if (part.type === 'thinking' && Array.isArray(part.thinking)) {
+      const reasoningText = part.thinking
+        .filter(
+          chunk =>
+            chunk != null &&
+            typeof chunk === 'object' &&
+            'type' in chunk &&
+            chunk.type === 'text' &&
+            'text' in chunk &&
+            typeof chunk.text === 'string',
+        )
+        .map(chunk => chunk.text)
+        .join('');
+
+      if (reasoningText.length > 0) {
+        result.push({ type: 'reasoning', text: reasoningText });
+      }
+    }
+  }
+
+  return result;
+}
+
 // limited version of the schema, focussed on what is needed for the implementation
 // this approach limits breakages when the API changes and increases efficiency
 const OpenAICompatibleChatResponseSchema = z.looseObject({
@@ -825,7 +805,7 @@ const OpenAICompatibleChatResponseSchema = z.looseObject({
     z.object({
       message: z.object({
         role: z.literal('assistant').nullish(),
-        content: z.string().nullish(),
+        content: openAICompatibleContentSchema,
         reasoning_content: z.string().nullish(),
         reasoning: z.string().nullish(),
         tool_calls: z
@@ -865,7 +845,7 @@ const chunkBaseSchema = z.looseObject({
       delta: z
         .object({
           role: z.enum(['assistant', '']).nullish(),
-          content: z.string().nullish(),
+          content: openAICompatibleContentSchema,
           // Most openai-compatible models set `reasoning_content`, but some
           // providers serving `gpt-oss` set `reasoning`. See #7866
           reasoning_content: z.string().nullish(),

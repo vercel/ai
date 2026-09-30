@@ -1,9 +1,12 @@
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import {
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
+import { getEmbeddingModelProviderOptionsTransformer } from '../model/get-embedding-model-provider-options-transformer';
 import { resolveEmbeddingModel } from '../model/resolve-model';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
 import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
@@ -250,6 +253,8 @@ export async function embedMany({
           ? maxInputBytesPerCall
           : Infinity,
       });
+      const providerOptionsTransformer =
+        getEmbeddingModelProviderOptionsTransformer(model);
 
       // serially embed the chunks:
       const embeddings: Array<Embedding> = [];
@@ -269,9 +274,22 @@ export async function embedMany({
         supportsParallelCalls ? maxParallelCalls : 1,
       );
 
+      let nextChunkStartIndex = 0;
       for (const parallelChunk of parallelChunks) {
         const results = await Promise.all(
-          parallelChunk.map(chunk => {
+          parallelChunk.map(async chunk => {
+            // Capture the range before awaiting transformations or retrying.
+            const startIndex = nextChunkStartIndex;
+            nextChunkStartIndex += chunk.length;
+            const chunkProviderOptions = providerOptionsTransformer
+              ? await providerOptionsTransformer({
+                  providerOptions,
+                  values,
+                  startIndex,
+                  endIndex: startIndex + chunk.length,
+                })
+              : providerOptions;
+
             return retry(() => {
               // nested spans to align with the embedMany telemetry data:
               return recordSpan({
@@ -296,7 +314,7 @@ export async function embedMany({
                     values: chunk,
                     abortSignal,
                     headers: headersWithUserAgent,
-                    providerOptions,
+                    providerOptions: chunkProviderOptions,
                   });
 
                   const embeddings = modelResponse.embeddings;
@@ -342,10 +360,10 @@ export async function embedMany({
               for (const [providerName, metadata] of Object.entries(
                 result.providerMetadata,
               )) {
-                providerMetadata[providerName] = {
-                  ...(providerMetadata[providerName] ?? {}),
+                setOwn(providerMetadata, providerName, {
+                  ...getOwn(providerMetadata, providerName),
                   ...metadata,
-                };
+                });
               }
             }
           }

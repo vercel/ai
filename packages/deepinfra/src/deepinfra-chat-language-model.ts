@@ -15,10 +15,6 @@ type DeepInfraChatConfig = {
 };
 
 export class DeepInfraChatLanguageModel extends OpenAICompatibleChatLanguageModel {
-  constructor(modelId: string, config: DeepInfraChatConfig) {
-    super(modelId, config);
-  }
-
   /**
    * Fixes incorrect token usage for Gemini/Gemma models from DeepInfra.
    *

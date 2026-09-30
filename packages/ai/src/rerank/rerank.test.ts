@@ -1,4 +1,7 @@
-import type { RerankingModelV3CallOptions } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type RerankingModelV3CallOptions,
+} from '@ai-sdk/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MockRerankingModelV3 } from '../test/mock-reranking-model-v3';
 import { rerank } from './rerank';
@@ -6,6 +9,37 @@ import type { RerankResult } from './rerank-result';
 import { MockTracer } from '../test/mock-tracer';
 
 describe('rerank', () => {
+  describe('error handling', () => {
+    it.each([3, -1, 5, 1.5])(
+      'should reject invalid provider ranking index %s',
+      async index => {
+        let doRerankCalls = 0;
+        const ranking = [{ index, relevanceScore: 0.9 }];
+
+        const result = rerank({
+          model: new MockRerankingModelV3({
+            doRerank: async () => {
+              doRerankCalls++;
+              return { ranking };
+            },
+          }),
+          documents: ['a', 'b', 'c'],
+          query: 'q',
+        });
+
+        await expect(result).rejects.toSatisfy(
+          InvalidResponseDataError.isInstance,
+        );
+        await expect(result).rejects.toMatchObject({
+          name: 'AI_InvalidResponseDataError',
+          message: `Invalid ranking index ${index}. Expected an integer between 0 and 2.`,
+          data: ranking,
+        });
+        expect(doRerankCalls).toBe(1);
+      },
+    );
+  });
+
   describe('rerank with string documents', () => {
     let result: RerankResult<string>;
     let calls: RerankingModelV3CallOptions[];
