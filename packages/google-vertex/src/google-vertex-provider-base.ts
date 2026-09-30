@@ -6,13 +6,14 @@ import {
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  InvalidArgumentError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
@@ -225,13 +226,30 @@ export function createGoogleVertex(
       description: 'Google Vertex project',
     });
 
+  // The location becomes part of the request host
+  // (`https://{location}-aiplatform.googleapis.com`), so only a single DNS
+  // label is accepted (e.g. `evil.example.com/#` would rewrite the host).
+  const validateLocation = (location: string): string => {
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+
+    return location;
+  };
+
   const loadGoogleVertexLocation = () =>
-    loadSetting({
-      settingValue: options.location,
-      settingName: 'location',
-      environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
-      description: 'Google Vertex location',
-    });
+    validateLocation(
+      loadSetting({
+        settingValue: options.location,
+        settingName: 'location',
+        environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
+        description: 'Google Vertex location',
+      }),
+    );
 
   // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model

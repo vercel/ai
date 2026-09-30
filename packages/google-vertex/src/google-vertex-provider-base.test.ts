@@ -671,3 +671,44 @@ describe('google-vertex-provider-base', () => {
     );
   });
 });
+
+describe('location validation', () => {
+  const createProviderWithLocation = (location: string) =>
+    createGoogleVertex({
+      project: 'test-project',
+      location,
+    });
+
+  const getError = (location: string) => {
+    try {
+      createProviderWithLocation(location)('gemini-2.5-flash');
+    } catch (error) {
+      return error;
+    }
+
+    return undefined;
+  };
+
+  it.each([
+    'evil.example.com/#',
+    'user@internal:8080/#',
+    'us-central1/../..',
+    'us central1',
+    '',
+  ])(
+    'rejects location %j because it would rewrite the request host',
+    location => {
+      expect(getError(location)).toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'location',
+      });
+    },
+  );
+
+  it.each(['us-central1', 'global', 'eu', 'us-east5'])(
+    'accepts the DNS-label location %j',
+    location => {
+      expect(getError(location)).toBeUndefined();
+    },
+  );
+});
