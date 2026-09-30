@@ -7,10 +7,12 @@ import {
   DefaultChatTransport,
 } from 'ai';
 import {
+  startTransition,
   useCallback,
   useEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
 } from 'react';
 import { Chat } from './chat.react';
@@ -179,61 +181,72 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, isExternallyManaged]);
 
-  const messagesSnapshot = useMemo(() => ({ messages: chat.messages }), [chat]);
+  const [messagesState, setMessagesState] = useState(() => ({
+    chat,
+    messages: chat.messages,
+  }));
 
-  const subscribeToMessages = useCallback(
-    (update: () => void) => {
-      let isSubscribed = true;
+  const messages =
+    messagesState.chat === chat ? messagesState.messages : chat.messages;
 
-      const updateMessages = () => {
-        if (!isSubscribed) {
-          return;
-        }
+  useEffect(() => {
+    let isSubscribed = true;
 
-        messagesSnapshot.messages = chat.messages;
-        update();
+    const updateMessages = () => {
+      const nextMessages = chat.messages;
+      const publishMessages = () => {
+        setMessagesState(current =>
+          !isSubscribed ||
+          current.chat !== chat ||
+          current.messages === nextMessages
+            ? current
+            : { chat, messages: nextMessages },
+        );
       };
 
-      const unsubscribe = chat['~registerMessagesCallback'](
-        updateMessages,
-        throttleWaitMs,
-      );
+      if (chat.status === 'streaming') {
+        startTransition(publishMessages);
+      } else {
+        publishMessages();
+      }
+    };
 
-      // Synchronize changes that may have happened between render and
-      // subscription. useSyncExternalStore checks the snapshot after
-      // subscribing and schedules a render when it changed.
-      messagesSnapshot.messages = chat.messages;
+    const unsubscribe = chat['~registerMessagesCallback'](
+      updateMessages,
+      throttleWaitMs,
+    );
 
-      return () => {
-        isSubscribed = false;
-        unsubscribe();
-      };
-    },
-    [chat, messagesSnapshot, throttleWaitMs],
-  );
+    // Synchronize changes that may have happened between render and
+    // subscription, including switching to a different Chat instance.
+    const nextMessages = chat.messages;
+    setMessagesState(current =>
+      current.chat === chat && current.messages === nextMessages
+        ? current
+        : { chat, messages: nextMessages },
+    );
 
-  const getMessagesSnapshot = useCallback(
-    () => messagesSnapshot.messages,
-    [messagesSnapshot],
-  );
-
-  const messages = useSyncExternalStore(
-    subscribeToMessages,
-    getMessagesSnapshot,
-    getMessagesSnapshot,
-  );
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, [chat, throttleWaitMs]);
 
   const subscribeToStatus = useCallback(
     (update: () => void) =>
       chat['~registerStatusCallback'](() => {
         if (chat.status === 'ready' || chat.status === 'error') {
           // Publish the latest messages before the terminal status can render.
-          messagesSnapshot.messages = chat.messages;
+          const nextMessages = chat.messages;
+          setMessagesState(current =>
+            current.chat === chat && current.messages !== nextMessages
+              ? { chat, messages: nextMessages }
+              : current,
+          );
         }
 
         update();
       }),
-    [chat, messagesSnapshot],
+    [chat],
   );
 
   const getStatusSnapshot = useCallback(() => chat.status, [chat]);

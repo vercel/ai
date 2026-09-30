@@ -37,6 +37,86 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
+  describe('streamed message update priority', () => {
+    afterEach(() => {
+      cleanup();
+    });
+
+    it('keeps the current UI visible when a streamed message update suspends', async () => {
+      let responseController:
+        | ReadableStreamDefaultController<UIMessageChunk>
+        | undefined;
+      let resolvePending: () => void;
+      let shouldSuspend = true;
+      const pending = new Promise<void>(resolve => {
+        resolvePending = resolve;
+      });
+      const chat = new Chat({
+        id: 'chat-id',
+        generateId: mockId(),
+        transport: {
+          async sendMessages() {
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                responseController = controller;
+              },
+            });
+          },
+          async reconnectToStream() {
+            return null;
+          },
+        },
+      });
+
+      function TestComponent() {
+        const { messages } = useChat({ chat });
+        const text = messages
+          .flatMap(message => message.parts)
+          .filter(part => part.type === 'text')
+          .map(part => part.text)
+          .join('');
+
+        if (shouldSuspend && text.includes('Hello')) {
+          throw pending;
+        }
+
+        return <div data-testid="visible-chat">Current chat</div>;
+      }
+
+      render(
+        <React.Suspense fallback={<div data-testid="fallback">Loading</div>}>
+          <TestComponent />
+        </React.Suspense>,
+      );
+
+      await act(async () => {
+        void chat.sendMessage({ text: 'hi' });
+        await Promise.resolve();
+      });
+      expect(responseController).toBeDefined();
+
+      await act(async () => {
+        responseController!.enqueue({ type: 'text-start', id: '0' });
+        responseController!.enqueue({
+          type: 'text-delta',
+          id: '0',
+          delta: 'Hello',
+        });
+        await Promise.resolve();
+      });
+
+      expect(screen.getByTestId('visible-chat')).toBeInTheDocument();
+      expect(screen.queryByTestId('fallback')).not.toBeInTheDocument();
+
+      await act(async () => {
+        shouldSuspend = false;
+        resolvePending!();
+        responseController!.close();
+        await Promise.resolve();
+      });
+    });
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       ({ id: idParam }: { id: string }) => {
@@ -2923,11 +3003,7 @@ describe('use-chat', () => {
           });
         });
 
-        await waitFor(() => {
-          expect(
-            screen.getByTestId('suspended-chat-messages'),
-          ).toHaveTextContent('Hello');
-        });
+        expect(requestSignal?.aborted).toBe(false);
       } finally {
         responseController!.close();
       }
