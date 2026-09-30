@@ -168,7 +168,7 @@ export function LandingPage() {
               <CommandPromptCopy aria-label="Copy install command" />
             </CommandPromptSurface>
           </CommandPromptRoot>
-          <HeroInteractive className="mt-16 w-full max-w-5xl md:mt-20" />
+          <HeroInteractive className="mt-16 w-full md:mt-20" />
         </section>
         <OssStatsSection />
         <section

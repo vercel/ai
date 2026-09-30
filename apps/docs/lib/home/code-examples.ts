@@ -314,3 +314,34 @@ export const HERO_EXAMPLES = [
   CORE_EXAMPLES[2],
   CORE_EXAMPLES[4],
 ];
+
+const CHAT_QUESTION = 'Explain quantum entanglement in simple terms.';
+
+const CHAT_RESPONSES: Record<Provider, string> = {
+  openai:
+    'Quantum entanglement is when two particles become connected so that the state of one instantly influences the state of the other, regardless of the distance separating them.',
+  anthropic:
+    'Quantum entanglement is when two particles become linked so that measuring one instantly affects the other, no matter the distance between them.',
+  google:
+    'Think of two coins that always land on opposite sides. Quantum entanglement is similar — measuring one particle immediately determines the state of its partner, even across vast distances.',
+  grok: "Entanglement is nature's way of keeping a secret between two particles. Once entangled, observing one instantly reveals information about the other — no signal needed, no matter how far apart they are.",
+  mistral:
+    'When two particles are entangled, they share a quantum state. A measurement on one particle instantaneously constrains the possible outcomes for the other, regardless of separation distance.',
+  meta: 'Imagine two dice that are magically linked — whenever one rolls a six, the other always rolls a one. Quantum entanglement works similarly, connecting particles so their measurements are always correlated.',
+  perplexity:
+    "Quantum entanglement occurs when particles interact and become correlated. After separation, measuring one particle's property instantly determines the corresponding property of the other, defying classical expectations about locality.",
+  deepseek:
+    'Entanglement means two particles share a joint quantum state. When you measure one, the other\'s state is determined simultaneously — a phenomenon Einstein famously called "spooky action at a distance."',
+  moonshot:
+    "Two entangled particles behave as a single system. No matter how far apart they are, measuring one instantly defines the other's properties — faster than light could travel between them.",
+  zai: 'Quantum entanglement links two particles at a fundamental level. Once entangled, a change observed in one is reflected in the other instantaneously, even across the entire universe.',
+  elevenlabs:
+    'Quantum entanglement is when two particles become linked so that measuring one instantly affects the other, no matter the distance between them.',
+};
+
+export function getChatPreview(provider: Provider) {
+  return [
+    { role: 'user' as const, content: CHAT_QUESTION },
+    { role: 'assistant' as const, content: CHAT_RESPONSES[provider] },
+  ];
+}

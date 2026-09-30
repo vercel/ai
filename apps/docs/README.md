@@ -89,7 +89,9 @@ navigation, search, Ask AI, analytics, and the footer. Framework marks in
 the notice above; standard marks replace the old private pixel artwork.
 
 The demos display example code and prerecorded media; they do not make AI
-generation requests. Image/video previews and the social card use the existing
+generation requests. The hero demo in `components/home/hero-interactive/` is
+the original interactive section (simulated generation progress, custom audio
+player, animated transcription and provider carousel) and uses `motion`. Image/video previews and the social card use the existing
 public Blob store, and speech uses the original ElevenLabs audio sample.
 Stats are cached hourly and fall back to conservative counts if public npm or
 GitHub requests fail. Starter prompts live in `lib/home/prompt-templates.ts`.
