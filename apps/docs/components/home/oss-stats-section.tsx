@@ -17,7 +17,7 @@ export async function OssStatsSection() {
         ['100+', 'Models supported'],
       ].map(([count, label]) => (
         <div className="flex flex-col" key={label}>
-          <dt className="order-2 mt-2 font-mono text-sm text-gray-900">
+          <dt className="order-2 mt-2 font-sans text-sm text-gray-900">
             {label}
           </dt>
           <dd className="text-heading-40 lg:text-heading-48">{count}</dd>
