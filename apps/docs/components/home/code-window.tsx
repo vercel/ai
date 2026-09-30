@@ -87,7 +87,9 @@ export function CodeWindow({
           </label>
         ) : null}
       </div>
-      <div className="h-72 overflow-auto text-left [&_pre]:m-0 [&_pre]:min-h-72 [&_pre]:rounded-none [&_pre]:border-0 [&_.line]:px-4">
+      {/* Strip the CodeBlock's own margin, border, and radius; the window
+          already provides the frame. */}
+      <div className="h-72 overflow-auto text-left [&_pre]:m-0 [&_pre]:min-h-72 [&_pre]:rounded-none! [&_pre]:border-0 [&_.line]:px-4 [&>div]:my-0 [&>div]:rounded-none [&>div>div]:rounded-none [&>div>div]:border-0">
         <CodeBlock>
           {highlighted?.code === code
             ? highlighted.tokens.map((line, index) => (
