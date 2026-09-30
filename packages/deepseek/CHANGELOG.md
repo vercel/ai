@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 2.0.70
+
+### Patch Changes
+
+- f6a20b4: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+
 ## 2.0.69
 
 ### Patch Changes

@@ -1,5 +1,19 @@
 # ai
 
+## 6.0.297
+
+### Patch Changes
+
+- 8349396: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- ab0b94b: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- ce660b0: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 850d4d5: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- cdc5b56: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- d4203d2: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [4972874]
+- Updated dependencies [03e5a25]
+  - @ai-sdk/gateway@3.0.206
+
 ## 6.0.296
 
 ### Patch Changes
