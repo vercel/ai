@@ -6,6 +6,7 @@ import {
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   lazyValidator,
   postJsonToApi,
   resolve,
@@ -65,7 +66,7 @@ export class GatewayEmbeddingModel implements EmbeddingModelV2<string> {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,

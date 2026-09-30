@@ -50,6 +50,114 @@ const dummyResponseValues = {
   warnings: [],
 };
 
+describe('abort signal handling', () => {
+  it('should reject when the abort signal fires during tool execution', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: 'other',
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async (_input, { abortSignal }) => {
+            abortController.abort(abortError);
+            abortSignal?.throwIfAborted();
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: stepCountIs(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+
+  it('should reject before another model call when a tool completes after cancellation', async () => {
+    const abortController = new AbortController();
+    const abortError = new DOMException('tool execution aborted', 'AbortError');
+    let modelCallCount = 0;
+
+    const result = generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async () => {
+          modelCallCount++;
+
+          if (modelCallCount === 1) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallType: 'function',
+                  toolCallId: 'call-1',
+                  toolName: 'tool1',
+                  input: `{ "value": "value" }`,
+                },
+              ],
+            };
+          }
+
+          return {
+            ...dummyResponseValues,
+            content: [],
+            finishReason: 'other',
+          };
+        },
+      }),
+      tools: {
+        tool1: {
+          inputSchema: z.object({ value: z.string() }),
+          execute: async () => {
+            abortController.abort(abortError);
+            return 'tool result';
+          },
+        },
+      },
+      prompt: 'test-input',
+      abortSignal: abortController.signal,
+      stopWhen: stepCountIs(10),
+      maxRetries: 0,
+    });
+
+    await expect(result).rejects.toMatchInlineSnapshot(
+      `[AbortError: tool execution aborted]`,
+    );
+    expect(modelCallCount).toBe(1);
+  });
+});
+
 const modelWithSources = new MockLanguageModelV2({
   doGenerate: {
     ...dummyResponseValues,
@@ -132,6 +240,101 @@ describe('generateText', () => {
 
   afterEach(() => {
     logWarningsSpy.mockRestore();
+  });
+
+  it.each(['length', 'error', 'content-filter', 'other'] as const)(
+    'should not execute tools when the finish reason is %s',
+    async finishReason => {
+      const execute = vi.fn(async () => 'tool-result');
+
+      const result = await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: {
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'testTool',
+                input: '{"value":"test"}',
+              },
+            ],
+            finishReason,
+            usage: dummyResponseValues.usage,
+            warnings: [],
+          },
+        }),
+        prompt: 'test-input',
+        tools: {
+          testTool: tool({
+            inputSchema: z.object({ value: z.string() }),
+            execute,
+          }),
+        },
+      });
+
+      expect(result.toolCalls).toHaveLength(1);
+      expect(execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = await generateText({
+      model: new MockLanguageModelV2({
+        doGenerate: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            ...dummyResponseValues,
+            finishReason: 'tool-calls',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    const [toolCall] = result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
   });
 
   describe('result.content', () => {
@@ -1998,6 +2201,45 @@ describe('generateText', () => {
       `);
     });
 
+    it('should record telemetry metadata on tool call spans', async () => {
+      await generateText({
+        model: new MockLanguageModelV2({
+          doGenerate: async ({}) => ({
+            ...dummyResponseValues,
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'tool1',
+                input: `{ "value": "value" }`,
+              },
+            ],
+          }),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async () => 'result1',
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: { requestId: 'request-1' },
+          tracer,
+        },
+      });
+
+      const toolCallSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.toolCall',
+      );
+
+      expect(toolCallSpan?.attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-1',
+      });
+    });
+
     it('should record error on tool call', async () => {
       await generateText({
         model: new MockLanguageModelV2({
@@ -2145,6 +2387,20 @@ describe('generateText', () => {
 
       expect(recordedCalls).toMatchInlineSnapshot(`
         [
+          {
+            "options": {
+              "abortSignal": undefined,
+              "experimental_context": undefined,
+              "messages": [
+                {
+                  "content": "test-input",
+                  "role": "user",
+                },
+              ],
+              "toolCallId": "call-1",
+            },
+            "type": "onInputStart",
+          },
           {
             "options": {
               "abortSignal": undefined,

@@ -9,7 +9,7 @@ export async function POST(req: Request) {
   const prompt = convertToModelMessages(messages);
 
   const result = streamText({
-    model: perplexity('sonar-reasoning'),
+    model: perplexity('medium'),
     prompt,
   });
 
