@@ -216,6 +216,17 @@ describe('Speech requests', () => {
     },
   );
 
+  it('rejects a resourceName that would rewrite the Speech host', async () => {
+    const { provider, fetch } = setup({ resourceName: 'user@internal:8080/#' });
+    await expect(
+      provider.transcription('mai-transcribe-2').doGenerate(input),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      argument: 'resourceName',
+    });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
   it('loads resource and key from the existing environment variables', async () => {
     vi.stubEnv('AZURE_RESOURCE_NAME', 'environment-resource');
     vi.stubEnv('AZURE_API_KEY', 'environment-key');
