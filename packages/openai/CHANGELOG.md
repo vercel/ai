@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.123
+
+### Patch Changes
+
+- f56545c: feat(openai): add support for ultrafast service tier
+
 ## 3.0.122
 
 ### Patch Changes
