@@ -1,5 +1,11 @@
 # @ai-sdk/deepseek
 
+## 1.0.61
+
+### Patch Changes
+
+- e2831de: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+
 ## 1.0.60
 
 ### Patch Changes
