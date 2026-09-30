@@ -22,7 +22,7 @@ export type AzureTranscriptionModelOptions = InferSchema<
   typeof azureTranscriptionModelOptions
 >;
 
-// Azure Speech model names by lowercase model ID. MAI-Transcribe-1.x only
+// Azure Speech model names by lowercase model ID. MAI-Transcribe-1.5 only
 // accepts Azure's default timestamps (`none`).
 const maiTranscribeModels = new Map([
   ['mai-transcribe-2', { name: 'MAI-Transcribe-2', supportsTimestamps: true }],
@@ -30,7 +30,6 @@ const maiTranscribeModels = new Map([
     'mai-transcribe-1.5',
     { name: 'MAI-Transcribe-1.5', supportsTimestamps: false },
   ],
-  ['mai-transcribe-1', { name: 'MAI-Transcribe-1', supportsTimestamps: false }],
 ]);
 
 export function getMAITranscribeModel(modelId: string) {
