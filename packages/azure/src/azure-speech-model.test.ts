@@ -58,7 +58,6 @@ describe('API routing', () => {
     ['MAI-Voice-2-Flash', undefined, 'speech', 'MAI-Voice-2-Flash'],
     ['mai-voice-2', undefined, 'speech', 'MAI-Voice-2'],
     ['MaI-vOiCe-2', undefined, 'speech', 'MAI-Voice-2'],
-    ['mai-voice-1', undefined, 'speech', 'MAI-Voice-1'],
     ['tts-1', undefined, 'openai'],
     ['mai-voice-2-custom', undefined, 'openai'],
     ['constructor', undefined, 'openai'],

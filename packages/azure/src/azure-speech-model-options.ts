@@ -26,7 +26,6 @@ export type AzureSpeechModelOptions = InferSchema<
 const maiVoiceModels = new Map([
   ['mai-voice-2-flash', 'MAI-Voice-2-Flash'],
   ['mai-voice-2', 'MAI-Voice-2'],
-  ['mai-voice-1', 'MAI-Voice-1'],
 ]);
 
 export function getMAIVoiceModel(modelId: string) {
