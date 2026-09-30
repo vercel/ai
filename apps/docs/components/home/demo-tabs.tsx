@@ -10,6 +10,7 @@ export function DemoTabs({
   onChange,
   children,
   className,
+  tabListClassName,
 }: {
   label: string;
   items: string[];
@@ -17,11 +18,16 @@ export function DemoTabs({
   onChange: (index: number) => void;
   children: ReactNode;
   className?: string;
+  tabListClassName?: string;
 }) {
   const id = useId();
   return (
     <div className={className}>
-      <div aria-label={label} className="flex flex-wrap gap-1" role="tablist">
+      <div
+        aria-label={label}
+        className={cn('flex flex-wrap gap-1', tabListClassName)}
+        role="tablist"
+      >
         {items.map((item, index) => (
           <button
             aria-controls={`${id}-panel`}

@@ -54,12 +54,13 @@ export function HeroInteractive({ className }: { className?: string }) {
         active={active}
         items={HERO_EXAMPLES.map(item => item.label)}
         label="AI capabilities"
+        tabListClassName="justify-center"
         onChange={index => {
           setActive(index);
           reveal();
         }}
       >
-        <div className="mb-4 flex items-center gap-3">
+        <div className="mb-4 flex items-center justify-center gap-3">
           <button
             aria-label="Previous provider"
             className="rounded p-2 text-gray-900 hover:bg-gray-200 disabled:opacity-40"
@@ -116,7 +117,7 @@ export function HeroInteractive({ className }: { className?: string }) {
           <PreviewPanel key={`${active}-${selected}`} kind={example.kind} />
         </div>
       </DemoTabs>
-      <p className="mt-4 text-sm text-gray-900">
+      <p className="mt-4 text-center text-sm text-gray-900">
         See all{' '}
         <a
           className="font-medium text-gray-1000 underline-offset-4 hover:underline"

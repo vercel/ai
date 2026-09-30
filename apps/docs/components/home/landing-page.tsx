@@ -130,58 +130,45 @@ export function LandingPage() {
       <div className="mx-auto w-full max-w-[1448px] px-4 pb-12 sm:px-6 lg:pb-20">
         <section
           aria-labelledby="home-title"
-          className="grid grid-cols-1 items-center gap-y-12 py-16 md:py-24 lg:grid-cols-12 lg:gap-x-12 lg:py-32"
+          className="flex flex-col items-center py-16 md:py-24 lg:py-32"
         >
-          <div className="flex flex-col items-start gap-8 lg:col-span-5">
-            <h1
-              className="text-balance text-heading-40 md:text-heading-48 xl:text-heading-64"
-              id="home-title"
-            >
-              Universal AI layer for building frameworks and agents
-            </h1>
-            <p className="max-w-[64ch] text-pretty text-copy-18 text-gray-900">
-              A unified TypeScript SDK for building AI apps with modern
-              streaming, fallbacks, and multi-model support—powered by Vercel
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
-              <Link
-                className="shrink-0"
-                href="/docs/introduction"
-                prefetch={true}
-              >
-                <Button Component="span" className="rounded-full" size="large">
-                  Read the docs
-                </Button>
-              </Link>
-              <CommandPromptRoot
-                className="flex w-auto flex-col items-start gap-2"
-                defaultValue="humans"
-              >
-                <CommandPromptList>
-                  <CommandPromptTrigger value="humans">
-                    For humans
-                  </CommandPromptTrigger>
-                  <CommandPromptTriggerDivider />
-                  <CommandPromptTrigger value="agents">
-                    For agents
-                  </CommandPromptTrigger>
-                </CommandPromptList>
-                <CommandPromptSurface className="h-10 py-0 pr-2">
-                  <CommandPromptPrefix>$</CommandPromptPrefix>
-                  <CommandPromptViewport>
-                    <CommandPromptContent value="humans">
-                      npm install ai
-                    </CommandPromptContent>
-                    <CommandPromptContent value="agents">
-                      npx skills add vercel/ai
-                    </CommandPromptContent>
-                  </CommandPromptViewport>
-                  <CommandPromptCopy aria-label="Copy install command" />
-                </CommandPromptSurface>
-              </CommandPromptRoot>
-            </div>
-          </div>
-          <HeroInteractive className="lg:col-span-7" />
+          <h1
+            className="max-w-5xl text-balance text-center text-heading-40 md:text-heading-48 lg:text-heading-64"
+            id="home-title"
+          >
+            Universal AI layer for building frameworks and agents
+          </h1>
+          <p className="mt-5 max-w-2xl text-pretty text-center text-copy-16 text-gray-900 md:text-copy-18 lg:text-copy-20">
+            A unified TypeScript SDK for building AI apps with modern streaming,
+            fallbacks, and multi-model support—powered by Vercel
+          </p>
+          <CommandPromptRoot
+            className="mt-8 flex w-full flex-col items-center gap-2"
+            defaultValue="humans"
+          >
+            <CommandPromptList>
+              <CommandPromptTrigger value="humans">
+                For humans
+              </CommandPromptTrigger>
+              <CommandPromptTriggerDivider />
+              <CommandPromptTrigger value="agents">
+                For agents
+              </CommandPromptTrigger>
+            </CommandPromptList>
+            <CommandPromptSurface>
+              <CommandPromptPrefix>$</CommandPromptPrefix>
+              <CommandPromptViewport>
+                <CommandPromptContent value="humans">
+                  npm install ai
+                </CommandPromptContent>
+                <CommandPromptContent value="agents">
+                  npx skills add vercel/ai
+                </CommandPromptContent>
+              </CommandPromptViewport>
+              <CommandPromptCopy aria-label="Copy install command" />
+            </CommandPromptSurface>
+          </CommandPromptRoot>
+          <HeroInteractive className="mt-16 w-full max-w-5xl md:mt-20" />
         </section>
         <OssStatsSection />
         <section
