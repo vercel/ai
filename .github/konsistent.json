@@ -895,8 +895,14 @@
             ],
             "exportTypes": [
               "${sandboxId.toPascalCase()}NativeSandboxSession",
-              "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
-              "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions"
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+                "type": "Prettify<HarnessV1SandboxSessionCreateOptions<${sandboxId.toPascalCase()}CreationSettings> & { sandbox?: never; }>"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+                "type": "Prettify<HarnessV1SandboxSessionResumeOptions<${sandboxId.toPascalCase()}LookupSettings>>"
+              }
             ],
             "useDeclarationOrder": [
               "${sandboxId.toPascalCase()}NativeSandboxSession",
