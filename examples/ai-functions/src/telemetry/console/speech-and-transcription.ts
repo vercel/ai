@@ -23,7 +23,11 @@ const sdk = new NodeSDK({
 });
 
 sdk.start();
-registerTelemetry(consoleTelemetry, new LangfuseVercelAiSdkIntegration(), new OpenTelemetry());
+registerTelemetry(
+  consoleTelemetry,
+  new LangfuseVercelAiSdkIntegration(),
+  new OpenTelemetry(),
+);
 
 const speechModel: SpeechModelV4 = {
   specificationVersion: 'v4',
