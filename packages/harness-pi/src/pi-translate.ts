@@ -5,6 +5,7 @@ import {
   extractAssistantText,
   getPiTerminalError,
   type PiSessionEvent,
+  type PiUsage,
 } from './pi-events';
 import { serializeToolOutput } from './pi-utils';
 
@@ -45,6 +46,9 @@ export interface PiTranslatorState {
   stepToolCallCount: number | undefined;
   /** Whether the current assistant message has opened a visible step. */
   stepOpen: boolean;
+  stepUsage: PiUsage | undefined;
+  /** Pi's session stats do not track reasoning. */
+  turnReasoningTokens: number | undefined;
   /**
    * Tool-call id → the exact output value the host submitted for a
    * user-registered (host-executed) tool. Pi only echoes the tool result back
@@ -100,6 +104,8 @@ export function createPiTranslatorState(
     pendingStepToolCallIds: new Set(),
     stepToolCallCount: undefined,
     stepOpen: false,
+    stepUsage: undefined,
+    turnReasoningTokens: undefined,
     hostToolResults: new Map(),
     dynamicToolCallIds: new Set(),
     builtinToolNames: new Set(options.builtinToolNames),
@@ -208,19 +214,47 @@ function readStreamingToolCall(
   return { contentIndex, id, name };
 }
 
+export function toHarnessUsage(
+  usage: PiUsage,
+): Extract<HarnessV1StreamPart, { type: 'finish-step' }>['usage'] {
+  return {
+    inputTokens: {
+      total: usage.input + usage.cacheRead + usage.cacheWrite,
+      noCache: usage.input,
+      cacheRead: usage.cacheRead,
+      cacheWrite: usage.cacheWrite,
+    },
+    outputTokens: {
+      total: usage.output,
+      text:
+        usage.reasoning === undefined
+          ? undefined
+          : usage.output - usage.reasoning,
+      reasoning: usage.reasoning,
+    },
+  };
+}
+
+const ZERO_PI_USAGE: PiUsage = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+  reasoning: 0,
+};
+
 function finishStep(state: PiTranslatorState): HarnessV1StreamPart[] {
   if (!state.stepOpen || state.pendingStepToolCallIds.size > 0) return [];
   state.stepOpen = false;
   state.pendingStepToolCallIds.clear();
   state.stepToolCallCount = undefined;
+  const usage = toHarnessUsage(state.stepUsage ?? ZERO_PI_USAGE);
+  state.stepUsage = undefined;
   return [
     {
       type: 'finish-step',
       finishReason: { unified: 'stop', raw: 'stop' },
-      usage: {
-        inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 },
-        outputTokens: { total: 0, text: 0, reasoning: 0 },
-      },
+      usage,
       harnessMetadata: { pi: { inferredStep: true } },
     },
   ];
@@ -274,6 +308,7 @@ export function translatePiEvent(
         state.stepOpen = true;
         state.pendingStepToolCallIds.clear();
         state.stepToolCallCount = undefined;
+        state.stepUsage = undefined;
       }
       state.streamedAssistantText = '';
       state.currentTextId = undefined;
@@ -406,6 +441,15 @@ export function translatePiEvent(
         state.currentReasoningId = undefined;
       }
       if (event.type === 'message_end') {
+        const usage =
+          event.message?.role === 'assistant' ? event.message.usage : undefined;
+        if (usage) {
+          state.stepUsage = usage;
+          if (usage.reasoning !== undefined) {
+            state.turnReasoningTokens =
+              (state.turnReasoningTokens ?? 0) + usage.reasoning;
+          }
+        }
         const toolCallIds = extractPiToolCallIds(event.message);
         state.stepToolCallCount =
           toolCallIds.length > 0 ? toolCallIds.length : undefined;
