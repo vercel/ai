@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issueId": 8332,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-8332-fullstream-file-base64.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-8332-fullstream-file-base64.ts",
+    "examples/ai-functions/package.json",
+    "pnpm-lock.yaml"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_8332_REPRODUCED: SuperJSON transport drops public GeneratedFile data and GenerateImageResult.image values."
+  }
+}
