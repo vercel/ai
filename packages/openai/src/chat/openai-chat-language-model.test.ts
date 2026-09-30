@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -195,6 +198,7 @@ describe('doGenerate', () => {
       };
       prompt_tokens_details?: {
         cached_tokens?: number;
+        cache_write_tokens?: number | null;
       };
     };
     finish_reason?: string;
@@ -231,6 +235,41 @@ describe('doGenerate', () => {
     };
   }
 
+  it('should throw an invalid response error when response has no choices', async () => {
+    const response = {
+      id: 'chatcmpl-empty',
+      object: 'chat.completion',
+      created: 1711115037,
+      model: 'gpt-3.5-turbo-0125',
+      choices: [],
+      usage: {
+        prompt_tokens: 4,
+        total_tokens: 4,
+        completion_tokens: 0,
+      },
+    };
+
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: response,
+    };
+
+    let error: unknown;
+    try {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      data: response,
+      message: 'Response did not contain any choices.',
+    });
+  });
+
   it('should extract text response', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
 
@@ -246,6 +285,61 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract an audio transcript alongside tool calls', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: {
+        id: 'chatcmpl-audio',
+        object: 'chat.completion',
+        created: 1711115037,
+        model: 'gpt-audio-1.5',
+        choices: [
+          {
+            index: 0,
+            message: {
+              role: 'assistant',
+              content: null,
+              audio: {
+                id: 'audio-1',
+                data: 'base64-audio',
+                expires_at: 1711118637,
+                transcript: 'Fix the login bug',
+              },
+              tool_calls: [
+                {
+                  id: 'call-1',
+                  type: 'function',
+                  function: {
+                    name: 'test-tool',
+                    arguments: '{"value":"Spark"}',
+                  },
+                },
+              ],
+            },
+            finish_reason: 'tool_calls',
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      {
+        type: 'text',
+        text: 'Fix the login bug',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'test-tool',
+        input: '{"value":"Spark"}',
+      },
+    ]);
   });
 
   it('should extract usage', async () => {
@@ -295,6 +389,7 @@ describe('doGenerate', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -540,6 +635,25 @@ describe('doGenerate', () => {
       model: 'gpt-5.1-codex-max',
       messages: [{ role: 'user', content: 'Hello' }],
       reasoning_effort: 'xhigh',
+    });
+  });
+
+  it('should pass reasoningEffort max setting', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const model = provider.chat('gpt-5.6');
+
+    await model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: { reasoningEffort: 'max' },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      reasoning_effort: 'max',
     });
   });
 
@@ -1210,6 +1324,35 @@ describe('doGenerate', () => {
     `);
   });
 
+  it.each([
+    { cacheWriteTokens: 0, expectedUsage: { cacheWriteTokens: 0 } },
+    { cacheWriteTokens: null, expectedUsage: undefined },
+  ])(
+    'should expose cache write tokens $cacheWriteTokens in provider metadata',
+    async ({ cacheWriteTokens, expectedUsage }) => {
+      prepareJsonResponse({
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cache_write_tokens: cacheWriteTokens,
+          },
+        },
+      });
+
+      const result = await provider.chat('gpt-5.6').doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(result.providerMetadata).toStrictEqual({
+        openai: {
+          ...(expectedUsage != null && { usage: expectedUsage }),
+        },
+      });
+    },
+  );
+
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in completion_details_tokens', async () => {
     prepareJsonResponse({
       usage: {
@@ -1276,6 +1419,92 @@ describe('doGenerate', () => {
           type: 'unsupported-setting',
           setting: 'presencePenalty',
           details: 'presencePenalty is not supported for reasoning models',
+        },
+      ]);
+    });
+
+    it.each(['gpt-6-sol', 'gpt-6-luna'])(
+      'should preserve disabled reasoning for %s',
+      async modelId => {
+        prepareJsonResponse();
+        const { warnings } = await provider.chat(modelId).doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: { openai: { reasoningEffort: 'none' } },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          model: modelId,
+          reasoning_effort: 'none',
+        });
+        expect(warnings).toStrictEqual([]);
+      },
+    );
+
+    it.each(['none', 'minimal'] as const)(
+      'should omit unsupported GPT-6 reasoning effort %s',
+      async reasoningEffort => {
+        prepareJsonResponse();
+
+        const result = await provider.chat('gpt-6-astra').doGenerate({
+          prompt: TEST_PROMPT,
+          providerOptions: {
+            openai: { reasoningEffort },
+          },
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-6-astra',
+          messages: [{ role: 'user', content: 'Hello' }],
+        });
+        expect(result.warnings).toStrictEqual([
+          {
+            type: 'unsupported-setting',
+            setting: 'reasoningEffort',
+            details:
+              'gpt-6-astra only supports the following reasoning efforts: low, medium, high, xhigh, max',
+          },
+        ]);
+      },
+    );
+
+    it('should strip sampling and logprob settings for GPT-6 models', async () => {
+      prepareJsonResponse();
+
+      const result = await provider.chat('gpt-6-astra').doGenerate({
+        prompt: TEST_PROMPT,
+        temperature: 0.5,
+        topP: 0.7,
+        providerOptions: {
+          openai: {
+            reasoningEffort: 'low',
+            logprobs: 5,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        model: 'gpt-6-astra',
+        messages: [{ role: 'user', content: 'Hello' }],
+        reasoning_effort: 'low',
+      });
+      expect(result.warnings).toStrictEqual([
+        {
+          type: 'unsupported-setting',
+          setting: 'temperature',
+          details: 'temperature is not supported for reasoning models',
+        },
+        {
+          type: 'unsupported-setting',
+          setting: 'topP',
+          details: 'topP is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'logprobs is not supported for reasoning models',
+        },
+        {
+          type: 'other',
+          message: 'topLogprobs is not supported for reasoning models',
         },
       ]);
     });
@@ -1457,6 +1686,31 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send promptCacheOptions extension value', async () => {
+    prepareJsonResponse({ content: '' });
+
+    await provider.chat('gpt-5.6').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheOptions: {
+            mode: 'explicit',
+            ttl: '30m',
+          },
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-5.6',
+      messages: [{ role: 'user', content: 'Hello' }],
+      prompt_cache_options: {
+        mode: 'explicit',
+        ttl: '30m',
+      },
+    });
+  });
+
   it('should send promptCacheRetention extension value', async () => {
     prepareJsonResponse({ content: '' });
 
@@ -1474,6 +1728,32 @@ describe('doGenerate', () => {
       messages: [{ role: 'user', content: 'Hello' }],
       prompt_cache_retention: '24h',
     });
+  });
+
+  it('should omit legacy prompt cache retention for GPT-6 models', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const result = await provider.chat('gpt-6-astra').doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        openai: {
+          promptCacheRetention: '24h',
+        },
+      },
+    });
+
+    expect(await server.calls[0].requestBodyJson).toStrictEqual({
+      model: 'gpt-6-astra',
+      messages: [{ role: 'user', content: 'Hello' }],
+    });
+    expect(result.warnings).toStrictEqual([
+      {
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      },
+    ]);
   });
 
   it('should send safetyIdentifier extension value', async () => {
@@ -1745,6 +2025,7 @@ describe('doStream', () => {
       completion_tokens: number;
       prompt_tokens_details?: {
         cached_tokens?: number;
+        cache_write_tokens?: number | null;
       };
       completion_tokens_details?: {
         reasoning_tokens?: number;
@@ -2397,6 +2678,15 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
+          "id": "0",
+          "type": "text-end",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -2405,10 +2695,6 @@ describe('doStream', () => {
           "toolCallId": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "toolName": "searchGoogle",
           "type": "tool-call",
-        },
-        {
-          "id": "0",
-          "type": "text-end",
         },
         {
           "finishReason": "tool-calls",
@@ -2481,6 +2767,39 @@ describe('doStream', () => {
       toolName: 'test-tool',
       input: '{"value":"hello"}',
     });
+  });
+
+  it('keeps same-name tool calls separate when their id and index are reused', async () => {
+    server.urls['https://api.openai.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"id":"dup","type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":1}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"id":"dup","type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":2}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-labels","object":"chat.completion.chunk","created":1711357598,"model":"gpt-4",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}]}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const toolCalls = (await convertReadableStreamToArray(stream)).filter(
+      part => part.type === 'tool-call',
+    );
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'same_tool', input: '{"value":1}' },
+      { toolName: 'same_tool', input: '{"value":2}' },
+    ]);
   });
 
   it('should stream tool call that is sent in one chunk', async () => {
@@ -2626,61 +2945,24 @@ describe('doStream', () => {
       includeRawChunks: false,
     });
 
-    expect(await convertReadableStreamToArray(stream)).toMatchInlineSnapshot(`
-      [
-        {
-          "type": "stream-start",
-          "warnings": [],
-        },
-        {
-          "id": "chatcmpl-error-after-output",
-          "modelId": "gpt-3.5-turbo-0613",
-          "timestamp": 2023-12-15T16:17:00.000Z,
-          "type": "response-metadata",
-        },
-        {
-          "id": "0",
-          "type": "text-start",
-        },
-        {
-          "delta": "Hello",
-          "id": "0",
-          "type": "text-delta",
-        },
-        {
-          "error": {
-            "code": null,
-            "message": "stream failed after output",
-            "param": null,
-            "type": "server_error",
-          },
-          "type": "error",
-        },
-        {
-<<<<<<< HEAD
-          "finishReason": "error",
-=======
-          "id": "0",
-          "type": "text-end",
-        },
-        {
-          "finishReason": {
-            "raw": undefined,
-            "unified": "error",
-          },
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
-          "providerMetadata": {
-            "openai": {},
-          },
-          "type": "finish",
-          "usage": {
-            "inputTokens": undefined,
-            "outputTokens": undefined,
-            "totalTokens": undefined,
-          },
-        },
-      ]
-    `);
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.map(part => part.type)).toEqual([
+      'stream-start',
+      'response-metadata',
+      'text-start',
+      'text-delta',
+      'error',
+      'text-end',
+      'finish',
+    ]);
+    expect(parts.find(part => part.type === 'error')).toMatchObject({
+      error: { message: 'stream failed after output' },
+    });
+    expect(parts.at(-1)).toMatchObject({
+      type: 'finish',
+      finishReason: 'error',
+    });
   });
 
   it.skipIf(isNodeVersion(20))(
@@ -2752,6 +3034,7 @@ describe('doStream', () => {
           "prediction": undefined,
           "presence_penalty": undefined,
           "prompt_cache_key": undefined,
+          "prompt_cache_options": undefined,
           "prompt_cache_retention": undefined,
           "reasoning_effort": undefined,
           "response_format": undefined,
@@ -2886,6 +3169,43 @@ describe('doStream', () => {
         }
       `);
   });
+
+  it.each([
+    { cacheWriteTokens: 0, expectedUsage: { cacheWriteTokens: 0 } },
+    { cacheWriteTokens: null, expectedUsage: undefined },
+  ])(
+    'should expose streaming cache write tokens $cacheWriteTokens in provider metadata',
+    async ({ cacheWriteTokens, expectedUsage }) => {
+      prepareStreamResponse({
+        content: [],
+        usage: {
+          prompt_tokens: 15,
+          completion_tokens: 20,
+          total_tokens: 35,
+          prompt_tokens_details: {
+            cache_write_tokens: cacheWriteTokens,
+          },
+        },
+      });
+
+      const { stream } = await provider.chat('gpt-5.6').doStream({
+        prompt: TEST_PROMPT,
+      });
+      const finish = (await convertReadableStreamToArray(stream)).at(-1);
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        providerMetadata: {
+          openai: {
+            ...(expectedUsage != null && { usage: expectedUsage }),
+          },
+        },
+      });
+      if (expectedUsage == null) {
+        expect(finish).not.toHaveProperty('providerMetadata.openai.usage');
+      }
+    },
+  );
 
   it('should return accepted_prediction_tokens and rejected_prediction_tokens in providerMetadata', async () => {
     prepareStreamResponse({

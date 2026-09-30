@@ -18,7 +18,8 @@ export type OpenAIResponsesInputItem =
   | OpenAIResponsesLocalShellCall
   | OpenAIResponsesLocalShellCallOutput
   | OpenAIResponsesReasoning
-  | OpenAIResponsesItemReference;
+  | OpenAIResponsesItemReference
+  | OpenAIResponsesConfigurationUpdate;
 
 export type OpenAIResponsesIncludeValue =
   | 'web_search_call.action.sources'
@@ -35,23 +36,57 @@ export type OpenAIResponsesIncludeOptions =
   | null;
 
 export type OpenAIResponsesSystemMessage = {
+  type?: 'message';
   role: 'system' | 'developer';
-  content: string;
+  content:
+    | string
+    | Array<{
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }>;
 };
 
 export type OpenAIResponsesUserMessage = {
+  type?: 'message';
   role: 'user';
   content: Array<
-    | { type: 'input_text'; text: string }
-    | { type: 'input_image'; image_url: string }
-    | { type: 'input_image'; file_id: string }
-    | { type: 'input_file'; file_url: string }
-    | { type: 'input_file'; filename: string; file_data: string }
-    | { type: 'input_file'; file_id: string }
+    | {
+        type: 'input_text';
+        text: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        image_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_image';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_url: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        filename: string;
+        file_data: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
+    | {
+        type: 'input_file';
+        file_id: string;
+        prompt_cache_breakpoint?: { mode: 'explicit' };
+      }
   >;
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type?: 'message';
   role: 'assistant';
   content: Array<{ type: 'output_text'; text: string }>;
   id?: string;
@@ -63,6 +98,7 @@ export type OpenAIResponsesFunctionCall = {
   call_id: string;
   name: string;
   arguments: string;
+  async?: boolean;
   id?: string;
 };
 
@@ -72,9 +108,22 @@ export type OpenAIResponsesFunctionCallOutput = {
   output:
     | string
     | Array<
-        | { type: 'input_text'; text: string }
-        | { type: 'input_image'; image_url: string }
-        | { type: 'input_file'; filename: string; file_data: string }
+        | {
+            type: 'input_text';
+            text: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_image';
+            image_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            filename: string;
+            file_data: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
       >;
 };
 
@@ -107,6 +156,13 @@ export type OpenAIResponsesLocalShellCallOutput = {
 export type OpenAIResponsesItemReference = {
   type: 'item_reference';
   id: string;
+};
+
+export type OpenAIResponsesConfigurationUpdate = {
+  type: 'configuration_update';
+  reasoning: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
 };
 
 /**
@@ -153,12 +209,18 @@ export type OpenAIResponsesTool =
       name: string;
       description: string | undefined;
       parameters: JSONSchema7;
+      async?: boolean;
       strict: boolean | undefined;
     }
   | {
       type: 'web_search';
       external_web_access: boolean | undefined;
-      filters: { allowed_domains: string[] | undefined } | undefined;
+      filters:
+        | {
+            allowed_domains: string[] | undefined;
+            blocked_domains: string[] | undefined;
+          }
+        | undefined;
       search_context_size: 'low' | 'medium' | 'high' | undefined;
       user_location:
         | {
@@ -230,9 +292,6 @@ export type OpenAIResponsesReasoning = {
   }>;
 };
 
-<<<<<<< HEAD
-export const openaiResponsesChunkSchema = lazyValidator(() =>
-=======
 // Captured from the Responses API when OpenAI returned an early
 // insufficient_quota stream error after HTTP 200. This shape differs from the
 // currently documented ResponseErrorEvent below.
@@ -257,8 +316,7 @@ const openaiResponsesErrorChunkSchema = z.object({
   param: z.string().nullish(),
 });
 
-export const openaiResponsesChunkSchema = lazySchema(() =>
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
+export const openaiResponsesChunkSchema = lazyValidator(() =>
   zodSchema(
     z.union([
       z.object({
@@ -289,6 +347,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             input_tokens_details: z
               .object({
                 cached_tokens: z.number().nullish(),
+                cache_write_tokens: z.number().nullish(),
                 orchestration_input_tokens: z.number().nullish(),
                 orchestration_input_cached_tokens: z.number().nullish(),
               })
@@ -301,46 +360,15 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
               })
               .nullish(),
           }),
-          service_tier: z.string().nullish(),
-        }),
-      }),
-      z.object({
-<<<<<<< HEAD
-=======
-        type: z.literal('response.failed'),
-        sequence_number: z.number(),
-        response: z.object({
-          error: z
+          reasoning: z
             .object({
-              code: z.string().nullish(),
-              message: z.string(),
-            })
-            .nullish(),
-          incomplete_details: z.object({ reason: z.string() }).nullish(),
-          usage: z
-            .object({
-              input_tokens: z.number(),
-              input_tokens_details: z
-                .object({
-                  cached_tokens: z.number().nullish(),
-                  orchestration_input_tokens: z.number().nullish(),
-                  orchestration_input_cached_tokens: z.number().nullish(),
-                })
-                .nullish(),
-              output_tokens: z.number(),
-              output_tokens_details: z
-                .object({
-                  reasoning_tokens: z.number().nullish(),
-                  orchestration_output_tokens: z.number().nullish(),
-                })
-                .nullish(),
+              context: z.string().nullish(),
             })
             .nullish(),
           service_tier: z.string().nullish(),
         }),
       }),
       z.object({
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
         type: z.literal('response.created'),
         response: z.object({
           id: z.string(),
@@ -369,6 +397,7 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
+            async: z.boolean().nullish(),
           }),
           z.object({
             type: z.literal('web_search_call'),
@@ -425,7 +454,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
             call_id: z.string(),
             name: z.string(),
             arguments: z.string(),
-            status: z.literal('completed'),
+            async: z.boolean().nullish(),
+            status: z.enum(['in_progress', 'completed', 'incomplete']),
           }),
           z.object({
             type: z.literal('code_interpreter_call'),
@@ -573,33 +603,8 @@ export const openaiResponsesChunkSchema = lazySchema(() =>
         item_id: z.string(),
         summary_index: z.number(),
       }),
-      z.object({
-<<<<<<< HEAD
-        type: z.literal('error'),
-        sequence_number: z.number(),
-        error: z.object({
-          type: z.string(),
-          code: z.string(),
-          message: z.string(),
-          param: z.string().nullish(),
-        }),
-      }),
-=======
-        type: z.literal('response.apply_patch_call_operation_diff.delta'),
-        item_id: z.string(),
-        output_index: z.number(),
-        delta: z.string(),
-        obfuscation: z.string().nullish(),
-      }),
-      z.object({
-        type: z.literal('response.apply_patch_call_operation_diff.done'),
-        item_id: z.string(),
-        output_index: z.number(),
-        diff: z.string(),
-      }),
       openaiResponsesNestedErrorChunkSchema,
       openaiResponsesErrorChunkSchema,
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
       z
         .object({ type: z.string() })
         .loose()
@@ -796,6 +801,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
               name: z.string(),
               arguments: z.string(),
               id: z.string(),
+              async: z.boolean().nullish(),
             }),
             z.object({
               type: z.literal('computer_call'),
@@ -817,6 +823,11 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
         )
         .optional(),
       service_tier: z.string().nullish(),
+      reasoning: z
+        .object({
+          context: z.string().nullish(),
+        })
+        .nullish(),
       incomplete_details: z.object({ reason: z.string() }).nullish(),
       usage: z
         .object({
@@ -824,6 +835,7 @@ export const openaiResponsesResponseSchema = lazyValidator(() =>
           input_tokens_details: z
             .object({
               cached_tokens: z.number().nullish(),
+              cache_write_tokens: z.number().nullish(),
               orchestration_input_tokens: z.number().nullish(),
               orchestration_input_cached_tokens: z.number().nullish(),
             })

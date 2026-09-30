@@ -11,25 +11,18 @@ import {
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
+  StreamingToolCallTracker,
   type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   generateId,
-  isParsableJson,
   parseProviderOptions,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-<<<<<<< HEAD
-=======
 import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
-import {
-  convertOpenAIChatUsage,
-  type OpenAIChatUsage,
-} from './convert-openai-chat-usage';
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import { convertToOpenAIChatMessages } from './convert-to-openai-chat-messages';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -130,6 +123,23 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     const strictJsonSchema = openaiOptions.strictJsonSchema ?? false;
 
+    let resolvedReasoningEffort = openaiOptions.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -182,15 +192,29 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       store: openaiOptions.store,
       metadata: openaiOptions.metadata,
       prediction: openaiOptions.prediction,
-      reasoning_effort: openaiOptions.reasoningEffort,
+      reasoning_effort: resolvedReasoningEffort,
       service_tier: openaiOptions.serviceTier,
       prompt_cache_key: openaiOptions.promptCacheKey,
+      prompt_cache_options: openaiOptions.promptCacheOptions,
       prompt_cache_retention: openaiOptions.promptCacheRetention,
       safety_identifier: openaiOptions.safetyIdentifier,
 
       // messages:
       messages,
     };
+
+    if (
+      modelCapabilities.supportedReasoningEfforts != null &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -354,10 +378,20 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     });
 
     const choice = response.choices[0];
+    if (choice == null) {
+      throw new InvalidResponseDataError({
+        data: rawResponse,
+        message: 'Response did not contain any choices.',
+      });
+    }
+
     const content: Array<LanguageModelV2Content> = [];
 
     // text content:
-    const text = choice.message.content;
+    const text =
+      choice.message.content != null && choice.message.content.length > 0
+        ? choice.message.content
+        : choice.message.audio?.transcript;
     if (text != null && text.length > 0) {
       content.push({ type: 'text', text });
     }
@@ -394,6 +428,11 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
     if (completionTokenDetails?.rejected_prediction_tokens != null) {
       providerMetadata.openai.rejectedPredictionTokens =
         completionTokenDetails?.rejected_prediction_tokens;
+    }
+    if (promptTokenDetails?.cache_write_tokens != null) {
+      providerMetadata.openai.usage = {
+        cacheWriteTokens: promptTokenDetails.cache_write_tokens,
+      };
     }
     if (choice.logprobs?.content != null) {
       providerMetadata.openai.logprobs = choice.logprobs.content;
@@ -459,15 +498,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       responseHeaders,
     });
 
-    const toolCalls: Array<{
-      id: string;
-      type: 'function';
-      function: {
-        name: string;
-        arguments: string;
-      };
-      hasFinished: boolean;
-    }> = [];
+    let toolCallTracker: StreamingToolCallTracker;
 
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: LanguageModelV2Usage = {
@@ -480,13 +511,17 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
     const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
 
-    const result = {
+    return {
       stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIChatChunk>,
           LanguageModelV2StreamPart
         >({
           start(controller) {
+            toolCallTracker = new StreamingToolCallTracker(controller, {
+              generateId,
+              typeValidation: 'if-present',
+            });
             controller.enqueue({ type: 'stream-start', warnings });
           },
 
@@ -534,6 +569,14 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
                 undefined;
               usage.cachedInputTokens =
                 value.usage.prompt_tokens_details?.cached_tokens ?? undefined;
+              if (
+                value.usage.prompt_tokens_details?.cache_write_tokens != null
+              ) {
+                providerMetadata.openai.usage = {
+                  cacheWriteTokens:
+                    value.usage.prompt_tokens_details.cache_write_tokens,
+                };
+              }
 
               if (
                 value.usage.completion_tokens_details
@@ -582,124 +625,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
 
             if (delta.tool_calls != null) {
               for (const toolCallDelta of delta.tool_calls) {
-                const index = toolCallDelta.index;
-
-                // Tool call start. OpenAI returns all information except the arguments in the first chunk.
-                if (toolCalls[index] == null) {
-                  if (
-                    toolCallDelta.type != null &&
-                    toolCallDelta.type !== 'function'
-                  ) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function' type.`,
-                    });
-                  }
-
-                  if (toolCallDelta.id == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'id' to be a string.`,
-                    });
-                  }
-
-                  if (toolCallDelta.function?.name == null) {
-                    throw new InvalidResponseDataError({
-                      data: toolCallDelta,
-                      message: `Expected 'function.name' to be a string.`,
-                    });
-                  }
-
-                  controller.enqueue({
-                    type: 'tool-input-start',
-                    id: toolCallDelta.id,
-                    toolName: toolCallDelta.function.name,
-                  });
-
-                  toolCalls[index] = {
-                    id: toolCallDelta.id,
-                    type: 'function',
-                    function: {
-                      name: toolCallDelta.function.name,
-                      arguments: toolCallDelta.function.arguments ?? '',
-                    },
-                    hasFinished: false,
-                  };
-
-                  const toolCall = toolCalls[index];
-
-                  if (
-                    toolCall.function?.name != null &&
-                    toolCall.function?.arguments != null
-                  ) {
-                    // send delta if the argument text has already started:
-                    if (toolCall.function.arguments.length > 0) {
-                      controller.enqueue({
-                        type: 'tool-input-delta',
-                        id: toolCall.id,
-                        delta: toolCall.function.arguments,
-                      });
-                    }
-
-                    // check if tool call is complete
-                    // (some providers send the full tool call in one chunk):
-                    if (isParsableJson(toolCall.function.arguments)) {
-                      controller.enqueue({
-                        type: 'tool-input-end',
-                        id: toolCall.id,
-                      });
-
-                      controller.enqueue({
-                        type: 'tool-call',
-                        toolCallId: toolCall.id ?? generateId(),
-                        toolName: toolCall.function.name,
-                        input: toolCall.function.arguments,
-                      });
-                      toolCall.hasFinished = true;
-                    }
-                  }
-
-                  continue;
-                }
-
-                // existing tool call, merge if not finished
-                const toolCall = toolCalls[index];
-
-                if (toolCall.hasFinished) {
-                  continue;
-                }
-
-                if (toolCallDelta.function?.arguments != null) {
-                  toolCall.function!.arguments +=
-                    toolCallDelta.function?.arguments ?? '';
-                }
-
-                // send delta
-                controller.enqueue({
-                  type: 'tool-input-delta',
-                  id: toolCall.id,
-                  delta: toolCallDelta.function.arguments ?? '',
-                });
-
-                // check if tool call is complete
-                if (
-                  toolCall.function?.name != null &&
-                  toolCall.function?.arguments != null &&
-                  isParsableJson(toolCall.function.arguments)
-                ) {
-                  controller.enqueue({
-                    type: 'tool-input-end',
-                    id: toolCall.id,
-                  });
-
-                  controller.enqueue({
-                    type: 'tool-call',
-                    toolCallId: toolCall.id ?? generateId(),
-                    toolName: toolCall.function.name,
-                    input: toolCall.function.arguments,
-                  });
-                  toolCall.hasFinished = true;
-                }
+                toolCallTracker.processDelta(toolCallDelta);
               }
             }
 
@@ -722,6 +648,8 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
               controller.enqueue({ type: 'text-end', id: '0' });
             }
 
+            toolCallTracker.flush();
+
             controller.enqueue({
               type: 'finish',
               finishReason,
@@ -734,8 +662,6 @@ export class OpenAIChatLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
-
-    return result;
   }
 }
 

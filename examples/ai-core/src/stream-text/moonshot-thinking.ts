@@ -1,20 +1,17 @@
-import { moonshotai } from '@ai-sdk/moonshotai';
+import { type MoonshotAIProviderOptions, moonshotai } from '@ai-sdk/moonshotai';
 import { streamText } from 'ai';
 import { run } from '../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: moonshotai('kimi-k2-thinking'),
+    model: moonshotai('kimi-k2.7-code'),
     prompt:
       'Solve this problem step by step: If a train travels 120 miles in 2 hours, how far will it travel in 5 hours at the same speed?',
     providerOptions: {
       moonshotai: {
-        thinking: {
-          type: 'enabled',
-          budgetTokens: 2048,
-        },
-        reasoningHistory: 'interleaved',
-      },
+        thinking: { type: 'enabled' },
+        reasoningHistory: 'preserved',
+      } satisfies MoonshotAIProviderOptions,
     },
   });
 

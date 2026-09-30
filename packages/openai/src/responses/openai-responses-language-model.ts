@@ -1,4 +1,5 @@
 import {
+  UnsupportedFunctionalityError,
   type LanguageModelV2,
   type LanguageModelV2CallWarning,
   type LanguageModelV2Content,
@@ -21,12 +22,6 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
-<<<<<<< HEAD
-=======
-import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
-import type { applyPatchInputSchema } from '../tool/apply-patch';
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import type {
   codeInterpreterInputSchema,
   codeInterpreterOutputSchema,
@@ -50,10 +45,39 @@ import {
   type OpenAIResponsesModelId,
   openaiResponsesProviderOptionsSchema,
   TOP_LOGPROBS_MAX,
+  type OpenAIResponsesProviderOptions,
 } from './openai-responses-options';
 import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
-import type { ResponsesUsageProviderMetadata } from './openai-responses-provider-metadata';
+import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
+import type {
+  ResponsesToolCallProviderMetadata,
+  ResponsesUsageProviderMetadata,
+} from './openai-responses-provider-metadata';
+
+/**
+ * Enforces OpenAI's configuration update restrictions for reasoningEffortUpdate,
+ * returning a string describing the unsupported reason if any.
+ *
+ * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+ */
+function getConfigurationUpdateUnsupportedReason({
+  modelCapabilities,
+  options,
+}: {
+  modelCapabilities: { supportsConfigurationUpdate: boolean };
+  options: OpenAIResponsesProviderOptions | undefined;
+}): string | undefined {
+  if (!modelCapabilities.supportsConfigurationUpdate) {
+    return 'reasoningEffortUpdate is only supported by GPT-6 and later models';
+  }
+
+  if (options?.reasoningMode === 'pro' || options?.truncation === 'auto') {
+    return 'reasoningEffortUpdate requires standard reasoning mode without automatic truncation';
+  }
+
+  return undefined;
+}
 
 export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -134,16 +158,82 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const configurationUpdateUnsupportedReason =
+      getConfigurationUpdateUnsupportedReason({
+        modelCapabilities,
+        options: openaiOptions,
+      });
+
     const { input, warnings: inputWarnings } =
       await convertToOpenAIResponsesInput({
         prompt,
+        configurationUpdateUnsupportedReason,
+        providerOptionsName: this.config.provider.includes('azure')
+          ? 'azure'
+          : 'openai',
         systemMessageMode: modelCapabilities.systemMessageMode,
+        explicitMessageItemType: this.config.explicitMessageItemType,
         fileIdPrefixes: this.config.fileIdPrefixes,
         store: openaiOptions?.store ?? true,
         hasLocalShellTool: hasOpenAITool('openai.local_shell'),
       });
 
     warnings.push(...inputWarnings);
+
+    let resolvedReasoningEffort = openaiOptions?.reasoningEffort;
+
+    if (
+      resolvedReasoningEffort != null &&
+      modelCapabilities.supportedReasoningEfforts != null &&
+      !modelCapabilities.supportedReasoningEfforts.includes(
+        resolvedReasoningEffort,
+      )
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffort',
+        details: `${this.modelId} only supports the following reasoning efforts: ${modelCapabilities.supportedReasoningEfforts.join(', ')}`,
+      });
+      resolvedReasoningEffort = undefined;
+    }
+
+    const reasoningEffortUpdate = openaiOptions?.reasoningEffortUpdate;
+    if (
+      reasoningEffortUpdate != null &&
+      configurationUpdateUnsupportedReason != null
+    ) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'reasoningEffortUpdate',
+        details: configurationUpdateUnsupportedReason,
+      });
+    } else if (reasoningEffortUpdate != null) {
+      const firstItem = input[0];
+      // If the first item already sets this effort, prepending another update
+      // would create an adjacent pair that OpenAI rejects.
+      if (
+        firstItem?.type !== 'configuration_update' ||
+        firstItem.reasoning.effort !== reasoningEffortUpdate
+      ) {
+        input.unshift({
+          type: 'configuration_update',
+          reasoning: { effort: reasoningEffortUpdate },
+        });
+      }
+    }
+
+    // Conversion and prepending can make updates adjacent, so check afterward
+    // to catch combinations that OpenAI would reject.
+    for (let i = 1; i < input.length; i++) {
+      if (
+        input[i - 1].type === 'configuration_update' &&
+        input[i].type === 'configuration_update'
+      ) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'Adjacent reasoning effort configuration updates',
+        });
+      }
+    }
 
     const strictJsonSchema = openaiOptions?.strictJsonSchema ?? false;
 
@@ -242,6 +332,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       service_tier: openaiOptions?.serviceTier,
       include,
       prompt_cache_key: openaiOptions?.promptCacheKey,
+      prompt_cache_options: openaiOptions?.promptCacheOptions,
       prompt_cache_retention: openaiOptions?.promptCacheRetention,
       safety_identifier: openaiOptions?.safetyIdentifier,
       top_logprobs: topLogprobs,
@@ -249,18 +340,39 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
       // model-specific settings:
       ...(modelCapabilities.isReasoningModel &&
-        (openaiOptions?.reasoningEffort != null ||
-          openaiOptions?.reasoningSummary != null) && {
+        (resolvedReasoningEffort != null ||
+          openaiOptions?.reasoningSummary != null ||
+          openaiOptions?.reasoningMode != null ||
+          openaiOptions?.reasoningContext != null) && {
           reasoning: {
-            ...(openaiOptions?.reasoningEffort != null && {
-              effort: openaiOptions.reasoningEffort,
+            ...(resolvedReasoningEffort != null && {
+              effort: resolvedReasoningEffort,
             }),
             ...(openaiOptions?.reasoningSummary != null && {
               summary: openaiOptions.reasoningSummary,
             }),
+            ...(openaiOptions?.reasoningMode != null && {
+              mode: openaiOptions.reasoningMode,
+            }),
+            ...(openaiOptions?.reasoningContext != null && {
+              context: openaiOptions.reasoningContext,
+            }),
           },
         }),
     };
+
+    if (
+      modelCapabilities.supportsConfigurationUpdate &&
+      baseArgs.prompt_cache_retention != null
+    ) {
+      baseArgs.prompt_cache_retention = undefined;
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'promptCacheRetention',
+        details:
+          'promptCacheRetention is not supported by GPT-6 and later models; use promptCacheOptions instead',
+      });
+    }
 
     // remove unsupported settings for reasoning models
     // see https://platform.openai.com/docs/guides/reasoning#limitations
@@ -290,6 +402,26 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             details: 'topP is not supported for reasoning models',
           });
         }
+
+        if (
+          modelCapabilities.supportedReasoningEfforts != null &&
+          (baseArgs.top_logprobs != null ||
+            baseArgs.include?.includes('message.output_text.logprobs'))
+        ) {
+          baseArgs.top_logprobs = undefined;
+          const filteredInclude = baseArgs.include?.filter(
+            value => value !== 'message.output_text.logprobs',
+          );
+          baseArgs.include =
+            filteredInclude != null && filteredInclude.length > 0
+              ? filteredInclude
+              : undefined;
+          warnings.push({
+            type: 'unsupported-setting',
+            setting: 'logprobs',
+            details: 'logprobs is not supported for reasoning models',
+          });
+        }
       }
     } else {
       if (openaiOptions?.reasoningEffort != null) {
@@ -305,6 +437,22 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
           type: 'unsupported-setting',
           setting: 'reasoningSummary',
           details: 'reasoningSummary is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningMode != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningMode',
+          details: 'reasoningMode is not supported for non-reasoning models',
+        });
+      }
+
+      if (openaiOptions?.reasoningContext != null) {
+        warnings.push({
+          type: 'unsupported-setting',
+          setting: 'reasoningContext',
+          details: 'reasoningContext is not supported for non-reasoning models',
         });
       }
     }
@@ -347,6 +495,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       strictJsonSchema,
+      supportsAsyncToolCalling: modelCapabilities.supportsAsyncToolCalling,
     });
 
     return {
@@ -575,7 +724,8 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
             providerMetadata: {
               [providerKey]: {
                 itemId: part.id,
-              },
+                ...(part.async != null && { async: part.async }),
+              } satisfies ResponsesToolCallProviderMetadata,
             },
           });
           break;
@@ -692,11 +842,16 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       providerMetadata[providerKey].serviceTier = response.service_tier;
     }
 
+    if (response.reasoning?.context != null) {
+      providerMetadata[providerKey].reasoningContext =
+        response.reasoning.context;
+    }
+
     const usage = response.usage!; // defined when there is no error
 
-    const orchestrationUsage = getOrchestrationUsageMetadata(usage);
-    if (orchestrationUsage != null) {
-      providerMetadata[providerKey].usage = orchestrationUsage;
+    const responsesUsage = getResponsesUsageMetadata(usage);
+    if (responsesUsage != null) {
+      providerMetadata[providerKey].usage = responsesUsage;
     }
 
     return {
@@ -757,13 +912,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
 
     const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
       stream: response,
-      getError: chunk =>
-        isErrorChunk(chunk) ||
-        (isResponseFailedChunk(chunk) && chunk.response.error != null)
-          ? chunk
-          : undefined,
+      getError: chunk => (isErrorChunk(chunk) ? chunk : undefined),
       isOutputChunk: isResponseOutputChunk,
-      url,
+      url: this.config.url({
+        path: '/responses',
+        modelId: this.modelId,
+      }),
       requestBodyValues: body,
       responseHeaders,
     });
@@ -784,6 +938,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       | {
           toolName: string;
           toolCallId: string;
+          async?: boolean | null;
           codeInterpreter?: {
             containerId: string;
           };
@@ -815,14 +970,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
     > = {};
 
     let serviceTier: string | undefined;
-<<<<<<< HEAD
-    let orchestrationUsage: ResponsesUsageProviderMetadata | undefined;
-=======
-    const hostedToolSearchCallIds: string[] = [];
-    let encounteredStreamError = false;
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
+    let reasoningContext: string | undefined;
+    let responsesUsage: ResponsesUsageProviderMetadata | undefined;
 
-    const result = {
+    return {
       stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAIResponsesChunk>,
@@ -851,6 +1002,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 ongoingToolCalls[value.output_index] = {
                   toolName: value.item.name,
                   toolCallId: value.item.call_id,
+                  async: value.item.async,
                 };
 
                 controller.enqueue({
@@ -933,7 +1085,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerExecuted: true,
                 });
               } else if (value.item.type === 'message') {
-                ongoingAnnotations.splice(0, ongoingAnnotations.length);
+                ongoingAnnotations.splice(0);
                 activeMessagePhase = value.item.phase ?? undefined;
                 controller.enqueue({
                   type: 'text-start',
@@ -986,6 +1138,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   },
                 });
               } else if (value.item.type === 'function_call') {
+                const ongoingToolCall = ongoingToolCalls[value.output_index];
                 ongoingToolCalls[value.output_index] = undefined;
                 hasFunctionCall = true;
 
@@ -1002,7 +1155,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                   providerMetadata: {
                     [providerKey]: {
                       itemId: value.item.id,
-                    },
+                      ...(value.item.async != null
+                        ? { async: value.item.async }
+                        : ongoingToolCall?.async != null
+                          ? { async: ongoingToolCall.async }
+                          : {}),
+                    } satisfies ResponsesToolCallProviderMetadata,
                   },
                 });
               } else if (value.item.type === 'web_search_call') {
@@ -1301,41 +1459,10 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               if (typeof value.response.service_tier === 'string') {
                 serviceTier = value.response.service_tier;
               }
-<<<<<<< HEAD
-              orchestrationUsage = getOrchestrationUsageMetadata(
-                value.response.usage,
-              );
-=======
-            } else if (isResponseFailedChunk(value)) {
-              const incompleteReason =
-                value.response.incomplete_details?.reason;
-              finishReason = {
-                unified: incompleteReason
-                  ? mapOpenAIResponseFinishReason({
-                      finishReason: incompleteReason,
-                      hasFunctionCall,
-                    })
-                  : 'error',
-                raw: incompleteReason ?? 'error',
-              };
-              usage = value.response.usage ?? undefined;
-
-              if (!encounteredStreamError && value.response.error != null) {
-                encounteredStreamError = true;
-                controller.enqueue({
-                  type: 'error',
-                  error: {
-                    type: 'response.failed',
-                    sequence_number: value.sequence_number,
-                    response: {
-                      error: value.response.error,
-                      incomplete_details: value.response.incomplete_details,
-                      service_tier: value.response.service_tier,
-                    },
-                  },
-                });
+              if (value.response.reasoning?.context != null) {
+                reasoningContext = value.response.reasoning.context;
               }
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
+              responsesUsage = getResponsesUsageMetadata(value.response.usage);
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
               if (value.annotation.type === 'url_citation') {
@@ -1370,8 +1497,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
                 });
               }
             } else if (isErrorChunk(value)) {
-              encounteredStreamError = true;
-              finishReason = { unified: 'error', raw: 'error' };
+              finishReason = 'error';
               controller.enqueue({ type: 'error', error: value });
             }
           },
@@ -1391,8 +1517,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
               providerMetadata[providerKey].serviceTier = serviceTier;
             }
 
-            if (orchestrationUsage != null) {
-              providerMetadata[providerKey].usage = orchestrationUsage;
+            if (reasoningContext !== undefined) {
+              providerMetadata[providerKey].reasoningContext = reasoningContext;
+            }
+
+            if (responsesUsage != null) {
+              providerMetadata[providerKey].usage = responsesUsage;
             }
 
             controller.enqueue({
@@ -1407,8 +1537,6 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
-
-    return result;
   }
 }
 
@@ -1487,7 +1615,6 @@ function isErrorChunk(
 function isResponseOutputChunk(chunk: OpenAIResponsesChunk): boolean {
   return !(
     chunk.type === 'response.created' ||
-    chunk.type === 'response.failed' ||
     chunk.type === 'error' ||
     chunk.type === 'unknown_chunk'
   );
@@ -1521,14 +1648,14 @@ function mapWebSearchOutput(
 }
 
 /**
- * Extracts orchestration token usage details (e.g. Sakana-style orchestration)
- * from the Responses API usage so they can be surfaced via provider metadata.
- * Returns `undefined` when no orchestration usage is present.
+ * Extracts provider-specific usage details from the Responses API so they can
+ * be surfaced via provider metadata. Returns `undefined` when none are present.
  */
-function getOrchestrationUsageMetadata(
+function getResponsesUsageMetadata(
   usage:
     | {
         input_tokens_details?: {
+          cache_write_tokens?: number | null;
           orchestration_input_tokens?: number | null;
           orchestration_input_cached_tokens?: number | null;
         } | null;
@@ -1539,6 +1666,7 @@ function getOrchestrationUsageMetadata(
     | null
     | undefined,
 ): ResponsesUsageProviderMetadata | undefined {
+  const cacheWriteTokens = usage?.input_tokens_details?.cache_write_tokens;
   const orchestrationInputTokens =
     usage?.input_tokens_details?.orchestration_input_tokens;
   const orchestrationInputCachedTokens =
@@ -1547,6 +1675,7 @@ function getOrchestrationUsageMetadata(
     usage?.output_tokens_details?.orchestration_output_tokens;
 
   if (
+    cacheWriteTokens == null &&
     orchestrationInputTokens == null &&
     orchestrationInputCachedTokens == null &&
     orchestrationOutputTokens == null
@@ -1555,6 +1684,7 @@ function getOrchestrationUsageMetadata(
   }
 
   return {
+    ...(cacheWriteTokens != null && { cacheWriteTokens }),
     ...(orchestrationInputTokens != null && { orchestrationInputTokens }),
     ...(orchestrationInputCachedTokens != null && {
       orchestrationInputCachedTokens,

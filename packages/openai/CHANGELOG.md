@@ -1,5 +1,171 @@
 # @ai-sdk/openai
 
+## 2.0.133
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.132
+
+### Patch Changes
+
+- 07e394b: feat(openai): add GPT-6.1 Sol model support
+
+## 2.0.131
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.130
+
+### Patch Changes
+
+- f912d4a: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 2.0.129
+
+### Patch Changes
+
+- 1c05ff4: fix(openai): expose Chat Completions audio transcripts as generated text
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.128
+
+### Patch Changes
+
+- 0f8e4fe: fix(openai): accept `incomplete` function_call items on the Responses stream, so a call truncated by `max_output_tokens` finishes with `length` instead of a `TypeValidationError`
+- 391ad4a: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.127
+
+### Patch Changes
+
+- fd889a3: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.126
+
+### Patch Changes
+
+- 022f24b: Include explicit message item types in Azure AI Foundry Responses requests.
+- a15b75a: Add async function tool calling support for OpenAI Responses models.
+
+## 2.0.125
+
+### Patch Changes
+
+- e0d0bd1: feat(openai): add GPT-6 reasoning configuration updates
+
+## 2.0.124
+
+### Patch Changes
+
+- 7bebd57: feat(openai): add support for the gpt-6-astra
+
+## 2.0.123
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.122
+
+### Patch Changes
+
+- f70d0a3: Normalize non-object replayed Chat Completions tool arguments to empty objects.
+
+## 2.0.121
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 2.0.120
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 2.0.119
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 2.0.118
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.117
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 2.0.116
+
+### Patch Changes
+
+- 8591016: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+
+## 2.0.115
+
+### Patch Changes
+
+- 11a02d9: Apply reasoning, service tier, and image defaults to recognizable future OpenAI model family versions.
+
+## 2.0.114
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+
+## 2.0.113
+
+### Patch Changes
+
+- 21eef03: Send null content for tool-call-only assistant messages.
+
+## 2.0.112
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
+## 2.0.111
+
+### Patch Changes
+
+- b4f8362: feat(provider/openai): add GPT-5.6 reasoning and prompt cache controls
+- 8549807: feat(provider/openai,provider/gateway): add gpt-5.6 model ids
+
 ## 2.0.110
 
 ### Patch Changes

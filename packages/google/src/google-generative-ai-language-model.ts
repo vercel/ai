@@ -34,8 +34,18 @@ import {
   googleGenerativeAIProviderOptions,
   VertexServiceTierMap,
 } from './google-generative-ai-options';
+import { getGoogleModelCapabilities } from './google-model-capabilities';
 import { prepareTools } from './google-prepare-tools';
 import { mapGoogleGenerativeAIFinishReason } from './map-google-generative-ai-finish-reason';
+
+const configurableSafetySettingCategories = [
+  'HARM_CATEGORY_HATE_SPEECH',
+  'HARM_CATEGORY_DANGEROUS_CONTENT',
+  'HARM_CATEGORY_HARASSMENT',
+  'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+] as const;
+
+const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
 
 type GoogleGenerativeAIConfig = {
   provider: string;
@@ -124,12 +134,71 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       sanitizedServiceTier = VertexServiceTierMap[googleOptions.serviceTier];
     }
 
+    // personGeneration, prominentPeople and imageOutputOptions are only
+    // supported by the Vertex AI API, the Gemini API rejects them.
+    let imageConfig = googleOptions?.imageConfig;
+    if (imageConfig != null && !isVertexProvider) {
+      const {
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+        ...geminiApiImageConfig
+      } = imageConfig;
+      const droppedImageConfigFields = Object.entries({
+        personGeneration,
+        prominentPeople,
+        imageOutputOptions,
+      })
+        .filter(([, value]) => value != null)
+        .map(([key]) => `'imageConfig.${key}'`);
+      if (droppedImageConfigFields.length > 0) {
+        warnings.push({
+          type: 'other',
+          message:
+            `${droppedImageConfigFields.join(', ')} ` +
+            `${droppedImageConfigFields.length === 1 ? 'is a Vertex AI option and is' : 'are Vertex AI options and are'} ` +
+            `ignored with the current Google provider (${this.config.provider}).`,
+        });
+        imageConfig = geminiApiImageConfig;
+      }
+    }
+
+    const safetyThreshold = googleOptions?.threshold;
+    const safetySettings =
+      googleOptions?.safetySettings ??
+      (safetyThreshold != null
+        ? configurableSafetySettingCategories.map(category => ({
+            category,
+            threshold: safetyThreshold,
+          }))
+        : undefined);
+
     const isGemmaModel = this.modelId.toLowerCase().startsWith('gemma-');
-    const supportsFunctionResponseParts = this.modelId.startsWith('gemini-3');
+    const isGemini25DeveloperApiModel =
+      !isVertexProvider && gemini25ModelPattern.test(this.modelId);
+
+    if (isGemini25DeveloperApiModel && frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
+    }
+    if (isGemini25DeveloperApiModel && presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
+    }
+
+    const { usesGemini3Features } = getGoogleModelCapabilities(this.modelId);
 
     const { contents, systemInstruction } = convertToGoogleGenerativeAIMessages(
       prompt,
-      { isGemmaModel, supportsFunctionResponseParts },
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        supportsFunctionResponseParts: usesGemini3Features,
+      },
     );
 
     const {
@@ -140,6 +209,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       tools,
       toolChoice,
       modelId: this.modelId,
+      isVertexProvider,
     });
 
     return {
@@ -150,8 +220,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           temperature,
           topK,
           topP,
-          frequencyPenalty,
-          presencePenalty,
+          frequencyPenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : frequencyPenalty,
+          presencePenalty: isGemini25DeveloperApiModel
+            ? undefined
+            : presencePenalty,
           stopSequences,
           seed,
 
@@ -174,16 +248,14 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           // provider options:
           responseModalities: googleOptions?.responseModalities,
           thinkingConfig: googleOptions?.thinkingConfig,
-          ...(googleOptions?.imageConfig && {
-            imageConfig: googleOptions.imageConfig,
-          }),
+          ...(imageConfig && { imageConfig }),
           ...(googleOptions?.mediaResolution && {
             mediaResolution: googleOptions.mediaResolution,
           }),
         },
         contents,
         systemInstruction: isGemmaModel ? undefined : systemInstruction,
-        safetySettings: googleOptions?.safetySettings,
+        safetySettings,
         tools: googleTools,
         toolConfig: googleOptions?.retrievalConfig
           ? {
@@ -226,15 +298,18 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    const candidate = response.candidates[0];
+    const candidate = response.candidates?.[0];
+    const promptBlockReason = response.promptFeedback?.blockReason;
+    const isPromptBlocked =
+      candidate?.finishReason == null && promptBlockReason != null;
     const content: Array<LanguageModelV2Content> = [];
 
     // map ordered parts to content:
-    const parts = candidate.content?.parts ?? [];
+    const parts = candidate?.content?.parts ?? [];
 
     const usageMetadata = response.usageMetadata;
 
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
 
     // Build content array from all parts
@@ -253,7 +328,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       } else if ('codeExecutionResult' in part && part.codeExecutionResult) {
         content.push({
           type: 'tool-result',
-          // Assumes a result directly follows its corresponding call part.
+          // Results correspond to the most recent executable code part.
           toolCallId: lastCodeExecutionToolCallId!,
           toolName: 'code_execution',
           result: {
@@ -262,8 +337,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
           },
           providerExecuted: true,
         });
-        // Clear the ID after use to avoid accidental reuse.
-        lastCodeExecutionToolCallId = undefined;
       } else if ('text' in part && part.text != null) {
         const thoughtSignatureMetadata = part.thoughtSignature
           ? { google: { thoughtSignature: part.thoughtSignature } }
@@ -304,7 +377,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     const sources =
       extractSources({
-        groundingMetadata: candidate.groundingMetadata,
+        groundingMetadata: candidate?.groundingMetadata,
         generateId: this.config.generateId,
       }) ?? [];
     for (const source of sources) {
@@ -313,10 +386,12 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     return {
       content,
-      finishReason: mapGoogleGenerativeAIFinishReason({
-        finishReason: candidate.finishReason,
-        hasToolCalls: content.some(part => part.type === 'tool-call'),
-      }),
+      finishReason: isPromptBlocked
+        ? 'content-filter'
+        : mapGoogleGenerativeAIFinishReason({
+            finishReason: candidate?.finishReason,
+            hasToolCalls: content.some(part => part.type === 'tool-call'),
+          }),
       usage: {
         inputTokens: usageMetadata?.promptTokenCount ?? undefined,
         outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
@@ -328,9 +403,9 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
       providerMetadata: {
         google: {
           promptFeedback: response.promptFeedback ?? null,
-          groundingMetadata: candidate.groundingMetadata ?? null,
-          urlContextMetadata: candidate.urlContextMetadata ?? null,
-          safetyRatings: candidate.safetyRatings ?? null,
+          groundingMetadata: candidate?.groundingMetadata ?? null,
+          urlContextMetadata: candidate?.urlContextMetadata ?? null,
+          safetyRatings: candidate?.safetyRatings ?? null,
           serviceTier: response.serviceTier ?? null,
           usageMetadata: usageMetadata ?? null,
         },
@@ -388,7 +463,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
     // Track emitted sources to prevent duplicates
     const emittedSourceUrls = new Set<string>();
-    // Associates a code execution result with its preceding call.
+    // Associates code execution results with their preceding call.
     let lastCodeExecutionToolCallId: string | undefined;
 
     return {
@@ -434,6 +509,22 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
 
             // sometimes the API returns an empty candidates array
             if (candidate == null) {
+              const promptBlockReason = value.promptFeedback?.blockReason;
+              if (promptBlockReason != null) {
+                finishReason = 'content-filter';
+                providerMetadata = {
+                  google: {
+                    promptFeedback: value.promptFeedback ?? null,
+                    groundingMetadata: lastGroundingMetadata,
+                    urlContextMetadata: lastUrlContextMetadata,
+                    safetyRatings: null,
+                    serviceTier,
+                  },
+                };
+                if (usageMetadata != null) {
+                  providerMetadata.google.usageMetadata = usageMetadata;
+                }
+              }
               return;
             }
 
@@ -484,7 +575,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                   'codeExecutionResult' in part &&
                   part.codeExecutionResult
                 ) {
-                  // Assumes a result directly follows its corresponding call part.
+                  // Results correspond to the most recent executable code part.
                   const toolCallId = lastCodeExecutionToolCallId;
 
                   if (toolCallId) {
@@ -498,8 +589,6 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
                       },
                       providerExecuted: true,
                     });
-                    // Clear the ID after use.
-                    lastCodeExecutionToolCallId = undefined;
                   }
                 } else if ('text' in part && part.text != null) {
                   const thoughtSignatureMetadata = part.thoughtSignature
@@ -625,11 +714,19 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
               }
             }
 
-            if (candidate.finishReason != null) {
-              finishReason = mapGoogleGenerativeAIFinishReason({
-                finishReason: candidate.finishReason,
-                hasToolCalls,
-              });
+            const promptBlockReason = value.promptFeedback?.blockReason;
+            const isPromptBlocked =
+              candidate.finishReason == null && promptBlockReason != null;
+            const rawFinishReason =
+              candidate.finishReason ?? promptBlockReason ?? undefined;
+
+            if (rawFinishReason != null) {
+              finishReason = isPromptBlocked
+                ? 'content-filter'
+                : mapGoogleGenerativeAIFinishReason({
+                    finishReason: rawFinishReason,
+                    hasToolCalls,
+                  });
 
               providerMetadata = {
                 google: {
@@ -971,15 +1068,17 @@ export const getUrlContextMetadataSchema = () =>
 const responseSchema = lazySchema(() =>
   zodSchema(
     z.object({
-      candidates: z.array(
-        z.object({
-          content: getContentSchema().nullish().or(z.object({}).strict()),
-          finishReason: z.string().nullish(),
-          safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
-          groundingMetadata: getGroundingMetadataSchema().nullish(),
-          urlContextMetadata: getUrlContextMetadataSchema().nullish(),
-        }),
-      ),
+      candidates: z
+        .array(
+          z.object({
+            content: getContentSchema().nullish().or(z.object({}).strict()),
+            finishReason: z.string().nullish(),
+            safetyRatings: z.array(getSafetyRatingSchema()).nullish(),
+            groundingMetadata: getGroundingMetadataSchema().nullish(),
+            urlContextMetadata: getUrlContextMetadataSchema().nullish(),
+          }),
+        )
+        .nullish(),
       usageMetadata: usageSchema.nullish(),
       promptFeedback: z
         .object({
@@ -992,13 +1091,13 @@ const responseSchema = lazySchema(() =>
   ),
 );
 
-type ContentSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['content']
->;
+type CandidateSchema = NonNullable<
+  InferValidator<typeof responseSchema>['candidates']
+>[number];
+
+type ContentSchema = NonNullable<CandidateSchema['content']>;
 export type GroundingMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['groundingMetadata']
+  CandidateSchema['groundingMetadata']
 >;
 
 type GroundingChunkSchema = NonNullable<
@@ -1006,13 +1105,11 @@ type GroundingChunkSchema = NonNullable<
 >[number];
 
 export type UrlContextMetadataSchema = NonNullable<
-  InferValidator<
-    typeof responseSchema
-  >['candidates'][number]['urlContextMetadata']
+  CandidateSchema['urlContextMetadata']
 >;
 
 export type SafetyRatingSchema = NonNullable<
-  InferValidator<typeof responseSchema>['candidates'][number]['safetyRatings']
+  CandidateSchema['safetyRatings']
 >[number];
 
 // limited version of the schema, focussed on what is needed for the implementation

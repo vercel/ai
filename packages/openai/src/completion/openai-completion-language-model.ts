@@ -16,14 +16,7 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
-<<<<<<< HEAD
-=======
 import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
-import {
-  convertOpenAICompletionUsage,
-  type OpenAICompletionUsage,
-} from './convert-openai-completion-usage';
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
 import { convertToOpenAICompletionPrompt } from './convert-to-openai-completion-prompt';
 import { getResponseMetadata } from './get-response-metadata';
 import { mapOpenAIFinishReason } from './map-openai-finish-reason';
@@ -244,14 +237,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-<<<<<<< HEAD
-    let finishReason: LanguageModelV2FinishReason = 'unknown';
-    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
-    const usage: LanguageModelV2Usage = {
-      inputTokens: undefined,
-      outputTokens: undefined,
-      totalTokens: undefined,
-=======
     const checkedResponse = await throwIfOpenAIStreamErrorBeforeOutput({
       stream: response,
       getError: chunk => ('error' in chunk ? chunk.error : undefined),
@@ -261,14 +246,16 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       responseHeaders,
     });
 
-    let finishReason: LanguageModelV3FinishReason = {
-      unified: 'other',
-      raw: undefined,
->>>>>>> ae00aeb871 ([v6.0] fix(openai): throw on early stream error events (#16805))
+    let finishReason: LanguageModelV2FinishReason = 'unknown';
+    const providerMetadata: SharedV2ProviderMetadata = { openai: {} };
+    const usage: LanguageModelV2Usage = {
+      inputTokens: undefined,
+      outputTokens: undefined,
+      totalTokens: undefined,
     };
     let isFirstChunk = true;
 
-    const result = {
+    return {
       stream: checkedResponse.pipeThrough(
         new TransformStream<
           ParseResult<OpenAICompletionChunk>,
@@ -352,8 +339,6 @@ export class OpenAICompletionLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
-
-    return result;
   }
 }
 
