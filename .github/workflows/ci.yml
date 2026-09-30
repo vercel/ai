@@ -705,18 +705,18 @@ jobs:
           echo "📦 Measuring load time for ${{ matrix.module }}..."
           pnpm tsx src/benchmark/load-time.ts "${{ matrix.module }}" | tee load-time-output.txt
 
-          # Extract the average time from the output
-          AVERAGE_TIME=$(grep "Average:" load-time-output.txt | awk '{print $2}' | sed 's/ms//')
+          # Extract the median time from the output
+          MEDIAN_TIME=$(grep "Median:" load-time-output.txt | awk '{print $2}' | sed 's/ms//')
 
           echo ""
           echo "🔍 Checking threshold..."
-          echo "Average load time: ${AVERAGE_TIME}ms"
+          echo "Median load time: ${MEDIAN_TIME}ms"
           echo "Maximum allowed: ${{ matrix.max-load-time }}ms"
 
-          if (( $(echo "$AVERAGE_TIME > ${{ matrix.max-load-time }}" | bc -l) )); then
+          if (( $(echo "$MEDIAN_TIME > ${{ matrix.max-load-time }}" | bc -l) )); then
             echo ""
             echo "❌ Load time check failed!"
-            echo "${{ matrix.module }}: ${AVERAGE_TIME}ms exceeds ${{ matrix.max-load-time }}ms threshold"
+            echo "${{ matrix.module }}: ${MEDIAN_TIME}ms exceeds ${{ matrix.max-load-time }}ms threshold"
             echo ""
             echo "To fix this:"
             echo "1. Investigate and optimize slow module initialization"
@@ -725,10 +725,10 @@ jobs:
           else
             echo ""
             echo "✅ Load time check passed!"
-            echo "${{ matrix.module }}: ${AVERAGE_TIME}ms is within ${{ matrix.max-load-time }}ms threshold"
+            echo "${{ matrix.module }}: ${MEDIAN_TIME}ms is within ${{ matrix.max-load-time }}ms threshold"
 
             # write result to summary
-            echo "- Load Time Check for ${{ matrix.module }}: ${AVERAGE_TIME}ms (Max: ${{ matrix.max-load-time }}ms)" >> $GITHUB_STEP_SUMMARY
+            echo "- Load Time Check for ${{ matrix.module }}: ${MEDIAN_TIME}ms (Max: ${{ matrix.max-load-time }}ms)" >> $GITHUB_STEP_SUMMARY
           fi
 
   # separate "load-time" job to set as required in branch protections,
