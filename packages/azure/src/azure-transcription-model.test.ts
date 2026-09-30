@@ -85,34 +85,42 @@ afterEach(() => {
 
 describe('API routing', () => {
   it.each([
-    ['mai-transcribe-2', undefined, 'speech'],
-    ['MAI-Transcribe-2', undefined, 'speech'],
-    ['MaI-TrAnScRiBe-2', undefined, 'speech'],
+    ['mai-transcribe-2', undefined, 'speech', 'MAI-Transcribe-2'],
+    ['MAI-Transcribe-2', undefined, 'speech', 'MAI-Transcribe-2'],
+    ['MaI-TrAnScRiBe-2', undefined, 'speech', 'MAI-Transcribe-2'],
+    ['mai-transcribe-1.5', undefined, 'speech', 'MAI-Transcribe-1.5'],
+    ['MAI-Transcribe-1.5', undefined, 'speech', 'MAI-Transcribe-1.5'],
+    ['mai-transcribe-1', undefined, 'speech', 'MAI-Transcribe-1'],
     ['mai-transcribe-2-custom', undefined, 'openai'],
+    ['mai-transcribe-1.5-custom', undefined, 'openai'],
+    ['constructor', undefined, 'openai'],
     ['whisper-1', undefined, 'openai'],
     ['custom-deployment', undefined, 'openai'],
     ['mai-transcribe-2', 'openai', 'openai'],
-    ['Future-Speech-Model', 'speech', 'speech'],
-    ['mai-transcribe-2', 'speech', 'speech'],
-  ] as const)('routes %s with api=%s to %s', async (id, api, expected) => {
-    const { provider, request, definition } = setup();
-    await provider.transcription(id).doGenerate({
-      ...input,
-      providerOptions: { azure: { ...(api && { api }) } },
-    });
-    expect(request().url).toContain(
-      expected === 'speech' ? '/speechtotext/' : '/audio/transcriptions',
-    );
-    if (expected === 'speech') {
-      expect(definition().enhancedMode).toMatchObject({
-        enabled: true,
-        model:
-          id.toLowerCase() === 'mai-transcribe-2' ? 'MAI-Transcribe-2' : id,
+    ['mai-transcribe-1.5', 'openai', 'openai'],
+    ['Future-Speech-Model', 'speech', 'speech', 'Future-Speech-Model'],
+    ['mai-transcribe-2', 'speech', 'speech', 'MAI-Transcribe-2'],
+  ] as const)(
+    'routes %s with api=%s to %s',
+    async (id, api, expected, speechModel?: string) => {
+      const { provider, request, definition } = setup();
+      await provider.transcription(id).doGenerate({
+        ...input,
+        providerOptions: { azure: { ...(api && { api }) } },
       });
-    } else {
-      expect(request().body.get('model')).toBe(id);
-    }
-  });
+      expect(request().url).toContain(
+        expected === 'speech' ? '/speechtotext/' : '/audio/transcriptions',
+      );
+      if (expected === 'speech') {
+        expect(definition().enhancedMode).toMatchObject({
+          enabled: true,
+          model: speechModel,
+        });
+      } else {
+        expect(request().body.get('model')).toBe(id);
+      }
+    },
+  );
 
   it('resolves the API again for each call to the same model', async () => {
     const { provider, request } = setup();
@@ -583,6 +591,84 @@ describe('recorded MAI-Transcribe-2 responses', () => {
     expect(result.segments[0]).toMatchObject({
       startSecond: 0,
       endSecond: 17.579,
+    });
+  });
+});
+
+describe('MAI-Transcribe-1.x', () => {
+  it.each([
+    ['mai-transcribe-1.5', 'MAI-Transcribe-1.5'],
+    ['mai-transcribe-1', 'MAI-Transcribe-1'],
+  ])('omits the segment timestamps default for %s', async (id, model) => {
+    const { provider, definition } = setup();
+    await provider.transcription(id).doGenerate(input);
+    expect(definition()).toEqual({
+      enhancedMode: { enabled: true, model, modelOptions: {} },
+    });
+  });
+
+  it('sends explicit options unchanged', async () => {
+    const { provider, definition } = setup();
+    await provider.transcription('mai-transcribe-1.5').doGenerate({
+      ...input,
+      providerOptions: {
+        azure: {
+          timestamps: 'word',
+          transcribeStyle: 'verbatim',
+          locales: ['en'],
+          phraseList: { phrases: ['STS-34'] },
+        },
+      },
+    });
+    expect(definition()).toEqual({
+      enhancedMode: {
+        enabled: true,
+        model: 'MAI-Transcribe-1.5',
+        modelOptions: { timestamps: 'word', transcribeStyle: 'verbatim' },
+      },
+      locales: ['en'],
+      phraseList: { phrases: ['STS-34'] },
+    });
+  });
+
+  it.each([
+    [
+      'mai-transcribe-1.5',
+      "timestamps='word' is not supported by MAI transcription model 'MAI-Transcribe-1.5'.",
+    ],
+    [
+      'mai-transcribe-1',
+      "Requested MAI transcription model 'MAI-Transcribe-1' is not supported.",
+    ],
+  ])('surfaces Azure rejections for %s', async (id, message) => {
+    const { provider, fetch } = setup();
+    fetch.mockResolvedValueOnce(
+      Response.json({ code: 'InvalidRequest', message }, { status: 400 }),
+    );
+    await expect(
+      provider.transcription(id).doGenerate(input),
+    ).rejects.toMatchObject({
+      name: 'AI_APICallError',
+      message,
+      statusCode: 400,
+      isRetryable: false,
+    });
+  });
+
+  it('maps a recorded MAI-Transcribe-1.5 result to one timed segment', async () => {
+    const body = loadFixture('azure-speech-mai-transcribe-1-5.1');
+    const { provider } = setup({}, body);
+    const result = await provider
+      .transcription('mai-transcribe-1.5')
+      .doGenerate(input);
+    expect(result).toMatchObject({
+      text: body.combinedPhrases[0].text,
+      language: 'en',
+      durationInSeconds: 36.71,
+      segments: [
+        { text: body.phrases[0].text, startSecond: 0, endSecond: 36.712 },
+      ],
+      response: { modelId: 'mai-transcribe-1.5', body },
     });
   });
 });

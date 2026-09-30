@@ -34,7 +34,7 @@ import { azureOpenaiTools } from './azure-openai-tools';
 import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
 import {
   azureTranscriptionModelOptions,
-  isMAITranscribe2,
+  getMAITranscribeModel,
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
@@ -97,8 +97,8 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   imageModel(deploymentId: string): ImageModelV4;
 
   /**
-   * Creates an Azure transcription model. MAI-Transcribe-2 uses the Speech API
-   * by default; other IDs use OpenAI. Override with providerOptions.azure.api.
+   * Creates an Azure transcription model. MAI-Transcribe models use the Speech
+   * API by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   transcription(deploymentId: string): TranscriptionModelV4;
 
@@ -174,7 +174,7 @@ export interface AzureOpenAIProviderSettings {
   useDeploymentBasedUrls?: boolean;
 
   /**
-   * URL prefix for Azure Speech transcription (MAI-Transcribe-2), e.g. a
+   * URL prefix for Azure Speech transcription (MAI-Transcribe), e.g. a
    * regional endpoint like `https://eastus.api.cognitive.microsoft.com`.
    * Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
    * Speech requests do not use `baseURL` or `apiVersion`.
@@ -513,7 +513,8 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
     return {
       ...options,
       api:
-        options?.api ?? (isMAITranscribe2(this.modelId) ? 'speech' : 'openai'),
+        options?.api ??
+        (getMAITranscribeModel(this.modelId) ? 'speech' : 'openai'),
     };
   }
 }
