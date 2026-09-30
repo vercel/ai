@@ -2,6 +2,83 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  describe('async tools', () => {
+    it('should pass through async mode for function tools', async () => {
+      const result = await prepareResponsesTools({
+        tools: [
+          {
+            type: 'function',
+            name: 'get_weather',
+            description: 'Get the weather',
+            inputSchema: {
+              type: 'object',
+              properties: { city: { type: 'string' } },
+              required: ['city'],
+              additionalProperties: false,
+            },
+            providerOptions: {
+              openai: { async: true },
+            },
+          },
+        ],
+        toolChoice: undefined,
+        strictJsonSchema: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: 'Get the weather',
+          parameters: {
+            type: 'object',
+            properties: { city: { type: 'string' } },
+            required: ['city'],
+            additionalProperties: false,
+          },
+          strict: false,
+          async: true,
+        },
+      ]);
+    });
+
+    it('should omit async mode and warn for unsupported models', async () => {
+      const functionTool = {
+        type: 'function' as const,
+        name: 'get_weather',
+        inputSchema: { type: 'object' as const, properties: {} },
+        providerOptions: {
+          openai: { async: true },
+        },
+      };
+
+      const result = await prepareResponsesTools({
+        tools: [functionTool],
+        toolChoice: undefined,
+        strictJsonSchema: false,
+        supportsAsyncToolCalling: false,
+      });
+
+      expect(result.tools).toEqual([
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: { type: 'object', properties: {} },
+          strict: false,
+        },
+      ]);
+      expect(result.toolWarnings).toEqual([
+        {
+          type: 'unsupported-tool',
+          tool: functionTool,
+          details:
+            'Async tool calling is only supported by GPT-6 and later models.',
+        },
+      ]);
+    });
+  });
+
   describe('code interpreter', () => {
     it('should prepare code interpreter tool with no container (auto mode)', async () => {
       const result = await prepareResponsesTools({
@@ -469,6 +546,7 @@ describe('prepareResponsesTools', () => {
               externalWebAccess: true,
               filters: {
                 allowedDomains: ['example.com', 'test.org'],
+                blockedDomains: ['blocked.example', 'blocked.test'],
               },
               searchContextSize: 'high',
               userLocation: {
@@ -496,6 +574,10 @@ describe('prepareResponsesTools', () => {
                   "example.com",
                   "test.org",
                 ],
+                "blocked_domains": [
+                  "blocked.example",
+                  "blocked.test",
+                ],
               },
               "search_context_size": "high",
               "type": "web_search",
@@ -512,7 +594,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should prepare web_search tool with filters but no externalWebAccess', async () => {
+    it('should prepare web_search tool with blocked domains', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -521,7 +603,7 @@ describe('prepareResponsesTools', () => {
             name: 'web_search',
             args: {
               filters: {
-                allowedDomains: ['example.com'],
+                blockedDomains: ['example.com'],
               },
             },
           },
@@ -537,7 +619,8 @@ describe('prepareResponsesTools', () => {
             {
               "external_web_access": undefined,
               "filters": {
-                "allowed_domains": [
+                "allowed_domains": undefined,
+                "blocked_domains": [
                   "example.com",
                 ],
               },

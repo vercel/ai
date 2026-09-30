@@ -763,4 +763,56 @@ describe('simulateStreamingMiddleware', () => {
       ]
     `);
   });
+
+  it('should preserve provider metadata from generated text', async () => {
+    const providerMetadata = {
+      testProvider: {
+        signature: 'test-signature',
+      },
+    };
+    const mockModel = new MockLanguageModelV2({
+      async doGenerate() {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'This is a test response',
+              providerMetadata,
+            },
+          ],
+          finishReason: 'stop',
+          usage: testUsage,
+          warnings: [],
+        };
+      },
+    });
+
+    const result = streamText({
+      model: wrapLanguageModel({
+        model: mockModel,
+        middleware: simulateStreamingMiddleware(),
+      }),
+      ...DEFAULT_SETTINGs,
+    });
+
+    expect(await result.content).toEqual([
+      {
+        type: 'text',
+        text: 'This is a test response',
+        providerMetadata,
+      },
+    ]);
+    expect((await result.response).messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: 'This is a test response',
+            providerOptions: providerMetadata,
+          },
+        ],
+      },
+    ]);
+  });
 });

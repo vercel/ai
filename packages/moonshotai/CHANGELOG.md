@@ -1,5 +1,157 @@
 # @ai-sdk/moonshotai
 
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 0.0.24
+
+### Patch Changes
+
+- 9391f70: Add first-class Moonshot V1 auto and vision-preview model IDs while preserving custom and retired model ID support.
+- e8a4fca: feat(provider/moonshotai): support Partial Mode for final assistant message prefixes
+- 51f05ce: feat(provider/moonshotai): support chat log probabilities
+- 497745e: Preserve Moonshot chat response metadata for generated and streamed responses.
+- ff9e44b: Preserve documented Moonshot API error codes in HTTP and streaming errors.
+- 30a28c2: Add provider-specific names for Moonshot AI system, user, and assistant messages.
+- a5854a9: Add support for Moonshot predicted outputs.
+- b909d7a: Support Kimi K3 dynamic tool-loading system messages.
+
+## 0.0.23
+
+### Patch Changes
+
+- 71b1bb5: fix(provider/moonshotai): send max output tokens with the current Moonshot request field
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 0.0.22
+
+### Patch Changes
+
+- cef6cbe: Normalize Moonshot structured output schemas and enable strict validation by default.
+- c4c0ba6: Use native JSON Schema structured outputs for official Moonshot V1 models.
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 0.0.21
+
+### Patch Changes
+
+- 2836c36: fix(provider/moonshotai): align thinking and reasoning options by model
+- 104d4e2: fix(provider/moonshotai): omit unsupported sampling parameters for Kimi models
+- 47a3944: Omit required tool choice with a warning for Moonshot Kimi models that reject it.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 0.0.20
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/openai-compatible@1.0.47
+
+## 0.0.17
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/openai-compatible@1.0.46
+
+## 0.0.16
+
+### Patch Changes
+
+- 819c7c0: feat: add kimi-k3 model and `reasoningEffort` provider option
+- Updated dependencies [21eef03]
+  - @ai-sdk/openai-compatible@1.0.45
+
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies [514775f]
+  - @ai-sdk/openai-compatible@1.0.44
+
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/openai-compatible@1.0.43
+
 ## 0.0.13
 
 ### Patch Changes
