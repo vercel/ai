@@ -10,6 +10,7 @@ import type {
 import {
   type ModelMessage,
   type Tool,
+  DelayedPromise,
   delay,
   dynamicTool,
   jsonSchema,
@@ -351,6 +352,159 @@ describe('streamText', () => {
     logWarningsSpy.mockRestore();
   });
 
+  it('should reject calls to inactive tools without executing them', async () => {
+    const execute = vi.fn(async () => 'result');
+    let providerToolCount: number | undefined;
+
+    const result = streamText({
+      model: new MockLanguageModelV2({
+        doStream: async ({ tools }) => {
+          providerToolCount = tools?.length;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      activeTools: [],
+    });
+
+    await result.consumeStream();
+
+    const [toolCall] = await result.toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCount,
+      toolCall: {
+        type: toolCall.type,
+        toolName: toolCall.toolName,
+        invalid: toolCall.invalid,
+        error: toolCall.invalid ? toolCall.error : undefined,
+      },
+      toolResults: await result.toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 0,
+        "providerToolCount": 0,
+        "toolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "toolResults": [],
+      }
+    `);
+  });
+
+  it('should apply prepareStep activeTools to tool execution', async () => {
+    const execute = vi.fn(async () => 'result');
+    const providerToolCounts: Array<number | undefined> = [];
+    let modelCallCount = 0;
+
+    const result = streamText({
+      model: new MockLanguageModelV2({
+        doStream: async ({ tools }) => {
+          providerToolCounts.push(tools?.length);
+          modelCallCount++;
+
+          return {
+            stream: convertArrayToReadableStream([
+              {
+                type: 'tool-call',
+                toolCallId: `call-${modelCallCount}`,
+                toolName: 'weather',
+                input: JSON.stringify({ location: 'Basel' }),
+              },
+              {
+                type: 'finish',
+                finishReason: 'tool-calls',
+                usage: testUsage,
+              },
+            ]),
+          };
+        },
+      }),
+      tools: {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          execute,
+        }),
+      },
+      prompt: 'test-input',
+      prepareStep: ({ stepNumber }) =>
+        stepNumber === 1 ? { activeTools: [] } : undefined,
+      stopWhen: stepCountIs(2),
+    });
+
+    await result.consumeStream();
+    const steps = await result.steps;
+    const [secondStepToolCall] = steps[1].toolCalls;
+
+    expect({
+      executeCallCount: execute.mock.calls.length,
+      providerToolCounts,
+      firstStepToolResults: steps[0].toolResults,
+      secondStepToolCall: {
+        type: secondStepToolCall.type,
+        toolName: secondStepToolCall.toolName,
+        invalid: secondStepToolCall.invalid,
+        error: secondStepToolCall.invalid
+          ? secondStepToolCall.error
+          : undefined,
+      },
+      secondStepToolResults: steps[1].toolResults,
+    }).toMatchInlineSnapshot(`
+      {
+        "executeCallCount": 1,
+        "firstStepToolResults": [
+          {
+            "input": {
+              "location": "Basel",
+            },
+            "output": "result",
+            "providerExecuted": undefined,
+            "providerMetadata": undefined,
+            "toolCallId": "call-1",
+            "toolName": "weather",
+            "type": "tool-result",
+          },
+        ],
+        "providerToolCounts": [
+          1,
+          0,
+        ],
+        "secondStepToolCall": {
+          "error": [AI_NoSuchToolError: Model tried to call unavailable tool 'weather'. Available tools: .],
+          "invalid": true,
+          "toolName": "weather",
+          "type": "tool-call",
+        },
+        "secondStepToolResults": [],
+      }
+    `);
+  });
+
   describe('result.textStream', () => {
     it('should send text deltas', async () => {
       const result = streamText({
@@ -534,6 +688,55 @@ describe('streamText', () => {
             },
           ]
         `);
+    });
+
+    it('should preserve provider metadata from empty text deltas', async () => {
+      const providerMetadata = {
+        testProvider: { signature: 'test-signature' },
+      };
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-delta', id: '1', delta: '' },
+            {
+              type: 'text-delta',
+              id: '1',
+              delta: '',
+              providerMetadata,
+            },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        experimental_output: text(),
+        prompt: 'test-input',
+      });
+
+      const fullStream = await convertAsyncIterableToArray(result.fullStream);
+
+      expect(
+        fullStream.filter(
+          chunk => chunk.type === 'text-delta' && chunk.text === '',
+        ),
+      ).toStrictEqual([
+        {
+          type: 'text-delta',
+          id: '1',
+          text: '',
+          providerMetadata,
+        },
+      ]);
+      expect((await result.steps)[0].content).toContainEqual({
+        type: 'text',
+        text: 'Hello',
+        providerMetadata,
+      });
     });
 
     it('should send reasoning deltas', async () => {
@@ -2304,6 +2507,79 @@ describe('streamText', () => {
         `);
     });
 
+    it('should report completed UI message stream outcomes', async () => {
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      await convertReadableStreamToArray(
+        result.toUIMessageStream({ onFinish }),
+      );
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'completed',
+      });
+    });
+
+    it('should report message metadata failures as failed exactly once', async () => {
+      const metadataError = new Error('message metadata failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel(),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(
+          result.toUIMessageStream({
+            messageMetadata: () => {
+              throw metadataError;
+            },
+            onFinish,
+          }),
+        ),
+      ).rejects.toBe(metadataError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: metadataError,
+      });
+    });
+
+    it('should report UI chunk conversion failures as failed exactly once', async () => {
+      const conversionError = new Error('UI chunk conversion failed');
+      const onFinish = vi.fn();
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'error', error: new Error('generation failed') },
+          ]),
+        }),
+        ...defaultSettings(),
+      });
+
+      await expect(
+        convertReadableStreamToArray(
+          result.toUIMessageStream({
+            onError: () => {
+              throw conversionError;
+            },
+            onFinish,
+          }),
+        ),
+      ).rejects.toBe(conversionError);
+
+      expect(onFinish).toHaveBeenCalledTimes(1);
+      expect(onFinish.mock.calls[0][0].outcome).toEqual({
+        status: 'failed',
+        error: conversionError,
+      });
+    });
+
     it('should create a ui message stream with provider metadata', async () => {
       const result = streamText({
         model: createTestModel({
@@ -3278,6 +3554,7 @@ describe('streamText', () => {
       expect(textPart.text).toContain('Streaming'); // Partial content
       expect(textPart.state).toBe('streaming');
       expect(callArgs.isAborted).toBe(false); // Stream was cancelled, not aborted
+      expect(callArgs.outcome).toEqual({ status: 'unknown' });
     });
 
     it('should call onFinish when async iteration stops mid-stream', async () => {
@@ -3348,6 +3625,7 @@ describe('streamText', () => {
       expect(textPart.text).toContain('First chunk'); // Should have at least the first parts
       expect(textPart.state).toBe('streaming');
       expect(callArgs.isAborted).toBe(false); // No explicit abort, just stopped iteration
+      expect(callArgs.outcome).toEqual({ status: 'unknown' });
     });
 
     it('should call onFinish when stream is aborted via AbortController', async () => {
@@ -3432,6 +3710,7 @@ describe('streamText', () => {
       expect(textPart).toBeDefined();
       expect(textPart.text).toBe(''); // Text was not streamed yet when aborted
       expect(callArgs.isAborted).toBe(true); // Stream was aborted
+      expect(callArgs.outcome).toEqual({ status: 'aborted' });
 
       reader.releaseLock();
     });
@@ -4802,6 +5081,12 @@ describe('streamText', () => {
             "type": "tool-call",
           },
           {
+            "id": "4",
+            "providerMetadata": undefined,
+            "text": " World",
+            "type": "text-delta",
+          },
+          {
             "input": {
               "value": "test",
             },
@@ -4816,14 +5101,44 @@ describe('streamText', () => {
             "toolName": "tool1",
             "type": "tool-result",
           },
-          {
-            "id": "4",
-            "providerMetadata": undefined,
-            "text": " World",
-            "type": "text-delta",
-          },
         ]
       `);
+    });
+
+    it('should continue stream processing when onChunk throws', async () => {
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onChunk({ chunk }) {
+          if (chunk.type === 'text-delta') {
+            throw new Error('callback error');
+          }
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.textStream),
+      ).resolves.toStrictEqual(['Hello']);
+      await expect(resultObject.finishReason).resolves.toBe('stop');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -4846,6 +5161,42 @@ describe('streamText', () => {
       await resultObject.consumeStream();
 
       expect(result).toStrictEqual([{ error: new Error('test error') }]);
+    });
+
+    it('should preserve error parts and finish callbacks when onError throws', async () => {
+      const error = new Error('provider error');
+      const onStepFinish = vi.fn();
+      const onFinish = vi.fn();
+
+      const resultObject = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'error', error },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: 'error',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+        onError() {
+          throw new Error('callback error');
+        },
+        onStepFinish,
+        onFinish,
+      });
+
+      await expect(
+        convertAsyncIterableToArray(resultObject.fullStream),
+      ).resolves.toContainEqual({ type: 'error', error });
+      await expect(resultObject.finishReason).resolves.toBe('error');
+      await expect(resultObject.steps).resolves.toHaveLength(1);
+      expect(onStepFinish).toHaveBeenCalledOnce();
+      expect(onFinish).toHaveBeenCalledOnce();
     });
   });
 
@@ -9444,6 +9795,48 @@ describe('streamText', () => {
       expect(tracer.jsonSpans).toMatchSnapshot();
     });
 
+    it('should end telemetry spans once after a model call fails', async () => {
+      const result = streamText({
+        model: new MockLanguageModelV2({
+          doStream: async () => {
+            throw new Error('model call failed');
+          },
+        }),
+        maxRetries: 0,
+        prompt: 'test-input',
+        experimental_telemetry: { isEnabled: true, tracer },
+        onError: () => {},
+      });
+
+      const parts = await convertAsyncIterableToArray(result.fullStream);
+      const rootSpan = tracer.spans.find(span => span.name === 'ai.streamText');
+
+      expect(parts.map(part => part.type)).toEqual(['start', 'error']);
+      expect(
+        tracer.spans.map(span => ({
+          name: span.name,
+          endCalls: span.endCalls,
+          status: span.status,
+        })),
+      ).toEqual([
+        {
+          name: 'ai.streamText',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+        {
+          name: 'ai.streamText.doStream',
+          endCalls: 1,
+          status: { code: 2, message: 'model call failed' },
+        },
+      ]);
+
+      // The provider rejected before producing a finish part or usage, so
+      // failure telemetry must not fabricate response metadata.
+      expect(rootSpan?.attributes['ai.response.finishReason']).toBeUndefined();
+      expect(rootSpan?.attributes['ai.usage.totalTokens']).toBeUndefined();
+    });
+
     it('should record successful tool call', async () => {
       const result = streamText({
         model: createTestModel({
@@ -9481,6 +9874,55 @@ describe('streamText', () => {
       await result.consumeStream();
 
       expect(tracer.jsonSpans).toMatchSnapshot();
+    });
+
+    it('should record telemetry metadata on tool call spans', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              modelId: 'mock-model-id',
+              timestamp: new Date(0),
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'tool1',
+              input: `{ "value": "value" }`,
+            },
+            {
+              type: 'finish',
+              finishReason: 'stop',
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          tool1: {
+            inputSchema: z.object({ value: z.string() }),
+            execute: async ({ value }) => `${value}-result`,
+          },
+        },
+        prompt: 'test-input',
+        experimental_telemetry: {
+          isEnabled: true,
+          metadata: { requestId: 'request-1' },
+          tracer,
+        },
+        _internal: { now: mockValues(0, 100, 500) },
+      });
+
+      await result.consumeStream();
+
+      const toolCallSpan = tracer.jsonSpans.find(
+        span => span.name === 'ai.toolCall',
+      );
+
+      expect(toolCallSpan?.attributes).toMatchObject({
+        'ai.telemetry.metadata.requestId': 'request-1',
+      });
     });
 
     it('should record error on tool call', async () => {
@@ -11276,6 +11718,12 @@ describe('streamText', () => {
               "type": "tool-call",
             },
             {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": " WORLD",
+              "type": "text-delta",
+            },
+            {
               "input": {
                 "value": "TEST",
               },
@@ -11285,12 +11733,6 @@ describe('streamText', () => {
               "toolCallId": "call-1",
               "toolName": "tool1",
               "type": "tool-result",
-            },
-            {
-              "id": "1",
-              "providerMetadata": undefined,
-              "text": " WORLD",
-              "type": "text-delta",
             },
           ]
         `);
@@ -12607,10 +13049,16 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -12620,7 +13068,7 @@ describe('streamText', () => {
           model: new MockLanguageModelV2({
             doStream: async () => ({
               stream: new ReadableStream({
-                pull(controller) {
+                async pull(controller) {
                   switch (pullCalls++) {
                     case 0:
                       controller.enqueue({
@@ -12642,6 +13090,8 @@ describe('streamText', () => {
                       });
                       break;
                     case 3:
+                      // Wait for the chunk to reach the output before aborting.
+                      await textChunkReceived.promise;
                       abortController.abort();
                       controller.error(
                         new DOMException(
@@ -12688,6 +13138,16 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -12703,6 +13163,15 @@ describe('streamText', () => {
             },
             {
               "type": "start-step",
+            },
+            {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
             },
             {
               "type": "abort",
@@ -12722,11 +13191,17 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const textChunkReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'text-delta') {
+              textChunkReceived.resolve();
+            }
+          },
           onAbort: event => {
             onAbortCalls.push(event);
           },
@@ -12737,7 +13212,7 @@ describe('streamText', () => {
                   streamCalls++;
                   pullCalls = 0;
                 },
-                pull(controller) {
+                async pull(controller) {
                   if (streamCalls === 1) {
                     switch (pullCalls++) {
                       case 0:
@@ -12785,6 +13260,8 @@ describe('streamText', () => {
                         });
                         break;
                       case 3:
+                        // Wait for the chunk to reach the output before aborting.
+                        await textChunkReceived.promise;
                         abortController.abort();
                         controller.error(
                           new DOMException(
@@ -12959,6 +13436,16 @@ describe('streamText', () => {
               "warnings": [],
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "id": "1",
+              "providerMetadata": undefined,
+              "text": "Hello",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -12995,6 +13482,15 @@ describe('streamText', () => {
               "type": "start-step",
             },
             {
+              "id": "1",
+              "type": "text-start",
+            },
+            {
+              "delta": "Hello",
+              "id": "1",
+              "type": "text-delta",
+            },
+            {
               "type": "abort",
             },
           ]
@@ -13012,12 +13508,18 @@ describe('streamText', () => {
         onAbortCalls = [];
 
         const abortController = new AbortController();
+        const toolCallReceived = new DelayedPromise<void>();
         let pullCalls = 0;
         let streamCalls = 0;
 
         result = streamText({
           ...defaultSettings(),
           abortSignal: abortController.signal,
+          onChunk({ chunk }) {
+            if (chunk.type === 'tool-call') {
+              toolCallReceived.resolve();
+            }
+          },
           onError: error => {
             onErrorCalls.push({ error });
           },
@@ -13099,6 +13601,8 @@ describe('streamText', () => {
             tool1: {
               inputSchema: z.object({ value: z.string() }),
               execute: async () => {
+                // Wait for the tool call to reach the output before aborting.
+                await toolCallReceived.promise;
                 abortController.abort();
                 return 'result1';
               },
@@ -13130,6 +13634,21 @@ describe('streamText', () => {
           [
             {
               "type": "start",
+            },
+            {
+              "request": {},
+              "type": "start-step",
+              "warnings": [],
+            },
+            {
+              "input": {
+                "value": "value",
+              },
+              "providerExecuted": undefined,
+              "providerMetadata": undefined,
+              "toolCallId": "call-1",
+              "toolName": "tool1",
+              "type": "tool-call",
             },
             {
               "type": "abort",
@@ -13776,2070 +14295,6 @@ describe('streamText', () => {
     });
   });
 
-<<<<<<< HEAD
-=======
-  describe('provider-executed dynamic tools', () => {
-    describe('single provider-executed dynamic tool with input streaming', () => {
-      let result: StreamTextResult<any, any>;
-
-      beforeEach(async () => {
-        result = streamText({
-          model: createTestModel({
-            stream: convertArrayToReadableStream([
-              { type: 'stream-start', warnings: [] },
-              {
-                type: 'tool-input-start',
-                id: 'call-1',
-                toolName: 'cityAttractions',
-                providerExecuted: true,
-                dynamic: true,
-                providerMetadata: {
-                  anthropic: {
-                    serverName: 'echo',
-                  },
-                },
-              },
-              {
-                type: 'tool-input-delta',
-                id: 'call-1',
-                delta: `{ "city": "San Francisco" }`,
-              },
-              {
-                type: 'tool-input-end',
-                id: 'call-1',
-              },
-              {
-                type: 'tool-call',
-                toolCallId: 'call-1',
-                toolName: 'cityAttractions',
-                input: `{ "city": "San Francisco" }`,
-                providerExecuted: true,
-                dynamic: true,
-                providerMetadata: {
-                  anthropic: {
-                    serverName: 'echo',
-                  },
-                },
-              },
-              {
-                type: 'tool-result',
-                toolCallId: 'call-1',
-                toolName: 'cityAttractions',
-                input: `{ "city": "San Francisco" }`,
-                result: {
-                  status: 'success',
-                  text: 'The weather in San Francisco is 72°F',
-                },
-                providerExecuted: true,
-                dynamic: true,
-                providerMetadata: {
-                  anthropic: {
-                    serverName: 'echo',
-                  },
-                },
-              },
-              {
-                type: 'finish',
-                finishReason: { unified: 'stop', raw: 'stop' },
-                usage: testUsage,
-              },
-            ]),
-          }),
-          prompt: 'test-input',
-          _internal: {
-            generateId: mockId(),
-          },
-        });
-      });
-
-      it('should set dynamic and providerExecuted in full stream', async () => {
-        expect(await convertAsyncIterableToArray(result.fullStream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "request": {},
-                "type": "start-step",
-                "warnings": [],
-              },
-              {
-                "dynamic": true,
-                "id": "call-1",
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "title": undefined,
-                "toolName": "cityAttractions",
-                "type": "tool-input-start",
-              },
-              {
-                "delta": "{ "city": "San Francisco" }",
-                "id": "call-1",
-                "type": "tool-input-delta",
-              },
-              {
-                "id": "call-1",
-                "type": "tool-input-end",
-              },
-              {
-                "dynamic": true,
-                "input": {
-                  "city": "San Francisco",
-                },
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-call",
-              },
-              {
-                "dynamic": true,
-                "input": {
-                  "city": "San Francisco",
-                },
-                "output": {
-                  "status": "success",
-                  "text": "The weather in San Francisco is 72°F",
-                },
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-result",
-              },
-              {
-                "finishReason": "stop",
-                "providerMetadata": undefined,
-                "rawFinishReason": "stop",
-                "response": {
-                  "headers": undefined,
-                  "id": "id-0",
-                  "modelId": "mock-model-id",
-                  "timestamp": 1970-01-01T00:00:00.000Z,
-                },
-                "type": "finish-step",
-                "usage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "raw": undefined,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
-              },
-              {
-                "finishReason": "stop",
-                "rawFinishReason": "stop",
-                "totalUsage": {
-                  "cachedInputTokens": undefined,
-                  "inputTokenDetails": {
-                    "cacheReadTokens": undefined,
-                    "cacheWriteTokens": undefined,
-                    "noCacheTokens": 3,
-                  },
-                  "inputTokens": 3,
-                  "outputTokenDetails": {
-                    "reasoningTokens": undefined,
-                    "textTokens": 10,
-                  },
-                  "outputTokens": 10,
-                  "reasoningTokens": undefined,
-                  "totalTokens": 13,
-                },
-                "type": "finish",
-              },
-            ]
-          `);
-      });
-
-      it('should set dynamic and providerExecuted in ui message stream', async () => {
-        expect(await convertAsyncIterableToArray(result.toUIMessageStream()))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "start",
-              },
-              {
-                "type": "start-step",
-              },
-              {
-                "dynamic": true,
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-input-start",
-              },
-              {
-                "inputTextDelta": "{ "city": "San Francisco" }",
-                "toolCallId": "call-1",
-                "type": "tool-input-delta",
-              },
-              {
-                "dynamic": true,
-                "input": {
-                  "city": "San Francisco",
-                },
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "toolCallId": "call-1",
-                "toolName": "cityAttractions",
-                "type": "tool-input-available",
-              },
-              {
-                "dynamic": true,
-                "output": {
-                  "status": "success",
-                  "text": "The weather in San Francisco is 72°F",
-                },
-                "providerExecuted": true,
-                "providerMetadata": {
-                  "anthropic": {
-                    "serverName": "echo",
-                  },
-                },
-                "toolCallId": "call-1",
-                "type": "tool-output-available",
-              },
-              {
-                "type": "finish-step",
-              },
-              {
-                "finishReason": "stop",
-                "type": "finish",
-              },
-            ]
-          `);
-      });
-
-      it('should set dynamic and providerExecuted in content', async () => {
-        expect(await result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "dynamic": true,
-              "input": {
-                "city": "San Francisco",
-              },
-              "providerExecuted": true,
-              "providerMetadata": {
-                "anthropic": {
-                  "serverName": "echo",
-                },
-              },
-              "toolCallId": "call-1",
-              "toolName": "cityAttractions",
-              "type": "tool-call",
-            },
-            {
-              "dynamic": true,
-              "input": {
-                "city": "San Francisco",
-              },
-              "output": {
-                "status": "success",
-                "text": "The weather in San Francisco is 72°F",
-              },
-              "providerExecuted": true,
-              "providerMetadata": {
-                "anthropic": {
-                  "serverName": "echo",
-                },
-              },
-              "toolCallId": "call-1",
-              "toolName": "cityAttractions",
-              "type": "tool-result",
-            },
-          ]
-        `);
-      });
-    });
-  });
-
-  describe('programmatic tool calling', () => {
-    describe('5 steps: code_execution triggers client tool across multiple turns (dice game fixture)', () => {
-      let result: StreamTextResult<any, any>;
-      let onFinishResult: Parameters<StreamTextOnFinishCallback<any>>[0];
-      let onStepFinishResults: StepResult<any>[];
-      let doStreamCalls: Array<LanguageModelV3CallOptions>;
-      let prepareStepCalls: Array<{
-        modelId: string;
-        stepNumber: number;
-        steps: Array<StepResult<any>>;
-        messages: Array<ModelMessage>;
-      }>;
-      let rollDieExecutions: Array<{ player: string }>;
-
-      // Fixture-based tool call IDs (from anthropic-programmatic-tool-calling.1.chunks.txt)
-      const CODE_EXEC_ID = 'srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK';
-      const CONTAINER_ID = 'container_011CWHPPTDTn1XufeRB9uHeH';
-
-      beforeEach(async () => {
-        onFinishResult = undefined as any;
-        onStepFinishResults = [];
-        doStreamCalls = [];
-        prepareStepCalls = [];
-        rollDieExecutions = [];
-
-        let responseCount = 0;
-
-        result = streamText({
-          model: new MockLanguageModelV3({
-            doStream: async options => {
-              doStreamCalls.push(options);
-
-              switch (responseCount++) {
-                case 0:
-                  // Step 1: text + server_tool_use (code_execution) + rollDie call
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg_01ERcBqAvLTHWQDk9c9qJLWC',
-                        modelId: 'claude-sonnet-4-5-20250929',
-                        timestamp: new Date(0),
-                      },
-                      { type: 'text-start', id: '1' },
-                      {
-                        type: 'text-delta',
-                        id: '1',
-                        delta:
-                          "I'll help you simulate this game between two players where one is using a loaded die.",
-                      },
-                      { type: 'text-end', id: '1' },
-                      {
-                        type: 'tool-call',
-                        toolCallId: CODE_EXEC_ID,
-                        toolName: 'code_execution',
-                        input: `{"type":"programmatic-tool-call","code":"game_loop()"}`,
-                        providerExecuted: true,
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallId: 'toolu_019jKkXz4jAdwHweHBw92CVY',
-                        toolName: 'rollDie',
-                        input: `{ "player": "player1" }`,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'tool-calls', raw: undefined },
-                        usage: {
-                          inputTokens: {
-                            total: 3369,
-                            noCache: 3369,
-                            cacheRead: undefined,
-                            cacheWrite: undefined,
-                          },
-                          outputTokens: {
-                            total: 725,
-                            text: 725,
-                            reasoning: undefined,
-                          },
-                        },
-                        providerMetadata: {
-                          anthropic: {
-                            container: { id: CONTAINER_ID },
-                          },
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '1' } },
-                  };
-
-                case 1:
-                  // Step 2: rollDie call (player2)
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg_01KSVw3xmXbMNJPNMt46BC5W',
-                        modelId: 'claude-sonnet-4-5-20250929',
-                        timestamp: new Date(1000),
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallId: 'toolu_015dGLMbwBKv1ZRQr6KdJzeH',
-                        toolName: 'rollDie',
-                        input: `{ "player": "player2" }`,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'tool-calls', raw: undefined },
-                        usage: {
-                          inputTokens: {
-                            total: 0,
-                            noCache: 0,
-                            cacheRead: undefined,
-                            cacheWrite: undefined,
-                          },
-                          outputTokens: {
-                            total: 0,
-                            text: 0,
-                            reasoning: undefined,
-                          },
-                        },
-                        providerMetadata: {
-                          anthropic: {
-                            container: { id: CONTAINER_ID },
-                          },
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '2' } },
-                  };
-
-                case 2:
-                  // Step 3: rollDie calls (round 2)
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg_016fLapHzDx8DG2SUcsGKyPA',
-                        modelId: 'claude-sonnet-4-5-20250929',
-                        timestamp: new Date(2000),
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallId: 'toolu_01YYqBNq5mk1wMtv3PAqY44m',
-                        toolName: 'rollDie',
-                        input: `{ "player": "player1" }`,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'tool-calls', raw: undefined },
-                        usage: {
-                          inputTokens: {
-                            total: 0,
-                            noCache: 0,
-                            cacheRead: undefined,
-                            cacheWrite: undefined,
-                          },
-                          outputTokens: {
-                            total: 0,
-                            text: 0,
-                            reasoning: undefined,
-                          },
-                        },
-                        providerMetadata: {
-                          anthropic: {
-                            container: { id: CONTAINER_ID },
-                          },
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '3' } },
-                  };
-
-                case 3:
-                  // Step 4: more rollDie calls
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg_01MQHz6AzmwmZoTry5nk5EQC',
-                        modelId: 'claude-sonnet-4-5-20250929',
-                        timestamp: new Date(3000),
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallId: 'toolu_018WxjDkQG8h7i63poySGT2x',
-                        toolName: 'rollDie',
-                        input: `{ "player": "player2" }`,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'tool-calls', raw: undefined },
-                        usage: {
-                          inputTokens: {
-                            total: 0,
-                            noCache: 0,
-                            cacheRead: undefined,
-                            cacheWrite: undefined,
-                          },
-                          outputTokens: {
-                            total: 0,
-                            text: 0,
-                            reasoning: undefined,
-                          },
-                        },
-                        providerMetadata: {
-                          anthropic: {
-                            container: { id: CONTAINER_ID },
-                          },
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '4' } },
-                  };
-
-                case 4:
-                  // Step 5: code_execution_tool_result + final text
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg_01CfmDducyrt61n4Q7QS8VFK',
-                        modelId: 'claude-sonnet-4-5-20250929',
-                        timestamp: new Date(4000),
-                      },
-                      {
-                        type: 'tool-result',
-                        toolCallId: CODE_EXEC_ID,
-                        toolName: 'code_execution',
-                        result: {
-                          type: 'code_execution_result',
-                          stdout:
-                            '=== DICE GAME: First to 3 Wins ===\n\n--- Round 1 ---\nPlayer 1 rolls: 5\nPlayer 2 rolls: 6\nPlayer 2 wins this round!\nScore: Player 1 = 0, Player 2 = 1\n\n--- Round 2 ---\nPlayer 1 rolls: 4\nPlayer 2 rolls: 6\nPlayer 2 wins this round!\nScore: Player 1 = 0, Player 2 = 2\n\n--- Round 3 ---\nPlayer 1 rolls: 5\nPlayer 2 rolls: 2\nPlayer 1 wins this round!\nScore: Player 1 = 1, Player 2 = 2\n\n--- Round 4 ---\nPlayer 1 rolls: 6\nPlayer 2 rolls: 6\nDraw! No one gets a point.\nScore: Player 1 = 1, Player 2 = 2\n\n--- Round 5 ---\nPlayer 1 rolls: 3\nPlayer 2 rolls: 2\nPlayer 1 wins this round!\nScore: Player 1 = 2, Player 2 = 2\n\n--- Round 6 ---\nPlayer 1 rolls: 6\nPlayer 2 rolls: 6\nDraw! No one gets a point.\nScore: Player 1 = 2, Player 2 = 2\n\n--- Round 7 ---\nPlayer 1 rolls: 2\nPlayer 2 rolls: 3\nPlayer 2 wins this round!\nScore: Player 1 = 2, Player 2 = 3\n\n========================================\n🏆 GAME OVER: Player 2 wins the game! (3-2)\n========================================\n\n📊 Analysis:\nTotal rounds played: 7\nPlayer 2 had better results - likely using the loaded die! 🎲\n',
-                          stderr: '',
-                          return_code: 0,
-                          content: [],
-                        },
-                        providerExecuted: true,
-                      },
-                      { type: 'text-start', id: '2' },
-                      {
-                        type: 'text-delta',
-                        id: '2',
-                        delta:
-                          '## Game Results\n\n**Player 2 wins the game 3-2!** 🏆\n\nThe game lasted 7 rounds with the following breakdown:\n- **Player 1**: 2 round wins\n- **Player 2**: 3 round wins\n- **Draws**: 2 rounds (both rolling 6)\n\nBased on the results, **Player 2 appears to be the one using the loaded die**.',
-                      },
-                      { type: 'text-end', id: '2' },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'stop', raw: 'stop' },
-                        usage: {
-                          inputTokens: {
-                            total: 4551,
-                            noCache: 4551,
-                            cacheRead: undefined,
-                            cacheWrite: undefined,
-                          },
-                          outputTokens: {
-                            total: 197,
-                            text: 197,
-                            reasoning: undefined,
-                          },
-                        },
-                      },
-                    ]),
-                    response: { headers: { call: '5' } },
-                  };
-
-                default:
-                  throw new Error(
-                    `Unexpected response count: ${responseCount}`,
-                  );
-              }
-            },
-          }),
-          tools: {
-            code_execution: {
-              type: 'provider',
-              id: 'anthropic.code_execution_20250825',
-              inputSchema: z.object({ code: z.string() }),
-              outputSchema: z.object({
-                stdout: z.string(),
-                stderr: z.string(),
-              }),
-              args: {},
-              supportsDeferredResults: true,
-            },
-            rollDie: tool({
-              description: 'Roll a die and return the result.',
-              inputSchema: z.object({
-                player: z.enum(['player1', 'player2']),
-              }),
-              execute: async ({ player }) => {
-                rollDieExecutions.push({ player });
-                return player === 'player1' ? 6 : 3;
-              },
-              providerOptions: {
-                anthropic: {
-                  allowedCallers: ['code_execution_20250825'],
-                },
-              },
-            }),
-          },
-          prompt: 'Play a dice game between two players.',
-          stopWhen: stepCountIs(10),
-          onFinish: async event => {
-            onFinishResult = event as unknown as typeof onFinishResult;
-          },
-          onStepFinish: async event => {
-            onStepFinishResults.push(event);
-          },
-          prepareStep: async ({ model, stepNumber, steps, messages }) => {
-            prepareStepCalls.push({
-              modelId: typeof model === 'string' ? model : model.modelId,
-              stepNumber,
-              steps: [...steps],
-              messages: [...messages],
-            });
-
-            // Forward container ID from previous step (simulating forwardAnthropicContainerIdFromLastStep)
-            if (stepNumber > 0 && steps.length > 0) {
-              const lastStep = steps[steps.length - 1];
-              const containerId = (
-                lastStep.providerMetadata?.anthropic as
-                  | { container?: { id?: string } }
-                  | undefined
-              )?.container?.id;
-
-              if (containerId) {
-                return {
-                  providerOptions: {
-                    anthropic: {
-                      container: { id: containerId },
-                    },
-                  },
-                };
-              }
-            }
-            return undefined;
-          },
-        });
-      });
-
-      describe('step inputs', () => {
-        it('should send correct prompt in step 1', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[0].prompt).toMatchInlineSnapshot(`
-            [
-              {
-                "content": [
-                  {
-                    "text": "Play a dice game between two players.",
-                    "type": "text",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "user",
-              },
-            ]
-          `);
-        });
-
-        it('should send correct tools in step 1', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[0].tools).toMatchInlineSnapshot(`
-            [
-              {
-                "args": {},
-                "id": "anthropic.code_execution_20250825",
-                "name": "code_execution",
-                "type": "provider",
-              },
-              {
-                "description": "Roll a die and return the result.",
-                "inputSchema": {
-                  "$schema": "http://json-schema.org/draft-07/schema#",
-                  "additionalProperties": false,
-                  "properties": {
-                    "player": {
-                      "enum": [
-                        "player1",
-                        "player2",
-                      ],
-                      "type": "string",
-                    },
-                  },
-                  "required": [
-                    "player",
-                  ],
-                  "type": "object",
-                },
-                "name": "rollDie",
-                "providerOptions": {
-                  "anthropic": {
-                    "allowedCallers": [
-                      "code_execution_20250825",
-                    ],
-                  },
-                },
-                "type": "function",
-              },
-            ]
-          `);
-        });
-
-        it('should include assistant messages and tool results in step 2 prompt', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[1].prompt).toMatchInlineSnapshot(`
-            [
-              {
-                "content": [
-                  {
-                    "text": "Play a dice game between two players.",
-                    "type": "text",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
-                    "type": "text",
-                  },
-                  {
-                    "input": {
-                      "code": "game_loop()",
-                    },
-                    "providerExecuted": true,
-                    "providerOptions": undefined,
-                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                    "toolName": "code_execution",
-                    "type": "tool-call",
-                  },
-                  {
-                    "input": {
-                      "player": "player1",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 6,
-                    },
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "tool",
-              },
-            ]
-          `);
-        });
-
-        it('should include all previous messages in step 3 prompt (round 2)', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[2].prompt).toMatchInlineSnapshot(`
-            [
-              {
-                "content": [
-                  {
-                    "text": "Play a dice game between two players.",
-                    "type": "text",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "user",
-              },
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
-                    "type": "text",
-                  },
-                  {
-                    "input": {
-                      "code": "game_loop()",
-                    },
-                    "providerExecuted": true,
-                    "providerOptions": undefined,
-                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                    "toolName": "code_execution",
-                    "type": "tool-call",
-                  },
-                  {
-                    "input": {
-                      "player": "player1",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 6,
-                    },
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "tool",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "player": "player2",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 3,
-                    },
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "providerOptions": undefined,
-                "role": "tool",
-              },
-            ]
-          `);
-        });
-
-        it('should forward container ID via providerOptions in step 2', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[1].providerOptions).toMatchInlineSnapshot(`
-            {
-              "anthropic": {
-                "container": {
-                  "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                },
-              },
-            }
-          `);
-        });
-
-        it('should include all previous messages in step 5 prompt (final step)', async () => {
-          await result.consumeStream();
-          expect(doStreamCalls[4].prompt).toMatchSnapshot();
-        });
-      });
-
-      describe('result.response.messages', () => {
-        it('should contain all response messages from all steps', async () => {
-          await result.consumeStream();
-          expect((await result.response).messages).toMatchInlineSnapshot(`
-            [
-              {
-                "content": [
-                  {
-                    "providerOptions": undefined,
-                    "text": "I'll help you simulate this game between two players where one is using a loaded die.",
-                    "type": "text",
-                  },
-                  {
-                    "input": {
-                      "code": "game_loop()",
-                    },
-                    "providerExecuted": true,
-                    "providerOptions": undefined,
-                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                    "toolName": "code_execution",
-                    "type": "tool-call",
-                  },
-                  {
-                    "input": {
-                      "player": "player1",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 6,
-                    },
-                    "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "player": "player2",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 3,
-                    },
-                    "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "player": "player1",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 6,
-                    },
-                    "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-              {
-                "content": [
-                  {
-                    "input": {
-                      "player": "player2",
-                    },
-                    "providerExecuted": undefined,
-                    "providerOptions": undefined,
-                    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
-                    "toolName": "rollDie",
-                    "type": "tool-call",
-                  },
-                ],
-                "role": "assistant",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": 3,
-                    },
-                    "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
-                    "toolName": "rollDie",
-                    "type": "tool-result",
-                  },
-                ],
-                "role": "tool",
-              },
-              {
-                "content": [
-                  {
-                    "output": {
-                      "type": "json",
-                      "value": {
-                        "content": [],
-                        "return_code": 0,
-                        "stderr": "",
-                        "stdout": "=== DICE GAME: First to 3 Wins ===
-
-            --- Round 1 ---
-            Player 1 rolls: 5
-            Player 2 rolls: 6
-            Player 2 wins this round!
-            Score: Player 1 = 0, Player 2 = 1
-
-            --- Round 2 ---
-            Player 1 rolls: 4
-            Player 2 rolls: 6
-            Player 2 wins this round!
-            Score: Player 1 = 0, Player 2 = 2
-
-            --- Round 3 ---
-            Player 1 rolls: 5
-            Player 2 rolls: 2
-            Player 1 wins this round!
-            Score: Player 1 = 1, Player 2 = 2
-
-            --- Round 4 ---
-            Player 1 rolls: 6
-            Player 2 rolls: 6
-            Draw! No one gets a point.
-            Score: Player 1 = 1, Player 2 = 2
-
-            --- Round 5 ---
-            Player 1 rolls: 3
-            Player 2 rolls: 2
-            Player 1 wins this round!
-            Score: Player 1 = 2, Player 2 = 2
-
-            --- Round 6 ---
-            Player 1 rolls: 6
-            Player 2 rolls: 6
-            Draw! No one gets a point.
-            Score: Player 1 = 2, Player 2 = 2
-
-            --- Round 7 ---
-            Player 1 rolls: 2
-            Player 2 rolls: 3
-            Player 2 wins this round!
-            Score: Player 1 = 2, Player 2 = 3
-
-            ========================================
-            🏆 GAME OVER: Player 2 wins the game! (3-2)
-            ========================================
-
-            📊 Analysis:
-            Total rounds played: 7
-            Player 2 had better results - likely using the loaded die! 🎲
-            ",
-                        "type": "code_execution_result",
-                      },
-                    },
-                    "providerOptions": undefined,
-                    "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                    "toolName": "code_execution",
-                    "type": "tool-result",
-                  },
-                  {
-                    "providerOptions": undefined,
-                    "text": "## Game Results
-
-            **Player 2 wins the game 3-2!** 🏆
-
-            The game lasted 7 rounds with the following breakdown:
-            - **Player 1**: 2 round wins
-            - **Player 2**: 3 round wins
-            - **Draws**: 2 rounds (both rolling 6)
-
-            Based on the results, **Player 2 appears to be the one using the loaded die**.",
-                    "type": "text",
-                  },
-                ],
-                "role": "assistant",
-              },
-            ]
-          `);
-        });
-      });
-
-      describe('result.toolCalls and result.toolResults', () => {
-        it('should return empty toolCalls from final step (no tool calls in step 3)', async () => {
-          expect(await result.toolCalls).toMatchInlineSnapshot(`[]`);
-        });
-
-        it('should return deferred tool results from final step', async () => {
-          expect(await result.toolResults).toMatchInlineSnapshot(`
-            [
-              {
-                "dynamic": undefined,
-                "input": undefined,
-                "output": {
-                  "content": [],
-                  "return_code": 0,
-                  "stderr": "",
-                  "stdout": "=== DICE GAME: First to 3 Wins ===
-
-            --- Round 1 ---
-            Player 1 rolls: 5
-            Player 2 rolls: 6
-            Player 2 wins this round!
-            Score: Player 1 = 0, Player 2 = 1
-
-            --- Round 2 ---
-            Player 1 rolls: 4
-            Player 2 rolls: 6
-            Player 2 wins this round!
-            Score: Player 1 = 0, Player 2 = 2
-
-            --- Round 3 ---
-            Player 1 rolls: 5
-            Player 2 rolls: 2
-            Player 1 wins this round!
-            Score: Player 1 = 1, Player 2 = 2
-
-            --- Round 4 ---
-            Player 1 rolls: 6
-            Player 2 rolls: 6
-            Draw! No one gets a point.
-            Score: Player 1 = 1, Player 2 = 2
-
-            --- Round 5 ---
-            Player 1 rolls: 3
-            Player 2 rolls: 2
-            Player 1 wins this round!
-            Score: Player 1 = 2, Player 2 = 2
-
-            --- Round 6 ---
-            Player 1 rolls: 6
-            Player 2 rolls: 6
-            Draw! No one gets a point.
-            Score: Player 1 = 2, Player 2 = 2
-
-            --- Round 7 ---
-            Player 1 rolls: 2
-            Player 2 rolls: 3
-            Player 2 wins this round!
-            Score: Player 1 = 2, Player 2 = 3
-
-            ========================================
-            🏆 GAME OVER: Player 2 wins the game! (3-2)
-            ========================================
-
-            📊 Analysis:
-            Total rounds played: 7
-            Player 2 had better results - likely using the loaded die! 🎲
-            ",
-                  "type": "code_execution_result",
-                },
-                "providerExecuted": true,
-                "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                "toolName": "code_execution",
-                "type": "tool-result",
-              },
-            ]
-          `);
-        });
-      });
-
-      describe('tool execution', () => {
-        it('should execute rollDie tool 4 times (twice per step for steps 1 and 2)', async () => {
-          await result.consumeStream();
-          expect(rollDieExecutions).toMatchInlineSnapshot(`
-            [
-              {
-                "player": "player1",
-              },
-              {
-                "player": "player2",
-              },
-              {
-                "player": "player1",
-              },
-              {
-                "player": "player2",
-              },
-            ]
-          `);
-        });
-      });
-
-      describe('result.steps', () => {
-        it('should contain 5 steps', async () => {
-          expect((await result.steps).length).toBe(5);
-        });
-
-        it('should have correct finishReason for each step', async () => {
-          const steps = await result.steps;
-          expect(steps[0].finishReason).toBe('tool-calls');
-          expect(steps[1].finishReason).toBe('tool-calls');
-          expect(steps[2].finishReason).toBe('tool-calls');
-          expect(steps[3].finishReason).toBe('tool-calls');
-          expect(steps[4].finishReason).toBe('stop');
-        });
-      });
-
-      describe('result.text', () => {
-        it('should return final text from last step', async () => {
-          expect(await result.text).toContain('Game Results');
-        });
-      });
-
-      describe('result.finishReason', () => {
-        it('should return stop from final step', async () => {
-          expect(await result.finishReason).toBe('stop');
-        });
-      });
-
-      describe('result.totalUsage', () => {
-        it('should sum token usage across all steps', async () => {
-          await result.consumeStream();
-          expect(await result.totalUsage).toMatchInlineSnapshot(`
-            {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 7920,
-              },
-              "inputTokens": 7920,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 922,
-              },
-              "outputTokens": 922,
-              "reasoningTokens": undefined,
-              "totalTokens": 8842,
-            }
-          `);
-        });
-      });
-
-      describe('prepareStep calls', () => {
-        it('should call prepareStep for each step with correct stepNumber', async () => {
-          await result.consumeStream();
-          expect(prepareStepCalls.length).toBe(5);
-          expect(prepareStepCalls[0].stepNumber).toBe(0);
-          expect(prepareStepCalls[1].stepNumber).toBe(1);
-          expect(prepareStepCalls[2].stepNumber).toBe(2);
-          expect(prepareStepCalls[3].stepNumber).toBe(3);
-          expect(prepareStepCalls[4].stepNumber).toBe(4);
-        });
-
-        it('should pass empty steps array for first prepareStep call', async () => {
-          await result.consumeStream();
-          expect(prepareStepCalls[0].steps.length).toBe(0);
-        });
-
-        it('should pass accumulated steps to subsequent prepareStep calls', async () => {
-          await result.consumeStream();
-          expect(prepareStepCalls[1].steps.length).toBe(1);
-          expect(prepareStepCalls[2].steps.length).toBe(2);
-          expect(prepareStepCalls[3].steps.length).toBe(3);
-          expect(prepareStepCalls[4].steps.length).toBe(4);
-        });
-
-        it('should pass accumulated messages to prepareStep', async () => {
-          await result.consumeStream();
-          // Step 0: just the initial user message
-          expect(prepareStepCalls[0].messages.length).toBe(1);
-
-          // Step 1: user message + assistant message + tool message
-          expect(prepareStepCalls[1].messages.length).toBe(3);
-
-          // Step 2: user message + assistant + tool + assistant + tool
-          expect(prepareStepCalls[2].messages.length).toBe(5);
-
-          // Step 3: continued accumulation
-          expect(prepareStepCalls[3].messages.length).toBe(7);
-
-          // Step 4: continued accumulation
-          expect(prepareStepCalls[4].messages.length).toBe(9);
-        });
-      });
-
-      describe('onStepFinish callback', () => {
-        it('should be called for each step', async () => {
-          await result.consumeStream();
-          expect(onStepFinishResults.length).toBe(5);
-        });
-
-        it('should contain correct finishReason for each step', async () => {
-          await result.consumeStream();
-          expect(onStepFinishResults[0].finishReason).toBe('tool-calls');
-          expect(onStepFinishResults[1].finishReason).toBe('tool-calls');
-          expect(onStepFinishResults[2].finishReason).toBe('tool-calls');
-          expect(onStepFinishResults[3].finishReason).toBe('tool-calls');
-          expect(onStepFinishResults[4].finishReason).toBe('stop');
-        });
-
-        it('should contain provider metadata with container ID for steps 1 and 2', async () => {
-          await result.consumeStream();
-          expect(onStepFinishResults[0].providerMetadata)
-            .toMatchInlineSnapshot(`
-              {
-                "anthropic": {
-                  "container": {
-                    "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                  },
-                },
-              }
-            `);
-          expect(onStepFinishResults[1].providerMetadata)
-            .toMatchInlineSnapshot(`
-              {
-                "anthropic": {
-                  "container": {
-                    "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                  },
-                },
-              }
-            `);
-        });
-      });
-
-      describe('onFinish callback', () => {
-        it('should be called with correct text', async () => {
-          await result.consumeStream();
-          expect(onFinishResult.text).toContain('Game Results');
-        });
-
-        it('should be called with correct finishReason', async () => {
-          await result.consumeStream();
-          expect(onFinishResult.finishReason).toBe('stop');
-        });
-
-        it('should contain all steps', async () => {
-          await result.consumeStream();
-          expect(onFinishResult.steps.length).toBe(5);
-        });
-
-        it('should contain correct totalUsage', async () => {
-          await result.consumeStream();
-          expect(onFinishResult.totalUsage).toMatchInlineSnapshot(`
-            {
-              "cachedInputTokens": undefined,
-              "inputTokenDetails": {
-                "cacheReadTokens": undefined,
-                "cacheWriteTokens": undefined,
-                "noCacheTokens": 7920,
-              },
-              "inputTokens": 7920,
-              "outputTokenDetails": {
-                "reasoningTokens": undefined,
-                "textTokens": 922,
-              },
-              "outputTokens": 922,
-              "reasoningTokens": undefined,
-              "totalTokens": 8842,
-            }
-          `);
-        });
-
-        it('should contain all response messages', async () => {
-          await result.consumeStream();
-          expect(onFinishResult.response.messages.length).toBe(9);
-        });
-      });
-
-      describe('fullStream events', () => {
-        it('should emit correct stream parts including tool calls and deferred results', async () => {
-          expect(await convertAsyncIterableToArray(result.fullStream))
-            .toMatchInlineSnapshot(`
-              [
-                {
-                  "type": "start",
-                },
-                {
-                  "request": {},
-                  "type": "start-step",
-                  "warnings": [],
-                },
-                {
-                  "id": "1",
-                  "type": "text-start",
-                },
-                {
-                  "id": "1",
-                  "providerMetadata": undefined,
-                  "text": "I'll help you simulate this game between two players where one is using a loaded die.",
-                  "type": "text-delta",
-                },
-                {
-                  "id": "1",
-                  "type": "text-end",
-                },
-                {
-                  "input": {
-                    "code": "game_loop()",
-                  },
-                  "providerExecuted": true,
-                  "providerMetadata": undefined,
-                  "title": undefined,
-                  "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                  "toolName": "code_execution",
-                  "type": "tool-call",
-                },
-                {
-                  "input": {
-                    "player": "player1",
-                  },
-                  "providerExecuted": undefined,
-                  "providerMetadata": undefined,
-                  "title": undefined,
-                  "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                  "toolName": "rollDie",
-                  "type": "tool-call",
-                },
-                {
-                  "dynamic": false,
-                  "input": {
-                    "player": "player1",
-                  },
-                  "output": 6,
-                  "toolCallId": "toolu_019jKkXz4jAdwHweHBw92CVY",
-                  "toolName": "rollDie",
-                  "type": "tool-result",
-                },
-                {
-                  "finishReason": "tool-calls",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "container": {
-                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                      },
-                    },
-                  },
-                  "rawFinishReason": undefined,
-                  "response": {
-                    "headers": {
-                      "call": "1",
-                    },
-                    "id": "msg_01ERcBqAvLTHWQDk9c9qJLWC",
-                    "modelId": "claude-sonnet-4-5-20250929",
-                    "timestamp": 1970-01-01T00:00:00.000Z,
-                  },
-                  "type": "finish-step",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 3369,
-                    },
-                    "inputTokens": 3369,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 725,
-                    },
-                    "outputTokens": 725,
-                    "raw": undefined,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 4094,
-                  },
-                },
-                {
-                  "request": {},
-                  "type": "start-step",
-                  "warnings": [],
-                },
-                {
-                  "input": {
-                    "player": "player2",
-                  },
-                  "providerExecuted": undefined,
-                  "providerMetadata": undefined,
-                  "title": undefined,
-                  "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                  "toolName": "rollDie",
-                  "type": "tool-call",
-                },
-                {
-                  "dynamic": false,
-                  "input": {
-                    "player": "player2",
-                  },
-                  "output": 3,
-                  "toolCallId": "toolu_015dGLMbwBKv1ZRQr6KdJzeH",
-                  "toolName": "rollDie",
-                  "type": "tool-result",
-                },
-                {
-                  "finishReason": "tool-calls",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "container": {
-                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                      },
-                    },
-                  },
-                  "rawFinishReason": undefined,
-                  "response": {
-                    "headers": {
-                      "call": "2",
-                    },
-                    "id": "msg_01KSVw3xmXbMNJPNMt46BC5W",
-                    "modelId": "claude-sonnet-4-5-20250929",
-                    "timestamp": 1970-01-01T00:00:01.000Z,
-                  },
-                  "type": "finish-step",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 0,
-                    },
-                    "inputTokens": 0,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 0,
-                    },
-                    "outputTokens": 0,
-                    "raw": undefined,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 0,
-                  },
-                },
-                {
-                  "request": {},
-                  "type": "start-step",
-                  "warnings": [],
-                },
-                {
-                  "input": {
-                    "player": "player1",
-                  },
-                  "providerExecuted": undefined,
-                  "providerMetadata": undefined,
-                  "title": undefined,
-                  "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
-                  "toolName": "rollDie",
-                  "type": "tool-call",
-                },
-                {
-                  "dynamic": false,
-                  "input": {
-                    "player": "player1",
-                  },
-                  "output": 6,
-                  "toolCallId": "toolu_01YYqBNq5mk1wMtv3PAqY44m",
-                  "toolName": "rollDie",
-                  "type": "tool-result",
-                },
-                {
-                  "finishReason": "tool-calls",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "container": {
-                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                      },
-                    },
-                  },
-                  "rawFinishReason": undefined,
-                  "response": {
-                    "headers": {
-                      "call": "3",
-                    },
-                    "id": "msg_016fLapHzDx8DG2SUcsGKyPA",
-                    "modelId": "claude-sonnet-4-5-20250929",
-                    "timestamp": 1970-01-01T00:00:02.000Z,
-                  },
-                  "type": "finish-step",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 0,
-                    },
-                    "inputTokens": 0,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 0,
-                    },
-                    "outputTokens": 0,
-                    "raw": undefined,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 0,
-                  },
-                },
-                {
-                  "request": {},
-                  "type": "start-step",
-                  "warnings": [],
-                },
-                {
-                  "input": {
-                    "player": "player2",
-                  },
-                  "providerExecuted": undefined,
-                  "providerMetadata": undefined,
-                  "title": undefined,
-                  "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
-                  "toolName": "rollDie",
-                  "type": "tool-call",
-                },
-                {
-                  "dynamic": false,
-                  "input": {
-                    "player": "player2",
-                  },
-                  "output": 3,
-                  "toolCallId": "toolu_018WxjDkQG8h7i63poySGT2x",
-                  "toolName": "rollDie",
-                  "type": "tool-result",
-                },
-                {
-                  "finishReason": "tool-calls",
-                  "providerMetadata": {
-                    "anthropic": {
-                      "container": {
-                        "id": "container_011CWHPPTDTn1XufeRB9uHeH",
-                      },
-                    },
-                  },
-                  "rawFinishReason": undefined,
-                  "response": {
-                    "headers": {
-                      "call": "4",
-                    },
-                    "id": "msg_01MQHz6AzmwmZoTry5nk5EQC",
-                    "modelId": "claude-sonnet-4-5-20250929",
-                    "timestamp": 1970-01-01T00:00:03.000Z,
-                  },
-                  "type": "finish-step",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 0,
-                    },
-                    "inputTokens": 0,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 0,
-                    },
-                    "outputTokens": 0,
-                    "raw": undefined,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 0,
-                  },
-                },
-                {
-                  "request": {},
-                  "type": "start-step",
-                  "warnings": [],
-                },
-                {
-                  "dynamic": undefined,
-                  "input": undefined,
-                  "output": {
-                    "content": [],
-                    "return_code": 0,
-                    "stderr": "",
-                    "stdout": "=== DICE GAME: First to 3 Wins ===
-
-              --- Round 1 ---
-              Player 1 rolls: 5
-              Player 2 rolls: 6
-              Player 2 wins this round!
-              Score: Player 1 = 0, Player 2 = 1
-
-              --- Round 2 ---
-              Player 1 rolls: 4
-              Player 2 rolls: 6
-              Player 2 wins this round!
-              Score: Player 1 = 0, Player 2 = 2
-
-              --- Round 3 ---
-              Player 1 rolls: 5
-              Player 2 rolls: 2
-              Player 1 wins this round!
-              Score: Player 1 = 1, Player 2 = 2
-
-              --- Round 4 ---
-              Player 1 rolls: 6
-              Player 2 rolls: 6
-              Draw! No one gets a point.
-              Score: Player 1 = 1, Player 2 = 2
-
-              --- Round 5 ---
-              Player 1 rolls: 3
-              Player 2 rolls: 2
-              Player 1 wins this round!
-              Score: Player 1 = 2, Player 2 = 2
-
-              --- Round 6 ---
-              Player 1 rolls: 6
-              Player 2 rolls: 6
-              Draw! No one gets a point.
-              Score: Player 1 = 2, Player 2 = 2
-
-              --- Round 7 ---
-              Player 1 rolls: 2
-              Player 2 rolls: 3
-              Player 2 wins this round!
-              Score: Player 1 = 2, Player 2 = 3
-
-              ========================================
-              🏆 GAME OVER: Player 2 wins the game! (3-2)
-              ========================================
-
-              📊 Analysis:
-              Total rounds played: 7
-              Player 2 had better results - likely using the loaded die! 🎲
-              ",
-                    "type": "code_execution_result",
-                  },
-                  "providerExecuted": true,
-                  "toolCallId": "srvtoolu_01MzSrFWsmzBdcoQkGWLyRjK",
-                  "toolName": "code_execution",
-                  "type": "tool-result",
-                },
-                {
-                  "id": "2",
-                  "type": "text-start",
-                },
-                {
-                  "id": "2",
-                  "providerMetadata": undefined,
-                  "text": "## Game Results
-
-              **Player 2 wins the game 3-2!** 🏆
-
-              The game lasted 7 rounds with the following breakdown:
-              - **Player 1**: 2 round wins
-              - **Player 2**: 3 round wins
-              - **Draws**: 2 rounds (both rolling 6)
-
-              Based on the results, **Player 2 appears to be the one using the loaded die**.",
-                  "type": "text-delta",
-                },
-                {
-                  "id": "2",
-                  "type": "text-end",
-                },
-                {
-                  "finishReason": "stop",
-                  "providerMetadata": undefined,
-                  "rawFinishReason": "stop",
-                  "response": {
-                    "headers": {
-                      "call": "5",
-                    },
-                    "id": "msg_01CfmDducyrt61n4Q7QS8VFK",
-                    "modelId": "claude-sonnet-4-5-20250929",
-                    "timestamp": 1970-01-01T00:00:04.000Z,
-                  },
-                  "type": "finish-step",
-                  "usage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 4551,
-                    },
-                    "inputTokens": 4551,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 197,
-                    },
-                    "outputTokens": 197,
-                    "raw": undefined,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 4748,
-                  },
-                },
-                {
-                  "finishReason": "stop",
-                  "rawFinishReason": "stop",
-                  "totalUsage": {
-                    "cachedInputTokens": undefined,
-                    "inputTokenDetails": {
-                      "cacheReadTokens": undefined,
-                      "cacheWriteTokens": undefined,
-                      "noCacheTokens": 7920,
-                    },
-                    "inputTokens": 7920,
-                    "outputTokenDetails": {
-                      "reasoningTokens": undefined,
-                      "textTokens": 922,
-                    },
-                    "outputTokens": 922,
-                    "reasoningTokens": undefined,
-                    "totalTokens": 8842,
-                  },
-                  "type": "finish",
-                },
-              ]
-            `);
-        });
-      });
-    });
-
-    describe('deferred tool calls with tool-error', () => {
-      it('should resolve deferred tool call when tool-error is in the same step', async () => {
-        const result = streamText({
-          model: new MockLanguageModelV3({
-            doStream: async () => {
-              return {
-                stream: convertArrayToReadableStream([
-                  {
-                    type: 'response-metadata',
-                    id: 'msg-1',
-                    modelId: 'mock-model-id',
-                    timestamp: new Date(0),
-                  },
-                  {
-                    type: 'tool-call',
-                    toolCallId: 'call-1',
-                    toolName: 'deferred_tool',
-                    input: `{ "value": "test" }`,
-                    providerExecuted: true,
-                  },
-                  {
-                    type: 'tool-result',
-                    toolCallId: 'call-1',
-                    toolName: 'deferred_tool',
-                    result: `ERROR`,
-                    isError: true,
-                    providerExecuted: true,
-                  },
-                  {
-                    type: 'text-start',
-                    id: '1',
-                  },
-                  {
-                    type: 'text-delta',
-                    id: '1',
-                    delta: 'Final response',
-                  },
-                  {
-                    type: 'text-end',
-                    id: '1',
-                  },
-                  {
-                    type: 'finish',
-                    finishReason: { unified: 'stop', raw: 'stop' },
-                    usage: testUsage,
-                  },
-                ]),
-                response: {},
-              };
-            },
-          }),
-          tools: {
-            deferred_tool: {
-              type: 'provider',
-              id: 'test.deferred_tool',
-              inputSchema: z.object({ value: z.string() }),
-              outputSchema: z.object({ value: z.string() }),
-              args: {},
-              supportsDeferredResults: true,
-            },
-          },
-          ...defaultSettings(),
-          stopWhen: stepCountIs(2),
-        });
-
-        // Consume the stream
-        await result.consumeStream();
-
-        // Verify that the stream completes with only one step
-        // (if the deferred tool call wasn't resolved, it would wait for another step)
-        expect((await result.steps).length).toBe(1);
-
-        expect(await result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "input": {
-                "value": "test",
-              },
-              "providerExecuted": true,
-              "providerMetadata": undefined,
-              "title": undefined,
-              "toolCallId": "call-1",
-              "toolName": "deferred_tool",
-              "type": "tool-call",
-            },
-            {
-              "dynamic": undefined,
-              "error": "ERROR",
-              "input": {
-                "value": "test",
-              },
-              "providerExecuted": true,
-              "toolCallId": "call-1",
-              "toolName": "deferred_tool",
-              "type": "tool-error",
-            },
-            {
-              "providerMetadata": undefined,
-              "text": "Final response",
-              "type": "text",
-            },
-          ]
-        `);
-      });
-
-      it('should resolve deferred tool call when tool-error arrives in a later step', async () => {
-        let responseCount = 0;
-        const result = streamText({
-          model: new MockLanguageModelV3({
-            doStream: async () => {
-              switch (responseCount++) {
-                case 0:
-                  // Step 1: tool call without result
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg-1',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(0),
-                      },
-                      {
-                        type: 'tool-call',
-                        toolCallId: 'call-1',
-                        toolName: 'deferred_tool',
-                        input: `{ "value": "test" }`,
-                        providerExecuted: true,
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'tool-calls', raw: undefined },
-                        usage: testUsage,
-                      },
-                    ]),
-                    response: {},
-                  };
-                case 1:
-                  // Step 2: tool-error arrives
-                  return {
-                    stream: convertArrayToReadableStream([
-                      {
-                        type: 'response-metadata',
-                        id: 'msg-2',
-                        modelId: 'mock-model-id',
-                        timestamp: new Date(1000),
-                      },
-                      {
-                        type: 'tool-result',
-                        toolCallId: 'call-1',
-                        toolName: 'deferred_tool',
-                        result: `ERROR`,
-                        isError: true,
-                        providerExecuted: true,
-                      },
-                      {
-                        type: 'text-start',
-                        id: '1',
-                      },
-                      {
-                        type: 'text-delta',
-                        id: '1',
-                        delta: 'Final response',
-                      },
-                      {
-                        type: 'text-end',
-                        id: '1',
-                      },
-                      {
-                        type: 'finish',
-                        finishReason: { unified: 'stop', raw: 'stop' },
-                        usage: testUsage,
-                      },
-                    ]),
-                    response: {},
-                  };
-                default:
-                  throw new Error(
-                    `Unexpected response count: ${responseCount}`,
-                  );
-              }
-            },
-          }),
-          tools: {
-            deferred_tool: {
-              type: 'provider',
-              id: 'test.deferred_tool',
-              inputSchema: z.object({ value: z.string() }),
-              outputSchema: z.object({ value: z.string() }),
-              args: {},
-              supportsDeferredResults: true,
-            },
-          },
-          ...defaultSettings(),
-          stopWhen: stepCountIs(3),
-        });
-
-        // Consume the stream
-        await result.consumeStream();
-
-        // Verify that the stream completes with two steps
-        expect((await result.steps).length).toBe(2);
-
-        expect(await result.content).toMatchInlineSnapshot(`
-          [
-            {
-              "dynamic": undefined,
-              "error": "ERROR",
-              "input": undefined,
-              "providerExecuted": true,
-              "toolCallId": "call-1",
-              "toolName": "deferred_tool",
-              "type": "tool-error",
-            },
-            {
-              "providerMetadata": undefined,
-              "text": "Final response",
-              "type": "text",
-            },
-          ]
-        `);
-      });
-    });
-  });
-
->>>>>>> 2706461b1d ([v6.0] fix(ai): include tool input on tool result for provider executed dynamic tools (#16802))
   describe('logWarnings', () => {
     it('should call logWarnings with warnings from a single step', async () => {
       const expectedWarnings = [

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
@@ -394,6 +395,33 @@ describe('doGenerate', () => {
     expect(await server.calls[0].requestBodyJson).toStrictEqual({
       model: 'mistral-small-latest',
       messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+    });
+  });
+
+  it('should forward presencePenalty and frequencyPenalty without unsupported warnings', async () => {
+    prepareJsonResponse({ content: '' });
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      presencePenalty: 0.1,
+      frequencyPenalty: 0.2,
+    });
+
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      }),
+    );
+    expect(result.warnings).not.toContainEqual(
+      expect.objectContaining({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      }),
+    );
+    expect(await server.calls[0].requestBodyJson).toMatchObject({
+      presence_penalty: 0.1,
+      frequency_penalty: 0.2,
     });
   });
 
@@ -964,6 +992,57 @@ describe('doStream', () => {
         },
       ]
     `);
+  });
+
+  it('should accumulate incremental tool call arguments', async () => {
+    const chunks = fs
+      .readFileSync(
+        'src/__fixtures__/mistral-incremental-tool-call.chunks.txt',
+        'utf8',
+      )
+      .split('\n')
+      .filter(line => line.trim().length > 0)
+      .map(line => `data: ${line}\n\n`);
+    chunks.push('data: [DONE]\n\n');
+
+    server.urls['https://api.mistral.ai/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks,
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(
+      parts.filter(
+        part => part.type === 'error' || part.type.startsWith('tool-'),
+      ),
+    ).toStrictEqual([
+      {
+        type: 'tool-input-start',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+      },
+      {
+        type: 'tool-input-delta',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+        delta: '{"query": "current Berlin weather"}',
+      },
+      {
+        type: 'tool-input-end',
+        id: 'chatcmpl-tool-9f149c74c42f265b',
+      },
+      {
+        type: 'tool-call',
+        toolCallId: 'chatcmpl-tool-9f149c74c42f265b',
+        toolName: 'webSearchTool',
+        input: '{"query": "current Berlin weather"}',
+      },
+    ]);
   });
 
   it('should expose the raw response headers', async () => {

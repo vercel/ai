@@ -11,24 +11,24 @@ import {
   withUserAgentSuffix,
 } from '@ai-sdk/provider-utils';
 import { PerplexityLanguageModel } from './perplexity-language-model';
-import type { PerplexityLanguageModelId } from './perplexity-language-model-options';
+import type { PerplexityLanguageModelId } from './perplexity-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV2 {
   /**
-Creates an Perplexity chat model for text generation.
+Creates a Perplexity Agent API model or preset for text generation.
    */
   (modelId: PerplexityLanguageModelId): LanguageModelV2;
 
   /**
-Creates an Perplexity language model for text generation.
+Creates a Perplexity Agent API model or preset for text generation.
    */
   languageModel(modelId: PerplexityLanguageModelId): LanguageModelV2;
 }
 
 export interface PerplexityProviderSettings {
   /**
-Base URL for the perplexity API calls.
+Base URL for Perplexity API calls.
      */
   baseURL?: string;
 

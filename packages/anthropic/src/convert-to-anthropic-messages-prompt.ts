@@ -13,13 +13,20 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   type AnthropicAssistantMessage,
+  type Citation,
   type AnthropicMessagesPrompt,
+  type AnthropicSystemMessage,
+  type AnthropicTextContent,
+  type AnthropicToolChangeContent,
   type AnthropicToolResultContent,
   type AnthropicUserMessage,
   type AnthropicWebFetchToolResultContent,
   anthropicReasoningMetadataSchema,
 } from './anthropic-messages-api';
-import { anthropicFilePartProviderOptions } from './anthropic-messages-options';
+import {
+  anthropicFilePartProviderOptions,
+  anthropicSystemMessageProviderOptions,
+} from './anthropic-messages-options';
 import { CacheControlValidator } from './get-cache-control';
 import { codeExecution_20250522OutputSchema } from './tool/code-execution_20250522';
 import { codeExecution_20250825OutputSchema } from './tool/code-execution_20250825';
@@ -51,11 +58,19 @@ export async function convertToAnthropicMessagesPrompt({
   sendReasoning,
   warnings,
   cacheControlValidator,
+  toolsetNames = {},
 }: {
   prompt: LanguageModelV2Prompt;
   sendReasoning: boolean;
   warnings: LanguageModelV2CallWarning[];
   cacheControlValidator?: CacheControlValidator;
+
+  /**
+   * Maps tool names of toolset tools (e.g. the computer toolset) to the
+   * Anthropic `toolset_name`. Tool calls and results of these tools are
+   * serialized as toolset member calls.
+   */
+  toolsetNames?: Record<string, string>;
 }): Promise<{
   prompt: AnthropicMessagesPrompt;
   betas: Set<string>;
@@ -101,20 +116,122 @@ export async function convertToAnthropicMessagesPrompt({
 
     switch (type) {
       case 'system': {
-        const content = block.messages.map(({ content, providerOptions }) => ({
-          type: 'text' as const,
-          text: content,
-          cache_control: validator.getCacheControl(providerOptions, {
-            type: 'system message',
-            canCache: true,
-          }),
-        }));
+        const systemMessages: AnthropicSystemMessage[] = [];
+        let toolChangeCount = 0;
+        let hasMidConversationOptions = false;
 
-        if (system == null) {
-          system = content;
+        for (const { content: text, providerOptions } of block.messages) {
+          const systemMessageOptions = await parseProviderOptions({
+            provider: 'anthropic',
+            providerOptions,
+            schema: anthropicSystemMessageProviderOptions,
+          });
+          const toolChanges = systemMessageOptions?.toolChanges ?? [];
+          const clearAt = systemMessageOptions?.clearAt;
+          const effort = systemMessageOptions?.effort;
+          const content: AnthropicSystemMessage['content'] = [];
+
+          // A system message that only carries message-level controls or tool
+          // changes may have empty text; do not emit an empty text block.
+          if (
+            text !== '' ||
+            (toolChanges.length === 0 &&
+              systemMessageOptions?.clearAt == null &&
+              systemMessageOptions?.effort == null)
+          ) {
+            content.push({
+              type: 'text' as const,
+              text,
+              cache_control: validator.getCacheControl(providerOptions, {
+                type: 'system message',
+                canCache: true,
+              }),
+            });
+          }
+
+          for (const toolChange of toolChanges) {
+            toolChangeCount++;
+            content.push({
+              type: toolChange.type,
+              tool: {
+                type: 'tool_reference',
+                name: toolChange.toolName,
+              },
+            } satisfies AnthropicToolChangeContent);
+          }
+
+          hasMidConversationOptions ||= clearAt != null || effort != null;
+
+          systemMessages.push({
+            role: 'system',
+            content,
+            ...(clearAt != null && { clear_at: clearAt }),
+            ...(effort != null && { output_config: { effort } }),
+          });
+        }
+
+        // The first block becomes the top-level system prompt. Later system
+        // blocks are sent as inline system messages — always when they carry
+        // message-level controls or tool changes (which are only valid
+        // mid-conversation), and otherwise only when a top-level system prompt
+        // already exists (preserving the existing hoisting behavior for text).
+        if (
+          i === 0 ||
+          (system == null &&
+            toolChangeCount === 0 &&
+            !hasMidConversationOptions)
+        ) {
+          if (toolChangeCount > 0) {
+            warnings.push({
+              type: 'other',
+              message:
+                'tool changes on the initial system message are not supported by Anthropic. ' +
+                'Configure the initial tool set via the tools option instead. ' +
+                'The tool changes have been ignored.',
+            });
+          }
+
+          // Initial instruction text goes in the top-level system field.
+          // Effort-only messages stay in the messages array.
+          for (const message of systemMessages) {
+            if (
+              message.content.length === 0 &&
+              message.clear_at == null &&
+              message.output_config != null
+            ) {
+              messages.push(message);
+              betas.add('mid-conversation-output-config-2026-07-01');
+            } else if (
+              message.clear_at != null ||
+              message.output_config != null
+            ) {
+              warnings.push({
+                type: 'other',
+                message:
+                  'clearAt and effort on this initial system message are not supported by Anthropic. ' +
+                  'Use a separate effort-only system message with empty content to set effort. ' +
+                  'These options have been ignored.',
+              });
+            }
+          }
+
+          system = systemMessages.flatMap(message =>
+            message.content.filter(
+              (part): part is AnthropicTextContent => part.type === 'text',
+            ),
+          );
         } else {
-          messages.push({ role: 'system', content });
+          messages.push(...systemMessages);
           betas.add('mid-conversation-system-2026-04-07');
+          if (toolChangeCount > 0) {
+            betas.add('mid-conversation-tool-changes-2026-07-01');
+          }
+          if (systemMessages.some(message => message.clear_at != null)) {
+            betas.add('mid-conversation-system-clear-at-2026-08-21');
+          }
+          if (systemMessages.some(message => message.output_config != null)) {
+            betas.add('mid-conversation-output-config-2026-07-01');
+          }
         }
 
         break;
@@ -326,9 +443,16 @@ export async function convertToAnthropicMessagesPrompt({
                     break;
                 }
 
+                const toolsetName = getAnthropicToolsetName({
+                  toolName: part.toolName,
+                  providerOptions: part.providerOptions,
+                  toolsetNames,
+                });
+
                 anthropicContent.push({
                   type: 'tool_result',
                   tool_use_id: part.toolCallId,
+                  ...(toolsetName != null && { toolset_name: toolsetName }),
                   content: contentValue,
                   is_error:
                     output.type === 'error-text' || output.type === 'error-json'
@@ -384,7 +508,7 @@ export async function convertToAnthropicMessagesPrompt({
               case 'text': {
                 // Check if this is a compaction block (via providerMetadata)
                 const textMetadata = part.providerOptions?.anthropic as
-                  | { type?: string }
+                  | { type?: string; citations?: Citation[] }
                   | undefined;
 
                 if (textMetadata?.type === 'compaction') {
@@ -403,7 +527,9 @@ export async function convertToAnthropicMessagesPrompt({
                       isLastBlock && isLastMessage && isLastContentPart
                         ? part.text.trim()
                         : part.text,
-
+                    ...(textMetadata?.citations != null && {
+                      citations: textMetadata.citations,
+                    }),
                     cache_control: cacheControl,
                   });
                 }
@@ -468,7 +594,7 @@ export async function convertToAnthropicMessagesPrompt({
 
               case 'tool-call': {
                 if (part.providerExecuted) {
-                  // code execution 20250825:
+                  // code execution 20250825 and 20260120:
                   if (
                     part.toolName === 'code_execution' &&
                     part.input != null &&
@@ -478,11 +604,13 @@ export async function convertToAnthropicMessagesPrompt({
                     (part.input.type === 'bash_code_execution' ||
                       part.input.type === 'text_editor_code_execution')
                   ) {
+                    const { type, ...input } = part.input;
+
                     anthropicContent.push({
                       type: 'server_tool_use',
                       id: part.toolCallId,
-                      name: part.input.type, // map back to subtool name
-                      input: part.input,
+                      name: type, // map back to subtool name
+                      input,
                       cache_control: cacheControl,
                     });
                   } else if (
@@ -504,6 +632,40 @@ export async function convertToAnthropicMessagesPrompt({
                     });
                   }
 
+                  break;
+                }
+
+                const toolsetName = getAnthropicToolsetName({
+                  toolName: part.toolName,
+                  providerOptions: part.providerOptions,
+                  toolsetNames,
+                });
+
+                if (toolsetName != null) {
+                  // toolset member call: the `action` is the member tool name
+                  const { action, ...memberInput } =
+                    typeof part.input === 'object' &&
+                    part.input !== null &&
+                    !Array.isArray(part.input)
+                      ? (part.input as Record<string, unknown>)
+                      : {};
+
+                  if (typeof action !== 'string') {
+                    warnings.push({
+                      type: 'other',
+                      message: `toolset tool call for tool ${part.toolName} is missing the action`,
+                    });
+                    break;
+                  }
+
+                  anthropicContent.push({
+                    type: 'tool_use',
+                    id: part.toolCallId,
+                    name: action,
+                    toolset_name: toolsetName,
+                    input: memberInput,
+                    cache_control: cacheControl,
+                  });
                   break;
                 }
 
@@ -584,7 +746,20 @@ export async function convertToAnthropicMessagesPrompt({
                             type: 'bash_code_execution_tool_result',
                             tool_use_id: part.toolCallId,
                             cache_control: cacheControl,
-                            content: codeExecutionOutput,
+                            // Prompt caching requires stable key ordering:
+                            // https://platform.claude.com/docs/en/build-with-claude/prompt-caching#troubleshooting-common-issues
+                            content:
+                              codeExecutionOutput.type ===
+                              'bash_code_execution_result'
+                                ? {
+                                    type: codeExecutionOutput.type,
+                                    stdout: codeExecutionOutput.stdout,
+                                    stderr: codeExecutionOutput.stderr,
+                                    return_code:
+                                      codeExecutionOutput.return_code,
+                                    content: codeExecutionOutput.content,
+                                  }
+                                : codeExecutionOutput,
                           }
                         : {
                             type: 'text_editor_code_execution_tool_result',
@@ -682,7 +857,10 @@ export async function convertToAnthropicMessagesPrompt({
           }
         }
 
-        messages.push({ role: 'assistant', content: anthropicContent });
+        messages.push({
+          role: 'assistant',
+          content: moveToolUseBlocksToEnd(anthropicContent),
+        });
 
         break;
       }
@@ -767,4 +945,58 @@ function groupIntoBlocks(
   }
 
   return blocks;
+}
+
+function moveToolUseBlocksToEnd(
+  content: AnthropicAssistantMessage['content'],
+): AnthropicAssistantMessage['content'] {
+  const result: AnthropicAssistantMessage['content'] = [];
+  let segment: AnthropicAssistantMessage['content'] = [];
+
+  function flushSegment() {
+    result.push(
+      ...segment.filter(part => part.type !== 'tool_use'),
+      ...segment.filter(part => part.type === 'tool_use'),
+    );
+    segment = [];
+  }
+
+  for (const part of content) {
+    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+      flushSegment();
+      result.push(part);
+    } else {
+      segment.push(part);
+    }
+  }
+
+  flushSegment();
+
+  return result;
+}
+
+/**
+ * Resolves the Anthropic `toolset_name` for a tool call or tool result. The
+ * toolset is identified either through the tools passed to the request or
+ * through the `toolsetName` provider metadata of a previous response.
+ */
+function getAnthropicToolsetName({
+  toolName,
+  providerOptions,
+  toolsetNames,
+}: {
+  toolName: string;
+  providerOptions: SharedV2ProviderMetadata | undefined;
+  toolsetNames: Record<string, string>;
+}): string | undefined {
+  const fromTools = toolsetNames[toolName];
+  if (fromTools != null) {
+    return fromTools;
+  }
+
+  const fromMetadata = (
+    providerOptions?.anthropic as { toolsetName?: unknown } | undefined
+  )?.toolsetName;
+
+  return typeof fromMetadata === 'string' ? fromMetadata : undefined;
 }
