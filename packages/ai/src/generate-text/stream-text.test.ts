@@ -2739,6 +2739,54 @@ describe('streamText', () => {
       });
     });
 
+    it('should report terminal provider error parts to telemetry', async () => {
+      const providerError = new Error('provider error');
+      const telemetryOnError = vi.fn();
+      let providerStreamController:
+        | ReadableStreamDefaultController<LanguageModelV4StreamPart>
+        | undefined;
+
+      const result = streamText({
+        model: createTestModel({
+          stream: new ReadableStream<LanguageModelV4StreamPart>({
+            start(controller) {
+              providerStreamController = controller;
+              controller.enqueue({
+                type: 'error',
+                error: providerError,
+              });
+            },
+          }),
+        }),
+        prompt: 'test-input',
+        telemetry: {
+          integrations: {
+            onError: telemetryOnError,
+          },
+        },
+        _internal: {
+          generateCallId: () => 'test-call-id',
+        },
+        onError: () => {},
+      });
+
+      for await (const part of result.stream) {
+        if (part.type === 'error') {
+          break;
+        }
+      }
+
+      expect(telemetryOnError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          callId: 'test-call-id',
+          error: providerError,
+          finishReason: 'error',
+        }),
+      );
+
+      providerStreamController?.close();
+    });
+
     it('should call onFinish even when error chunk occurs mid-stream', async () => {
       const onFinish = vi.fn();
       const onError = vi.fn();
