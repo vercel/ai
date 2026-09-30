@@ -847,6 +847,9 @@ describe('generateObject', () => {
               doGenerate: async ({}) => ({
                 ...dummyResponseValues,
                 content: [],
+                providerMetadata: {
+                  testProvider: { requestId: 'request-1' },
+                },
               }),
             }),
             schema: z.object({ content: z.string() }),
@@ -858,6 +861,11 @@ describe('generateObject', () => {
           verifyNoObjectGeneratedError(error, {
             message:
               'No object generated: the model did not return a response.',
+          });
+          expect(error).toMatchObject({
+            providerMetadata: {
+              testProvider: { requestId: 'request-1' },
+            },
           });
         }
       });

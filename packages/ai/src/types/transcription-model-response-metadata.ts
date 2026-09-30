@@ -13,4 +13,9 @@ export type TranscriptionModelResponseMetadata = {
    * Response headers.
    */
   headers?: Record<string, string>;
+
+  /**
+   * Response body.
+   */
+  body?: unknown;
 };

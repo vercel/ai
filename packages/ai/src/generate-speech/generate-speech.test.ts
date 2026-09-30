@@ -353,6 +353,9 @@ describe('generateSpeech', () => {
                   mediaType: 'audio/mp3',
                 }),
                 timestamp: testDate,
+                providerMetadata: {
+                  testProvider: { requestId: 'request-1' },
+                },
               }),
           }),
           text: sampleText,
@@ -366,6 +369,9 @@ describe('generateSpeech', () => {
             modelId: expect.any(String),
           },
         ],
+        providerMetadata: {
+          testProvider: { requestId: 'request-1' },
+        },
       });
     });
 

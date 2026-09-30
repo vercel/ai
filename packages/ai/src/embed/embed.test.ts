@@ -1,4 +1,7 @@
-import type { EmbeddingModelV4 } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type EmbeddingModelV4,
+} from '@ai-sdk/provider';
 import assert from 'node:assert';
 import {
   afterEach,
@@ -9,8 +12,8 @@ import {
   vi,
   vitest,
 } from 'vitest';
-import { InvalidResponseDataError } from '../error';
 import * as logWarningsModule from '../logger/log-warnings';
+import { NoEmbeddingGeneratedError } from '../error/no-embedding-generated-error';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import type { Embedding, EmbeddingModelUsage, Warning } from '../types';
@@ -58,16 +61,64 @@ describe('result.embedding', () => {
     });
 
     await expect(result).rejects.toSatisfy(error => {
+      expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
       expect(InvalidResponseDataError.isInstance(error)).toBe(true);
       expect(error).toMatchObject({
+        name: 'AI_NoEmbeddingGeneratedError',
+        message: 'No embeddings generated: expected 1, received 0.',
+        values: [testValue],
+        embeddings: [],
         data: [],
-        message: 'No embedding generated.',
+        expectedCount: 1,
+        actualCount: 0,
+        usage: { tokens: 5 },
       });
       return true;
     });
     expect(model.doEmbedCalls).toHaveLength(1);
     expect(onEnd).not.toHaveBeenCalled();
     expect(onError).toHaveBeenCalledOnce();
+  });
+});
+
+describe('error handling', () => {
+  it('should throw NoEmbeddingGeneratedError with diagnostics when the model returns no embedding', async () => {
+    const providerMetadata = {
+      testProvider: { requestId: 'request-1' },
+    };
+    const response = {
+      headers: { 'x-request-id': 'request-1' },
+      body: { data: [] },
+    };
+
+    try {
+      await embed({
+        model: new MockEmbeddingModelV4({
+          doEmbed: mockEmbed(
+            [testValue],
+            [],
+            { tokens: 3 },
+            response,
+            providerMetadata,
+          ),
+        }),
+        value: testValue,
+      });
+      expect.unreachable();
+    } catch (error) {
+      expect(NoEmbeddingGeneratedError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        name: 'AI_NoEmbeddingGeneratedError',
+        message: 'No embeddings generated: expected 1, received 0.',
+        values: [testValue],
+        embeddings: [],
+        expectedCount: 1,
+        actualCount: 0,
+        responses: [response],
+        usage: { tokens: 3 },
+        providerMetadata,
+      });
+    }
   });
 });
 

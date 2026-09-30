@@ -445,7 +445,12 @@ This error occurs when the AI provider fails to generate a video. It can arise d
 The error preserves the following information to help you log the issue:
 
 - `responses`: Metadata about the video model responses, including timestamp, model, and headers.
+- `providerMetadata`: Combined provider-specific metadata from generation and status calls.
 - `cause`: The cause of the error. You can use this for more detailed error handling
+
+The same typed error is used when asynchronous video generation times out, a
+provider reports a terminal failure, or a webhook notification is followed by
+a non-completed status.
 
 ```ts
 import {
@@ -460,6 +465,7 @@ try {
     console.log('NoVideoGeneratedError');
     console.log('Cause:', error.cause);
     console.log('Responses:', error.responses);
+    console.log('Provider metadata:', error.providerMetadata);
   }
 }
 ```

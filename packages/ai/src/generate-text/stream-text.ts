@@ -3426,6 +3426,7 @@ class DefaultStreamTextResult<
             response: step.response,
             usage: step.usage,
             finishReason: step.finishReason,
+            providerMetadata: step.providerMetadata,
           },
         );
       });

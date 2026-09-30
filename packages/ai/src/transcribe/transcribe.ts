@@ -136,7 +136,10 @@ export async function transcribe({
   });
 
   if (!result.text) {
-    throw new NoTranscriptGeneratedError({ responses: [result.response] });
+    throw new NoTranscriptGeneratedError({
+      responses: [result.response],
+      providerMetadata: result.providerMetadata,
+    });
   }
 
   return new DefaultTranscriptionResult({
