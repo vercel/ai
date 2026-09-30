@@ -25,6 +25,19 @@ describe('getRuntimeEnvironmentUserAgent', () => {
     ).toBe('runtime/test');
   });
 
+  it('should sanitize invalid characters in navigator.userAgent', () => {
+    // Bun's navigator.userAgent is "Bun/1.3.9" which contains a slash
+    // that is invalid per RFC 9110 User-Agent format.
+    // The slash is replaced with a dash, but valid characters like "." are kept.
+    expect(
+      getRuntimeEnvironmentUserAgent({
+        navigator: {
+          userAgent: 'Bun/1.3.9',
+        },
+      }),
+    ).toBe('runtime/bun-1.3.9');
+  });
+
   it('should return the correct user agent for Edge Runtime', () => {
     expect(
       getRuntimeEnvironmentUserAgent({
