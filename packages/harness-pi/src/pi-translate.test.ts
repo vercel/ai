@@ -644,7 +644,10 @@ describe('translatePiEvent', () => {
   });
 
   it('emits tool-call with providerExecuted unset for user-registered tools', () => {
-    const state = createPiTranslatorState({ builtinToolNames: ['bash'] });
+    const state = createPiTranslatorState({
+      builtinToolNames: ['bash'],
+      hostToolNames: ['deploy'],
+    });
     emit([{ type: 'turn_start' } as PiSessionEvent], state);
     const out = translatePiEvent(
       {
@@ -984,6 +987,7 @@ describe('translatePiEvent', () => {
         summary: 'Condensed history.',
         tokensBefore: 90000,
       },
+      expect.objectContaining({ type: 'finish-step' }),
     ]);
   });
 
@@ -1109,6 +1113,7 @@ describe('translatePiEvent', () => {
         summary: '(no summary provided)',
         tokensBefore: 50000,
       },
+      expect.objectContaining({ type: 'finish-step' }),
     ]);
   });
 });
