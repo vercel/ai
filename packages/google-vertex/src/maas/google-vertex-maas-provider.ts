@@ -9,6 +9,7 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { validateGoogleVertexLocation } from '../validate-google-vertex-location';
 import type { GoogleVertexMaasModelId } from './google-vertex-maas-options';
 
 const maxOutputTokensByModel: Record<string, number | undefined> = {
@@ -100,7 +101,7 @@ export function createGoogleVertexMaas(
 
   const constructBaseURL = () => {
     const projectId = loadProject();
-    const location = loadLocation() ?? 'global';
+    const location = validateGoogleVertexLocation(loadLocation() ?? 'global');
 
     return `https://${getHost(location)}/v1/projects/${projectId}/locations/${location}/endpoints/openapi`;
   };

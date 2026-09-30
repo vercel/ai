@@ -13,6 +13,7 @@ import {
   anthropicTools,
   AnthropicLanguageModel,
 } from '@ai-sdk/anthropic/internal';
+import { validateGoogleVertexLocation } from '../validate-google-vertex-location';
 import type { GoogleVertexAnthropicModelId } from './google-vertex-anthropic-options';
 
 type GoogleVertexAnthropicTools = Pick<
@@ -178,10 +179,17 @@ export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const getBaseURL = () => {
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
+    }
     const location = loadOptionalSetting({
       settingValue: options.location,
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
     });
+    if (location != null) {
+      validateGoogleVertexLocation(location);
+    }
     const project = loadOptionalSetting({
       settingValue: options.project,
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
@@ -197,10 +205,7 @@ export function createGoogleVertexAnthropic(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
-    );
+    return `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
   };
 
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>

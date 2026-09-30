@@ -1,8 +1,13 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import {
+  InvalidArgumentError,
+  type SharedV4Warning,
+  type TranscriptionModelV4,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertUint8ArrayToBase64,
   createJsonResponseHandler,
+  isValidDnsLabel,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -106,6 +111,13 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
     }
 
     const region = googleOptions?.region ?? this.config.location;
+    if (!isValidDnsLabel(region)) {
+      throw new InvalidArgumentError({
+        argument: googleOptions?.region != null ? 'region' : 'location',
+        message:
+          'Invalid Google Cloud Speech-to-Text region. Expected a single DNS label (letters, digits, and hyphens).',
+      });
+    }
     const languageCodes = googleOptions?.languageCodes ?? ['auto'];
 
     // The recognize API takes base64-encoded audio in the `content` field. A

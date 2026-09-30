@@ -27,6 +27,7 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
+import { validateGoogleVertexLocation } from './validate-google-vertex-location';
 import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-model-options';
@@ -242,7 +243,12 @@ export function createGoogleVertex(
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
     }
 
-    const region = loadGoogleVertexLocation();
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
+    }
+
+    const region = validateGoogleVertexLocation(loadGoogleVertexLocation());
     const project = loadGoogleVertexProject();
 
     const getHost = () => {
@@ -255,12 +261,9 @@ export function createGoogleVertex(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
-        endpoint ? '' : '/publishers/google'
-      }`
-    );
+    return `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+      endpoint ? '' : '/publishers/google'
+    }`;
   };
 
   const createConfig = (
@@ -395,7 +398,7 @@ export function createGoogleVertex(
         fetch: config.fetch,
         webSocket: options.webSocket,
         project: loadGoogleVertexProject(),
-        location: loadGoogleVertexLocation(),
+        location: validateGoogleVertexLocation(loadGoogleVertexLocation()),
       });
     }
 
@@ -404,7 +407,7 @@ export function createGoogleVertex(
       headers: config.headers,
       fetch: config.fetch,
       project: loadGoogleVertexProject(),
-      location: loadGoogleVertexLocation(),
+      location: validateGoogleVertexLocation(loadGoogleVertexLocation()),
     });
   };
 

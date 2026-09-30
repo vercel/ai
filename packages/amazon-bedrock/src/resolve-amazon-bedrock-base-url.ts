@@ -2,6 +2,7 @@ import {
   loadOptionalSetting,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
+import { validateAmazonBedrockRegion } from './validate-amazon-bedrock-region';
 
 const AWS_PARTITION_DNS_SUFFIXES = [
   { regionPrefix: 'cn-', dnsSuffix: 'amazonaws.com.cn' },
@@ -40,7 +41,7 @@ export function resolveAmazonBedrockBaseURL({
     return withoutTrailingSlash(resolvedBaseURL) ?? resolvedBaseURL;
   }
 
-  const region = getRegion();
+  const region = validateAmazonBedrockRegion(getRegion());
   const dnsSuffix =
     AWS_PARTITION_DNS_SUFFIXES.find(({ regionPrefix }) =>
       region.startsWith(regionPrefix),

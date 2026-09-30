@@ -24,6 +24,7 @@ import type {
   BedrockMantleResponsesModelId,
 } from './bedrock-mantle-options';
 import { VERSION } from '../version';
+import { validateAmazonBedrockRegion } from '../validate-amazon-bedrock-region';
 
 export interface BedrockMantleProvider extends ProviderV4 {
   /**
@@ -218,12 +219,14 @@ export function createBedrockMantle(
   const getBaseURL = (modelId: string): string =>
     withoutTrailingSlash(
       options.baseURL ??
-        `https://bedrock-mantle.${loadSetting({
-          settingValue: options.region,
-          settingName: 'region',
-          environmentVariableName: 'AWS_REGION',
-          description: 'AWS region',
-        })}.api.aws/${
+        `https://bedrock-mantle.${validateAmazonBedrockRegion(
+          loadSetting({
+            settingValue: options.region,
+            settingName: 'region',
+            environmentVariableName: 'AWS_REGION',
+            description: 'AWS region',
+          }),
+        )}.api.aws/${
           // Mantle serves these models under its separate OpenAI route.
           /^(?:openai\.gpt-(?!oss-)|google\.gemma-4|xai\.)/.test(modelId)
             ? 'openai/v1'
