@@ -18,6 +18,10 @@ export type HostToolCorrelationInvocation = {
 };
 
 export type HostToolRelayTurn = {
+  readonly waitForToolCallAuthorization: (options: {
+    toolName: string;
+    input: Readonly<Record<string, unknown>>;
+  }) => Promise<boolean>;
   readonly emitToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -381,6 +385,18 @@ async function handleInvocation({
       message:
         `Host tool ${body.toolName} is not active in catalog revision ` +
         `${state.revision}.`,
+    });
+  }
+
+  if (
+    !(await turn.waitForToolCallAuthorization({
+      toolName: tool.name,
+      input: body.input,
+    }))
+  ) {
+    throw new RelayRequestError({
+      status: 401,
+      message: 'Unauthorized host tool relay request.',
     });
   }
 

@@ -4,8 +4,84 @@ import {
   startHostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 
 describe('startHostToolRelay', () => {
+  it('refuses a stolen bearer without an ACP call and executes only a matching one-use call', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+      ttlMs: 20,
+    });
+    const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: authorization.waitForToolCallAuthorization,
+      emitToolCall: vi.fn(),
+      emitToolResult: vi.fn(),
+      requestToolResult: vi.fn(async () => ({ output: { celsius: 19 } })),
+      registerCorrelationInvocation: vi.fn(),
+      removeCorrelationInvocation: vi.fn(),
+    };
+    relay.bindTurn({ turn });
+    try {
+      await expect(
+        invokeResponse({
+          relay,
+          requestId: 'stolen-credential',
+          toolName: 'weather',
+          input: { city: 'Lima' },
+          catalogRevision: 1,
+        }),
+      ).resolves.toMatchObject({
+        status: 401,
+        value: { error: 'Unauthorized host tool relay request.' },
+      });
+      expect(turn.emitToolCall).not.toHaveBeenCalled();
+      expect(turn.registerCorrelationInvocation).not.toHaveBeenCalled();
+      expect(turn.requestToolResult).not.toHaveBeenCalled();
+
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'model-call',
+          title: 'Weather',
+          name: 'mcp__ai-sdk-harness-tools__weather',
+          rawInput: { city: 'Lima' },
+          status: 'in_progress',
+        },
+      });
+      await expect(
+        invoke({
+          relay,
+          requestId: 'real-call',
+          toolName: 'weather',
+          input: { city: 'Lima' },
+          catalogRevision: 1,
+        }),
+      ).resolves.toMatchObject({ output: { celsius: 19 } });
+      expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+      expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
+
+      await expect(
+        invokeResponse({
+          relay,
+          requestId: 'replay',
+          toolName: 'weather',
+          input: { city: 'Lima' },
+          catalogRevision: 1,
+        }),
+      ).resolves.toMatchObject({ status: 401 });
+      expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+      expect(turn.registerCorrelationInvocation).toHaveBeenCalledTimes(1);
+    } finally {
+      authorization.close();
+      relay.unbindTurn({ turn });
+      await relay.close();
+    }
+  });
+
   it('emits one authoritative call, waits for the caller, and returns the result', async () => {
     let resolveResult!: (result: {
       output: unknown;
@@ -21,6 +97,7 @@ describe('startHostToolRelay', () => {
     const emitToolResult = vi.fn();
     const registerCorrelationInvocation = vi.fn();
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall,
       emitToolResult,
       requestToolResult: () => pendingResult,
@@ -184,6 +261,7 @@ describe('startHostToolRelay', () => {
 
   it('rejects stale and removed calls without consuming invocation order', async () => {
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall: vi.fn(),
       emitToolResult: vi.fn(),
       requestToolResult: async () => ({
@@ -249,6 +327,7 @@ describe('startHostToolRelay', () => {
 
   it('returns caller failures and rejects unauthenticated calls', async () => {
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall: vi.fn(),
       emitToolResult: vi.fn(),
       requestToolResult: async () => ({
