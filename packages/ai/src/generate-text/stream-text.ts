@@ -50,6 +50,7 @@ import type {
   InferUIMessageChunk,
   UIMessageChunk,
 } from '../ui-message-stream/ui-message-chunks';
+import type { UIMessageStreamOutcome } from '../ui-message-stream/ui-message-stream-outcome';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
 import type {
   InferUIMessageData,
@@ -64,9 +65,11 @@ import { consumeStream } from '../util/consume-stream';
 import { createIdMap } from '../util/create-id-map';
 import { createStitchableStream } from '../util/create-stitchable-stream';
 import type { DownloadFunction } from '../util/download/download-function';
+import { notify } from '../util/notify';
 import { now as originalNow } from '../util/now';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
+import { filterActiveTools } from './filter-active-tools';
 import type { Output } from './output';
 import type { PrepareStepFunction } from './prepare-step';
 import type { ResponseMessage } from './response-message';
@@ -539,6 +542,11 @@ function createOutputTransformStream<
       text += chunk.text;
       textChunk += chunk.text;
 
+      if (chunk.text.length === 0 && chunk.providerMetadata != null) {
+        controller.enqueue({ part: chunk, partialOutput: undefined });
+        return;
+      }
+
       // only publish if partial json can be parsed:
       const result = await output.parsePartial({ text });
       if (result != null) {
@@ -663,6 +671,7 @@ class DefaultStreamTextResult<
     let recordedRequest: LanguageModelRequestMetadata = {};
     let recordedWarnings: Array<CallWarning> = [];
     const recordedSteps: StepResult<TOOLS>[] = [];
+    let currentStepToolSet = tools;
 
     let rootSpan!: Span;
 
@@ -703,11 +712,17 @@ class DefaultStreamTextResult<
           part.type === 'tool-input-delta' ||
           part.type === 'raw'
         ) {
-          await onChunk?.({ chunk: part });
+          await notify({
+            event: { chunk: part },
+            callbacks: onChunk,
+          });
         }
 
         if (part.type === 'error') {
-          await onError({ error: wrapGatewayError(part.error) });
+          await notify({
+            event: { error: wrapGatewayError(part.error) },
+            callbacks: onError,
+          });
         }
 
         if (part.type === 'text-start') {
@@ -841,7 +856,7 @@ class DefaultStreamTextResult<
         if (part.type === 'finish-step') {
           const stepMessages = toResponseMessages({
             content: recordedContent,
-            tools,
+            tools: currentStepToolSet,
           });
 
           // Add step information (after response messages are updated):
@@ -1115,11 +1130,18 @@ class DefaultStreamTextResult<
             download,
           });
 
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolSet = filterActiveTools({
+            tools,
+            activeTools: stepActiveTools,
+          });
+          currentStepToolSet = stepToolSet;
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools,
             });
 
           const {
@@ -1171,6 +1193,7 @@ class DefaultStreamTextResult<
               }),
               tracer,
               endWhenDone: false,
+              endOnError: true,
               fn: async doStreamSpan => {
                 return {
                   startTimestampMs: now(), // get before the call
@@ -1192,7 +1215,7 @@ class DefaultStreamTextResult<
           );
 
           const streamWithToolResults = runToolsTransformation({
-            tools,
+            tools: stepToolSet,
             generatorStream: stream,
             tracer,
             telemetry,
@@ -1207,8 +1230,6 @@ class DefaultStreamTextResult<
           const stepToolCalls: TypedToolCall<TOOLS>[] = [];
           const stepToolOutputs: ToolOutput<TOOLS>[] = [];
           let warnings: LanguageModelV2CallWarning[] | undefined;
-
-          const activeToolCallToolNames: Record<string, string> = {};
 
           let stepFinishReason: FinishReason = 'unknown';
           let stepUsage: LanguageModelUsage = {
@@ -1270,7 +1291,10 @@ class DefaultStreamTextResult<
                     }
 
                     case 'text-delta': {
-                      if (chunk.delta.length > 0) {
+                      if (
+                        chunk.delta.length > 0 ||
+                        chunk.providerMetadata != null
+                      ) {
                         controller.enqueue({
                           type: 'text-delta',
                           id: chunk.id,
@@ -1361,18 +1385,7 @@ class DefaultStreamTextResult<
                     }
 
                     case 'tool-input-start': {
-                      activeToolCallToolNames[chunk.id] = chunk.toolName;
-
-                      const tool = tools?.[chunk.toolName];
-                      if (tool?.onInputStart != null) {
-                        await tool.onInputStart({
-                          toolCallId: chunk.id,
-                          messages: stepInputMessages,
-                          abortSignal,
-                          experimental_context,
-                        });
-                      }
-
+                      const tool = stepToolSet?.[chunk.toolName];
                       controller.enqueue({
                         ...chunk,
                         dynamic: tool?.type === 'dynamic',
@@ -1381,25 +1394,11 @@ class DefaultStreamTextResult<
                     }
 
                     case 'tool-input-end': {
-                      delete activeToolCallToolNames[chunk.id];
                       controller.enqueue(chunk);
                       break;
                     }
 
                     case 'tool-input-delta': {
-                      const toolName = activeToolCallToolNames[chunk.id];
-                      const tool = tools?.[toolName];
-
-                      if (tool?.onInputDelta != null) {
-                        await tool.onInputDelta({
-                          inputTextDelta: chunk.delta,
-                          toolCallId: chunk.id,
-                          messages: stepInputMessages,
-                          abortSignal,
-                          experimental_context,
-                        });
-                      }
-
                       controller.enqueue(chunk);
                       break;
                     }
@@ -1514,7 +1513,7 @@ class DefaultStreamTextResult<
                         content:
                           // use transformed content to create the messages for the next step:
                           recordedSteps[recordedSteps.length - 1].content,
-                        tools,
+                        tools: stepToolSet,
                       }),
                     );
 
@@ -1756,6 +1755,26 @@ However, the LLM results are expected to be small enough to not cause issues.
   }: UIMessageStreamOptions<UI_MESSAGE> = {}): AsyncIterableStream<
     InferUIMessageChunk<UI_MESSAGE>
   > {
+    let outcome: UIMessageStreamOutcome = { status: 'unknown' };
+    let hasFatalFailure = false;
+
+    const setSourceOutcome = (newOutcome: UIMessageStreamOutcome) => {
+      if (
+        !hasFatalFailure &&
+        outcome.status !== 'completed' &&
+        outcome.status !== 'aborted' &&
+        newOutcome.status !== 'unknown' &&
+        (outcome.status === 'unknown' || newOutcome.status !== 'failed')
+      ) {
+        outcome = newOutcome;
+      }
+    };
+
+    const failOutcome = (error: unknown) => {
+      hasFatalFailure = true;
+      outcome = { status: 'failed', error };
+    };
+
     const responseMessageId =
       generateMessageId != null
         ? getResponseUIMessageId({
@@ -1772,7 +1791,54 @@ However, the LLM results are expected to be small enough to not cause issues.
       return dynamic ? true : undefined; // only send when dynamic to reduce data transfer
     };
 
-    const baseStream = this.fullStream.pipeThrough(
+    const sourceReader = this.fullStream.getReader();
+    let sourceReaderReleased = false;
+    let sourceStreamCancelled = false;
+
+    const releaseSourceReader = () => {
+      if (!sourceReaderReleased) {
+        sourceReader.releaseLock();
+        sourceReaderReleased = true;
+      }
+    };
+
+    const sourceStream = new ReadableStream<TextStreamPart<TOOLS>>({
+      async pull(controller) {
+        try {
+          const { done, value } = await sourceReader.read();
+
+          if (done) {
+            releaseSourceReader();
+            if (!sourceStreamCancelled) {
+              controller.close();
+            }
+          } else {
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          releaseSourceReader();
+          if (!sourceStreamCancelled) {
+            failOutcome(error);
+            controller.error(error);
+          }
+        }
+      },
+
+      async cancel(reason) {
+        sourceStreamCancelled = true;
+        if (sourceReaderReleased) {
+          return;
+        }
+
+        try {
+          await sourceReader.cancel(reason);
+        } finally {
+          releaseSourceReader();
+        }
+      },
+    });
+
+    const baseStream = sourceStream.pipeThrough(
       new TransformStream<
         TextStreamPart<TOOLS>,
         UIMessageChunk<
@@ -2067,17 +2133,78 @@ However, the LLM results are expected to be small enough to not cause issues.
               messageMetadata: messageMetadataValue,
             });
           }
+
+          if (part.type === 'finish') {
+            setSourceOutcome({ status: 'completed' });
+          } else if (part.type === 'abort') {
+            setSourceOutcome({ status: 'aborted' });
+          } else if (part.type === 'error') {
+            setSourceOutcome({ status: 'failed', error: part.error });
+          }
         },
       }),
     );
 
+    const baseStreamReader = baseStream.getReader();
+    let baseStreamReaderReleased = false;
+    let baseStreamCancelled = false;
+
+    const releaseBaseStreamReader = () => {
+      if (!baseStreamReaderReleased) {
+        baseStreamReader.releaseLock();
+        baseStreamReaderReleased = true;
+      }
+    };
+
+    const trackedBaseStream = new ReadableStream<
+      UIMessageChunk<
+        InferUIMessageMetadata<UI_MESSAGE>,
+        InferUIMessageData<UI_MESSAGE>
+      >
+    >({
+      async pull(controller) {
+        try {
+          const { done, value } = await baseStreamReader.read();
+
+          if (done) {
+            releaseBaseStreamReader();
+            if (!baseStreamCancelled) {
+              controller.close();
+            }
+          } else {
+            controller.enqueue(value);
+          }
+        } catch (error) {
+          releaseBaseStreamReader();
+          if (!baseStreamCancelled) {
+            failOutcome(error);
+            controller.error(error);
+          }
+        }
+      },
+
+      async cancel(reason) {
+        baseStreamCancelled = true;
+        if (baseStreamReaderReleased) {
+          return;
+        }
+
+        try {
+          await baseStreamReader.cancel(reason);
+        } finally {
+          releaseBaseStreamReader();
+        }
+      },
+    });
+
     return createAsyncIterableStream(
       handleUIMessageStreamFinish<UI_MESSAGE>({
-        stream: baseStream,
+        stream: trackedBaseStream,
         messageId: responseMessageId ?? generateMessageId?.(),
         originalMessages,
         onFinish,
         onError,
+        getOutcome: () => outcome,
       }),
     );
   }
@@ -2097,7 +2224,7 @@ However, the LLM results are expected to be small enough to not cause issues.
       ...init
     }: UIMessageStreamResponseInit & UIMessageStreamOptions<UI_MESSAGE> = {},
   ) {
-    pipeUIMessageStreamToResponse({
+    return pipeUIMessageStreamToResponse({
       response,
       stream: this.toUIMessageStream({
         originalMessages,
@@ -2115,7 +2242,7 @@ However, the LLM results are expected to be small enough to not cause issues.
   }
 
   pipeTextStreamToResponse(response: ServerResponse, init?: ResponseInit) {
-    pipeTextStreamToResponse({
+    return pipeTextStreamToResponse({
       response,
       textStream: this.textStream,
       ...init,

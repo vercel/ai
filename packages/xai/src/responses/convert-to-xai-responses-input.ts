@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import { convertToBase64 } from '@ai-sdk/provider-utils';
 import type {
+  XaiResponsesFunctionCallOutput,
   XaiResponsesInput,
   XaiResponsesUserMessageContentPart,
 } from './xai-responses-api';
@@ -160,7 +161,7 @@ export async function convertToXaiResponsesInput({
         for (const part of message.content) {
           const output = part.output;
 
-          let outputValue: string;
+          let outputValue: XaiResponsesFunctionCallOutput['output'];
           switch (output.type) {
             case 'text':
             case 'error-text':
@@ -171,14 +172,27 @@ export async function convertToXaiResponsesInput({
               outputValue = JSON.stringify(output.value);
               break;
             case 'content':
-              outputValue = output.value
-                .map(item => {
-                  if (item.type === 'text') {
-                    return item.text;
+              outputValue = [];
+              for (const item of output.value) {
+                switch (item.type) {
+                  case 'text': {
+                    outputValue.push({
+                      type: 'input_text',
+                      text: item.text,
+                    });
+                    break;
                   }
-                  return '';
-                })
-                .join('');
+                  case 'media': {
+                    if (item.mediaType.startsWith('image/')) {
+                      outputValue.push({
+                        type: 'input_image',
+                        image_url: `data:${item.mediaType};base64,${item.data}`,
+                      });
+                    }
+                    break;
+                  }
+                }
+              }
               break;
             default: {
               const _exhaustiveCheck: never = output;

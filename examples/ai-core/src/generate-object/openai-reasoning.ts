@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: openai('gpt-5'),
+    model: openai('gpt-5.6'),
     schema: z.object({
       recipe: z.object({
         name: z.string(),

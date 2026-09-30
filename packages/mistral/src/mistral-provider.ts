@@ -3,6 +3,7 @@ import {
   type LanguageModelV2,
   type ProviderV2,
   NoSuchModelError,
+  type SpeechModelV2,
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
@@ -14,6 +15,8 @@ import { MistralChatLanguageModel } from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-options';
 import { MistralEmbeddingModel } from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-options';
+import { MistralSpeechModel } from './mistral-speech-model';
+import type { MistralSpeechModelId } from './mistral-speech-model-options';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV2 {
@@ -39,6 +42,16 @@ Creates a model for text generation.
   textEmbeddingModel: (
     modelId: MistralEmbeddingModelId,
   ) => EmbeddingModelV2<string>;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speech(modelId: MistralSpeechModelId): SpeechModelV2;
+
+  /**
+   * Creates a model for speech generation (text-to-speech).
+   */
+  speechModel(modelId: MistralSpeechModelId): SpeechModelV2;
 }
 
 export interface MistralProviderSettings {
@@ -107,6 +120,14 @@ export function createMistral(
       fetch: options.fetch,
     });
 
+  const createSpeechModel = (modelId: MistralSpeechModelId) =>
+    new MistralSpeechModel(modelId, {
+      provider: 'mistral.speech',
+      baseURL,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const provider = function (modelId: MistralChatModelId) {
     if (new.target) {
       throw new Error(
@@ -122,6 +143,8 @@ export function createMistral(
   provider.embedding = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;
   provider.textEmbeddingModel = createEmbeddingModel;
+  provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
 
   provider.imageModel = (modelId: string) => {
     throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
