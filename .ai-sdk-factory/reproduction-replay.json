@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 10850,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-10850-multipart-tool-result.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-10850-multipart-tool-result.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_10850_REPRODUCED: the model received a JSON string instead of structured image tool content"
+  }
+}
