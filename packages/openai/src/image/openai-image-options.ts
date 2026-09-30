@@ -24,12 +24,20 @@ export const modelMaxImagesPerCall: Record<OpenAIImageModelId, number> = {
   'gpt-image-2': 10,
 };
 
-export const hasDefaultResponseFormat = new Set([
-  'gpt-image-1',
-  'gpt-image-1-mini',
-  'gpt-image-1.5',
-  'gpt-image-2',
-]);
+const defaultResponseFormatPrefixes = ['gpt-image-'];
+
+export function hasDefaultResponseFormat(modelId: string): boolean {
+  return defaultResponseFormatPrefixes.some(prefix =>
+    modelId.startsWith(prefix),
+  );
+}
+
+export function getMaxImagesPerCall(modelId: OpenAIImageModelId): number {
+  return (
+    modelMaxImagesPerCall[modelId] ??
+    (modelId.startsWith('gpt-image-') ? 10 : 1)
+  );
+}
 
 const baseImageModelOptionsObject = z.object({
   /**

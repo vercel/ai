@@ -1,7 +1,10 @@
 import { z } from 'zod/v4';
 import type { GatewayError } from './gateway-error';
 import { GatewayAuthenticationError } from './gateway-authentication-error';
-import { GatewayForbiddenError } from './gateway-forbidden-error';
+import {
+  GatewayForbiddenError,
+  forbiddenParamSchema,
+} from './gateway-forbidden-error';
 import { GatewayInvalidRequestError } from './gateway-invalid-request-error';
 import { GatewayRateLimitError } from './gateway-rate-limit-error';
 import {
@@ -24,12 +27,14 @@ export async function createGatewayErrorFromResponse({
   defaultMessage = 'Gateway request failed',
   cause,
   authMethod,
+  isRetryable,
 }: {
   response: unknown;
   statusCode: number;
   defaultMessage?: string;
   cause?: unknown;
   authMethod?: 'api-key' | 'oidc';
+  isRetryable?: boolean;
 }): Promise<GatewayError> {
   const parseResult = await safeValidateTypes({
     value: response,
@@ -43,6 +48,7 @@ export async function createGatewayErrorFromResponse({
       response,
       validationError: parseResult.error,
       cause,
+      isRetryable,
     });
   }
 
@@ -77,8 +83,19 @@ export async function createGatewayErrorFromResponse({
     }
     case 'internal_server_error':
       return new GatewayInternalServerError({ message, statusCode, cause });
-    case 'forbidden':
-      return new GatewayForbiddenError({ message, statusCode, cause });
+    case 'forbidden': {
+      const ruleResult = await safeValidateTypes({
+        value: validatedResponse.error.param,
+        schema: forbiddenParamSchema,
+      });
+
+      return new GatewayForbiddenError({
+        message,
+        statusCode,
+        cause,
+        ruleId: ruleResult.success ? ruleResult.value.ruleId : undefined,
+      });
+    }
     default:
       return new GatewayInternalServerError({ message, statusCode, cause });
   }

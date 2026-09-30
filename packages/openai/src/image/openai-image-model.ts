@@ -10,8 +10,8 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import { openaiImageResponseSchema } from './openai-image-api';
 import {
   type OpenAIImageModelId,
+  getMaxImagesPerCall,
   hasDefaultResponseFormat,
-  modelMaxImagesPerCall,
   openaiImageModelGenerationOptions,
 } from './openai-image-options';
 
@@ -25,7 +25,7 @@ export class OpenAIImageModel implements ImageModelV2 {
   readonly specificationVersion = 'v2';
 
   get maxImagesPerCall(): number {
-    return modelMaxImagesPerCall[this.modelId] ?? 1;
+    return getMaxImagesPerCall(this.modelId);
   }
 
   get provider(): string {
@@ -91,7 +91,7 @@ export class OpenAIImageModel implements ImageModelV2 {
         output_format: openaiOptions.outputFormat,
         output_compression: openaiOptions.outputCompression,
         user: openaiOptions.user,
-        ...(!hasDefaultResponseFormat.has(this.modelId)
+        ...(!hasDefaultResponseFormat(this.modelId)
           ? { response_format: 'b64_json' }
           : {}),
       },
