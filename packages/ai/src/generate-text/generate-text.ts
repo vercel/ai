@@ -24,7 +24,10 @@ import type { Prompt } from '../prompt/prompt';
 import { standardizePrompt } from '../prompt/standardize-prompt';
 import { wrapGatewayError } from '../prompt/wrap-gateway-error';
 import { assembleOperationName } from '../telemetry/assemble-operation-name';
-import { getBaseTelemetryAttributes } from '../telemetry/get-base-telemetry-attributes';
+import {
+  getBaseTelemetryAttributes,
+  getTelemetryMetadataAttributes,
+} from '../telemetry/get-base-telemetry-attributes';
 import { getTracer } from '../telemetry/get-tracer';
 import { recordErrorOnSpan, recordSpan } from '../telemetry/record-span';
 import { selectTelemetryAttributes } from '../telemetry/select-telemetry-attributes';
@@ -37,8 +40,10 @@ import type { DownloadFunction } from '../util/download/download-function';
 import { prepareRetries } from '../util/prepare-retries';
 import type { ContentPart } from './content-part';
 import { extractTextContent } from './extract-text-content';
+import { filterActiveTools } from './filter-active-tools';
 import type { GenerateTextResult } from './generate-text-result';
 import { DefaultGeneratedFile } from './generated-file';
+import { isToolExecutionAllowedFinishReason } from './is-tool-execution-allowed-finish-reason';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
 import type { PrepareStepFunction } from './prepare-step';
@@ -312,6 +317,10 @@ A function that attempts to repair a tool call that failed to parse.
         const steps: GenerateTextResult<TOOLS, OUTPUT>['steps'] = [];
 
         do {
+          if (steps.length > 0) {
+            abortSignal?.throwIfAborted();
+          }
+
           const stepInputMessages = [
             ...initialPrompt.messages,
             ...responseMessages,
@@ -337,11 +346,17 @@ A function that attempts to repair a tool call that failed to parse.
             download,
           });
 
+          const stepActiveTools = prepareStepResult?.activeTools ?? activeTools;
+          const stepToolSet = filterActiveTools({
+            tools,
+            activeTools: stepActiveTools,
+          });
+
           const { toolChoice: stepToolChoice, tools: stepTools } =
             prepareToolsAndToolChoice({
               tools,
               toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-              activeTools: prepareStepResult?.activeTools ?? activeTools,
+              activeTools: stepActiveTools,
             });
 
           currentModelResponse = await retry(() =>
@@ -462,7 +477,7 @@ A function that attempts to repair a tool call that failed to parse.
               .map(toolCall =>
                 parseToolCall({
                   toolCall,
-                  tools,
+                  tools: stepToolSet,
                   repairToolCall,
                   system,
                   messages: stepInputMessages,
@@ -476,7 +491,16 @@ A function that attempts to repair a tool call that failed to parse.
               continue; // ignore invalid tool calls
             }
 
-            const tool = tools![toolCall.toolName];
+            const tool = stepToolSet![toolCall.toolName];
+            if (tool.onInputStart != null) {
+              await tool.onInputStart({
+                toolCallId: toolCall.toolCallId,
+                messages: stepInputMessages,
+                abortSignal,
+                experimental_context,
+              });
+            }
+
             if (tool?.onInputAvailable != null) {
               await tool.onInputAvailable({
                 input: toolCall.input,
@@ -512,13 +536,18 @@ A function that attempts to repair a tool call that failed to parse.
             toolCall => !toolCall.providerExecuted,
           );
 
-          if (tools != null) {
+          if (
+            stepToolSet != null &&
+            isToolExecutionAllowedFinishReason(
+              currentModelResponse.finishReason,
+            )
+          ) {
             clientToolOutputs.push(
               ...(await executeTools({
                 toolCalls: clientToolCalls.filter(
                   toolCall => !toolCall.invalid,
                 ),
-                tools,
+                tools: stepToolSet,
                 tracer,
                 telemetry,
                 messages: stepInputMessages,
@@ -539,7 +568,7 @@ A function that attempts to repair a tool call that failed to parse.
           responseMessages.push(
             ...toResponseMessages({
               content: stepContent,
-              tools,
+              tools: stepToolSet,
             }),
           );
 
@@ -660,6 +689,7 @@ async function executeTools<TOOLS extends ToolSet>({
               operationId: 'ai.toolCall',
               telemetry,
             }),
+            ...getTelemetryMetadataAttributes(telemetry),
             'ai.toolCall.name': toolName,
             'ai.toolCall.id': toolCallId,
             'ai.toolCall.args': {

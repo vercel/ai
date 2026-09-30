@@ -8,7 +8,10 @@ export type BedrockChatModelId =
   | 'anthropic.claude-v2:1'
   | 'anthropic.claude-instant-v1'
   | 'anthropic.claude-sonnet-5'
+  | 'anthropic.claude-sonnet-5-5'
   | 'anthropic.claude-fable-5'
+  | 'anthropic.claude-opus-5'
+  | 'anthropic.claude-opus-5-5'
   | 'anthropic.claude-opus-4-8'
   | 'anthropic.claude-opus-4-7'
   | 'anthropic.claude-opus-4-6-v1'
@@ -59,7 +62,10 @@ export type BedrockChatModelId =
   | 'us.anthropic.claude-3-5-sonnet-20241022-v2:0'
   | 'us.anthropic.claude-3-7-sonnet-20250219-v1:0'
   | 'us.anthropic.claude-sonnet-5'
+  | 'us.anthropic.claude-sonnet-5-5'
   | 'us.anthropic.claude-fable-5'
+  | 'us.anthropic.claude-opus-5'
+  | 'us.anthropic.claude-opus-5-5'
   | 'us.anthropic.claude-opus-4-8'
   | 'us.anthropic.claude-opus-4-7'
   | 'us.anthropic.claude-opus-4-6-v1'
@@ -82,6 +88,16 @@ export type BedrockChatModelId =
   | 'us.meta.llama4-scout-17b-instruct-v1:0'
   | 'us.meta.llama4-maverick-17b-instruct-v1:0'
   | (string & {});
+
+export type AmazonBedrockChatModelSettings = {
+  /**
+   * The chat model family.
+   *
+   * Specify this when the model ID does not identify the underlying model,
+   * such as an application inference profile ARN.
+   */
+  modelFamily?: 'anthropic';
+};
 
 /**
  * Bedrock file part provider options for document-specific features.
@@ -107,6 +123,14 @@ export type BedrockFilePartProviderOptions = z.infer<
 >;
 
 export const bedrockProviderOptions = z.object({
+  /**
+   * Determines how structured outputs are generated for Anthropic models.
+   *
+   * - `outputFormat`: Use the native `output_config.format` parameter.
+   * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
+   * - `auto`: Use `outputFormat` when supported, otherwise use `jsonTool` (default).
+   */
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
   /**
    * Additional inference parameters that the model supports,
    * beyond the base set of inference parameters that Converse

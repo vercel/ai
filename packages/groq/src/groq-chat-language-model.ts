@@ -5,7 +5,6 @@ import {
   type LanguageModelV2FinishReason,
   type LanguageModelV2StreamPart,
   type LanguageModelV2Usage,
-  type SharedV2ProviderMetadata,
   InvalidResponseDataError,
   LanguageModelV2Prompt,
 } from '@ai-sdk/provider';
@@ -281,7 +280,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    let providerMetadata: SharedV2ProviderMetadata | undefined;
     return {
       stream: response.pipeThrough(
         new TransformStream<
@@ -489,7 +487,6 @@ export class GroqChatLanguageModel implements LanguageModelV2 {
               type: 'finish',
               finishReason,
               usage,
-              ...(providerMetadata != null ? { providerMetadata } : {}),
             });
           },
         }),

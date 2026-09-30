@@ -4,5 +4,10 @@ export type {
   DeepSeekProviderSettings,
 } from './deepseek-provider';
 export { VERSION } from './version';
-export type { DeepSeekChatOptions } from './chat/deepseek-chat-options';
+export type {
+  DeepSeekAssistantMessageProviderOptions,
+  DeepSeekChatOptions,
+  DeepSeekMessageProviderOptions,
+} from './chat/deepseek-chat-options';
 export type { DeepSeekErrorData } from './chat/deepseek-chat-api-types';
+export type { DeepSeekFilePartProviderOptions } from './chat/deepseek-file-part-options';

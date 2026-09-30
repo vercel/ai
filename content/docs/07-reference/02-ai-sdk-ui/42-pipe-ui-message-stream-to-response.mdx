@@ -17,7 +17,7 @@ The `pipeUIMessageStreamToResponse` function pipes streaming data to a Node.js S
 ## Example
 
 ```tsx
-pipeUIMessageStreamToResponse({
+await pipeUIMessageStreamToResponse({
   response: serverResponse,
   status: 200,
   statusText: 'OK',
@@ -64,6 +64,13 @@ pipeUIMessageStreamToResponse({
       description: 'Additional headers for the response.',
     },
     {
+      name: 'keepAliveMs',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Interval in milliseconds for sending SSE keep-alive comments. When set, an opening comment is sent immediately and additional comments are sent after the stream has been idle for the configured interval.',
+    },
+    {
       name: 'consumeSseStream',
       type: '({ stream }: { stream: ReadableStream }) => void',
       description:
@@ -71,3 +78,8 @@ pipeUIMessageStreamToResponse({
     },
   ]}
 />
+
+### Returns
+
+A `Promise<void>` that resolves when the stream has been written to the response
+and rejects when reading or writing the stream fails.

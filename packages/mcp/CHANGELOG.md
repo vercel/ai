@@ -1,5 +1,132 @@
 # @ai-sdk/mcp
 
+## 0.0.39
+
+### Patch Changes
+
+- 2b1c2df: fix(mcp): reject private OAuth endpoints before sending credentials
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2b1c2df: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 0.0.38
+
+### Patch Changes
+
+- 58d303f: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 0.0.36
+
+### Patch Changes
+
+- 98a5ad3: fix(mcp): preserve explicit stdio transport environment values
+
+## 0.0.35
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 0.0.34
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 0.0.30
+
+### Patch Changes
+
+- 9b56bd6: Fetch all paginated tool definitions when creating an MCP tool set.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 0.0.29
+
+### Patch Changes
+
+- 479a6ff: fix(mcp): support spawning command shims such as `npx` on Windows
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 0.0.26
+
+### Patch Changes
+
+- 83b0f15: fix(mcp): accept OAuth metadata without code challenge methods
+
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+
+## 0.0.24
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
+## 0.0.23
+
+### Patch Changes
+
+- 01a2b53: Prevent streamable HTTP MCP background SSE disconnects from surfacing as unhandled promise rejections.
+
 ## 0.0.22
 
 ### Patch Changes

@@ -1,6 +1,4 @@
 ---
-'@ai-sdk/openai': patch
-'@ai-sdk/openai-compatible': patch
 '@ai-sdk/groq': patch
 '@ai-sdk/deepseek': patch
 '@ai-sdk/alibaba': patch
