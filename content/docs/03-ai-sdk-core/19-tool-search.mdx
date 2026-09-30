@@ -11,9 +11,10 @@ search matches their names and descriptions and makes them available on the
 **next model step**.
 
 Use it with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
-`@ai-sdk/workflow`. The factory takes no arguments; the model supplies a search
-query. `WorkflowAgent` supports direct tool calling; the other APIs also support
-cache-preserving code mode.
+`@ai-sdk/workflow`. The model supplies a search query. By default, the SDK ranks
+exact token matches in tool names and descriptions. You can also provide a
+custom synchronous or asynchronous ranker. `WorkflowAgent` supports direct tool
+calling; the other APIs also support cache-preserving code mode.
 
 ## Direct Tool Calling
 
@@ -39,6 +40,51 @@ const result = await generateText({
   prompt: 'Will it rain in Bangalore tomorrow?',
 });
 ```
+
+## Custom Ranking
+
+Pass a `search` callback when your application has domain-specific knowledge
+that exact token matching cannot capture. The callback receives the
+model-provided query and only the deferred tools that are eligible for this
+search after `activeTools` and caller routing have been applied.
+
+```ts
+const search = toolSearch({
+  search: async (query, tools) => {
+    const preferred = query.toLowerCase().includes('trip planning')
+      ? ['weather', 'bookHotel']
+      : [];
+    const eligibleNames = new Set(tools.map(tool => tool.name));
+
+    return preferred.filter(name => eligibleNames.has(name));
+  },
+});
+
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    search,
+    weather,
+    bookHotel: tool({
+      deferLoading: true,
+      description: 'Reserve a hotel room.',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => ({ city, reserved: true }),
+    }),
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'Help me plan a trip to Bangalore.',
+});
+```
+
+Return tool names in ranked order. The SDK preserves that order, ignores names
+that were not supplied to the callback, and applies the same five-result limit
+and next-step discovery lifecycle as the default ranker. The callback can return
+`string[]` or `PromiseLike<string[]>`.
+
+If a custom ranker calls a remote embedding or reranking service, the query and
+eligible tool names and descriptions are sent to that service. Account for the
+service's data handling, latency, cost, and failure behavior.
 
 ## Code Mode
 

@@ -11,7 +11,7 @@ import {
 } from '../generate-text/tool-caller-configuration';
 import { resolveToolDescription } from '../prompt/prepare-tools';
 import { getOwn } from '../util/get-own';
-import { isToolSearch } from './tool-search';
+import { getToolSearchOptions, isToolSearch } from './tool-search';
 
 /** Create discovery state for one generation, never for a shared tool instance. */
 export function createToolSearchState({
@@ -85,46 +85,82 @@ export function createToolSearchState({
               !isToolSearch(candidate) &&
               callers.some(caller => getCallers(name).includes(caller)),
           );
+          const customSearch = getToolSearchOptions(tool)?.search;
 
           return [
             searchName,
             {
               ...tool,
               execute: ({ query }: { query: string }) => {
-                const terms = [...new Set(tokenize(query))];
-                const matches = candidates
-                  .map(([name, candidate]) => {
-                    const description = resolveToolDescription({
-                      tool: candidate,
-                      toolName: name,
-                      toolsContext,
-                      experimental_sandbox,
-                    });
-                    const nameTerms = tokenize(name);
-                    const descriptionTerms = tokenize(description ?? '');
-                    const score = terms.reduce(
-                      (score, term) =>
-                        score +
-                        (nameTerms.includes(term) ? 2 : 0) +
-                        (descriptionTerms.includes(term) ? 1 : 0),
-                      0,
-                    );
-                    return { name, description, score };
-                  })
-                  .filter(match => match.score > 0)
-                  .sort((a, b) => b.score - a.score)
-                  .slice(0, 5);
+                const eligibleTools = candidates.map(([name, candidate]) => ({
+                  name,
+                  description: resolveToolDescription({
+                    tool: candidate,
+                    toolName: name,
+                    toolsContext,
+                    experimental_sandbox,
+                  }),
+                }));
 
-                for (const { name } of matches) {
-                  discovered.add(name);
+                const finalize = (rankedNames: string[]) => {
+                  const eligibleByName = new Map(
+                    eligibleTools.map(candidate => [candidate.name, candidate]),
+                  );
+                  const matches = rankedNames
+                    .map(name => eligibleByName.get(name))
+                    .filter(
+                      (
+                        candidate,
+                      ): candidate is {
+                        name: string;
+                        description: string | undefined;
+                      } => candidate != null,
+                    )
+                    .slice(0, 5);
+
+                  for (const { name } of matches) {
+                    discovered.add(name);
+                  }
+
+                  return {
+                    tools: matches.map(({ name, description }) => ({
+                      name,
+                      ...(description == null ? {} : { description }),
+                    })),
+                  };
+                };
+
+                if (customSearch != null) {
+                  return Promise.resolve(
+                    customSearch(
+                      query,
+                      eligibleTools.map(({ name, description }) => ({
+                        name,
+                        ...(description == null ? {} : { description }),
+                      })),
+                    ),
+                  ).then(finalize);
                 }
 
-                return {
-                  tools: matches.map(({ name, description }) => ({
-                    name,
-                    ...(description == null ? {} : { description }),
-                  })),
-                };
+                const terms = [...new Set(tokenize(query))];
+                return finalize(
+                  eligibleTools
+                    .map(({ name, description }) => {
+                      const nameTerms = tokenize(name);
+                      const descriptionTerms = tokenize(description ?? '');
+                      const score = terms.reduce(
+                        (score, term) =>
+                          score +
+                          (nameTerms.includes(term) ? 2 : 0) +
+                          (descriptionTerms.includes(term) ? 1 : 0),
+                        0,
+                      );
+                      return { name, score };
+                    })
+                    .filter(match => match.score > 0)
+                    .sort((a, b) => b.score - a.score)
+                    .map(({ name }) => name),
+                );
               },
             },
           ];

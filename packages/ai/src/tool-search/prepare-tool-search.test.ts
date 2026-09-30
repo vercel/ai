@@ -4,7 +4,7 @@ import {
   tool,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import { createToolSearchState } from './prepare-tool-search';
 import { toolSearch } from './tool-search';
@@ -48,6 +48,132 @@ describe('deferred tool search', () => {
         'meteorology',
       ),
     ).toEqual({ tools: [{ name: 'getWeather', description: 'Meteorology' }] });
+  });
+
+  it('passes only eligible tools with resolved descriptions to a custom search', async () => {
+    const customSearch = vi.fn((_query: string, candidates) =>
+      candidates.map((candidate: { name: string }) => candidate.name),
+    );
+    const registry = {
+      ...tools,
+      search: toolSearch({ search: customSearch }),
+      otherCode: caller,
+      otherWeather: weather,
+      inactiveWeather: weather,
+      getWeather: tool({
+        deferLoading: true,
+        contextSchema: z.object({ capability: z.string() }),
+        description: ({ context }) => context.capability,
+        inputSchema: z.object({}),
+      }),
+    };
+    const prepare = createToolSearchState({
+      tools: registry,
+      toolCallers: {
+        ...toolCallers,
+        otherWeather: ['otherCode'],
+        inactiveWeather: ['code'],
+      },
+    });
+    const { inactiveWeather: _inactive, ...activeTools } = registry;
+
+    expect(
+      await search(
+        prepare(activeTools, {
+          toolsContext: { getWeather: { capability: 'Meteorology' } },
+        })!,
+        'forecast service',
+      ),
+    ).toEqual({
+      tools: [{ name: 'getWeather', description: 'Meteorology' }],
+    });
+    expect(customSearch).toHaveBeenCalledWith('forecast service', [
+      { name: 'getWeather', description: 'Meteorology' },
+    ]);
+    expect(prepare(activeTools)!.getWeather).toBe(registry.getWeather);
+    expect(prepare(registry)!.inactiveWeather).toBeUndefined();
+    expect(prepare(registry)!.otherWeather).toBeUndefined();
+  });
+
+  it('preserves custom ranking, ignores unknown names, and caps results at five', async () => {
+    const candidates = Object.fromEntries(
+      Array.from({ length: 6 }, (_, i) => [`candidate${i}`, weather]),
+    );
+    const rankedNames = [
+      'unknown',
+      'candidate5',
+      'candidate3',
+      'candidate4',
+      'candidate1',
+      'candidate2',
+      'candidate0',
+    ];
+    const registry = {
+      code: caller,
+      search: toolSearch({ search: () => rankedNames }),
+      ...candidates,
+    };
+    const prepare = createToolSearchState({
+      tools: registry,
+      toolCallers: {
+        search: ['code'],
+        ...Object.fromEntries(
+          Object.keys(candidates).map(name => [name, ['code']]),
+        ),
+      },
+    });
+
+    expect(
+      await search(prepare(registry)!, 'ignored by custom ranking'),
+    ).toEqual({
+      tools: rankedNames.slice(1, 6).map(name => ({
+        name,
+        description: 'Weather forecast.',
+      })),
+    });
+    expect(Object.keys(prepare(registry)!)).toEqual([
+      'code',
+      'search',
+      'candidate1',
+      'candidate2',
+      'candidate3',
+      'candidate4',
+      'candidate5',
+    ]);
+  });
+
+  it('awaits PromiseLike custom search results', async () => {
+    const registry = {
+      ...tools,
+      search: toolSearch({
+        search: (_query, candidates) => ({
+          // oxlint-disable-next-line unicorn/no-thenable -- Verify support for arbitrary PromiseLike results.
+          then: onfulfilled =>
+            Promise.resolve(onfulfilled!([candidates[0].name])),
+        }),
+      }),
+    };
+    const prepare = createToolSearchState({ tools: registry, toolCallers });
+
+    expect(await search(prepare(registry)!, 'anything')).toEqual({
+      tools: [{ name: 'getWeather', description: 'Weather forecast.' }],
+    });
+  });
+
+  it('does not discover tools when a custom search rejects', async () => {
+    const error = new Error('ranking failed');
+    const registry = {
+      ...tools,
+      search: toolSearch({
+        search: async () => {
+          throw error;
+        },
+      }),
+    };
+    const prepare = createToolSearchState({ tools: registry, toolCallers });
+
+    await expect(search(prepare(registry)!, 'weather')).rejects.toBe(error);
+    expect(prepare(registry)!.getWeather).toBeUndefined();
   });
 
   it('accumulates independent searches in the same step', async () => {
@@ -152,15 +278,20 @@ describe('deferred tool search', () => {
     expect(Object.keys(prepare(registry)!)).toHaveLength(7);
   });
 
-  it('preserves the search marker when spreading the tool', async () => {
+  it('preserves custom search options when spreading the tool', async () => {
+    const customSearch = vi.fn(() => ['getWeather']);
     const registry = {
       ...tools,
-      search: { ...tools.search, description: 'Custom search' },
+      search: {
+        ...toolSearch({ search: customSearch }),
+        description: 'Custom search',
+      },
     };
     const prepare = createToolSearchState({ tools: registry, toolCallers });
     expect(await search(prepare(registry)!, 'weather')).toMatchObject({
       tools: [{ name: 'getWeather' }],
     });
+    expect(customSearch).toHaveBeenCalledOnce();
   });
 
   it.each<ResolvedToolCallers | undefined>([

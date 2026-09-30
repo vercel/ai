@@ -6,19 +6,52 @@ description: Search deferred tools and load their definitions on demand for dire
 # `toolSearch()`
 
 Creates a tool that searches the surrounding generation's deferred tools by name
-and description. The factory takes no arguments. Use it with `generateText`,
-`streamText`, `ToolLoopAgent`, or `WorkflowAgent` from `@ai-sdk/workflow`.
-`WorkflowAgent` supports direct tool calling. The other APIs also support code
-mode configured with `toolDiscovery: 'conversation'`.
+and description. Use it with `generateText`, `streamText`, `ToolLoopAgent`, or
+`WorkflowAgent` from `@ai-sdk/workflow`. `WorkflowAgent` supports direct tool
+calling. The other APIs also support code mode configured with
+`toolDiscovery: 'conversation'`.
 
 ```ts
 import { toolSearch } from 'ai';
 
-const search = toolSearch();
+const search = toolSearch({
+  search: async (query, tools) => {
+    // Return eligible tool names in ranked order.
+    return tools.map(tool => tool.name);
+  },
+});
 ```
 
 See the [Tool Search guide](/docs/ai-sdk-core/tool-search) for direct-calling and
 code mode examples, including how code mode preserves the tool-definition cache.
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'options',
+      type: 'ToolSearchOptions',
+      isOptional: true,
+      description:
+        'Optional configuration for ranking eligible deferred tools.',
+      properties: [
+        {
+          type: 'ToolSearchOptions',
+          parameters: [
+            {
+              name: 'search',
+              isOptional: true,
+              type: '(query: string, tools: Array<{ name: string; description?: string }>) => string[] | PromiseLike<string[]>',
+              description:
+                'Custom ranking callback. Receives the model query and only the deferred tools eligible after activeTools and caller routing filters. Return names in ranked order. Unknown names are ignored, order is preserved, and the normal five-result limit and discovery lifecycle are applied.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
 
 ## Model Input
 
@@ -30,9 +63,18 @@ The model supplies the following input to the search tool:
 
 `query` is a required, nonempty string of search keywords. Search is local and
 case-insensitive, matching words in tool names and descriptions. Camel-case names
-are split into words. Name matches rank above description matches; equal scores
-preserve registration order. Function descriptions are resolved with the current
-tool context and sandbox. No embedding service or additional model call is used.
+are split into words. Without a custom `search` callback, each distinct query
+token found in a tool name adds two points and each one found in its description
+adds one point. Repeated query tokens are scored once. Results are sorted by
+descending score, and equal scores preserve registration order. Function
+descriptions are resolved with the current tool context and sandbox. The default
+ranker does not use an embedding service or additional model call.
+
+A custom callback receives the resolved names and descriptions after all
+eligibility filters have been applied. Rejected callbacks fail like other tool
+execution errors and do not discover tools. Callbacks that use a remote service
+can disclose the query and tool metadata and add latency, cost, and external
+failure modes.
 
 ## Output
 
