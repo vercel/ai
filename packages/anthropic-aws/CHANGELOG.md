@@ -1,5 +1,16 @@
 # @ai-sdk/anthropic-aws
 
+## 2.0.62
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/anthropic@4.0.70
+
 ## 2.0.61
 
 ### Patch Changes
