@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -358,6 +359,60 @@ describe('Claude Code bridge configuration', () => {
       'claude-code': { sessionId: 'claude-session-2' },
     });
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
+  });
+
+  test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
+    const fixture = JSON.parse(
+      readFileSync(
+        new URL(
+          './__fixtures__/issue-21865-multiple-results.json',
+          import.meta.url,
+        ),
+        'utf8',
+      ),
+    ) as {
+      messages: Record<string, unknown>[];
+    };
+
+    state.steering = true;
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        const initial = await input.next();
+        const steering = await input.next();
+        state.queryInputs.push(initial.value, steering.value);
+        const steeringUuid = Reflect.get(steering.value as object, 'uuid');
+
+        for (const message of fixture.messages) {
+          yield message.type === 'command_lifecycle' &&
+          message.command_uuid === 'live-cost-second'
+            ? { ...message, command_uuid: steeringUuid }
+            : message;
+        }
+      })();
+
+    await import('./index');
+
+    const resultCosts = fixture.messages.flatMap(message =>
+      message.type === 'result' &&
+      message.subtype === 'success' &&
+      typeof message.total_cost_usd === 'number'
+        ? [message.total_cost_usd]
+        : [],
+    );
+    const latestCumulativeCost = resultCosts.at(-1);
+    const finish = state.emitted.find(message => message.type === 'finish');
+    const claudeCodeMetadata = (
+      finish?.harnessMetadata as
+        | Record<string, Record<string, unknown>>
+        | undefined
+    )?.['claude-code'];
+
+    expect(resultCosts).toHaveLength(2);
+    expect(
+      claudeCodeMetadata?.costUsd,
+      'ISSUE_21865: finish costUsd must use the latest cumulative provider total',
+    ).toBe(latestCumulativeCost);
   });
 
   test('reports an empty stop payload when no session id was observed', async () => {

@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 21865,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21865-claude-code-cost.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21865-claude-code-cost.ts",
+    "packages/harness-claude-code/src/bridge/index.test.ts",
+    "packages/harness-claude-code/src/bridge/__fixtures__/issue-21865-multiple-results.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21865: finish costUsd must use the latest cumulative provider total"
+  }
+}
