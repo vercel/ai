@@ -23,7 +23,24 @@ export type AnthropicCacheControl = {
 
 export interface AnthropicSystemMessage {
   role: 'system';
-  content: Array<AnthropicTextContent>;
+  content: Array<AnthropicTextContent | AnthropicToolChangeContent>;
+  clear_at?: 'next_user_message';
+  output_config?: {
+    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+  };
+}
+
+/**
+ * Mid-conversation tool change content block. Adds or removes a tool from the
+ * conversation's tool set without invalidating the prompt cache.
+ *
+ * Only valid inside system messages that appear in the `messages` array.
+ * Requires the `mid-conversation-tool-changes-2026-07-01` beta.
+ */
+export interface AnthropicToolChangeContent {
+  type: 'tool_addition' | 'tool_removal';
+  tool: { type: 'tool_reference'; name: string };
+  cache_control?: never;
 }
 
 export interface AnthropicUserMessage {
@@ -62,6 +79,7 @@ export interface AnthropicCompactionContent {
 export interface AnthropicTextContent {
   type: 'text';
   text: string;
+  citations?: Citation[];
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -118,6 +136,11 @@ export interface AnthropicToolCallContent {
   id: string;
   name: string;
   input: unknown;
+  /**
+   * Present when this tool call is a member call of a toolset
+   * (e.g. `computer` for the computer toolset). `name` is then the member name.
+   */
+  toolset_name?: string;
   cache_control: AnthropicCacheControl | undefined;
 }
 
@@ -162,6 +185,10 @@ type AnthropicNestedDocumentContent = Omit<
 export interface AnthropicToolResultContent {
   type: 'tool_result';
   tool_use_id: string;
+  /**
+   * Required for results of toolset member calls (e.g. `computer`).
+   */
+  toolset_name?: string;
   content:
     | string
     | Array<
@@ -299,6 +326,15 @@ export type AnthropicTool =
       display_width_px: number;
       display_height_px: number;
       display_number: number;
+      cache_control: AnthropicCacheControl | undefined;
+    }
+  | {
+      /**
+       * Computer toolset. Declared without a `name`; the API returns member
+       * tool calls (e.g. `left_click`) with `toolset_name: 'computer'`.
+       */
+      type: 'computer_toolset_20260801';
+      configs?: Record<string, { enabled?: boolean; defer_loading?: boolean }>;
       cache_control: AnthropicCacheControl | undefined;
     }
   | {
@@ -512,6 +548,8 @@ export const anthropicMessagesResponseSchema = lazySchema(() =>
             id: z.string(),
             name: z.string(),
             input: z.unknown(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('server_tool_use'),
@@ -750,6 +788,8 @@ export const anthropicMessagesChunkSchema = lazySchema(() =>
             type: z.literal('tool_use'),
             id: z.string(),
             name: z.string(),
+            // Toolsets (e.g. computer toolset): name of the toolset this member call belongs to
+            toolset_name: z.string().nullish(),
           }),
           z.object({
             type: z.literal('redacted_thinking'),

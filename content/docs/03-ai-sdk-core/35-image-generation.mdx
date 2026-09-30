@@ -204,6 +204,8 @@ The outer key of the returned `providerMetadata` is the provider name. The inner
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
+Unclassified empty image responses are retried according to `maxRetries` before this error is thrown.
+Providers can classify terminal empty responses, such as moderation blocks, with `isRetryable: false`; these responses are not retried.
 
 This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
 

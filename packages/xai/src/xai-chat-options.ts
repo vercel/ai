@@ -2,6 +2,9 @@ import { z } from 'zod/v4';
 
 // https://console.x.ai and see "View models"
 export type XaiChatModelId =
+  | 'grok-4.6'
+  | 'grok-4.7'
+  | 'grok-4.5'
   | 'grok-4-1'
   | 'grok-4-1-fast-reasoning'
   | 'grok-4-1-fast-non-reasoning'
@@ -77,7 +80,11 @@ const searchSourceSchema = z.discriminatedUnion('type', [
 
 // xai-specific provider options
 export const xaiProviderOptions = z.object({
-  reasoningEffort: z.enum(['low', 'high']).optional(),
+  /**
+   * Reasoning effort for reasoning models.
+   * `xhigh` is supported by `grok-4.6`.
+   */
+  reasoningEffort: z.enum(['low', 'medium', 'high', 'xhigh']).optional(),
 
   /**
    * Whether to enable parallel function calling during tool use.
