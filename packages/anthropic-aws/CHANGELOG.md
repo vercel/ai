@@ -1,0 +1,196 @@
+# @ai-sdk/anthropic-aws
+
+## 0.1.23
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/anthropic@2.0.108
+
+## 0.1.22
+
+### Patch Changes
+
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/anthropic@2.0.107
+  - @ai-sdk/provider-utils@3.0.40
+
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [214d440]
+  - @ai-sdk/anthropic@2.0.106
+
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/anthropic@2.0.105
+  - @ai-sdk/provider-utils@3.0.39
+
+## 0.1.19
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+- Updated dependencies [dc710c5]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/anthropic@2.0.104
+  - @ai-sdk/provider-utils@3.0.38
+
+## 0.1.18
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/anthropic@2.0.103
+
+## 0.1.17
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+
+## 0.1.16
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/anthropic@2.0.101
+
+## 0.1.15
+
+### Patch Changes
+
+- Updated dependencies [cd8f35c]
+- Updated dependencies [26165ee]
+  - @ai-sdk/anthropic@2.0.100
+  - @ai-sdk/provider-utils@3.0.36
+
+## 0.1.14
+
+### Patch Changes
+
+- Updated dependencies [78c7304]
+  - @ai-sdk/anthropic@2.0.99
+
+## 0.1.13
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+
+## 0.1.12
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/anthropic@2.0.97
+
+## 0.1.11
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/anthropic@2.0.96
+
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+
+## 0.1.9
+
+### Patch Changes
+
+- Updated dependencies [e7afc18]
+  - @ai-sdk/anthropic@2.0.94
+
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [950eec8]
+  - @ai-sdk/anthropic@2.0.93
+
+## 0.1.7
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/anthropic@2.0.92
+
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+  - @ai-sdk/anthropic@2.0.91
+
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [db28434]
+  - @ai-sdk/anthropic@2.0.90
+
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [1b0e540]
+- Updated dependencies [5bb3ae4]
+  - @ai-sdk/anthropic@2.0.89
+
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [30c69e6]
+  - @ai-sdk/anthropic@2.0.88
+
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+- Updated dependencies [5082ee8]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/anthropic@2.0.87
+
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/anthropic@2.0.86
+
+## 0.1.0
+
+### Minor Changes
+
+- 4cb71d0: feat(anthropic-aws): add Claude Platform on AWS provider to the v5 release line
+
+  Backports the `@ai-sdk/anthropic-aws` provider to AI SDK v5, adapted to the V2 provider specification (`LanguageModelV2` / `ProviderV2`). The provider wraps the Anthropic Messages API hosted on AWS, authenticated with AWS SigV4 or an AWS-provisioned API key.

@@ -11,8 +11,10 @@ import {
   type GetPromptResult,
   type Configuration,
   ElicitationRequestSchema,
+  LATEST_PROTOCOL_VERSION,
 } from './types';
-import type { JSONRPCRequest } from './json-rpc-message';
+import type { JSONRPCMessage, JSONRPCRequest } from './json-rpc-message';
+import type { MCPTransport } from './mcp-transport';
 import {
   beforeEach,
   afterEach,
@@ -25,66 +27,12 @@ import {
 
 const createMockTransport = vi.fn(config => new MockMCPTransport(config));
 
-<<<<<<< HEAD
-=======
-class GetterOnlyProtocolVersionTransport implements MCPTransport {
-  private readonly transport: MockMCPTransport;
-  private negotiatedProtocolVersion?: string;
+class PaginatedToolsTransport implements MCPTransport {
+  readonly toolListCursors: Array<string | undefined> = [];
 
   onmessage?: (message: JSONRPCMessage) => void;
   onclose?: () => void;
   onerror?: (error: Error) => void;
-
-  constructor(protocolVersion: string) {
-    this.transport = new MockMCPTransport({
-      initializeResult: {
-        protocolVersion,
-        serverInfo: { name: 'mock-mcp-server', version: '1.0.0' },
-        capabilities: { tools: {} },
-      },
-    });
-  }
-
-  get protocolVersion(): string | undefined {
-    return this.negotiatedProtocolVersion;
-  }
-
-  setProtocolVersion(version: string): void {
-    this.negotiatedProtocolVersion = version;
-  }
-
-  async start(): Promise<void> {
-    await this.transport.start();
-  }
-
-  async send(message: JSONRPCMessage): Promise<void> {
-    this.transport.onmessage = this.onmessage;
-    this.transport.onclose = this.onclose;
-    this.transport.onerror = this.onerror;
-    await this.transport.send(message);
-  }
-
-  async close(): Promise<void> {
-    await this.transport.close();
-  }
-}
-
-class FailsFirstToolCallTransport implements MCPTransport {
-  toolCallAttempts = 0;
-
-  onmessage?: (message: JSONRPCMessage) => void;
-  onclose?: () => void;
-  onerror?: (error: Error) => void;
-
-  constructor(
-    private readonly failure:
-      | 'transient-http'
-      | 'unlisted-http'
-      | 'network'
-      | 'invalid-params'
-      | 'auth'
-      | 'tool-result-error',
-  ) {}
 
   async start(): Promise<void> {}
 
@@ -102,8 +50,8 @@ class FailsFirstToolCallTransport implements MCPTransport {
         jsonrpc: '2.0',
         id: message.id,
         result: {
-          protocolVersion: LATEST_PROTOCOL_VERSION,
-          serverInfo: { name: 'retry-test-server', version: '1.0.0' },
+          protocolVersion: message.params?.protocolVersion,
+          serverInfo: { name: 'paginated-tools-server', version: '1.0.0' },
           capabilities: { tools: {} },
         },
       });
@@ -111,88 +59,30 @@ class FailsFirstToolCallTransport implements MCPTransport {
     }
 
     if (message.method === 'tools/list') {
+      const cursor = message.params?.cursor as string | undefined;
+      this.toolListCursors.push(cursor);
       this.onmessage?.({
         jsonrpc: '2.0',
         id: message.id,
-        result: {
-          tools: [
-            {
-              name: 'retry-tool',
-              description: 'A retry test tool',
-              inputSchema: {
-                type: 'object',
-                properties: {
-                  value: { type: 'string' },
-                },
+        result:
+          cursor == null
+            ? {
+                tools: [
+                  {
+                    name: 'first-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
+                nextCursor: 'second-page',
+              }
+            : {
+                tools: [
+                  {
+                    name: 'second-page-tool',
+                    inputSchema: { type: 'object' },
+                  },
+                ],
               },
-            },
-          ],
-        },
-      });
-      return;
-    }
-
-    if (message.method === 'tools/call') {
-      this.toolCallAttempts += 1;
-
-      if (this.toolCallAttempts === 1) {
-        if (this.failure === 'transient-http') {
-          throw new MCPClientError({
-            message: 'temporary overload',
-            statusCode: 503,
-          });
-        }
-
-        if (this.failure === 'unlisted-http') {
-          throw new MCPClientError({
-            message: 'not retryable by default',
-            statusCode: 418,
-          });
-        }
-
-        if (this.failure === 'network') {
-          throw Object.assign(new Error('connection reset'), {
-            code: 'ECONNRESET',
-          });
-        }
-
-        if (this.failure === 'invalid-params') {
-          this.onmessage?.({
-            jsonrpc: '2.0',
-            id: message.id,
-            error: {
-              code: -32602,
-              message: 'Invalid params',
-            },
-          });
-          return;
-        }
-
-        if (this.failure === 'auth') {
-          throw new MCPClientError({
-            message: 'Unauthorized',
-            statusCode: 401,
-          });
-        }
-
-        this.onmessage?.({
-          jsonrpc: '2.0',
-          id: message.id,
-          result: {
-            content: [{ type: 'text', text: 'tool-level error' }],
-            isError: true,
-          },
-        });
-        return;
-      }
-
-      this.onmessage?.({
-        jsonrpc: '2.0',
-        id: message.id,
-        result: {
-          content: [{ type: 'text', text: 'retried successfully' }],
-          isError: false,
-        },
       });
     }
   }
@@ -239,7 +129,6 @@ class HangingToolCallTransport implements MCPTransport {
   }
 }
 
->>>>>>> 937d731587 ([v6.0] fix: MCP callTool hangs and leaks its response handler when an in-flight request is aborted (#16794))
 vi.mock('./mcp-transport.ts', async importOriginal => {
   const actual =
     // oxlint-disable-next-line typescript-eslint/consistent-type-imports
@@ -263,6 +152,41 @@ describe('MCPClient', () => {
   afterEach(async () => {
     await client?.close();
   });
+
+  it.each(['automatic', 'explicit'] as const)(
+    'preserves prototype-named tools with %s schemas',
+    async schemaMode => {
+      const names = ['__proto__', 'constructor', 'toString'];
+      const transport = new MockMCPTransport({
+        overrideTools: names.map(name => ({
+          name,
+          inputSchema: { type: 'object' },
+        })),
+      });
+      const send = vi.spyOn(transport, 'send');
+      client = await createMCPClient({ transport });
+      const tools =
+        schemaMode === 'automatic'
+          ? await client.tools()
+          : await client.tools({
+              schemas: Object.fromEntries(
+                names.map(name => [name, { inputSchema: z.object({}) }]),
+              ),
+            });
+      expect(Object.getPrototypeOf(tools)).toBeNull();
+      expect(Object.keys(tools)).toEqual(names);
+      for (const name of names) {
+        expect(Object.prototype.hasOwnProperty.call(tools, name)).toBe(true);
+        await tools[name].execute({}, { messages: [], toolCallId: '1' });
+        expect(send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            method: 'tools/call',
+            params: expect.objectContaining({ name }),
+          }),
+        );
+      }
+    },
+  );
 
   it('should return AI SDK compatible tool set', async () => {
     client = await createMCPClient({
@@ -305,6 +229,16 @@ describe('MCPClient', () => {
         "isError": false,
       }
     `);
+  });
+
+  it('should return tools from all paginated tool list responses', async () => {
+    const transport = new PaginatedToolsTransport();
+    client = await createMCPClient({ transport });
+
+    const tools = await client.tools();
+
+    expect(Object.keys(tools)).toEqual(['first-page-tool', 'second-page-tool']);
+    expect(transport.toolListCursors).toEqual([undefined, 'second-page']);
   });
 
   it('should list resources from the server', async () => {

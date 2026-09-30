@@ -141,9 +141,15 @@ export interface BedrockGuardrailConverseContentBlock {
 export interface BedrockImageBlock {
   image: {
     format: BedrockImageFormat;
-    source: {
-      bytes: string;
-    };
+    source:
+      | {
+          bytes: string;
+        }
+      | {
+          s3Location: {
+            uri: string;
+          };
+        };
   };
 }
 
@@ -183,6 +189,12 @@ export interface BedrockRedactedReasoningContentBlock {
   };
 }
 
+export interface BedrockRedactedContentBlock {
+  reasoningContent: {
+    redactedContent: string;
+  };
+}
+
 export type BedrockContentBlock =
   | BedrockDocumentBlock
   | BedrockGuardrailConverseContentBlock
@@ -192,4 +204,5 @@ export type BedrockContentBlock =
   | BedrockToolUseBlock
   | BedrockReasoningContentBlock
   | BedrockRedactedReasoningContentBlock
+  | BedrockRedactedContentBlock
   | BedrockCachePoint;

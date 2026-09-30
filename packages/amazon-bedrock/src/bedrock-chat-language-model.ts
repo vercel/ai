@@ -11,12 +11,17 @@ import type {
   LanguageModelV2FunctionTool,
 } from '@ai-sdk/provider';
 import {
+  getModelCapabilities,
+  sanitizeJsonSchema,
+} from '@ai-sdk/anthropic/internal';
+import {
   type FetchFunction,
   type ParseResult,
   type Resolvable,
   combineHeaders,
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  injectJsonInstructionIntoMessages,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -28,10 +33,15 @@ import {
   BEDROCK_STOP_REASONS,
 } from './bedrock-api-types';
 import {
+  type AmazonBedrockChatModelSettings,
   type BedrockChatModelId,
   bedrockProviderOptions,
 } from './bedrock-chat-options';
-import { BedrockErrorSchema } from './bedrock-error';
+import { isAnthropicModel as detectAnthropicModel } from './bedrock-anthropic-model-support';
+import {
+  bedrockFailedResponseHandler,
+  BedrockErrorSchema,
+} from './bedrock-error';
 import type { BedrockReasoningMetadata } from './bedrock-reasoning-metadata';
 import { createBedrockEventStreamResponseHandler } from './bedrock-event-stream-response-handler';
 import { prepareTools } from './bedrock-prepare-tools';
@@ -43,7 +53,13 @@ type BedrockChatConfig = {
   headers: Resolvable<Record<string, string | undefined>>;
   fetch?: FetchFunction;
   generateId: () => string;
+  modelFamily?: AmazonBedrockChatModelSettings['modelFamily'];
 };
+
+const anthropicProviderOptions = z.object({
+  disableParallelToolUse: z.boolean().optional(),
+  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
+});
 
 export class BedrockChatLanguageModel implements LanguageModelV2 {
   readonly specificationVersion = 'v2';
@@ -81,6 +97,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         providerOptions,
         schema: bedrockProviderOptions,
       })) ?? {};
+
+    const anthropicOptions = await parseProviderOptions({
+      provider: 'anthropic',
+      providerOptions,
+      schema: anthropicProviderOptions,
+    });
 
     const warnings: LanguageModelV2CallWarning[] = [];
 
@@ -133,8 +155,76 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       });
     }
 
+    const isAnthropicModel = detectAnthropicModel({
+      modelId: this.modelId,
+      modelFamily: this.config.modelFamily,
+      reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
+    });
+    const openAIModelId = /^(?:[^.]+\.)?(openai\..+)$/.exec(this.modelId)?.[1];
+    const isOpenAIModel = openAIModelId != null;
+    const isOpenAIGptOssModel =
+      openAIModelId?.startsWith('openai.gpt-oss-') ?? false;
+    const isThinkingRequested =
+      bedrockOptions.reasoningConfig?.type === 'enabled' ||
+      bedrockOptions.reasoningConfig?.type === 'adaptive';
+
+    const { rejectsForcedToolUse } = getModelCapabilities(this.modelId);
+
+    const structuredOutputMode =
+      bedrockOptions.structuredOutputMode ??
+      anthropicOptions?.structuredOutputMode ??
+      'auto';
+
+    if (structuredOutputMode === 'jsonTool') {
+      const additionalModelRequestFields = {
+        ...bedrockOptions.additionalModelRequestFields,
+      };
+      const outputConfig = additionalModelRequestFields.output_config;
+
+      if (
+        outputConfig != null &&
+        typeof outputConfig === 'object' &&
+        !Array.isArray(outputConfig)
+      ) {
+        const outputConfigWithoutFormat = { ...outputConfig };
+        delete outputConfigWithoutFormat.format;
+
+        if (Object.keys(outputConfigWithoutFormat).length > 0) {
+          additionalModelRequestFields.output_config =
+            outputConfigWithoutFormat;
+        } else {
+          delete additionalModelRequestFields.output_config;
+        }
+
+        bedrockOptions.additionalModelRequestFields =
+          additionalModelRequestFields;
+      }
+    }
+
+    const modelSupportsNativeStructuredOutput =
+      this.config.modelFamily === 'anthropic' ||
+      (supportsNativeStructuredOutput(this.modelId) && isThinkingRequested);
+
+    const useNativeStructuredOutput =
+      isAnthropicModel &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      (structuredOutputMode === 'outputFormat' ||
+        (structuredOutputMode === 'auto' &&
+          modelSupportsNativeStructuredOutput));
+
+    const useJsonInstructionForStructuredOutput =
+      !useNativeStructuredOutput &&
+      isAnthropicModel &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      rejectsForcedToolUse;
+
     const jsonResponseTool: LanguageModelV2FunctionTool | undefined =
-      responseFormat?.type === 'json' && responseFormat.schema != null
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      !useNativeStructuredOutput &&
+      !useJsonInstructionForStructuredOutput
         ? {
             type: 'function',
             name: 'json',
@@ -149,6 +239,9 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
         toolChoice:
           jsonResponseTool != null ? { type: 'required' } : toolChoice,
         modelId: this.modelId,
+        modelFamily: this.config.modelFamily,
+        reasoningBudgetTokens: bedrockOptions.reasoningConfig?.budgetTokens,
+        disableParallelToolUse: anthropicOptions?.disableParallelToolUse,
       });
 
     warnings.push(...toolWarnings);
@@ -173,10 +266,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       };
     }
 
-    const isAnthropicModel = this.modelId.includes('anthropic');
     const thinkingType = bedrockOptions.reasoningConfig?.type;
-    const isThinkingRequested =
-      thinkingType === 'enabled' || thinkingType === 'adaptive';
     const thinkingBudget =
       thinkingType === 'enabled'
         ? bedrockOptions.reasoningConfig?.budgetTokens
@@ -239,21 +329,57 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
 
     const maxReasoningEffort =
       bedrockOptions.reasoningConfig?.maxReasoningEffort;
-    if (maxReasoningEffort != null && !isAnthropicModel) {
-      bedrockOptions.additionalModelRequestFields = {
-        ...bedrockOptions.additionalModelRequestFields,
-        reasoningConfig: {
-          ...(bedrockOptions.reasoningConfig?.type != null && {
-            type: bedrockOptions.reasoningConfig.type,
-          }),
-          maxReasoningEffort,
-        },
-      };
-    } else if (maxReasoningEffort != null && isAnthropicModel) {
+    if (maxReasoningEffort != null) {
+      if (isAnthropicModel) {
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          output_config: {
+            ...bedrockOptions.additionalModelRequestFields?.output_config,
+            effort: maxReasoningEffort,
+          },
+        };
+      } else if (isOpenAIModel) {
+        // gpt-oss models expect `reasoning_effort` as a flat value, while
+        // GPT-5.x models expect a nested `reasoning.effort` object.
+        bedrockOptions.additionalModelRequestFields = isOpenAIGptOssModel
+          ? {
+              ...bedrockOptions.additionalModelRequestFields,
+              reasoning_effort: maxReasoningEffort,
+            }
+          : {
+              ...bedrockOptions.additionalModelRequestFields,
+              reasoning: {
+                ...bedrockOptions.additionalModelRequestFields?.reasoning,
+                effort: maxReasoningEffort,
+              },
+            };
+      } else {
+        // other models (such as Nova 2) use reasoningConfig format
+        bedrockOptions.additionalModelRequestFields = {
+          ...bedrockOptions.additionalModelRequestFields,
+          reasoningConfig: {
+            ...(bedrockOptions.reasoningConfig?.type != null && {
+              type: bedrockOptions.reasoningConfig.type,
+            }),
+            maxReasoningEffort,
+          },
+        };
+      }
+    }
+
+    if (
+      useNativeStructuredOutput &&
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null
+    ) {
       bedrockOptions.additionalModelRequestFields = {
         ...bedrockOptions.additionalModelRequestFields,
         output_config: {
-          effort: maxReasoningEffort,
+          ...bedrockOptions.additionalModelRequestFields?.output_config,
+          format: {
+            type: 'json_schema',
+            schema: sanitizeJsonSchema(responseFormat.schema),
+          },
         },
       };
     }
@@ -325,6 +451,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       }
     }
 
+    if (useJsonInstructionForStructuredOutput) {
+      filteredPrompt = injectJsonInstructionIntoMessages({
+        messages: filteredPrompt,
+        schema: responseFormat!.schema,
+        schemaSuffix:
+          'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+      });
+    }
+
     const { system, messages } =
       await convertToBedrockChatMessages(filteredPrompt);
 
@@ -333,6 +468,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       reasoningConfig: _,
       additionalModelRequestFields: __,
       serviceTier: ___,
+      structuredOutputMode: ____,
       ...filteredBedrockOptions
     } = providerOptions?.bedrock || {};
 
@@ -369,7 +505,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   }
 
   readonly supportedUrls: Record<string, RegExp[]> = {
-    // no supported urls for bedrock
+    'image/*': [/^s3:\/\//],
   };
 
   private async getHeaders({
@@ -413,6 +549,12 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       // text
       if (part.text) {
         content.push({ type: 'text', text: part.text });
+      } else if (part.text == null && part.citationsContent) {
+        for (const generatedContent of part.citationsContent.content ?? []) {
+          if (generatedContent.text != null) {
+            content.push({ type: 'text', text: generatedContent.text });
+          }
+        }
       }
 
       // reasoning
@@ -440,6 +582,16 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
               bedrock: {
                 redactedData:
                   part.reasoningContent.redactedReasoning.data ?? '',
+              } satisfies BedrockReasoningMetadata,
+            },
+          });
+        } else if ('redactedContent' in part.reasoningContent) {
+          content.push({
+            type: 'reasoning',
+            text: '',
+            providerMetadata: {
+              bedrock: {
+                redactedContent: part.reasoningContent.redactedContent,
               } satisfies BedrockReasoningMetadata,
             },
           });
@@ -526,10 +678,7 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
       url,
       headers: await this.getHeaders({ headers: options.headers }),
       body: args,
-      failedResponseHandler: createJsonErrorResponseHandler({
-        errorSchema: BedrockErrorSchema,
-        errorToMessage: error => `${error.type}: ${error.message}`,
-      }),
+      failedResponseHandler: bedrockFailedResponseHandler,
       successfulResponseHandler:
         createBedrockEventStreamResponseHandler(BedrockStreamSchema),
       abortSignal: options.abortSignal,
@@ -555,7 +704,8 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
           jsonText: string;
           isJsonResponseTool?: boolean;
         }
-      | { type: 'text' | 'reasoning' }
+      | { type: 'text' }
+      | { type: 'reasoning'; redactedContent?: string }
     > = {};
 
     return {
@@ -594,6 +744,10 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
             }
             if (value.modelStreamErrorException) {
               enqueueError(value.modelStreamErrorException);
+              return;
+            }
+            if (value.serviceUnavailableException) {
+              enqueueError(value.serviceUnavailableException);
               return;
             }
             if (value.throttlingException) {
@@ -696,6 +850,15 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                   controller.enqueue({
                     type: 'reasoning-end',
                     id: String(blockIndex),
+                    ...(contentBlock.redactedContent != null
+                      ? {
+                          providerMetadata: {
+                            bedrock: {
+                              redactedContent: contentBlock.redactedContent,
+                            } satisfies BedrockReasoningMetadata,
+                          },
+                        }
+                      : {}),
                   });
                 } else if (contentBlock.type === 'text') {
                   controller.enqueue({
@@ -802,6 +965,27 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
                     } satisfies BedrockReasoningMetadata,
                   },
                 });
+              } else if (
+                'redactedContent' in reasoningContent &&
+                reasoningContent.redactedContent
+              ) {
+                if (contentBlocks[blockIndex] == null) {
+                  contentBlocks[blockIndex] = { type: 'reasoning' };
+                  controller.enqueue({
+                    type: 'reasoning-start',
+                    id: String(blockIndex),
+                  });
+                }
+
+                const contentBlock = contentBlocks[blockIndex];
+                if (contentBlock.type === 'reasoning') {
+                  // accumulate and attach once via reasoning-end: the merged
+                  // provider metadata of a reasoning part is last-write-wins,
+                  // so per-delta metadata would drop earlier chunks
+                  contentBlock.redactedContent =
+                    (contentBlock.redactedContent ?? '') +
+                    reasoningContent.redactedContent;
+                }
               }
             }
 
@@ -898,6 +1082,29 @@ export class BedrockChatLanguageModel implements LanguageModelV2 {
   }
 }
 
+// Native structured output can fail to adhere to complex schemas on Sonnet
+// 4.6, while Haiku 4.5 support varies between Bedrock accounts.
+const MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT = [
+  'anthropic.claude-sonnet-4-6',
+  'anthropic.claude-haiku-4-5',
+];
+
+function supportsNativeStructuredOutput(modelId: string): boolean {
+  if (
+    MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT.some(model =>
+      modelId.includes(model),
+    )
+  ) {
+    return false;
+  }
+
+  return (
+    modelId.includes('anthropic.claude-sonnet-4-5') ||
+    modelId.includes('anthropic.claude-opus-4-5') ||
+    modelId.includes('anthropic.claude-opus-4-6')
+  );
+}
+
 const BedrockStopReasonSchema = z.union([
   z.enum(BEDROCK_STOP_REASONS),
   z.string(),
@@ -917,6 +1124,16 @@ const BedrockToolUseSchema = z.object({
   toolUseId: z.string(),
   name: z.string(),
   input: z.unknown(),
+});
+
+const BedrockCitationsContentSchema = z.object({
+  content: z
+    .array(
+      z.object({
+        text: z.string().nullish(),
+      }),
+    )
+    .nullish(),
 });
 
 const BedrockReasoningTextSchema = z.object({
@@ -941,6 +1158,7 @@ const BedrockResponseSchema = z.object({
       content: z.array(
         z.object({
           text: z.string().nullish(),
+          citationsContent: BedrockCitationsContentSchema.nullish(),
           toolUse: BedrockToolUseSchema.nullish(),
           reasoningContent: z
             .union([
@@ -949,6 +1167,13 @@ const BedrockResponseSchema = z.object({
               }),
               z.object({
                 redactedReasoning: BedrockRedactedReasoningSchema,
+              }),
+              // `redactedContent` is a member of the documented
+              // ReasoningContentBlock union. OpenAI models on Bedrock
+              // (e.g. `us.openai.gpt-5.6-luna`) return their encrypted
+              // reasoning in this shape.
+              z.object({
+                redactedContent: z.string(),
               }),
             ])
             .nullish(),
@@ -979,6 +1204,9 @@ const BedrockStreamSchema = z.object({
       delta: z
         .union([
           z.object({ text: z.string() }),
+          z.object({
+            citation: z.record(z.string(), z.unknown()),
+          }),
           z.object({ toolUse: z.object({ input: z.string() }) }),
           z.object({
             reasoningContent: z.object({ text: z.string() }),
@@ -990,6 +1218,12 @@ const BedrockStreamSchema = z.object({
           }),
           z.object({
             reasoningContent: z.object({ data: z.string() }),
+          }),
+          // `redactedContent` is a member of the documented
+          // ReasoningContentBlockDelta union. OpenAI models on Bedrock stream
+          // their encrypted reasoning in this shape.
+          z.object({
+            reasoningContent: z.object({ redactedContent: z.string() }),
           }),
         ])
         .nullish(),
@@ -1032,6 +1266,7 @@ const BedrockStreamSchema = z.object({
     })
     .nullish(),
   modelStreamErrorException: z.record(z.string(), z.unknown()).nullish(),
+  serviceUnavailableException: z.record(z.string(), z.unknown()).nullish(),
   throttlingException: z.record(z.string(), z.unknown()).nullish(),
   validationException: z.record(z.string(), z.unknown()).nullish(),
 });

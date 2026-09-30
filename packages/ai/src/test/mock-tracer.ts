@@ -77,6 +77,7 @@ class MockSpan implements Span {
     time?: [number, number];
   }> = [];
   status?: SpanStatus;
+  endCalls = 0;
 
   readonly _spanContext: SpanContext = new MockSpanContext();
 
@@ -128,6 +129,7 @@ class MockSpan implements Span {
     return this;
   }
   end() {
+    this.endCalls++;
     return this;
   }
   isRecording() {
