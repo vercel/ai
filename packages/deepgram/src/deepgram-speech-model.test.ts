@@ -337,6 +337,7 @@ describe('doGenerate', () => {
         requestId: '01a00436-34a3-7cb0-b491-53339eed8eb1',
       },
     });
+    expect(result.usage).toStrictEqual({ characters: 69 });
   });
 
   it('should return empty provider metadata when Deepgram headers are absent', async () => {
@@ -348,6 +349,7 @@ describe('doGenerate', () => {
     });
 
     expect(result.providerMetadata).toStrictEqual({ deepgram: {} });
+    expect(result.usage).toBeUndefined();
   });
 
   it('should include response data with timestamp, modelId and headers', async () => {

@@ -263,6 +263,7 @@ describe('doGenerate', () => {
       ),
     );
     expect(result.durationInSeconds).toBe(36);
+    expect(result.usage).toStrictEqual(transcriptionResponse.usage);
     expect(result.warnings).toEqual([]);
     expect(result.response).toEqual({
       timestamp: testDate,

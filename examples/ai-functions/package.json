@@ -79,6 +79,7 @@
     "@google/generative-ai": "0.21.0",
     "@langchain/core": "^1.1.46",
     "@langfuse/otel": "^4.6.1",
+    "@langfuse/vercel-ai-sdk": "^5.11.1",
     "@opentelemetry/auto-instrumentations-node": "0.77.0",
     "@opentelemetry/sdk-node": "^0.219.0",
     "@opentelemetry/sdk-trace-node": "^2.7.1",

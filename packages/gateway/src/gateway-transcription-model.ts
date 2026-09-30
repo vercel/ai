@@ -105,6 +105,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings: (responseBody.warnings ?? []) as Array<SharedV4Warning>,
+        ...(responseBody.usage != null && { usage: responseBody.usage }),
         providerMetadata:
           responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
@@ -433,6 +434,7 @@ const gatewayTranscriptionResponseSchema = z.object({
   language: z.string().nullish(),
   durationInSeconds: z.number().nullish(),
   warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
+  usage: z.record(z.string(), z.json()).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),
