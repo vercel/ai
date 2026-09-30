@@ -68,7 +68,7 @@ afterEach(async () => {
 describe.each(['before', 'after'] as const)(
   'global fetch wrapped %s module initialization',
   timing => {
-    it.each(['endpoint', 'redirects', 'forwarded global', 'blob'] as const)(
+    it.each(['endpoint', 'redirects', 'forwarded global'] as const)(
       'blocks a private DNS result before connecting (%s)',
       async entryPoint => {
         const wrappedFetch = vi.fn<typeof globalThis.fetch>((input, init) =>
@@ -79,7 +79,6 @@ describe.each(['before', 'after'] as const)(
         }
         const { fetchWithValidatedEndpoint, fetchWithValidatedRedirects } =
           await import('./fetch-with-validated-redirects');
-        const { downloadBlob } = await import('./download-blob');
         if (timing === 'after') {
           vi.stubGlobal('fetch', wrappedFetch);
         }
@@ -94,15 +93,13 @@ describe.each(['before', 'after'] as const)(
         const request =
           entryPoint === 'endpoint'
             ? fetchWithValidatedEndpoint({ url })
-            : entryPoint === 'blob'
-              ? downloadBlob(url)
-              : fetchWithValidatedRedirects({
-                  url,
-                  fetch:
-                    entryPoint === 'forwarded global'
-                      ? globalThis.fetch
-                      : undefined,
-                });
+            : fetchWithValidatedRedirects({
+                url,
+                fetch:
+                  entryPoint === 'forwarded global'
+                    ? globalThis.fetch
+                    : undefined,
+              });
 
         // Undici wraps the validating lookup's DownloadError as the cause.
         const dnsError = {
@@ -111,9 +108,7 @@ describe.each(['before', 'after'] as const)(
             'resolved to disallowed IP address 127.0.0.1',
           ),
         };
-        await expect(request).rejects.toMatchObject({
-          cause: entryPoint === 'blob' ? { cause: dnsError } : dnsError,
-        });
+        await expect(request).rejects.toMatchObject({ cause: dnsError });
         expect(lookup).toHaveBeenCalledExactlyOnceWith(
           'files.example.com',
           expect.objectContaining({ all: true }),

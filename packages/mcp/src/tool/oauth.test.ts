@@ -119,6 +119,25 @@ describe('discoverOAuthProtectedResourceMetadata', () => {
     );
   });
 
+  it('rejects redirects from protected resource discovery to private addresses', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: {
+          location: 'http://169.254.169.254/latest/meta-data',
+        },
+      }),
+    );
+
+    await expect(
+      discoverOAuthProtectedResourceMetadata(
+        'https://resource.example.com/mcp',
+      ),
+    ).rejects.toThrow(/169\.254\.169\.254/);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('returns metadata when first fetch fails but second without MCP header succeeds', async () => {
     // Set up a counter to control behavior
     let callCount = 0;
@@ -557,6 +576,33 @@ describe('discoverAuthorizationServerMetadata', () => {
     code_challenge_methods_supported: ['S256'],
   };
 
+  it('rejects private authorization server discovery targets', async () => {
+    await expect(
+      discoverAuthorizationServerMetadata(
+        'http://169.254.169.254/latest/meta-data',
+      ),
+    ).rejects.toThrow(/169\.254\.169\.254/);
+
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('rejects authorization server discovery redirects to private addresses', async () => {
+    mockFetch.mockResolvedValueOnce(
+      new Response(null, {
+        status: 302,
+        headers: {
+          location: 'http://127.0.0.1:4000/.well-known/openid-configuration',
+        },
+      }),
+    );
+
+    await expect(
+      discoverAuthorizationServerMetadata('https://auth.example.com'),
+    ).rejects.toThrow(/127\.0\.0\.1/);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
   it('accepts OAuth metadata when code challenge methods are omitted', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -939,6 +985,91 @@ describe('exchangeAuthorization', () => {
     client_name: 'Test Client',
   };
 
+  it('rejects private token endpoints before sending OAuth credentials', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      Response.json({
+        access_token: 'attacker-token',
+        token_type: 'Bearer',
+      }),
+    );
+
+    await expect(
+      exchangeAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          issuer: 'https://attacker.example',
+          authorization_endpoint: 'https://honest.example/authorize',
+          token_endpoint: 'http://169.254.169.254/latest/token',
+          token_endpoint_auth_methods_supported: ['client_secret_post'],
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'real-code',
+        codeVerifier: 'real-verifier',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('rejects https link-local token endpoints before sending OAuth credentials', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      exchangeAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          token_endpoint: 'https://169.254.169.254/latest/token',
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'real-code',
+        codeVerifier: 'real-verifier',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: https://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it('allows loopback token endpoints used by local MCP OAuth', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(
+      Response.json({
+        access_token: 'local-token',
+        token_type: 'Bearer',
+      }),
+    );
+
+    await expect(
+      exchangeAuthorization('http://localhost:4000', {
+        metadata: {
+          ...validMetadata,
+          issuer: 'http://localhost:4000',
+          authorization_endpoint: 'http://localhost:4000/authorize',
+          token_endpoint: 'http://localhost:4000/token',
+        },
+        clientInformation: validClientInfo,
+        authorizationCode: 'code123',
+        codeVerifier: 'verifier123',
+        redirectUri: 'http://localhost:3000/callback',
+        fetchFn,
+      }),
+    ).resolves.toEqual({
+      access_token: 'local-token',
+      token_type: 'Bearer',
+    });
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchFn.mock.calls[0];
+    expect(url.href).toBe('http://localhost:4000/token');
+    expect(init.redirect).toBe('error');
+  });
+
   it('exchanges code for tokens', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
@@ -958,6 +1089,7 @@ describe('exchangeAuthorization', () => {
     const [fetchUrl, fetchOptions] = mockFetch.mock.calls[0];
     expect(fetchUrl.href).toBe('https://auth.example.com/token');
     expect(fetchOptions.method).toBe('POST');
+    expect(fetchOptions.redirect).toBe('error');
     expect(fetchOptions.headers.get('Content-Type')).toBe(
       'application/x-www-form-urlencoded',
     );
@@ -1165,6 +1297,7 @@ describe('refreshAuthorization', () => {
       }),
       expect.objectContaining({
         method: 'POST',
+        redirect: 'error',
         headers: new Headers({
           'Content-Type': 'application/x-www-form-urlencoded',
         }),
@@ -1293,6 +1426,26 @@ describe('refreshAuthorization', () => {
       }),
     ).rejects.toThrow('Token refresh failed');
   });
+
+  it('rejects private token endpoints before sending the refresh token', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      refreshAuthorization('https://attacker.example', {
+        metadata: {
+          ...validMetadata,
+          token_endpoint: 'http://169.254.169.254/latest/token',
+        },
+        clientInformation: validClientInfo,
+        refreshToken: 'real-refresh-token',
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/token',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
 });
 
 describe('registerClient', () => {
@@ -1327,6 +1480,7 @@ describe('registerClient', () => {
       }),
       expect.objectContaining({
         method: 'POST',
+        redirect: 'error',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -1384,6 +1538,28 @@ describe('registerClient', () => {
         clientMetadata: validClientMetadata,
       }),
     ).rejects.toThrow('Dynamic client registration failed');
+  });
+
+  it('rejects private registration endpoints before sending client metadata', async () => {
+    const fetchFn = vi.fn();
+
+    await expect(
+      registerClient('https://attacker.example', {
+        metadata: {
+          issuer: 'https://attacker.example',
+          authorization_endpoint: 'https://attacker.example/authorize',
+          token_endpoint: 'https://attacker.example/token',
+          registration_endpoint: 'http://169.254.169.254/latest/register',
+          response_types_supported: ['code'],
+        } as AuthorizationServerMetadata,
+        clientMetadata: validClientMetadata,
+        fetchFn,
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://169.254.169.254/latest/register',
+    );
+
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
 
@@ -1695,6 +1871,27 @@ describe('auth function', () => {
     expect(body.get('resource')).toBe('https://api.example.com/mcp-server');
     expect(body.get('grant_type')).toBe('refresh_token');
     expect(body.get('refresh_token')).toBe('refresh123');
+  });
+
+  it('rejects a remote MCP server that advertises a loopback authorization server', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        resource: 'https://api.example.com/mcp-server',
+        authorization_servers: ['http://localhost:4000'],
+      }),
+    });
+
+    await expect(
+      auth(mockProvider, {
+        serverUrl: 'https://api.example.com/mcp-server',
+      }),
+    ).rejects.toThrow(
+      'OAuth endpoint URL is not allowed: http://localhost:4000/',
+    );
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('skips default PRM resource validation when custom validateResourceURL is provided', async () => {
