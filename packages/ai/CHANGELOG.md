@@ -1,5 +1,11 @@
 # ai
 
+## 7.0.126
+
+### Patch Changes
+
+- 4f3d236: fix: clear tool approvals when `addToolOutput` runs
+
 ## 7.0.125
 
 ### Patch Changes
