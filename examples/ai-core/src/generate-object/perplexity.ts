@@ -1,16 +1,24 @@
 import 'dotenv/config';
-import { perplexity } from '@ai-sdk/perplexity';
-import { generateObject, generateText } from 'ai';
+import {
+  perplexity,
+  type PerplexityLanguageModelOptions,
+} from '@ai-sdk/perplexity';
+import { generateObject } from 'ai';
 import { z } from 'zod';
 
 async function main() {
   const result = await generateObject({
-    model: perplexity('sonar-pro'),
+    model: perplexity('low'),
     prompt: 'What has happened in San Francisco recently?',
     providerOptions: {
       perplexity: {
-        search_recency_filter: 'week',
-      },
+        tools: [
+          {
+            type: 'web_search',
+            filters: { search_recency_filter: 'week' },
+          },
+        ],
+      } satisfies PerplexityLanguageModelOptions,
     },
     output: 'array',
     schema: z.object({

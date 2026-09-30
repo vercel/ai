@@ -4,5 +4,7 @@ export type {
   BasetenProvider,
   BasetenProviderSettings,
   BasetenErrorData,
+  BasetenPerformanceClient,
+  BasetenPerformanceClientConstructor,
 } from './baseten-provider';
 export { VERSION } from './version';

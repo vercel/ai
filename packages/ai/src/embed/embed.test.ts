@@ -1,6 +1,7 @@
 import type { EmbeddingModelV2 } from '@ai-sdk/provider';
 import assert from 'node:assert';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { InvalidResponseDataError } from '../error';
 import { MockEmbeddingModelV2 } from '../test/mock-embedding-model-v2';
 import { MockTracer } from '../test/mock-tracer';
 import type { Embedding, EmbeddingModelUsage } from '../types';
@@ -25,6 +26,42 @@ describe('result.embedding', () => {
     });
 
     assert.deepStrictEqual(result.embedding, dummyEmbedding);
+  });
+
+  it('should reject when the model returns no embeddings', async () => {
+    const model = new MockEmbeddingModelV2({
+      doEmbed: async () => ({
+        embeddings: [],
+        usage: { tokens: 5 },
+      }),
+    });
+    const tracer = new MockTracer();
+
+    const result = embed({
+      model,
+      value: testValue,
+      experimental_telemetry: {
+        isEnabled: true,
+        tracer,
+      },
+    });
+
+    await expect(result).rejects.toSatisfy(error => {
+      expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        data: [],
+        message: 'No embedding generated.',
+      });
+      return true;
+    });
+    expect(model.doEmbedCalls).toHaveLength(1);
+    expect(tracer.spans).toHaveLength(2);
+    expect(tracer.spans.every(span => span.status?.code === 2)).toBe(true);
+    expect(
+      tracer.spans.every(
+        span => span.events.length === 1 && span.events[0].name === 'exception',
+      ),
+    ).toBe(true);
   });
 });
 

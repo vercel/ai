@@ -5,7 +5,7 @@ import { z } from 'zod';
 
 async function main() {
   const { experimental_output } = await generateText({
-    model: xai('grok-3-beta'),
+    model: xai('grok-4.5'),
     experimental_output: Output.object({
       schema: z.object({
         name: z.string(),

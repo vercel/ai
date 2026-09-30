@@ -101,8 +101,8 @@ Use descriptions to make the input understandable for the language model.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
+   * Optional function that is called when the model starts generating the tool input.
+   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
    */
   onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
 

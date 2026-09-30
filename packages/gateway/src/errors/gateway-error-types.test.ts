@@ -198,6 +198,22 @@ describe('GatewayInternalServerError', () => {
   });
 });
 
+describe('isRetryable', () => {
+  it('should derive retryability from the status code', () => {
+    expect(new GatewayInternalServerError().isRetryable).toBe(true);
+    expect(new GatewayAuthenticationError().isRetryable).toBe(false);
+  });
+
+  it('should support an explicit retryability override', () => {
+    const error = new GatewayResponseError({
+      statusCode: 200,
+      isRetryable: true,
+    });
+
+    expect(error.isRetryable).toBe(true);
+  });
+});
+
 describe('GatewayResponseError', () => {
   it('should create error with default values', () => {
     const error = new GatewayResponseError();

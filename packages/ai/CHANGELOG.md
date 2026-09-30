@@ -1,5 +1,528 @@
 # ai
 
+## 5.0.271
+
+### Patch Changes
+
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [0fa5517]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/gateway@2.0.162
+  - @ai-sdk/provider-utils@3.0.41
+
+## 5.0.270
+
+### Patch Changes
+
+- 1849a5f: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- 5381c08: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- 06e8d1c: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- 58d303f: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- 430ae0a: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [07e394b]
+- Updated dependencies [b6cf409]
+  - @ai-sdk/gateway@2.0.161
+
+## 5.0.269
+
+### Patch Changes
+
+- 11f5cda: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+
+## 5.0.268
+
+### Patch Changes
+
+- dfffb7e: fix(ai): cancel response streams when clients disconnect
+- 1d0096a: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/gateway@2.0.160
+  - @ai-sdk/provider-utils@3.0.40
+
+## 5.0.267
+
+### Patch Changes
+
+- Updated dependencies [3569298]
+  - @ai-sdk/gateway@2.0.159
+
+## 5.0.266
+
+### Patch Changes
+
+- Updated dependencies [cd9b333]
+  - @ai-sdk/gateway@2.0.158
+
+## 5.0.265
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- 0519802: fix(ai): preserve parsed metadata and data values when validating UI messages
+- Updated dependencies [0430ee6]
+- Updated dependencies [bf29419]
+- Updated dependencies [14ecfdc]
+  - @ai-sdk/gateway@2.0.157
+  - @ai-sdk/provider-utils@3.0.39
+
+## 5.0.264
+
+### Patch Changes
+
+- 594787e: fix(provider): preserve opaque file URI strings for provider serialization
+- 7b19d17: fix(ai): prevent duplicate content types in chat transport requests
+- 907e4c9: Fix streamed tool input callbacks firing out of order on newer Node.js versions by awaiting start and delta callbacks before invoking `onInputAvailable`.
+- Updated dependencies [594787e]
+- Updated dependencies [391ad4a]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/gateway@2.0.156
+  - @ai-sdk/provider-utils@3.0.38
+
+## 5.0.263
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/gateway@2.0.155
+
+## 5.0.262
+
+### Patch Changes
+
+- Updated dependencies [d22c28b]
+- Updated dependencies [d3e1726]
+- Updated dependencies [450d168]
+- Updated dependencies [82b6405]
+  - @ai-sdk/gateway@2.0.154
+
+## 5.0.261
+
+### Patch Changes
+
+- 69879fe: fix(ai): prevent unhandled rejections when UI message stream reading stops early
+
+## 5.0.260
+
+### Patch Changes
+
+- ab8aa35: fix(ai): preserve provider metadata when simulating text streams
+
+## 5.0.259
+
+### Patch Changes
+
+- bf32c45: fix(ai): reject embedding model responses that contain no embeddings
+- Updated dependencies [5728a51]
+- Updated dependencies [6d3e199]
+  - @ai-sdk/gateway@2.0.153
+
+## 5.0.258
+
+### Patch Changes
+
+- Updated dependencies [4a75d2c]
+  - @ai-sdk/gateway@2.0.152
+
+## 5.0.257
+
+### Patch Changes
+
+- Updated dependencies [0d4a425]
+  - @ai-sdk/gateway@2.0.151
+
+## 5.0.256
+
+### Patch Changes
+
+- Updated dependencies [73fa129]
+- Updated dependencies [5a19081]
+  - @ai-sdk/gateway@2.0.150
+
+## 5.0.255
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- 7f4e217: fix(ai): decode text data URLs in Node.js
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/gateway@2.0.149
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 5.0.254
+
+### Patch Changes
+
+- Updated dependencies [79ac7d9]
+- Updated dependencies [ca8f9e5]
+  - @ai-sdk/gateway@2.0.148
+
+## 5.0.253
+
+### Patch Changes
+
+- 5643ec9: fix(ai): allow manual continuations to reuse JSON tool outputs with undefined object properties
+- Updated dependencies [b436246]
+  - @ai-sdk/gateway@2.0.147
+
+## 5.0.252
+
+### Patch Changes
+
+- 2c12cd3: fix(ai): skip `smoothStream` delays while the document is hidden
+- Updated dependencies [cfa33a0]
+- Updated dependencies [8ee6f7d]
+- Updated dependencies [2287da5]
+- Updated dependencies [526f371]
+  - @ai-sdk/gateway@2.0.146
+
+## 5.0.251
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/gateway@2.0.145
+
+## 5.0.250
+
+### Patch Changes
+
+- 4e3f54b: Validate persisted typed tool calls against current input and output schemas.
+  Schema-incompatible empty or error inputs and completed or failed history from
+  unavailable tools remain loadable as dynamic tool parts instead of exposing
+  unvalidated values under current static tool types.
+- 26165ee: Mark transient network errors that occur while reading successful response bodies as retryable, including AI Gateway responses.
+- Updated dependencies [810dc70]
+- Updated dependencies [7a926ba]
+- Updated dependencies [25c1956]
+- Updated dependencies [26165ee]
+  - @ai-sdk/gateway@2.0.144
+  - @ai-sdk/provider-utils@3.0.36
+
+## 5.0.249
+
+### Patch Changes
+
+- 989be6f: add operation-level outcomes to UI message stream end callbacks
+
+## 5.0.248
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [77d33c0]
+- Updated dependencies [e0d7904]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/gateway@2.0.143
+
+## 5.0.247
+
+### Patch Changes
+
+- Updated dependencies [326a47b]
+  - @ai-sdk/gateway@2.0.142
+
+## 5.0.246
+
+### Patch Changes
+
+- d1aa120: Include telemetry metadata on tool call spans.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [8c37324]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/gateway@2.0.141
+
+## 5.0.245
+
+### Patch Changes
+
+- 9e8e087: Stop re-exporting `createTestServer` and `TestResponseController` from `@ai-sdk/provider-utils/test` so `ai/test` can load without `msw` or `vitest`. Import these APIs from `@ai-sdk/test-server/with-vitest` instead.
+- Updated dependencies [9e8e087]
+- Updated dependencies [3505af4]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/gateway@2.0.140
+
+## 5.0.244
+
+### Patch Changes
+
+- Updated dependencies [b7dd2fe]
+  - @ai-sdk/gateway@2.0.139
+
+## 5.0.243
+
+### Patch Changes
+
+- 9e8a754: Prevent exceptions in streaming `onChunk` and `onError` callbacks from terminating the stream or masking provider errors.
+- Updated dependencies [1a04ece]
+- Updated dependencies [ed2f035]
+  - @ai-sdk/gateway@2.0.138
+
+## 5.0.242
+
+### Patch Changes
+
+- e88bc9f: Fix array-backed language model mocks to return configured results in order from the first call.
+
+## 5.0.241
+
+### Patch Changes
+
+- 9d0b84c: fix: reject `streamObject` result promises and report failed completion when the provider stream errors
+- 05df123: Filter preliminary tool outputs when `ignoreIncompleteToolCalls` is enabled.
+- e532644: Prevent automatic tool execution when a model call ends with an unsafe finish reason.
+
+## 5.0.240
+
+### Patch Changes
+
+- Updated dependencies [bef36a6]
+  - @ai-sdk/gateway@2.0.137
+
+## 5.0.239
+
+### Patch Changes
+
+- Updated dependencies [05d5b6c]
+  - @ai-sdk/gateway@2.0.136
+
+## 5.0.238
+
+### Patch Changes
+
+- Updated dependencies [b484978]
+  - @ai-sdk/gateway@2.0.135
+
+## 5.0.237
+
+### Patch Changes
+
+- bf11412: Avoid repeatedly cloning accumulated text in `readUIMessageStream` while
+  preserving independent snapshots for mutable nested values.
+- 7ec6b69: Fix declaration emit for exported values that infer an `Output` type.
+
+## 5.0.236
+
+### Patch Changes
+
+- c425210: Propagate errors thrown by chat `onFinish` callbacks.
+- eb7f2ac: Keep chat status submitted until response content begins streaming.
+- Updated dependencies [df0cbe9]
+  - @ai-sdk/gateway@2.0.134
+
+## 5.0.235
+
+### Patch Changes
+
+- Updated dependencies [91e93fa]
+- Updated dependencies [de0921d]
+  - @ai-sdk/gateway@2.0.133
+
+## 5.0.234
+
+### Patch Changes
+
+- 412c15e: Preserve reasoning part IDs when processing UI message streams.
+- Updated dependencies [1e632f7]
+  - @ai-sdk/gateway@2.0.132
+
+## 5.0.233
+
+### Patch Changes
+
+- 2604cb6: Prevent `resumeStream` from copying the previous assistant message into the resumed response.
+
+## 5.0.232
+
+### Patch Changes
+
+- 66dd974: Prevent streaming telemetry spans from ending twice or remaining unfinished when model calls fail.
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/gateway@2.0.131
+
+## 5.0.231
+
+### Patch Changes
+
+- 2709314: Stop pending and active resumed chat streams after cancellation, and prevent overlapping resumptions from applying stale updates.
+- Updated dependencies [b474448]
+  - @ai-sdk/gateway@2.0.130
+
+## 5.0.230
+
+### Patch Changes
+
+- Updated dependencies [c524e57]
+  - @ai-sdk/gateway@2.0.129
+
+## 5.0.229
+
+### Patch Changes
+
+- Updated dependencies [bd09b8e]
+  - @ai-sdk/gateway@2.0.128
+
+## 5.0.228
+
+### Patch Changes
+
+- Updated dependencies [b74765f]
+  - @ai-sdk/gateway@2.0.127
+
+## 5.0.227
+
+### Patch Changes
+
+- 212d793: Skip re-validating tool input for terminal output-available UI message parts.
+- Updated dependencies [1ce55ef]
+- Updated dependencies [f50dc31]
+  - @ai-sdk/gateway@2.0.126
+
+## 5.0.226
+
+### Patch Changes
+
+- Updated dependencies [ecd9c1c]
+  - @ai-sdk/gateway@2.0.125
+
+## 5.0.225
+
+### Patch Changes
+
+- Updated dependencies [8ea0ce4]
+  - @ai-sdk/gateway@2.0.124
+
+## 5.0.224
+
+### Patch Changes
+
+- Updated dependencies [d27b3c3]
+  - @ai-sdk/gateway@2.0.123
+
+## 5.0.223
+
+### Patch Changes
+
+- 7a6bdbc: Prevent validated downloads on Node.js from reaching private or internal services through DNS aliases or DNS rebinding by validating and pinning every resolved address at connection time.
+- c5e11c6: Preserve provider metadata from empty text deltas in `streamText`.
+- Updated dependencies [7a6bdbc]
+- Updated dependencies [5bd6d2c]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/gateway@2.0.122
+
+## 5.0.222
+
+### Patch Changes
+
+- d38a1d5: Route the warning system information banner to stderr so it does not corrupt application output written to stdout.
+- Updated dependencies [b408f1d]
+  - @ai-sdk/gateway@2.0.121
+
+## 5.0.221
+
+### Patch Changes
+
+- Updated dependencies [191423e]
+  - @ai-sdk/gateway@2.0.120
+
+## 5.0.220
+
+### Patch Changes
+
+- Updated dependencies [a45e563]
+  - @ai-sdk/gateway@2.0.119
+
+## 5.0.219
+
+### Patch Changes
+
+- 649bd0f: fix(ai): bound media-type sniffing decode for ID3-prefixed input
+
+  Media-type detection stripped ID3 tags before the ~18-byte prefix cap, decoding the entire base64 attachment (plus a full-size copy) whenever the data began with `ID3`/`SUQz`. This turned the intended O(1) sniff into an O(N) decode of the whole attachment. Detection now decodes at most a bounded prefix and skips the ID3 tag within that bound, keeping cost O(1) in input size on both image and audio paths.
+
+- 965545b: Return response piping promises so callers can catch stream read and write errors.
+- Updated dependencies [fb4c0d7]
+  - @ai-sdk/gateway@2.0.118
+
+## 5.0.218
+
+### Patch Changes
+
+- a322c62: fix: detect MP4 audio from its ftyp box during transcription
+- cf778a9: fix(ai): preserve tool parts when tool call IDs repeat across steps
+- Updated dependencies [b05bffb]
+  - @ai-sdk/gateway@2.0.117
+
+## 5.0.217
+
+### Patch Changes
+
+- dcbdf32: Fix chat `onFinish` handling when overlapping requests clear the active response before a resume stream finishes.
+- d7d22d3: Allow UI message chunks to include fields added by newer server versions.
+- 01edf75: Propagate abort reasons when generation is cancelled during tool execution.
+- 473d770: Prevent tools excluded by `activeTools` from being parsed or executed.
+- Updated dependencies [1fec2e5]
+- Updated dependencies [d8e8477]
+  - @ai-sdk/gateway@2.0.116
+
+## 5.0.216
+
+### Patch Changes
+
+- 2fd6076: fix(ai): call `onInputStart` before `onInputAvailable` during non-streaming tool calls
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/gateway@2.0.115
+
+## 5.0.215
+
+### Patch Changes
+
+- Updated dependencies [73c6143]
+  - @ai-sdk/gateway@2.0.114
+
+## 5.0.214
+
+### Patch Changes
+
+- Updated dependencies [4e119ca]
+  - @ai-sdk/gateway@2.0.113
+
+## 5.0.213
+
+### Patch Changes
+
+- 97e9b70: Allow validating assistant UI messages with empty parts so persisted errored responses remain loadable.
+- 59e34d9: Prevent pending tool executions from enqueueing results after a model stream error closes the result stream.
+- Updated dependencies [c6e1d1a]
+- Updated dependencies [7480df1]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/gateway@2.0.112
+
+## 5.0.212
+
+### Patch Changes
+
+- Updated dependencies [2786e44]
+  - @ai-sdk/gateway@2.0.111
+
+## 5.0.211
+
+### Patch Changes
+
+- Updated dependencies [6a823a6]
+- Updated dependencies [ed8b811]
+- Updated dependencies [4f00314]
+- Updated dependencies [8549807]
+- Updated dependencies [3c89617]
+  - @ai-sdk/gateway@2.0.110
+
 ## 5.0.210
 
 ### Patch Changes

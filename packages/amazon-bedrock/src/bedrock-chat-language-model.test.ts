@@ -1,4 +1,8 @@
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type {
+  LanguageModelV2Prompt,
+  SharedV2ProviderOptions,
+} from '@ai-sdk/provider';
+import { safeValidateTypes } from '@ai-sdk/provider-utils';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { BedrockChatLanguageModel } from './bedrock-chat-language-model';
@@ -73,6 +77,12 @@ const fakeFetchWithAuth = injectFetchHeaders({ 'x-amz-auth': 'test-auth' });
 
 const modelId = 'anthropic.claude-3-haiku-20240307-v1:0';
 const anthropicModelId = 'anthropic.claude-3-5-sonnet-20240620-v1:0'; // Define at top level
+const structuredOutputModelId = 'anthropic.claude-opus-4-5-20251101-v1:0';
+const adaptiveStructuredOutputModelId = 'anthropic.claude-opus-4-6-v1';
+const sonnet46ModelId = 'anthropic.claude-sonnet-4-6-v1';
+const haiku45ModelId = 'us.anthropic.claude-haiku-4-5-20251001-v1:0';
+const unsupportedStructuredOutputModelId =
+  'anthropic.claude-sonnet-4-20250514-v1:0';
 const baseUrl = 'https://bedrock-runtime.us-east-1.amazonaws.com';
 
 const streamUrl = `${baseUrl}/model/${encodeURIComponent(
@@ -82,12 +92,56 @@ const generateUrl = `${baseUrl}/model/${encodeURIComponent(modelId)}/converse`;
 const anthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   anthropicModelId,
 )}/converse`;
+const structuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  structuredOutputModelId,
+)}/converse`;
+const adaptiveStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  adaptiveStructuredOutputModelId,
+)}/converse`;
+const sonnet46GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  sonnet46ModelId,
+)}/converse`;
+const haiku45GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  haiku45ModelId,
+)}/converse`;
+const unsupportedStructuredOutputGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  unsupportedStructuredOutputModelId,
+)}/converse`;
+
+const legacyAnthropic37ModelId = 'us.anthropic.claude-3-7-sonnet-20250219-v1:0';
+const legacyAnthropic37GenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  legacyAnthropic37ModelId,
+)}/converse`;
 
 const novaModelId = 'us.amazon.nova-2-lite-v1:0';
 const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const openaiModelId = 'openai.gpt-oss-120b-1:0';
+const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  openaiModelId,
+)}/converse`;
+
+const usOpenaiModelId = 'us.openai.gpt-5.6-luna';
+const usOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  usOpenaiModelId,
+)}/converse`;
+
+const globalOpenaiModelId = 'global.openai.gpt-5.6-luna';
+const globalOpenaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  globalOpenaiModelId,
+)}/converse`;
+
+const customOpenaiSubstringModelId = 'custom-openai.gpt-5.6-luna';
+const customOpenaiSubstringGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  customOpenaiSubstringModelId,
+)}/converse`;
+
+const opus55AnthropicModelId = 'us.anthropic.claude-opus-5-5';
+const opus55AnthropicGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  opus55AnthropicModelId,
+)}/converse`;
 const server = createTestServer({
   [generateUrl]: {},
   [streamUrl]: {
@@ -98,7 +152,33 @@ const server = createTestServer({
   },
   // Configure the server for the Anthropic model from the start
   [anthropicGenerateUrl]: {},
+  [structuredOutputGenerateUrl]: {},
+  [adaptiveStructuredOutputGenerateUrl]: {},
+  [sonnet46GenerateUrl]: {},
+  [haiku45GenerateUrl]: {},
+  [unsupportedStructuredOutputGenerateUrl]: {},
+  [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [openaiGenerateUrl]: {},
+  [usOpenaiGenerateUrl]: {},
+  [globalOpenaiGenerateUrl]: {},
+  [customOpenaiSubstringGenerateUrl]: {},
+  [opus55AnthropicGenerateUrl]: {},
+});
+
+describe('supportedUrls', () => {
+  it('should support S3 URLs for image parts', () => {
+    const model = new BedrockChatLanguageModel(modelId, {
+      baseUrl: () => baseUrl,
+      headers: {},
+      generateId: () => 'test-id',
+      fetch: fakeFetchWithAuth,
+    });
+
+    expect(model.supportedUrls).toEqual({
+      'image/*': [/^s3:\/\//],
+    });
+  });
 });
 
 function prepareJsonFixtureResponse(filename: string) {
@@ -108,7 +188,6 @@ function prepareJsonFixtureResponse(filename: string) {
       fs.readFileSync(`src/__fixtures__/${filename}.json`, 'utf8'),
     ),
   };
-  return;
 }
 
 function prepareChunksFixtureResponse(filename: string) {
@@ -135,6 +214,10 @@ beforeEach(() => {
     type: 'json-value',
     body: {},
   };
+  server.urls[legacyAnthropic37GenerateUrl].response = {
+    type: 'json-value',
+    body: {},
+  };
   mockPrepareAnthropicTools.mockClear();
 });
 
@@ -152,30 +235,200 @@ const novaModel = new BedrockChatLanguageModel(novaModelId, {
   generateId: () => 'test-id',
 });
 
-let mockOptions: { success: boolean; errorValue?: any } = { success: true };
+const openaiModel = new BedrockChatLanguageModel(openaiModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const legacyAnthropic35Model = new BedrockChatLanguageModel(anthropicModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const legacyAnthropic37Model = new BedrockChatLanguageModel(
+  legacyAnthropic37ModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const structuredOutputModel = new BedrockChatLanguageModel(
+  structuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const adaptiveStructuredOutputModel = new BedrockChatLanguageModel(
+  adaptiveStructuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const sonnet46Model = new BedrockChatLanguageModel(sonnet46ModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const opus55AnthropicModel = new BedrockChatLanguageModel(
+  opus55AnthropicModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+const haiku45Model = new BedrockChatLanguageModel(haiku45ModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const unsupportedStructuredOutputModel = new BedrockChatLanguageModel(
+  unsupportedStructuredOutputModelId,
+  {
+    baseUrl: () => baseUrl,
+    headers: {},
+    fetch: fakeFetchWithAuth,
+    generateId: () => 'test-id',
+  },
+);
+
+describe('application inference profile structured output', () => {
+  it.each(['outputFormat', 'auto'] as const)(
+    'uses native structured output in %s mode when the Anthropic family is declared',
+    async structuredOutputMode => {
+      const applicationProfileArn =
+        'arn:aws:bedrock:us-east-1:123456789012:application-inference-profile/custom-profile';
+      let requestBody: any;
+      const applicationProfileModel = new BedrockChatLanguageModel(
+        applicationProfileArn,
+        {
+          baseUrl: () => baseUrl,
+          headers: {},
+          generateId: () => 'test-id',
+          modelFamily: 'anthropic',
+          fetch: async (_input, init) => {
+            requestBody = JSON.parse(String(init?.body));
+            return new Response(
+              JSON.stringify({
+                output: {
+                  message: {
+                    role: 'assistant',
+                    content: [{ text: '{"name":"Test"}' }],
+                  },
+                },
+                stopReason: 'end_turn',
+                usage: {
+                  inputTokens: 1,
+                  outputTokens: 1,
+                  totalTokens: 2,
+                },
+              }),
+              {
+                status: 200,
+                headers: { 'content-type': 'application/json' },
+              },
+            );
+          },
+        },
+      );
+
+      await applicationProfileModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+          },
+        },
+        providerOptions: {
+          bedrock: {
+            structuredOutputMode,
+          },
+        },
+      });
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toEqual({
+        type: 'json_schema',
+        schema: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+          },
+          required: ['name'],
+        },
+      });
+    },
+  );
+});
+
+let mockOptions: {
+  success: boolean;
+  errorValue?: any;
+  validateSchema?: boolean;
+} = { success: true };
 
 describe('doStream', () => {
   beforeEach(() => {
-    mockOptions = { success: true, errorValue: undefined };
+    mockOptions = {
+      success: true,
+      errorValue: undefined,
+      validateSchema: false,
+    };
   });
 
   vi.mock('./bedrock-event-stream-response-handler', () => ({
     createBedrockEventStreamResponseHandler: (schema: any) => {
       return async ({ response }: { response: Response }) => {
-        let chunks: { success: boolean; value: any }[] = [];
+        let chunks: Array<{
+          success: boolean;
+          value?: any;
+          error?: unknown;
+          rawValue?: unknown;
+        }> = [];
         if (mockOptions.success) {
           const text = await response.text();
-          chunks = text
+          const values = text
             .split('\n')
             .filter(Boolean)
-            .map(chunk => {
-              const parsedChunk = JSON.parse(chunk);
-              return {
+            .map(chunk => JSON.parse(chunk));
+          chunks = mockOptions.validateSchema
+            ? await Promise.all(
+                values.map(value => safeValidateTypes({ value, schema })),
+              )
+            : values.map(value => ({
                 success: true,
-                value: parsedChunk,
-                rawValue: parsedChunk,
-              };
-            });
+                value,
+                rawValue: value,
+              }));
         }
         const headers = Object.fromEntries<string>([...response.headers]);
 
@@ -200,10 +453,50 @@ describe('doStream', () => {
   }));
 
   function setupMockEventStreamHandler(
-    options: { success?: boolean; errorValue?: any } = { success: true },
+    options: {
+      success?: boolean;
+      errorValue?: any;
+      validateSchema?: boolean;
+    } = { success: true },
   ) {
     mockOptions = { ...mockOptions, ...options };
   }
+
+  it('should accept citation deltas', async () => {
+    setupMockEventStreamHandler({ validateSchema: true });
+    server.urls[streamUrl].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          contentBlockDelta: {
+            contentBlockIndex: 1,
+            delta: {
+              citation: {
+                location: {
+                  documentPage: {
+                    documentIndex: 0,
+                    start: 1,
+                    end: 2,
+                  },
+                },
+                sourceContent: [{ text: 'Source content' }],
+                title: 'document',
+              },
+            },
+          },
+        }) + '\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const parts = await convertReadableStreamToArray(stream);
+
+    expect(parts.filter(part => part.type === 'error')).toEqual([]);
+  });
 
   it('should stream text deltas with metadata and usage', async () => {
     setupMockEventStreamHandler();
@@ -2408,6 +2701,30 @@ describe('doGenerate', () => {
     };
   }
 
+  function prepareStructuredOutputJsonToolResponse(url: string) {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-tool-id',
+                  name: 'json',
+                  input: { answer: 'ok' },
+                },
+              },
+            ],
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+  }
+
   it('should extract text response', async () => {
     prepareJsonResponse({ content: [{ type: 'text', text: 'Hello, World!' }] });
 
@@ -2423,6 +2740,154 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  it('should extract text from citations content', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [
+                    {
+                      title: 'document-1',
+                      sourceContent: [{ text: 'Source text' }],
+                    },
+                  ],
+                  content: [
+                    { text: 'First cited response. ' },
+                    { text: 'Second cited response.' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "text": "First cited response. ",
+          "type": "text",
+        },
+        {
+          "text": "Second cited response.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should ignore citations content without generated content', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 0, totalTokens: 4 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([]);
+  });
+
+  it('should skip citation generated content without text', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                citationsContent: {
+                  citations: [],
+                  content: [
+                    {},
+                    {
+                      image: {
+                        format: 'png',
+                        source: { bytes: 'base64-data' },
+                      },
+                    },
+                    { text: 'Supported cited response.' },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 3, totalTokens: 7 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Supported cited response.' },
+    ]);
+  });
+
+  it('should prefer canonical text over citations content in the same block', async () => {
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                text: 'Canonical response.',
+                citationsContent: {
+                  citations: [],
+                  content: [{ text: 'Citation fallback.' }],
+                },
+              },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toStrictEqual([
+      { type: 'text', text: 'Canonical response.' },
+    ]);
   });
 
   it('should extract usage', async () => {
@@ -2756,6 +3221,41 @@ describe('doGenerate', () => {
         ],
       },
     });
+  });
+
+  it('should disable parallel tool use without sending conflicting tool choices', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      tools: [
+        {
+          type: 'function',
+          name: 'test-tool',
+          description: 'A test tool',
+          inputSchema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false,
+          },
+        },
+      ],
+      toolChoice: { type: 'auto' },
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        anthropic: {
+          disableParallelToolUse: true,
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody.additionalModelRequestFields).toMatchObject({
+      tool_choice: {
+        type: 'auto',
+        disable_parallel_tool_use: true,
+      },
+    });
+    expect(requestBody.toolConfig.toolChoice).toBeUndefined();
   });
 
   it('should omit empty tool descriptions to avoid Bedrock validation errors', async () => {
@@ -3224,6 +3724,435 @@ describe('doGenerate', () => {
     expect(requestBody).not.toHaveProperty('reasoningConfig');
   });
 
+  it('uses sanitized native structured output with thinking on a supported Anthropic model', async () => {
+    server.urls[structuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok","score":1}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const result = await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 20,
+            },
+            score: {
+              type: 'number',
+              minimum: 0,
+              maximum: 10,
+            },
+          },
+          required: ['answer', 'score'],
+          additionalProperties: false,
+          $schema: 'http://json-schema.org/draft-07/schema#',
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      thinking: {
+        type: 'enabled',
+        budget_tokens: 1024,
+      },
+      output_config: {
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: {
+                type: 'string',
+                description: 'min length: 1; max length: 20.',
+              },
+              score: {
+                type: 'number',
+                description: 'minimum: 0; maximum: 10.',
+              },
+            },
+            required: ['answer', 'score'],
+            additionalProperties: false,
+            $schema: 'http://json-schema.org/draft-07/schema#',
+          },
+        },
+      },
+    });
+    expect(result.content).toEqual([
+      {
+        type: 'text',
+        text: '{"answer":"ok","score":1}',
+      },
+    ]);
+  });
+
+  it('uses native structured output with adaptive thinking on a supported Anthropic model', async () => {
+    server.urls[adaptiveStructuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok"}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await adaptiveStructuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'adaptive',
+            display: 'summarized',
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields).toEqual({
+      thinking: {
+        type: 'adaptive',
+        display: 'summarized',
+      },
+      output_config: {
+        effort: 'medium',
+        format: {
+          type: 'json_schema',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+            additionalProperties: false,
+          },
+        },
+      },
+    });
+  });
+
+  it.each([
+    {
+      modelId: sonnet46ModelId,
+      model: sonnet46Model,
+      generateUrl: sonnet46GenerateUrl,
+    },
+    {
+      modelId: haiku45ModelId,
+      model: haiku45Model,
+      generateUrl: haiku45GenerateUrl,
+    },
+  ])(
+    'defaults to the json tool for $modelId when thinking is enabled',
+    async ({ model: affectedModel, generateUrl }) => {
+      prepareStructuredOutputJsonToolResponse(generateUrl);
+
+      const result = await affectedModel.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+          },
+        },
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+          },
+        },
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"ok"}' },
+      ]);
+      expect(result.finishReason).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it.each([
+    {
+      providerOptionsName: 'bedrock',
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+      } as SharedV2ProviderOptions,
+    },
+    {
+      providerOptionsName: 'anthropic',
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+        anthropic: { structuredOutputMode: 'jsonTool' },
+      } as SharedV2ProviderOptions,
+    },
+  ])(
+    'forces the json tool wire format with $providerOptionsName provider options',
+    async ({ providerOptions }) => {
+      prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+      const result = await structuredOutputModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: { answer: { type: 'string' } },
+            required: ['answer'],
+          },
+        },
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig.tools).toHaveLength(1);
+      expect(requestBody.toolConfig.tools[0].toolSpec.name).toBe('json');
+      expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+      expect(requestBody.structuredOutputMode).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.format,
+      ).toBeUndefined();
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"ok"}' },
+      ]);
+      expect(result.finishReason).toBe('stop');
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        true,
+      );
+    },
+  );
+
+  it('removes a manually supplied output_config.format in jsonTool mode while preserving sibling fields', async () => {
+    prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+    await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          additionalModelRequestFields: {
+            output_config: {
+              effort: 'medium',
+              format: { type: 'manually-supplied-format' },
+            },
+          },
+        },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields?.output_config).toEqual({
+      effort: 'medium',
+    });
+  });
+
+  it('forces output_config.format for a model that auto mode routes to the json tool', async () => {
+    server.urls[sonnet46GenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [{ text: '{"answer":"ok"}' }],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'end_turn',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await sonnet46Model.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toEqual({
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { answer: { type: 'string' } },
+        required: ['answer'],
+      },
+    });
+  });
+
+  it('prefers bedrock structuredOutputMode over anthropic structuredOutputMode', async () => {
+    prepareStructuredOutputJsonToolResponse(structuredOutputGenerateUrl);
+
+    await structuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          structuredOutputMode: 'jsonTool',
+          reasoningConfig: { type: 'enabled', budgetTokens: 1024 },
+        },
+        anthropic: { structuredOutputMode: 'outputFormat' },
+      },
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: { answer: { type: 'string' } },
+          required: ['answer'],
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.toolConfig.toolChoice).toEqual({ any: {} });
+    expect(
+      requestBody.additionalModelRequestFields?.output_config?.format,
+    ).toBeUndefined();
+  });
+
+  it('does not send native structured output to an unsupported Anthropic model', async () => {
+    server.urls[unsupportedStructuredOutputGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            content: [
+              {
+                toolUse: {
+                  toolUseId: 'json-response',
+                  name: 'json',
+                  input: { answer: 'ok' },
+                },
+              },
+            ],
+            role: 'assistant',
+          },
+        },
+        stopReason: 'tool_use',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await unsupportedStructuredOutputModel.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema: {
+          type: 'object',
+          properties: {
+            answer: { type: 'string' },
+          },
+          required: ['answer'],
+          additionalProperties: false,
+        },
+      },
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            type: 'enabled',
+            budgetTokens: 1024,
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+    expect(requestBody.additionalModelRequestFields).not.toHaveProperty(
+      'output_config',
+    );
+    expect(requestBody.toolConfig).toMatchObject({
+      toolChoice: { any: {} },
+      tools: [
+        {
+          toolSpec: {
+            name: 'json',
+          },
+        },
+      ],
+    });
+  });
+
   it('merges user additionalModelRequestFields with derived thinking (generate)', async () => {
     prepareJsonResponse({});
 
@@ -3353,6 +4282,136 @@ describe('doGenerate', () => {
     expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
   });
 
+  it('maps maxReasoningEffort to reasoning_effort for OpenAI gpt-oss models (generate)', async () => {
+    server.urls[openaiGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    await openaiModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoning_effort: 'medium',
+      },
+    });
+    expect(
+      requestBody.additionalModelRequestFields?.reasoningConfig,
+    ).toBeUndefined();
+    expect(requestBody.additionalModelRequestFields?.thinking).toBeUndefined();
+  });
+
+  it.each([
+    [usOpenaiModelId, usOpenaiGenerateUrl],
+    [globalOpenaiModelId, globalOpenaiGenerateUrl],
+  ])(
+    'maps maxReasoningEffort to nested reasoning.effort for CRIS model %s (generate)',
+    async (crisModelId, crisGenerateUrl) => {
+      server.urls[crisGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: { content: [{ text: 'Hello' }], role: 'assistant' },
+          },
+          stopReason: 'stop_sequence',
+          usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+        },
+      };
+
+      const crisModel = new BedrockChatLanguageModel(crisModelId, {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      });
+
+      await crisModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              maxReasoningEffort: 'medium',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody).toMatchObject({
+        additionalModelRequestFields: {
+          reasoning: { effort: 'medium' },
+        },
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.reasoning_effort,
+      ).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+    },
+  );
+
+  it('does not classify custom model IDs containing openai. as OpenAI models', async () => {
+    server.urls[customOpenaiSubstringGenerateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    const customModel = new BedrockChatLanguageModel(
+      customOpenaiSubstringModelId,
+      {
+        baseUrl: () => baseUrl,
+        headers: {},
+        fetch: fakeFetchWithAuth,
+        generateId: () => 'test-id',
+      },
+    );
+
+    await customModel.doGenerate({
+      prompt: TEST_PROMPT,
+      providerOptions: {
+        bedrock: {
+          reasoningConfig: {
+            maxReasoningEffort: 'medium',
+          },
+        },
+      },
+    });
+
+    const requestBody = await server.calls[0].requestBodyJson;
+    expect(requestBody).toMatchObject({
+      additionalModelRequestFields: {
+        reasoningConfig: { maxReasoningEffort: 'medium' },
+      },
+    });
+    expect(requestBody.additionalModelRequestFields?.reasoning).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.reasoning_effort,
+    ).toBeUndefined();
+  });
+
   it('maps maxReasoningEffort for Anthropic model using output_config (generate)', async () => {
     prepareJsonResponse({});
 
@@ -3376,6 +4435,70 @@ describe('doGenerate', () => {
       effort: 'medium',
     });
   });
+
+  it.each([undefined, 'jsonTool'] as const)(
+    'should use JSON instructions instead of forced tool use for claude-opus-5-5 with structuredOutputMode %s',
+    async structuredOutputMode => {
+      server.urls[opus55AnthropicGenerateUrl].response = {
+        type: 'json-value',
+        body: {
+          output: {
+            message: {
+              role: 'assistant',
+              content: [{ text: '{"answer":"OK"}' }],
+            },
+          },
+          usage: { inputTokens: 4, outputTokens: 5, totalTokens: 9 },
+          stopReason: 'end_turn',
+        },
+      };
+
+      const result = await opus55AnthropicModel.doGenerate({
+        prompt: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Return an answer of OK.' }],
+          },
+        ],
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              answer: { type: 'string' },
+            },
+            required: ['answer'],
+          },
+        },
+        ...(structuredOutputMode != null && {
+          providerOptions: {
+            bedrock: { structuredOutputMode },
+          },
+        }),
+      });
+
+      const requestBody = await server.calls.at(-1)!.requestBodyJson;
+
+      expect(requestBody.toolConfig).toBeUndefined();
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+      expect(requestBody.system).toEqual([
+        {
+          text:
+            'JSON schema:\n' +
+            '{"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}\n' +
+            'You MUST answer with only a JSON object that matches the JSON schema above. Do not wrap it in markdown fences or include any other text.',
+        },
+      ]);
+      expect(result.content).toEqual([
+        { type: 'text', text: '{"answer":"OK"}' },
+      ]);
+      expect(result.providerMetadata?.bedrock?.isJsonResponseFromTool).toBe(
+        undefined,
+      );
+    },
+  );
 
   it('should extract reasoning text with signature', async () => {
     const reasoningText = 'I need to think about this problem carefully...';
@@ -3476,6 +4599,55 @@ describe('doGenerate', () => {
           "providerMetadata": {
             "bedrock": {
               "redactedData": "redacted-reasoning-data",
+            },
+          },
+          "text": "",
+          "type": "reasoning",
+        },
+        {
+          "text": "The answer is 42.",
+          "type": "text",
+        },
+      ]
+    `);
+  });
+
+  it('should expose reasoning redacted as `redactedContent` for replay', async () => {
+    // `redactedContent` is a member of the ReasoningContentBlock union
+    // in the Converse API. OpenAI models on Bedrock (e.g. `us.openai.gpt-5.6-luna`)
+    // return their encrypted reasoning in this shape. It is surfaced as provider
+    // metadata so that it can be replayed on subsequent turns.
+    server.urls[generateUrl].response = {
+      type: 'json-value',
+      body: {
+        output: {
+          message: {
+            role: 'assistant',
+            content: [
+              {
+                reasoningContent: {
+                  redactedContent: 'encrypted-reasoning-payload',
+                },
+              },
+              { type: 'text', text: 'The answer is 42.' },
+            ],
+          },
+        },
+        usage: { inputTokens: 4, outputTokens: 34, totalTokens: 38 },
+        stopReason: 'stop_sequence',
+      },
+    };
+
+    const result = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(result.content).toMatchInlineSnapshot(`
+      [
+        {
+          "providerMetadata": {
+            "bedrock": {
+              "redactedContent": "encrypted-reasoning-payload",
             },
           },
           "text": "",
@@ -4234,5 +5406,69 @@ describe('doGenerate', () => {
         },
       ]
     `);
+  });
+
+  describe('legacy Anthropic model capabilities', () => {
+    const simpleResponse = {
+      type: 'json-value' as const,
+      body: {
+        output: {
+          message: { content: [{ text: 'Hello' }], role: 'assistant' },
+        },
+        stopReason: 'stop_sequence',
+        usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      },
+    };
+
+    it('should use budget-based reasoning for a platform-prefixed Claude 3.5 model', async () => {
+      server.urls[anthropicGenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic35Model.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          bedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              budgetTokens: Math.round(4096 * 0.6),
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: Math.round(4096 * 0.6),
+      });
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
+
+    it('should use the JSON tool fallback for a platform-prefixed Claude 3.7 model', async () => {
+      server.urls[legacyAnthropic37GenerateUrl].response = simpleResponse;
+
+      await legacyAnthropic37Model.doGenerate({
+        prompt: TEST_PROMPT,
+        responseFormat: {
+          type: 'json',
+          schema: {
+            type: 'object',
+            properties: {
+              name: { type: 'string' },
+            },
+            required: ['name'],
+            additionalProperties: false,
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.toolConfig?.tools).toHaveLength(1);
+      expect(requestBody.toolConfig?.tools[0].toolSpec.name).toBe('json');
+      expect(
+        requestBody.additionalModelRequestFields?.output_config,
+      ).toBeUndefined();
+    });
   });
 });

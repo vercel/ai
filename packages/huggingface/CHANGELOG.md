@@ -1,5 +1,138 @@
 # @ai-sdk/huggingface
 
+## 0.0.41
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 0.0.40
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 0.0.39
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 0.0.38
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 0.0.37
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 0.0.36
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 0.0.35
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 0.0.34
+
+### Patch Changes
+
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 0.0.33
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 0.0.32
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 0.0.31
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 0.0.30
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/openai-compatible@1.0.47
+
+## 0.0.29
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/openai-compatible@1.0.46
+
+## 0.0.28
+
+### Patch Changes
+
+- Updated dependencies [21eef03]
+  - @ai-sdk/openai-compatible@1.0.45
+
+## 0.0.27
+
+### Patch Changes
+
+- Updated dependencies [514775f]
+  - @ai-sdk/openai-compatible@1.0.44
+
+## 0.0.26
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/openai-compatible@1.0.43
+
 ## 0.0.25
 
 ### Patch Changes

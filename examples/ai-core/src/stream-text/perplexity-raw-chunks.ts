@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: perplexity('sonar-reasoning'),
+    model: perplexity('medium'),
     prompt: 'Count from 1 to 3 slowly.',
     includeRawChunks: true,
   });

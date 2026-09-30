@@ -1,5 +1,122 @@
 # @ai-sdk/openai-compatible
 
+## 1.0.58
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 1.0.57
+
+### Patch Changes
+
+- 14810cb: fix(provider-utils): preserve streamed tool calls with unreliable IDs and indices
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 1.0.55
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 1.0.54
+
+### Patch Changes
+
+- fd889a3: fix(openai): return an AI SDK error for empty chat completion choices
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 1.0.53
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 1.0.51
+
+### Patch Changes
+
+- e264a35: Accept streaming tool calls without explicit indices and preserve choice-level usage with top-level precedence.
+
+## 1.0.50
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 1.0.49
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 1.0.48
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 1.0.47
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 1.0.46
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+
+## 1.0.45
+
+### Patch Changes
+
+- 21eef03: Send null content for tool-call-only assistant messages.
+
+## 1.0.44
+
+### Patch Changes
+
+- 514775f: Preserve structured error data from chat completion SSE streams.
+
+## 1.0.43
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
 ## 1.0.42
 
 ### Patch Changes
