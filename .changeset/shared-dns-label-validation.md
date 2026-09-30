@@ -6,4 +6,4 @@
 '@ai-sdk/anthropic-aws': patch
 ---
 
-fix: validate dns labels
+fix: validate hostname parts using `isValidHostnamePart`
