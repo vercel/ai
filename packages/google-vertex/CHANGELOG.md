@@ -1,5 +1,317 @@
 # @ai-sdk/google-vertex
 
+## 3.0.180
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/google@2.0.101
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/anthropic@2.0.108
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 3.0.179
+
+### Patch Changes
+
+- 6dc04c5: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [6dc04c5]
+- Updated dependencies [14810cb]
+  - @ai-sdk/anthropic@2.0.107
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+  - @ai-sdk/google@2.0.100
+
+## 3.0.178
+
+### Patch Changes
+
+- Updated dependencies [214d440]
+  - @ai-sdk/anthropic@2.0.106
+
+## 3.0.177
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/anthropic@2.0.105
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/google@2.0.99
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 3.0.176
+
+### Patch Changes
+
+- dc710c5: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [594787e]
+- Updated dependencies [dc710c5]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/google@2.0.98
+  - @ai-sdk/anthropic@2.0.104
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 3.0.175
+
+### Patch Changes
+
+- Updated dependencies [79c34cc]
+  - @ai-sdk/anthropic@2.0.103
+
+## 3.0.174
+
+### Patch Changes
+
+- c2089a9: Retry unclassified empty image results, preserve completed-attempt diagnostics, add provider-independent result retryability classification, preserve it through the AI Gateway, and mark Google Vertex RAI-filtered results as terminal.
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/anthropic@2.0.102
+  - @ai-sdk/google@2.0.97
+
+## 3.0.173
+
+### Patch Changes
+
+- cfa33a0: feat(google): add gemini-3.8-flash model
+- Updated dependencies [cfa33a0]
+  - @ai-sdk/google@2.0.96
+
+## 3.0.172
+
+### Patch Changes
+
+- Updated dependencies [78a29c2]
+  - @ai-sdk/anthropic@2.0.101
+
+## 3.0.171
+
+### Patch Changes
+
+- Updated dependencies [cd8f35c]
+- Updated dependencies [26165ee]
+  - @ai-sdk/anthropic@2.0.100
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/google@2.0.95
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 3.0.170
+
+### Patch Changes
+
+- Updated dependencies [c43ba7d]
+- Updated dependencies [78c7304]
+- Updated dependencies [7a292cd]
+  - @ai-sdk/google@2.0.94
+  - @ai-sdk/anthropic@2.0.99
+
+## 3.0.169
+
+### Patch Changes
+
+- Updated dependencies [a3fe2a8]
+  - @ai-sdk/google@2.0.93
+
+## 3.0.168
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/anthropic@2.0.98
+  - @ai-sdk/google@2.0.92
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 3.0.167
+
+### Patch Changes
+
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 3.0.166
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+- Updated dependencies [b616db6]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/google@2.0.91
+  - @ai-sdk/anthropic@2.0.97
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 3.0.165
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/anthropic@2.0.96
+  - @ai-sdk/google@2.0.90
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 3.0.164
+
+### Patch Changes
+
+- Updated dependencies [1284605]
+  - @ai-sdk/google@2.0.89
+
+## 3.0.163
+
+### Patch Changes
+
+- df0cbe9: feat(google): add `gemini-3.7-flash` model
+- Updated dependencies [df0cbe9]
+  - @ai-sdk/google@2.0.88
+
+## 3.0.162
+
+### Patch Changes
+
+- Updated dependencies [1f51a4b]
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/google@2.0.87
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/anthropic@2.0.95
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 3.0.161
+
+### Patch Changes
+
+- Updated dependencies [e7afc18]
+  - @ai-sdk/anthropic@2.0.94
+
+## 3.0.160
+
+### Patch Changes
+
+- Updated dependencies [950eec8]
+  - @ai-sdk/anthropic@2.0.93
+
+## 3.0.159
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/anthropic@2.0.92
+  - @ai-sdk/google@2.0.86
+  - @ai-sdk/openai-compatible@1.0.47
+
+## 3.0.158
+
+### Patch Changes
+
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+- Updated dependencies [0ab9755]
+  - @ai-sdk/anthropic@2.0.91
+
+## 3.0.157
+
+### Patch Changes
+
+- 5e9957e: feat(provider/google): default unknown Gemini model IDs to the newest supported capabilities
+- Updated dependencies [5e9957e]
+- Updated dependencies [db28434]
+  - @ai-sdk/google@2.0.85
+  - @ai-sdk/anthropic@2.0.90
+
+## 3.0.156
+
+### Patch Changes
+
+- Updated dependencies [1b0e540]
+- Updated dependencies [5bb3ae4]
+  - @ai-sdk/anthropic@2.0.89
+
+## 3.0.155
+
+### Patch Changes
+
+- b05bffb: feat(google): add `gemini-3.6-flash` and `gemini-3.5-flash-lite` models
+- Updated dependencies [b05bffb]
+  - @ai-sdk/google@2.0.84
+
+## 3.0.154
+
+### Patch Changes
+
+- Updated dependencies [30c69e6]
+  - @ai-sdk/anthropic@2.0.88
+
+## 3.0.153
+
+### Patch Changes
+
+- Updated dependencies [e5f1c62]
+  - @ai-sdk/google@2.0.83
+
+## 3.0.152
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+- Updated dependencies [5082ee8]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/anthropic@2.0.87
+  - @ai-sdk/google@2.0.82
+  - @ai-sdk/openai-compatible@1.0.46
+
+## 3.0.151
+
+### Patch Changes
+
+- Updated dependencies [21eef03]
+  - @ai-sdk/openai-compatible@1.0.45
+
+## 3.0.150
+
+### Patch Changes
+
+- Updated dependencies [c6552b9]
+  - @ai-sdk/google@2.0.81
+
+## 3.0.149
+
+### Patch Changes
+
+- Updated dependencies [514775f]
+  - @ai-sdk/openai-compatible@1.0.44
+
+## 3.0.148
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/anthropic@2.0.86
+  - @ai-sdk/google@2.0.80
+  - @ai-sdk/openai-compatible@1.0.43
+
+## 3.0.147
+
+### Patch Changes
+
+- Updated dependencies [af229e7]
+  - @ai-sdk/google@2.0.79
+
 ## 3.0.146
 
 ### Patch Changes

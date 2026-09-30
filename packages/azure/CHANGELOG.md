@@ -1,5 +1,247 @@
 # @ai-sdk/azure
 
+## 2.0.140
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/deepseek@1.0.62
+  - @ai-sdk/openai@2.0.133
+
+## 2.0.139
+
+### Patch Changes
+
+- Updated dependencies [07e394b]
+- Updated dependencies [e2831de]
+  - @ai-sdk/openai@2.0.132
+  - @ai-sdk/deepseek@1.0.61
+
+## 2.0.138
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai@2.0.131
+  - @ai-sdk/deepseek@1.0.60
+
+## 2.0.137
+
+### Patch Changes
+
+- f912d4a: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [f912d4a]
+  - @ai-sdk/openai@2.0.130
+
+## 2.0.136
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [1c05ff4]
+- Updated dependencies [bf29419]
+  - @ai-sdk/openai@2.0.129
+  - @ai-sdk/deepseek@1.0.59
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.135
+
+### Patch Changes
+
+- Updated dependencies [0f8e4fe]
+- Updated dependencies [594787e]
+- Updated dependencies [391ad4a]
+  - @ai-sdk/openai@2.0.128
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/deepseek@1.0.58
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.134
+
+### Patch Changes
+
+- Updated dependencies [41fda08]
+- Updated dependencies [2c72feb]
+  - @ai-sdk/deepseek@1.0.57
+
+## 2.0.133
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai@2.0.127
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+  - @ai-sdk/deepseek@1.0.56
+
+## 2.0.132
+
+### Patch Changes
+
+- 022f24b: Include explicit message item types in Azure AI Foundry Responses requests.
+- Updated dependencies [022f24b]
+- Updated dependencies [a15b75a]
+  - @ai-sdk/openai@2.0.126
+
+## 2.0.131
+
+### Patch Changes
+
+- Updated dependencies [e0d0bd1]
+  - @ai-sdk/openai@2.0.125
+
+## 2.0.130
+
+### Patch Changes
+
+- Updated dependencies [7bebd57]
+  - @ai-sdk/openai@2.0.124
+
+## 2.0.129
+
+### Patch Changes
+
+- e5b75d9: Construct OpenAI v1 URLs for Azure AI Foundry (`*.services.ai.azure.com`) and Cognitive Services (`*.cognitiveservices.azure.com`) hostnames while preserving complete v1 and Foundry project base URLs.
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/deepseek@1.0.55
+  - @ai-sdk/openai@2.0.123
+
+## 2.0.128
+
+### Patch Changes
+
+- Updated dependencies [f70d0a3]
+  - @ai-sdk/openai@2.0.122
+
+## 2.0.127
+
+### Patch Changes
+
+- 77d33c0: Split OpenAI and Azure OpenAI embedding requests by a conservative UTF-8 byte budget derived from their aggregate token limit, in addition to input count limits.
+- Updated dependencies [77d33c0]
+  - @ai-sdk/openai@2.0.121
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/deepseek@1.0.54
+
+## 2.0.126
+
+### Patch Changes
+
+- 8e31b43: Warn and omit deprecated or ineffective DeepSeek sampling options while
+  preserving penalty sampling for Azure-hosted DeepSeek models.
+- Updated dependencies [2fff9f1]
+- Updated dependencies [8e31b43]
+- Updated dependencies [f364ea0]
+- Updated dependencies [64f3fe0]
+- Updated dependencies [8e77e23]
+- Updated dependencies [db8d076]
+- Updated dependencies [d85aaea]
+- Updated dependencies [ddea7d7]
+- Updated dependencies [d9126d6]
+- Updated dependencies [865c3d3]
+- Updated dependencies [86cd8e0]
+- Updated dependencies [fe2c05f]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/deepseek@1.0.53
+  - @ai-sdk/openai@2.0.120
+
+## 2.0.125
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/deepseek@1.0.52
+  - @ai-sdk/openai@2.0.119
+
+## 2.0.124
+
+### Patch Changes
+
+- Updated dependencies [ed2f035]
+  - @ai-sdk/deepseek@1.0.51
+
+## 2.0.123
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/deepseek@1.0.50
+  - @ai-sdk/openai@2.0.118
+
+## 2.0.122
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/deepseek@1.0.49
+  - @ai-sdk/openai@2.0.117
+
+## 2.0.121
+
+### Patch Changes
+
+- 8591016: Add blocked domain filters to the OpenAI and Azure Responses API web search tools.
+- Updated dependencies [8591016]
+  - @ai-sdk/openai@2.0.116
+
+## 2.0.120
+
+### Patch Changes
+
+- Updated dependencies [11a02d9]
+  - @ai-sdk/openai@2.0.115
+
+## 2.0.119
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/deepseek@1.0.48
+  - @ai-sdk/openai@2.0.114
+
+## 2.0.118
+
+### Patch Changes
+
+- Updated dependencies [21eef03]
+  - @ai-sdk/openai@2.0.113
+
+## 2.0.117
+
+### Patch Changes
+
+- 3e85821: fix: Azure DeepSeek structured output returns JSON in reasoning with empty text
+- Updated dependencies [3e85821]
+  - @ai-sdk/deepseek@1.0.47
+
+## 2.0.116
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/deepseek@1.0.46
+  - @ai-sdk/openai@2.0.112
+
+## 2.0.115
+
+### Patch Changes
+
+- Updated dependencies [b4f8362]
+- Updated dependencies [8549807]
+  - @ai-sdk/openai@2.0.111
+
 ## 2.0.114
 
 ### Patch Changes

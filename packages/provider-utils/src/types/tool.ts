@@ -101,8 +101,8 @@ Use descriptions to make the input understandable for the language model.
   inputSchema: FlexibleSchema<INPUT>;
 
   /**
-   * Optional function that is called when the argument streaming starts.
-   * Only called when the tool is used in a streaming context.
+   * Optional function that is called when the model starts generating the tool input.
+   * In non-streaming contexts, it is called immediately before `onInputAvailable`.
    */
   onInputStart?: (options: ToolCallOptions) => void | PromiseLike<void>;
 
@@ -125,23 +125,11 @@ Use descriptions to make the input understandable for the language model.
   ) => void | PromiseLike<void>;
 } & ToolOutputProperties<INPUT, OUTPUT> & {
     /**
-<<<<<<< HEAD
 Optional conversion function that maps the tool result to an output that can be used by the language model.
-=======
-     * Optional conversion function that maps the tool result to an output that can be used by the language model.
-     *
-     * If not provided, the tool result will be sent as a JSON object.
-     *
-     * This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
-     */
-    toModelOutput?: (options: {
-      /**
-       * The ID of the tool call. You can use it e.g. when sending tool-call related information with stream data.
-       */
-      toolCallId: string;
->>>>>>> 06392e65ce ([v6.0] docs: enhance 'tool.toModelOutput' description in jsdoc and docs website (#16781))
 
 If not provided, the tool result will be sent as a JSON object.
+
+This function is invoked on the server by `convertToModelMessages`, so ensure that you pass the same "tools" (ToolSet) to both "convertToModelMessages" and "streamText" (or other generation APIs).
   */
     toModelOutput?: (
       output: 0 extends 1 & OUTPUT
