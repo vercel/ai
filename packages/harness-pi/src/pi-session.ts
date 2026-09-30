@@ -1191,6 +1191,15 @@ export async function createPiSession(
       throw new Error('Pi session has been stopped.');
     }
 
+    const nextModel =
+      turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
+    if (turnOpts.model != null && nextModel == null) {
+      throw new HarnessCapabilityUnsupportedError({
+        message: `Harness 'pi' has no model '${turnOpts.model}' in its catalog.`,
+        harnessId: HARNESS_ID,
+      });
+    }
+
     const skillWriteResult = await writeSkills({
       sandbox: toolSafeSandboxSession,
       homePath: sandboxHomeDir,
@@ -1235,8 +1244,6 @@ export async function createPiSession(
         const didAppendDeliveredHostToolResults =
           appendDeliveredHostToolResults();
 
-        const nextModel =
-          turnOpts.model == null ? undefined : resolveModel(turnOpts.model);
         if (nextModel != null) activeResolvedModel = nextModel;
 
         const signature = JSON.stringify(userTools.map(t => t.name).sort());
