@@ -6,6 +6,7 @@ import {
   type HarnessV1CredentialForwarding,
   type HarnessV1PortEndpoint,
   type HarnessV1RequestTransformation,
+  type HarnessV1MintBridgeTokenCallback,
 } from '@ai-sdk/harness';
 import {
   createCredentialRequestTransformation,
@@ -67,7 +68,7 @@ export type GitHubCopilotHarnessSettings = {
    * milliseconds up to 2 seconds.
    */
   readonly reconnect?: SandboxChannelReconnectOptions;
-  readonly mintBridgeToken?: (sandboxId: string) => string;
+  readonly mintBridgeToken?: HarnessV1MintBridgeTokenCallback;
 };
 
 /*
