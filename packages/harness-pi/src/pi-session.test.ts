@@ -377,6 +377,92 @@ describe('createPiSession', () => {
     }
   });
 
+  it("reports each turn's own usage rather than the session's running total", async () => {
+    const sessionTokens = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 };
+    const turnUsages = [
+      { input: 4, output: 137, cacheRead: 0, cacheWrite: 13343, reasoning: 0 },
+      {
+        input: 2,
+        output: 45,
+        cacheRead: 13343,
+        cacheWrite: 168,
+        reasoning: 30,
+      },
+    ];
+    let turnIndex = 0;
+    piMock.session = createFakePiSession({
+      getSessionStats: () => ({ tokens: { ...sessionTokens } }),
+      promptImplementation: async (_text, emitEvent) => {
+        const usage = turnUsages[turnIndex++];
+        sessionTokens.input += usage.input;
+        sessionTokens.output += usage.output;
+        sessionTokens.cacheRead += usage.cacheRead;
+        sessionTokens.cacheWrite += usage.cacheWrite;
+        const message = {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'done' }],
+          usage,
+        };
+        emitEvent({ type: 'turn_start' });
+        emitEvent({ type: 'message_start', message });
+        emitEvent({ type: 'message_end', message });
+        emitEvent({ type: 'turn_end', message });
+      },
+    }).session;
+    const session = await createPiSession({
+      sessionId: 'session-turn-usage',
+      sandboxSession: createSandboxSession(),
+      sessionWorkDir: '/sandbox/work',
+      settings: {},
+      clientApp: 'ai-sdk-harness-pi/0.0.0-test',
+      isResume: false,
+    });
+
+    try {
+      const finishes: unknown[] = [];
+      for (const prompt of ['first turn', 'second turn']) {
+        const emit = vi.fn();
+        const control = await session.doPromptTurn({
+          skills: [],
+          prompt,
+          tools: [],
+          emit,
+        });
+        await control.done;
+        finishes.push(
+          emit.mock.calls.map(([part]) => part).find(p => p.type === 'finish'),
+        );
+      }
+
+      expect(finishes).toEqual([
+        expect.objectContaining({
+          totalUsage: {
+            inputTokens: {
+              total: 13347,
+              noCache: 4,
+              cacheRead: 0,
+              cacheWrite: 13343,
+            },
+            outputTokens: { total: 137, text: 137, reasoning: 0 },
+          },
+        }),
+        expect.objectContaining({
+          totalUsage: {
+            inputTokens: {
+              total: 13513,
+              noCache: 2,
+              cacheRead: 13343,
+              cacheWrite: 168,
+            },
+            outputTokens: { total: 45, text: 15, reasoning: 30 },
+          },
+        }),
+      ]);
+    } finally {
+      await session.doDestroy();
+    }
+  });
+
   it('materializes skills under sandbox HOME on prompt turn', async () => {
     piMock.session = {
       abort: vi.fn(async () => {}),
@@ -1648,21 +1734,27 @@ function createDeferred<T>() {
 function createFakePiSession({
   promptEvents = [],
   promptImplementation,
+  getSessionStats = () => ({
+    tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+  }),
 }: {
   promptEvents?: unknown[];
-  promptImplementation?: (text: string) => Promise<void>;
+  promptImplementation?: (
+    text: string,
+    emitEvent: (event: unknown) => void,
+  ) => Promise<void>;
+  getSessionStats?: () => unknown;
 } = {}) {
   const subscribers = new Set<(event: unknown) => void>();
-  const prompt = vi.fn(
-    promptImplementation ??
-      (async (_text: string) => {
-        for (const event of promptEvents) {
-          for (const subscriber of subscribers) {
-            subscriber(event);
-          }
-        }
-      }),
-  );
+  const emitEvent = (event: unknown) => {
+    for (const subscriber of subscribers) {
+      subscriber(event);
+    }
+  };
+  const prompt = vi.fn(async (text: string) => {
+    if (promptImplementation) return promptImplementation(text, emitEvent);
+    for (const event of promptEvents) emitEvent(event);
+  });
   const abort = vi.fn(async () => {});
   const compact = vi.fn(async () => {});
   const dispose = vi.fn();
@@ -1670,9 +1762,7 @@ function createFakePiSession({
     abort,
     compact,
     dispose,
-    getSessionStats: () => ({
-      tokens: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    }),
+    getSessionStats,
     prompt,
     steer: vi.fn(async () => {}),
     subscribe: vi.fn((subscriber: (event: unknown) => void) => {
