@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 3.0.127
+
+### Patch Changes
+
+- d5c12b2: feat(provider/anthropic): add `safeguards` provider option and `safeguardResults` provider metadata (dangerous tool use classifier)
+
 ## 3.0.126
 
 ### Patch Changes
