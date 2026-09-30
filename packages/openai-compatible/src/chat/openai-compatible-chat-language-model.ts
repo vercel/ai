@@ -74,6 +74,11 @@ export type OpenAICompatibleChatConfig = {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the model supports multi-part content in tool results.
+   */
+  supportsMultiPartToolContent?: boolean;
+
+  /**
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
@@ -315,6 +320,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt, {
           providerOptionsKey: metadataKey,
+          supportsMultiPartToolContent:
+            this.config.supportsMultiPartToolContent,
         }),
 
         // tools:
