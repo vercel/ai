@@ -16,8 +16,13 @@ describe('startHostToolRelay', () => {
       toolNames: ['weather'],
       ttlMs: 20,
     });
+    let notifyAuthorizationRequest: (() => void) | undefined;
     const turn: HostToolRelayTurn = {
-      waitForToolCallAuthorization: authorization.waitForToolCallAuthorization,
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest?.();
+        return pending;
+      },
       emitToolCall: vi.fn(),
       emitToolResult: vi.fn(),
       requestToolResult: vi.fn(async () => ({ output: { celsius: 19 } })),
@@ -42,6 +47,17 @@ describe('startHostToolRelay', () => {
       expect(turn.registerCorrelationInvocation).not.toHaveBeenCalled();
       expect(turn.requestToolResult).not.toHaveBeenCalled();
 
+      const authorizationRequested = new Promise<void>(resolve => {
+        notifyAuthorizationRequest = resolve;
+      });
+      const authorizedCall = invoke({
+        relay,
+        requestId: 'real-call',
+        toolName: 'weather',
+        input: { city: 'Lima' },
+        catalogRevision: 1,
+      });
+      await authorizationRequested;
       authorization.observeUpdate({
         update: {
           sessionUpdate: 'tool_call',
@@ -52,15 +68,9 @@ describe('startHostToolRelay', () => {
           status: 'in_progress',
         },
       });
-      await expect(
-        invoke({
-          relay,
-          requestId: 'real-call',
-          toolName: 'weather',
-          input: { city: 'Lima' },
-          catalogRevision: 1,
-        }),
-      ).resolves.toMatchObject({ output: { celsius: 19 } });
+      await expect(authorizedCall).resolves.toMatchObject({
+        output: { celsius: 19 },
+      });
       expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
       expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
 

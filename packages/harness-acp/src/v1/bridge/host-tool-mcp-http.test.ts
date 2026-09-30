@@ -115,8 +115,13 @@ describe('host tool MCP HTTP transport', () => {
       ttlMs: 20,
     });
     cleanups.push(async () => authorization.close());
+    let notifyAuthorizationRequest: (() => void) | undefined;
     const turn = createTurn({
-      waitForToolCallAuthorization: authorization.waitForToolCallAuthorization,
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest?.();
+        return pending;
+      },
       requestToolResult: vi.fn(async () => ({ output: { celsius: 12 } })),
     });
     relay.bindTurn({ turn });
@@ -128,6 +133,14 @@ describe('host tool MCP HTTP transport', () => {
     expect(turn.emitToolCall).not.toHaveBeenCalled();
     expect(turn.requestToolResult).not.toHaveBeenCalled();
 
+    const authorizationRequested = new Promise<void>(resolve => {
+      notifyAuthorizationRequest = resolve;
+    });
+    const authorizedCall = client.callTool({
+      name: 'weather',
+      arguments: { city: 'Paris' },
+    });
+    await authorizationRequested;
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call',
@@ -138,9 +151,7 @@ describe('host tool MCP HTTP transport', () => {
         status: 'in_progress',
       },
     });
-    await expect(
-      client.callTool({ name: 'weather', arguments: { city: 'Paris' } }),
-    ).resolves.toMatchObject({
+    await expect(authorizedCall).resolves.toMatchObject({
       content: [{ type: 'text', text: '{"celsius":12}' }],
     });
     expect(turn.emitToolCall).toHaveBeenCalledTimes(1);

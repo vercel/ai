@@ -5,7 +5,7 @@ import { createHostToolRelayAuthorization } from './host-tool-relay-authorizatio
 const serverName = 'ai-sdk-harness-tools';
 const weather = { toolName: 'weather', input: { city: 'Lima' } };
 
-function authorizer({ ttlMs = 20 }: { ttlMs?: number } = {}) {
+function authorizer({ ttlMs }: { ttlMs?: number } = {}) {
   return createHostToolRelayAuthorization({
     serverName,
     toolNames: ['weather', 'clock'],
@@ -39,7 +39,7 @@ describe('createHostToolRelayAuthorization', () => {
 
   it('rejects a bearer-only request without an ACP tool call', async () => {
     vi.useFakeTimers();
-    const authorization = authorizer();
+    const authorization = authorizer({ ttlMs: 20 });
     const pending = authorization.waitForToolCallAuthorization(weather);
 
     await vi.advanceTimersByTimeAsync(20);
@@ -50,7 +50,7 @@ describe('createHostToolRelayAuthorization', () => {
 
   it('matches name and canonical input from ACP before the relay request, only once', async () => {
     vi.useFakeTimers();
-    const authorization = authorizer();
+    const authorization = authorizer({ ttlMs: 20 });
     authorization.observeUpdate({
       update: update({ toolCallId: 'call-1', rawInput: { city: 'Lima' } }),
     });
@@ -301,7 +301,7 @@ describe('createHostToolRelayAuthorization', () => {
 
   it('expires unused authorizations and rejects pending requests on close', async () => {
     vi.useFakeTimers();
-    const authorization = authorizer();
+    const authorization = authorizer({ ttlMs: 20 });
     authorization.observeUpdate({ update: update({ toolCallId: 'old' }) });
     await vi.advanceTimersByTimeAsync(21);
     authorization.observeUpdate({
