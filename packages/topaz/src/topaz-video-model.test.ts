@@ -13,6 +13,7 @@ const REQUEST_ID = 'req-abc-123';
 const UPLOAD_URL = 'https://uploads.topazlabs.example.com/part-1';
 const UPLOAD_URL_2 = 'https://uploads.topazlabs.example.com/part-2';
 const DOWNLOAD_URL = 'https://cdn.topazlabs.example.com/out.mp4';
+const SOURCE_URL = 'https://media.example.com/clips/input.mov';
 
 const inputVideo = {
   type: 'file' as const,
@@ -121,6 +122,9 @@ describe('TopazVideoModel', () => {
         body: {},
         headers: { etag: '"etag-part-2"' },
       },
+    },
+    [SOURCE_URL]: {
+      response: { type: 'binary', body: Buffer.from(inputVideo.data) },
     },
     [`${TEST_BASE_URL}/video/${REQUEST_ID}/complete-upload`]: {
       response: { type: 'json-value', body: { message: 'queued' } },
@@ -595,6 +599,33 @@ describe('TopazVideoModel', () => {
       ).rejects.toThrow(/did not return an ETag/);
     });
 
+    it('downloads a URL input to size the full-flow request', async () => {
+      await createModel().doStart({
+        ...defaultOptions,
+        inputReferences: [
+          { type: 'url', url: SOURCE_URL, mediaType: 'video/quicktime' },
+        ],
+      });
+
+      expect(
+        server.calls.map(call => [call.requestMethod, call.requestUrl]),
+      ).toEqual([
+        ['GET', SOURCE_URL],
+        ['POST', `${TEST_BASE_URL}/video/`],
+        ['PATCH', `${TEST_BASE_URL}/video/${REQUEST_ID}/accept`],
+        ['PUT', UPLOAD_URL],
+        ['PATCH', `${TEST_BASE_URL}/video/${REQUEST_ID}/complete-upload`],
+      ]);
+
+      const body = await server.calls[1].requestBodyJson;
+      expect(body.source.container).toBe('mov');
+      expect(body.source.size).toBe(inputVideo.data.byteLength);
+      expect(body.source).not.toHaveProperty('external');
+      expect(server.calls[3].requestHeaders['content-type']).toBe(
+        'video/quicktime',
+      );
+    });
+
     it('cancels the request when a step after create fails', async () => {
       server.urls[UPLOAD_URL].response = { type: 'error', status: 500 };
 
@@ -677,6 +708,31 @@ describe('TopazVideoModel', () => {
       });
       expect(result.providerMetadata).toEqual({
         topaz: { requestId: REQUEST_ID },
+      });
+    });
+
+    it('lets Topaz fetch a URL input instead of downloading and uploading it', async () => {
+      server.urls[`${TEST_BASE_URL}/video/express`].response = {
+        type: 'json-value',
+        body: { requestId: REQUEST_ID },
+      };
+
+      const result = await createModel().doStart({
+        ...expressOptions,
+        inputReferences: [{ type: 'url', url: SOURCE_URL }],
+      });
+
+      expect(
+        server.calls.map(call => [call.requestMethod, call.requestUrl]),
+      ).toEqual([['POST', `${TEST_BASE_URL}/video/express`]]);
+      expect((await server.calls[0].requestBodyJson).source).toEqual({
+        // Detected from the URL extension.
+        container: 'mov',
+        external: { provider: 's3', presignedUrl: SOURCE_URL },
+      });
+      expect(result.operation).toEqual({
+        requestId: REQUEST_ID,
+        outputContainer: 'mov',
       });
     });
 

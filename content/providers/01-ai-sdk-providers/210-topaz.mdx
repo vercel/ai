@@ -156,9 +156,9 @@ Passing a raw Topaz filter model name (for example `slp-2.5`) also works, and un
 
 ### Submission Flows
 
-By default the provider uses Topaz's express flow: it creates the request, uploads the video to a single URL, and Topaz starts processing once the upload lands. Express needs no metadata about the input video, only the output resolution (from `resolution` or `output.width` / `output.height`).
+By default the provider uses Topaz's express flow. Express needs no metadata about the input video, only the output resolution (from `resolution` or `output.width` / `output.height`). A URL input is handed to Topaz, which fetches it and starts processing. A file input is uploaded to a single URL, and processing starts once the upload lands.
 
-Passing input metadata in the `source` provider option switches to Topaz's full flow: create, accept, multi-part upload, and complete-upload. Use it for large files that need a multi-part upload, or when you want a cost estimate before the upload starts. The AI SDK does not inspect media files, so the full flow needs the complete set:
+Passing input metadata in the `source` provider option switches to Topaz's full flow: create, accept, multi-part upload, and complete-upload. Use it for large file inputs that need a multi-part upload, or when you want a cost estimate before the upload starts. The full flow needs the file size up front, so URL inputs are downloaded and uploaded. The AI SDK does not inspect media files, so the full flow needs the complete set:
 
 | Field        | Where it comes from                                                |
 | ------------ | ------------------------------------------------------------------ |

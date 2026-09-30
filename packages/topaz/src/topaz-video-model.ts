@@ -92,9 +92,9 @@ const UPLOAD_SEGMENT_BYTES = 500_000_000;
 /**
  * Topaz video models enhance a video the caller supplies, passed through
  * `inputReferences`. `doStart` uses Topaz's express flow (create, then a
- * single upload) unless the caller supplies source metadata, in which case it
- * uses the full flow (create, accept, multi-part upload, complete-upload).
- * Either way processing starts once the upload lands, and `doStatus` polls.
+ * single upload, or no upload when Topaz fetches a URL input itself) unless
+ * the caller supplies source metadata, in which case it uses the full flow
+ * (create, accept, multi-part upload, complete-upload). `doStatus` polls.
  */
 export class TopazVideoModel implements VideoModelV4 {
   readonly specificationVersion = 'v4';
@@ -142,13 +142,8 @@ export class TopazVideoModel implements VideoModelV4 {
     this.addUnsupportedWarnings(options, warnings);
 
     const input = this.selectInputVideo(options, warnings);
-    const { bytes, container } = await this.resolveInput({
-      input,
-      declaredContainer: topazOptions?.source?.container,
-      abortSignal: options.abortSignal,
-    });
-
-    const source = resolveSource(topazOptions, container, bytes.byteLength);
+    const container = resolveContainer(input, topazOptions?.source?.container);
+    const source = resolveSource(topazOptions, container);
     const output = buildOutput({ options, topazOptions, source });
     const filters = [
       buildFilter(this.modelId, topazOptions),
@@ -161,10 +156,24 @@ export class TopazVideoModel implements VideoModelV4 {
 
     try {
       if (source.type === 'express') {
+        // Topaz fetches URL inputs itself, so they skip the upload, and like
+        // other providers the SDK never downloads them.
+        const external =
+          input.type === 'url'
+            ? { provider: 's3', presignedUrl: input.url }
+            : undefined;
+
         const { value: created, responseHeaders } = await postJsonToApi({
           url: `${this.config.baseURL}/video/express`,
           headers,
-          body: { source: { container: source.container }, output, filters },
+          body: {
+            source: {
+              container: source.container,
+              ...(external != null ? { external } : {}),
+            },
+            output,
+            filters,
+          },
           successfulResponseHandler: createJsonResponseHandler(
             topazVideoExpressResponseSchema,
           ),
@@ -175,13 +184,15 @@ export class TopazVideoModel implements VideoModelV4 {
 
         requestId = requireRequestId(created.requestId);
 
-        await this.uploadVideo({
-          requestId,
-          bytes,
-          urls: created.uploadUrls,
-          contentType,
-          abortSignal: options.abortSignal,
-        });
+        if (input.type === 'file') {
+          await this.uploadVideo({
+            requestId,
+            bytes: fileBytes(input),
+            urls: created.uploadUrls,
+            contentType,
+            abortSignal: options.abortSignal,
+          });
+        }
 
         return this.startResult({
           requestId,
@@ -193,13 +204,17 @@ export class TopazVideoModel implements VideoModelV4 {
         });
       }
 
+      // The full flow needs the file size up front, so URL inputs are
+      // downloaded first.
+      const bytes = await this.loadInputBytes(input, options.abortSignal);
+
       const { value: created, responseHeaders } = await postJsonToApi({
         url: `${this.config.baseURL}/video/`,
         headers,
         body: {
           source: {
             container: source.container,
-            size: source.size,
+            size: bytes.byteLength,
             duration: source.duration,
             frameCount: source.frameCount,
             frameRate: source.frameRate,
@@ -508,55 +523,15 @@ export class TopazVideoModel implements VideoModelV4 {
     return videos[0];
   }
 
-  private async resolveInput({
-    input,
-    declaredContainer,
-    abortSignal,
-  }: {
-    input: VideoModelV4File;
-    declaredContainer: TopazSourceContainer | undefined;
-    abortSignal: AbortSignal | undefined;
-  }): Promise<{ bytes: Uint8Array; container: TopazSourceContainer }> {
+  private async loadInputBytes(
+    input: VideoModelV4File,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<Uint8Array> {
     if (input.type === 'file') {
-      const bytes =
-        typeof input.data === 'string'
-          ? convertBase64ToUint8Array(input.data)
-          : input.data;
-
-      const container =
-        declaredContainer ?? mediaTypeContainers[input.mediaType.toLowerCase()];
-
-      if (container == null) {
-        throw new InvalidArgumentError({
-          argument: 'inputReferences',
-          message:
-            `Could not map the media type "${input.mediaType}" onto a Topaz container. ` +
-            'Set the `source.container` provider option explicitly.',
-        });
-      }
-
-      return { bytes, container };
+      return fileBytes(input);
     }
 
-    const container =
-      declaredContainer ??
-      (input.mediaType != null
-        ? mediaTypeContainers[input.mediaType.toLowerCase()]
-        : undefined) ??
-      containerFromUrl(input.url);
-
-    if (container == null) {
-      throw new InvalidArgumentError({
-        argument: 'inputReferences',
-        message:
-          `Could not determine the container of the input video at "${input.url}". Set ` +
-          'the `source.container` provider option, or pass `mediaType` on the reference.',
-      });
-    }
-
-    // Topaz uploads go to presigned object storage, so the bytes have to pass
-    // through the SDK even for URL references.
-    const { value: bytes } = await getFromApi({
+    const { value } = await getFromApi({
       url: input.url,
       // A caller-supplied URL, so it is validated like any untrusted target.
       validateUrl: true,
@@ -566,7 +541,7 @@ export class TopazVideoModel implements VideoModelV4 {
       fetch: this.config.fetch,
     });
 
-    return { bytes, container };
+    return value;
   }
 
   private async uploadVideo({
@@ -725,6 +700,54 @@ function lowerBoundCredits(
   return cost != null && cost.length > 0 ? Math.min(...cost) : undefined;
 }
 
+function fileBytes(
+  input: Extract<VideoModelV4File, { type: 'file' }>,
+): Uint8Array {
+  return typeof input.data === 'string'
+    ? convertBase64ToUint8Array(input.data)
+    : input.data;
+}
+
+function resolveContainer(
+  input: VideoModelV4File,
+  declaredContainer: TopazSourceContainer | undefined,
+): TopazSourceContainer {
+  if (declaredContainer != null) {
+    return declaredContainer;
+  }
+
+  if (input.type === 'file') {
+    const container = mediaTypeContainers[input.mediaType.toLowerCase()];
+
+    if (container == null) {
+      throw new InvalidArgumentError({
+        argument: 'inputReferences',
+        message:
+          `Could not map the media type "${input.mediaType}" onto a Topaz container. ` +
+          'Set the `source.container` provider option explicitly.',
+      });
+    }
+
+    return container;
+  }
+
+  const container =
+    (input.mediaType != null
+      ? mediaTypeContainers[input.mediaType.toLowerCase()]
+      : undefined) ?? containerFromUrl(input.url);
+
+  if (container == null) {
+    throw new InvalidArgumentError({
+      argument: 'inputReferences',
+      message:
+        `Could not determine the container of the input video at "${input.url}". Set ` +
+        'the `source.container` provider option, or pass `mediaType` on the reference.',
+    });
+  }
+
+  return container;
+}
+
 function isVideoReference(reference: VideoModelV4File): boolean {
   if (reference.type === 'file') {
     return reference.mediaType.toLowerCase().startsWith('video/');
@@ -748,7 +771,6 @@ type ResolvedSource =
   | {
       type: 'full';
       container: TopazSourceContainer;
-      size: number;
       duration: number;
       frameRate: number;
       frameCount: number;
@@ -765,7 +787,6 @@ type ResolvedSource =
 function resolveSource(
   topazOptions: TopazVideoModelOptions | undefined,
   container: TopazSourceContainer,
-  sizeBytes: number,
 ): ResolvedSource {
   const source = topazOptions?.source;
   const { width, height, duration, frameRate } = source ?? {};
@@ -812,7 +833,6 @@ function resolveSource(
   return {
     type: 'full',
     container,
-    size: sizeBytes,
     duration,
     frameRate,
     frameCount,
