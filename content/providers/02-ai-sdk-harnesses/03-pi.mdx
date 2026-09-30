@@ -85,6 +85,9 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `cacheRetention`: default prompt cache retention for model requests (`none`,
+  `short`, or `long`). For Anthropic models, `long` uses the 1-hour cache
+  instead of the 5-minute default.
 - `credentials`: application-owned Pi credential storage. This replaces the
   file-backed `auth.json` store and supports persistent database-backed
   credentials.
