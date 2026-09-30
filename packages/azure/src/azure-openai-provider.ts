@@ -14,6 +14,7 @@ import {
   type LanguageModelV3,
   type ProviderV3,
   type ImageModelV3,
+  type SharedV3Warning,
   type SpeechModelV3,
   type TranscriptionModelV3,
 } from '@ai-sdk/provider';
@@ -27,6 +28,11 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { azureOpenaiTools } from './azure-openai-tools';
+import {
+  azureSpeechModelOptions,
+  getMAIVoiceModel,
+} from './azure-speech-model-options';
+import { AzureSpeechSpeechModel } from './azure-speech-speech-model';
 import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
 import {
   azureTranscriptionModelOptions,
@@ -104,9 +110,15 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   transcriptionModel(deploymentId: string): TranscriptionModelV3;
 
   /**
-   * Creates an Azure OpenAI model for speech generation.
+   * Creates an Azure speech generation model. MAI-Voice models use the Speech
+   * API by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   speech(deploymentId: string): SpeechModelV3;
+
+  /**
+   * Creates an Azure speech generation model. Alias of `speech`.
+   */
+  speechModel(deploymentId: string): SpeechModelV3;
 
   /**
    * AzureOpenAI-specific tools.
@@ -170,8 +182,9 @@ export interface AzureOpenAIProviderSettings {
   useDeploymentBasedUrls?: boolean;
 
   /**
-   * URL prefix for Azure Speech transcription (MAI-Transcribe), e.g. a
-   * regional endpoint like `https://eastus.api.cognitive.microsoft.com`.
+   * URL prefix for Azure Speech (MAI-Transcribe transcription and MAI-Voice
+   * speech), e.g. a regional endpoint like
+   * `https://eastus.api.cognitive.microsoft.com`.
    * Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
    * Speech requests do not use `baseURL` or `apiVersion`.
    */
@@ -366,6 +379,10 @@ export function createAzure(
       fetch,
     });
 
+  const speechBaseURL = () =>
+    withoutTrailingSlash(options.speechBaseURL) ??
+    `https://${getResourceName()}.cognitiveservices.azure.com`;
+
   const createTranscriptionModel = (modelId: string) =>
     new AzureTranscriptionModel(
       modelId,
@@ -378,22 +395,27 @@ export function createAzure(
       }),
       new AzureSpeechTranscriptionModel(modelId, {
         url: () =>
-          `${
-            withoutTrailingSlash(options.speechBaseURL) ??
-            `https://${getResourceName()}.cognitiveservices.azure.com`
-          }/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
+          `${speechBaseURL()}/speechtotext/transcriptions:transcribe?api-version=2025-10-15`,
         headers: () => getHeaders('speech'),
         fetch,
       }),
     );
 
   const createSpeechModel = (modelId: string) =>
-    new OpenAISpeechModel(modelId, {
-      provider: 'azure.speech',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
+    new AzureSpeechModel(
+      modelId,
+      new OpenAISpeechModel(modelId, {
+        provider: 'azure.speech',
+        url,
+        headers: getHeaders,
+        fetch,
+      }),
+      new AzureSpeechSpeechModel(modelId, {
+        url: () => `${speechBaseURL()}/tts/cognitiveservices/v1`,
+        headers: () => getHeaders('speech'),
+        fetch,
+      }),
+    );
 
   const provider = function (deploymentId: string) {
     if (new.target) {
@@ -420,6 +442,7 @@ export function createAzure(
   provider.transcription = createTranscriptionModel;
   provider.transcriptionModel = createTranscriptionModel;
   provider.speech = createSpeechModel;
+  provider.speechModel = createSpeechModel;
   provider.tools = azureOpenaiTools;
   return provider;
 }
@@ -478,6 +501,50 @@ class AzureTranscriptionModel implements TranscriptionModelV3 {
       api:
         options?.api ??
         (getMAITranscribeModel(this.modelId) ? 'speech' : 'openai'),
+    };
+  }
+}
+
+// Resolves the API per request: providerOptions also reach this model via Gateway.
+class AzureSpeechModel implements SpeechModelV3 {
+  readonly specificationVersion = 'v3';
+  readonly provider = 'azure.speech';
+
+  constructor(
+    readonly modelId: string,
+    private readonly openai: OpenAISpeechModel,
+    private readonly speech: AzureSpeechSpeechModel,
+  ) {}
+
+  async doGenerate(options: Parameters<SpeechModelV3['doGenerate']>[0]) {
+    const { api, ...speechOptions } =
+      (await parseProviderOptions({
+        provider: 'azure',
+        providerOptions: options.providerOptions,
+        schema: azureSpeechModelOptions,
+      })) ?? {};
+    if (
+      (api ?? (getMAIVoiceModel(this.modelId) ? 'speech' : 'openai')) ===
+      'speech'
+    ) {
+      return this.speech.doGenerate(options, speechOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        ...Object.entries(speechOptions)
+          .filter(([, value]) => value !== undefined)
+          .map(
+            ([key]): SharedV3Warning => ({
+              type: 'unsupported',
+              feature: `providerOptions.azure.${key}`,
+              details: 'This option requires the Azure Speech API.',
+            }),
+          ),
+      ],
     };
   }
 }
