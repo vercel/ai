@@ -40,7 +40,6 @@ import { mapDeepSeekFinishReason } from './map-deepseek-finish-reason';
 
 export type DeepSeekChatConfig = {
   provider: string;
-  cacheUsageFormat?: 'deepseek' | 'openai-compatible';
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: FetchFunction;
@@ -52,13 +51,10 @@ export type DeepSeekChatConfig = {
 
 function getDeepSeekCacheReadTokens(
   usage: DeepSeekChatTokenUsage | undefined | null,
-  cacheUsageFormat: 'deepseek' | 'openai-compatible' = 'deepseek',
 ): number | undefined {
   return (
     usage?.prompt_cache_hit_tokens ??
-    (cacheUsageFormat === 'openai-compatible'
-      ? usage?.prompt_tokens_details?.cached_tokens
-      : undefined) ??
+    usage?.prompt_tokens_details?.cached_tokens ??
     undefined
   );
 }
@@ -339,10 +335,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
       content.push({ type: 'text', text });
     }
 
-    const cacheReadTokens = getDeepSeekCacheReadTokens(
-      responseBody.usage,
-      this.config.cacheUsageFormat,
-    );
+    const cacheReadTokens = getDeepSeekCacheReadTokens(responseBody.usage);
 
     return {
       content,
@@ -430,7 +423,6 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
     let systemFingerprint: string | undefined = undefined;
     let isFirstChunk = true;
     const providerOptionsName = this.providerOptionsName;
-    const cacheUsageFormat = this.config.cacheUsageFormat;
     let isActiveReasoning = false;
     let isActiveText = false;
     let responseObject: 'chat.completion.chunk' | undefined;
@@ -714,10 +706,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV2 {
               });
             }
 
-            const cacheReadTokens = getDeepSeekCacheReadTokens(
-              usage,
-              cacheUsageFormat,
-            );
+            const cacheReadTokens = getDeepSeekCacheReadTokens(usage);
 
             controller.enqueue({
               type: 'finish',
