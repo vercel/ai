@@ -1,5 +1,17 @@
 # @ai-sdk/azure
 
+## 4.0.87
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai@4.0.83
+  - @ai-sdk/deepseek@3.0.58
+
 ## 4.0.86
 
 ### Patch Changes

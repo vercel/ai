@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+
 ## 1.0.123
 
 ### Patch Changes
