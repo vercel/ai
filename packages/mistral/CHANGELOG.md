@@ -1,5 +1,120 @@
 # @ai-sdk/mistral
 
+## 2.0.52
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
+## 2.0.51
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+
+## 2.0.50
+
+### Patch Changes
+
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+
+## 2.0.49
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.48
+
+### Patch Changes
+
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.47
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+
+## 2.0.45
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+
+## 2.0.44
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+
+## 2.0.43
+
+### Patch Changes
+
+- 24404ae: fix(mistral): support incremental streaming tool calls
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+
+## 2.0.39
+
+### Patch Changes
+
+- 1c96fba: Add non-streaming Voxtral text-to-speech generation with saved voice IDs and one-off reference audio.
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+
+## 2.0.37
+
+### Patch Changes
+
+- 5c75d78: Forward Mistral presence and frequency penalties without unsupported warnings.
+
 ## 2.0.36
 
 ### Patch Changes

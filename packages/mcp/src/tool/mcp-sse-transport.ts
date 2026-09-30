@@ -268,11 +268,9 @@ export class SseMCPTransport implements MCPTransport {
             message: `MCP SSE Transport Error: POSTing to endpoint (HTTP ${response.status}): ${text}`,
           });
           this.onerror?.(error);
-          return;
         }
       } catch (error) {
         this.onerror?.(error);
-        return;
       }
     };
     await attempt();

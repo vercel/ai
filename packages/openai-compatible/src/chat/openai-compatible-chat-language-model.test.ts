@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type LanguageModelV2Prompt,
+} from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import {
   convertReadableStreamToArray,
@@ -137,6 +140,41 @@ describe('doGenerate', () => {
       },
     };
   }
+
+  it('should throw an invalid response error when response has no choices', async () => {
+    const response = {
+      id: 'chatcmpl-empty',
+      object: 'chat.completion',
+      created: 1711115037,
+      model: 'grok-beta',
+      choices: [],
+      usage: {
+        prompt_tokens: 4,
+        total_tokens: 4,
+        completion_tokens: 0,
+      },
+    };
+
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'json-value',
+      body: response,
+    };
+
+    let error: unknown;
+    try {
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(InvalidResponseDataError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      data: response,
+      message: 'Response did not contain any choices.',
+    });
+  });
 
   it('should pass user setting to requests', async () => {
     prepareJsonResponse({ content: 'Hello, World!' });
@@ -1464,6 +1502,100 @@ describe('doStream', () => {
     `);
   });
 
+  it('keeps same-name id-less tool calls separate when the index is reused', async () => {
+    server.urls['https://my.api.com/v1/chat/completions'].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"role":"assistant","tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":1}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"type":"function",` +
+          `"function":{"name":"same_tool","arguments":"{\\"value\\":2}"}}]},"finish_reason":null}]}\n\n`,
+        `data: {"id":"chatcmpl-reused-index","object":"chat.completion.chunk","created":1711357598,"model":"grok-3",` +
+          `"choices":[{"index":0,"delta":{},"finish_reason":"tool_calls"}],` +
+          `"usage":{"prompt_tokens":18,"completion_tokens":10,"total_tokens":28}}\n\n`,
+        'data: [DONE]\n\n',
+      ],
+    };
+
+    const { stream } = await model.doStream({
+      prompt: TEST_PROMPT,
+      includeRawChunks: false,
+    });
+
+    const toolCalls = (await convertReadableStreamToArray(stream)).filter(
+      part => part.type === 'tool-call',
+    );
+
+    expect(
+      toolCalls.map(({ toolName, input }) => ({ toolName, input })),
+    ).toEqual([
+      { toolName: 'same_tool', input: '{"value":1}' },
+      { toolName: 'same_tool', input: '{"value":2}' },
+    ]);
+  });
+
+  it.each([undefined, null])(
+    'assembles parallel tool calls by position when indices are %s',
+    async index => {
+      const toolCallDeltas = [
+        [
+          {
+            index,
+            id: 'weather_0',
+            function: { name: 'weather', arguments: '' },
+          },
+          {
+            index,
+            id: 'time_1',
+            function: { name: 'time', arguments: '' },
+          },
+        ],
+        [
+          { index, function: { arguments: '{"location":' } },
+          { index, function: { arguments: '{"zone":' } },
+        ],
+        [
+          { index, function: { arguments: '"San Francisco"}' } },
+          { index, function: { arguments: '"UTC"}' } },
+        ],
+      ];
+
+      server.urls['https://my.api.com/v1/chat/completions'].response = {
+        type: 'stream-chunks',
+        chunks: [
+          ...toolCallDeltas.map(
+            tool_calls =>
+              `data: ${JSON.stringify({
+                choices: [{ delta: { tool_calls }, finish_reason: null }],
+              })}\n\n`,
+          ),
+          'data: [DONE]\n\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+      const parts = await convertReadableStreamToArray(stream);
+
+      expect(parts.some(part => part.type === 'error')).toBe(false);
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'weather_0',
+          toolName: 'weather',
+          input: '{"location":"San Francisco"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'time_1',
+          toolName: 'time',
+          input: '{"zone":"UTC"}',
+        },
+      ]);
+    },
+  );
+
   it('should stream tool deltas', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
@@ -1843,6 +1975,11 @@ describe('doStream', () => {
           "type": "tool-input-delta",
         },
         {
+          "delta": "",
+          "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
+          "type": "tool-input-delta",
+        },
+        {
           "id": "chatcmpl-tool-b3b307239370432d9910d4b79b4dbbaa",
           "type": "tool-input-end",
         },
@@ -2032,11 +2169,11 @@ describe('doStream', () => {
     `);
   });
 
-  it('should handle error stream parts', async () => {
+  it('should preserve structured error stream parts', async () => {
     server.urls['https://my.api.com/v1/chat/completions'].response = {
       type: 'stream-chunks',
       chunks: [
-        `data: {"error": {"message": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.", "code": "Client specified an invalid argument"}}\n\n`,
+        `data: {"error": {"message": "Context length exceeded", "code": "CONTEXT_LENGTH_EXCEEDED"}}\n\n`,
         'data: [DONE]\n\n',
       ],
     };
@@ -2053,7 +2190,10 @@ describe('doStream', () => {
           "warnings": [],
         },
         {
-          "error": "Incorrect API key provided: as***T7. You can obtain an API key from https://console.api.com.",
+          "error": {
+            "code": "CONTEXT_LENGTH_EXCEEDED",
+            "message": "Context length exceeded",
+          },
           "type": "error",
         },
         {

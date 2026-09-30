@@ -153,19 +153,27 @@ function createCompletion() {
   });
 }
 
-async function main() {
-  let start = performance.now();
-  let result = await createCompletion();
-  let end = performance.now();
-  console.log(`duration: ${Math.floor(end - start)} ms`);
+async function runCompletion(label: string) {
+  const start = performance.now();
+  const result = createCompletion();
 
-  let fullResponse = '';
-  process.stdout.write('\nAssistant: ');
+  process.stdout.write(`\n${label} response: `);
   for await (const delta of result.textStream) {
-    fullResponse += delta;
     process.stdout.write(delta);
   }
-  process.stdout.write('\n\n');
+  const end = performance.now();
+  process.stdout.write('\n');
+  console.log(`${label} usage:`, await result.usage);
+  console.log(`${label} duration: ${Math.floor(end - start)} ms`);
+}
+
+async function main() {
+  console.log(`PLEASE NOTE caching behavior is transparent and difficult to test.
+If you don't get a cache hit the first time, try several additional times.`);
+
+  await runCompletion('First pass');
+  await setTimeout(1000);
+  await runCompletion('Second pass');
 }
 
 main()

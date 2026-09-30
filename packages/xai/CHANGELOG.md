@@ -1,5 +1,180 @@
 # @ai-sdk/xai
 
+## 2.0.99
+
+### Patch Changes
+
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+  - @ai-sdk/openai-compatible@1.0.58
+
+## 2.0.98
+
+### Patch Changes
+
+- Updated dependencies [14810cb]
+  - @ai-sdk/provider-utils@3.0.40
+  - @ai-sdk/openai-compatible@1.0.57
+
+## 2.0.97
+
+### Patch Changes
+
+- bf29419: chore: enable dead code lint rules
+- Updated dependencies [bf29419]
+  - @ai-sdk/provider-utils@3.0.39
+  - @ai-sdk/openai-compatible@1.0.56
+
+## 2.0.96
+
+### Patch Changes
+
+- Updated dependencies [594787e]
+  - @ai-sdk/provider@2.0.5
+  - @ai-sdk/openai-compatible@1.0.55
+  - @ai-sdk/provider-utils@3.0.38
+
+## 2.0.95
+
+### Patch Changes
+
+- d3e1726: feat(xai): add grok 4.7 model ID
+
+## 2.0.94
+
+### Patch Changes
+
+- 2c72feb: fix(deepseek): preserve reasoning streams across empty tool-call deltas
+
+## 2.0.93
+
+### Patch Changes
+
+- Updated dependencies [fd889a3]
+- Updated dependencies [c2089a9]
+- Updated dependencies [ab3990f]
+  - @ai-sdk/openai-compatible@1.0.54
+  - @ai-sdk/provider@2.0.4
+  - @ai-sdk/provider-utils@3.0.37
+
+## 2.0.92
+
+### Patch Changes
+
+- Updated dependencies [26165ee]
+  - @ai-sdk/provider-utils@3.0.36
+  - @ai-sdk/openai-compatible@1.0.53
+
+## 2.0.91
+
+### Patch Changes
+
+- a2d81eb: fix(xai): preserve web_search action (query, sources, open_page) in responses tool results
+
+## 2.0.90
+
+### Patch Changes
+
+- Updated dependencies [77d33c0]
+  - @ai-sdk/provider-utils@3.0.35
+  - @ai-sdk/openai-compatible@1.0.52
+
+## 2.0.89
+
+### Patch Changes
+
+- Updated dependencies [e264a35]
+  - @ai-sdk/openai-compatible@1.0.51
+
+## 2.0.88
+
+### Patch Changes
+
+- Updated dependencies [2fff9f1]
+- Updated dependencies [f364ea0]
+  - @ai-sdk/provider-utils@3.0.34
+  - @ai-sdk/openai-compatible@1.0.50
+
+## 2.0.87
+
+### Patch Changes
+
+- Updated dependencies [9e8e087]
+  - @ai-sdk/provider-utils@3.0.33
+  - @ai-sdk/openai-compatible@1.0.49
+
+## 2.0.86
+
+### Patch Changes
+
+- 1e632f7: feat(xai): add Grok 4.6 models
+
+## 2.0.85
+
+### Patch Changes
+
+- Updated dependencies [0e51b7b]
+  - @ai-sdk/provider-utils@3.0.32
+  - @ai-sdk/openai-compatible@1.0.48
+
+## 2.0.84
+
+### Patch Changes
+
+- Updated dependencies [7a6bdbc]
+  - @ai-sdk/provider-utils@3.0.31
+  - @ai-sdk/openai-compatible@1.0.47
+
+## 2.0.83
+
+### Patch Changes
+
+- 54beea0: Warn when xAI Responses models ignore unsupported sampling settings.
+
+## 2.0.82
+
+### Patch Changes
+
+- 64a6152: fix(provider/xai): preserve images in Responses API tool results
+
+## 2.0.81
+
+### Patch Changes
+
+- Updated dependencies [2fd6076]
+  - @ai-sdk/provider-utils@3.0.30
+  - @ai-sdk/openai-compatible@1.0.46
+
+## 2.0.80
+
+### Patch Changes
+
+- Updated dependencies [21eef03]
+  - @ai-sdk/openai-compatible@1.0.45
+
+## 2.0.79
+
+### Patch Changes
+
+- Updated dependencies [514775f]
+  - @ai-sdk/openai-compatible@1.0.44
+
+## 2.0.78
+
+### Patch Changes
+
+- Updated dependencies [c6e1d1a]
+  - @ai-sdk/provider-utils@3.0.29
+  - @ai-sdk/openai-compatible@1.0.43
+
+## 2.0.77
+
+### Patch Changes
+
+- 3c89617: feat (provider/xai): add grok-4.5 model id
+
 ## 2.0.76
 
 ### Patch Changes

@@ -1,6 +1,7 @@
 import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import type { ModelMessage } from '@ai-sdk/provider-utils';
+import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
+import z from 'zod/v4';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import { consumeStream } from '../util/consume-stream';
 import { convertToModelMessages } from './convert-to-model-messages';
@@ -778,7 +779,7 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call1',
                 errorText: 'Error: Invalid input',
                 input: undefined,
-                rawInput: { operation: 'add', numbers: [1, 2] },
+                rawInput: '{"operation":"add","numbers":[1,2]',
               },
             ],
           },
@@ -793,13 +794,7 @@ describe('convertToModelMessages', () => {
                 "type": "text",
               },
               {
-                "input": {
-                  "numbers": [
-                    1,
-                    2,
-                  ],
-                  "operation": "add",
-                },
+                "input": "{"operation":"add","numbers":[1,2]",
                 "providerExecuted": undefined,
                 "toolCallId": "call1",
                 "toolName": "calculator",
@@ -1263,6 +1258,52 @@ describe('convertToModelMessages', () => {
   });
 
   describe('when ignoring incomplete tool calls', () => {
+    it('should ignore preliminary tool outputs', () => {
+      let toModelOutputCalls = 0;
+
+      const result = convertToModelMessages(
+        [
+          {
+            role: 'assistant',
+            parts: [
+              {
+                type: 'tool-streamingTool',
+                state: 'output-available',
+                toolCallId: 'call-preliminary',
+                input: { task: 'finish the work' },
+                output: { complete: false, progress: 'half finished' },
+                preliminary: true,
+              },
+            ],
+          },
+          {
+            role: 'user',
+            parts: [{ type: 'text', text: 'Continue.' }],
+          },
+        ],
+        {
+          ignoreIncompleteToolCalls: true,
+          tools: {
+            streamingTool: tool({
+              inputSchema: z.object({ task: z.string() }),
+              toModelOutput: output => {
+                toModelOutputCalls++;
+                return { type: 'json', value: output };
+              },
+            }),
+          },
+        },
+      );
+
+      expect(toModelOutputCalls).toBe(0);
+      expect(result).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Continue.' }],
+        },
+      ]);
+    });
+
     it('should handle conversation with multiple tool invocations and user message at the end', () => {
       const result = convertToModelMessages(
         [
@@ -1908,10 +1949,6 @@ describe('convertToModelMessages', () => {
         `);
       });
 
-<<<<<<< HEAD
-      it('should selectively convert data parts', () => {
-        const result = convertToModelMessages<
-=======
       it('should not emit empty assistant message for persistent data written before model stream starts', async () => {
         type WeatherUIMessage = UIMessage<
           unknown,
@@ -1967,7 +2004,7 @@ describe('convertToModelMessages', () => {
           }
         `);
 
-        const result = await convertToModelMessages([recordedMessage]);
+        const result = convertToModelMessages([recordedMessage]);
 
         expect(result).toMatchInlineSnapshot(`
           [
@@ -1984,9 +2021,8 @@ describe('convertToModelMessages', () => {
         `);
       });
 
-      it('should selectively convert data parts', async () => {
-        const result = await convertToModelMessages<
->>>>>>> aa2dbe65e8 ([v6.0] fix(ai): omit empty assistant message for data-only blocks in convertToModelMessages (#16793))
+      it('should selectively convert data parts', () => {
+        const result = convertToModelMessages<
           UIMessage<
             unknown,
             {
