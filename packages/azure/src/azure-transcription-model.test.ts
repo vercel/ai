@@ -90,7 +90,6 @@ describe('API routing', () => {
     ['MaI-TrAnScRiBe-2', undefined, 'speech', 'MAI-Transcribe-2'],
     ['mai-transcribe-1.5', undefined, 'speech', 'MAI-Transcribe-1.5'],
     ['MAI-Transcribe-1.5', undefined, 'speech', 'MAI-Transcribe-1.5'],
-    ['mai-transcribe-1', undefined, 'speech', 'MAI-Transcribe-1'],
     ['mai-transcribe-2-custom', undefined, 'openai'],
     ['mai-transcribe-1.5-custom', undefined, 'openai'],
     ['constructor', undefined, 'openai'],
@@ -595,15 +594,16 @@ describe('recorded MAI-Transcribe-2 responses', () => {
   });
 });
 
-describe('MAI-Transcribe-1.x', () => {
-  it.each([
-    ['mai-transcribe-1.5', 'MAI-Transcribe-1.5'],
-    ['mai-transcribe-1', 'MAI-Transcribe-1'],
-  ])('omits the segment timestamps default for %s', async (id, model) => {
+describe('MAI-Transcribe-1.5', () => {
+  it('omits the segment timestamps default', async () => {
     const { provider, definition } = setup();
-    await provider.transcription(id).doGenerate(input);
+    await provider.transcription('mai-transcribe-1.5').doGenerate(input);
     expect(definition()).toEqual({
-      enhancedMode: { enabled: true, model, modelOptions: {} },
+      enhancedMode: {
+        enabled: true,
+        model: 'MAI-Transcribe-1.5',
+        modelOptions: {},
+      },
     });
   });
 
@@ -631,22 +631,18 @@ describe('MAI-Transcribe-1.x', () => {
     });
   });
 
-  it.each([
-    [
-      'mai-transcribe-1.5',
-      "timestamps='word' is not supported by MAI transcription model 'MAI-Transcribe-1.5'.",
-    ],
-    [
-      'mai-transcribe-1',
-      "Requested MAI transcription model 'MAI-Transcribe-1' is not supported.",
-    ],
-  ])('surfaces Azure rejections for %s', async (id, message) => {
+  it('surfaces Azure rejections of unsupported options', async () => {
+    const message =
+      "timestamps='word' is not supported by MAI transcription model 'MAI-Transcribe-1.5'.";
     const { provider, fetch } = setup();
     fetch.mockResolvedValueOnce(
       Response.json({ code: 'InvalidRequest', message }, { status: 400 }),
     );
     await expect(
-      provider.transcription(id).doGenerate(input),
+      provider.transcription('mai-transcribe-1.5').doGenerate({
+        ...input,
+        providerOptions: { azure: { timestamps: 'word' } },
+      }),
     ).rejects.toMatchObject({
       name: 'AI_APICallError',
       message,
