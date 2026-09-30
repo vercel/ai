@@ -537,6 +537,42 @@ jobs:
         working-directory: packages/rsc
         run: pnpm test:e2e
 
+  test_bundlers:
+    name: 'Consumer Bundles (Zod ${{ matrix.zod }})'
+    runs-on: ubuntu-latest
+    needs: build-packages
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        zod: ['3.25.76', '4.1.8']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download package build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: package-build-artifacts
+
+      - name: Extract package build artifacts
+        run: tar -xzf package-build-artifacts.tgz
+
+      - name: Test production consumer bundles
+        run: pnpm test:bundlers ${{ matrix.zod }}
+
   test_ai_matrix:
     name: 'Test AI'
     runs-on: ubuntu-latest
@@ -607,6 +643,7 @@ jobs:
         test_matrix,
         test_mcp_windows,
         test_rsc_e2e,
+        test_bundlers,
         test_ai_matrix,
         test_codemod_matrix,
       ]

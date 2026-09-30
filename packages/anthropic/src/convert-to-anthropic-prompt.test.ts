@@ -10,6 +10,332 @@ const defaultToolNameMapping = createToolNameMapping({
   providerToolNames: {},
 });
 
+describe('orphaned programmatic callers', () => {
+  it.each(['code_execution_20250825', 'code_execution_20260120'])(
+    'should normalize historical %s callers without changing calls or results',
+    async callerType => {
+      const prompt: LanguageModelV4Prompt = [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'lookup-call',
+              toolName: 'lookup',
+              input: { ticker: 'AAPL' },
+              providerOptions: {
+                anthropic: {
+                  caller: { type: callerType, toolId: 'pruned-source' },
+                  cacheControl: { type: 'ephemeral' },
+                },
+              },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'lookup-call',
+              toolName: 'lookup',
+              output: { type: 'json', value: { price: 185.42 } },
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'The price is $185.42.' }],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Now look up MSFT.' }],
+        },
+      ];
+      const originalPrompt = structuredClone(prompt);
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt,
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages).toEqual([
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'lookup-call',
+              name: 'lookup',
+              input: { ticker: 'AAPL' },
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'lookup-call',
+              content: '{"price":185.42}',
+              is_error: undefined,
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'The price is $185.42.',
+              cache_control: undefined,
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Now look up MSFT.',
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'other',
+          message:
+            'Omitted caller metadata for tool lookup-call because source code execution tool pruned-source is missing from the conversation history.',
+        },
+      ]);
+      expect(prompt).toEqual(originalPrompt);
+    },
+  );
+
+  it.each([false, true])(
+    'should preserve callers in an active continuation (source present: %s)',
+    async includeSource => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          { role: 'user', content: [{ type: 'text', text: 'Look up AAPL.' }] },
+          {
+            role: 'assistant',
+            content: [
+              ...(includeSource
+                ? [
+                    {
+                      type: 'tool-call' as const,
+                      toolCallId: 'source-call',
+                      toolName: 'code_execution',
+                      providerExecuted: true,
+                      input: {
+                        type: 'programmatic-tool-call',
+                        code: 'await lookup({})',
+                      },
+                    },
+                  ]
+                : []),
+              {
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: {},
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'source-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                output: { type: 'text', value: '185.42' },
+              },
+            ],
+          },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: defaultToolNameMapping,
+      });
+
+      expect(result.prompt.messages[1].content.at(-1)).toMatchObject({
+        type: 'tool_use',
+        caller: { type: 'code_execution_20260120', tool_id: 'source-call' },
+      });
+      expect(warnings).toEqual([]);
+    },
+  );
+
+  it.each([
+    { toolName: 'run_code', providerExecuted: true, keepsCaller: true },
+    { toolName: 'code_execution', providerExecuted: false, keepsCaller: false },
+    { toolName: 'web_search', providerExecuted: true, keepsCaller: false },
+    { toolName: 'unsupported', providerExecuted: true, keepsCaller: false },
+  ])(
+    'should resolve historical sources from emitted code execution blocks: $toolName',
+    async ({ toolName, providerExecuted, keepsCaller }) => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'source-call',
+                toolName,
+                providerExecuted,
+                input: {
+                  type: 'programmatic-tool-call',
+                  code: 'await lookup({})',
+                },
+                providerOptions: { anthropic: { caller: { type: 'direct' } } },
+              },
+            ],
+          },
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'lookup-call',
+                toolName: 'lookup',
+                input: {},
+                providerOptions: {
+                  anthropic: {
+                    caller: {
+                      type: 'code_execution_20260120',
+                      toolId: 'source-call',
+                    },
+                  },
+                },
+              },
+            ],
+          },
+          { role: 'user', content: [{ type: 'text', text: 'Continue.' }] },
+        ],
+        sendReasoning: false,
+        warnings,
+        toolNameMapping: createToolNameMapping({
+          tools: [
+            {
+              type: 'provider',
+              id: 'anthropic.code_execution_20260120',
+              name: 'run_code',
+              args: {},
+            },
+          ],
+          providerToolNames: {
+            'anthropic.code_execution_20260120': 'code_execution',
+          },
+        }),
+      });
+
+      const content = result.prompt.messages[0].content;
+      const lookup = content.find(
+        part => 'id' in part && part.id === 'lookup-call',
+      );
+      expect(lookup).toMatchObject({ type: 'tool_use', id: 'lookup-call' });
+      if (keepsCaller) {
+        expect(lookup).toHaveProperty('caller', {
+          type: 'code_execution_20260120',
+          tool_id: 'source-call',
+        });
+        expect(warnings).toEqual([]);
+      } else {
+        expect(lookup).not.toHaveProperty('caller');
+        expect(warnings).toContainEqual({
+          type: 'other',
+          message:
+            'Omitted caller metadata for tool lookup-call because source code execution tool source-call is missing from the conversation history.',
+        });
+      }
+      if (toolName !== 'unsupported') {
+        expect(
+          content.find(part => 'id' in part && part.id === 'source-call'),
+        ).toHaveProperty('caller', { type: 'direct' });
+      }
+    },
+  );
+
+  it('should normalize callers on historical server calls and results', async () => {
+    const caller = {
+      anthropic: {
+        caller: { type: 'code_execution_20260120', toolId: 'pruned-source' },
+      },
+    };
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'search-call',
+              toolName: 'web_search',
+              providerExecuted: true,
+              input: { query: 'AI SDK' },
+              providerOptions: caller,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'search-call',
+              toolName: 'web_search',
+              output: { type: 'json', value: [] },
+              providerOptions: caller,
+            },
+          ],
+        },
+        { role: 'user', content: [{ type: 'text', text: 'Tell me more.' }] },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages[0].content).toEqual([
+      {
+        type: 'server_tool_use',
+        id: 'search-call',
+        name: 'web_search',
+        input: { query: 'AI SDK' },
+        cache_control: undefined,
+      },
+      {
+        type: 'web_search_tool_result',
+        tool_use_id: 'search-call',
+        content: [],
+        cache_control: undefined,
+      },
+    ]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'Omitted caller metadata for tool search-call because source code execution tool pruned-source is missing from the conversation history.',
+      },
+    ]);
+  });
+});
+
 describe('system messages', () => {
   it('should convert a single system message into an anthropic system message', async () => {
     const result = await convertToAnthropicPrompt({
@@ -1654,6 +1980,105 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should preserve fallback boundaries between reasoning blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Primary model thinking',
+              providerOptions: {
+                anthropic: { signature: 'primary-signature' },
+              },
+            },
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                  to: { model: 'claude-opus-4-8' },
+                },
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Fallback model thinking',
+              providerOptions: {
+                anthropic: { signature: 'fallback-signature' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Primary model thinking',
+            signature: 'primary-signature',
+          },
+          {
+            type: 'fallback',
+            from: { model: 'claude-opus-5-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+          {
+            type: 'thinking',
+            thinking: 'Fallback model thinking',
+            signature: 'fallback-signature',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should warn and omit fallback boundaries with invalid metadata', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'anthropic fallback metadata must include from.model and to.model',
+      },
+    ]);
+  });
+
   it('should omit empty compaction blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [

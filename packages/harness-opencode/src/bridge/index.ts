@@ -532,6 +532,16 @@ async function legacySessionPrompt({
   });
 }
 
+async function legacySessionAbort({
+  client,
+  sessionId,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+}): Promise<{ error?: unknown; data?: unknown }> {
+  return (client as any).session.abort({ sessionID: sessionId });
+}
+
 async function legacySessionSummarize({
   client,
   sessionId,
@@ -656,7 +666,26 @@ async function runPrompt({
   emit: Emit;
 }): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
-  const turnSettled = createDeferred<'event' | 'stream-ended'>();
+  const turnSettled = createDeferred<'aborted' | 'event' | 'stream-ended'>();
+  const promptRequestSettled = createDeferred<void>();
+  let abortSessionPromise: Promise<void> | undefined;
+  const abortSession = () => {
+    eventsAbort.abort();
+    turn.experimental_userMessages.close();
+    turnSettled.resolve('aborted');
+    abortSessionPromise ??= (async () => {
+      await promptRequestSettled.promise;
+      const aborted = await legacySessionAbort({ client, sessionId });
+      if (aborted.error) {
+        throw new Error(
+          `OpenCode session abort failed: ${formatError(aborted.error)}`,
+        );
+      }
+    })();
+    void abortSessionPromise.catch(() => {});
+  };
+  turn.abortSignal.addEventListener('abort', abortSession, { once: true });
+  if (turn.abortSignal.aborted) abortSession();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
@@ -800,22 +829,47 @@ async function runPrompt({
       }
     }
   })();
-  const prompted = await legacySessionPrompt({
-    client,
-    sessionId,
-    start,
-  });
-  if (prompted.error) {
-    eventsAbort.abort();
-    turn.experimental_userMessages.close(
-      new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
-    );
-    throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+  if (!turn.abortSignal.aborted) {
+    let prompted: { error?: unknown; data?: unknown };
+    try {
+      prompted = await legacySessionPrompt({
+        client,
+        sessionId,
+        start,
+      });
+    } catch (error) {
+      promptRequestSettled.resolve(undefined);
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(error);
+      throw error;
+    }
+    promptRequestSettled.resolve(undefined);
+    if (prompted.error) {
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(
+        new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+      );
+      throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+    }
+  } else {
+    promptRequestSettled.resolve(undefined);
   }
   const settlement = await turnSettled.promise;
+  turn.abortSignal.removeEventListener('abort', abortSession);
   eventsAbort.abort();
   await eventLoop.catch(() => {});
   await userMessageLoop.catch(() => {});
+  if (settlement === 'aborted') {
+    try {
+      await abortSessionPromise;
+    } catch (error) {
+      closeRuntime();
+      throw error;
+    }
+    return undefined;
+  }
   if (settlement === 'stream-ended') {
     throw new Error('OpenCode event stream ended before the turn settled.');
   }

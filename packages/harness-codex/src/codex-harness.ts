@@ -27,7 +27,7 @@ import {
   applyCredentialForwarding,
   classifyDiskLog,
   createBridgeToken,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeErrorHandler,
   createBridgeStartupError,
   experimental_createBridgeUserMessageSubmitter,
@@ -90,7 +90,7 @@ const DEFAULT_CODEX_MODEL = 'gpt-5.5';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CODEX_CLIENT_APP = `ai-sdk/harness-codex/${VERSION}`;
+const CODEX_CLIENT_APP = `ai-sdk-harness-codex/${VERSION}`;
 
 export type CodexHarnessSettings = {
   readonly auth?: CodexAuthenticationMode;
@@ -295,13 +295,14 @@ export function createCodex(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: resolvedAuthEnvironment,
             credentialEnvironmentVariables:
               CODEX_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxAuthEnvironment = {
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,

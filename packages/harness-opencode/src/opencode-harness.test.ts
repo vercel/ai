@@ -478,7 +478,74 @@ describe('createOpenCode adapter', () => {
     expect(spawnEnvs.at(0)?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('openai-secret');
 
-    await session.doDetach();
+    const resumeFrom = await session.doDetach();
+    const savedEnvironment = (
+      resumeFrom.data as {
+        sandboxCredentialEnvironment?: Record<string, string>;
+      }
+    ).sandboxCredentialEnvironment;
+    expect(savedEnvironment?.OPENAI_API_KEY).toBe('ephemeral-OPENAI_API_KEY');
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const resumedSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'new-anthropic-secret' },
+    }).doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+      resumeFrom: {
+        ...resumeFrom,
+        data: { sandboxCredentialEnvironment: savedEnvironment },
+      },
+    });
+    const resumedCredential = spawnEnvs[1]?.ANTHROPIC_API_KEY;
+    expect(resumedCredential).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(spawnEnvs[1]?.OPENAI_API_KEY).toBeUndefined();
+    expect(JSON.stringify(spawnEnvs[1])).not.toContain('new-anthropic-secret');
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(2, [
+      {
+        match: {
+          host: 'api.anthropic.com',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: resumedCredential },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'new-anthropic-secret' } },
+      },
+    ]);
+    const nextState = await resumedSession.doDetach();
+    expect(
+      (
+        nextState.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ ANTHROPIC_API_KEY: resumedCredential });
+
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const olderSession = await createOpenCode({
+      provider: 'anthropic',
+      auth: { ANTHROPIC_API_KEY: 'older-state-secret' },
+    }).doStart({
+      sessionId: 'older-state',
+      sandboxSession,
+      sessionWorkDir: '/workspace/older-state',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'opencode',
+        specificationVersion: 'harness-v1',
+        data: {},
+      },
+    });
+    expect(spawnEnvs[2]?.ANTHROPIC_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[2])).not.toContain('older-state-secret');
+    await olderSession.doDetach();
   });
 
   it('keeps GitLab OAuth and AI access tokens outside a brokered sandbox', async () => {
@@ -816,7 +883,7 @@ describe('createOpenCode adapter', () => {
     expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_DATA_HOME');
     expect(spawns.at(-1)?.env).not.toHaveProperty('XDG_STATE_HOME');
     expect(spawns.at(-1)?.env.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-opencode/0.0.0-test',
+      'ai-sdk-harness-opencode/0.0.0-test',
     );
     expect(spawns.at(-1)?.env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(-1)?.command).toContain(
@@ -1055,6 +1122,119 @@ describe('createOpenCode adapter', () => {
     });
     await control.done;
     await session.doDestroy();
+  });
+
+  it('drains an aborted turn through error and finish before attaching the next turn', async () => {
+    harnessUtilsMocks.waitForBridgeReady.mockResolvedValueOnce({ port: 4000 });
+    const sandbox = {
+      async run({ command }: { command: string }) {
+        return command === 'printf "%s" "$HOME"'
+          ? {
+              exitCode: 0,
+              stdout: '/home/vercel-sandbox',
+              stderr: '',
+            }
+          : { exitCode: 0, stdout: '', stderr: '' };
+      },
+      async readTextFile() {
+        return null;
+      },
+      async writeTextFile() {},
+      async spawn() {
+        return {
+          async wait() {},
+          async kill() {},
+        } as never;
+      },
+    };
+    const sandboxSession = {
+      id: 'test-sandbox',
+      defaultWorkingDirectory: '/workspace',
+      restricted: () => sandbox,
+      ports: [4000] as ReadonlyArray<number>,
+      async getPortEndpoint() {
+        return { url: 'ws://sandbox.example' };
+      },
+      async getPortUrl() {
+        return 'ws://sandbox.example';
+      },
+      async stop() {},
+    } as unknown as HarnessV1NetworkSandboxSession;
+    const session = await createOpenCode().doStart({
+      sessionId: 's1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/project',
+    });
+    const channel = harnessUtilsMocks.channels.at(-1)!;
+    const abort = new AbortController();
+    const firstEvents: unknown[] = [];
+    const firstTurn = await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Write a long response.',
+      abortSignal: abort.signal,
+      emit: event => firstEvents.push(event),
+    });
+    const firstDone = expect(firstTurn.done).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: 'first',
+    });
+    abort.abort();
+    await firstDone;
+
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'first',
+      delta: ' stale',
+    });
+    const secondEvents: unknown[] = [];
+    let secondTurnResolved = false;
+    const secondTurnPromise = session
+      .doPromptTurn({
+        skills: [],
+        tools: [],
+        prompt: 'Reply with banana.',
+        emit: event => secondEvents.push(event),
+      })
+      .then(control => {
+        secondTurnResolved = true;
+        return control;
+      });
+    await Promise.resolve();
+
+    expect(secondTurnResolved).toBe(false);
+    expect(channel.sent.at(-1)).toEqual({ type: 'abort' });
+
+    channel.emit('error', {
+      type: 'error',
+      error: new Error('OpenCode session abort failed'),
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    expect(secondTurnResolved).toBe(false);
+
+    channel.emit('finish', { type: 'finish' });
+    const secondTurn = await secondTurnPromise;
+    channel.emit('text-delta', {
+      type: 'text-delta',
+      id: 'second',
+      delta: 'banana',
+    });
+    channel.emit('finish', { type: 'finish' });
+    await secondTurn.done;
+
+    expect(firstEvents).toEqual([
+      { type: 'text-delta', id: 'first', delta: 'first' },
+    ]);
+    expect(secondEvents).toEqual([
+      { type: 'text-delta', id: 'second', delta: 'banana' },
+      { type: 'finish' },
+    ]);
   });
 
   describe('getBootstrap', () => {

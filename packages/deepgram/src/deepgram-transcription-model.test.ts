@@ -67,7 +67,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/deepgram/0.0.0-test`,
+        `ai-sdk-deepgram/0.0.0-test`,
       );
     });
 

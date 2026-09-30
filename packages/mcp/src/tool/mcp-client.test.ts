@@ -729,6 +729,48 @@ describe('MCPClient', () => {
     });
   });
 
+  it.each(['automatic', 'explicit'] as const)(
+    'preserves prototype-named tools with %s schemas',
+    async schemaMode => {
+      const names = ['__proto__', 'constructor', 'toString'];
+      client = await createMCPClient({
+        transport: new MockMCPTransport({
+          overrideTools: names.map(name => ({
+            name,
+            inputSchema: { type: 'object' },
+          })),
+          toolCallResults: Object.fromEntries(
+            names.map(name => [
+              name,
+              { content: [{ type: 'text', text: name }] },
+            ]),
+          ),
+        }),
+      });
+      const tools =
+        schemaMode === 'automatic'
+          ? await client.tools()
+          : await client.tools({
+              schemas: Object.fromEntries(
+                names.map(name => [name, { inputSchema: z.object({}) }]),
+              ),
+            });
+
+      expect(Object.getPrototypeOf(tools)).toBeNull();
+      expect(Object.keys(tools)).toEqual(names);
+      for (const name of names) {
+        expect(Object.prototype.hasOwnProperty.call(tools, name)).toBe(true);
+        const result = await tools[name].execute(
+          {},
+          { messages: [], toolCallId: '1', context: {} },
+        );
+        expect(result).toMatchObject({
+          content: [{ type: 'text', text: name }],
+        });
+      }
+    },
+  );
+
   it('should allow caching workflow with listTools() and toolsFromDefinitions()', async () => {
     client = await createMCPClient({
       transport: { type: 'sse', url: 'https://example.com/sse' },

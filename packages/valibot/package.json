@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/valibot",
-  "version": "3.0.49",
+  "version": "3.0.52",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -17,9 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build"
   },
   "exports": {
@@ -37,7 +37,7 @@
     "@types/node": "22.19.19",
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3",
     "valibot": "^1.4.0"
   },

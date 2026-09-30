@@ -45,8 +45,9 @@ export type HarnessAgentToolApprovalConfiguration = Readonly<
 export type HarnessAgentSandboxConfig = {
   /**
    * Optional fixed working directory for all sessions, relative to the
-   * sandbox's default working directory. When omitted, sessions keep the
-   * existing `<harnessId>-<sessionId>` work directory.
+   * sandbox's default working directory. Use `'.'` to use the default
+   * working directory itself. When omitted, sessions keep the existing
+   * `<harnessId>-<sessionId>` work directory.
    */
   readonly workDir?: string;
 
@@ -160,6 +161,12 @@ export type HarnessAgentSettings<
   readonly toolsContext?: InferToolSetContext<TUserTools>;
 
   /**
+   * Runtime context passed to lifecycle callbacks and telemetry.
+   * `prepareCall` can replace it for each new turn.
+   */
+  readonly runtimeContext?: RUNTIME_CONTEXT;
+
+  /**
    * Skills made available to the underlying runtime. Each adapter decides how
    * to surface skills. `prepareCall` can replace them between completed turns.
    */
@@ -233,7 +240,7 @@ export type HarnessAgentSettings<
           NoInfer<OUTPUT>,
           CALL_OPTIONS
         >,
-        'model' | 'skills' | 'instructions' | 'tools'
+        'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
       > & {
         toolsContext: InferToolSetContext<TUserTools>;
       },
@@ -246,7 +253,7 @@ export type HarnessAgentSettings<
         NoInfer<OUTPUT>,
         CALL_OPTIONS
       >,
-      'model' | 'skills' | 'instructions' | 'tools'
+      'model' | 'skills' | 'instructions' | 'tools' | 'runtimeContext'
     > & {
       toolsContext: InferToolSetContext<TUserTools>;
     } & Omit<Prompt, 'system' | 'instructions' | 'allowSystemInMessages'>

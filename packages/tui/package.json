@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/tui",
-  "version": "1.0.119",
+  "version": "1.0.124",
   "type": "module",
   "description": "Run AI SDK agents in a terminal UI.",
   "license": "Apache-2.0",
@@ -20,9 +20,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.node.config.js --run",
     "test:update": "vitest --config vitest.node.config.js --run -u",
@@ -43,7 +43,7 @@
     "@ai-sdk/provider": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3",
     "vitest": "^4.1.6",
     "zod": "3.25.76"

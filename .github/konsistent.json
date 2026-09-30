@@ -22,7 +22,7 @@
           "use": "aisdk/package-must-have-changelog"
         },
         {
-          "use": "aisdk/package-must-have-tsup-config",
+          "use": "aisdk/package-must-have-tsdown-config",
           "excludeFiles": ["packages/svelte"]
         }
       ]
@@ -191,7 +191,80 @@
           "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
           "for": { "files": ["src/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "./v1" }]
+            "exportValues": [{ "name": "*", "from": "./v1" }],
+            "exportValuesFrom": ["./v1", "./errors/*"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ],
+            "exportTypesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-agent-entrypoint-must-export-agent-api",
+          "description": "The harness layer agent entrypoint must export the entire HarnessAgent API.",
+          "for": { "files": ["agent/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/agent" }],
+            "exportValuesFrom": ["../src/agent"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-bridge-entrypoint-must-export-bridge-api",
+          "description": "The harness layer bridge entrypoint must export the entire bridge API.",
+          "for": { "files": ["bridge/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/bridge" }],
+            "exportValuesFrom": ["../src/bridge"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
           }
         },
         {
@@ -199,7 +272,26 @@
           "description": "The harness layer utils entrypoint must export all utilities.",
           "for": { "files": ["utils/index.ts"] },
           "must": {
-            "exportValues": [{ "name": "*", "from": "../src/utils" }]
+            "exportValues": [{ "name": "*", "from": "../src/utils" }],
+            "exportValuesFrom": ["../src/utils"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
           }
         }
       ]
@@ -311,6 +403,10 @@
               {
                 "name": "withBridgeToken",
                 "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "resolveSandboxCredentialEnvironment",
+                "from": "@ai-sdk/harness/utils"
               }
             ],
             "importTypes": [
@@ -340,6 +436,36 @@
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "harness-file-acp-backed-must-declare-bridge-contracts",
+          "description": "Every harness file for an ACP backed harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": {
+            "hasValueImport": {
+              "name": "createACP",
+              "from": "@ai-sdk/harness-acp"
+            }
+          },
+          "must": {
+            "callFunction": ["createACP"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -769,8 +895,14 @@
             ],
             "exportTypes": [
               "${sandboxId.toPascalCase()}NativeSandboxSession",
-              "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
-              "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions"
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+                "type": "Prettify<HarnessV1SandboxSessionCreateOptions<${sandboxId.toPascalCase()}CreationSettings> & { sandbox?: never; }>"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+                "type": "Prettify<HarnessV1SandboxSessionResumeOptions<${sandboxId.toPascalCase()}LookupSettings>>"
+              }
             ],
             "useDeclarationOrder": [
               "${sandboxId.toPascalCase()}NativeSandboxSession",

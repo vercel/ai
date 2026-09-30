@@ -277,6 +277,9 @@ const messages: ModelMessage[] = [
 const result = await generateText({
   model: __MODEL__,
   tools: { runCommand },
+  toolApproval: {
+    runCommand: 'user-approval',
+  },
   messages,
 });
 

@@ -620,21 +620,25 @@ import { gateway, generateText } from 'ai';
 
 // Make a request
 const result = await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
 // Get the generation ID from provider metadata
-const generationId = result.providerMetadata?.gateway?.generationId;
+const generationId = result.providerMetadata?.gateway?.generationId as
+  | string
+  | undefined;
 
 // Look up detailed generation info
-const generation = await gateway.getGenerationInfo({ id: generationId });
+if (generationId) {
+  const generation = await gateway.getGenerationInfo({ id: generationId });
 
-console.log(`Model: ${generation.model}`);
-console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.promptTokens}`);
-console.log(`Completion tokens: ${generation.completionTokens}`);
+  console.log(`Model: ${generation.model}`);
+  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
+  console.log(`Latency: ${generation.latency}ms`);
+  console.log(`Prompt tokens: ${generation.promptTokens}`);
+  console.log(`Completion tokens: ${generation.completionTokens}`);
+}
 ```
 
 With `streamText`, you can capture the generation ID from the first chunk via `stream`:
@@ -643,7 +647,7 @@ With `streamText`, you can capture the generation ID from the first chunk via `s
 import { gateway, streamText } from 'ai';
 
 const result = streamText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
 });
 
@@ -673,7 +677,7 @@ a tool is running:
 import { gateway, generateText } from 'ai';
 
 await generateText({
-  model: gateway('anthropic/claude-sonnet-5'),
+  model: gateway('anthropic/claude-sonnet-5.5'),
   prompt: 'Explain quantum entanglement briefly',
   onLanguageModelCallEnd({ providerMetadata }) {
     const generationId = providerMetadata?.gateway?.generationId as
@@ -720,7 +724,7 @@ It returns a `GatewayGenerationInfo` object with the following fields:
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
 });
 
@@ -1375,7 +1379,7 @@ The `getSpendReport()` method accepts the following parameters:
 - **groupBy** _string_ - Aggregation dimension: `'day'` (default), `'user'`, `'model'`, `'tag'`, `'provider'`, or `'credential_type'`
 - **datePart** _string_ - Time granularity when `groupBy` is `'day'`: `'day'` or `'hour'`
 - **userId** _string_ - Filter to a specific user
-- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5'`)
+- **model** _string_ - Filter to a specific model (e.g. `'anthropic/claude-sonnet-5.5'`)
 - **provider** _string_ - Filter to a specific provider (e.g. `'anthropic'`)
 - **credentialType** _string_ - Filter by `'byok'` or `'system'` credentials
 - **tags** _string[]_ - Filter to requests matching these tags
@@ -1434,7 +1438,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Explain quantum computing',
   providerOptions: {
     gateway: {
@@ -1478,7 +1482,7 @@ The following gateway provider options are available:
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
 
-  A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
+  A direct condition uses `{ question, confidenceBelow }` for Choice and Score questions, or `{ question, probabilityBetween: [minimum, maximum] }` for Boolean questions. Leave out `question` to check every question of that type: `{ confidenceBelow: 0.6 }` matches when any Choice or Score answer is below 0.6, and a request with no Choice or Score questions never matches it. Boolean probability is P(true), not confidence in the selected Boolean outcome. Bounds are inclusive, finite, ordered, and within `[0, 1]`.
 
   Combine conditions with `{ any: [...] }`, `{ all: [...] }`, or `{ atLeast: { count, conditions: [...] } }`. Each condition list holds 1 to 20 conditions. `atLeast.count` must be an integer from `1` through the number of conditions. Conditions nest at most 5 levels deep. Question IDs are 1 to 256 characters, and the conditional `model` must not be empty. The SDK checks these bounds before sending the request, and the gateway also checks that each question exists and has a kind that matches its condition. String error fallbacks may follow the conditional entry.
 
@@ -1576,7 +1580,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Write a haiku about programming',
   providerOptions: {
     gateway: {
@@ -1600,15 +1604,15 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-5.4 first
+// 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try gemini-3-flash-preview
+// 3. If that fails, try google/gemini-3.8-flash
 // 4. Return the result from the first model that succeeds
 ```
 
@@ -1678,7 +1682,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this sensitive document...',
   providerOptions: {
     gateway: {
@@ -1697,7 +1701,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Analyze this proprietary business data...',
   providerOptions: {
     gateway: {
@@ -1716,7 +1720,7 @@ import type { GatewayProviderOptions } from '@ai-sdk/gateway';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Summarize this report...',
   providerOptions: {
     gateway: {
@@ -1754,7 +1758,7 @@ import { generateText } from 'ai';
 import fs from 'node:fs';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   messages: [
     {
       role: 'user',

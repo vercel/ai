@@ -1,4 +1,5 @@
 import { renderMarkdown } from './markdown';
+import { sanitizeTerminalText } from './sanitize-terminal-text';
 import {
   ansiPrefixPattern,
   codePointWidth,
@@ -84,8 +85,10 @@ export function renderScreenViewport(state: TUIScreenViewportState): string {
     topBorder(width, state.inputActive ? 'Input' : 'Status'),
     boxLine(
       state.inputActive
-        ? `> ${state.input}${state.inputCursorVisible === false ? ' ' : '█'}`
-        : (state.status ?? 'Streaming... ↑/↓ scroll · Ctrl+C quit'),
+        ? `> ${sanitizeTerminalText(state.input)}${state.inputCursorVisible === false ? ' ' : '█'}`
+        : sanitizeTerminalText(
+            state.status ?? 'Streaming... ↑/↓ scroll · Ctrl+C quit',
+          ),
       width,
     ),
     bottomBorder(width),
@@ -181,6 +184,9 @@ function findBreakPoint(input: string, width: number): number {
 }
 
 function topBorder(width: number, title: string, rightTitle?: string): string {
+  title = sanitizeTerminalText(title);
+  rightTitle =
+    rightTitle == null ? undefined : sanitizeTerminalText(rightTitle);
   const contentWidth = Math.max(0, width - 2);
   const label = title ? sliceVisible(` ${title} `, contentWidth) : '';
   const rightLabel = rightTitle

@@ -59,16 +59,28 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 
   warnIfUIMessageHasDeprecatedRawInput(messages);
 
-  if (options?.ignoreIncompleteToolCalls) {
-    messages = messages.map(message => ({
+  // A later user message supersedes unresolved approval requests. Keeping
+  // those requests would leave unmatched tool calls at the user boundary.
+  const lastUserMessageIndex = messages.reduce(
+    (lastIndex, message, index) =>
+      message.role === 'user' ? index : lastIndex,
+    -1,
+  );
+
+  if (options?.ignoreIncompleteToolCalls || lastUserMessageIndex > 0) {
+    messages = messages.map((message, messageIndex) => ({
       ...message,
       parts: message.parts.filter(
         part =>
           !isToolUIPart(part) ||
-          part.state === 'approval-responded' ||
-          (part.state === 'output-available' && part.preliminary !== true) ||
-          part.state === 'output-error' ||
-          part.state === 'output-denied',
+          ((part.state !== 'approval-requested' ||
+            messageIndex >= lastUserMessageIndex) &&
+            (!options?.ignoreIncompleteToolCalls ||
+              part.state === 'approval-responded' ||
+              (part.state === 'output-available' &&
+                part.preliminary !== true) ||
+              part.state === 'output-error' ||
+              part.state === 'output-denied')),
       ),
     }));
   }

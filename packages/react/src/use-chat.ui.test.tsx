@@ -1044,6 +1044,7 @@ describe('use-chat', () => {
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
+          rawInput: '{"testArg":"t',
         });
       });
 
@@ -1063,6 +1064,7 @@ describe('use-chat', () => {
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },
+          rawInput: '{"testArg":"test-value"}}',
         });
       });
 
@@ -2098,6 +2100,96 @@ describe('use-chat', () => {
         expect(requestMethod).toBe('GET');
         expect(requestUrl).toBe('http://localhost:3000/api/chat/123/stream');
       });
+    });
+  });
+
+  describe('automatic stream resumption with a shared Chat', () => {
+    it('should only reconnect once for multiple useChat consumers', async () => {
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'shared',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <>
+          <Consumer />
+          <Consumer />
+          <Consumer />
+        </>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(1));
+    });
+
+    it('should abort the first reconnect when StrictMode starts another', async () => {
+      let reconnectCount = 0;
+      const reconnectAbortSignals: AbortSignal[] = [];
+      const chat = new Chat({
+        id: 'strict-mode',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async ({ abortSignal }) => {
+            reconnectCount++;
+            reconnectAbortSignals.push(abortSignal!);
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(
+        <React.StrictMode>
+          <Consumer />
+        </React.StrictMode>,
+      );
+
+      await waitFor(() => expect(reconnectCount).toBe(2));
+      expect(reconnectAbortSignals[0].aborted).toBe(true);
+      expect(reconnectAbortSignals[1].aborted).toBe(false);
+    });
+
+    it('should reconnect again after all consumers unmount', async () => {
+      let reconnectCount = 0;
+      const chat = new Chat({
+        id: 'remounted',
+        transport: {
+          sendMessages: async () => new ReadableStream(),
+          reconnectToStream: async () => {
+            reconnectCount++;
+            return null;
+          },
+        },
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      const firstRender = render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      firstRender.unmount();
+      await act(async () => {});
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(2));
     });
   });
 

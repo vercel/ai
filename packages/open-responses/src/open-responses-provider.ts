@@ -12,7 +12,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import {
   createOpenResponsesExtensionRegistry,
-  type OpenResponsesExtension,
+  type OpenResponsesExtensionRegistration,
 } from './open-responses-extension';
 import { createOpenResponsesTools } from './open-responses-tools';
 import { OpenResponsesLanguageModel } from './responses/open-responses-language-model';
@@ -90,7 +90,7 @@ export interface OpenResponsesProviderSettings {
   /**
    * User-agent suffix for requests.
    *
-   * @default `ai-sdk/open-responses/<version>`
+   * @default `ai-sdk-open-responses/<version>`
    */
   userAgentSuffix?: string;
 
@@ -99,7 +99,7 @@ export interface OpenResponsesProviderSettings {
    *
    * @experimental This API may change in a future release.
    */
-  experimental_extensions?: readonly OpenResponsesExtension[];
+  experimental_extensions?: readonly OpenResponsesExtensionRegistration[];
 }
 
 export function createOpenResponses(
@@ -123,7 +123,7 @@ export function createOpenResponses(
           ? options.headers()
           : options.headers),
       },
-      options.userAgentSuffix ?? `ai-sdk/open-responses/${VERSION}`,
+      options.userAgentSuffix ?? `ai-sdk-open-responses/${VERSION}`,
     );
 
   const createResponsesModel = (modelId: string) => {

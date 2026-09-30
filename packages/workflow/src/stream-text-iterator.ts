@@ -478,7 +478,7 @@ export async function* streamTextIterator({
         // Note: providerMetadata from the tool call is mapped to providerOptions
         // in the prompt format, following the AI SDK convention. This is critical
         // for providers like Gemini that require thoughtSignature to be preserved
-        // across multi-turn tool calls. Some fields are sanitized before mapping.
+        // across multi-turn tool calls.
         conversationPrompt.push({
           role: 'assistant',
           content: [
@@ -783,6 +783,19 @@ function buildStepResult(
             : {}),
         });
         break;
+      case 'reasoning': {
+        const reasoningPart = reasoningParts[part.reasoningIndex];
+        if (reasoningPart != null) {
+          content.push({
+            type: 'reasoning',
+            text: reasoningPart.text,
+            ...(reasoningPart.providerMetadata != null
+              ? { providerMetadata: reasoningPart.providerMetadata }
+              : {}),
+          });
+        }
+        break;
+      }
       case 'file': {
         const file = new DefaultGeneratedFile({
           data: part.data,
@@ -873,6 +886,9 @@ function buildStepResult(
     reasoning: reasoningParts.map(r => ({
       type: 'reasoning' as const,
       text: r.text,
+      ...(r.providerMetadata != null
+        ? { providerMetadata: r.providerMetadata }
+        : {}),
     })),
     reasoningText,
     files,
@@ -943,6 +959,19 @@ function getAssistantMessageContent(step: StepResult<any, any>): {
 
   for (const part of step.content) {
     switch (part.type) {
+      case 'reasoning':
+        content.push({
+          type: 'reasoning',
+          text: part.text,
+          ...(part.providerMetadata != null
+            ? {
+                providerOptions:
+                  part.providerMetadata as SharedV4ProviderOptions,
+              }
+            : {}),
+        });
+        contentIndex++;
+        break;
       case 'text':
         if (part.text.length > 0) {
           content.push({ type: 'text', text: part.text });
@@ -990,9 +1019,6 @@ function toAssistantToolCallContent(toolCall: {
   providerExecuted?: boolean;
   providerMetadata?: unknown;
 }) {
-  const sanitizedMetadata = sanitizeProviderMetadataForToolCall(
-    toolCall.providerMetadata,
-  );
   return {
     type: 'tool-call' as const,
     toolCallId: toolCall.toolCallId,
@@ -1001,46 +1027,10 @@ function toAssistantToolCallContent(toolCall: {
     ...(toolCall.providerExecuted != null
       ? { providerExecuted: toolCall.providerExecuted }
       : {}),
-    ...(sanitizedMetadata != null
+    ...(toolCall.providerMetadata != null
       ? {
-          providerOptions: sanitizedMetadata as SharedV4ProviderOptions,
+          providerOptions: toolCall.providerMetadata as SharedV4ProviderOptions,
         }
       : {}),
   };
-}
-
-/**
- * Strip OpenAI's itemId from providerMetadata (requires reasoning items we don't preserve).
- * Preserves all other provider metadata (e.g., Gemini's thoughtSignature).
- */
-function sanitizeProviderMetadataForToolCall(
-  metadata: unknown,
-): Record<string, unknown> | undefined {
-  if (metadata == null) return undefined;
-
-  const meta = metadata as Record<string, unknown>;
-
-  // Check if OpenAI metadata exists and needs sanitization
-  if ('openai' in meta && meta.openai != null) {
-    const { openai, ...restProviders } = meta;
-    const openaiMeta = openai as Record<string, unknown>;
-
-    // Remove itemId from OpenAI metadata - it requires reasoning items we don't preserve
-    const { itemId: _itemId, ...restOpenai } = openaiMeta;
-
-    // Reconstruct metadata without itemId
-    const hasOtherOpenaiFields = Object.keys(restOpenai).length > 0;
-    const hasOtherProviders = Object.keys(restProviders).length > 0;
-
-    if (hasOtherOpenaiFields && hasOtherProviders) {
-      return { ...restProviders, openai: restOpenai };
-    } else if (hasOtherOpenaiFields) {
-      return { openai: restOpenai };
-    } else if (hasOtherProviders) {
-      return restProviders;
-    }
-    return undefined;
-  }
-
-  return meta;
 }

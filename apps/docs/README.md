@@ -26,6 +26,17 @@ Git. Run the complete local validation with:
 pnpm --filter ai-sdk-docs validate:site
 ```
 
+To run the versioned-search browser regression, start the docs server on port
+3217, then run the test from the repository root (requires Playwright Chromium):
+
+```bash
+pnpm --filter ai-sdk-docs dev:site --port 3217
+node --test apps/docs/scripts/search.e2e.mjs
+```
+
+Set `DOCS_TEST_URL` to test another local or preview server. The test switches
+versions through the UI and checks the search API's explicit version scopes.
+
 ## Vercel project
 
 The Vercel project must use:
