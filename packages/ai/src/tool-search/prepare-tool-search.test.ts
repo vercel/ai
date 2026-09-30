@@ -127,7 +127,7 @@ describe('deferred tool search', () => {
     },
   );
 
-  it('ranks names above descriptions and caps discovery at five tools', async () => {
+  it('ranks names above descriptions and defaults to five results', async () => {
     const candidates = Object.fromEntries(
       Array.from({ length: 8 }, (_, i) => [`candidate${i}`, weather]),
     );
@@ -152,14 +152,73 @@ describe('deferred tool search', () => {
     expect(Object.keys(prepare(registry)!)).toHaveLength(7);
   });
 
-  it('preserves the search marker when spreading the tool', async () => {
+  it.each([
+    { maxResults: 0, expectedNames: [] },
+    { maxResults: 2, expectedNames: ['getWeather', 'candidate0'] },
+    {
+      maxResults: 7,
+      expectedNames: [
+        'getWeather',
+        'candidate0',
+        'candidate1',
+        'candidate2',
+        'candidate3',
+        'candidate4',
+        'candidate5',
+      ],
+    },
+  ])(
+    'caps final ranked results at $maxResults',
+    async ({ maxResults, expectedNames }) => {
+      const candidates = Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [`candidate${i}`, weather]),
+      );
+      const registry = {
+        ...candidates,
+        ...tools,
+        search: toolSearch({ maxResults }),
+      };
+      const prepare = createToolSearchState({
+        tools: registry,
+        toolCallers: {
+          ...toolCallers,
+          ...Object.fromEntries(
+            Object.keys(candidates).map(name => [name, ['code']]),
+          ),
+        },
+      });
+
+      const result = await search(prepare(registry)!, 'weather');
+
+      expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(
+        expectedNames,
+      );
+      expect(Object.keys(prepare(registry)!)).toHaveLength(
+        2 + expectedNames.length,
+      );
+    },
+  );
+
+  it('preserves the search marker and result limit when spreading the tool', async () => {
+    const candidate = tool({
+      deferLoading: true,
+      description: 'Weather history.',
+      inputSchema: z.object({}),
+    });
     const registry = {
       ...tools,
-      search: { ...tools.search, description: 'Custom search' },
+      candidate,
+      search: {
+        ...toolSearch({ maxResults: 1 }),
+        description: 'Custom search',
+      },
     };
-    const prepare = createToolSearchState({ tools: registry, toolCallers });
-    expect(await search(prepare(registry)!, 'weather')).toMatchObject({
-      tools: [{ name: 'getWeather' }],
+    const prepare = createToolSearchState({
+      tools: registry,
+      toolCallers: { ...toolCallers, candidate: ['code'] },
+    });
+    expect(await search(prepare(registry)!, 'weather')).toEqual({
+      tools: [{ name: 'getWeather', description: 'Weather forecast.' }],
     });
   });
 

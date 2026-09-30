@@ -6,19 +6,39 @@ description: Search deferred tools and load their definitions on demand for dire
 # `toolSearch()`
 
 Creates a tool that searches the surrounding generation's deferred tools by name
-and description. The factory takes no arguments. Use it with `generateText`,
-`streamText`, `ToolLoopAgent`, or `WorkflowAgent` from `@ai-sdk/workflow`.
-`WorkflowAgent` supports direct tool calling. The other APIs also support code
-mode configured with `toolDiscovery: 'conversation'`.
+and description. The factory accepts an optional configuration object. Use it
+with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
+`@ai-sdk/workflow`. `WorkflowAgent` supports direct tool calling. The other APIs
+also support code mode configured with `toolDiscovery: 'conversation'`.
 
 ```ts
 import { toolSearch } from 'ai';
 
-const search = toolSearch();
+const search = toolSearch({ maxResults: 8 });
 ```
 
 See the [Tool Search guide](/docs/ai-sdk-core/tool-search) for direct-calling and
 code mode examples, including how code mode preserves the tool-definition cache.
+
+## Parameters
+
+<PropertiesTable
+  content={[
+    {
+      name: 'options',
+      type: 'object',
+      isOptional: true,
+      description: 'Optional tool search configuration.',
+    },
+    {
+      name: 'options.maxResults',
+      type: 'number',
+      isOptional: true,
+      description:
+        'Maximum number of matching tools to return and discover. Must be a non-negative integer. Defaults to 5.',
+    },
+  ]}
+/>
 
 ## Model Input
 
@@ -44,9 +64,10 @@ tool context and sandbox. No embedding service or additional model call is used.
 }
 ```
 
-Results contain at most five matching tools, with their names and optional
-descriptions. They do not include schemas. No matches returns `{ tools: [] }`.
-Every returned match is queued for discovery. Newly discovered tools can only be
+Results contain at most `maxResults` matching tools, with their names and
+optional descriptions. The limit defaults to five and is applied after ranking.
+Results do not include schemas. No matches returns `{ tools: [] }`. Every
+returned match is queued for discovery. Newly discovered tools can only be
 called on the next model step, after their definitions have been provided. A
 parallel call in the same response as the search cannot use a newly discovered
 tool. For code mode, finish the current execution and wait for the capability

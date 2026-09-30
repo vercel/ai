@@ -1082,12 +1082,17 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       const agent = new WorkflowAgent({
         model,
         tools: {
-          search: toolSearch(),
+          search: toolSearch({ maxResults: 1 }),
           weather: tool({
             deferLoading: true,
             description: 'Get the weather forecast for a city.',
             inputSchema: z.object({ city: z.string() }),
             execute: async ({ city }) => ({ city, forecast: 'rain' }),
+          }),
+          archive: tool({
+            deferLoading: true,
+            description: 'Get an archived weather forecast for a city.',
+            inputSchema: z.object({ city: z.string() }),
           }),
         },
       });

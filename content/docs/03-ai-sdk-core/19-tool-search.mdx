@@ -11,9 +11,9 @@ search matches their names and descriptions and makes them available on the
 **next model step**.
 
 Use it with `generateText`, `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from
-`@ai-sdk/workflow`. The factory takes no arguments; the model supplies a search
-query. `WorkflowAgent` supports direct tool calling; the other APIs also support
-cache-preserving code mode.
+`@ai-sdk/workflow`. The factory accepts optional search configuration; the model
+supplies the search query. `WorkflowAgent` supports direct tool calling; the
+other APIs also support cache-preserving code mode.
 
 ## Direct Tool Calling
 
@@ -39,6 +39,29 @@ const result = await generateText({
   prompt: 'Will it rain in Bangalore tomorrow?',
 });
 ```
+
+## Configure the Result Limit
+
+By default, each search returns and discovers up to five matching tools. Set
+`maxResults` to a non-negative integer to change that limit:
+
+```ts
+const result = await generateText({
+  model: __MODEL__,
+  tools: {
+    search: toolSearch({ maxResults: 8 }),
+    // deferred tools
+  },
+  stopWhen: isStepCount(5),
+  prompt: 'Plan the project using the available tools.',
+});
+```
+
+The limit is applied after matches are ranked, so the highest-ranked eligible
+tools are returned. Increasing it can reduce repeated searches for workflows
+that need several related tools, but loading more definitions increases model
+context and token usage. `maxResults: 0` disables discovery through that search
+tool.
 
 ## Code Mode
 
@@ -73,10 +96,10 @@ The model first runs `tools.search({ query: 'weather forecast' })`. On the next
 step, it receives the updated capability catalog and can call
 `tools.weather({ city: 'Bangalore' })`.
 
-In both modes, search loads up to five matches, respects `activeTools` and caller
-routing, and keeps discovered tools available for the rest of the generation.
-MCP client tools work too: add `deferLoading: true` to the tools returned by
-`client.tools()`.
+In both modes, search respects the configured result limit, `activeTools`, and
+caller routing, and keeps discovered tools available for the rest of the
+generation. MCP client tools work too: add `deferLoading: true` to the tools
+returned by `client.tools()`.
 
 See the [`toolSearch()` reference](/docs/reference/ai-sdk-core/tool-search) for
 input, output, and matching details.

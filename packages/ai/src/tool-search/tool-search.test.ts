@@ -23,6 +23,35 @@ const usage: LanguageModelV4Usage = {
   outputTokens: { total: 1, text: 1, reasoning: undefined },
 };
 
+describe('toolSearch', () => {
+  it('uses the default result limit in the model-facing description', () => {
+    expect(toolSearch().description).toContain(
+      'Returns up to 5 matching tools.',
+    );
+  });
+
+  it('uses the configured result limit in the model-facing description', () => {
+    expect(toolSearch({ maxResults: 8 }).description).toContain(
+      'Returns up to 8 matching tools.',
+    );
+    expect(toolSearch({ maxResults: 1 }).description).toContain(
+      'Returns up to 1 matching tool.',
+    );
+  });
+
+  it.each([
+    { maxResults: 1.5, message: 'maxResults must be an integer' },
+    { maxResults: Number.NaN, message: 'maxResults must be an integer' },
+    { maxResults: Number.POSITIVE_INFINITY, message: 'must be an integer' },
+    {
+      maxResults: -1,
+      message: 'maxResults must be greater than or equal to 0',
+    },
+  ])('rejects invalid maxResults $maxResults', ({ maxResults, message }) => {
+    expect(() => toolSearch({ maxResults })).toThrow(message);
+  });
+});
+
 describe.each([
   'generateText',
   'streamText',

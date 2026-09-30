@@ -11,7 +11,7 @@ import {
 } from '../generate-text/tool-caller-configuration';
 import { resolveToolDescription } from '../prompt/prepare-tools';
 import { getOwn } from '../util/get-own';
-import { isToolSearch } from './tool-search';
+import { getToolSearchMaxResults, isToolSearch } from './tool-search';
 
 /** Create discovery state for one generation, never for a shared tool instance. */
 export function createToolSearchState({
@@ -75,6 +75,7 @@ export function createToolSearchState({
             return [searchName, tool];
           }
 
+          const maxResults = getToolSearchMaxResults(tool);
           const callers = getCallers(searchName).filter(
             name =>
               name === DIRECT_TOOL_CALL || Object.hasOwn(activeTools, name),
@@ -92,7 +93,7 @@ export function createToolSearchState({
               ...tool,
               execute: ({ query }: { query: string }) => {
                 const terms = [...new Set(tokenize(query))];
-                const matches = candidates
+                const rankedMatches = candidates
                   .map(([name, candidate]) => {
                     const description = resolveToolDescription({
                       tool: candidate,
@@ -112,8 +113,8 @@ export function createToolSearchState({
                     return { name, description, score };
                   })
                   .filter(match => match.score > 0)
-                  .sort((a, b) => b.score - a.score)
-                  .slice(0, 5);
+                  .sort((a, b) => b.score - a.score);
+                const matches = rankedMatches.slice(0, maxResults);
 
                 for (const { name } of matches) {
                   discovered.add(name);
