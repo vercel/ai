@@ -1,5 +1,17 @@
 # @ai-sdk/mcp
 
+## 0.0.39
+
+### Patch Changes
+
+- 2b1c2df: fix(mcp): reject private OAuth endpoints before sending credentials
+- 2b1c2df: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- 2b1c2df: fix(mcp): prevent SSRF in OAuth metadata discovery
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+- Updated dependencies [2b1c2df]
+  - @ai-sdk/provider-utils@3.0.41
+
 ## 0.0.38
 
 ### Patch Changes
