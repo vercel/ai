@@ -1,5 +1,13 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.134
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+
 ## 1.0.133
 
 ### Patch Changes

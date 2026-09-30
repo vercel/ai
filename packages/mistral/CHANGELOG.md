@@ -1,5 +1,16 @@
 # @ai-sdk/mistral
 
+## 4.0.55
+
+### Patch Changes
+
+- c636bb4: fix(mistral): map provider error finish reasons to error
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 5fa97cd: fix(mistral): preserve JSON schemas when structured outputs are disabled
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.54
 
 ### Patch Changes

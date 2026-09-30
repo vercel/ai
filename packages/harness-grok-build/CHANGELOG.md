@@ -1,5 +1,16 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.71
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/harness-acp@1.0.72
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 1.0.70
 
 ### Patch Changes

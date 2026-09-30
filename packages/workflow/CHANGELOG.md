@@ -1,5 +1,20 @@
 # @ai-sdk/workflow
 
+## 2.0.54
+
+### Patch Changes
+
+- 70c051c: fix(workflow): preserve reasoning and provider metadata across agent steps
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 2.0.53
 
 ### Patch Changes

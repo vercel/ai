@@ -1,5 +1,15 @@
 # @ai-sdk/openai
 
+## 4.0.82
+
+### Patch Changes
+
+- 040033b: feat(openai): add GPT-6.1 Sol model support
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.81
 
 ### Patch Changes

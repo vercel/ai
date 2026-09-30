@@ -1,5 +1,15 @@
 # @ai-sdk/deepseek
 
+## 3.0.57
+
+### Patch Changes
+
+- ea54a10: fix cached input token reporting for OpenAI-compatible DeepSeek responses
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 3.0.56
 
 ### Patch Changes

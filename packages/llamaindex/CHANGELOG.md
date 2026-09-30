@@ -1,5 +1,17 @@
 # @ai-sdk/llamaindex
 
+## 3.0.123
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+
 ## 3.0.122
 
 ### Patch Changes
