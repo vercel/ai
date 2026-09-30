@@ -1,5 +1,16 @@
 # @ai-sdk/fireworks
 
+## 2.0.91
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+  - @ai-sdk/openai-compatible@2.0.81
+
 ## 2.0.90
 
 ### Patch Changes

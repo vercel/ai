@@ -1,5 +1,15 @@
 # @ai-sdk/gladia
 
+## 2.0.64
+
+### Patch Changes
+
+- a9cea74: Keep default Node.js downloads protected by DNS validation and connection pinning when frameworks or instrumentation wrap global fetch before or after the SDK loads.
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+- Updated dependencies [a9cea74]
+  - @ai-sdk/provider-utils@4.0.57
+
 ## 2.0.63
 
 ### Patch Changes
