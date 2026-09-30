@@ -3,6 +3,9 @@ import type {
   SpeechModelV4,
   TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { LangfuseVercelAiSdkIntegration } from '@langfuse/vercel-ai-sdk';
+import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
   experimental_streamTranscribe as streamTranscribe,
   generateSpeech,
@@ -11,8 +14,16 @@ import {
 } from 'ai';
 import { run } from '../../lib/run';
 import { consoleTelemetry } from './console-telemetry';
+import { OpenTelemetry } from '@ai-sdk/otel';
 
-registerTelemetry(consoleTelemetry);
+// Set LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, and LANGFUSE_BASE_URL in .env.
+// These mock models exercise telemetry without requiring a provider API key.
+const sdk = new NodeSDK({
+  spanProcessors: [new LangfuseSpanProcessor()],
+});
+
+sdk.start();
+registerTelemetry(consoleTelemetry, new LangfuseVercelAiSdkIntegration(), new OpenTelemetry());
 
 const speechModel: SpeechModelV4 = {
   specificationVersion: 'v4',
@@ -91,57 +102,62 @@ const transcriptionModel: TranscriptionModelV4 = {
 };
 
 run(async () => {
-  const speech = await generateSpeech({
-    model: speechModel,
-    text: 'Hello from AI SDK speech telemetry.',
-    voice: 'alloy',
-    telemetry: {
-      functionId: 'generate-greeting',
-    },
-  });
+  try {
+    const speech = await generateSpeech({
+      model: speechModel,
+      text: 'Hello from AI SDK speech telemetry.',
+      voice: 'alloy',
+      telemetry: {
+        functionId: 'generate-greeting',
+      },
+    });
 
-  const transcript = await transcribe({
-    model: transcriptionModel,
-    audio: speech.audio.uint8Array,
-    telemetry: {
-      functionId: 'transcribe-greeting',
-    },
-  });
-  console.log('Transcript:', transcript.text);
+    const transcript = await transcribe({
+      model: transcriptionModel,
+      audio: speech.audio.uint8Array,
+      telemetry: {
+        functionId: 'transcribe-greeting',
+      },
+    });
+    console.log('Transcript:', transcript.text);
 
-  const streamingSpeech = await generateSpeech({
-    model: speechModel,
-    text: 'Streaming transcription telemetry includes the consumed byte count.',
-    voice: 'alloy',
-    outputFormat: 'pcm',
-    telemetry: {
-      functionId: 'generate-streaming-audio',
-    },
-  });
+    const streamingSpeech = await generateSpeech({
+      model: speechModel,
+      text: 'Streaming transcription telemetry includes the consumed byte count.',
+      voice: 'alloy',
+      outputFormat: 'pcm',
+      telemetry: {
+        functionId: 'generate-streaming-audio',
+      },
+    });
 
-  const bytes = streamingSpeech.audio.uint8Array;
-  const audio = new ReadableStream<Uint8Array>({
-    start(controller) {
-      for (let offset = 0; offset < bytes.length; offset += 16 * 1024) {
-        controller.enqueue(bytes.slice(offset, offset + 16 * 1024));
+    const bytes = streamingSpeech.audio.uint8Array;
+    const audio = new ReadableStream<Uint8Array>({
+      start(controller) {
+        for (let offset = 0; offset < bytes.length; offset += 16 * 1024) {
+          controller.enqueue(bytes.slice(offset, offset + 16 * 1024));
+        }
+        controller.close();
+      },
+    });
+
+    const streamingTranscript = streamTranscribe({
+      model: transcriptionModel,
+      audio,
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      telemetry: {
+        functionId: 'stream-transcribe-greeting',
+      },
+    });
+
+    for await (const part of streamingTranscript.fullStream) {
+      if (part.type === 'transcript-delta') {
+        process.stdout.write(part.delta);
       }
-      controller.close();
-    },
-  });
-
-  const streamingTranscript = streamTranscribe({
-    model: transcriptionModel,
-    audio,
-    inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-    telemetry: {
-      functionId: 'stream-transcribe-greeting',
-    },
-  });
-
-  for await (const part of streamingTranscript.fullStream) {
-    if (part.type === 'transcript-delta') {
-      process.stdout.write(part.delta);
     }
+    console.log();
+  } finally {
+    // Flush pending spans before this short-lived script exits, even on failure.
+    await sdk.shutdown();
   }
-  console.log();
 });

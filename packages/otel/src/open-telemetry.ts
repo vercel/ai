@@ -297,6 +297,21 @@ export class OpenTelemetry implements Telemetry {
       'gen_ai.provider.name': providerName,
       'gen_ai.request.model': event.modelId,
       'gen_ai.agent.name': telemetry.functionId,
+      'gen_ai.output.type':
+        event.operationId === 'ai.generateSpeech' ? 'speech' : 'text',
+      'gen_ai.request.stream': event.operationId === 'ai.streamTranscribe',
+      'gen_ai.input.messages':
+        text == null
+          ? undefined
+          : {
+              input: () =>
+                JSON.stringify([
+                  {
+                    role: 'user',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+            },
       'ai.request.text': text == null ? undefined : { input: () => text },
       'ai.request.audio.size':
         audio?.byteLength == null
@@ -317,7 +332,7 @@ export class OpenTelemetry implements Telemetry {
           callId: event.callId,
           runtimeContext: undefined,
         }),
-        kind: SpanKind.INTERNAL,
+        kind: SpanKind.CLIENT,
       },
     );
     const rootContext = trace.setSpan(context.active(), rootSpan);
@@ -1210,6 +1225,18 @@ export class OpenTelemetry implements Telemetry {
             : { input: () => inputAudio.mediaType },
         'ai.response.text':
           transcript == null ? undefined : { output: () => transcript },
+        'gen_ai.output.messages':
+          transcript == null
+            ? undefined
+            : {
+                output: () =>
+                  JSON.stringify([
+                    {
+                      role: 'assistant',
+                      parts: [{ type: 'text', content: transcript }],
+                    },
+                  ]),
+              },
         'ai.response.audio.size':
           outputAudio == null
             ? undefined

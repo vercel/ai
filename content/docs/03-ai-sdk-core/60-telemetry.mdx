@@ -581,6 +581,23 @@ For `rerank`, the integration records spans with `CLIENT` kind:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the model ID
 
+#### generateSpeech / transcribe / experimental_streamTranscribe
+
+Each call records a single `CLIENT` span named `{operationId} {modelId}`, where
+`operationId` is `ai.generateSpeech`, `ai.transcribe`, or `ai.streamTranscribe`.
+
+- `gen_ai.output.type`: `"speech"` for speech generation and `"text"` for transcription.
+- `gen_ai.request.stream`: `true` for streaming transcription and `false` otherwise.
+- `gen_ai.input.messages`: speech generation input text as a user message with a text part, when `recordInputs` is enabled.
+- `gen_ai.output.messages`: the completed transcript as an assistant message with a text part, when `recordOutputs` is enabled. Streaming transcription records this once on completion.
+
+The existing `ai.request.text` and `ai.response.text` attributes are also retained.
+Audio byte length, media type, and output format remain in the
+`ai.request.audio.*` and `ai.response.audio.*` attributes, subject to the
+corresponding input/output recording controls. Raw audio is not captured, so
+transcription input and speech output do not populate message attributes with
+audio content or placeholder audio parts.
+
 #### experimental_evaluate
 
 For `experimental_evaluate`, the integration records two spans with `CLIENT`

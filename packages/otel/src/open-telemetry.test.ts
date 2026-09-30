@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider-utils/test';
 import {
   context,
+  SpanKind,
   SpanStatusCode,
   trace,
   type Attributes,
@@ -1434,157 +1435,273 @@ describe('OpenTelemetry', () => {
     });
   });
 
-  describe('speech and transcription operations', () => {
-    it('records speech input and output metadata', () => {
-      integration.onStart!({
-        callId,
-        operationId: 'ai.generateSpeech',
-        provider: 'openai.speech',
-        modelId: 'gpt-4o-mini-tts',
-        text: 'Hello',
-        voice: 'alloy',
-        outputFormat: 'mp3',
-        instructions: undefined,
-        speed: undefined,
-        language: undefined,
-        maxRetries: 2,
-        headers: undefined,
-        providerOptions: {},
-        ...telemetryFields(),
-      } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
-      integration.onEnd!({
-        callId,
-        operationId: 'ai.generateSpeech',
-        provider: 'openai.speech',
-        modelId: 'gpt-4o-mini-tts',
-        text: 'Hello',
-        audio: {
-          byteLength: 1234,
-          mediaType: 'audio/mpeg',
-          format: 'mp3',
-        },
-        usage: { characters: 5 },
-        warnings: [],
-        providerMetadata: undefined,
-        response: {
-          timestamp: new Date(0),
-          modelId: 'gpt-4o-mini-tts',
-        },
-        ...telemetryFields(),
-      } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+  describe.each([
+    { recordInputs: undefined, recordOutputs: undefined },
+    { recordInputs: false, recordOutputs: undefined },
+    { recordInputs: undefined, recordOutputs: false },
+    { recordInputs: false, recordOutputs: false },
+  ])(
+    'speech and transcription (recordInputs=$recordInputs, recordOutputs=$recordOutputs)',
+    ({ recordInputs, recordOutputs }) => {
+      it.each(['Hello', ''])(
+        'records speech input %j and output metadata',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            voice: 'alloy',
+            outputFormat: 'mp3',
+            instructions: undefined,
+            speed: undefined,
+            language: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.generateSpeech',
+            provider: 'openai.speech',
+            modelId: 'gpt-4o-mini-tts',
+            text,
+            audio: {
+              byteLength: 1234,
+              mediaType: 'audio/mpeg',
+              format: 'mp3',
+            },
+            usage: { characters: 5 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-mini-tts',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
 
-      expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
-        name: 'ai.generateSpeech gpt-4o-mini-tts',
-        ended: true,
-        initAttributes: {
-          'gen_ai.operation.name': 'ai.generateSpeech',
-          'gen_ai.provider.name': 'openai',
-          'gen_ai.request.model': 'gpt-4o-mini-tts',
-          'ai.request.text': 'Hello',
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.generateSpeech gpt-4o-mini-tts',
+            ended: true,
+            initAttributes: {
+              'gen_ai.operation.name': 'ai.generateSpeech',
+              'gen_ai.provider.name': 'openai',
+              'gen_ai.request.model': 'gpt-4o-mini-tts',
+              'gen_ai.output.type': 'speech',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false ? {} : { 'ai.request.text': text }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false
+                ? {}
+                : {
+                    'ai.response.audio.size': 1234,
+                    'ai.response.audio.media_type': 'audio/mpeg',
+                    'ai.response.audio.format': 'mp3',
+                  }),
+              'gen_ai.usage.characters': 5,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.input.messages']).toBe(
+            recordInputs === false
+              ? undefined
+              : JSON.stringify([
+                  { role: 'user', parts: [{ type: 'text', content: text }] },
+                ]),
+          );
+          expect(attributes['gen_ai.output.messages']).toBeUndefined();
+          expect(attributes['ai.request.text']).toBe(
+            recordInputs === false ? undefined : text,
+          );
+          expect(attributes['ai.response.audio.size']).toBe(
+            recordOutputs === false ? undefined : 1234,
+          );
         },
-        runtimeAttributes: {
-          'ai.response.audio.size': 1234,
-          'ai.response.audio.media_type': 'audio/mpeg',
-          'ai.response.audio.format': 'mp3',
-          'gen_ai.usage.characters': 5,
-        },
-      });
-    });
+      );
 
-    it('records transcription audio metadata and transcript', () => {
-      integration.onStart!({
-        callId,
-        operationId: 'ai.transcribe',
-        provider: 'openai.transcription',
-        modelId: 'gpt-4o-transcribe',
-        audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
-        inputAudioFormat: undefined,
-        maxRetries: 2,
-        headers: undefined,
-        providerOptions: {},
-        ...telemetryFields(),
-      } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
-      integration.onEnd!({
-        callId,
-        operationId: 'ai.transcribe',
-        provider: 'openai.transcription',
-        modelId: 'gpt-4o-transcribe',
-        audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
-        text: 'Hello',
-        segments: [],
-        language: 'en',
-        durationInSeconds: 1,
-        usage: { seconds: 1 },
-        warnings: [],
-        providerMetadata: undefined,
-        response: {
-          timestamp: new Date(0),
-          modelId: 'gpt-4o-transcribe',
-        },
-        ...telemetryFields(),
-      } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
+      it.each(['Hello', ''])(
+        'records transcription audio metadata and transcript %j',
+        text => {
+          integration.onStart!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            inputAudioFormat: undefined,
+            maxRetries: 2,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onStart']>>[0]);
+          integration.onEnd!({
+            callId,
+            operationId: 'ai.transcribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-4o-transcribe',
+            audio: { byteLength: 4321, mediaType: 'audio/mpeg' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { seconds: 1 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-4o-transcribe',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          } as Parameters<NonNullable<Telemetry['onEnd']>>[0]);
 
-      expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
-        name: 'ai.transcribe gpt-4o-transcribe',
-        ended: true,
-        initAttributes: {
-          'ai.request.audio.size': 4321,
-          'ai.request.audio.media_type': 'audio/mpeg',
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.transcribe gpt-4o-transcribe',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': false,
+              ...(recordInputs === false
+                ? {}
+                : {
+                    'ai.request.audio.size': 4321,
+                    'ai.request.audio.media_type': 'audio/mpeg',
+                  }),
+            },
+            runtimeAttributes: {
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.seconds': 1,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
         },
-        runtimeAttributes: {
-          'ai.response.text': 'Hello',
-          'gen_ai.usage.seconds': 1,
-        },
-      });
-    });
+      );
 
-    it('records experimental streaming transcription through isolated callbacks', () => {
-      integration.experimental_onStreamTranscriptionStart!({
-        callId,
-        operationId: 'ai.streamTranscribe',
-        provider: 'openai.transcription',
-        modelId: 'gpt-realtime-whisper',
-        audio: { byteLength: undefined, mediaType: 'audio/pcm' },
-        inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
-        maxRetries: undefined,
-        headers: undefined,
-        providerOptions: {},
-        ...telemetryFields(),
-      });
-      integration.experimental_onStreamTranscriptionEnd!({
-        callId,
-        operationId: 'ai.streamTranscribe',
-        provider: 'openai.transcription',
-        modelId: 'gpt-realtime-whisper',
-        audio: { byteLength: 2048, mediaType: 'audio/pcm' },
-        text: 'Hello',
-        segments: [],
-        language: 'en',
-        durationInSeconds: 1,
-        usage: { inputTokens: 3 },
-        warnings: [],
-        providerMetadata: undefined,
-        response: {
-          timestamp: new Date(0),
-          modelId: 'gpt-realtime-whisper',
-        },
-        ...telemetryFields(),
-      });
+      it.each(['Hello', ''])(
+        'records streaming transcript %j through isolated callbacks',
+        text => {
+          integration.experimental_onStreamTranscriptionStart!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+            inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+            maxRetries: undefined,
+            headers: undefined,
+            providerOptions: {},
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
+          integration.experimental_onStreamTranscriptionEnd!({
+            callId,
+            operationId: 'ai.streamTranscribe',
+            provider: 'openai.transcription',
+            modelId: 'gpt-realtime-whisper',
+            audio: { byteLength: 2048, mediaType: 'audio/pcm' },
+            text,
+            segments: [],
+            language: 'en',
+            durationInSeconds: 1,
+            usage: { inputTokens: 3 },
+            warnings: [],
+            providerMetadata: undefined,
+            response: {
+              timestamp: new Date(0),
+              modelId: 'gpt-realtime-whisper',
+            },
+            ...telemetryFields(),
+            recordInputs,
+            recordOutputs,
+          });
 
-      expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
-        name: 'ai.streamTranscribe gpt-realtime-whisper',
-        ended: true,
-        initAttributes: {
-          'ai.request.audio.media_type': 'audio/pcm',
+          expect(tracer.startSpan).toHaveBeenCalledTimes(1);
+          expect(tracer.startSpan).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ kind: SpanKind.CLIENT }),
+          );
+          expect(serializeSpan(tracer.spans[0], tracer)).toMatchObject({
+            name: 'ai.streamTranscribe gpt-realtime-whisper',
+            ended: true,
+            initAttributes: {
+              'gen_ai.output.type': 'text',
+              'gen_ai.request.stream': true,
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.media_type': 'audio/pcm' }),
+            },
+            runtimeAttributes: {
+              ...(recordInputs === false
+                ? {}
+                : { 'ai.request.audio.size': 2048 }),
+              ...(recordOutputs === false ? {} : { 'ai.response.text': text }),
+              'gen_ai.usage.input_tokens': 3,
+            },
+          });
+          const attributes = {
+            ...getStartSpanAttributes(tracer, 0),
+            ...tracer.spans[0].attributes,
+          };
+          expect(attributes['gen_ai.output.messages']).toBe(
+            recordOutputs === false
+              ? undefined
+              : JSON.stringify([
+                  {
+                    role: 'assistant',
+                    parts: [{ type: 'text', content: text }],
+                  },
+                ]),
+          );
+          expect(attributes['gen_ai.input.messages']).toBeUndefined();
+          expect(attributes['ai.response.text']).toBe(
+            recordOutputs === false ? undefined : text,
+          );
         },
-        runtimeAttributes: {
-          'ai.request.audio.size': 2048,
-          'ai.response.text': 'Hello',
-          'gen_ai.usage.input_tokens': 3,
-        },
-      });
-    });
-  });
+      );
+    },
+  );
 
   describe('enrichSpan', () => {
     it('adds custom attributes to created spans', () => {
