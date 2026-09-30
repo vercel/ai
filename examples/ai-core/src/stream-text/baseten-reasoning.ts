@@ -1,16 +1,11 @@
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { baseten } from '@ai-sdk/baseten';
 import { streamText } from 'ai';
-import 'dotenv/config';
+import { run } from '../lib/run';
 
-async function main() {
-  const baseten = createOpenAICompatible({
-    baseURL: 'https://inference.baseten.co/v1',
-    name: 'baseten',
-    apiKey: process.env.BASETEN_API_KEY,
-  });
+run(async () => {
   const result = streamText({
     model: baseten('openai/gpt-oss-120b'),
-    prompt: 'What is notable about Sonoran food?',
+    prompt: 'What is notable about Sonoran food? Answer in a few sentences.',
   });
 
   for await (const part of result.fullStream) {
@@ -24,6 +19,8 @@ async function main() {
   console.log();
   console.log('Token usage:', await result.usage);
   console.log('Finish reason:', await result.finishReason);
-}
-
-main().catch(console.error);
+  console.log(
+    'Provider metadata:',
+    JSON.stringify(await result.providerMetadata, null, 2),
+  );
+});

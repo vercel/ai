@@ -8,6 +8,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   type FetchFunction,
+  type InferValidator,
   type ParseResult,
   combineHeaders,
   createEventSourceResponseHandler,
@@ -16,9 +17,12 @@ import {
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
+import type { webSearchOutputSchema } from '../tool/web-search';
 import { convertXaiResponsesUsage } from './convert-xai-responses-usage';
 import { getResponseMetadata } from '../get-response-metadata';
 import {
+  webSearchWireActionSchema,
+  webSearchWireSourceSchema,
   xaiResponsesChunkSchema,
   xaiResponsesResponseSchema,
 } from './xai-responses-api';
@@ -69,6 +73,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
     maxOutputTokens,
     temperature,
     topP,
+    topK,
+    frequencyPenalty,
+    presencePenalty,
     stopSequences,
     seed,
     responseFormat,
@@ -84,6 +91,24 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
         providerOptions,
         schema: xaiResponsesProviderOptions,
       })) ?? {};
+
+    if (topK != null) {
+      warnings.push({ type: 'unsupported-setting', setting: 'topK' });
+    }
+
+    if (frequencyPenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'frequencyPenalty',
+      });
+    }
+
+    if (presencePenalty != null) {
+      warnings.push({
+        type: 'unsupported-setting',
+        setting: 'presencePenalty',
+      });
+    }
 
     if (stopSequences != null) {
       warnings.push({
@@ -256,6 +281,15 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
           providerExecuted: true,
         });
 
+        if (part.type === 'web_search_call') {
+          content.push({
+            type: 'tool-result',
+            toolCallId: part.id,
+            toolName,
+            result: mapWebSearchAction(part.action),
+          });
+        }
+
         continue;
       }
 
@@ -304,26 +338,14 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
               ? part.summary.map(s => s.text)
               : (part.content ?? []).map(c => c.text);
 
-<<<<<<< HEAD
+          const summaryTexts = texts.filter(text => text && text.length > 0);
+
           if (summaryTexts.length > 0) {
             const reasoningText = summaryTexts.join('');
             if (part.encrypted_content || part.id) {
               content.push({
                 type: 'reasoning',
                 text: reasoningText,
-=======
-          const reasoningText = texts
-            .filter(text => text && text.length > 0)
-            .join('');
-
-          // condition changed here since encrypted content can now come with empty reasoning text
-          if (reasoningText || part.encrypted_content) {
-            const hasMetadata = part.encrypted_content || part.id;
-            content.push({
-              type: 'reasoning',
-              text: reasoningText,
-              ...(hasMetadata && {
->>>>>>> 19eece65b8 ([v6.0] fix(provider/xai): extract reasoning text from content in responses doGenerate (#16798))
                 providerMetadata: {
                   xai: {
                     ...(part.encrypted_content && {
@@ -777,6 +799,18 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
                   });
                 }
 
+                if (event.type === 'response.output_item.done') {
+                  controller.enqueue({
+                    type: 'tool-result',
+                    toolCallId: part.id,
+                    toolName,
+                    result:
+                      part.type === 'web_search_call'
+                        ? mapWebSearchAction(part.action)
+                        : {},
+                  });
+                }
+
                 return;
               }
 
@@ -868,5 +902,38 @@ export class XaiResponsesLanguageModel implements LanguageModelV2 {
       request: { body },
       response: { headers: responseHeaders },
     };
+  }
+}
+
+function mapWebSearchAction(
+  action: unknown,
+): InferValidator<typeof webSearchOutputSchema> {
+  const parsed = webSearchWireActionSchema.safeParse(action);
+  if (!parsed.success) return {};
+
+  const a = parsed.data;
+  const sources = a.sources?.flatMap(s => {
+    const source = webSearchWireSourceSchema.safeParse(s);
+    return source.success ? [source.data] : [];
+  });
+  const sourcesExtra = sources != null && sources.length > 0 ? { sources } : {};
+
+  switch (a.type) {
+    case 'search':
+      return {
+        action: {
+          type: 'search',
+          ...(a.query != null && { query: a.query }),
+          ...(a.queries != null && { queries: a.queries }),
+        },
+        ...sourcesExtra,
+      };
+    case 'open_page':
+      return { action: { type: 'openPage', url: a.url }, ...sourcesExtra };
+    case 'find_in_page':
+      return {
+        action: { type: 'findInPage', url: a.url, pattern: a.pattern },
+        ...sourcesExtra,
+      };
   }
 }
