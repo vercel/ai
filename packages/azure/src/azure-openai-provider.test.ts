@@ -455,9 +455,7 @@ describe('deepseek', () => {
     total_tokens: 110,
   };
 
-  function prepareCacheUsageResponse(
-    usage: typeof cacheUsage & { prompt_cache_hit_tokens?: number },
-  ) {
+  function prepareCacheUsageResponse() {
     server.urls[
       'https://test-resource.openai.azure.com/openai/v1/chat/completions'
     ].response = {
@@ -474,37 +472,23 @@ describe('deepseek', () => {
         id: 'chatcmpl-cache-usage',
         model: 'deepseek-v4-flash',
         object: 'chat.completion',
-        usage,
+        usage: cacheUsage,
       },
     };
   }
 
-  it('should normalize OpenAI-compatible cache usage for generate', async () => {
-    prepareCacheUsageResponse(cacheUsage);
+  it('should not enable OpenAI-compatible cache usage for generate', async () => {
+    prepareCacheUsageResponse();
 
     const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
       prompt: TEST_PROMPT,
     });
 
-    expect(result.usage.cachedInputTokens).toBe(80);
-    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+    expect(result.usage.cachedInputTokens).toBeUndefined();
+    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBeNull();
   });
 
-  it('should prefer native DeepSeek cache usage for generate', async () => {
-    prepareCacheUsageResponse({
-      ...cacheUsage,
-      prompt_cache_hit_tokens: 60,
-    });
-
-    const result = await provider.deepseek('deepseek-v4-flash').doGenerate({
-      prompt: TEST_PROMPT,
-    });
-
-    expect(result.usage.cachedInputTokens).toBe(60);
-    expect(result.providerMetadata?.azure?.promptCacheHitTokens).toBe(60);
-  });
-
-  it('should normalize OpenAI-compatible cache usage for stream', async () => {
+  it('should not enable OpenAI-compatible cache usage for stream', async () => {
     server.urls[
       'https://test-resource.openai.azure.com/openai/v1/chat/completions'
     ].response = {
@@ -528,8 +512,8 @@ describe('deepseek', () => {
     const parts = await convertReadableStreamToArray(stream);
     const finish = parts.find(part => part.type === 'finish');
 
-    expect(finish?.usage.cachedInputTokens).toBe(80);
-    expect(finish?.providerMetadata?.azure?.promptCacheHitTokens).toBe(80);
+    expect(finish?.usage.cachedInputTokens).toBeUndefined();
+    expect(finish?.providerMetadata?.azure?.promptCacheHitTokens).toBeNull();
   });
 
   it('should map Azure DeepSeek reasoning effort', async () => {
