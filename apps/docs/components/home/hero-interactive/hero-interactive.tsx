@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@vercel/geistdocs/utils';
-import { ArrowUpRight } from 'lucide-react';
+import { IconArrowUpRightSmall } from '@vercel/geistdocs/assets/icons/icon-arrow-up-right-small';
 import { useState } from 'react';
 import {
   HERO_EXAMPLES,
@@ -82,7 +82,7 @@ export function HeroInteractive({ className }: { className?: string }) {
           target="_blank"
         >
           supported LLM models
-          <ArrowUpRight aria-hidden="true" size={14} />
+          <IconArrowUpRightSmall aria-hidden="true" />
         </a>
       </p>
     </div>

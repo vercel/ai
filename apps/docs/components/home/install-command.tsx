@@ -10,7 +10,8 @@ import {
 export function InstallCommand({ command }: { command: string }) {
   return (
     <CommandPromptRoot className="w-auto items-start" defaultValue="install">
-      <CommandPromptSurface>
+      {/* Match the adjacent large button's h-10. */}
+      <CommandPromptSurface className="h-10 py-0 pr-2">
         <CommandPromptPrefix>$</CommandPromptPrefix>
         <CommandPromptViewport>
           <CommandPromptContent value="install">{command}</CommandPromptContent>

@@ -1,7 +1,8 @@
 'use client';
 
 import { cn } from '@vercel/geistdocs/utils';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconChevronLeft } from '@vercel/geistdocs/assets/icons/icon-chevron-left';
+import { IconChevronRight } from '@vercel/geistdocs/assets/icons/icon-chevron-right';
 import { AnimatePresence, motion } from 'motion/react';
 import { useRef, useState } from 'react';
 import { PROVIDERS, type Provider } from '@/lib/home/code-examples';
@@ -46,7 +47,7 @@ export function LlmProviderSelector({
         onClick={() => navigate(-1)}
         type="button"
       >
-        <ChevronLeft size={16} />
+        <IconChevronLeft size={16} />
       </button>
 
       <span
@@ -85,7 +86,7 @@ export function LlmProviderSelector({
         onClick={() => navigate(1)}
         type="button"
       >
-        <ChevronRight size={16} />
+        <IconChevronRight size={16} />
       </button>
     </div>
   );

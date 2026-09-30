@@ -4,17 +4,17 @@ export type Mode = 'gateway' | 'provider' | 'custom';
 export type ModelKind = 'text' | 'image' | 'speech' | 'transcription' | 'video';
 
 export const PROVIDERS = [
-  { id: 'grok', label: 'Grok', logo: 'xai-black.svg', invert: true },
-  { id: 'openai', label: 'OpenAI', logo: 'openai.svg', invert: true },
-  { id: 'anthropic', label: 'Anthropic', logo: 'anthropic.svg', invert: true },
-  { id: 'google', label: 'Google', logo: 'google.svg' },
-  { id: 'mistral', label: 'Mistral', logo: 'mistral.svg' },
-  { id: 'meta', label: 'Meta', logo: 'custom.svg', invert: true },
-  { id: 'perplexity', label: 'Perplexity', logo: 'perplexity.svg' },
-  { id: 'deepseek', label: 'DeepSeek', logo: 'deepseek.svg' },
-  { id: 'moonshot', label: 'Moonshot', logo: 'custom.svg', invert: true },
-  { id: 'zai', label: 'Z.ai', logo: 'custom.svg', invert: true },
-  { id: 'elevenlabs', label: 'ElevenLabs', logo: 'custom.svg', invert: true },
+  { id: 'grok', label: 'Grok' },
+  { id: 'openai', label: 'OpenAI' },
+  { id: 'anthropic', label: 'Anthropic' },
+  { id: 'google', label: 'Google' },
+  { id: 'mistral', label: 'Mistral' },
+  { id: 'meta', label: 'Meta' },
+  { id: 'perplexity', label: 'Perplexity' },
+  { id: 'deepseek', label: 'DeepSeek' },
+  { id: 'moonshot', label: 'Moonshot' },
+  { id: 'zai', label: 'Z.ai' },
+  { id: 'elevenlabs', label: 'ElevenLabs' },
 ] as const;
 
 export type Provider = (typeof PROVIDERS)[number]['id'];

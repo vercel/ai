@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { IMAGE_SRC } from './assets';
+import { IMAGE_SRC } from '../media-assets';
 
 const LOADING_DURATION = 1500; // ms
 const MAX_BLUR = 20; // px

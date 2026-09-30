@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { VIDEO_SRC } from './assets';
+import { VIDEO_SRC } from '../media-assets';
 import {
   MediaContainer,
   ProgressBadge,

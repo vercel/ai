@@ -1,14 +1,15 @@
 'use client';
 
 import { cn } from '@vercel/geistdocs/utils';
-import { Volume2, VolumeX } from 'lucide-react';
+import { IconSpeakerOff } from '@vercel/geistdocs/assets/icons/icon-speaker-off';
+import { IconSpeakerVolumeLoud } from '@vercel/geistdocs/assets/icons/icon-speaker-volume-loud';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getChatPreview,
   type ModelKind,
   type Provider,
 } from '@/lib/home/code-examples';
-import { IMAGE_SRC, VIDEO_SRC } from './assets';
+import { IMAGE_SRC, VIDEO_SRC } from '../media-assets';
 import { ImageGenerationPreview } from './image-generation';
 import { AudioPlayer } from './speech-generation';
 import { ChatBubble } from './text-generation';
@@ -149,7 +150,11 @@ export function PreviewPanel({
           onClick={toggleMute}
           type="button"
         >
-          {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+          {isMuted ? (
+            <IconSpeakerOff size={16} />
+          ) : (
+            <IconSpeakerVolumeLoud size={16} />
+          )}
         </button>
       )}
     </div>

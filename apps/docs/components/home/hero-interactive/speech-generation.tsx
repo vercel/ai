@@ -1,8 +1,11 @@
 'use client';
 
-import { Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
+import { IconForward10Seconds10 } from '@vercel/geistdocs/assets/icons/icon-forward-10-seconds-10';
+import { IconPause } from '@vercel/geistdocs/assets/icons/icon-pause';
+import { IconPlayFill } from '@vercel/geistdocs/assets/icons/icon-play-fill';
+import { IconRewind10Seconds } from '@vercel/geistdocs/assets/icons/icon-rewind-10-seconds';
 import { type RefObject, useCallback, useEffect, useState } from 'react';
-import { SPEECH_AUDIO_SRC } from './assets';
+import { SPEECH_AUDIO_SRC } from '../media-assets';
 
 const SKIP_SECONDS = 2;
 
@@ -109,7 +112,7 @@ export function AudioPlayer({
             onClick={() => seek(-SKIP_SECONDS)}
             type="button"
           >
-            <RotateCcw size={12} />
+            <IconRewind10Seconds size={12} />
           </button>
           <button
             aria-label={isPlaying ? 'Pause' : 'Play'}
@@ -117,11 +120,7 @@ export function AudioPlayer({
             onClick={togglePlay}
             type="button"
           >
-            {isPlaying ? (
-              <Pause fill="currentColor" size={16} />
-            ) : (
-              <Play className="pl-0.5" fill="currentColor" size={16} />
-            )}
+            {isPlaying ? <IconPause /> : <IconPlayFill className="pl-0.5" />}
           </button>
           <button
             aria-label={`Forward ${SKIP_SECONDS} seconds`}
@@ -129,7 +128,7 @@ export function AudioPlayer({
             onClick={() => seek(SKIP_SECONDS)}
             type="button"
           >
-            <RotateCw size={12} />
+            <IconForward10Seconds10 size={12} />
           </button>
         </div>
       </div>
