@@ -134,8 +134,8 @@ You can use the following optional settings to customize the OpenAI provider ins
 
 - **speechBaseURL** _string_
 
-  URL prefix for Azure Speech transcription requests (MAI-Transcribe), for example
-  a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
+  URL prefix for Azure Speech requests (MAI-Transcribe transcription and MAI-Voice
+  speech generation), for example a regional endpoint such as `https://eastus.api.cognitive.microsoft.com`.
   Defaults to `https://{resourceName}.cognitiveservices.azure.com`.
   Speech requests do not use `baseURL` or `apiVersion`.
 
@@ -1294,9 +1294,10 @@ The following provider options are available:
 
 ## Speech Models
 
-You can create models that call the Azure OpenAI speech API using the `.speech()` factory method.
+You can create models that call the Azure OpenAI speech API or Azure Speech text to speech using the `.speech()` factory method.
 
-The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`).
+The first argument is your deployment name for the text-to-speech model (e.g., `tts-1`),
+or a [MAI-Voice](#mai-voice) model ID.
 
 ```ts
 const model = azure.speech('your-tts-deployment-name');
@@ -1355,3 +1356,75 @@ Azure OpenAI supports TTS models through deployments. The capabilities depend on
 | `tts-1`           | <Cross />    |
 | `tts-1-hd`        | <Cross />    |
 | `gpt-4o-mini-tts` | <Check />    |
+
+### MAI-Voice
+
+MAI-Voice models are multilingual text-to-speech models from Microsoft AI, served through Azure.
+The following model IDs use the Azure Speech API:
+
+| Model ID            | Notes                                         |
+| ------------------- | --------------------------------------------- |
+| `mai-voice-2-flash` | Low latency, for voice agents and assistants. |
+| `mai-voice-2`       | Highest fidelity, for long-form narration.    |
+
+All other IDs use the OpenAI API by default, including custom deployment names.
+
+```ts
+import { azure, type AzureSpeechModelOptions } from '@ai-sdk/azure';
+import { generateSpeech } from 'ai';
+
+const result = await generateSpeech({
+  model: azure.speech('mai-voice-2-flash'),
+  text: 'Thanks for calling! Your order shipped this morning.',
+  voice: 'en-US-Ethan',
+  providerOptions: {
+    azure: { style: 'excited' } satisfies AzureSpeechModelOptions,
+  },
+});
+```
+
+MAI-Voice models require a Microsoft Foundry (Speech) resource in a region where they are available
+(see [Speech service regions](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/regions)).
+They use the same settings as [MAI-Transcribe](#mai-transcribe): `resourceName` (or `AZURE_RESOURCE_NAME`),
+`apiKey` (or `AZURE_API_KEY`), `tokenProvider`, and `speechBaseURL`.
+
+- **voice** is a prebuilt voice ID that includes its locale, such as `en-US-Harper`
+  (the default), `de-DE-Mia`, or `es-MX-Valeria`. The voice locale selects the language.
+  Full Azure voice names such as `es-MX-Valeria:MAI-Voice-2` are also accepted. Available
+  voices vary by model; see
+  [Azure's MAI-Voice guide](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices).
+- **language** picks a default voice when `voice` is not set (see the table below). Other
+  languages and `auto` use `en-US-Harper` with a warning. When `voice` is set, its locale
+  selects the language, and a conflicting `language` produces a warning.
+- **outputFormat** accepts `mp3` (default, 24 kHz), `wav`, `pcm` (headerless 24 kHz, 16-bit, mono), `opus` (Ogg),
+  or any Azure `X-Microsoft-OutputFormat` value such as `audio-48khz-192kbitrate-mono-mp3`.
+  Other values fall back to `mp3` with a warning. Azure labels raw formats such as `pcm` as `audio/basic`.
+- **speed** is a rate multiplier, for example `0.5` for half speed or `2` for double speed.
+- `instructions` is not supported and produces a warning.
+
+| Language | Default voice   | Language | Default voice |
+| -------- | --------------- | -------- | ------------- |
+| `de`     | `de-DE-Mia`     | `nl`     | `nl-NL-Fleur` |
+| `en`     | `en-US-Harper`  | `pt`     | `pt-BR-Luana` |
+| `es`     | `es-MX-Valeria` | `ro`     | `ro-RO-Elena` |
+| `fr`     | `fr-FR-Soleil`  | `ru`     | `ru-RU-Masha` |
+| `hi`     | `hi-IN-Kavya`   | `th`     | `th-TH-Krit`  |
+| `hu`     | `hu-HU-Lilla`   | `tr`     | `tr-TR-Elif`  |
+| `it`     | `it-IT-Rosa`    | `zh`     | `zh-CN-Mei`   |
+| `ko`     | `ko-KR-Haena`   |          |               |
+
+The following options are available through `providerOptions.azure`:
+
+- **api** _'openai' | 'speech'_
+  Overrides model-based API selection for this request.
+  Set `openai` for an OpenAI deployment named after one of the model IDs above, or `speech` to
+  send another model ID to Speech.
+
+- **style** _string_
+  Speaking style, such as `excited` or `whispering`. Supported styles vary by voice and model.
+
+- **styleDegree** _number_
+  Style intensity from 0.01 to 2. Azure defaults to 1. Requires `style`.
+
+Text is always spoken as plain text; SSML input is not supported.
+The models are in public preview. AI Gateway forwards these provider options, including `azure.api`.
