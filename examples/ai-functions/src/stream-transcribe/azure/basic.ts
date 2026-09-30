@@ -1,5 +1,6 @@
 import {
   createAzure,
+  type AzureOpenAIProviderSettings,
   type AzureTranscriptionModelOptions,
 } from '@ai-sdk/azure';
 import {
@@ -9,11 +10,11 @@ import {
 import { WebSocket } from 'ws';
 import { run } from '../../lib/run';
 
-// Requires a Foundry resource with a `mai-transcribe-2-streaming` deployment in
-// a supported region (e.g. eastus2). Uses AZURE_RESOURCE_NAME and AZURE_API_KEY.
+// Requires a Foundry resource with a MAI-Transcribe-2-Streaming deployment in a
+// supported region (e.g. centralus). Uses AZURE_RESOURCE_NAME and AZURE_API_KEY.
 const azure = createAzure({
   // `ws` sends the api-key header; native WebSocket falls back to a query param.
-  webSocket: WebSocket,
+  webSocket: WebSocket as unknown as AzureOpenAIProviderSettings['webSocket'],
 });
 
 run(async () => {
@@ -39,11 +40,18 @@ run(async () => {
   });
 
   const result = streamTranscribe({
-    model: azure.transcription('mai-transcribe-2-streaming'),
+    // the model ID is the deployment name; `api: 'mai'` routes any name to MAI
+    model: azure.transcription(
+      process.env.AZURE_MAI_STREAMING_DEPLOYMENT ??
+        'mai-transcribe-2-streaming',
+    ),
     audio,
     inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
     providerOptions: {
-      azure: { language: 'en' } satisfies AzureTranscriptionModelOptions,
+      azure: {
+        api: 'mai',
+        language: 'en',
+      } satisfies AzureTranscriptionModelOptions,
     },
   });
 
