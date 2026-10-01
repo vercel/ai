@@ -234,7 +234,6 @@ export type GatewayModelId =
   | 'spacexai/grok-4.6'
   | 'spacexai/grok-4.7'
   | 'spacexai/grok-build-0.1'
-  | 'stealth/pixel-canary'
   | 'stepfun/step-3.5-flash'
   | 'stepfun/step-3.7-flash'
   | 'stepfun/step-5-preview'
