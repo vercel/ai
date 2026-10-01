@@ -656,6 +656,187 @@ describe('user messages', () => {
   });
 });
 
+describe('video processing', () => {
+  const youtubeUrl = new URL('https://www.youtube.com/watch?v=9hE5-98ZeCg');
+
+  it('should set agentic media processing on url, inline, and reference video parts', async () => {
+    const providerOptions = { google: { processing: 'agentic' } };
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'url' as const, url: youtubeUrl },
+            mediaType: 'video/mp4',
+            providerOptions,
+          },
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'video/mp4',
+            providerOptions,
+          },
+          {
+            type: 'file',
+            data: {
+              type: 'reference' as const,
+              reference: {
+                google:
+                  'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+              },
+            },
+            mediaType: 'video/webm',
+            providerOptions,
+          },
+          { type: 'text', text: 'Summarize the videos.' },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        fileData: { mimeType: 'video/mp4', fileUri: youtubeUrl.toString() },
+        mediaProcessing: 'AGENTIC',
+      },
+      {
+        inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        mediaProcessing: 'AGENTIC',
+      },
+      {
+        fileData: {
+          mimeType: 'video/webm',
+          fileUri:
+            'https://generativelanguage.googleapis.com/v1beta/files/abc123',
+        },
+        mediaProcessing: 'AGENTIC',
+      },
+      { text: 'Summarize the videos.' },
+    ]);
+  });
+
+  it('should map static processing configuration to videoMetadata', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'video/mp4',
+            providerOptions: {
+              google: {
+                processing: {
+                  type: 'static',
+                  startOffset: 0,
+                  endOffset: 10.5,
+                  fps: 0.5,
+                },
+              },
+            },
+          },
+          {
+            type: 'file',
+            data: { type: 'url' as const, url: youtubeUrl },
+            mediaType: 'video/mp4',
+            providerOptions: { google: { processing: 'static' } },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      {
+        inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+        mediaProcessing: 'STATIC',
+        videoMetadata: { startOffset: '0s', endOffset: '10.5s', fps: 0.5 },
+      },
+      {
+        fileData: { mimeType: 'video/mp4', fileUri: youtubeUrl.toString() },
+        mediaProcessing: 'STATIC',
+      },
+    ]);
+  });
+
+  it('should read processing from the vertex namespace', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'url' as const, url: youtubeUrl },
+              mediaType: 'video/mp4',
+              providerOptions: { vertex: { processing: 'agentic' } },
+            },
+          ],
+        },
+      ],
+      { providerOptionsNames: ['googleVertex', 'vertex'] },
+    );
+
+    expect(result.contents[0].parts[0]).toHaveProperty(
+      'mediaProcessing',
+      'AGENTIC',
+    );
+  });
+
+  it('should ignore processing on non-video parts and leave unset video parts unchanged', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'image/png',
+            providerOptions: { google: { processing: 'agentic' } },
+          },
+          {
+            type: 'file',
+            data: { type: 'data' as const, data: 'AAECAw==' },
+            mediaType: 'video/mp4',
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts).toEqual([
+      { inlineData: { mimeType: 'image/png', data: 'AAECAw==' } },
+      { inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' } },
+    ]);
+  });
+
+  it('should warn and drop invalid processing values', async () => {
+    const onWarning = vi.fn();
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: { type: 'data' as const, data: 'AAECAw==' },
+              mediaType: 'video/mp4',
+              providerOptions: { google: { processing: 'dynamic' } },
+            },
+          ],
+        },
+      ],
+      { onWarning },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+    });
+    expect(onWarning).toHaveBeenCalledWith({
+      type: 'other',
+      message: expect.stringContaining('providerOptions.google.processing'),
+    });
+  });
+});
+
 describe('tool messages', () => {
   it('should convert tool result messages to function responses', async () => {
     const result = convertToGoogleMessages([
