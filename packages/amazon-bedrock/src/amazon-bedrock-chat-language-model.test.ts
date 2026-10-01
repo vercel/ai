@@ -3145,7 +3145,9 @@ describe('doStream', () => {
     expect(requestBody).toMatchObject({
       requestMetadata: { team: 'search', environment: 'prod' },
     });
-    expect(requestBody.additionalModelRequestFields?.requestMetadata).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.requestMetadata,
+    ).toBeUndefined();
   });
 
   it('should omit requestMetadata from stream requests when not provided', async () => {
@@ -6017,7 +6019,9 @@ describe('doGenerate', () => {
     expect(requestBody).toMatchObject({
       requestMetadata: { team: 'search', environment: 'prod' },
     });
-    expect(requestBody.additionalModelRequestFields?.requestMetadata).toBeUndefined();
+    expect(
+      requestBody.additionalModelRequestFields?.requestMetadata,
+    ).toBeUndefined();
   });
 
   it('should omit requestMetadata from generate requests when not provided', async () => {
