@@ -203,10 +203,18 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, isExternallyManaged]);
 
-  // Each consumer owns its rendered snapshot, so consumers with different
-  // throttle intervals can display different versions of the same Chat.
+  // Chat owns the live state; React owns the snapshot used for rendering.
+  // useSyncExternalStore would make streaming updates synchronous and can
+  // repeatedly restart navigation renders. Ordinary state updates let React
+  // schedule both. Automatically wrapping publication in startTransition can
+  // group it with a suspended navigation in the same root, holding back streamed
+  // text and local edits.
+  // Each consumer subscribes independently, so different throttle intervals can
+  // produce different rendered snapshots of the same Chat.
   const [snapshot, setSnapshot] = useState(() => readChatSnapshot(chat));
 
+  // React retries this component before rendering children, so they cannot
+  // commit the previous Chat's snapshot. Resubscribe only after the swap commits.
   if (snapshot.chat !== chat) {
     setSnapshot(readChatSnapshot(chat));
   }
@@ -214,6 +222,8 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   useEffect(() => {
     let isSubscribed = true;
     const publishSnapshot = () => {
+      // A trailing throttled callback can run after cleanup. Check before
+      // enqueueing; keep the state updater independent of mutable effect state.
       if (!isSubscribed) {
         return;
       }
@@ -226,15 +236,17 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
       );
     };
 
+    // Only message notifications are throttled. Status and error notifications
+    // publish the complete snapshot, so ready/error cannot commit beside stale
+    // messages even when a throttled message notification is still pending.
     const unsubscribes = [
       chat['~registerMessagesCallback'](publishSnapshot, throttleWaitMs),
       chat['~registerStatusCallback'](publishSnapshot),
       chat['~registerErrorCallback'](publishSnapshot),
     ];
 
-    // Catch changes between render and subscription. Publish messages, status,
-    // and error together using ordinary React state updates, so streaming can
-    // continue while an unrelated transition is suspended.
+    // Catch changes between render and subscription, including updates that
+    // arrived before this consumer mounted or while its Chat was being replaced.
     const nextSnapshot = readChatSnapshot(chat);
     setSnapshot(current =>
       equalChatSnapshots(current, nextSnapshot) ? current : nextSnapshot,
