@@ -253,14 +253,14 @@ describe('gateway.experimental_realtime', () => {
         teamIdOrSlug: 'my-team',
       });
       const model = scopedGateway.experimental_realtime('openai/gpt-realtime');
-      const config = model.getWebSocketConfig({
+      const config = model.getWebSocketConfig?.({
         token: 'vcst_test-secret',
         url: 'wss://ai-gateway.vercel.sh/v4/ai/realtime-model?ai-model-id=openai%2Fgpt-realtime',
       });
 
-      expect(getGatewayRealtimeTeamIdOrSlug(config.protocols?.join(', '))).toBe(
-        'my-team',
-      );
+      expect(
+        getGatewayRealtimeTeamIdOrSlug(config?.protocols?.join(', ')),
+      ).toBe('my-team');
     },
   );
 
@@ -272,7 +272,7 @@ describe('gateway.experimental_realtime', () => {
       const model = gateway.experimental_realtime('openai/gpt-realtime');
       expect(model.specificationVersion).toBe('v4');
       expect(
-        model.getWebSocketConfig({ token: 'vcst_x', url: 'wss://x/y' }).url,
+        model.getWebSocketConfig?.({ token: 'vcst_x', url: 'wss://x/y' }).url,
       ).toBe('wss://x/y');
     });
   });

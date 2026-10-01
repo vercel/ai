@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5-mini'),
+    model: openai.responses('gpt-6-luna'),
     prompt: 'Can you search the web for latest NYC mayoral election results?',
     tools: {
       mcp: openai.tools.mcp({

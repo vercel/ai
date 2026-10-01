@@ -1,5 +1,8 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import {
+  createVercelNetworkSandboxSessionFromNativeSandbox,
+  createVercelSandboxSessionFromNativeSandbox,
+} from '@ai-sdk/sandbox-vercel';
 import { Sandbox } from '@vercel/sandbox';
 import { createCodexACP } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -11,8 +14,8 @@ run(async () => {
     ports: [4000],
     timeout: 10 * 60 * 1000,
   });
-  const sandboxProvider = createVercelSandbox({ sandbox });
-  const sandboxSession = await sandboxProvider.createSession();
+  const sandboxSession =
+    createVercelNetworkSandboxSessionFromNativeSandbox(sandbox);
   const portEndpoint = await sandboxSession.getPortEndpoint({
     port: 4000,
     protocol: 'ws',
@@ -21,10 +24,10 @@ run(async () => {
     harness: createCodexACP({ port: 4000, portEndpoint }),
   });
 
-  let session: Awaited<ReturnType<typeof agent.createSession>> | undefined;
+  let session: HarnessAgentSession | undefined;
   try {
     session = await agent.createSession({
-      sandboxSession: sandboxSession.restricted(),
+      sandboxSession: createVercelSandboxSessionFromNativeSandbox(sandbox),
     });
     const result = await agent.stream({
       session,
@@ -33,6 +36,6 @@ run(async () => {
     await printFullStream({ result });
   } finally {
     await session?.destroy();
-    await sandbox.stop();
+    await sandboxSession.destroy();
   }
 });

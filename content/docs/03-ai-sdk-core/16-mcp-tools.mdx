@@ -178,6 +178,31 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### Shared OAuth Credential Storage
+
+When multiple MCP clients or replicas share OAuth credentials, a rotating refresh
+token can be used concurrently. One refresh may save new tokens while another
+receives `invalid_grant` for the old refresh token.
+
+The optional `OAuthClientProvider.invalidateCredentials` method receives a
+second argument identifying the tokens used by a failed refresh:
+
+```typescript
+invalidateCredentials(
+  scope: 'all' | 'client' | 'tokens' | 'verifier',
+  context?: { tokens: OAuthTokens },
+): void | Promise<void>;
+```
+
+For `scope === 'tokens'` with a context, delete the credential only if the stored
+access and refresh tokens still match `context.tokens`. The comparison and
+deletion must be atomic, using a conditional database operation or a transaction.
+If they no longer match, leave the newer tokens in storage. The SDK retries
+authorization and reads the stored tokens again.
+
+The SDK also provides this context when invalidating stored tokens that lack an
+authorization server pin. Other invalidations can omit the context.
+
 ### OAuth Authorization Server Validation
 
 When using MCP OAuth in server-side applications, the MCP server can advertise
@@ -235,6 +260,37 @@ Dynamic client registration requests include an OAuth `application_type`. The
 client infers `native` for loopback, localhost, and custom-scheme redirects,
 and `web` for remote HTTP(S) redirects. You can override this by setting
 `application_type` in the provider's `clientMetadata`.
+
+### Dynamic Client Credential Recovery
+
+To let the SDK replace invalid credentials created through dynamic client
+registration, implement `isClientInformationDynamicallyRegistered` on the
+OAuth client provider. Return `true` only when the current client information
+came from a dynamic registration response. Persist this provenance alongside
+the credentials when the provider is recreated between requests.
+
+```typescript
+const myOAuthClientProvider = {
+  // ...other OAuthClientProvider methods
+
+  async saveClientInformation(clientInformation) {
+    await saveClientRecord({
+      clientInformation,
+      dynamicallyRegistered: true,
+    });
+  },
+
+  async isClientInformationDynamicallyRegistered() {
+    return (await loadClientRecord())?.dynamicallyRegistered === true;
+  },
+};
+```
+
+When this method is omitted or returns `false`, client information is treated
+as pre-registered and is preserved after `invalid_client` and
+`unauthorized_client` errors. The SDK does not infer provenance from fields such
+as `redirect_uris`, because pre-registered clients can contain the same
+metadata as dynamically registered clients.
 
 ### Retrying Transient Tool Failures
 

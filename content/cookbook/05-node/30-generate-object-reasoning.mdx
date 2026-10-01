@@ -24,7 +24,7 @@ async function main() {
   });
 
   const { output } = await generateText({
-    model: 'openai/gpt-4o-mini',
+    model: 'openai/gpt-6-luna',
     prompt: 'Extract the desired information from this text: \n' + rawOutput,
     output: Output.array({
       element: z.object({

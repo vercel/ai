@@ -105,8 +105,6 @@ export function getPiTerminalError(event: PiSessionEvent): string | undefined {
   ) {
     return event.content.trim();
   }
-
-  return undefined;
 }
 
 /** Pull the assistant text from a `turn_end` / `message_end` event payload. */

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyCredentialForwarding,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
 } from './credential-forwarding';
 import { isSandboxCredentialPlaceholder } from './sandbox-credential-brokering';
 
@@ -88,13 +88,13 @@ describe('applyCredentialForwarding', () => {
   });
 });
 
-describe('createSandboxCredentialEnvironment', () => {
+describe('resolveSandboxCredentialEnvironment', () => {
   it('forwards generated placeholders and returns the exact results', async () => {
     const credentialForwarding = vi.fn(
       ({ credential }: { credential: string }) => `wrapped-${credential}`,
     );
 
-    const result = await createSandboxCredentialEnvironment({
+    const result = await resolveSandboxCredentialEnvironment({
       environment: {
         API_KEY: 'real-secret',
         SECOND_API_KEY: 'second-real-secret',
@@ -114,11 +114,87 @@ describe('createSandboxCredentialEnvironment', () => {
 
   it('does not add absent credential variables', async () => {
     await expect(
-      createSandboxCredentialEnvironment({
+      resolveSandboxCredentialEnvironment({
         environment: { BASE_URL: 'https://api.example.com' },
         credentialEnvironmentVariables: ['API_KEY'],
         credentialForwarding: undefined,
       }),
     ).resolves.toEqual({});
+  });
+
+  it('reuses only current credentials and creates placeholders for new names', async () => {
+    const previousSandboxCredentialEnvironment = {
+      API_KEY: 'saved-placeholder',
+      REMOVED_API_KEY: 'removed-placeholder',
+    };
+    const credentialForwarding = vi.fn(
+      ({ credential }: { credential: string }) => `wrapped-${credential}`,
+    );
+
+    const result = await resolveSandboxCredentialEnvironment({
+      environment: {
+        API_KEY: 'rotated-secret',
+        NEW_API_KEY: 'new-secret',
+        BASE_URL: 'https://api.example.com',
+      },
+      credentialEnvironmentVariables: [
+        'API_KEY',
+        'NEW_API_KEY',
+        'NEW_API_KEY',
+        'REMOVED_API_KEY',
+      ],
+      credentialForwarding,
+      previousSandboxCredentialEnvironment,
+    });
+
+    expect(result).toEqual({
+      API_KEY: 'saved-placeholder',
+      NEW_API_KEY: expect.stringMatching(/^wrapped-aisdkhc_/),
+    });
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: expect.stringMatching(/^aisdkhc_[A-Za-z0-9_-]{43}$/),
+      environmentVariableName: 'NEW_API_KEY',
+    });
+    expect(previousSandboxCredentialEnvironment).toEqual({
+      API_KEY: 'saved-placeholder',
+      REMOVED_API_KEY: 'removed-placeholder',
+    });
+  });
+
+  it('keeps saved credentials with custom formats without forwarding them again', async () => {
+    const credentialForwarding = vi.fn(() => 'another-placeholder');
+    await expect(
+      resolveSandboxCredentialEnvironment({
+        environment: { GITHUB_TOKEN: 'rotated-secret' },
+        credentialEnvironmentVariables: ['GITHUB_TOKEN'],
+        credentialForwarding,
+        previousSandboxCredentialEnvironment: {
+          GITHUB_TOKEN: 'gho_saved-placeholder',
+        },
+      }),
+    ).resolves.toEqual({ GITHUB_TOKEN: 'gho_saved-placeholder' });
+    expect(credentialForwarding).not.toHaveBeenCalled();
+  });
+
+  it('generates placeholders when older lifecycle state has no saved map', async () => {
+    const result = await resolveSandboxCredentialEnvironment({
+      environment: { API_KEY: 'host-secret' },
+      credentialEnvironmentVariables: ['API_KEY'],
+      credentialForwarding: undefined,
+    });
+    expect(result.API_KEY).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(JSON.stringify(result)).not.toContain('host-secret');
+  });
+
+  it('propagates forwarding failures before returning a partial environment', async () => {
+    await expect(
+      resolveSandboxCredentialEnvironment({
+        environment: { API_KEY: 'host-secret' },
+        credentialEnvironmentVariables: ['API_KEY'],
+        credentialForwarding: () => {
+          throw new Error('forwarding failed');
+        },
+      }),
+    ).rejects.toThrow('forwarding failed');
   });
 });

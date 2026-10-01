@@ -164,6 +164,69 @@ describe('lastAssistantMessageIsCompleteWithApprovalResponses', () => {
     ).toBe(true);
   });
 
+  it('should return false when a tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: true },
+              },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_2',
+                state: 'output-available',
+                input: { city: 'Paris' },
+                output: { progress: 50 },
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
+  it('should return false when a dynamic tool output is preliminary', () => {
+    expect(
+      lastAssistantMessageIsCompleteWithApprovalResponses({
+        messages: [
+          {
+            id: '1',
+            role: 'assistant',
+            parts: [
+              { type: 'step-start' },
+              {
+                type: 'tool-getWeather',
+                toolCallId: 'call_1',
+                state: 'approval-responded',
+                input: { city: 'Tokyo' },
+                approval: { id: 'approval_1', approved: true },
+              },
+              {
+                type: 'dynamic-tool',
+                toolName: 'getDynamicWeather',
+                toolCallId: 'call_2',
+                state: 'output-available',
+                input: { city: 'Paris' },
+                output: { progress: 50 },
+                preliminary: true,
+              },
+            ],
+          },
+        ],
+      }),
+    ).toBe(false);
+  });
+
   it('should return true when a tool output is denied and another approval has responded', () => {
     expect(
       lastAssistantMessageIsCompleteWithApprovalResponses({

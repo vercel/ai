@@ -124,7 +124,7 @@ export function createFireworks(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/fireworks/${VERSION}`,
+      `ai-sdk-fireworks/${VERSION}`,
     );
 
   interface CommonModelConfig {

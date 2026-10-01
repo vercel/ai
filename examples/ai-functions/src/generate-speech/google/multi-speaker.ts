@@ -4,10 +4,12 @@ import { saveAudioFile } from '../../lib/save-audio';
 import { run } from '../../lib/run';
 
 run(async () => {
+  // Gemini 3.1 demonstrates speaker-labeled text; see structured-dialogue.ts
+  // for Gemini 3.8 structured turns.
   // Multi-speaker dialogue is configured through provider options and overrides
   // the top-level `voice`. Each speaker name must appear in the input text.
   const result = await generateSpeech({
-    model: google.speech('gemini-2.5-flash-preview-tts'),
+    model: google.speech('gemini-3.1-flash-tts-preview'),
     text: 'Joe: How is it going today, Jane?\nJane: Not too bad, looking forward to the weekend!',
     providerOptions: {
       google: {

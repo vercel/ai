@@ -74,7 +74,7 @@ export function createGmicloud(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/gmicloud/${VERSION}`,
+      `ai-sdk-gmicloud/${VERSION}`,
     );
 
   const createLanguageModel = (modelId: GmicloudChatModelId) => {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/policy-opa",
-  "version": "1.0.93",
+  "version": "1.0.126",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -17,9 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -42,7 +42,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3"
   },
   "peerDependencies": {

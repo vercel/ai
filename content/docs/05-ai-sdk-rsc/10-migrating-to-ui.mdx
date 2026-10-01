@@ -47,7 +47,7 @@ export async function sendMessage(message: string) {
   messages.update([...messages.get(), { role: 'user', content: message }]);
 
   const { value: stream } = await streamUI({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     instructions: 'you are a friendly assistant!',
     messages: messages.get(),
     text: async function* ({ content, done }) {
@@ -82,7 +82,8 @@ export default function Page() {
       {messages.map(message => message)}
 
       <form
-        onSubmit={async () => {
+        onSubmit={async event => {
+          event.preventDefault();
           const response: ReactNode = await sendMessage(input);
           setMessages(msgs => [...msgs, response]);
         }}
@@ -187,7 +188,7 @@ import { getWeather } from '@/utils/queries';
 import { Weather } from '@/components/weather';
 
 const { value: stream } = await streamUI({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'you are a friendly assistant!',
   messages,
   text: async function* ({ content, done }) {
@@ -399,7 +400,7 @@ import { openai } from '@ai-sdk/openai';
 import { streamUI } from '@ai-sdk/rsc';
 
 const { value: stream } = await streamUI({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   instructions: 'you are a friendly assistant!',
   messages,
   initial: <div>Loading...</div>,
@@ -642,9 +643,9 @@ export async function generateSampleNotifications() {
     for await (const partialObject of partialOutputStream) {
       stream.update(partialObject);
     }
-  })();
 
-  stream.done();
+    stream.done();
+  })();
 
   return { partialNotificationsStream: stream.value };
 }

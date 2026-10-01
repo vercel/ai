@@ -18,7 +18,7 @@ const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
-it('should inline local JSON Schema references in tool requests', async () => {
+it('should preserve local JSON Schema references in tool requests', async () => {
   server.urls[TEST_URL].response = {
     type: 'json-value',
     body: {
@@ -66,16 +66,19 @@ it('should inline local JSON Schema references in tool requests', async () => {
 
   expect(
     (await server.calls[0].requestBodyJson).tools[0].functionDeclarations[0]
-      .parameters,
+      .parametersJsonSchema,
   ).toEqual({
     type: 'object',
     properties: {
       locale: {
-        type: 'string',
-        enum: ['de', 'en'],
+        $ref: '#/$defs/Locale',
         description: 'Locale for formatting',
       },
     },
     required: ['locale'],
+    additionalProperties: false,
+    $defs: {
+      Locale: { type: 'string', enum: ['de', 'en'] },
+    },
   });
 });
