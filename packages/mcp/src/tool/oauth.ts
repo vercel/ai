@@ -20,6 +20,7 @@ import {
   InvalidClientError,
   InvalidGrantError,
   UnauthorizedClientError,
+  AuthorizationServerMismatchError,
 } from '../error/oauth-error';
 import {
   resourceUrlFromServerUrl,
@@ -360,7 +361,7 @@ function assertAuthorizationServerInformationMatches({
     storedAuthorizationServerInformation.tokenEndpoint !==
       currentAuthorizationServerInformation.tokenEndpoint
   ) {
-    throw new MCPClientOAuthError({
+    throw new AuthorizationServerMismatchError({
       message:
         'OAuth authorization server metadata does not match the metadata that issued the stored credentials',
     });
