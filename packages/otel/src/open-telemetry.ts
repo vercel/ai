@@ -1,6 +1,7 @@
 import {
   context,
   SpanKind,
+  SpanStatusCode,
   trace,
   type Attributes,
   type Context as OpenTelemetryContext,
@@ -645,6 +646,10 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
 
     state.inferenceSpan.setAttributes(
@@ -883,6 +888,10 @@ export class OpenTelemetry implements Telemetry {
   onLanguageModelCallEnd(event: LanguageModelCallEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
+
+    if (event.finishReason === 'error') {
+      state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
 
     const { telemetry } = state;
     const providerName = mapProviderName(event.provider);
@@ -1123,6 +1132,10 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
 
     state.stepSpan.setAttributes(
@@ -1280,6 +1293,10 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
 
     state.rootSpan.setAttributes(
@@ -1328,6 +1345,10 @@ export class OpenTelemetry implements Telemetry {
   private onObjectOperationEnd(event: GenerateObjectEndEvent<unknown>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
+
+    if (event.finishReason === 'error') {
+      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
 
     const { telemetry } = state;
 
