@@ -22,7 +22,6 @@ run(async () => {
               'https://ark-doc.tos-ap-southeast-1.bytepluses.com/doc_image/seelite_ref_3.png',
             ],
             watermark: false,
-            pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoModelOptions,
         },
       }),

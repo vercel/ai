@@ -44,7 +44,7 @@ try {
   const tools = await mcpClient.tools();
 
   const { text } = await generateText({
-    model: 'openai/gpt-5.4',
+    model: 'openai/gpt-6-astra',
     tools,
     stopWhen: isStepCount(10),
     prompt: 'Use the available tools to answer the user question.',
@@ -58,6 +58,17 @@ try {
 
 The client converts MCP tool definitions into AI SDK tools, so model calls can
 use them through the standard `tools` option.
+
+## Protocol versions
+
+The client supports legacy MCP protocol versions through the `initialize`
+handshake and MCP `2026-07-28` through stateless protocol discovery. The
+built-in stdio transport probes with `server/discover` and falls back to the
+legacy handshake when connected to an older server.
+
+Custom transports can opt into the same negotiation by setting
+`supportsProtocolVersionDiscovery` to `true`. Modern requests include the
+protocol version, client capabilities, and client information in `_meta`.
 
 For streaming responses, close the MCP client when the stream finishes:
 
@@ -73,7 +84,7 @@ const mcpClient = await createMCPClient({
 });
 
 const result = streamText({
-  model: 'openai/gpt-5.4',
+  model: 'openai/gpt-6-astra',
   tools: await mcpClient.tools(),
   prompt: 'Use the available tools to answer the user question.',
   onEnd: async () => {
@@ -89,6 +100,10 @@ for await (const textPart of result.textStream) {
 ## Transports
 
 HTTP is recommended for production deployments:
+
+Session persistence applies only to legacy MCP protocol versions. MCP
+`2026-07-28` is stateless and does not use session ids or cached initialize
+results.
 
 ```ts
 import { createMCPClient } from '@ai-sdk/mcp';

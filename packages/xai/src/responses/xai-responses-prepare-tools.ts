@@ -4,8 +4,8 @@ import {
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import { validateTypes } from '@ai-sdk/provider-utils';
-import { removeAdditionalPropertiesFalse } from '../remove-additional-properties';
 import { fileSearchArgsSchema } from '../tool/file-search';
+import { imageGenerationArgsSchema } from '../tool/image-generation';
 import { mcpServerArgsSchema } from '../tool/mcp-server';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { xSearchArgsSchema } from '../tool/x-search';
@@ -99,6 +99,19 @@ export async function prepareResponsesTools({
           break;
         }
 
+        case 'xai.image_generation': {
+          const args = await validateTypes({
+            value: tool.args,
+            schema: imageGenerationArgsSchema,
+          });
+
+          xaiTools.push({
+            type: 'image_generation',
+            action: args.action,
+          });
+          break;
+        }
+
         case 'xai.file_search': {
           const args = await validateTypes({
             value: tool.args,
@@ -144,7 +157,7 @@ export async function prepareResponsesTools({
         type: 'function',
         name: tool.name,
         description: tool.description,
-        parameters: removeAdditionalPropertiesFalse(tool.inputSchema),
+        parameters: tool.inputSchema,
         ...(tool.strict != null ? { strict: tool.strict } : {}),
       });
     }

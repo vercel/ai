@@ -1,8 +1,3 @@
-export type {
-  XaiLanguageModelChatOptions,
-  /** @deprecated Use `XaiLanguageModelChatOptions` instead. */
-  XaiLanguageModelChatOptions as XaiProviderOptions,
-} from './xai-chat-language-model-options';
 export type { XaiErrorData } from './xai-error';
 export type { XaiFilePartProviderOptions } from './xai-file-part-options';
 export type {
@@ -30,6 +25,7 @@ export { XaiRealtimeModel as Experimental_XaiRealtimeModel } from './realtime/xa
 export type { XaiRealtimeModelConfig as Experimental_XaiRealtimeModelConfig } from './realtime/xai-realtime-model';
 export {
   codeExecution,
+  imageGeneration,
   mcpServer,
   viewImage,
   viewXVideo,

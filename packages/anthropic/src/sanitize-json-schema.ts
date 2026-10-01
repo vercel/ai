@@ -1,4 +1,5 @@
 import type { JSONSchema7, JSONSchema7Definition } from '@ai-sdk/provider';
+import { isRecord } from '@ai-sdk/provider-utils';
 
 const SUPPORTED_STRING_FORMATS = new Set([
   'date-time',
@@ -44,7 +45,7 @@ export function sanitizeJsonSchema(schema: JSONSchema7): JSONSchema7 {
 function sanitizeDefinition(
   definition: JSONSchema7Definition,
 ): JSONSchema7Definition {
-  if (typeof definition === 'boolean' || !isPlainObject(definition)) {
+  if (typeof definition === 'boolean' || !isRecord(definition)) {
     return definition;
   }
 
@@ -196,8 +197,4 @@ function formatConstraintValue(value: unknown): string {
   }
 
   return JSON.stringify(value);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

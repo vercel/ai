@@ -8,7 +8,11 @@ export type TelemetryTracingEventType =
   | 'executeTool'
   | 'embed'
   | 'embedMany'
-  | 'rerank';
+  | 'rerank'
+  | 'generateSpeech'
+  | 'transcribe'
+  | 'streamTranscribe'
+  | 'experimental_evaluate';
 
 export type TelemetryTracingChannelMessage<EVENT = unknown> = {
   readonly type: TelemetryTracingEventType;

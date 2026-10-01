@@ -317,7 +317,7 @@ describe('streamLanguageModelCall', () => {
               },
             ],
             "finishReason": "tool-calls",
-            "modelId": "mock-model-id",
+            "modelId": "response-model",
             "performance": {
               "effectiveOutputTokensPerSecond": 0,
               "effectiveTotalTokensPerSecond": 0,
@@ -812,6 +812,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": "SGVsbG8gV29ybGQ=",
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": undefined,
             },
@@ -852,6 +853,49 @@ describe('streamLanguageModelCall', () => {
       `);
     });
 
+    it.each(['file', 'reasoning-file'] as const)(
+      'should download HTTPS %s parts',
+      async type => {
+        const originalFetch = globalThis.fetch;
+        const fetchMock = vi.fn(async () => new Response('Hello World'));
+        globalThis.fetch = fetchMock;
+        try {
+          const result = await streamLanguageModelCallResult({
+            streamParts: [
+              {
+                type,
+                data: {
+                  type: 'url',
+                  url: new URL('https://example.com/generated.txt'),
+                },
+                mediaType: 'text/plain',
+              },
+              {
+                type: 'finish',
+                finishReason: { unified: 'stop', raw: 'stop' },
+                usage: testUsage,
+              },
+            ],
+            tools: undefined,
+          });
+
+          const filePart = result[0];
+          expect(filePart.type).toBe(type);
+          if (filePart.type !== 'file' && filePart.type !== 'reasoning-file') {
+            throw new Error('Expected a file part.');
+          }
+
+          expect(filePart.file.base64).toBe('SGVsbG8gV29ybGQ=');
+          expect(filePart.file.uint8Array).toEqual(
+            new TextEncoder().encode('Hello World'),
+          );
+          expect(fetchMock).toHaveBeenCalledOnce();
+        } finally {
+          globalThis.fetch = originalFetch;
+        }
+      },
+    );
+
     it('should use GeneratedFile with providerMetadata', async () => {
       const result = await streamLanguageModelCallResult({
         streamParts: [
@@ -884,6 +928,7 @@ describe('streamLanguageModelCall', () => {
             "file": DefaultGeneratedFileWithType {
               "base64Data": undefined,
               "mediaType": "text/plain",
+              "providerMetadata": undefined,
               "type": "file",
               "uint8ArrayData": Uint8Array [
                 72,
@@ -1045,6 +1090,114 @@ describe('streamLanguageModelCall', () => {
   });
 
   describe('tool-call parts', () => {
+    it('should not synthesize a client tool error for an invalid provider-executed tool call', async () => {
+      const result = await streamLanguageModelCallResult({
+        streamParts: [
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'web_search',
+            input: '{}',
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'web_search',
+            result: {
+              type: 'web_search_tool_result_error',
+              errorCode: 'invalid_tool_input',
+            },
+            isError: true,
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'tool-calls', raw: 'tool_use' },
+            usage: testUsage,
+          },
+        ],
+        tools: {
+          web_search: {
+            type: 'provider',
+            isProviderExecuted: true,
+            id: 'test.web_search',
+            inputSchema: z.object({ query: z.string() }),
+            outputSchema: z.unknown(),
+            args: {},
+          },
+        },
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        [
+          {
+            "dynamic": true,
+            "error": [AI_InvalidToolInputError: Invalid input for tool web_search: AI_TypeValidationError: Type validation failed: Value: {}.
+        Error message: [
+          {
+            "expected": "string",
+            "code": "invalid_type",
+            "path": [
+              "query"
+            ],
+            "message": "Invalid input: expected string, received undefined"
+          }
+        ]],
+            "input": {},
+            "invalid": true,
+            "providerExecuted": true,
+            "providerMetadata": undefined,
+            "title": undefined,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-call",
+          },
+          {
+            "dynamic": undefined,
+            "error": {
+              "errorCode": "invalid_tool_input",
+              "type": "web_search_tool_result_error",
+            },
+            "input": {},
+            "providerExecuted": true,
+            "toolCallId": "call-1",
+            "toolName": "web_search",
+            "type": "tool-error",
+          },
+          {
+            "finishReason": "tool-calls",
+            "performance": {
+              "effectiveOutputTokensPerSecond": 0,
+              "effectiveTotalTokensPerSecond": 0,
+              "inputTokensPerSecond": 0,
+              "outputTokensPerSecond": 0,
+              "responseTimeMs": 0,
+              "timeBetweenOutputChunksMs": undefined,
+              "timeToFirstOutputMs": 0,
+            },
+            "providerMetadata": undefined,
+            "rawFinishReason": "tool_use",
+            "type": "model-call-end",
+            "usage": {
+              "inputTokenDetails": {
+                "cacheReadTokens": undefined,
+                "cacheWriteTokens": undefined,
+                "noCacheTokens": 3,
+              },
+              "inputTokens": 3,
+              "outputTokenDetails": {
+                "reasoningTokens": undefined,
+                "textTokens": 10,
+              },
+              "outputTokens": 10,
+              "raw": undefined,
+              "totalTokens": 13,
+            },
+          },
+        ]
+      `);
+    });
+
     it('should measure time to first output from tool-call parts', async () => {
       const tools = {
         testTool: tool({

@@ -4,8 +4,14 @@
  * These tests focus on testing the transport's behavior through its options
  * and callback functions rather than complex mocking.
  */
-import type { UIMessage } from 'ai';
+import {
+  createUIMessageStreamResponse,
+  type UIMessage,
+  type UIMessageChunk,
+} from 'ai';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ModelCallStreamPart } from './do-stream-step.js';
+import { createModelCallToUIChunkTransform } from './to-ui-message-chunk.js';
 import { WorkflowChatTransport } from './workflow-chat-transport.js';
 
 describe('WorkflowChatTransport', () => {
@@ -318,6 +324,98 @@ describe('WorkflowChatTransport', () => {
           credentials: undefined,
           signal: controller.signal,
         },
+      );
+    });
+  });
+
+  describe('transformed WorkflowAgent stream resumption', () => {
+    function streamFrom<T>(values: readonly T[]): ReadableStream<T> {
+      return new ReadableStream({
+        start(controller) {
+          for (const value of values) {
+            controller.enqueue(value);
+          }
+          controller.close();
+        },
+      });
+    }
+
+    async function collect<T>(stream: ReadableStream<T>): Promise<T[]> {
+      const values: T[] = [];
+      const reader = stream.getReader();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          values.push(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+
+      return values;
+    }
+
+    it('reconstructs an interrupted tool stream in UI chunk index space', async () => {
+      const rawToolTurn = [
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', text: 'Checking' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'tool-input-start', id: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          id: 'call-1',
+          delta: '{"city":"London"}',
+        },
+        { type: 'tool-input-end', id: 'call-1' },
+        {
+          type: 'tool-call',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'London' },
+        },
+      ] as unknown as ModelCallStreamPart[];
+
+      const transformRawStream = (uiStartIndex = 0) =>
+        streamFrom(rawToolTurn).pipeThrough(
+          createModelCallToUIChunkTransform({ uiStartIndex }),
+        );
+      const canonical = await collect(transformRawStream());
+      const interruptedAt = 4;
+
+      mockFetch.mockImplementation(async input => {
+        const url = String(input);
+
+        if (url === '/api/chat') {
+          return createUIMessageStreamResponse({
+            stream: streamFrom<UIMessageChunk>(
+              canonical.slice(0, interruptedAt),
+            ),
+            headers: { 'x-workflow-run-id': 'run-1' },
+          });
+        }
+
+        const uiStartIndex = Number(
+          new URL(url, 'http://localhost').searchParams.get('startIndex'),
+        );
+        return createUIMessageStreamResponse({
+          stream: transformRawStream(uiStartIndex),
+        });
+      });
+
+      const transport = new WorkflowChatTransport({ fetch: mockFetch });
+      const stream = await transport.sendMessages({
+        trigger: 'submit-message',
+        chatId: 'chat-1',
+        messages: [],
+      });
+
+      await expect(collect(stream)).resolves.toEqual(canonical);
+      expect(mockFetch).toHaveBeenNthCalledWith(
+        2,
+        `/api/chat/run-1/stream?startIndex=${interruptedAt}`,
+        expect.any(Object),
       );
     });
   });
@@ -679,6 +777,41 @@ describe('WorkflowChatTransport', () => {
         'tool-output-available',
         'finish',
       ]);
+    });
+
+    it('forgets started parts after a reset-step chunk', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const transport = new WorkflowChatTransport({
+        fetch: mockFetch,
+        initialStartIndex: -10,
+      });
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        headers: new Headers({ 'x-workflow-stream-tail-index': '50' }),
+        body: makeSSEStream(
+          '{"type":"tool-input-start","toolCallId":"stale","toolName":"deleteFile"}',
+          '{"type":"reset-step"}',
+          '{"type":"tool-output-available","toolCallId":"stale","output":{}}',
+          '{"type":"tool-input-start","toolCallId":"retried","toolName":"deleteFile"}',
+          '{"type":"tool-input-available","toolCallId":"retried","toolName":"deleteFile","input":{}}',
+          '{"type":"finish"}',
+        ),
+      });
+
+      const stream = await transport.reconnectToStream({ chatId: 'test-chat' });
+      const chunks = (await collect(stream!)) as Array<{ type: string }>;
+
+      expect(chunks.map(chunk => chunk.type)).toEqual([
+        'tool-input-start',
+        'reset-step',
+        'tool-input-start',
+        'tool-input-available',
+        'finish',
+      ]);
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+
+      warnSpy.mockRestore();
     });
 
     it('recovers a tool call via a bare tool-input-available (no tool-input-start in the window)', async () => {

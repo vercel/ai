@@ -53,6 +53,34 @@ describe('JustBashSandboxSession', () => {
       expect(result.stdout.trim()).toBe('/tmp/cwd-test');
     });
 
+    it('makes per-command environment variables available', async () => {
+      const workDir = '/tmp/env test';
+      const value = 'value with spaces and "$(shell syntax)"';
+
+      const result = await sandbox.run({
+        command:
+          'mkdir -p "$WORK_DIR" && printf "%s" "$VALUE" && test "$UNSET_AFTER" = scoped',
+        env: {
+          WORK_DIR: workDir,
+          VALUE: value,
+          UNSET_AFTER: 'scoped',
+        },
+      });
+
+      expect(result).toEqual({
+        exitCode: 0,
+        stdout: value,
+        stderr: '',
+      });
+      expect(
+        (
+          await sandbox.run({
+            command: `test -d '${workDir}' && test -z "$UNSET_AFTER"`,
+          })
+        ).exitCode,
+      ).toBe(0);
+    });
+
     it('throws when abortSignal is already aborted', async () => {
       const ac = new AbortController();
       ac.abort();
@@ -134,6 +162,17 @@ describe('JustBashSandboxSession', () => {
   });
 
   describe('spawn', () => {
+    it('installs realpath before starting the first process', async () => {
+      const proc = await sandbox.spawn({ command: 'realpath /work' });
+      const [stdout, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        proc.wait(),
+      ]);
+
+      expect(stdout).toBe('/work\n');
+      expect(exitCode).toBe(0);
+    });
+
     it('streams stdout and stderr and resolves wait() with exit code', async () => {
       const proc = await sandbox.spawn({
         command: 'echo out && echo err >&2',
@@ -147,6 +186,24 @@ describe('JustBashSandboxSession', () => {
 
       expect(stdout).toBe('out\n');
       expect(stderr).toBe('err\n');
+      expect(exitCode).toBe(0);
+    });
+
+    it('makes per-command environment variables available', async () => {
+      const value = 'spawned value with "$(shell syntax)"';
+      const proc = await sandbox.spawn({
+        command: 'printf "%s" "$SPAWN_VALUE"',
+        env: { SPAWN_VALUE: value },
+      });
+
+      const [stdout, stderr, { exitCode }] = await Promise.all([
+        collect(proc.stdout),
+        collect(proc.stderr),
+        proc.wait(),
+      ]);
+
+      expect(stdout).toBe(value);
+      expect(stderr).toBe('');
       expect(exitCode).toBe(0);
     });
 

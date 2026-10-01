@@ -31,6 +31,22 @@ export type OpenaiResponsesProviderMetadata = {
   openai: ResponsesProviderMetadata;
 };
 
+export type ResponsesToolCallProviderMetadata = {
+  itemId: string;
+  async?: boolean;
+  namespace?: string;
+  caller?:
+    | { type: 'direct' }
+    | {
+        type: 'program';
+        callerId: string;
+      };
+};
+
+export type OpenaiResponsesToolCallProviderMetadata = {
+  openai: ResponsesToolCallProviderMetadata;
+};
+
 export type ResponsesCompactionProviderMetadata = {
   type: 'compaction';
   itemId: string;

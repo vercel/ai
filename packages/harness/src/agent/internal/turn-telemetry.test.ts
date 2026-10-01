@@ -1,19 +1,10 @@
 import type { Telemetry } from 'ai';
+import { createNullLanguageModelUsage, DefaultStepResult } from 'ai/internal';
 import { describe, expect, test } from 'vitest';
-import { createTurnTelemetry } from './turn-telemetry';
+import { createTurnLifecycle } from './turn-telemetry';
 
-const usage = {
-  inputTokens: {
-    total: 1,
-    noCache: 1,
-    cacheRead: undefined,
-    cacheWrite: undefined,
-  },
-  outputTokens: { total: 1, text: 1, reasoning: undefined },
-};
-
-describe('createTurnTelemetry', () => {
-  test('includes the current stepNumber on onStepEnd events', () => {
+describe('createTurnLifecycle', () => {
+  test('includes the current stepNumber on onStepEnd events', async () => {
     const stepStartNumbers: number[] = [];
     const stepEndNumbers: number[] = [];
     const integration = {
@@ -24,29 +15,58 @@ describe('createTurnTelemetry', () => {
         stepEndNumbers.push(event.stepNumber);
       },
     } satisfies Telemetry;
-
-    const telemetry = createTurnTelemetry({
+    const lifecycle = createTurnLifecycle({
+      callId: 'call-1',
       telemetry: { integrations: [integration] },
+      callbacks: {},
       harnessId: 'mock',
       modelId: 'mock-model',
       instructions: undefined,
-      promptText: 'go',
-      runtimeContext: undefined,
+      tools: {},
+      toolsContext: {},
+      activeToolNames: [],
+      toolSpecs: [],
+      messages: [{ role: 'user', content: 'go' }],
+      runtimeContext: {},
+      output: undefined,
     });
 
-    telemetry.start();
-    telemetry.ensureStepOpen();
-    telemetry.stepFinish({
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage,
-      content: [{ type: 'text', text: 'done' }],
-    });
-
-    telemetry.ensureStepOpen();
-    telemetry.end({
-      finishReason: { unified: 'stop', raw: 'stop' },
-      usage,
-    });
+    for (const stepNumber of [0, 1]) {
+      await lifecycle.ensureStepOpen();
+      await lifecycle.stepEnd(
+        new DefaultStepResult({
+          callId: 'call-1',
+          stepNumber,
+          provider: 'harness:mock',
+          modelId: 'mock-model',
+          runtimeContext: {},
+          toolsContext: {},
+          content: [],
+          finishReason: 'stop',
+          rawFinishReason: 'stop',
+          usage: createNullLanguageModelUsage(),
+          performance: {
+            effectiveOutputTokensPerSecond: 0,
+            outputTokensPerSecond: undefined,
+            inputTokensPerSecond: undefined,
+            effectiveTotalTokensPerSecond: 0,
+            stepTimeMs: 0,
+            responseTimeMs: 0,
+            toolExecutionMs: {},
+            timeToFirstOutputMs: undefined,
+          },
+          warnings: undefined,
+          request: {},
+          response: {
+            id: `response-${stepNumber}`,
+            modelId: 'mock-model',
+            timestamp: new Date(0),
+            messages: [],
+          },
+          providerMetadata: undefined,
+        }),
+      );
+    }
 
     expect(stepStartNumbers).toEqual([0, 1]);
     expect(stepEndNumbers).toEqual([0, 1]);

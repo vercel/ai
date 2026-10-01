@@ -3,6 +3,7 @@ import {
   bridgeReadySchema,
   inboundMessageSchema,
   outboundMessageSchema,
+  startMessageSchema,
 } from './codex-bridge-protocol';
 
 describe('outboundMessageSchema', () => {
@@ -45,7 +46,6 @@ describe('outboundMessageSchema', () => {
     { type: 'file-change', event: 'create', path: 'notes.md' },
     { type: 'file-change', event: 'modify', path: 'src/lib.ts' },
     { type: 'file-change', event: 'delete', path: 'old.txt' },
-    { type: 'bridge-interrupted', ok: true },
     { type: 'error', error: 'boom' },
     { type: 'raw', rawValue: { hello: 'world' } },
   ];
@@ -69,10 +69,16 @@ describe('inboundMessageSchema', () => {
       inboundMessageSchema.parse({
         type: 'start',
         prompt: 'hi',
+        instructions: 'Be concise.',
+        restartThread: true,
         tools: [{ name: 'deploy' }],
         model: 'gpt-5.1',
         reasoningEffort: 'high',
         webSearch: true,
+        codexConfig: {
+          model_verbosity: 'low',
+          features: { multi_agent: false },
+        },
       }),
     ).not.toThrow();
   });
@@ -98,16 +104,29 @@ describe('inboundMessageSchema', () => {
     ).not.toThrow();
   });
 
-  it('accepts user-message, abort, interrupt, shutdown', () => {
+  it('accepts user-message, abort, stop, and destroy', () => {
     for (const sample of [
-      { type: 'user-message', text: 'hi' },
+      { type: 'user-message', messageId: 'message-1', text: 'hi' },
       { type: 'abort' },
-      { type: 'interrupt' },
-      { type: 'shutdown' },
+      { type: 'stop' },
+      { type: 'destroy' },
     ]) {
       expect(() => inboundMessageSchema.parse(sample)).not.toThrow();
     }
   });
+
+  it.each(['xhigh', 'max'] as const)(
+    'accepts %s reasoning effort in a start message',
+    reasoningEffort => {
+      expect(() =>
+        startMessageSchema.parse({
+          type: 'start',
+          prompt: 'Solve a difficult problem.',
+          reasoningEffort,
+        }),
+      ).not.toThrow();
+    },
+  );
 });
 
 describe('bridgeReadySchema', () => {

@@ -53,7 +53,10 @@ For Node.js applications (without Next.js), register the integration at the top 
 
 ### Step 2: Enabling Telemetry
 
-Once a telemetry integration is registered, all AI SDK calls emit telemetry events by default.
+Once a telemetry integration is registered, supported AI SDK calls emit
+telemetry events by default. This includes text and object generation,
+embeddings, reranking, speech generation, and both non-streaming and streaming
+transcription.
 You can still pass `telemetry` to attach metadata (like `functionId`) or to opt out of a specific call:
 
 ```ts highlight="4-6"
@@ -70,6 +73,34 @@ By default, both inputs and outputs are recorded. You can disable them by settin
 
 Disabling the recording of inputs and outputs can be useful for privacy, data transfer, and performance reasons.
 You might for example want to disable recording inputs if they contain sensitive information.
+
+For `generateSpeech`, input telemetry contains the source text and output
+telemetry contains the generated audio byte length, media type, and format.
+For `transcribe` and `experimental_streamTranscribe`, telemetry contains the
+input audio byte length and media type plus the output transcript. Raw audio is
+never included in telemetry events. Streaming transcription reports its final
+byte length when the audio stream has been consumed and the transcription
+finishes.
+
+Custom integrations receive stable `generateSpeech` and `transcribe`
+operations through `onStart` and `onEnd`. To keep the experimental API isolated,
+`experimental_streamTranscribe` uses
+`experimental_onStreamTranscriptionStart` and
+`experimental_onStreamTranscriptionEnd`; all three operations report failures
+through `onError`.
+
+An integration that wraps or delegates to another integration must explicitly
+forward the experimental streaming transcription callbacks. Forwarding only
+the stable `onStart` and `onEnd` callbacks does not observe
+`experimental_streamTranscribe`.
+
+The built-in OpenTelemetry integrations record numeric provider usage by
+default, preserving each reported unit. The modern integration uses attributes
+such as `gen_ai.usage.characters`, `gen_ai.usage.seconds`, and
+`gen_ai.usage.input_tokens`; `LegacyOpenTelemetry` uses the corresponding
+`ai.usage.*` attributes. The provider-native usage object remains available to
+callbacks, and can also be included as the supplemental `ai.response.usage`
+attribute by enabling `usage: true`.
 
 ### Opting out
 
@@ -126,7 +157,7 @@ const result = await generateText({
 });
 ```
 
-In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, and `ToolLoopAgent`.
+In this example, telemetry integrations receive `runtimeContext` as `{ requestId: 'req_abc' }`. Properties set to `false` or omitted are excluded. If `telemetry.includeRuntimeContext` is omitted, no runtime context properties are included. `telemetry.includeRuntimeContext` is supported by `generateText`, `streamText`, `ToolLoopAgent`, `embed`, `embedMany`, `rerank`, and `experimental_evaluate`.
 
 <Note>
   `telemetry.includeRuntimeContext` only filters telemetry integrations,
@@ -219,11 +250,11 @@ registerTelemetry(new OpenTelemetry());
 You can also register multiple integrations in a single call by passing them as additional arguments. They all receive the same lifecycle events:
 
 ```ts
-import { registerTelemetryIntegration } from 'ai';
+import { registerTelemetry } from 'ai';
 import { OpenTelemetry } from '@ai-sdk/otel';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
-registerTelemetryIntegration(new OpenTelemetry(), DevToolsTelemetry());
+registerTelemetry(new OpenTelemetry(), DevToolsTelemetry());
 ```
 
 ### Per-call integrations
@@ -235,7 +266,7 @@ import { streamText } from 'ai';
 import { DevToolsTelemetry } from '@ai-sdk/devtools';
 
 const result = streamText({
-  model: openai('gpt-4o'),
+  model: openai('gpt-6-astra'),
   prompt: 'Hello!',
   telemetry: {
     integrations: [DevToolsTelemetry()],
@@ -356,7 +387,7 @@ export function myIntegration(): Telemetry {
       name: 'onLanguageModelCallEnd',
       type: '(event: LanguageModelCallEndEvent) => void | PromiseLike<void>',
       description:
-        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins.',
+        'Called after the model response has been normalized and parsed, but before any client-side tool execution begins. Includes provider-specific metadata when available.',
     },
     {
       name: 'onToolExecutionStart',
@@ -384,6 +415,29 @@ export function myIntegration(): Telemetry {
       description: 'Called when an individual reranking model call completes.',
     },
     {
+      name: 'experimental_onEvaluateStart',
+      type: '(event: Experimental_EvaluateStartEvent) => void | PromiseLike<void>',
+      description: 'Called when an experimental evaluation operation begins.',
+    },
+    {
+      name: 'experimental_onEvaluationModelCallStart',
+      type: '(event: Experimental_EvaluationModelCallStartEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the logical evaluation model call begins. The call includes any provider retries.',
+    },
+    {
+      name: 'experimental_onEvaluationModelCallEnd',
+      type: '(event: Experimental_EvaluationModelCallEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when the logical evaluation model call, including any retries, completes.',
+    },
+    {
+      name: 'experimental_onEvaluateEnd',
+      type: '(event: Experimental_EvaluateEndEvent) => void | PromiseLike<void>',
+      description:
+        'Called when an experimental evaluation operation completes.',
+    },
+    {
       name: 'onEnd',
       type: '(event: GenerateTextEndEvent) => void | PromiseLike<void>',
       description:
@@ -397,6 +451,9 @@ export function myIntegration(): Telemetry {
     },
   ]}
 />
+
+Experimental evaluation events use the four `experimental_*` callbacks above.
+They are not included in the stable `onStart` and `onEnd` event unions.
 
 The event types for each method are the same as the corresponding [lifecycle callbacks](/docs/ai-sdk-core/lifecycle-callbacks). See the lifecycle callbacks documentation for the full property reference of each event.
 
@@ -448,7 +505,8 @@ For `generateText` and `streamText`, the integration records 3 types of spans:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
   - `gen_ai.request.temperature`, `gen_ai.request.max_tokens`, `gen_ai.request.top_p`, `gen_ai.request.top_k`, `gen_ai.request.frequency_penalty`, `gen_ai.request.presence_penalty`, `gen_ai.request.stop_sequences`: request parameters
-  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format) (when `recordInputs` is enabled)
+  - `gen_ai.system_instructions`: instructions supplied separately from the chat history, formatted as a JSON array of parts (when `recordInputs` is enabled)
+  - `gen_ai.input.messages`: the prompt messages in [GenAI SemConv message format](#genai-message-format), including system messages that are part of the chat history in their original order (when `recordInputs` is enabled)
   - `gen_ai.tool.definitions`: the tool definitions as stringified JSON (when `recordInputs` is enabled)
 
   Attributes set on finish:
@@ -490,10 +548,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the requested model ID
 
-  Attributes set on finish:
-  - `gen_ai.usage.input_tokens`: the number of tokens used
-
-- **`embeddings {modelId}`** (inner span, `embedMany` only): one span per provider batch call, nested under the root span.
+- **`embeddings {modelId}`** (inner span): one span per provider request,
+  nested under the root span. `embed` creates one inner span. `embedMany`
+  creates one inner span per provider batch call.
 
   Initial attributes:
   - `gen_ai.operation.name`: `"embeddings"`
@@ -502,6 +559,9 @@ For `embed` and `embedMany`, the integration records spans with `CLIENT` kind:
 
   Attributes set on finish:
   - `gen_ai.usage.input_tokens`: the number of tokens used
+
+Usage is recorded only on inner provider-request spans. For `embedMany`, sum
+the usage from the inner spans to get the total usage for the operation.
 
 #### rerank
 
@@ -521,6 +581,48 @@ For `rerank`, the integration records spans with `CLIENT` kind:
   - `gen_ai.provider.name`: the provider
   - `gen_ai.request.model`: the model ID
 
+#### generateSpeech / transcribe / experimental_streamTranscribe
+
+Each call records a single `CLIENT` span named `{operationId} {modelId}`, where
+`operationId` is `ai.generateSpeech`, `ai.transcribe`, or `ai.streamTranscribe`.
+
+- `gen_ai.output.type`: `"speech"` for speech generation and `"text"` for transcription.
+- `gen_ai.request.stream`: `true` for streaming transcription and `false` otherwise.
+- `gen_ai.input.messages`: speech generation input text as a user message with a text part, when `recordInputs` is enabled.
+- `gen_ai.output.messages`: the completed transcript as an assistant message with a text part, when `recordOutputs` is enabled. Streaming transcription records this once on completion.
+
+The existing `ai.request.text` and `ai.response.text` attributes are also retained.
+Audio byte length, media type, and output format remain in the
+`ai.request.audio.*` and `ai.response.audio.*` attributes, subject to the
+corresponding input/output recording controls. Raw audio is not captured, so
+transcription input and speech output do not populate message attributes with
+audio content or placeholder audio parts.
+
+#### experimental_evaluate
+
+For `experimental_evaluate`, the integration records two spans with `CLIENT`
+kind: an **`evaluate {modelId}`** root span for the whole operation and one
+**`evaluate {modelId}`** child span for evaluation model work, including
+retries. Both include the provider and requested model with
+`gen_ai.operation.name: "evaluate"`. Token
+usage is recorded on the child span. When evaluation attributes are enabled,
+answers are recorded on both spans so the operation span contains its output.
+
+`evaluate` is an AI SDK-defined custom operation name, not a well-known
+OpenTelemetry GenAI operation. OpenTelemetry permits custom operation names
+when no well-known value describes the operation.
+
+OpenTelemetry's `gen_ai.evaluation.result` event describes the result of
+evaluating a GenAI output for quality or other characteristics. In contrast,
+`experimental_evaluate` can evaluate arbitrary JSON state for classification,
+routing, scoring, and similar tasks. The integration therefore does not emit a
+`gen_ai.evaluation.result` event.
+
+Evaluation state, questions, and answers also do not have applicable GenAI
+semantic-convention attributes. Enable the `experimental_evaluation`
+supplemental option to record them under AI SDK-specific
+`ai.evaluation.*` attributes.
+
 #### GenAI span details
 
 ##### GenAI message format
@@ -537,7 +639,7 @@ Messages are JSON arrays of objects with a `role` and a `parts` array. Each part
 
 Output messages also include a `finish_reason` field (e.g. `"stop"`, `"tool_call"`, `"length"`, `"content_filter"`).
 
-System instructions are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts.
+Instructions supplied through `instructions` (or the deprecated `system` option) are recorded separately in `gen_ai.system_instructions` as a JSON array of `{ type: "text", content: "..." }` parts. System messages supplied as chat history with `allowSystemInMessages` remain in `gen_ai.input.messages` in their original positions.
 
 ##### GenAI tool call spans
 
@@ -576,17 +678,40 @@ registerTelemetry(
 
 The callback runs when each span is created and receives:
 
-- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, or `reranking`).
+- `spanType`: the type of span being created (`operation`, `step`, `languageModel`, `tool`, `embedding`, `reranking`, or `experimental_evaluation`).
 - `operationId`: the AI SDK operation ID for the current call, such as `ai.generateText` or `ai.streamText`.
 - `callId`: the unique ID for the current AI SDK call.
-- `runtimeContext`: the telemetry-filtered runtime context for text generation spans, including updates from `prepareStep`.
+- `runtimeContext`: the telemetry-filtered runtime context for text generation, embedding, reranking, and evaluation spans. Text generation spans also reflect updates from `prepareStep`.
 
 Custom attributes are merged with AI SDK attributes on the span. AI SDK-owned
 attributes take precedence when a custom attribute uses the same key.
 
-`sensitiveRuntimeContext` is applied before telemetry integrations receive
-`runtimeContext`, so custom span enrichment does not receive top-level runtime
-context properties marked as sensitive.
+`telemetry.includeRuntimeContext` is applied before telemetry integrations receive
+`runtimeContext`, so custom span enrichment only receives top-level runtime context
+properties explicitly set to `true`. If the option is omitted, no runtime context
+properties are included.
+
+Embedding and reranking operations can share the same runtime context with text
+generation to attribute their spans to the same application request:
+
+```ts
+await embed({
+  model: 'openai/text-embedding-3-small',
+  value: 'sunny day at the beach',
+  runtimeContext: {
+    requestId: 'req_abc',
+    userId: 'user_123',
+  },
+  telemetry: {
+    includeRuntimeContext: { requestId: true },
+  },
+});
+```
+
+A globally registered `OpenTelemetry({ enrichSpan })` integration receives
+`{ requestId: 'req_abc' }` for the operation span and its embedding model span.
+The same applies to every chunk in `embedMany` and to the operation and model
+spans in `rerank`. The `onStart` and `onEnd` callbacks receive the full context.
 
 ### Supplemental AI SDK attributes on OpenTelemetry spans
 
@@ -616,6 +741,7 @@ registerTelemetry(
     providerMetadata: true,
     embedding: true,
     reranking: true,
+    experimental_evaluation: true,
     runtimeContext: true,
     headers: true,
     toolChoice: true,
@@ -627,9 +753,10 @@ registerTelemetry(
 The available options are:
 
 - `usage`: detailed usage attributes that are not covered by GenAI usage attributes, such as uncached input tokens and output text/reasoning token details.
-- `providerMetadata`: `ai.response.providerMetadata`.
+- `providerMetadata`: `ai.response.providerMetadata` on operation, step, and model-call spans.
 - `embedding`: embedding inputs and outputs.
 - `reranking`: rerank input documents and ranking output.
+- `experimental_evaluation`: experimental evaluation state, questions, and answers.
 - `runtimeContext`: `ai.settings.context.*`.
 - `headers`: `ai.request.headers.*`.
 - `toolChoice`: `ai.prompt.toolChoice`.

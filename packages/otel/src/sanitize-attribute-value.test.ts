@@ -12,10 +12,26 @@ describe('sanitizeAttributeValue', () => {
     expect(sanitizeAttributeValue(true)).toBe(true);
   });
 
+  it('drops non-finite scalar numbers', () => {
+    expect(sanitizeAttributeValue(Number.NaN)).toBeUndefined();
+    expect(sanitizeAttributeValue(Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(sanitizeAttributeValue(Number.NEGATIVE_INFINITY)).toBeUndefined();
+  });
+
   it('returns homogeneous primitive arrays unchanged', () => {
     expect(sanitizeAttributeValue(['a', 'b'])).toEqual(['a', 'b']);
     expect(sanitizeAttributeValue([1, 2])).toEqual([1, 2]);
     expect(sanitizeAttributeValue([true, false])).toEqual([true, false]);
+  });
+
+  it('drops numeric arrays containing non-finite values', () => {
+    expect(sanitizeAttributeValue([1, Number.NaN])).toBeUndefined();
+    expect(
+      sanitizeAttributeValue([1, Number.POSITIVE_INFINITY]),
+    ).toBeUndefined();
+    expect(
+      sanitizeAttributeValue([1, Number.NEGATIVE_INFINITY]),
+    ).toBeUndefined();
   });
 
   it('drops invalid entries from an otherwise homogeneous array', () => {
@@ -57,6 +73,8 @@ describe('sanitizeAttributes', () => {
         keep: ['a', undefined, 'b'] as unknown as AttributeValue,
         valid: 'text',
         dropMixed: ['a', 1] as unknown as AttributeValue,
+        dropNonFinite: Number.NaN,
+        dropNonFiniteArray: [1, Number.POSITIVE_INFINITY],
         dropNull: undefined,
       }),
     ).toEqual({

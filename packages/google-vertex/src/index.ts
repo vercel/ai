@@ -30,4 +30,9 @@ export type {
   GoogleVertexProvider,
   GoogleVertexProviderSettings,
 } from './google-vertex-provider';
+export { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
+export type {
+  GoogleVertexGeminiTranscriptionModelId,
+  GoogleVertexTranscriptionModelGeminiOptions,
+} from './gemini-transcription/google-vertex-gemini-transcription-model-options';
 export { VERSION } from './version';

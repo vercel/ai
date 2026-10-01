@@ -1,7 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from 'ai';
 import Link from 'next/link';
 import { useRef, useEffect, useMemo } from 'react';
@@ -12,7 +12,6 @@ export default function Chat() {
       new WorkflowChatTransport({
         api: '/api/chat',
         maxConsecutiveErrors: 5,
-        initialStartIndex: -50,
       }),
     [],
   );
@@ -45,6 +44,12 @@ export default function Chat() {
           className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
         >
           Open sandbox e2e harness
+        </Link>
+        <Link
+          href="/async-apis"
+          className="ml-4 mt-2 inline-block text-sm text-blue-600 hover:underline"
+        >
+          Open async video workflow
         </Link>
       </header>
 

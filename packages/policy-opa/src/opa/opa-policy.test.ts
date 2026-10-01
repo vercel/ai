@@ -55,8 +55,11 @@ describe('opaPolicy', () => {
     });
   });
 
-  it('maps requires-approval to user-approval', async () => {
-    const client = stubClient({ decision: 'requires-approval' });
+  it('maps requires-approval and forwards its reason', async () => {
+    const client = stubClient({
+      decision: 'requires-approval',
+      reason: 'requires operator review',
+    });
     const approval = opaPolicy({ client, path: 'agent/call/decision' });
     if (typeof approval !== 'function') throw new Error('expected generic fn');
 
@@ -74,7 +77,10 @@ describe('opaPolicy', () => {
       messages: [],
     });
 
-    expect(status).toEqual({ type: 'user-approval' });
+    expect(status).toEqual({
+      type: 'user-approval',
+      reason: 'requires operator review',
+    });
   });
 
   it('passes the default OPA input shape', async () => {

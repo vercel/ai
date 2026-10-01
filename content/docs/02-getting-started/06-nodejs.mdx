@@ -146,11 +146,11 @@ You can also explicitly import and use the gateway provider in two other equival
 ```ts
 // Option 1: Import from 'ai' package (included by default)
 import { gateway } from 'ai';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 
 // Option 2: Install and import from '@ai-sdk/gateway' package
 import { gateway } from '@ai-sdk/gateway';
-model: gateway('anthropic/claude-sonnet-4.5');
+model: gateway('anthropic/claude-sonnet-5.5');
 ```
 
 ### Using other providers
@@ -162,7 +162,7 @@ To use a different provider, install its package and create a provider instance.
 ```ts
 import { openai } from '@ai-sdk/openai';
 
-model: openai('gpt-5.1');
+model: openai('gpt-6-astra');
 ```
 
 ## Enhance Your Agent with Tools
@@ -248,7 +248,7 @@ Now your agent can "fetch" weather information for any location the user asks ab
 
 Try asking something like "What's the weather in New York?" and see how the agent uses the new tool.
 
-Notice the blank "assistant" response? This is because instead of generating a text response, the agent generated a tool call. You can access the tool call and subsequent tool result in the `toolCall` and `toolResult` keys of the result object.
+Notice the blank "assistant" response? This is because instead of generating a text response, the agent generated a tool call. You can access the tool call and subsequent tool result in the `toolCalls` and `toolResults` properties of the result object.
 
 ```typescript highlight="50-51"
 import { ModelMessage, streamText, tool } from 'ai';
@@ -387,15 +387,15 @@ main().catch(console.error);
 In this updated code:
 
 1. You set `stopWhen` to be when `isStepCount` 5, allowing the agent to use up to 5 "steps" for any given generation.
-2. You add an `onStepEnd` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCall` and `toolResult` `console.log` statements from the previous example.
+2. You add an `onStepEnd` callback to log any `toolResults` from each step of the interaction, helping you understand the agent's tool usage. This means we can also delete the `toolCalls` and `toolResults` `console.log` statements from the previous example.
 
 Now, when you ask about the weather in a location, you should see the agent using the weather tool results to answer your question.
 
-By setting `stopWhen: isStepCount(5)`, you're allowing the agent to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the agent to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Celsius to Fahrenheit.
+By setting `stopWhen: isStepCount(5)`, you're allowing the agent to use up to 5 "steps" for any given generation. This enables more complex interactions and allows the agent to gather and process information over several steps if needed. You can see this in action by adding another tool to convert the temperature from Fahrenheit to Celsius.
 
 ### Adding a second tool
 
-Update your `index.ts` file to add a new tool to convert the temperature from Celsius to Fahrenheit:
+Update your `index.ts` file to add a new tool to convert the temperature from Fahrenheit to Celsius:
 
 ```ts filename="index.ts" highlight="39-52"
 import { ModelMessage, streamText, tool, isStepCount } from 'ai';

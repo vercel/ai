@@ -64,6 +64,7 @@ describe('google-vertex-maas-provider', () => {
           "baseURL": "https://aiplatform.googleapis.com/v1/projects/test-project/locations/global/endpoints/openapi",
           "fetch": undefined,
           "name": "vertex.maas",
+          "transformRequestBody": [Function],
         }
       `);
   });
@@ -82,6 +83,7 @@ describe('google-vertex-maas-provider', () => {
           "baseURL": "https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/endpoints/openapi",
           "fetch": undefined,
           "name": "vertex.maas",
+          "transformRequestBody": [Function],
         }
       `);
   });
@@ -100,6 +102,7 @@ describe('google-vertex-maas-provider', () => {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1/projects/test-project/locations/eu/endpoints/openapi",
           "fetch": undefined,
           "name": "vertex.maas",
+          "transformRequestBody": [Function],
         }
       `);
   });
@@ -174,6 +177,53 @@ describe('google-vertex-maas-provider', () => {
         fetch: customFetch,
       }),
     );
+  });
+
+  it('should default Llama 4 max tokens without overriding explicit or other model settings', () => {
+    const provider = createGoogleVertexMaas({
+      project: 'test-project',
+    });
+
+    provider('meta/llama-4-scout-17b-16e-instruct-maas');
+
+    const [{ transformRequestBody }] = vi.mocked(createOpenAICompatible).mock
+      .calls[0];
+
+    expect(
+      transformRequestBody?.({
+        model: 'meta/llama-4-scout-17b-16e-instruct-maas',
+        messages: [],
+        max_tokens: undefined,
+      }),
+    ).toEqual({
+      model: 'meta/llama-4-scout-17b-16e-instruct-maas',
+      messages: [],
+      max_tokens: 8192,
+    });
+
+    expect(
+      transformRequestBody?.({
+        model: 'meta/llama-4-maverick-17b-128e-instruct-maas',
+        messages: [],
+        max_tokens: 64,
+      }),
+    ).toEqual({
+      model: 'meta/llama-4-maverick-17b-128e-instruct-maas',
+      messages: [],
+      max_tokens: 64,
+    });
+
+    expect(
+      transformRequestBody?.({
+        model: 'openai/gpt-oss-20b-maas',
+        messages: [],
+        max_tokens: undefined,
+      }),
+    ).toEqual({
+      model: 'openai/gpt-oss-20b-maas',
+      messages: [],
+      max_tokens: undefined,
+    });
   });
 
   it('should construct correct URL with trailing slash removed from baseURL', () => {

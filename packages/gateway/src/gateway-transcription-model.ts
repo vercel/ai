@@ -27,7 +27,7 @@ import {
   type WebSocketConstructor,
   type WebSocketLike,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError, createGatewayErrorFromResponse } from './errors';
 import { parseAuthMethod } from './errors/parse-auth-method';
 import type { GatewayConfig } from './gateway-config';
@@ -93,7 +93,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         ...(abortSignal && { abortSignal }),
         fetch: this.config.fetch,
@@ -105,6 +105,7 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
         warnings: (responseBody.warnings ?? []) as Array<SharedV4Warning>,
+        ...(responseBody.usage != null && { usage: responseBody.usage }),
         providerMetadata:
           responseBody.providerMetadata as SharedV4ProviderMetadata,
         response: {
@@ -433,6 +434,7 @@ const gatewayTranscriptionResponseSchema = z.object({
   language: z.string().nullish(),
   durationInSeconds: z.number().nullish(),
   warnings: z.array(gatewayTranscriptionWarningSchema).optional(),
+  usage: z.record(z.string(), z.json()).optional(),
   providerMetadata: z
     .record(z.string(), providerMetadataEntrySchema)
     .optional(),

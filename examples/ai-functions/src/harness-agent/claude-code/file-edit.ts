@@ -1,23 +1,25 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createClaudeCode } from './_create';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
+
+const claudeCode = createClaudeCode();
 
 run(async () => {
-  const sandbox = createVercelSandbox({
+  const agent = new HarnessAgent({
+    harness: claudeCode,
+  });
+
+  const sandboxSession = await createVercelNetworkSandboxSession({
     runtime: 'node24',
     ports: [4000],
     timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
   });
-  const agent = new HarnessAgent({
-    harness: claudeCode,
-    sandbox,
-  });
-
-  let exitCode = 0;
-  const session = await agent.createSession();
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     console.log('--- turn 1: create ---');
     const first = await agent.stream({
       session,
@@ -38,11 +40,8 @@ run(async () => {
       prompt: 'Read `notes.md` and print its contents in your reply.',
     });
     await printFullStream({ result: third });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

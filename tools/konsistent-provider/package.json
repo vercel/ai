@@ -24,7 +24,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@konsistent/convention": "^1.0.0-beta"
+    "@konsistent/convention": "1.0.0-beta.11"
   },
   "peerDependencies": {
     "zod": "^4"

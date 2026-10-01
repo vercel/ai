@@ -100,7 +100,7 @@ export function createDeepInfra(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/deepinfra/${VERSION}`,
+      `ai-sdk-deepinfra/${VERSION}`,
     );
 
   interface CommonModelConfig {
@@ -118,10 +118,10 @@ export function createDeepInfra(
   });
 
   const createChatModel = (modelId: DeepInfraChatModelId) => {
-    return new DeepInfraChatLanguageModel(
-      modelId,
-      getCommonModelConfig('chat'),
-    );
+    return new DeepInfraChatLanguageModel(modelId, {
+      ...getCommonModelConfig('chat'),
+      supportsStructuredOutputs: true,
+    });
   };
 
   const createCompletionModel = (modelId: DeepInfraCompletionModelId) =>

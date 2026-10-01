@@ -141,6 +141,92 @@ describe('handleUIMessageStreamFinish', () => {
       expect(onFinishCallback).not.toHaveBeenCalled();
     });
 
+    it('should pass the stream owner outcome to onEnd', async () => {
+      const onEndCallback = vi.fn();
+      const error = new Error('stream failed');
+      const stream = createUIMessageStream([
+        { type: 'start', messageId: 'msg-456' },
+        { type: 'error', errorText: 'masked error' },
+      ]);
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-456',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        getOutcome: () => ({ status: 'failed', error }),
+      });
+
+      await convertReadableStreamToArray(resultStream);
+
+      expect({
+        isAborted: onEndCallback.mock.calls[0][0].isAborted,
+        outcome: onEndCallback.mock.calls[0][0].outcome,
+      }).toMatchInlineSnapshot(`
+        {
+          "isAborted": false,
+          "outcome": {
+            "error": [Error: stream failed],
+            "status": "failed",
+          },
+        }
+      `);
+    });
+
+    it('should report UI message processing failures before and after a declared outcome', async () => {
+      for (const inputChunks of [
+        [{ type: 'text-delta', id: 'missing', delta: 'text' }],
+        [
+          { type: 'finish' },
+          { type: 'text-delta', id: 'missing', delta: 'text' },
+        ],
+      ] satisfies UIMessageChunk[][]) {
+        const onEndCallback = vi.fn();
+        const resultStream = handleUIMessageStreamFinish<UIMessage>({
+          stream: createUIMessageStream(inputChunks),
+          messageId: 'msg-processing-error',
+          onError: mockErrorHandler,
+          onEnd: onEndCallback,
+          getOutcome: () => ({ status: 'completed' }),
+        });
+
+        let processingError: unknown;
+        try {
+          await convertReadableStreamToArray(resultStream);
+        } catch (error) {
+          processingError = error;
+        }
+
+        expect(processingError).toBeInstanceOf(Error);
+        expect(onEndCallback).toHaveBeenCalledTimes(1);
+        expect(onEndCallback.mock.calls[0][0].outcome).toEqual({
+          status: 'failed',
+          error: processingError,
+        });
+      }
+    });
+
+    it('should inject message IDs without mutating frozen start chunks', async () => {
+      const startChunk = Object.freeze({ type: 'start' } as const);
+      const onEndCallback = vi.fn();
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream: createUIMessageStream([startChunk]),
+        messageId: 'msg-injected',
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+        getOutcome: () => ({ status: 'completed' }),
+      });
+
+      await expect(convertReadableStreamToArray(resultStream)).resolves.toEqual(
+        [{ type: 'start', messageId: 'msg-injected' }],
+      );
+      expect(startChunk).toEqual({ type: 'start' });
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0].outcome).toEqual({
+        status: 'completed',
+      });
+    });
+
     it('should handle empty original messages array', async () => {
       const onFinishCallback = vi.fn();
       const inputChunks: UIMessageChunk[] = [
@@ -422,7 +508,7 @@ describe('handleUIMessageStreamFinish', () => {
       expect(callArgs.isAborted).toBe(true);
     });
 
-    it('should call onFinish when reader is cancelled (simulating browser close/navigation)', async () => {
+    it('should report consumer cancellation when the reader is cancelled before an outcome is declared', async () => {
       await expectUndefinedUnhandledRejections(async () => {
         const onFinishCallback = vi.fn();
 
@@ -451,8 +537,73 @@ describe('handleUIMessageStreamFinish', () => {
 
         const callArgs = onFinishCallback.mock.calls[0][0];
         expect(callArgs.isAborted).toBe(false);
+        expect(callArgs.isCancelled).toBe(true);
+        expect(callArgs.outcome).toEqual({ status: 'unknown' });
         expect(callArgs.responseMessage.id).toBe('msg-1');
       });
+    });
+
+    it.each([
+      { status: 'completed' } as const,
+      { status: 'failed', error: new Error('stream failed') } as const,
+      { status: 'aborted' } as const,
+    ])(
+      'should preserve a declared $status outcome when the reader is cancelled',
+      async declaredOutcome => {
+        const onEndCallback = vi.fn();
+        const stream = new ReadableStream<UIMessageChunk>({
+          start(controller) {
+            controller.enqueue({ type: 'start', messageId: 'msg-1' });
+          },
+        });
+
+        const resultStream = handleUIMessageStreamFinish<UIMessage>({
+          stream,
+          messageId: 'msg-1',
+          originalMessages: [],
+          onError: mockErrorHandler,
+          onEnd: onEndCallback,
+          getOutcome: () => declaredOutcome,
+        });
+
+        const reader = resultStream.getReader();
+        await reader.read();
+        await reader.cancel();
+
+        expect(onEndCallback).toHaveBeenCalledTimes(1);
+        expect(onEndCallback.mock.calls[0][0].outcome).toBe(declaredOutcome);
+        expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
+      },
+    );
+
+    it('should prefer an observed abort over cancellation', async () => {
+      const onEndCallback = vi.fn();
+      const stream = new ReadableStream<UIMessageChunk>({
+        start(controller) {
+          controller.enqueue({ type: 'start', messageId: 'msg-1' });
+          controller.enqueue({ type: 'abort' });
+        },
+      });
+
+      const resultStream = handleUIMessageStreamFinish<UIMessage>({
+        stream,
+        messageId: 'msg-1',
+        originalMessages: [],
+        onError: mockErrorHandler,
+        onEnd: onEndCallback,
+      });
+
+      const reader = resultStream.getReader();
+      await reader.read();
+      await reader.read();
+      await reader.cancel();
+
+      expect(onEndCallback).toHaveBeenCalledTimes(1);
+      expect(onEndCallback.mock.calls[0][0]).toMatchObject({
+        isAborted: true,
+        outcome: { status: 'aborted' },
+      });
+      expect(onEndCallback.mock.calls[0][0].isCancelled).toBeUndefined();
     });
   });
 

@@ -4,7 +4,7 @@ import {
   safeValidateTypes,
   type ModelMessage,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from '../util/zod';
 import { modelMessageSchema } from './message';
 import type { Instructions, Prompt } from './prompt';
 
@@ -82,6 +82,8 @@ export async function standardizePrompt({
     });
   }
 
+  // Require explicit trust in supplied system messages to reduce prompt-injection
+  // risk. The opt-in permits all system messages, including instruction text.
   if (
     !allowSystemInMessages &&
     messages.some(message => message.role === 'system')

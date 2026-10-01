@@ -41,3 +41,4 @@ next-env.d.ts
 .harness-observability
 .streams
 .env*
+/.swc

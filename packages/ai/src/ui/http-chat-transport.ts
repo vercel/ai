@@ -4,9 +4,20 @@ import {
   type FetchFunction,
   type Resolvable,
 } from '@ai-sdk/provider-utils';
+import { EmptyResponseBodyError } from '@ai-sdk/provider';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import type { ChatTransport } from './chat-transport';
+import { createUIApiCallError } from './create-ui-api-call-error';
 import type { UIMessage } from './ui-messages';
+
+function appendPathToUrl(url: string, path: string): string {
+  const queryOrFragmentStart = url.search(/[?#]/);
+
+  return queryOrFragmentStart === -1
+    ? `${url}${path}`
+    : `${url.slice(0, queryOrFragmentStart)}${path}${url.slice(queryOrFragmentStart)}`;
+}
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
   options: {
@@ -191,7 +202,7 @@ export abstract class HttpChatTransport<
     const response = await fetch(api, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'content-type': 'application/json',
         ...headers,
       },
       body: JSON.stringify(body),
@@ -200,13 +211,17 @@ export abstract class HttpChatTransport<
     });
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     return this.processResponseStream(response.body);
@@ -233,7 +248,24 @@ export abstract class HttpChatTransport<
       requestMetadata: options.metadata,
     });
 
-    const api = preparedRequest?.api ?? `${this.api}/${options.chatId}/stream`;
+    let api = preparedRequest?.api;
+    if (api == null) {
+      // encodeURIComponent leaves dot segments unchanged, and URL parsers
+      // normalize them even when their dots are percent-encoded.
+      if (options.chatId === '.' || options.chatId === '..') {
+        throw new InvalidArgumentError({
+          parameter: 'chatId',
+          value: options.chatId,
+          message:
+            'Chat IDs must not be "." or ".." when using the default reconnect URL.',
+        });
+      }
+
+      api = appendPathToUrl(
+        this.api,
+        `/${encodeURIComponent(options.chatId)}/stream`,
+      );
+    }
     const headers =
       preparedRequest?.headers !== undefined
         ? normalizeHeaders(preparedRequest.headers)
@@ -247,6 +279,7 @@ export abstract class HttpChatTransport<
       method: 'GET',
       headers,
       credentials,
+      signal: options.abortSignal,
     });
 
     // no active stream found, so we do not resume
@@ -255,13 +288,17 @@ export abstract class HttpChatTransport<
     }
 
     if (!response.ok) {
-      throw new Error(
-        (await response.text()) ?? 'Failed to fetch the chat response.',
-      );
+      throw await createUIApiCallError({
+        response,
+        url: api,
+        fallbackMessage: 'Failed to fetch the chat response.',
+      });
     }
 
     if (!response.body) {
-      throw new Error('The response body is empty.');
+      throw new EmptyResponseBodyError({
+        message: 'The response body is empty.',
+      });
     }
 
     return this.processResponseStream(response.body);

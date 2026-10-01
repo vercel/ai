@@ -1,14 +1,16 @@
 import {
   createJsonErrorResponseHandler,
   createJsonResponseHandler,
+  getErrorMessage,
   getFromApi,
   lazySchema,
   resolve,
   zodSchema,
 } from '@ai-sdk/provider-utils';
-import { z } from 'zod/v4';
+import { z } from './zod';
 import { asGatewayError } from './errors';
 import type { GatewayConfig } from './gateway-config';
+import { VERCEL_AI_GATEWAY_TEAM_HEADER } from './gateway-headers';
 import {
   KNOWN_MODEL_TYPES,
   type GatewayLanguageModelEntry,
@@ -43,7 +45,7 @@ export class GatewayFetchMetadata {
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });
@@ -57,19 +59,33 @@ export class GatewayFetchMetadata {
   async getCredits(): Promise<GatewayCreditsResponse> {
     try {
       const baseUrl = new URL(this.config.baseURL);
+      const headers = this.config.headers
+        ? await resolve(this.config.headers)
+        : undefined;
+
+      // The credits endpoint selects the team from the `teamId` / `slug`
+      // query parameter rather than the team header, so forward it there.
+      // Without it, tokens that can access multiple teams (e.g. Vercel access
+      // tokens) cannot be scoped to a team and the request is rejected.
+      const url = new URL('/v1/credits', baseUrl.origin);
+      const teamIdOrSlug = getTeamIdOrSlug(headers);
+      if (teamIdOrSlug) {
+        url.searchParams.set(
+          teamIdOrSlug.startsWith('team_') ? 'teamId' : 'slug',
+          teamIdOrSlug,
+        );
+      }
 
       const { value } = await getFromApi({
-        url: `${baseUrl.origin}/v1/credits`,
+        url: url.toString(),
         validateUrl: false,
-        headers: this.config.headers
-          ? await resolve(this.config.headers)
-          : undefined,
+        headers,
         successfulResponseHandler: createJsonResponseHandler(
           gatewayCreditsResponseSchema,
         ),
         failedResponseHandler: createJsonErrorResponseHandler({
           errorSchema: z.any(),
-          errorToMessage: data => data,
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
         }),
         fetch: this.config.fetch,
       });
@@ -79,6 +95,18 @@ export class GatewayFetchMetadata {
       throw await asGatewayError(error);
     }
   }
+}
+
+function getTeamIdOrSlug(
+  headers: Record<string, string | undefined> | undefined,
+): string | undefined {
+  if (!headers) return undefined;
+  for (const [name, value] of Object.entries(headers)) {
+    if (name.toLowerCase() === VERCEL_AI_GATEWAY_TEAM_HEADER) {
+      return value?.trim() || undefined;
+    }
+  }
+  return undefined;
 }
 
 const gatewayAvailableModelsResponseSchema = lazySchema(() =>

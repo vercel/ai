@@ -48,7 +48,7 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
   // gemini-embedding-2 models only support :embedContent (one value per call),
   // not the :predict batch endpoint. https://github.com/vercel/ai/issues/15853
   get maxEmbeddingsPerCall(): number {
-    return usesEmbedContentEndpoint(this.modelId) ? 1 : 2048;
+    return usesEmbedContentEndpoint(this.modelId) ? 1 : 250;
   }
 
   constructor(

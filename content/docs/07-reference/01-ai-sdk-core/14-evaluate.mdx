@@ -1,0 +1,74 @@
+---
+title: experimental_evaluate
+description: Evaluate typed questions against shared state with an evaluation model.
+---
+
+# `experimental_evaluate()`
+
+```ts
+import { experimental_evaluate } from 'ai';
+```
+
+Evaluates a nonempty map of `choice`, `score`, and `boolean` questions against one
+state. See [Evaluation](/docs/ai-sdk-core/evaluation) for examples and semantics.
+
+## Parameters
+
+| Parameter         | Type                                               | Description                                                                                                                                 |
+| ----------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `model`           | `Experimental_EvaluationModel`                     | Required experimental v4 model instance or a string ID resolved by Gateway or an explicitly configured evaluation-capable default provider. |
+| `state`           | `string \| object \| array`                        | Required JSON-compatible shared state.                                                                                                      |
+| `questions`       | `Record<string, Experimental_EvaluationQuestion>`  | Required nonempty question map.                                                                                                             |
+| `maxRetries`      | `number`                                           | Nonnegative integer; defaults to 2.                                                                                                         |
+| `abortSignal`     | `AbortSignal`                                      | Cancels evaluation.                                                                                                                         |
+| `headers`         | `Record<string, string>`                           | Additional HTTP headers.                                                                                                                    |
+| `providerOptions` | `ProviderOptions`                                  | Provider-specific options.                                                                                                                  |
+| `telemetry`       | `TelemetryOptions`                                 | Telemetry configuration, including per-call integrations, input/output recording, and a function ID.                                        |
+| `runtimeContext`  | `Record<string, unknown>`                          | Context available to lifecycle callbacks and selectively included in telemetry with `telemetry.includeRuntimeContext`.                      |
+| `onStart`         | `(event: Experimental_EvaluateStartEvent) => void` | Called when the evaluation operation begins.                                                                                                |
+| `onEnd`           | `(event: Experimental_EvaluateEndEvent) => void`   | Called when the evaluation operation completes successfully.                                                                                |
+
+See [Lifecycle Callbacks](/docs/ai-sdk-core/lifecycle-callbacks#experimental_evaluate)
+for the complete `onStart` and `onEnd` event fields.
+
+## Result
+
+Returns `Promise<Experimental_EvaluationResult<QUESTIONS>>`:
+
+- `answers`: One typed answer per question ID, with literal Choice option inference.
+- `usage`: `inputTokens`, `outputTokens`, and `totalTokens`, each possibly undefined.
+- `warnings`: Provider warnings, also passed to the SDK warning logger.
+- `rounding`: Optional provider-declared decimal precision for probabilities and scores.
+- `providerMetadata`: Optional provider-specific metadata.
+- `response`: Timestamp, model ID, and optional response ID, headers, and body.
+
+## Provider specification
+
+`Experimental_EvaluationModelV4` is exported from `@ai-sdk/provider` and declares
+`specificationVersion: 'v4'`, `provider`, `modelId`, `supportedQuestionTypes`, and
+`doEvaluate(options)`. Evaluation is isolated from stable `ProviderV4`.
+
+The public core types are `Experimental_EvaluationModel`,
+`Experimental_EvaluationQuestion`, `Experimental_EvaluationAnswer`, and
+`Experimental_EvaluationResult`. All evaluation-specific classes use the
+`Evaluation` prefix, with `Experimental_` aliases at package boundaries.
+
+## Errors
+
+Unsupported types throw `Experimental_EvaluationUnsupportedQuestionTypeError`
+before provider I/O. Invalid inputs throw `InvalidArgumentError`; malformed
+answers throw `InvalidResponseDataError`. Invalid answers are not retried.
+Neither partial results nor missing probability synthesis are supported.
+
+## Model resolution
+
+Use `registry.evaluationModel('provider:model')` or
+`customProvider({ evaluationModels: { alias: model } }).evaluationModel('alias')`
+to resolve models. Strings passed directly to `experimental_evaluate` use
+`globalThis.AI_SDK_DEFAULT_PROVIDER.evaluationModel(id)`, when available. Evaluation
+never implicitly falls back to Gateway.
+
+Resolution errors use the existing `NoSuchModelError` and `NoSuchProviderError`
+classes with `modelType: 'evaluationModel'`. Model instances and resolved models
+must implement v4; other versions throw `UnsupportedModelVersionError`.
+See [model resolution examples](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).

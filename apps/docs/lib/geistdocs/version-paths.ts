@@ -1,11 +1,42 @@
-import { v6Source, v7Source } from './source';
+import { collectVersionPaths } from '@vercel/geistdocs/source';
+import type { GeistdocsVersionPaths } from '@vercel/geistdocs/versions';
+import {
+  recipesV5Source,
+  recipesV6Source,
+  recipesV7Source,
+  v5Sources,
+  v6Sources,
+  v7Sources,
+} from './source';
 
-const v6Paths = new Set(v6Source.source.getPages('en').map(page => page.url));
-const v7Paths = new Set(
-  v7Source.source.getPages('en').map(page => page.url.replace(/^\/v7/, '')),
-);
-
-export const missingVersionPaths = {
-  v6: [...v7Paths].filter(path => !v6Paths.has(path)),
-  v7: [...v6Paths].filter(path => !v7Paths.has(path)),
-};
+/**
+ * Existing prefix-relative paths for version switching. The recipes mirror
+ * participates even though sitemap, llms.txt, and search use /cookbook.
+ */
+export const getVersionPaths = (
+  lang: string,
+): Record<string, GeistdocsVersionPaths> => ({
+  v7: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      sources: [...v7Sources, recipesV7Source],
+    }),
+  },
+  v6: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      routePrefix: '/v6',
+      sources: [...v6Sources, recipesV6Source],
+    }),
+  },
+  v5: {
+    fallbackPath: '/docs/introduction',
+    paths: collectVersionPaths({
+      lang,
+      routePrefix: '/v5',
+      sources: [...v5Sources, recipesV5Source],
+    }),
+  },
+});

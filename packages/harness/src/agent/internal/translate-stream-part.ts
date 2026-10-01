@@ -14,6 +14,8 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  *   - tool-call events are not translated here — validation against the
  *     merged tool set is async and handled by `validateToolCall` in
  *     `run-prompt.ts`
+ *   - a failed `tool-result` from a provider-executed tool becomes a
+ *     `tool-error` (see `isProviderExecuted`)
  *   - the harness `raw` part is forwarded as the AI SDK `raw` part
  *
  * Returns an array of zero or more AI SDK parts. Most harness events project
@@ -26,6 +28,17 @@ import { generateId, type ToolSet } from '@ai-sdk/provider-utils';
  */
 export function translateStreamPart<TOOLS extends ToolSet>(
   event: HarnessV1StreamPart,
+  options: {
+    /**
+     * Whether the tool call that produced this event ran inside the harness
+     * runtime. Host tools travel the same `tool-result` events and their
+     * failures are echoed back with `isError`, so the event alone cannot say
+     * who ran the tool — only the originating `tool-call` can, and correlating
+     * the two is the caller's job. Omit the callback to treat every failure as
+     * provider-executed.
+     */
+    isProviderExecuted?: (toolCallId: string) => boolean;
+  } = {},
 ): ReadonlyArray<TextStreamPart<TOOLS>> {
   switch (event.type) {
     case 'stream-start':
@@ -90,6 +103,11 @@ export function translateStreamPart<TOOLS extends ToolSet>(
         } as TextStreamPart<TOOLS>,
       ];
 
+    case 'tool-input-start':
+    case 'tool-input-delta':
+    case 'tool-input-end':
+      return [event as TextStreamPart<TOOLS>];
+
     case 'tool-call':
       // Tool-call validation is async (it parses input against the tool's
       // schema) and lives in `run-prompt.ts` where the merged tool set is in
@@ -101,6 +119,32 @@ export function translateStreamPart<TOOLS extends ToolSet>(
       return [];
 
     case 'tool-result':
+      if (
+        event.isError === true &&
+        (options.isProviderExecuted?.(event.toolCallId) ?? true)
+      ) {
+        /*
+         * `providerExecuted` decides whether the message survives:
+         * `toUIMessageChunk` forwards the real error text only for
+         * provider-executed errors, and replaces every other one with the
+         * generic `onError` string.
+         */
+        return [
+          {
+            type: 'tool-error',
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            input: undefined,
+            error: event.result,
+            providerExecuted: true,
+            ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
+            ...(event.providerMetadata !== undefined
+              ? { providerMetadata: event.providerMetadata }
+              : {}),
+          } as TextStreamPart<TOOLS>,
+        ];
+      }
+
       return [
         {
           type: 'tool-result',
@@ -111,6 +155,7 @@ export function translateStreamPart<TOOLS extends ToolSet>(
           ...(event.preliminary !== undefined
             ? { preliminary: event.preliminary }
             : {}),
+          ...(event.dynamic !== undefined ? { dynamic: event.dynamic } : {}),
           ...(event.providerMetadata !== undefined
             ? { providerMetadata: event.providerMetadata }
             : {}),
