@@ -6,8 +6,8 @@ description: Search deferred tools and load their definitions on demand for dire
 # `toolSearch()`
 
 Creates a tool that searches the surrounding generation's deferred tools by name
-and description. The factory takes no arguments. Use it with `generateText`,
-`streamText`, `ToolLoopAgent`, or `WorkflowAgent` from `@ai-sdk/workflow`.
+and description. Use it with `generateText`, `streamText`, `ToolLoopAgent`, or
+`WorkflowAgent` from `@ai-sdk/workflow`.
 `WorkflowAgent` supports direct tool calling. The other APIs also support code
 mode configured with `toolDiscovery: 'conversation'`.
 
@@ -19,6 +19,23 @@ const search = toolSearch();
 
 See the [Tool Search guide](/docs/ai-sdk-core/tool-search) for direct-calling and
 code mode examples, including how code mode preserves the tool-definition cache.
+
+## Options
+
+Pass an optional configuration object to control the result limit:
+
+```ts
+const search = toolSearch({ maxResults: 10 });
+```
+
+`maxResults` is the maximum number of matching tools returned and discovered per
+search. It defaults to `5` and must be a positive safe integer. Invalid values
+throw `InvalidArgumentError` when creating the search tool. The model-facing
+description reflects the configured limit.
+
+Increasing the limit does not change keyword matching or ranking. Discovered
+tools accumulate across searches, so this is not a limit on the total number of
+tools loaded during a generation.
 
 ## Model Input
 
@@ -44,8 +61,9 @@ tool context and sandbox. No embedding service or additional model call is used.
 }
 ```
 
-Results contain at most five matching tools, with their names and optional
-descriptions. They do not include schemas. No matches returns `{ tools: [] }`.
+Results contain at most `maxResults` matching tools (five by default), with their
+names and optional descriptions. They do not include schemas. No matches returns
+`{ tools: [] }`.
 Every returned match is queued for discovery. Newly discovered tools can only be
 called on the next model step, after their definitions have been provided. A
 parallel call in the same response as the search cannot use a newly discovered

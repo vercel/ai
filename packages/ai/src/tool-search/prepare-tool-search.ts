@@ -11,7 +11,7 @@ import {
 } from '../generate-text/tool-caller-configuration';
 import { resolveToolDescription } from '../prompt/prepare-tools';
 import { getOwn } from '../util/get-own';
-import { isToolSearch } from './tool-search';
+import { getToolSearchMaxResults, isToolSearch } from './tool-search';
 
 /** Create discovery state for one generation, never for a shared tool instance. */
 export function createToolSearchState({
@@ -113,7 +113,7 @@ export function createToolSearchState({
                   })
                   .filter(match => match.score > 0)
                   .sort((a, b) => b.score - a.score)
-                  .slice(0, 5);
+                  .slice(0, getToolSearchMaxResults(tool));
 
                 for (const { name } of matches) {
                   discovered.add(name);
