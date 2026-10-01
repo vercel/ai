@@ -55,7 +55,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-it('evaluates mixed questions in one call and preserves distributions and metadata', async () => {
+it('decides answers to mixed questions in one call and preserves distributions and metadata', async () => {
   const warning = { type: 'other', message: 'Provider note' } as const;
   const timestamp = new Date('2026-09-16T12:00:00Z');
   const providerMetadata = { test: { confidence: 0.8 } };
@@ -140,7 +140,7 @@ it('allows choice and score without distributions, with unknown usage left unkno
   });
 });
 
-it('rejects unsupported types before evaluating any question', async () => {
+it('rejects unsupported types before deciding any answer', async () => {
   const { model, doDecide } = setup();
   const limitedModel = new DecisionMockModelV4({
     ...model,

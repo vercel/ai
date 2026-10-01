@@ -44,23 +44,23 @@ pnpm tsx src/decide/gateway/basic.ts
 All paths below are relative to this directory. Run any script with
 `pnpm tsx src/decide/<path>` from `examples/ai-functions`.
 
-| Example                                                                  | Demonstrates                                                                                          |
-| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
-| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                        |
-| [gateway/basic.ts](./gateway/basic.ts)                                   | Evaluate Choice, Score, and Boolean questions with Jev through AI Gateway.                            |
-| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata. |
-| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                     |
-| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                         |
-| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                 |
-| [openai/basic.ts](./openai/basic.ts)                                     | Evaluate all three question types with OpenAI.                                                        |
-| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                            |
-| [anthropic/basic.ts](./anthropic/basic.ts)                               | Evaluate all three question types with Anthropic.                                                     |
-| [google/basic.ts](./google/basic.ts)                                     | Evaluate all three question types with Google and configure thinking through provider options.        |
+| Example                                                                  | Demonstrates                                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| [mock/basic.ts](./mock/basic.ts)                                         | Return a fixed boolean probability with a mock decision model.                                          |
+| [gateway/basic.ts](./gateway/basic.ts)                                   | Decide answers to Choice, Score, and Boolean questions with Jev through AI Gateway.                     |
+| [typesafe-ai/basic.ts](./typesafe-ai/basic.ts)                           | Call Jev directly through the TypeSafe AI provider and inspect answers, usage, and provider metadata.   |
+| [typesafe-ai/structured-rubrics.ts](./typesafe-ai/structured-rubrics.ts) | Use JSON objects and arrays in state, instructions, and criteria.                                       |
+| [typesafe-ai/registry.ts](./typesafe-ai/registry.ts)                     | Register a custom model alias and route answers using probability thresholds.                           |
+| [typesafe-ai/error-handling.ts](./typesafe-ai/error-handling.ts)         | Submit oversized state and inspect `APICallError` details if the provider rejects it.                   |
+| [openai/basic.ts](./openai/basic.ts)                                     | Decide answers to all three question types with OpenAI.                                                 |
+| [openai/default-provider.ts](./openai/default-provider.ts)               | Configure a global default provider and resolve a decision model by alias.                              |
+| [anthropic/basic.ts](./anthropic/basic.ts)                               | Decide answers to all three question types with Anthropic.                                              |
+| [google/basic.ts](./google/basic.ts)                                     | Decide answers to all three question types with Google and configure thinking through provider options. |
 
 ## Interpreting results
 
 TypeSafe AI provides native decisions. The OpenAI, Anthropic, and Google
-adapters use structured language-model output and evaluate all questions in one
+adapters use structured language-model output and decide all answers in one
 prompt. Their boolean probabilities are prompted estimates; Choice and Score
 answers do not include probability distributions.
 

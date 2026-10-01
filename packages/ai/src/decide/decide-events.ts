@@ -26,10 +26,10 @@ export type DecideStartEvent<RUNTIME_CONTEXT extends Context = Context> = {
   /** The decision model identifier. */
   readonly modelId: string;
 
-  /** The shared state being evaluated. */
+  /** The shared state used to make decisions. */
   readonly state: DecisionModelV4CallOptions['state'];
 
-  /** The questions being evaluated against the shared state. */
+  /** The questions to decide against the shared state. */
   readonly questions: Readonly<Record<string, DecisionQuestion>>;
 
   /** Maximum number of retries for the decision model call. */
@@ -96,10 +96,10 @@ export type DecisionModelCallStartEvent = {
   /** The decision model identifier. */
   readonly modelId: string;
 
-  /** The shared state being evaluated. */
+  /** The shared state used to make decisions. */
   readonly state: DecisionModelV4CallOptions['state'];
 
-  /** The questions being evaluated against the shared state. */
+  /** The questions to decide against the shared state. */
   readonly questions: Readonly<Record<string, DecisionQuestion>>;
 };
 

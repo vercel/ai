@@ -1,7 +1,12 @@
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import {
   experimental_decide as decide,
+  experimental_evaluate,
+  type Experimental_EvaluationResult,
+  customProvider,
+  createProviderRegistry,
   type Experimental_DecisionQuestion as DecisionQuestion,
   type Experimental_DecisionAnswer as DecisionAnswer,
 } from '../index';
@@ -65,4 +70,47 @@ it('distributes over dynamic question types', () => {
     | { type: 'score'; score: number; probabilities?: Record<string, number> }
     | { type: 'boolean'; probability: number }
   >();
+});
+
+it('preserves inference through deprecated API and provider aliases', async () => {
+  expectTypeOf(experimental_evaluate).toEqualTypeOf<typeof decide>();
+  const provider = customProvider({
+    evaluationModels: { route: new DecisionMockModelV4() },
+  });
+  expectTypeOf<
+    Parameters<typeof provider.evaluationModel>[0]
+  >().toEqualTypeOf<'route'>();
+  // @ts-expect-error - deprecated aliases retain model ID inference
+  provider.evaluationModel('missing');
+  const registry = createProviderRegistry(
+    { custom: provider },
+    { separator: '|' },
+  );
+  registry.evaluationModel('custom|route');
+  // @ts-expect-error - registered provider and separator are required
+  registry.evaluationModel('missing|route');
+  // @ts-expect-error - registered provider and separator are required
+  registry.evaluationModel('custom:route');
+  const questions = {
+    route: {
+      type: 'choice',
+      instructions: 'Team?',
+      criteria: { billing: null, support: null },
+    },
+  } as const;
+  const result = await experimental_evaluate({
+    model: provider.evaluationModel('route'),
+    state: 'message',
+    questions,
+  });
+  expectTypeOf(result.answers.route.choice).toEqualTypeOf<
+    'billing' | 'support'
+  >();
+  expectTypeOf(result).toEqualTypeOf<
+    Experimental_EvaluationResult<typeof questions>
+  >();
+});
+
+it('accepts legacy model error construction', () => {
+  new NoSuchModelError({ modelId: 'legacy', modelType: 'evaluationModel' });
 });

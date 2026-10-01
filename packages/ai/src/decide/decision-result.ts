@@ -1,10 +1,11 @@
 import type {
   Experimental_DecisionModelV4 as DecisionModelV4,
+  Experimental_EvaluationModelV4 as EvaluationModelV4,
   Experimental_DecisionModelV4Question as DecisionModelV4Question,
   Experimental_DecisionModelV4Result as DecisionModelV4Result,
 } from '@ai-sdk/provider';
 
-export type DecisionModel = string | DecisionModelV4;
+export type DecisionModel = string | DecisionModelV4 | EvaluationModelV4;
 export type DecisionQuestion = DecisionModelV4Question;
 
 export type DecisionAnswer<QUESTION extends DecisionQuestion> =

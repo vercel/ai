@@ -32,7 +32,7 @@ const originalGenerateCallId = createIdGenerator({
   size: 24,
 });
 
-/** Evaluate typed questions against one shared state. Experimental. */
+/** Decide answers to typed questions against one shared state. Experimental. */
 export async function decide<
   const QUESTIONS extends Record<string, DecisionQuestion>,
   RUNTIME_CONTEXT extends Context = Context,

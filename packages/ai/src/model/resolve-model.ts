@@ -223,7 +223,10 @@ export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
     const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
       gateway) as DecisionProvider;
 
-    if (typeof provider?.decisionModel !== 'function') {
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    if (typeof factory !== 'function') {
       throw new NoSuchModelError({
         modelId: model,
         modelType: 'decisionModel',
@@ -233,7 +236,7 @@ export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
       });
     }
 
-    const resolvedModel = provider.decisionModel(model);
+    const resolvedModel = factory.call(provider, model);
     if (resolvedModel == null) {
       throw new NoSuchModelError({
         modelId: model,
@@ -251,10 +254,40 @@ export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
     });
   }
 
-  return model;
+  if ('doDecide' in model) {
+    return model;
+  }
+
+  const legacyModel = model;
+  return {
+    specificationVersion: legacyModel.specificationVersion,
+    provider: legacyModel.provider,
+    modelId: legacyModel.modelId,
+    supportedQuestionTypes: legacyModel.supportedQuestionTypes,
+    doDecide: options => legacyModel.doEvaluate(options),
+  };
 }
 
 function getGlobalProvider(): ProviderV4 {
   const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
   return asProviderV4(provider);
+}
+
+/** Internal adapter for deprecated provider factories. */
+export function asEvaluationModel(model: DecisionModelV4): DecisionModelV4 & {
+  doEvaluate: DecisionModelV4['doDecide'];
+} {
+  if ('doEvaluate' in model && typeof model.doEvaluate === 'function') {
+    return model as DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
+  }
+  return {
+    specificationVersion: model.specificationVersion,
+    provider: model.provider,
+    modelId: model.modelId,
+    supportedQuestionTypes: model.supportedQuestionTypes,
+    doDecide: options => model.doDecide(options),
+    doEvaluate: options => model.doDecide(options),
+  };
 }
