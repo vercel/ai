@@ -155,7 +155,7 @@ it('validates score bounds locally', async () => {
     InvalidResponseDataError,
   );
 });
-it('evaluates Boolean alongside Choice and Score in one Gemini request', async () => {
+it('decides Boolean alongside Choice and Score in one Gemini request', async () => {
   const body = structuredClone(fixture);
   body.candidates[0].content.parts = [
     { text: '{"q0":"c1","q1":1.25,"q2":0.02}' },
@@ -188,4 +188,23 @@ it('rejects an aborted decision without a request', async () => {
     model.doDecide({ ...options, abortSignal: AbortSignal.abort(reason) }),
   ).rejects.toBe(reason);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('preserves the deprecated factory and direct model method', async () => {
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify(fixture), {
+        headers: { 'content-type': 'application/json' },
+      }),
+  );
+  const provider = createGoogle({ apiKey: 'test-key', fetch });
+  expect(provider.evaluationModel).toBe(provider.decisionModel);
+  const model = provider.evaluationModel('gemini-3.5-flash-lite');
+  const result = await model.doEvaluate(options);
+  expect(result.answers.department).toEqual({
+    type: 'choice',
+    choice: 'billing',
+  });
+  expect(model.provider).toContain('.decision');
+  expect(fetch).toHaveBeenCalledOnce();
 });

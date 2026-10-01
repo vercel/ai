@@ -65,6 +65,10 @@ export interface GoogleProvider extends ProviderV4 {
 
   /** Creates an experimental Choice/Score/Boolean decision model using Gemini. */
   decisionModel(modelId: GoogleModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: GoogleModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -440,6 +444,8 @@ export function createGoogle(
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.generative-ai$/, '')}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as GoogleProvider['evaluationModel'];
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

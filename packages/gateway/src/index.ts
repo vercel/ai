@@ -1,3 +1,6 @@
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
+import type { DecisionFallbackCondition } from './gateway-provider-options';
+
 export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
 export type { GatewayDecisionModelId } from './gateway-decision-model-settings';
 export type { GatewayImageModelId } from './gateway-image-model-settings';
@@ -67,3 +70,9 @@ export {
 } from './errors';
 export type { GatewayErrorResponse } from './errors';
 export { VERSION } from './version';
+
+/** @deprecated Use `GatewayDecisionModelId` instead. */
+export type GatewayEvaluationModelId = GatewayDecisionModelId;
+/** @deprecated Use `DecisionFallbackCondition` instead. */
+export type EvaluationFallbackCondition<QUESTION_ID extends string = string> =
+  DecisionFallbackCondition<QUESTION_ID>;
