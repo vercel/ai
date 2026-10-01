@@ -1,6 +1,8 @@
 import type {
   HarnessV1NetworkSandboxSession,
   HarnessV1SandboxProvider,
+  HarnessV1SandboxSessionCreateOptions,
+  HarnessV1SandboxSessionResumeOptions,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { createHash, randomUUID } from 'node:crypto';
@@ -27,7 +29,11 @@ const PREWARM_NAME_PREFIX = 'ai-sdk-harness';
 /** Written into a Sprite once `onFirstCreate` succeeds, keyed by identity. */
 const BOOTSTRAP_MARKER = new TextEncoder().encode('done');
 
-/** Connection and shared settings for {@link createSpritesSandbox}. */
+/**
+ * Connection and shared settings for
+ * {@link createSpritesNetworkSandboxSession},
+ * {@link resumeSpritesNetworkSandboxSession} and {@link createSpritesSandbox}.
+ */
 export interface SpritesConnectionSettings {
   /**
    * Sprites API token (`org/projectNumber/tokenId/secret`). Defaults to the
@@ -41,9 +47,178 @@ export interface SpritesConnectionSettings {
   baseUrl?: string;
   /**
    * Working directory the session resolves relative paths against and reports
-   * as `defaultWorkingDirectory`. Defaults to `/home/sprite`.
+   * as `defaultWorkingDirectory`. The create and resume functions default to
+   * the directory the Sprite reports for a new process;
+   * {@link createSpritesSandbox} defaults to `/home/sprite`.
    */
   workingDirectory?: string;
+}
+
+type SpritesCreationSettings = SpritesConnectionSettings & {
+  /**
+   * URL auth mode for the created Sprite. Defaults to `'public'`, which is
+   * the only mode a bridge-backed harness adapter can connect to.
+   */
+  urlAuth?: SpriteUrlAuth;
+  /** Block on capacity instead of failing fast when the fleet is full. */
+  waitForCapacity?: boolean;
+  /** The Sprite is named with `sandboxId`. */
+  name?: never;
+  spriteName?: never;
+};
+
+export type SpritesNetworkSandboxSessionCreateOptions =
+  HarnessV1SandboxSessionCreateOptions<SpritesCreationSettings>;
+
+type SpritesLookupSettings = SpritesConnectionSettings & {
+  /**
+   * URL auth mode to put the Sprite on. Left as the Sprite has it when unset.
+   */
+  urlAuth?: SpriteUrlAuth;
+  /** The Sprite is looked up by `sandboxId`. */
+  name?: never;
+  spriteName?: never;
+};
+
+export type SpritesNetworkSandboxSessionResumeOptions =
+  HarnessV1SandboxSessionResumeOptions<SpritesLookupSettings>;
+
+/**
+ * Create a Sprite and return its network sandbox session. `sandboxId` names
+ * the Sprite; a Sprite that already has that name is a conflict, never a
+ * lookup. An optional `template` is prepared in the new Sprite before the
+ * session is returned. The caller owns the Sprite: `destroy()` deletes it.
+ */
+export async function createSpritesNetworkSandboxSession(
+  options: SpritesNetworkSandboxSessionCreateOptions = {},
+): Promise<HarnessV1NetworkSandboxSession> {
+  if ('spriteName' in options) {
+    throw new Error(
+      'createSpritesNetworkSandboxSession: use resumeSpritesNetworkSandboxSession({ sandboxId }) for an existing Sprite.',
+    );
+  }
+  const { template, abortSignal, sandboxId, waitForCapacity } = options;
+  abortSignal?.throwIfAborted();
+  const client = createSpritesApiClient(options);
+  const name = sandboxId ?? `${PREWARM_NAME_PREFIX}-${randomSuffix()}`;
+
+  const { sprite, created } = await client.getOrCreateSprite({
+    name,
+    ...(waitForCapacity != null ? { waitForCapacity } : {}),
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  if (!created) {
+    throw new Error(
+      `createSpritesNetworkSandboxSession: a Sprite named "${name}" already exists. Use resumeSpritesNetworkSandboxSession({ sandboxId }) to reattach to it.`,
+    );
+  }
+
+  try {
+    const urlAuth = options.urlAuth ?? 'public';
+    if (sprite.urlAuth !== urlAuth) {
+      await client.setUrlAuth(sprite.name, urlAuth, abortSignal);
+    }
+    const session = new SpritesNetworkSandboxSession({
+      client,
+      sprite: { ...sprite, urlAuth },
+      workingDirectory:
+        options.workingDirectory ??
+        (await resolveSpriteWorkingDirectory({
+          client,
+          spriteName: sprite.name,
+          abortSignal,
+        })),
+      ownsLifecycle: true,
+    });
+    // Sprites have no snapshot to start further Sprites from, so the template
+    // is prepared in every new Sprite.
+    await template?.prepare({
+      session: session.restricted(),
+      ...(abortSignal ? { abortSignal } : {}),
+    });
+    return session;
+  } catch (error) {
+    await client.deleteSprite(sprite.name).catch(() => {});
+    throw error;
+  }
+}
+
+/**
+ * Reattach to the existing Sprite named `sandboxId` and return its network
+ * sandbox session. Never creates a Sprite. The caller owns the Sprite:
+ * `destroy()` deletes it.
+ */
+export async function resumeSpritesNetworkSandboxSession(
+  options: SpritesNetworkSandboxSessionResumeOptions,
+): Promise<HarnessV1NetworkSandboxSession> {
+  const { sandboxId, abortSignal, urlAuth } = options;
+  abortSignal?.throwIfAborted();
+  const client = createSpritesApiClient(options);
+
+  const sprite = await client.getSprite(sandboxId, abortSignal);
+  if (urlAuth != null && sprite.urlAuth !== urlAuth) {
+    await client.setUrlAuth(sprite.name, urlAuth, abortSignal);
+  }
+  return new SpritesNetworkSandboxSession({
+    client,
+    sprite: urlAuth != null ? { ...sprite, urlAuth } : sprite,
+    workingDirectory:
+      options.workingDirectory ??
+      (await resolveSpriteWorkingDirectory({
+        client,
+        spriteName: sprite.name,
+        abortSignal,
+      })),
+    ownsLifecycle: true,
+  });
+}
+
+function createSpritesApiClient(
+  settings: SpritesConnectionSettings,
+): SpritesApiClient {
+  const apiKey =
+    settings.apiKey ?? process.env.SPRITES_API_KEY ?? process.env.SPRITES_TOKEN;
+  if (apiKey == null || apiKey === '') {
+    throw new Error(
+      'Sprites API key is required. Pass `apiKey` or set the SPRITES_API_KEY environment variable.',
+    );
+  }
+  const baseUrl =
+    settings.baseUrl ?? process.env.SPRITES_API_URL ?? SPRITES_DEFAULT_BASE_URL;
+  return new SpritesApiClient({ apiKey, baseUrl });
+}
+
+/**
+ * The directory a process starts in when no working directory is given, read
+ * from the Sprite itself rather than assumed.
+ */
+async function resolveSpriteWorkingDirectory({
+  client,
+  spriteName,
+  abortSignal,
+}: {
+  client: SpritesApiClient;
+  spriteName: string;
+  abortSignal: AbortSignal | undefined;
+}): Promise<string> {
+  const proc = await client.exec(spriteName, {
+    argv: ['pwd'],
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  const [stdout, stderr, { exitCode }] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.wait(),
+  ]);
+  const workingDirectory = stdout.trim();
+  if (exitCode !== 0 || !workingDirectory.startsWith('/')) {
+    throw new Error(
+      `Failed to resolve the working directory of Sprite "${spriteName}" (exit ${exitCode}): ${stderr || stdout}`,
+    );
+  }
+  return workingDirectory === '/'
+    ? workingDirectory
+    : workingDirectory.replace(/\/+$/, '');
 }
 
 /**
@@ -59,6 +234,8 @@ export interface SpritesConnectionSettings {
  *   session. When a `sessionId` is supplied the Sprite is named
  *   deterministically so `resumeSession({ sessionId })` can reattach. `urlAuth`
  *   defaults to `'public'` so bridge-backed adapters work out of the box.
+ *
+ * @deprecated Use `SpritesNetworkSandboxSessionCreateOptions` for new sessions.
  */
 export type SpritesSandboxSettings =
   | (SpritesConnectionSettings & {
@@ -75,6 +252,7 @@ export type SpritesSandboxSettings =
       waitForCapacity?: boolean;
     });
 
+/** @deprecated Use `createSpritesNetworkSandboxSession` instead. */
 export function createSpritesSandbox(
   settings: SpritesSandboxSettings = {} as SpritesSandboxSettings,
 ): HarnessV1SandboxProvider {
@@ -86,6 +264,8 @@ export function createSpritesSandbox(
  * Construct one via {@link createSpritesSandbox} at module scope and pass it to
  * a `HarnessAgent` (or call `createSession()` directly for raw access to a
  * network sandbox session).
+ *
+ * @deprecated Use `createSpritesNetworkSandboxSession` instead.
  */
 export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
   readonly specificationVersion = 'harness-sandbox-v1' as const;
@@ -95,20 +275,7 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
   private readonly workingDirectory: string;
 
   constructor(private readonly settings: SpritesSandboxSettings) {
-    const apiKey =
-      settings.apiKey ??
-      process.env.SPRITES_API_KEY ??
-      process.env.SPRITES_TOKEN;
-    if (apiKey == null || apiKey === '') {
-      throw new Error(
-        'Sprites API key is required. Pass `apiKey` or set the SPRITES_API_KEY environment variable.',
-      );
-    }
-    const baseUrl =
-      settings.baseUrl ??
-      process.env.SPRITES_API_URL ??
-      SPRITES_DEFAULT_BASE_URL;
-    this.client = new SpritesApiClient({ apiKey, baseUrl });
+    this.client = createSpritesApiClient(settings);
     this.workingDirectory =
       settings.workingDirectory ?? DEFAULT_WORKING_DIRECTORY;
   }
