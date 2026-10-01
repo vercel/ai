@@ -1,7 +1,11 @@
 import { jsonSchema, tool, type Tool } from '@ai-sdk/provider-utils';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 
 const toolSearchSymbol = Symbol.for('vercel.ai.toolSearch');
 const toolSearchFunctionSymbol = Symbol.for('vercel.ai.toolSearch.search');
+const toolSearchMaxResultsSymbol = Symbol.for(
+  'vercel.ai.toolSearch.maxResults',
+);
 
 type ToolSearchFunction = (options: {
   query: string;
@@ -20,6 +24,7 @@ type ToolSearchOutput = {
  */
 export function toolSearch({
   search,
+  maxResults = 5,
 }: {
   /**
    * Search eligible deferred tools and return their names in ranked order.
@@ -27,12 +32,26 @@ export function toolSearch({
    * duplicates are ignored before applying the result limit.
    */
   search?: ToolSearchFunction;
+  /**
+   * Maximum number of matching tools returned per search.
+   *
+   * @default 5
+   */
+  maxResults?: number;
 } = {}): Tool<ToolSearchInput, ToolSearchOutput> & {
   type: 'function';
 } {
+  if (!Number.isSafeInteger(maxResults) || maxResults < 1) {
+    throw new InvalidArgumentError({
+      parameter: 'maxResults',
+      value: maxResults,
+      message: 'maxResults must be a positive safe integer.',
+    });
+  }
+
   return Object.assign(
     tool({
-      description: `${search == null ? 'Search for tools by keywords in their names and descriptions.' : 'Search for tools matching a query.'} Returns up to five matching tools. Matches become available on the next model step, after this execution finishes. Wait for their tool definitions before calling the discovered tools. If no tools match, try different keywords.`,
+      description: `${search == null ? 'Search for tools by keywords in their names and descriptions.' : 'Search for tools matching a query.'} Returns up to ${maxResults === 5 ? 'five' : maxResults} matching tools. Matches become available on the next model step, after this execution finishes. Wait for their tool definitions before calling the discovered tools. If no tools match, try different keywords.`,
       inputSchema: jsonSchema<ToolSearchInput>({
         type: 'object',
         properties: { query: { type: 'string', minLength: 1 } },
@@ -66,7 +85,16 @@ export function toolSearch({
       type: 'function' as const,
       [toolSearchSymbol]: true,
       [toolSearchFunctionSymbol]: search,
+      [toolSearchMaxResultsSymbol]: maxResults,
     },
+  );
+}
+
+export function getToolSearchMaxResults(tool: Tool): number {
+  return (
+    (tool as Tool & { [toolSearchMaxResultsSymbol]?: number })[
+      toolSearchMaxResultsSymbol
+    ] ?? 5
   );
 }
 

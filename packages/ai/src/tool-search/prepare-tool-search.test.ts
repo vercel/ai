@@ -29,9 +29,13 @@ async function search(prepared: ToolSet, query: string) {
 }
 
 describe('deferred tool search', () => {
-  it.each([false, true])(
-    'lets a custom search rank all candidates before limiting results (async: %s)',
-    async asyncSearch => {
+  it.each(
+    [false, true].flatMap(asyncSearch =>
+      [undefined, 1, 3, 8, 20].map(maxResults => ({ asyncSearch, maxResults })),
+    ),
+  )(
+    'lets a custom search rank all candidates before limiting results (async: $asyncSearch, maxResults: $maxResults)',
+    async ({ asyncSearch, maxResults }) => {
       const rank = vi.fn(({ tools }: { tools: Array<{ name: string }> }) =>
         tools.map(tool => tool.name).reverse(),
       );
@@ -39,6 +43,7 @@ describe('deferred tool search', () => {
         search: {
           ...toolSearch({
             search: asyncSearch ? async options => rank(options) : rank,
+            maxResults,
           }),
         },
         ...Object.fromEntries(
@@ -60,21 +65,16 @@ describe('deferred tool search', () => {
           description: 'Weather forecast.',
         })),
       });
-      expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual([
-        'candidate7',
-        'candidate6',
-        'candidate5',
-        'candidate4',
-        'candidate3',
-      ]);
+      const expected = Array.from({ length: 8 }, (_, i) => `candidate${i}`)
+        .reverse()
+        .slice(0, maxResults ?? 5);
+      expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(
+        expected,
+      );
       expect(Object.keys(first)).toEqual(['search']);
       expect(Object.keys(prepare(registry)!)).toEqual([
         'search',
-        'candidate3',
-        'candidate4',
-        'candidate5',
-        'candidate6',
-        'candidate7',
+        ...expected.slice().reverse(),
       ]);
     },
   );
@@ -365,6 +365,77 @@ describe('deferred tool search', () => {
     expect(await search(prepare(registry)!, 'weather')).toMatchObject({
       tools: [{ name: 'getWeather' }],
     });
+  });
+
+  it.each([1, 3, 8, 20])(
+    'applies maxResults %i to search output and next-step discovery',
+    async maxResults => {
+      const candidates = Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [`candidate${i}`, weather]),
+      );
+      const registry = {
+        search: { ...toolSearch({ maxResults }) },
+        ...candidates,
+      };
+      const prepare = createToolSearchState({
+        tools: registry,
+        toolCallers: undefined,
+      });
+      const first = prepare(registry)!;
+      const expected = Object.keys(candidates).slice(0, maxResults);
+
+      expect(Object.keys(first)).toEqual(['search']);
+      const result = await search(first, 'weather');
+      expect(result.tools.map((tool: { name: string }) => tool.name)).toEqual(
+        expected,
+      );
+      expect(Object.keys(first)).toEqual(['search']);
+      expect(Object.keys(prepare(registry)!)).toEqual(['search', ...expected]);
+    },
+  );
+
+  it('keeps configured limits independent for multiple search tools', async () => {
+    const registry = {
+      search: toolSearch({ maxResults: 1 }),
+      broadSearch: toolSearch({ maxResults: 8 }),
+      ...Object.fromEntries(
+        Array.from({ length: 8 }, (_, i) => [`candidate${i}`, weather]),
+      ),
+    };
+    const prepare = createToolSearchState({
+      tools: registry,
+      toolCallers: undefined,
+    });
+    const first = prepare(registry)!;
+
+    expect((await search(first, 'weather')).tools).toHaveLength(1);
+    expect(
+      await first.broadSearch.execute!({ query: 'weather' }, executionOptions),
+    ).toHaveProperty('tools.length', 8);
+  });
+
+  it('respects active tools and caller restrictions with a larger limit', async () => {
+    const registry = {
+      ...tools,
+      search: toolSearch({ maxResults: 10 }),
+      otherCode: caller,
+      otherWeather: weather,
+      excludedWeather: weather,
+    };
+    const prepare = createToolSearchState({
+      tools: registry,
+      toolCallers: {
+        ...toolCallers,
+        otherWeather: ['otherCode'],
+        excludedWeather: ['code'],
+      },
+    });
+    const { excludedWeather: _excluded, ...eligible } = registry;
+    expect(await search(prepare(eligible)!, 'weather')).toEqual({
+      tools: [{ name: 'getWeather', description: 'Weather forecast.' }],
+    });
+    expect(prepare(registry)!.otherWeather).toBeUndefined();
+    expect(prepare(registry)!.excludedWeather).toBeUndefined();
   });
 
   it.each<ResolvedToolCallers | undefined>([
