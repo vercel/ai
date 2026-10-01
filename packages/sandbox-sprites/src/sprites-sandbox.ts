@@ -348,7 +348,10 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
       }
       return new SpritesNetworkSandboxSession({
         client: this.client,
-        sprite,
+        sprite:
+          this.settings.urlAuth != null
+            ? { ...sprite, urlAuth: this.settings.urlAuth }
+            : sprite,
         workingDirectory: this.workingDirectory,
         ownsLifecycle: false,
       });
@@ -452,7 +455,10 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
       }
       return new SpritesNetworkSandboxSession({
         client: this.client,
-        sprite,
+        sprite:
+          this.settings.urlAuth != null
+            ? { ...sprite, urlAuth: this.settings.urlAuth }
+            : sprite,
         workingDirectory: this.workingDirectory,
         ownsLifecycle: false,
       });
