@@ -22,6 +22,7 @@ import {
   embed,
   embedMany,
   experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
   streamObject,
@@ -2838,33 +2839,37 @@ describe('OpenTelemetry', () => {
 });
 
 describe('OpenTelemetry integration with decide', () => {
-  it('creates operation and model-call spans', async () => {
-    const tracer = createMockTracer();
-    const questions = {
-      refund: { type: 'boolean', instructions: 'Refund?' },
-    } as const;
+  it.each(['current', 'deprecated'] as const)(
+    'creates decision spans through the %s API',
+    async api => {
+      const tracer = createMockTracer();
+      const questions = {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      } as const;
 
-    await experimental_decide({
-      model: new Experimental_DecisionMockModelV4({
-        doDecide: async () => ({
-          answers: { refund: { type: 'boolean', probability: 0.9 } },
-          usage: { inputTokens: 12, outputTokens: 2 },
-          warnings: [],
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
         }),
-      }),
-      state: { message: 'Please refund me' },
-      questions,
-      telemetry: {
-        integrations: new OpenTelemetry({
-          tracer,
-          experimental_decision: true,
-        }),
-      },
-    });
+        state: { message: 'Please refund me' },
+        questions,
+        telemetry: {
+          integrations: new OpenTelemetry({
+            tracer,
+            ...(api === 'current'
+              ? { experimental_decision: true }
+              : { experimental_evaluation: true }),
+          }),
+        },
+      });
 
-    expect(tracer.spans).toHaveLength(2);
-    expect(tracer.spans.map(span => serializeSpan(span, tracer)))
-      .toMatchInlineSnapshot(`
+      expect(tracer.spans).toHaveLength(2);
+      expect(tracer.spans.map(span => serializeSpan(span, tracer)))
+        .toMatchInlineSnapshot(`
         [
           {
             "ended": true,
@@ -2898,7 +2903,8 @@ describe('OpenTelemetry integration with decide', () => {
           },
         ]
       `);
-  });
+    },
+  );
 
   it('ends both spans with error status when decision fails', async () => {
     const tracer = createMockTracer();

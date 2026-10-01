@@ -25,6 +25,7 @@ import {
   embed,
   embedMany,
   experimental_decide,
+  experimental_evaluate,
   generateObject,
   generateText,
   isStepCount,
@@ -2519,27 +2520,29 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
 });
 
 describe('LegacyOpenTelemetry integration with decide', () => {
-  it('records decision inputs, outputs, and usage', async () => {
-    const tracer = new IntegrationMockTracer();
+  it.each(['current', 'deprecated'] as const)(
+    'records decision inputs, outputs, and usage through the %s API',
+    async api => {
+      const tracer = new IntegrationMockTracer();
 
-    await experimental_decide({
-      model: new Experimental_DecisionMockModelV4({
-        doDecide: async () => ({
-          answers: { refund: { type: 'boolean', probability: 0.9 } },
-          usage: { inputTokens: 12, outputTokens: 2 },
-          warnings: [],
+      await (api === 'current' ? experimental_decide : experimental_evaluate)({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => ({
+            answers: { refund: { type: 'boolean', probability: 0.9 } },
+            usage: { inputTokens: 12, outputTokens: 2 },
+            warnings: [],
+          }),
         }),
-      }),
-      state: { message: 'Please refund me' },
-      questions: {
-        refund: { type: 'boolean', instructions: 'Refund?' },
-      },
-      telemetry: {
-        integrations: new LegacyOpenTelemetry({ tracer }),
-      },
-    });
+        state: { message: 'Please refund me' },
+        questions: {
+          refund: { type: 'boolean', instructions: 'Refund?' },
+        },
+        telemetry: {
+          integrations: new LegacyOpenTelemetry({ tracer }),
+        },
+      });
 
-    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      expect(tracer.jsonSpans).toMatchInlineSnapshot(`
       [
         {
           "attributes": {
@@ -2573,7 +2576,8 @@ describe('LegacyOpenTelemetry integration with decide', () => {
         },
       ]
     `);
-  });
+    },
+  );
 });
 
 // --- embed integration fixtures ---
