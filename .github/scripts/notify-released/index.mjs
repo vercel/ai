@@ -3,11 +3,6 @@
 import { Octokit } from 'octokit';
 
 const DRY_RUN = process.argv.includes('--dry-run');
-const NPM_VERIFY_TIMEOUT_MS = parseInt(
-  process.env.NPM_VERIFY_TIMEOUT_MS || '600000',
-  10,
-);
-const NPM_POLL_INTERVAL_MS = 10000;
 
 // --- Step 1: Validate inputs ---
 
@@ -38,54 +33,10 @@ for (const pkg of publishedPackages) {
   console.log(`  - ${pkg.name}@${pkg.version}`);
 }
 
-// --- Step 2: Verify all packages exist on npm ---
+// npm accepted these publications in the preceding publish step. Public
+// availability can lag while npm scans packages, so notify without polling.
 
-console.log('\nVerifying packages on npm...');
-
-async function verifyPackageOnNpm(name, version) {
-  const url = `https://registry.npmjs.org/${name}/${version}`;
-  const response = await fetch(url);
-  return response.ok;
-}
-
-const startTime = Date.now();
-let allVerified = false;
-
-while (Date.now() - startTime < NPM_VERIFY_TIMEOUT_MS) {
-  const results = await Promise.all(
-    publishedPackages.map(async pkg => ({
-      ...pkg,
-      exists: await verifyPackageOnNpm(pkg.name, pkg.version),
-    })),
-  );
-
-  const missing = results.filter(r => !r.exists);
-  if (missing.length === 0) {
-    allVerified = true;
-    console.log('All packages verified on npm.');
-    break;
-  }
-
-  console.log(
-    `Waiting for ${missing.length} package(s) to appear on npm: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
-  );
-  await new Promise(resolve => setTimeout(resolve, NPM_POLL_INTERVAL_MS));
-}
-
-if (!allVerified) {
-  const results = await Promise.all(
-    publishedPackages.map(async pkg => ({
-      ...pkg,
-      exists: await verifyPackageOnNpm(pkg.name, pkg.version),
-    })),
-  );
-  const missing = results.filter(r => !r.exists);
-  throw new Error(
-    `Timed out waiting for packages on npm: ${missing.map(m => `${m.name}@${m.version}`).join(', ')}`,
-  );
-}
-
-// --- Step 3: Parse release PR body to find commits ---
+// --- Step 2: Parse release PR body to find commits ---
 
 console.log(`\nFetching PR #${pullRequestNumber} body...`);
 
@@ -123,7 +74,7 @@ for (const hash of commitHashes) {
   console.log(`  - ${hash}`);
 }
 
-// --- Step 4: Find PRs and closed issues for each commit ---
+// --- Step 3: Find PRs and closed issues for each commit ---
 
 console.log('\nQuerying GitHub for associated PRs and issues...');
 
@@ -203,7 +154,7 @@ console.log(
   `Found ${issueNumbers.size} issue(s): ${[...issueNumbers].join(', ') || '(none)'}`,
 );
 
-// --- Step 5: Post comments ---
+// --- Step 4: Post comments ---
 
 const packageTable = publishedPackages
   .map(pkg => {
@@ -218,7 +169,9 @@ const commentBody = `:rocket: Published in:
 
 | Package | Version |
 | --- | --- |
-${packageTable}`;
+${packageTable}
+
+npm may delay availability while security scanning completes.`;
 
 const allNumbers = [...prNumbers, ...issueNumbers];
 

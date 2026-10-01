@@ -79,6 +79,7 @@ jobs:
 
       - name: Notify released PRs and issues
         if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+        continue-on-error: true
         run: |
           cd .github/scripts/notify-released
           npm install --no-save
