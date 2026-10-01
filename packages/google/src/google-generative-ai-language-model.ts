@@ -198,6 +198,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
         isGemmaModel,
         isGemini3Model: usesGemini3Features,
         supportsFunctionResponseParts: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
       },
     );
 
