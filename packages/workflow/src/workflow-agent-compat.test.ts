@@ -10,9 +10,11 @@
  *   instead of ToolLoopAgent's `prompt` string
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import {
   dynamicTool,
   tool,
+  toolSearch,
   type Experimental_LanguageModelStreamPart,
   type ToolSet,
   type UIMessageChunk,
@@ -1018,6 +1020,112 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
   });
 
   describe('completed step tool results', () => {
+    it('discovers and executes deferred tools', async () => {
+      let call = 0;
+      const model = new MockLanguageModelV4({
+        doStream: async () => {
+          call++;
+          let chunks: LanguageModelV4StreamPart[];
+          if (call === 1) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'search-call',
+                toolName: 'search',
+                input: '{"query":"weather forecast"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else if (call === 2) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'weather-call',
+                toolName: 'weather',
+                input: '{"city":"London"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'text-start' as const, id: 'text' },
+              {
+                type: 'text-delta' as const,
+                id: 'text',
+                delta: 'done',
+              },
+              { type: 'text-end' as const, id: 'text' },
+              dummyStreamFinish,
+            ];
+          }
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          search: toolSearch(),
+          weather: tool({
+            deferLoading: true,
+            description: 'Get the weather forecast for a city.',
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, forecast: 'rain' }),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Will it rain?' }],
+        writable,
+      });
+
+      expect(
+        model.doStreamCalls.map(call => call.tools?.map(tool => tool.name)),
+      ).toEqual([['search'], ['search', 'weather'], ['search', 'weather']]);
+      expect(result.steps[0]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'search-call',
+          toolName: 'search',
+          output: {
+            tools: [
+              {
+                name: 'weather',
+                description: 'Get the weather forecast for a city.',
+              },
+            ],
+          },
+        }),
+      );
+      expect(result.steps[1]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          output: { city: 'London', forecast: 'rain' },
+        }),
+      );
+    });
+
     it('exposes static tool results to step consumers', async () => {
       const prepareStepResults: unknown[] = [];
       const onStepEndResults: unknown[] = [];
@@ -1223,6 +1331,334 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
       expect(result.steps[0]?.toolResults).toEqual([]);
       expect(result.steps[0]?.staticToolResults).toEqual([]);
       expect(result.steps[0]?.dynamicToolResults).toEqual([]);
+    });
+
+    it('preserves terminal provider tool results in stream order', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'call-a',
+              toolName: 'providerA',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'call-b',
+              toolName: 'providerB',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'call-a',
+              toolName: 'providerA',
+              result: { value: 'a' },
+              providerExecuted: true,
+              providerMetadata: {
+                testProvider: { resultId: 'result-a' },
+              },
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'call-b',
+              toolName: 'providerB',
+              result: { value: 'b' },
+              providerExecuted: true,
+            },
+            dummyStreamFinish,
+          ]),
+        }),
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          providerA: tool({
+            type: 'provider',
+            id: 'test.provider_a',
+            isProviderExecuted: true,
+            args: {},
+            inputSchema: z.object({}),
+          }),
+          providerB: tool({
+            type: 'provider',
+            id: 'test.provider_b',
+            isProviderExecuted: true,
+            args: {},
+            inputSchema: z.object({}),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable,
+      });
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(
+        result.steps[0]?.content.map(part => ({
+          type: part.type,
+          toolCallId:
+            part.type === 'tool-call' ||
+            part.type === 'tool-result' ||
+            part.type === 'tool-error'
+              ? part.toolCallId
+              : undefined,
+        })),
+      ).toEqual([
+        { type: 'tool-call', toolCallId: 'call-a' },
+        { type: 'tool-call', toolCallId: 'call-b' },
+        { type: 'tool-result', toolCallId: 'call-a' },
+        { type: 'tool-result', toolCallId: 'call-b' },
+      ]);
+      expect(result.steps[0]?.toolResults).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'call-a',
+        toolName: 'providerA',
+        input: {},
+        output: { value: 'a' },
+        providerExecuted: true,
+        providerMetadata: {
+          testProvider: { resultId: 'result-a' },
+        },
+      });
+
+      const assistantMessage = result.messages.find(
+        message => message.role === 'assistant',
+      );
+      expect(Array.isArray(assistantMessage?.content)).toBe(true);
+      expect(
+        Array.isArray(assistantMessage?.content)
+          ? assistantMessage.content.map(part => ({
+              type: part.type,
+              toolCallId:
+                part.type === 'tool-call' || part.type === 'tool-result'
+                  ? part.toolCallId
+                  : undefined,
+            }))
+          : [],
+      ).toEqual([
+        { type: 'tool-call', toolCallId: 'call-a' },
+        { type: 'tool-call', toolCallId: 'call-b' },
+        { type: 'tool-result', toolCallId: 'call-a' },
+        { type: 'tool-result', toolCallId: 'call-b' },
+      ]);
+      expect(result.steps[0]?.response.messages).toEqual(
+        result.messages.slice(1),
+      );
+    });
+
+    it('replays deferred provider results emitted in a later response', async () => {
+      let responseNumber = 0;
+      const model = new MockLanguageModelV4({
+        doStream: async () => {
+          responseNumber++;
+
+          if (responseNumber === 1) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start' as const, warnings: [] },
+                {
+                  type: 'tool-call' as const,
+                  toolCallId: 'program-call',
+                  toolName: 'program',
+                  input: '{"code":"run()"}',
+                  providerExecuted: true,
+                },
+                {
+                  type: 'tool-call' as const,
+                  toolCallId: 'client-call',
+                  toolName: 'clientTool',
+                  input: '{}',
+                },
+                {
+                  ...dummyStreamFinish,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: 'tool-calls',
+                  },
+                },
+              ]),
+            };
+          }
+
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-result' as const,
+                toolCallId: 'program-call',
+                toolName: 'program',
+                result: { status: 'done' },
+                providerExecuted: true,
+                providerMetadata: {
+                  testProvider: { resultId: 'deferred-result' },
+                },
+              },
+              { type: 'text-start' as const, id: 'text-1' },
+              {
+                type: 'text-delta' as const,
+                id: 'text-1',
+                delta: 'Done.',
+              },
+              { type: 'text-end' as const, id: 'text-1' },
+              dummyStreamFinish,
+            ]),
+          };
+        },
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          program: tool({
+            type: 'provider',
+            id: 'test.program',
+            isProviderExecuted: true,
+            supportsDeferredResults: true,
+            args: {},
+            inputSchema: z.object({ code: z.string() }),
+          }),
+          clientTool: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'client result',
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'run the program' }],
+        writable,
+      });
+
+      expect(model.doStreamCalls).toHaveLength(2);
+      expect(result.steps).toHaveLength(2);
+      expect(result.steps[1]?.content).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'program-call',
+        toolName: 'program',
+        input: undefined,
+        output: { status: 'done' },
+        providerExecuted: true,
+        providerMetadata: {
+          testProvider: { resultId: 'deferred-result' },
+        },
+      });
+      expect(result.steps[1]?.toolResults).toContainEqual({
+        type: 'tool-result',
+        toolCallId: 'program-call',
+        toolName: 'program',
+        input: undefined,
+        output: { status: 'done' },
+        providerExecuted: true,
+        providerMetadata: {
+          testProvider: { resultId: 'deferred-result' },
+        },
+      });
+
+      const finalAssistantMessage = result.messages.at(-1);
+      expect(finalAssistantMessage?.role).toBe('assistant');
+      expect(
+        finalAssistantMessage?.role === 'assistant' &&
+          Array.isArray(finalAssistantMessage.content)
+          ? finalAssistantMessage.content.map(part => part.type)
+          : [],
+      ).toEqual(['tool-result', 'text']);
+      expect(result.messages.slice(1)).toEqual(
+        result.steps.flatMap(step => step.response.messages),
+      );
+    });
+
+    it('preserves provider result order and response messages when a client tool pauses the loop', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              input: '{}',
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              input: '{}',
+            },
+            {
+              type: 'tool-result' as const,
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              result: { value: 'provider result' },
+              providerExecuted: true,
+            },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'tool-calls' as const,
+                raw: 'tool-calls',
+              },
+            },
+          ]),
+        }),
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          providerTool: tool({
+            type: 'provider',
+            id: 'test.provider_tool',
+            isProviderExecuted: true,
+            args: {},
+            inputSchema: z.object({}),
+          }),
+          clientTool: tool({
+            inputSchema: z.object({}),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'test' }],
+        writable,
+      });
+
+      expect(model.doStreamCalls).toHaveLength(1);
+      expect(result.toolCalls.map(toolCall => toolCall.toolCallId)).toEqual([
+        'provider-call',
+        'client-call',
+      ]);
+      expect(
+        result.toolResults.map(toolResult => toolResult.toolCallId),
+      ).toEqual(['provider-call']);
+
+      const responseMessages = result.steps[0]?.response.messages ?? [];
+      expect(responseMessages).toEqual(result.messages.slice(1));
+      expect(
+        responseMessages.flatMap(message =>
+          message.role === 'assistant' && Array.isArray(message.content)
+            ? message.content.map(part => ({
+                type: part.type,
+                toolCallId:
+                  part.type === 'tool-call' || part.type === 'tool-result'
+                    ? part.toolCallId
+                    : undefined,
+              }))
+            : [],
+        ),
+      ).toEqual([
+        { type: 'tool-call', toolCallId: 'provider-call' },
+        { type: 'tool-call', toolCallId: 'client-call' },
+        { type: 'tool-result', toolCallId: 'provider-call' },
+      ]);
     });
   });
 

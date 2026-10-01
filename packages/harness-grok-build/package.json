@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/harness-grok-build",
-  "version": "1.0.43",
+  "version": "1.0.74",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -18,8 +18,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
     "clean": "del-cli dist *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node",
@@ -37,6 +37,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/harness-acp": "workspace:*",
+    "@ai-sdk/provider": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*"
   },
   "peerDependencies": {
@@ -45,8 +46,8 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
-    "@xai-official/grok": "1.0.5",
-    "tsup": "^8.5.1",
+    "@xai-official/grok": "1.0.36",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

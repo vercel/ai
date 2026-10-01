@@ -15,7 +15,7 @@ import { WorkflowAgent } from '@ai-sdk/workflow';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-opus',
+  model: 'anthropic/claude-opus-5.5',
   tools: {
     getWeather: {
       description: 'Get weather for a location',

@@ -4,6 +4,8 @@ import type {
   SharedV4Warning,
 } from '../../shared';
 import type { LanguageModelV4GenerateResult } from '../../language-model/v4/language-model-v4-generate-result';
+import type { ImageModelV4Result } from '../../image-model/v4';
+import type { ImageBatchV4Request } from './image-batch-v4-request';
 import type { TextBatchV4Request } from './text-batch-v4-request';
 
 /**
@@ -12,7 +14,8 @@ import type { TextBatchV4Request } from './text-batch-v4-request';
  * Additional modality-specific model ID types can be added to this mapping.
  */
 export type BatchV4ModelIds = {
-  readonly text: string;
+  readonly text?: string;
+  readonly image?: string;
 };
 
 type BatchV4CallOptions = {
@@ -59,7 +62,8 @@ export type BatchV4Status = {
 };
 
 export type BatchV4Request<ModelIds extends BatchV4ModelIds = BatchV4ModelIds> =
-  TextBatchV4Request<ModelIds['text']>;
+  | TextBatchV4Request<ModelIds['text'] & string>
+  | ImageBatchV4Request<ModelIds['image'] & string>;
 
 /**
  * Options for starting a batch of requests discriminated by modality.
@@ -149,12 +153,19 @@ export type TextBatchV4ItemResult = {
 } & BatchV4ItemResultBase<LanguageModelV4GenerateResult>;
 
 /**
+ * A complete terminal result for one request in an image batch.
+ */
+export type ImageBatchV4ItemResult = {
+  readonly type: 'image';
+} & BatchV4ItemResultBase<ImageModelV4Result>;
+
+/**
  * A complete terminal result for one request in a batch, discriminated by
  * modality.
  *
  * Additional modality-specific item results can be added to this union.
  */
-export type BatchV4ItemResult = TextBatchV4ItemResult;
+export type BatchV4ItemResult = TextBatchV4ItemResult | ImageBatchV4ItemResult;
 
 /**
  * Specification for a batch interface that implements batch interface version 4.

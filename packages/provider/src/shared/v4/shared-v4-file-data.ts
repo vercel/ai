@@ -15,6 +15,14 @@ export interface SharedV4FileDataData {
 export interface SharedV4FileDataUrl {
   type: 'url';
   url: URL;
+
+  /**
+   * The original URL string before it was parsed into a `URL`.
+   *
+   * This is available when parsing would change the string and a provider
+   * needs to preserve an opaque non-HTTP URI exactly.
+   */
+  originalUrl?: string;
 }
 
 /**

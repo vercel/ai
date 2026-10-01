@@ -6,8 +6,11 @@ import {
   type LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import { jsonSchema } from '@ai-sdk/provider-utils';
-import { convertArrayToReadableStream } from '@ai-sdk/provider-utils/test';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  convertArrayToReadableStream,
+  convertReadableStreamToArray,
+} from '@ai-sdk/provider-utils/test';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { MockProviderV4 } from '../test/mock-provider-v4';
 import {
@@ -18,6 +21,11 @@ import {
   startBatch,
 } from './batch';
 import type { BatchReference } from './batch-types';
+
+type MockBatchModelIds = {
+  text: string;
+  image: string;
+};
 
 vi.mock('../version', () => ({ VERSION: '0.0.0-test' }));
 
@@ -52,12 +60,12 @@ function createMockBatchApi({
   doCancelBatch,
   doListBatches,
 }: {
-  doStartBatch?: BatchV4['doStartBatch'];
-  doGetBatchStatus?: BatchV4['doGetBatchStatus'];
-  doGetBatchResults?: BatchV4['doGetBatchResults'];
-  doCancelBatch?: BatchV4['doCancelBatch'];
-  doListBatches?: BatchV4['doListBatches'];
-} = {}): BatchV4 {
+  doStartBatch?: BatchV4<MockBatchModelIds>['doStartBatch'];
+  doGetBatchStatus?: BatchV4<MockBatchModelIds>['doGetBatchStatus'];
+  doGetBatchResults?: BatchV4<MockBatchModelIds>['doGetBatchResults'];
+  doCancelBatch?: BatchV4<MockBatchModelIds>['doCancelBatch'];
+  doListBatches?: BatchV4<MockBatchModelIds>['doListBatches'];
+} = {}): BatchV4<MockBatchModelIds> {
   return {
     specificationVersion: 'v4',
     provider: 'mock-provider',
@@ -169,6 +177,72 @@ describe('listBatches', () => {
 });
 
 describe('startBatch', () => {
+  it('rejects unsupported request types before starting a batch', async () => {
+    const doStartBatch = vi.fn(createMockBatchApi().doStartBatch);
+    const batchApi = createMockBatchApi({ doStartBatch });
+
+    await expect(
+      startBatch({
+        provider: batchApi,
+        requests: [
+          {
+            id: 'request-1',
+            // @ts-expect-error intentionally testing an unknown future type
+            type: 'audio',
+            model: 'audio-model',
+            prompt: 'Hello',
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_InvalidArgumentError',
+      parameter: 'requests',
+    });
+
+    expect(doStartBatch).not.toHaveBeenCalled();
+  });
+
+  it('normalizes image requests before starting a batch', async () => {
+    const doStartBatch = vi.fn(createMockBatchApi().doStartBatch);
+    const batchApi = createMockBatchApi({ doStartBatch });
+
+    await startBatch({
+      provider: batchApi,
+      requests: [
+        {
+          id: 'request-1',
+          type: 'image',
+          model: 'image-model',
+          prompt: 'A red panda',
+          n: 2,
+          aspectRatio: '16:9',
+        },
+      ],
+    });
+
+    expect(doStartBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requests: [
+          {
+            id: 'request-1',
+            type: 'image',
+            modelId: 'image-model',
+            options: {
+              prompt: 'A red panda',
+              n: 2,
+              size: undefined,
+              aspectRatio: '16:9',
+              seed: undefined,
+              files: undefined,
+              mask: undefined,
+              providerOptions: {},
+            },
+          },
+        ],
+      }),
+    );
+  });
+
   it('uses the global default provider when provider is omitted', async () => {
     const calls: Array<Parameters<BatchV4['doStartBatch']>[0]> = [];
     const batchApi = createMockBatchApi({
@@ -649,9 +723,10 @@ describe('getBatchResults', () => {
       items.push(item);
     }
 
-    expect(items.every(item => !('type' in item))).toBe(true);
+    expect(items.every(item => item.type === 'text')).toBe(true);
     expect(items).toMatchObject([
       {
+        type: 'text',
         content: [{ text: 'Paris', type: 'text' }],
         id: 'request-1',
         status: 'succeeded',
@@ -671,6 +746,7 @@ describe('getBatchResults', () => {
         providerMetadata: { mock: { result: true } },
       },
       {
+        type: 'text',
         id: 'request-2',
         status: 'failed',
         error: { message: 'request failed', code: 'bad_request' },
@@ -725,11 +801,13 @@ describe('getBatchResults', () => {
 
     expect(items).toEqual([
       {
+        type: 'text',
         content: [
           {
             dynamic: true,
             input: { city: 'Paris' },
             providerExecuted: true,
+            providerMetadata: undefined,
             toolCallId: 'call-1',
             toolName: 'weather',
             type: 'tool-call',
@@ -767,6 +845,64 @@ describe('getBatchResults', () => {
         },
       },
     ]);
+  });
+
+  it('normalizes successful image results', async () => {
+    const batchApi = createMockBatchApi({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            type: 'image',
+            id: 'image-1',
+            status: 'succeeded',
+            result: {
+              images: ['aGVsbG8='],
+              warnings: [],
+              response: {
+                timestamp: new Date('2026-09-09T12:00:00.000Z'),
+                modelId: 'image-model',
+                headers: { 'x-request-id': 'request-1' },
+              },
+              providerMetadata: {
+                mock: { images: [{ revisedPrompt: 'A vivid red panda' }] },
+              },
+              usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+            },
+          },
+        ]),
+    });
+
+    const items = [];
+    for await (const item of getBatchResults({
+      provider: batchApi,
+      batch: batchReference,
+      maxRetries: 0,
+    })) {
+      items.push(item);
+    }
+
+    expect(items[0]).toMatchObject({
+      type: 'image',
+      id: 'image-1',
+      status: 'succeeded',
+      warnings: [],
+      response: {
+        timestamp: new Date('2026-09-09T12:00:00.000Z'),
+        modelId: 'image-model',
+      },
+      providerMetadata: {
+        mock: { images: [{ revisedPrompt: 'A vivid red panda' }] },
+      },
+      usage: { inputTokens: 2, outputTokens: 3, totalTokens: 5 },
+    });
+    const item = items[0];
+    if (item?.type !== 'image' || item.status !== 'succeeded') {
+      throw new Error('Expected a successful image result.');
+    }
+    expect(item.images[0].base64).toBe('aGVsbG8=');
+    expect(item.images[0].providerMetadata).toEqual({
+      mock: { revisedPrompt: 'A vivid red panda' },
+    });
   });
 
   it('normalizes client tool calls with their definitions without executing them', async () => {
@@ -831,4 +967,101 @@ describe('getBatchResults', () => {
       },
     ]);
   });
+});
+
+describe('batch generated file downloads', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  function createFileBatchProvider(type: 'file' | 'reasoning-file' = 'file') {
+    return createMockBatchApi({
+      doGetBatchResults: async () =>
+        convertArrayToReadableStream([
+          {
+            type: 'text',
+            id: 'request',
+            status: 'succeeded',
+            result: {
+              content: [
+                {
+                  type,
+                  mediaType: 'text/plain',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/batch.txt'),
+                  },
+                },
+              ],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+              warnings: [],
+            },
+          },
+        ]),
+    });
+  }
+
+  it.each(['file', 'reasoning-file'] as const)(
+    'downloads %s content',
+    async type => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => new Response('Hello World')),
+      );
+      const results = await convertReadableStreamToArray(
+        getBatchResults({
+          provider: createFileBatchProvider(type),
+          batch: batchReference,
+        }),
+      );
+      const result = results[0];
+      expect(result).toMatchObject({ status: 'succeeded', type: 'text' });
+      if (result.type !== 'text' || result.status !== 'succeeded')
+        throw new Error('Expected a successful text result');
+      const part = result.content[0];
+      if (part.type !== 'file' && part.type !== 'reasoning-file')
+        throw new Error('Expected a file');
+      expect(part.type).toBe(type);
+      expect(part.file.base64).toBe('SGVsbG8gV29ybGQ=');
+      expect(part.file.uint8Array).toEqual(
+        new TextEncoder().encode('Hello World'),
+      );
+    },
+  );
+
+  it.each(['abort', 'timeout'] as const)(
+    'cancels in-flight downloads on %s',
+    async mode => {
+      const started = Promise.withResolvers<void>();
+      const abortController = new AbortController();
+      let signal: AbortSignal | null | undefined;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (_input, init) => {
+          signal = init?.signal;
+          started.resolve();
+          return new Promise<Response>((_resolve, reject) => {
+            if (signal?.aborted) reject(signal.reason);
+            else
+              signal?.addEventListener('abort', () => reject(signal?.reason), {
+                once: true,
+              });
+          });
+        }),
+      );
+      const results = convertReadableStreamToArray(
+        getBatchResults({
+          provider: createFileBatchProvider(),
+          batch: batchReference,
+          abortSignal: abortController.signal,
+          timeout: mode === 'timeout' ? { totalMs: 100 } : undefined,
+        }),
+      );
+      const rejected = expect(results).rejects.toBeDefined();
+      await started.promise;
+      expect(signal).toBeDefined();
+      if (mode === 'abort') abortController.abort(new Error('cancelled'));
+      await rejected;
+      expect(signal?.aborted).toBe(true);
+    },
+  );
 });

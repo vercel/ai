@@ -4,9 +4,12 @@ import {
   type HarnessV1BuiltinTool,
 } from '@ai-sdk/harness';
 import { tool } from '@ai-sdk/provider-utils';
-import type { ExtensionFactory } from '@earendil-works/pi-coding-agent';
+import type {
+  ExtensionFactory,
+  ProviderConfig,
+} from '@earendil-works/pi-coding-agent';
 import { z } from 'zod/v4';
-import type { PiAuthenticationMode } from './pi-auth';
+import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
 import { createPiSession, type PiThinkingLevel } from './pi-session';
 import { VERSION } from './version';
@@ -14,7 +17,7 @@ import { VERSION } from './version';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+const PI_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library
@@ -24,15 +27,34 @@ export type PiHarnessSettings = {
   /** Where Pi sources API keys / gateway credentials from. */
   readonly auth?: PiAuthenticationMode;
   /**
+   * Application-owned credential storage for Pi's model runtime. When set,
+   * this replaces Pi's file-backed auth.json credential storage.
+   */
+  readonly credentials?: PiCredentialStore;
+  /**
+   * Whether a suspended turn may reuse its live Pi session in this process.
+   * Disable this in stateless or multi-replica applications so every request
+   * restores from persisted lifecycle state with the current settings.
+   *
+   * @default true
+   */
+  readonly reattachInProcess?: boolean;
+  /**
+   * Explicit Pi provider configurations keyed by provider id. Use this to
+   * register custom models and their API protocol without coupling model
+   * metadata to authentication environment variables.
+   */
+  readonly providers?: Readonly<Record<string, ProviderConfig>>;
+  /**
    * Pi's extended-thinking budget level. Maps directly to the SDK's
    * `thinkingLevel` option on `createAgentSession`.
    */
   readonly thinkingLevel?: PiThinkingLevel;
   /**
    * Directory holding Pi's global agent config (auth.json, models.json,
-   * settings.json). When omitted, a per-session temp dir is used. Pass the
-   * user's agent dir (e.g. `~/.pi/agent/`) to reuse their CLI auth and
-   * model settings.
+   * settings.json). When omitted, native subscription auth is discovered from
+   * Pi's default agent directory while model and general settings remain
+   * isolated per session.
    */
   readonly agentDir?: string;
   /**
@@ -52,9 +74,12 @@ const PI_BUILTIN_TOOLS = {
   read: commonTool('read', {
     nativeName: 'read',
     toolUseKind: 'readonly',
-    description: 'Read file contents.',
+    description:
+      'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
     inputSchema: z.object({
       file_path: z.string(),
+      offset: z.number().int().positive().optional(),
+      limit: z.number().int().positive().optional(),
     }),
   }),
   write: commonTool('write', {
@@ -145,10 +170,17 @@ export function createPi(
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
           ...(settings.auth ? { auth: settings.auth } : {}),
+          ...(settings.credentials
+            ? { credentials: settings.credentials }
+            : {}),
+          ...(settings.reattachInProcess != null
+            ? { reattachInProcess: settings.reattachInProcess }
+            : {}),
           ...(settings.thinkingLevel
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
             : {}),
@@ -156,6 +188,7 @@ export function createPi(
         },
         clientApp: PI_CLIENT_APP,
         isResume: lifecycleState != null,
+        ...(lifecycleState ? { resumeStateType: lifecycleState.type } : {}),
         permissionMode: startOpts.permissionMode,
         builtinToolFiltering: startOpts.builtinToolFiltering,
         ...(resumeData?.sessionFileName

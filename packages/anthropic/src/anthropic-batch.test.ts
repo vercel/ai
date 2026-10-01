@@ -95,6 +95,23 @@ function messageResultBody(text: string) {
 }
 
 describe('Anthropic batch', () => {
+  it('rejects unsupported request types before making an API request', async () => {
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await expect(
+      model.doStartBatch({
+        requests: [{ id: 'image-1', type: 'image' } as never],
+      }),
+    ).rejects.toMatchObject({
+      name: 'AI_UnsupportedFunctionalityError',
+      functionality: 'batch request type: image',
+    });
+
+    expect(server.calls).toHaveLength(0);
+  });
+
   it('starts a batch from prepared requests and combines batch and inferred betas', async () => {
     server.urls[urls.batches].response = {
       type: 'json-value',
@@ -275,6 +292,72 @@ describe('Anthropic batch', () => {
     expect(server.calls).toHaveLength(0);
   });
 
+  it('starts a batch with thinking binding controls', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'preserved-thinking',
+          ...request('Continue the conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                thinking: {
+                  type: 'adaptive',
+                  blockBinding: {
+                    prefixMismatchBehavior: 'error',
+                  },
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+          modelId: 'claude-fable-5-1',
+        },
+      ],
+    });
+
+    expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`
+      {
+        "requests": [
+          {
+            "custom_id": "preserved-thinking",
+            "params": {
+              "max_tokens": 4096,
+              "messages": [
+                {
+                  "content": [
+                    {
+                      "text": "Continue the conversation.",
+                      "type": "text",
+                    },
+                  ],
+                  "role": "user",
+                },
+              ],
+              "model": "claude-fable-5-1",
+              "thinking": {
+                "block_binding": {
+                  "prefix_mismatch_behavior": "error",
+                },
+                "type": "adaptive",
+              },
+            },
+          },
+        ],
+      }
+    `);
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta'],
+    ).toMatchInlineSnapshot(`"thinking-binding-controls-2026-08-01"`);
+  });
+
   it('rejects structured-output modes that require start-call context', async () => {
     const model = createAnthropic({
       apiKey: 'test-api-key',
@@ -421,6 +504,54 @@ describe('Anthropic batch', () => {
         },
       ],
     });
+  });
+
+  it('starts an on-demand compaction batch request with the inferred beta header', async () => {
+    server.urls[urls.batches].response = {
+      type: 'json-value',
+      body: batchResponse({ processing_status: 'in_progress' }),
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    await model.doStartBatch({
+      requests: [
+        {
+          id: 'compact-conversation',
+          ...request('Summarize this conversation.', {
+            maxOutputTokens: 4096,
+            providerOptions: {
+              anthropic: {
+                compaction: {
+                  type: 'summarize',
+                  instructions: 'Preserve decisions and open questions.',
+                },
+              } satisfies AnthropicLanguageModelOptions,
+            },
+          }),
+        },
+      ],
+    });
+
+    await expect(server.calls[0].requestBodyJson).resolves.toMatchObject({
+      requests: [
+        {
+          custom_id: 'compact-conversation',
+          params: {
+            compaction: {
+              type: 'summarize',
+              instructions: 'Preserve decisions and open questions.',
+            },
+          },
+        },
+      ],
+    });
+    expect(
+      server.calls[0].requestHeaders['anthropic-beta']
+        .split(',')
+        .map(beta => beta.trim()),
+    ).toContain('compact-2026-09-04');
   });
 
   it.each([
@@ -851,6 +982,125 @@ describe('Anthropic batch', () => {
     expect(server.calls.map(call => call.requestUrl)).toEqual([
       urls.batch,
       urls.results,
+    ]);
+  });
+
+  it('exposes safeguard results on batch result metadata', async () => {
+    const safeguardResults = [
+      {
+        type: 'dangerous_tool_use',
+        status: {
+          type: 'available',
+          tool_uses: {
+            toolu_123: { type: 'evaluated', outcome: 'not_flagged' },
+          },
+        },
+      },
+    ];
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'safeguarded',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'tool_use',
+                  id: 'toolu_123',
+                  name: 'bash',
+                  input: { command: 'echo hello' },
+                },
+              ],
+              stop_reason: 'tool_use',
+              safeguard_results: safeguardResults,
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+    const [result] = await convertReadableStreamToArray(stream);
+
+    expect(result.status).toBe('succeeded');
+    if (result.status !== 'succeeded') {
+      throw new Error('expected a succeeded result');
+    }
+    expect(result.result.providerMetadata).toEqual({
+      anthropic: expect.objectContaining({ safeguardResults }),
+    });
+  });
+
+  it('preserves signed compaction blocks in batch results', async () => {
+    server.urls[urls.batch].response = {
+      type: 'json-value',
+      body: batchResponse(),
+    };
+    server.urls[urls.results].response = {
+      type: 'stream-chunks',
+      chunks: [
+        JSON.stringify({
+          custom_id: 'compaction',
+          result: {
+            type: 'succeeded',
+            message: {
+              ...messageResultBody(''),
+              content: [
+                {
+                  type: 'compaction',
+                  content: 'Summary of the conversation.',
+                  signature: 'compaction-signature',
+                },
+              ],
+              stop_reason: 'compaction',
+            },
+          },
+        }),
+      ],
+    };
+    const model = createAnthropic({
+      apiKey: 'test-api-key',
+    }).experimental_batch();
+
+    const stream = await model.doGetBatchResults({
+      batchId: 'msgbatch_123',
+    });
+
+    await expect(convertReadableStreamToArray(stream)).resolves.toMatchObject([
+      {
+        id: 'compaction',
+        status: 'succeeded',
+        result: {
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation.',
+              providerMetadata: {
+                anthropic: {
+                  type: 'compaction',
+                  signature: 'compaction-signature',
+                },
+              },
+            },
+          ],
+          finishReason: {
+            unified: 'other',
+            raw: 'compaction',
+          },
+        },
+      },
     ]);
   });
 
@@ -1308,7 +1558,7 @@ describe('Anthropic batch', () => {
       },
     ]);
     const result = results[0];
-    if (result?.status !== 'succeeded') {
+    if (result?.type !== 'text' || result.status !== 'succeeded') {
       throw new Error('Expected a succeeded batch result.');
     }
     expect(result.result.content[1]).not.toHaveProperty('result.0.title');
@@ -1790,6 +2040,118 @@ describe('Anthropic batch', () => {
               inputTokens: { total: 13 },
               outputTokens: { total: 3 },
             },
+          },
+        },
+      ]);
+    });
+
+    it('omits empty and null compaction blocks from successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'compaction',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  { type: 'compaction', content: '' },
+                  { type: 'compaction', content: null },
+                  { type: 'compaction', content: 'Summary' },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'compaction',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'text',
+                text: 'Summary',
+                providerMetadata: { anthropic: { type: 'compaction' } },
+              },
+              { type: 'text', text: 'Done' },
+            ],
+          },
+        },
+      ]);
+    });
+
+    it('preserves fallback blocks in successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'fallback',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'fallback',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'custom',
+                kind: 'anthropic.fallback',
+                providerMetadata: {
+                  anthropic: {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                },
+              },
+              { type: 'text', text: 'Done' },
+            ],
           },
         },
       ]);

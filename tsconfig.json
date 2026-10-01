@@ -214,7 +214,13 @@
       "path": "packages/togetherai"
     },
     {
+      "path": "packages/topaz"
+    },
+    {
       "path": "packages/tui"
+    },
+    {
+      "path": "packages/typesafe-ai"
     },
     {
       "path": "packages/valibot"

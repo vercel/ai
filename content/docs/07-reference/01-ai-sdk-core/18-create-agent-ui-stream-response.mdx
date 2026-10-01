@@ -29,13 +29,10 @@ const agent = new ToolLoopAgent({
 export async function POST(request: Request) {
   const { messages } = await request.json();
 
-  // Optional: support cancellation (aborts on disconnect, etc.)
-  const abortController = new AbortController();
-
   return createAgentUIStreamResponse({
     agent,
     uiMessages: messages,
-    abortSignal: abortController.signal, // optional
+    abortSignal: request.signal, // optional: aborts when the client disconnects
     // experimental_sandbox, // optional: passed through to tool execution
     // ...other UIMessageStreamOptions like sendSources, experimental_transform, etc.
   });
@@ -59,6 +56,13 @@ export async function POST(request: Request) {
       isRequired: true,
       description:
         'Array of input UI messages provided to the agent (e.g., user and assistant messages).',
+    },
+    {
+      name: 'convertDataPart',
+      type: '(part: DataUIPart) => TextPart | FilePart | undefined',
+      isRequired: false,
+      description:
+        'Converts custom UI data parts into text or file parts for the model. Data parts are ignored when this callback is omitted or returns undefined.',
     },
     {
       name: 'abortSignal',

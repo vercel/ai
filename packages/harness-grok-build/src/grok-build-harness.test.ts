@@ -30,10 +30,10 @@ describe('createGrokBuild', () => {
       pnpmWorkspaceYaml: '<pnpm-workspace.yaml>',
     };
     expect(settings.source.pnpmLockYaml).toContain(
-      "'@xai-official/grok@1.0.5'",
+      "'@xai-official/grok@1.0.36'",
     );
     expect(settings.source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@xai-official/grok@1.0.5': true\n",
+      "allowBuilds:\n  '@xai-official/grok@1.0.36': true\n",
     );
 
     expect({
@@ -43,6 +43,7 @@ describe('createGrokBuild', () => {
       source,
       executable: settings.executable,
       args: settings.args,
+      authentication: settings.authentication,
       credentialEnv: settings.credentialEnv,
       instructionMapping: settings.instructionMapping,
       outputSchemaMapping: settings.outputSchemaMapping,
@@ -54,6 +55,9 @@ describe('createGrokBuild', () => {
           "agent",
           "stdio",
         ],
+        "authentication": {
+          "methodId": "xai.api_key",
+        },
         "builtinToolNames": [
           "askUserQuestions",
           "bash",
@@ -82,7 +86,7 @@ describe('createGrokBuild', () => {
           "reference_to_video",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-grok-build",
+          "name": "ai-sdk-harness-grok-build",
           "version": "0.0.0-test",
         },
         "credentialEnv": [
@@ -128,7 +132,7 @@ describe('createGrokBuild', () => {
             "dependencies": {
               "@agentclientprotocol/sdk": "1.4.0",
               "@modelcontextprotocol/sdk": "1.30.0",
-              "@xai-official/grok": "1.0.5",
+              "@xai-official/grok": "1.0.36",
               "ws": "8.21.0",
               "zod": "4.4.3",
             },
@@ -177,6 +181,38 @@ describe('createGrokBuild', () => {
         },
       },
     ]);
+
+    expect(
+      settings.credentialBrokering?.({
+        env: {
+          XAI_API_KEY: 'header.payload.host-signature',
+          GROK_XAI_API_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+          GROK_CLI_CHAT_PROXY_BASE_URL: 'https://cli-chat-proxy.grok.com/v1',
+        },
+        sandboxEnv: {
+          XAI_API_KEY: 'sandbox-placeholder',
+        },
+      }),
+    ).toEqual([
+      {
+        match: {
+          host: 'cli-chat-proxy.grok.com',
+          path: { startsWith: '/v1' },
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: 'Bearer sandbox-placeholder' },
+            },
+          ],
+        },
+        transform: {
+          headers: {
+            Authorization: 'Bearer header.payload.host-signature',
+            'X-XAI-Token-Auth': 'xai-grok-cli',
+          },
+        },
+      },
+    ]);
   });
 
   it('forwards user-configurable settings', () => {
@@ -187,6 +223,11 @@ describe('createGrokBuild', () => {
       credential: string;
     }) => `ephemeral-${credential}`;
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
     createGrokBuild({
       auth: 'direct',
       credentialForwarding,
@@ -194,6 +235,7 @@ describe('createGrokBuild', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });
@@ -208,6 +250,7 @@ describe('createGrokBuild', () => {
       port: settings.port,
       portEndpoint: settings.portEndpoint,
       startupTimeoutMs: settings.startupTimeoutMs,
+      reconnect: settings.reconnect,
       mcpServers: settings.mcpServers,
       mintBridgeToken: settings.mintBridgeToken,
     }).toEqual({
@@ -221,6 +264,7 @@ describe('createGrokBuild', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mcpServers: { external: { command: 'external-mcp' } },
       mintBridgeToken,
     });

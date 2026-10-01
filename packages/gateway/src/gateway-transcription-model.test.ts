@@ -170,6 +170,24 @@ describe('GatewayTranscriptionModel', () => {
       });
     });
 
+    it.each(['speech', 'openai'])(
+      'passes the Azure %s API override unchanged',
+      async api => {
+        prepareJsonResponse();
+        const providerOptions = {
+          azure: { api, timestamps: 'word', diarization: { enabled: true } },
+        };
+        await createTestModel().doGenerate({
+          audio: 'base64-audio',
+          mediaType: 'audio/wav',
+          providerOptions,
+        });
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          providerOptions,
+        });
+      },
+    );
+
     it('should extract transcript fields and metadata from response', async () => {
       server.urls['https://api.test.com/transcription-model'].response = {
         type: 'json-value',
@@ -183,6 +201,7 @@ describe('GatewayTranscriptionModel', () => {
           language: 'en',
           durationInSeconds: 1,
           warnings: [{ type: 'other', message: 'test warning' }],
+          usage: { inputTokens: 11 },
           providerMetadata: { gateway: { cost: '0.002' } },
         },
       };
@@ -201,6 +220,7 @@ describe('GatewayTranscriptionModel', () => {
         language: 'en',
         durationInSeconds: 1,
         warnings: [{ type: 'other', message: 'test warning' }],
+        usage: { inputTokens: 11 },
         providerMetadata: { gateway: { cost: '0.002' } },
       });
       expect(result.response.headers?.['x-request-id']).toBe('req-123');

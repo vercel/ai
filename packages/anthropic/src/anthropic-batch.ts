@@ -162,6 +162,20 @@ type AnthropicBatchResultLine = InferSchema<
 
 type AnthropicResponse = InferSchema<typeof anthropicResponseSchema>;
 
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<AnthropicBatchRequest> {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The Anthropic Message Batches API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
+}
+
 export class AnthropicBatch implements BatchV4<{
   readonly text: AnthropicModelId;
 }> {
@@ -191,6 +205,7 @@ export class AnthropicBatch implements BatchV4<{
   }: BatchV4StartOptions<{
     text: AnthropicModelId;
   }>): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     validateRequestIds(requests);
 
     const explicitBatchBetas = new Set(
@@ -784,10 +799,19 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'compaction':
+        if (!part.content) {
+          break;
+        }
+
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
@@ -818,7 +842,7 @@ function convertAnthropicBatchResponse(
           toolName,
           input: JSON.stringify(
             isCodeExecutionAlias
-              ? { type: part.name, ...(part.input ?? {}) }
+              ? { type: part.name, ...part.input }
               : part.name === 'code_execution' &&
                   part.input != null &&
                   'code' in part.input &&
@@ -1032,6 +1056,17 @@ function convertAnthropicBatchResponse(
         }
         break;
       case 'fallback':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.fallback',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: part.from,
+              to: part.to,
+            },
+          },
+        });
         break;
     }
   }
@@ -1080,6 +1115,12 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     usage: response.usage as JSONObject,
     stopSequence: response.stop_sequence ?? null,
     ...(stopDetails != null ? { stopDetails } : {}),
+    ...(response.input_transformations != null
+      ? { inputTransformations: response.input_transformations }
+      : {}),
+    ...(response.safeguard_results != null
+      ? { safeguardResults: response.safeguard_results }
+      : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(
           iteration =>

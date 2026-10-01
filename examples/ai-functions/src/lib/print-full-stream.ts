@@ -15,6 +15,9 @@ export type PrintFullStreamText = {
 };
 
 export type PrintFullStreamCallbacks<TOOLS extends ToolSet> = {
+  onError?: LifecycleCallback<
+    Extract<TextStreamPart<TOOLS>, { type: 'error' }>
+  >;
   onReasoning?: LifecycleCallback<ReasoningOutput>;
   onToolCall?: LifecycleCallback<
     Extract<TextStreamPart<TOOLS>, { type: 'tool-call' }>
@@ -27,6 +30,7 @@ export type PrintFullStreamCallbacks<TOOLS extends ToolSet> = {
 
 export async function printFullStream<TOOLS extends ToolSet>({
   result,
+  onError,
   onReasoning,
   onToolCall,
   onToolApproval,
@@ -147,6 +151,7 @@ export async function printFullStream<TOOLS extends ToolSet>({
         console.error(
           `\n\x1b[31m\x1b[1mERROR\x1b[22m\n${formatStreamError(chunk.error)}\x1b[0m`,
         );
+        await onError?.(chunk);
         break;
     }
   }

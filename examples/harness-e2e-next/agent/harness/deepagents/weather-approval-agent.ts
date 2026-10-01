@@ -11,7 +11,6 @@ import {
   HarnessAgent,
 } from '@ai-sdk/harness/agent';
 import { deepAgents } from '@ai-sdk/harness-deepagents';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
 import type { InferUITools, UIMessage } from 'ai';
 
 export const weatherApprovalDeepAgentsHarnessAgent = new HarnessAgent({
@@ -24,10 +23,6 @@ export const weatherApprovalDeepAgentsHarnessAgent = new HarnessAgent({
   toolApproval: {
     get_weather: 'user-approval',
   },
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
   sandboxConfig: {
     onSession: async ({ session, sessionWorkDir, abortSignal }) => {
       await session.writeTextFile({

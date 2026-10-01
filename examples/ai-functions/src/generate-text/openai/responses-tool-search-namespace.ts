@@ -10,7 +10,7 @@ const crmNamespace = {
 
 run(async () => {
   const result = await generateText({
-    model: openai.responses('gpt-5.6'),
+    model: openai.responses('gpt-6-astra'),
     prompt:
       'Look up customer cust_123 and list any open orders for that customer.',
     stopWhen: isStepCount(10),

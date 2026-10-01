@@ -25,7 +25,7 @@ It should return the body content that will be sent to the server.
 
 ## Example
 
-This example shows how to only send the text of the last message to the server.
+This example shows how to only send the last message to the server.
 This can be useful if you want to reduce the amount of data sent to the server.
 
 ### Client
@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
   // Call the language model
   const result = streamText({
-    model: 'openai/gpt-4.1',
+    model: 'openai/gpt-6-astra',
     messages: await convertToModelMessages(messages),
   });
 

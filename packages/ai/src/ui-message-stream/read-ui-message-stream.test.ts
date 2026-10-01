@@ -12,6 +12,95 @@ function createUIMessageStream(parts: UIMessageChunk[]) {
 }
 
 describe('readUIMessageStream', () => {
+  it('should continue a hydrated partial static tool call', async () => {
+    const message: UIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-createDocument',
+          toolCallId: 'tool-1',
+          state: 'input-streaming',
+          input: { title: 'Hel' },
+          rawInput: '{"title":"Hel',
+        },
+      ],
+    };
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: 'lo"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-1',
+            toolName: 'createDocument',
+            input: { title: 'Hello' },
+          },
+        ]),
+        terminateOnError: true,
+      }),
+    );
+
+    expect(messages.at(-1)?.parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+  });
+
+  it('should accept a hydrated partial static tool call without raw input', async () => {
+    const message: UIMessage = {
+      id: 'msg-123',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-createDocument',
+          toolCallId: 'tool-1',
+          state: 'input-streaming',
+          input: { title: 'Hel' },
+        },
+      ],
+    };
+
+    const messages = await convertAsyncIterableToArray(
+      readUIMessageStream({
+        message,
+        stream: createUIMessageStream([
+          {
+            type: 'tool-input-delta',
+            toolCallId: 'tool-1',
+            inputTextDelta: 'lo"}',
+          },
+          {
+            type: 'tool-input-available',
+            toolCallId: 'tool-1',
+            toolName: 'createDocument',
+            input: { title: 'Hello' },
+          },
+        ]),
+        terminateOnError: true,
+      }),
+    );
+
+    expect(messages.at(-1)?.parts).toMatchObject([
+      {
+        type: 'tool-createDocument',
+        toolCallId: 'tool-1',
+        state: 'input-available',
+        input: { title: 'Hello' },
+      },
+    ]);
+  });
+
   it('should return a ui message object stream for a basic input stream', async () => {
     const stream = createUIMessageStream([
       { type: 'start', messageId: 'msg-123' },
@@ -372,5 +461,71 @@ describe('readUIMessageStream', () => {
     await expect(convertAsyncIterableToArray(uiMessages)).rejects.toThrow(
       'Test error message',
     );
+  });
+
+  it('should cancel the input stream when iteration exits early', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start', messageId: 'msg-123' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+      cancel,
+    });
+
+    for await (const message of readUIMessageStream({ stream })) {
+      if (
+        message.parts.some(part => part.type === 'text' && part.text.length > 0)
+      ) {
+        break;
+      }
+    }
+
+    await vi.waitFor(() => {
+      expect(cancel).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('should cancel the input stream when its reader is cancelled', async () => {
+    const cancel = vi.fn();
+    const stream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start', messageId: 'msg-123' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+      cancel,
+    });
+    const reader = readUIMessageStream({ stream }).getReader();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (
+          done ||
+          value.parts.some(part => part.type === 'text' && part.text.length > 0)
+        ) {
+          break;
+        }
+      }
+
+      await reader.cancel();
+    } finally {
+      reader.releaseLock();
+    }
+
+    await vi.waitFor(() => {
+      expect(cancel).toHaveBeenCalledOnce();
+    });
   });
 });

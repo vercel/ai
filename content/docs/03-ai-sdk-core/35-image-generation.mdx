@@ -96,6 +96,44 @@ const { images } = await generateImage({
 });
 ```
 
+### Checking Image Editing Support
+
+Image model instances can advertise whether they support reference image files
+and masks. Check these capabilities before routing an image editing request:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.image('gpt-image-1');
+const needsMask = true;
+
+if ((await model.supportsFileInputs) !== true) {
+  throw new Error(
+    'The selected model does not advertise image editing support.',
+  );
+}
+
+if (needsMask && (await model.supportsMaskInputs) !== true) {
+  throw new Error('The selected model does not advertise mask support.');
+}
+```
+
+`supportsFileInputs` and `supportsMaskInputs` can be `true`, `false`, or
+`undefined` (unknown), and providers may expose any of these values
+asynchronously. Treat only `true` as confirmed support when selecting a model for an edit. File and mask
+support are separate because some models accept reference images but do not
+accept masks.
+
+These capabilities describe support for the SDK's standardized image and mask
+inputs, including the provider's request mapping. A model name that resembles a
+supported family is not sufficient evidence of support. A model may still require
+provider-specific options or impose limits on input formats and counts.
+
+The AI SDK does not automatically reject editing inputs based on these
+capabilities. Applications can decide whether to reject the request, ask the
+user to choose another model, or use a fallback when support is false or
+unknown.
+
 ### Providing a Seed
 
 You can provide a seed to the `generateImage` function to control the output of the image generation process.
@@ -286,7 +324,7 @@ const { image } = await generateImage({
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.5-flash-image` support multi-modal outputs including images.
+Some language models such as Google `gemini-3.1-flash-image-preview` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -294,7 +332,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image'),
+  model: google('gemini-3.1-flash-image-preview'),
   prompt: 'Generate an image of a comic cat',
 });
 

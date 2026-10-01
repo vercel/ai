@@ -37,8 +37,8 @@ const adapterConfigs = [
   {
     name: 'Codex',
     packageDir: 'packages/harness-codex',
-    primarySdk: '@openai/codex-sdk',
-    sdkPackages: ['@openai/codex-sdk'],
+    primarySdk: '@openai/codex',
+    sdkPackages: ['@openai/codex'],
   },
   {
     name: 'Cursor',

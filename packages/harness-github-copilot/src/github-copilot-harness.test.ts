@@ -34,6 +34,8 @@ describe('createGitHubCopilot', () => {
       forwardEnv: settings.forwardEnv,
       credentialEnv: settings.credentialEnv,
       hasCredentialBrokering: settings.credentialBrokering != null,
+      hasAuthenticationResolver:
+        settings.resolveAuthenticationEnvironment != null,
       providerAuthentication: settings.providerAuthentication,
       modelMapping: settings.modelMapping,
       skillsDirectory: settings.skillsDirectory,
@@ -64,7 +66,7 @@ describe('createGitHubCopilot', () => {
           "task",
         ],
         "clientApp": {
-          "name": "ai-sdk/harness-github-copilot",
+          "name": "ai-sdk-harness-github-copilot",
           "version": "0.0.0-test",
         },
         "credentialEnv": [
@@ -78,6 +80,7 @@ describe('createGitHubCopilot', () => {
           "GH_HOST",
         ],
         "harnessId": "github-copilot",
+        "hasAuthenticationResolver": true,
         "hasCredentialBrokering": true,
         "modelMapping": {
           "path": "model",
@@ -114,10 +117,10 @@ describe('createGitHubCopilot', () => {
     if (source.type !== 'npm-locked') {
       throw new Error('Expected a locked NPM source.');
     }
-    expect(source.packageJson).toContain('"@github/copilot": "1.0.82"');
-    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.82':");
+    expect(source.packageJson).toContain('"@github/copilot": "1.0.86"');
+    expect(source.pnpmLockYaml).toContain("'@github/copilot@1.0.86':");
     expect(source.pnpmWorkspaceYaml).toBe(
-      "allowBuilds:\n  '@github/copilot@1.0.82': true\n",
+      "allowBuilds:\n  '@github/copilot@1.0.86': true\n",
     );
   });
 
@@ -167,6 +170,39 @@ describe('createGitHubCopilot', () => {
         },
       ]),
     );
+  });
+
+  it.each(['COPILOT_GITHUB_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'])(
+    'formats the %s sandbox placeholder as a GitHub OAuth token',
+    async name => {
+      createGitHubCopilot();
+
+      const credential = await lastSettings().credentialForwarding?.({
+        credential: `aisdkhc_${'A'.repeat(43)}`,
+        environmentVariableName: name,
+      });
+
+      expect(credential).toMatch(/^gho_aisdkhc[0-9a-f]{29}$/);
+      expect(credential).toHaveLength(40);
+    },
+  );
+
+  it('does not format real credentials or unrelated placeholders', async () => {
+    createGitHubCopilot();
+    const credentialForwarding = lastSettings().credentialForwarding!;
+
+    expect(
+      await credentialForwarding({
+        credential: 'gho_real-credential',
+        environmentVariableName: 'COPILOT_GITHUB_TOKEN',
+      }),
+    ).toBe('gho_real-credential');
+    expect(
+      await credentialForwarding({
+        credential: `aisdkhc_${'A'.repeat(43)}`,
+        environmentVariableName: 'COPILOT_PROVIDER_API_KEY',
+      }),
+    ).toBe(`aisdkhc_${'A'.repeat(43)}`);
   });
 
   it('brokers GitHub credentials for the configured enterprise host', () => {
@@ -272,11 +308,18 @@ describe('createGitHubCopilot', () => {
     });
   });
 
-  it('forwards launch and bridge settings', () => {
-    const credentialForwarding = vi.fn();
+  it('forwards launch and bridge settings', async () => {
+    const credentialForwarding = vi.fn(
+      ({ credential }: { credential: string }) => credential,
+    );
     const mintBridgeToken = (sandboxId: string) => sandboxId;
     const mcpServers = { docs: { url: 'https://mcp.example' } };
     const portEndpoint = { url: 'wss://sandbox.example/bridge' };
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
 
     createGitHubCopilot({
       auth: 'direct',
@@ -286,19 +329,28 @@ describe('createGitHubCopilot', () => {
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
     });
 
     const settings = lastSettings();
     expect(settings).toMatchObject({
       auth: 'direct',
-      credentialForwarding,
       args: ['--acp', '--stdio', '--no-auto-update', '--reasoning-effort=high'],
       mcpServers,
       port: 4319,
       portEndpoint,
       startupTimeoutMs: 45_000,
+      reconnect,
       mintBridgeToken,
+    });
+    await settings.credentialForwarding?.({
+      credential: 'real-credential',
+      environmentVariableName: 'COPILOT_GITHUB_TOKEN',
+    });
+    expect(credentialForwarding).toHaveBeenCalledExactlyOnceWith({
+      credential: 'real-credential',
+      environmentVariableName: 'COPILOT_GITHUB_TOKEN',
     });
   });
 

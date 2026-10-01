@@ -13,6 +13,8 @@ We provide detailed documentation for the following OpenAI compatible providers:
 
 - [LM Studio](/providers/openai-compatible-providers/lmstudio)
 - [NIM](/providers/openai-compatible-providers/nim)
+- [ModelRush](/providers/openai-compatible-providers/modelrush)
+- [Cheaper Inference](/providers/openai-compatible-providers/cheaper-inference)
 - [Heroku](/providers/openai-compatible-providers/heroku)
 - [Clarifai](/providers/openai-compatible-providers/clarifai)
 - [NEAR AI Cloud](/providers/openai-compatible-providers/nearai)
@@ -76,6 +78,14 @@ You can use the following optional settings to customize the provider instance:
 
   Set to true if the provider supports structured outputs. Only relevant for `provider()`, `provider.chatModel()`, and `provider.languageModel()`.
 
+- **supportsMultiPartToolContent** _boolean_
+
+  Set to true if the provider supports multi-part content arrays in tool
+  results. When enabled, tool outputs with `type: 'content'` can contain text,
+  images, video, audio, and PDF content parts. Defaults to `false`. Only
+  relevant for `provider()`, `provider.chatModel()`, and
+  `provider.languageModel()`.
+
 - **supportedUrls** _() =&gt; Record&lt;string, RegExp[]&gt;_
 
   Defines URLs that chat models can access directly, grouped by media type.
@@ -118,6 +128,22 @@ Chat models created with this provider support the following capabilities:
 - **Reasoning content** - Support for models that return reasoning/thinking tokens (e.g., DeepSeek R1)
 - **System messages** - Support for system prompts
 - **Multi-modal inputs** - Support for images and other content types (provider-dependent)
+
+Some providers extend the OpenAI Chat Completions API with multi-part tool
+result content. You can opt into this behavior when creating the provider:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportsMultiPartToolContent: true,
+});
+```
+
+Only enable `supportsMultiPartToolContent` when the provider accepts content
+arrays for messages with the `tool` role. The default stringifies multi-part
+tool results for compatibility with the OpenAI Chat Completions API.
 
 ### Example
 
@@ -682,7 +708,7 @@ const { text, providerMetadata } = await generateText({
   prompt: 'Hello',
 });
 
-console.log(providerMetadata.myProvider.customMetric);
+console.log(providerMetadata.myProvider.customMetrics);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.

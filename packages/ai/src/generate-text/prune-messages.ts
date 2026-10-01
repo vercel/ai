@@ -47,7 +47,9 @@ export function pruneMessages({
 
       return {
         ...message,
-        content: message.content.filter(part => part.type !== 'reasoning'),
+        content: message.content.filter(
+          part => part.type !== 'reasoning' && part.type !== 'reasoning-file',
+        ),
       };
     });
   }
@@ -80,7 +82,7 @@ export function pruneMessages({
     const keptToolCallIds: Set<string> = new Set();
     const keptApprovalIds: Set<string> = new Set();
 
-    if (keepLastMessagesCount != null) {
+    if (keepLastMessagesCount != null && keepLastMessagesCount !== 0) {
       for (const message of messages.slice(-keepLastMessagesCount)) {
         if (
           (message.role === 'assistant' || message.role === 'tool') &&
@@ -121,6 +123,7 @@ export function pruneMessages({
       }
     }
 
+    const approvalIdToToolCallId = new Map<string, string>();
     const approvalIdToToolName = new Map<string, string>();
     for (const message of messages) {
       if (
@@ -129,12 +132,24 @@ export function pruneMessages({
       ) {
         for (const part of message.content) {
           if (part.type === 'tool-approval-request') {
+            approvalIdToToolCallId.set(part.approvalId, part.toolCallId);
+
             const toolName = toolCallIdToToolName.get(part.toolCallId);
             if (toolName != null) {
               approvalIdToToolName.set(part.approvalId, toolName);
             }
           }
         }
+      }
+    }
+
+    // Approval requests depend on their originating tool call. When an
+    // approval response is in the retained messages, trace through its request
+    // so pruning does not leave a pending approval without the call to execute.
+    for (const approvalId of keptApprovalIds) {
+      const toolCallId = approvalIdToToolCallId.get(approvalId);
+      if (toolCallId != null) {
+        keptToolCallIds.add(toolCallId);
       }
     }
 

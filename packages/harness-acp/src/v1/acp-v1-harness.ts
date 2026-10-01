@@ -12,6 +12,7 @@ import {
   type HarnessV1Skill,
   type HarnessV1StreamPart,
   type HarnessV1ToolSpec,
+  harnessStateDirectoryPath,
 } from '@ai-sdk/harness';
 import { HarnessBridgeCapabilityUnsupportedError } from '@ai-sdk/harness/bridge';
 import {
@@ -19,13 +20,12 @@ import {
   createBridgeToken,
   createBridgeErrorHandler,
   createBridgeStartupError,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   classifyDiskLog,
   drainBridgeProcessStream,
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -34,6 +34,7 @@ import {
   withBridgeToken,
   writeInstructions,
   writeSkills,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import {
   asSchema,
@@ -130,6 +131,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port: portOverride,
   portEndpoint: portEndpointOverride,
   startupTimeoutMs,
+  reconnect,
   clientApp,
   lifecycleStateSchema,
 }: {
@@ -138,6 +140,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
   port?: number;
   portEndpoint?: HarnessV1PortEndpoint;
   startupTimeoutMs?: number;
+  reconnect?: SandboxChannelReconnectOptions;
   clientApp: ACPClientApp;
   lifecycleStateSchema: NonNullable<
     HarnessV1<TBuiltinTools>['lifecycleStateSchema']
@@ -197,15 +200,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const permissionMode = startOptions.permissionMode ?? 'allow-all';
       const env = { ...process.env };
-      const authenticationEnvironment = resolveACPAuthenticationEnvironment({
-        auth: settings.auth,
-        env,
-      });
+      const authenticationEnvironment =
+        settings.resolveAuthenticationEnvironment == null
+          ? resolveACPAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            })
+          : await settings.resolveAuthenticationEnvironment({
+              auth: settings.auth,
+              env,
+            });
       const providerAuthenticationCompatibility =
         resolveACPProviderAuthenticationCompatibility({
           auth: settings.auth,
           providerAuthentication: settings.providerAuthentication,
-          env,
+          env: authenticationEnvironment,
         });
       const implementationIdentity = createImplementationIdentity({
         harnessId: settings.harnessId,
@@ -228,7 +237,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           providerAuthentication: settings.providerAuthentication,
           clientApp,
         },
-        env,
+        env: authenticationEnvironment,
         compatibility: providerAuthenticationCompatibility,
       });
       const sandboxSession = startOptions.sandboxSession;
@@ -247,11 +256,6 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           message: `The ${settings.harnessId} ACP harness cannot use \`mintBridgeToken\` with a sandbox session that does not expose an id.`,
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOptions.abortSignal,
-        });
       const continueFrom =
         startOptions.continueFrom ?? startOptions.resumeFrom?.continueFrom;
       const lifecycleState = continueFrom ?? startOptions.resumeFrom;
@@ -273,7 +277,7 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       }
       const implementationEnvironment = resolveImplementationEnvironment({
         implementation,
-        env,
+        env: { ...env, ...authenticationEnvironment },
         credentialEnv: authenticationEnvironment,
       });
       let sandboxImplementationEnvironment = implementationEnvironment;
@@ -314,13 +318,14 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ...providerEnvironment,
         };
         sandboxCredentialEnvironment =
-          lifecycleData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: brokeringEnvironment,
             credentialEnvironmentVariables:
               credentialForwardingEnvironmentVariables,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              lifecycleData?.sandboxCredentialEnvironment,
+          });
         sandboxImplementationEnvironment = {
           ...brokeringEnvironment,
           ...sandboxCredentialEnvironment,
@@ -367,19 +372,21 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ),
         );
       }
-      const resolvedBridgeDir = posix.resolve(
-        defaultWorkingDirectory,
-        bootstrap.bootstrapDir,
-      );
-      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
-      const workDir = startOptions.sessionWorkDir;
+      // Harness SDK state always lives under the sandbox's own HOME, never
+      // the working directory, so it stays out of a user-owned workspace.
       const sandboxHomeDir = await resolveSandboxHomeDir({
         sandbox: toolSafeSandboxSession,
         abortSignal: startOptions.abortSignal,
       });
+      const stateDirectory = harnessStateDirectoryPath({ sandboxHomeDir });
+      const resolvedBridgeDir = posix.resolve(
+        stateDirectory,
+        bootstrap.bootstrapDir,
+      );
+      const resolvedImplementationDir = `${resolvedBridgeDir}/implementation`;
+      const workDir = startOptions.sessionWorkDir;
       const privateSessionDir = resolveACPPrivateSessionDirectory({
-        sandboxHomeDir,
-        harnessId: settings.harnessId,
+        stateDirectory,
         sessionId: startOptions.sessionId,
       });
       const implementationHomeDir =
@@ -435,11 +442,13 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
               token: coords.token,
             });
             const attachChannel: ACPChannel = new SandboxChannel({
-              connect: () => openWebSocket(attachEndpoint),
+              connect: ({ abortSignal }) =>
+                openWebSocket({ ...attachEndpoint, abortSignal }),
               outboundSchema: outboundMessageSchema,
               initialLastSeenEventId: coords.lastSeenEventId,
               onDiagnostic,
               onBridgeError,
+              reconnect,
             });
             await attachChannel.open(isContinue ? { resume: true } : undefined);
             return createSession({
@@ -589,6 +598,17 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
           ],
         });
       }
+      await writeACPAuthenticationFiles({
+        sandbox: toolSafeSandboxSession,
+        homePath: implementationHomeDir,
+        files:
+          settings.authenticationFiles?.({
+            env: implementationEnvironment,
+            sandboxEnv: forwardedImplementationEnvironment,
+            credentialBrokeringAvailable: sandboxCredentialEnvironment != null,
+          }) ?? [],
+        abortSignal: startOptions.abortSignal,
+      });
       const port = resolveBridgePort({
         sandboxSession,
         override: portOverride,
@@ -683,13 +703,15 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
       const bridgeEndpoint = withBridgeToken({ endpoint, token });
       const channel: ACPChannel = new SandboxChannel({
-        connect: () => openWebSocket(bridgeEndpoint),
+        connect: ({ abortSignal }) =>
+          openWebSocket({ ...bridgeEndpoint, abortSignal }),
         outboundSchema: outboundMessageSchema,
         ...(respawnStrategy?.mode === 'disk-replay'
           ? { initialLastSeenEventId: respawnStrategy.afterSeq }
           : {}),
         onDiagnostic,
         onBridgeError,
+        reconnect,
       });
       await channel.open(
         respawnStrategy?.mode === 'disk-replay' ? { resume: true } : undefined,
@@ -795,6 +817,50 @@ export function createACPV1<TBuiltinTools extends ToolSet = {}>({
       });
     },
   };
+}
+
+async function writeACPAuthenticationFiles({
+  sandbox,
+  homePath,
+  files,
+  abortSignal,
+}: {
+  sandbox: SandboxSession;
+  homePath: string;
+  files: ReadonlyArray<{ readonly path: string; readonly content: string }>;
+  abortSignal?: AbortSignal;
+}): Promise<void> {
+  const targetPaths = files.map(file => {
+    if (
+      file.path.length === 0 ||
+      posix.isAbsolute(file.path) ||
+      file.path.split('/').some(segment => segment === '..')
+    ) {
+      throw new Error(
+        `ACP authentication file path must be relative without traversal: ${JSON.stringify(file.path)}.`,
+      );
+    }
+    return posix.join(homePath, file.path);
+  });
+
+  for (let index = 0; index < files.length; index++) {
+    await sandbox.writeTextFile({
+      path: targetPaths[index],
+      content: files[index].content,
+      abortSignal,
+    });
+  }
+  if (targetPaths.length === 0) return;
+
+  const result = await sandbox.run({
+    command: `chmod 600 -- ${targetPaths.map(shellQuote).join(' ')}`,
+    abortSignal,
+  });
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `Failed to secure ACP authentication files (exit ${result.exitCode})${result.stderr ? `: ${result.stderr}` : ''}`,
+    );
+  }
 }
 
 function resolveProviderEnvironment({
@@ -948,21 +1014,57 @@ async function resolveBridgeEndpoint({
 function openWebSocket({
   url,
   headers,
-}: HarnessV1PortEndpoint): Promise<WebSocket> {
+  abortSignal,
+}: HarnessV1PortEndpoint & { abortSignal: AbortSignal }): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
+    if (abortSignal.aborted) {
+      reject(abortSignal.reason ?? new Error('WebSocket connection aborted'));
+      return;
+    }
+
     const ws = new WebSocket(url, {
       headers: headers == null ? undefined : { ...headers },
     });
-    const onOpen = () => {
+
+    let settled = false;
+    const cleanup = () => {
+      abortSignal.removeEventListener('abort', onAbort);
+      ws.off('open', onOpen);
       ws.off('error', onError);
+    };
+    const rejectWithCleanup = (error: unknown) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      ws.once('error', () => {});
+      try {
+        ws.terminate();
+      } catch {
+        try {
+          ws.close();
+        } catch {
+          // best-effort
+        }
+      }
+      reject(error);
+    };
+    const onOpen = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
       resolve(ws);
     };
     const onError = (error: Error) => {
-      ws.off('open', onOpen);
-      reject(error);
+      rejectWithCleanup(error);
     };
+    const onAbort = () =>
+      rejectWithCleanup(
+        abortSignal.reason ?? new Error('WebSocket connection aborted'),
+      );
+
     ws.once('open', onOpen);
     ws.once('error', onError);
+    abortSignal.addEventListener('abort', onAbort, { once: true });
   });
 }
 
@@ -1909,7 +2011,7 @@ function withNativeQuestionRequest({
     providerMetadata: {
       ...toolCall.providerMetadata,
       [harnessId]: {
-        ...(harnessMetadata ?? {}),
+        ...harnessMetadata,
         nativeRequest,
       } as NonNullable<
         Extract<HarnessV1StreamPart, { type: 'tool-call' }>['providerMetadata']
@@ -1963,7 +2065,6 @@ function takeBufferedQuestionResult({
       return buffered;
     }
   }
-  return undefined;
 }
 
 function isPermissionModeMappingValue({

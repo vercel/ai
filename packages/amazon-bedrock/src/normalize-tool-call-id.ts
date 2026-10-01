@@ -16,7 +16,7 @@ export function isMistralModel(modelId: string): boolean {
  * Bedrock generates tool call IDs in formats like `tooluse_bpe71yCfRu2b5i-nKGDr5g`,
  * which are incompatible with Mistral's requirements.
  *
- * This function extracts the first 9 alphanumeric characters from the ID.
+ * This function hashes incompatible IDs into 9 alphanumeric characters.
  *
  * @param toolCallId - The original tool call ID from Bedrock
  * @param isMistral - Whether the model is a Mistral model
@@ -30,7 +30,40 @@ export function normalizeToolCallId(
     return toolCallId;
   }
 
-  // Extract only alphanumeric characters and take first 9
-  const alphanumericChars = toolCallId.replace(/[^a-zA-Z0-9]/g, '');
-  return alphanumericChars.slice(0, 9);
+  if (/^[a-zA-Z0-9]{9}$/.test(toolCallId)) {
+    return toolCallId;
+  }
+
+  return convertToBase62Hash(toolCallId);
+}
+
+const base62Characters =
+  '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+const base62Length = BigInt(base62Characters.length);
+const normalizedToolCallIdLength = 9;
+const normalizedToolCallIdSpace =
+  base62Length ** BigInt(normalizedToolCallIdLength);
+const fnvOffsetBasis64 = BigInt('14695981039346656037');
+const fnvPrime64 = BigInt('1099511628211');
+const fnv64BitMask = BigInt('18446744073709551615');
+
+function convertToBase62Hash(value: string): string {
+  // FNV-1a 64-bit is deterministic across runtimes and gives the normalized ID
+  // access to the full 9-character base62 space.
+  let hash = fnvOffsetBasis64;
+
+  for (let i = 0; i < value.length; i++) {
+    hash ^= BigInt(value.charCodeAt(i));
+    hash = (hash * fnvPrime64) & fnv64BitMask;
+  }
+
+  let base62Value = hash % normalizedToolCallIdSpace;
+  let result = '';
+
+  for (let i = 0; i < normalizedToolCallIdLength; i++) {
+    result = base62Characters[Number(base62Value % base62Length)] + result;
+    base62Value /= base62Length;
+  }
+
+  return result;
 }

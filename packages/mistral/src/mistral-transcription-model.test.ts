@@ -202,7 +202,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/mistral/0.0.0-test',
+      'ai-sdk-mistral/0.0.0-test',
     );
     expect(customFetch.mock.calls[0]![1]?.signal).toBe(abortController.signal);
   });
@@ -263,6 +263,7 @@ describe('doGenerate', () => {
       ),
     );
     expect(result.durationInSeconds).toBe(36);
+    expect(result.usage).toStrictEqual(transcriptionResponse.usage);
     expect(result.warnings).toEqual([]);
     expect(result.response).toEqual({
       timestamp: testDate,

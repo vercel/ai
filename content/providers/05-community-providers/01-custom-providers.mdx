@@ -40,7 +40,7 @@ The `ProviderV4` interface acts as the entry point:
 ```ts
 interface ProviderV4 {
   languageModel(modelId: string): LanguageModelV4;
-  .embeddingModel(modelId: string): EmbeddingModelV4<string>;
+  embeddingModel(modelId: string): EmbeddingModelV4;
   imageModel(modelId: string): ImageModelV4;
 }
 ```
@@ -51,7 +51,7 @@ The `LanguageModelV4` interface defines the methods your provider must implement
 
 ```ts
 interface LanguageModelV4 {
-  specificationVersion: 'V4';
+  specificationVersion: 'v4';
   provider: string;
   modelId: string;
   supportedUrls: Record<string, RegExp[]>;
@@ -63,7 +63,7 @@ interface LanguageModelV4 {
 
 Key aspects:
 
-- **specificationVersion**: Must be 'V4'
+- **specificationVersion**: Must be 'v4'
 - **supportedUrls**: Declares which URLs (for file parts) the provider can handle natively
 - **doGenerate/doStream**: methods for non-streaming and streaming generation
 
@@ -98,10 +98,9 @@ Enable models to invoke functions with structured arguments:
 ```ts
 type LanguageModelV4ToolCall = {
   type: 'tool-call';
-  toolCallType: 'function';
   toolCallId: string;
   toolName: string;
-  args: string;
+  input: string; // stringified JSON arguments
 };
 ```
 
@@ -298,7 +297,7 @@ Example stream sequence:
 { type: 'stream-start', warnings: [] }
 { type: 'text', text: 'Hello' }
 { type: 'text', text: ' world' }
-{ type: 'tool-call', toolCallId: '1', toolName: 'search', args: {...} }
+{ type: 'tool-call', toolCallId: '1', toolName: 'search', input: '{...}' }
 { type: 'response-metadata', modelId: 'gpt-4.1', ... }
 { type: 'finish', usage: { inputTokens: 10, outputTokens: 20 }, finishReason: 'stop' }
 ```
@@ -438,7 +437,7 @@ import {
   loadApiKey,
   withoutTrailingSlash,
 } from '@ai-sdk/provider-utils';
-import { ProviderV4 } from '@ai-sdk/provider';
+import { NoSuchModelError, ProviderV4 } from '@ai-sdk/provider';
 import { CustomChatLanguageModel } from './custom-chat-language-model';
 
 // Define your provider interface extending ProviderV4
@@ -468,6 +467,11 @@ interface CustomProviderSettings {
    * Custom headers for requests
    */
   headers?: Record<string, string>;
+
+  /**
+   * Custom ID generator
+   */
+  generateId?: () => string;
 }
 
 // Factory function to create provider instance
@@ -501,7 +505,14 @@ function createCustom(options: CustomProviderSettings = {}): CustomProvider {
     return createChatModel(modelId, settings);
   };
 
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createChatModel;
+  provider.embeddingModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  };
+  provider.imageModel = (modelId: string) => {
+    throw new NoSuchModelError({ modelId, modelType: 'imageModel' });
+  };
 
   return provider as CustomProvider;
 }
@@ -519,9 +530,10 @@ import { LanguageModelV4, LanguageModelV4CallOptions } from '@ai-sdk/provider';
 import { postJsonToApi } from '@ai-sdk/provider-utils';
 
 class CustomChatLanguageModel implements LanguageModelV4 {
-  readonly specificationVersion = 'V4';
+  readonly specificationVersion = 'v4';
   readonly provider: string;
   readonly modelId: string;
+  private readonly config: CustomChatConfig;
 
   constructor(
     modelId: string,
@@ -530,6 +542,7 @@ class CustomChatLanguageModel implements LanguageModelV4 {
   ) {
     this.provider = config.provider;
     this.modelId = modelId;
+    this.config = config;
     // Initialize with settings and config
   }
 
@@ -586,10 +599,9 @@ class CustomChatLanguageModel implements LanguageModelV4 {
       for (const toolCall of response.choices[0].message.tool_calls) {
         content.push({
           type: 'tool-call',
-          toolCallType: 'function',
           toolCallId: toolCall.id,
           toolName: toolCall.function.name,
-          args: JSON.stringify(toolCall.function.arguments),
+          input: JSON.stringify(toolCall.function.arguments),
         });
       }
     }
@@ -695,7 +707,8 @@ private createTransformer(warnings: SharedV4Warning[]) {
   let isFirstChunk = true;
 
   return new TransformStream<ParsedChunk, LanguageModelV4StreamPart>({
-    async transform(chunk, controller) {
+    // Arrow function keeps `this` bound to the model instance
+    transform: async (chunk, controller) => {
       // Send warnings with first chunk
       if (isFirstChunk) {
         controller.enqueue({ type: 'stream-start', warnings });

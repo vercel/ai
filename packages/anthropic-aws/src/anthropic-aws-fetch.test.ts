@@ -14,7 +14,7 @@ vi.mock('@ai-sdk/provider-utils', async () => {
   const actual = await vi.importActual('@ai-sdk/provider-utils');
   return {
     ...actual,
-    getRuntimeEnvironmentUserAgent: vi.fn(() => 'runtime/testenv'),
+    getRuntimeEnvironmentUserAgent: vi.fn(() => 'testenv'),
   };
 });
 
@@ -66,7 +66,7 @@ describe('createSigV4FetchFunction', () => {
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'GET',
       headers: {
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
     expect(response).toBe(dummyResponse);
@@ -81,7 +81,7 @@ describe('createSigV4FetchFunction', () => {
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       method: 'POST',
       headers: {
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
     expect(response).toBe(dummyResponse);
@@ -127,7 +127,7 @@ describe('createSigV4FetchFunction', () => {
     );
     expect(headers['x-amz-security-token']).toEqual('test-session-token');
     expect(headers['user-agent']).toEqual(
-      'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+      'ai-sdk-anthropic-aws/0.0.0-test testenv',
     );
     // Body is left unmodified for a string body.
     expect(calledInit.body).toEqual('{"test": "data"}');
@@ -191,7 +191,7 @@ describe('createSigV4FetchFunction', () => {
       'AWS4-HMAC-SHA256 Credential=test',
     );
     expect(headers['user-agent']).toEqual(
-      'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+      'ai-sdk-anthropic-aws/0.0.0-test testenv',
     );
   });
 
@@ -312,7 +312,7 @@ describe('createSigV4FetchFunction', () => {
     const response = await fetchFn('http://example.com');
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       headers: {
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
     expect(response).toBe(dummyResponse);
@@ -410,7 +410,7 @@ describe('createApiKeyFetchFunction', () => {
       headers: {
         'content-type': 'application/json',
         'x-api-key': 'test-api-key-123',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
     expect(response).toBe(dummyResponse);
@@ -441,7 +441,7 @@ describe('createApiKeyFetchFunction', () => {
         'custom-header': 'custom-value',
         'x-request-id': 'req-123',
         'x-api-key': 'test-api-key-456',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -470,7 +470,7 @@ describe('createApiKeyFetchFunction', () => {
         'content-type': 'application/json',
         'x-custom': 'value',
         'x-api-key': 'test-api-key-789',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -500,7 +500,7 @@ describe('createApiKeyFetchFunction', () => {
         'content-type': 'application/json',
         'x-array-header': 'array-value',
         'x-api-key': 'test-api-key-array',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -524,7 +524,7 @@ describe('createApiKeyFetchFunction', () => {
       headers: {
         accept: 'application/json',
         'x-api-key': 'test-api-key-get',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -546,7 +546,7 @@ describe('createApiKeyFetchFunction', () => {
       body: '{"test": "data"}',
       headers: {
         'x-api-key': 'test-api-key-no-headers',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -563,7 +563,7 @@ describe('createApiKeyFetchFunction', () => {
     expect(dummyFetch).toHaveBeenCalledWith('http://example.com', {
       headers: {
         'x-api-key': 'test-api-key-undefined',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -590,7 +590,7 @@ describe('createApiKeyFetchFunction', () => {
       headers: {
         'content-type': 'application/json',
         'x-api-key': 'test-api-key-override',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -614,7 +614,7 @@ describe('createApiKeyFetchFunction', () => {
         body: '{"test": "data"}',
         headers: {
           'x-api-key': 'test-api-key-default',
-          'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
         },
       });
     } finally {
@@ -643,7 +643,7 @@ describe('createApiKeyFetchFunction', () => {
         body: '{"test": "data"}',
         headers: {
           'x-api-key': 'test-api-key-lazy',
-          'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+          'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
         },
       });
     } finally {
@@ -668,7 +668,7 @@ describe('createApiKeyFetchFunction', () => {
       body: '{"test": "data"}',
       headers: {
         'x-api-key': '',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
     });
   });
@@ -697,7 +697,7 @@ describe('createApiKeyFetchFunction', () => {
       headers: {
         'content-type': 'application/json',
         'x-api-key': 'test-api-key-preserve',
-        'user-agent': 'ai-sdk/anthropic-aws/0.0.0-test runtime/testenv',
+        'user-agent': 'ai-sdk-anthropic-aws/0.0.0-test testenv',
       },
       credentials: 'include',
       cache: 'no-cache',

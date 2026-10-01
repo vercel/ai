@@ -4,12 +4,22 @@ import {
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4ToolCall,
+  type ImageModelV4Result,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import { gateway } from '@ai-sdk/gateway';
-import { type ToolSet, withUserAgentSuffix } from '@ai-sdk/provider-utils';
+import {
+  detectMediaType,
+  type ToolSet,
+  withUserAgentSuffix,
+} from '@ai-sdk/provider-utils';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { convertLanguageModelContent } from '../generate-text/convert-language-model-content';
+import {
+  getImageProviderMetadata,
+  normalizePrompt as normalizeImagePrompt,
+} from '../generate-image/generate-image';
+import { DefaultGeneratedFile } from '../generate-text/generated-file';
 import { parseToolCall } from '../generate-text/parse-tool-call';
 import { prepareToolChoice } from '../prompt/prepare-tool-choice';
 import { prepareTools } from '../prompt/prepare-tools';
@@ -40,7 +50,7 @@ import type {
   StartBatchOptions,
   StartBatchResult,
   TextBatchGenerationResult,
-  TextBatchItemResult,
+  ImageBatchGenerationResult,
 } from './batch-types';
 
 /**
@@ -167,7 +177,8 @@ export async function startBatch<
   const toolsByName = new Map<string, unknown>();
 
   for (const request of requests) {
-    switch (request.type) {
+    const requestType = request.type;
+    switch (requestType) {
       case 'text': {
         const standardizedPrompt = await standardizePrompt(request);
         const preparedTools = await prepareTools({
@@ -191,6 +202,7 @@ export async function startBatch<
               prompt: standardizedPrompt,
               supportedUrls,
               download: undefined,
+              abortSignal: operationAbortSignal,
               provider: batchApi.provider.split('.')[0],
             }),
             tools: preparedTools,
@@ -199,6 +211,33 @@ export async function startBatch<
           },
         });
         break;
+      }
+      case 'image': {
+        const { prompt, files, mask } = normalizeImagePrompt(request.prompt);
+        normalizedRequests.push({
+          id: request.id,
+          type: request.type,
+          modelId: request.model,
+          options: {
+            prompt,
+            n: request.n ?? 1,
+            size: request.size,
+            aspectRatio: request.aspectRatio,
+            seed: request.seed,
+            files,
+            mask,
+            providerOptions: request.providerOptions ?? {},
+          },
+        });
+        break;
+      }
+      default: {
+        const _exhaustiveCheck: never = requestType;
+        throw new InvalidArgumentError({
+          parameter: 'requests',
+          value: _exhaustiveCheck,
+          message: `Unsupported batch request type "${_exhaustiveCheck}".`,
+        });
       }
     }
     operationAbortSignal?.throwIfAborted();
@@ -335,7 +374,13 @@ export function getBatchResults<TOOLS extends ToolSet>({
     cancel?: (reason?: unknown) => void;
   } = {
     async transform(item, controller) {
-      controller.enqueue(await convertBatchItemResult({ item, tools }));
+      controller.enqueue(
+        await convertBatchItemResult({
+          item,
+          tools,
+          abortSignal: operationAbortSignal,
+        }),
+      );
     },
 
     cancel(reason) {
@@ -468,21 +513,29 @@ function validateBatchReference({
 async function convertBatchItemResult<TOOLS extends ToolSet>({
   item,
   tools,
+  abortSignal,
 }: {
   item: BatchV4ItemResult;
   tools: TOOLS | undefined;
-}): Promise<TextBatchItemResult<TOOLS>> {
+  abortSignal: AbortSignal | undefined;
+}): Promise<BatchItemResult<TOOLS>> {
   switch (item.type) {
     case 'text':
       switch (item.status) {
         case 'succeeded':
           return {
+            type: item.type,
             id: item.id,
             status: item.status,
-            ...(await convertGenerateResult({ result: item.result, tools })),
+            ...(await convertGenerateResult({
+              result: item.result,
+              tools,
+              abortSignal,
+            })),
           };
         case 'failed':
           return {
+            type: item.type,
             id: item.id,
             status: item.status,
             error: item.error,
@@ -491,6 +544,34 @@ async function convertBatchItemResult<TOOLS extends ToolSet>({
         case 'cancelled':
         case 'expired':
           return {
+            type: item.type,
+            id: item.id,
+            status: item.status,
+            error: item.error,
+            providerMetadata: item.providerMetadata,
+          };
+      }
+    case 'image':
+      switch (item.status) {
+        case 'succeeded':
+          return {
+            type: item.type,
+            id: item.id,
+            status: item.status,
+            ...convertImageResult(item.result),
+          };
+        case 'failed':
+          return {
+            type: item.type,
+            id: item.id,
+            status: item.status,
+            error: item.error,
+            providerMetadata: item.providerMetadata,
+          };
+        case 'cancelled':
+        case 'expired':
+          return {
+            type: item.type,
             id: item.id,
             status: item.status,
             error: item.error,
@@ -500,12 +581,42 @@ async function convertBatchItemResult<TOOLS extends ToolSet>({
   }
 }
 
+function convertImageResult(
+  result: ImageModelV4Result,
+): ImageBatchGenerationResult {
+  return {
+    images: result.images.map(
+      (image, index) =>
+        new DefaultGeneratedFile({
+          data: image,
+          mediaType:
+            detectMediaType({ data: image, topLevelType: 'image' }) ??
+            'image/png',
+          providerMetadata: getImageProviderMetadata(
+            result.providerMetadata,
+            index,
+          ),
+        }),
+    ),
+    warnings: result.warnings,
+    response: {
+      timestamp: result.response.timestamp,
+      modelId: result.response.modelId,
+      headers: result.response.headers,
+    },
+    providerMetadata: result.providerMetadata,
+    usage: result.usage,
+  };
+}
+
 async function convertGenerateResult<TOOLS extends ToolSet>({
   result,
   tools,
+  abortSignal,
 }: {
   result: LanguageModelV4GenerateResult;
   tools: TOOLS | undefined;
+  abortSignal: AbortSignal | undefined;
 }): Promise<TextBatchGenerationResult<TOOLS>> {
   const toolCalls = await Promise.all(
     result.content
@@ -523,13 +634,14 @@ async function convertGenerateResult<TOOLS extends ToolSet>({
         }),
       ),
   );
-  const content = convertLanguageModelContent<TOOLS>({
+  const content = await convertLanguageModelContent<TOOLS>({
     content: result.content,
     toolCalls,
     toolOutputs: [],
     toolApprovalRequests: [],
     toolApprovalResponses: [],
     tools,
+    abortSignal,
   });
 
   return {
