@@ -1,3 +1,5 @@
+import { DecisionMockModelV4 } from '../src/test/decision-mock-model-v4';
+
 import { simulateReadableStream as originalSimulateReadableStream } from '../src/util/simulate-readable-stream';
 
 export {
@@ -30,3 +32,8 @@ export { mockValues } from '../src/test/mock-values';
  * @deprecated Use `simulateReadableStream` from `ai` instead.
  */
 export const simulateReadableStream = originalSimulateReadableStream;
+
+/** @deprecated Use `Experimental_DecisionMockModelV4` instead. */
+export const Experimental_EvaluationMockModelV4 = DecisionMockModelV4;
+/** @deprecated Use `Experimental_DecisionMockModelV4` instead. */
+export type Experimental_EvaluationMockModelV4 = DecisionMockModelV4;
