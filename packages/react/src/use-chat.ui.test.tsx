@@ -759,20 +759,24 @@ describe('use-chat', () => {
 
       await userEvent.click(screen.getByTestId('do-send'));
 
+      // The assistant message can render before its text arrives.
+      const content = await screen.findByTestId('message-1-content');
+      expect(content).toBeEmptyDOMElement();
+      const id = screen.getByTestId('message-1-id').textContent;
+
       controller.write('He');
 
-      await screen.findByTestId('message-1-content');
-      expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
-
-      const id = screen.getByTestId('message-1-id').textContent;
+      await waitFor(() => {
+        expect(content).toHaveTextContent('He');
+      });
+      expect(screen.getByTestId('message-1-id').textContent).toBe(id);
 
       controller.write('llo');
       controller.close();
 
-      await screen.findByTestId('message-1-content');
-      expect(screen.getByTestId('message-1-content')).toHaveTextContent(
-        'Hello',
-      );
+      await waitFor(() => {
+        expect(content).toHaveTextContent('Hello');
+      });
       expect(screen.getByTestId('message-1-id').textContent).toBe(id);
     });
 
