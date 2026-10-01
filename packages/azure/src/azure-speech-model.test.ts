@@ -50,6 +50,8 @@ describe('API routing', () => {
     ['MAI-Voice-2-Flash', undefined, 'speech', 'MAI-Voice-2-Flash'],
     ['mai-voice-2', undefined, 'speech', 'MAI-Voice-2'],
     ['MaI-vOiCe-2', undefined, 'speech', 'MAI-Voice-2'],
+    ['mai-voice-2.1-flash', undefined, 'speech', 'MAI-Voice-2.1-Flash'],
+    ['MAI-Voice-2.1', undefined, 'speech', 'MAI-Voice-2.1'],
     ['tts-1', undefined, 'openai'],
     ['mai-voice-2-custom', undefined, 'openai'],
     ['constructor', undefined, 'openai'],
@@ -418,6 +420,21 @@ describe('Speech errors', () => {
     await expect(
       provider.speech('mai-voice-2').doGenerate({ text: 'Hi' }),
     ).rejects.toMatchObject({ statusCode: 401, message: 'Access denied' });
+  });
+
+  it('maps the Envoy protocol-error 502 for unknown voices to a non-retryable error', async () => {
+    const body =
+      'upstream connect error or disconnect/reset before headers. reset reason: protocol error';
+    const { provider } = setup({}, () => new Response(body, { status: 502 }));
+    await expect(
+      provider.speech('mai-voice-2.1').doGenerate({ text: 'Hi', voice: 'x' }),
+    ).rejects.toMatchObject({
+      statusCode: 502,
+      isRetryable: false,
+      message:
+        'Azure Speech could not synthesize the request. Check that the voice is available for this model and that the style is supported by the voice.',
+      responseBody: body,
+    });
   });
 
   it.each([
