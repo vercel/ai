@@ -218,6 +218,20 @@ export function runPrompt<
    * session's turn tracking returns to idle and the session stays usable,
    * unless the turn is being suspended for a future continuation.
    */
+  /*
+   * Telemetry counterpart of `settleFailure`: a turn stopped by the caller's
+   * own `abortSignal` is reported to integrations as `onAbort`, like
+   * `streamText` does, so they close the call cleanly instead of recording a
+   * spurious error. Every other failure stays `onError`.
+   */
+  const settleLifecycle = async (err: unknown) => {
+    if (input.abortSignal?.aborted) {
+      await lifecycle.abort(input.abortSignal.reason);
+      return;
+    }
+    await lifecycle.error(err);
+  };
+
   const settleFailure = (err: unknown) => {
     if (!input.isTurnSuspending?.()) {
       input.onTurnFailed?.();
@@ -269,7 +283,7 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
@@ -998,7 +1012,7 @@ export function runPrompt<
           // Telemetry and stderr diagnostics keep the raw error (absolute
           // paths help debugging); the consumer-facing settle uses the
           // workDir-stripped one, like every other forwarded part.
-          await lifecycle.error(value.error);
+          await settleLifecycle(value.error);
           // A turn the caller itself aborted ends with an error-shaped part by
           // construction; diagnosing the caller's own signal to stderr reads
           // as a malfunction. `settleFailure` below still reports it as an
@@ -1477,7 +1491,7 @@ export function runPrompt<
       } catch {
         // Preserve the error that stopped the reader loop.
       }
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,

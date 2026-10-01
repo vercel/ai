@@ -72,6 +72,7 @@ export interface TurnLifecycle<
     execute: () => PromiseLike<T>;
   }): Promise<T>;
   error(error: unknown): Promise<void>;
+  abort(reason?: unknown): Promise<void>;
 }
 
 async function notify<EVENT>(
@@ -362,7 +363,20 @@ export function createTurnLifecycle<
       if (ended) return;
       if (!started) await start();
       ended = true;
-      await telemetry.onError?.(error);
+      // Same event shape as `generateText` / `streamText`: integrations
+      // attribute the failure to the call through `callId`.
+      await telemetry.onError?.({ callId: options.callId, error });
+    },
+
+    async abort(reason) {
+      if (ended) return;
+      if (!started) await start();
+      ended = true;
+      await telemetry.onAbort?.({
+        callId: options.callId,
+        steps: [...completedSteps],
+        ...(reason !== undefined ? { reason } : {}),
+      });
     },
   };
 }
