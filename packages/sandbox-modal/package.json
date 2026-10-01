@@ -37,7 +37,7 @@
   "dependencies": {
     "@ai-sdk/harness": "workspace:*",
     "@ai-sdk/provider-utils": "workspace:*",
-    "modal": "^0.10.1 || ^0.11.0"
+    "modal": "^0.11.0"
   },
   "devDependencies": {
     "@types/node": "22.19.19",

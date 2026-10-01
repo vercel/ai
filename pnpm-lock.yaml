@@ -4125,8 +4125,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       modal:
-        specifier: ^0.10.1 || ^0.11.0
-        version: 0.10.1
+        specifier: ^0.11.0
+        version: 0.11.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -20468,8 +20468,8 @@ packages:
   mocked-exports@0.1.1:
     resolution: {integrity: sha512-aF7yRQr/Q0O2/4pIXm6PZ5G+jAd7QS4Yu8m+WEeEHGnbo+7mE36CbLSDQiXYV8bVL3NfmdeqPJct0tUlnjVSnA==}
 
-  modal@0.10.1:
-    resolution: {integrity: sha512-nnsWoVZ4XNLHtCV5/wuu2avQsFkGK6e/KazGPil3VwXI1aKh8jJkpP++lMPKwKQhMpe4N6WJtSRR6NwiolCEkw==}
+  modal@0.11.0:
+    resolution: {integrity: sha512-Kvy2nejPkice2FI82p5e8TJrFDy0BaSYZjJVmvnTnu51bOH9Ok7IRtp8NavBQqMuXhbpbj6gRULwxsjNkweF6A==}
 
   modern-tar@0.7.6:
     resolution: {integrity: sha512-sweCIVXzx1aIGTCdzcMlSZt1h8k5Tmk08VNAuRk3IU28XamGiOH5ypi11g6De2CH7PhYqSSnGy2A/EFhbWnVKg==}
@@ -46592,7 +46592,7 @@ snapshots:
 
   mocked-exports@0.1.1: {}
 
-  modal@0.10.1:
+  modal@0.11.0:
     dependencies:
       cbor-x: 1.6.0
       long: 5.3.2

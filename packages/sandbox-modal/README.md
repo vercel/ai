@@ -87,8 +87,33 @@ Modal accepts `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET`, or the active profile i
 - `{ mode: 'custom', allowedHosts, allowedCIDRs }` admits the listed hosts and IPv4 ranges. Hosts may use a `*.` prefix. Modal admits a host only for TLS traffic on port 443, and rejects IPv6 ranges.
 - `deniedCIDRs` is not supported, because Modal has no deny list. A policy that sets it fails with a `HarnessCapabilityUnsupportedError`.
 
-Modal only changes the policy of a sandbox that was created with an `outboundDomainAllowlist` and without `blockNetwork`. `createModalNetworkSandboxSession()` therefore creates sandboxes with allowlists that admit everything, unless you pass `blockNetwork`, `outboundCidrAllowlist`, or `outboundDomainAllowlist` yourself. On a sandbox that Modal cannot change, `setNetworkPolicy()` fails with a `HarnessCapabilityUnsupportedError`.
+Modal only changes the policy of a sandbox that was created with an `outboundDomainAllowlist` and without `blockNetwork`. `createModalNetworkSandboxSession()` therefore creates sandboxes with allowlists that admit everything, unless you pass `blockNetwork`, `outboundCidrAllowlist`, or `outboundDomainAllowlist` yourself. On a sandbox that Modal cannot change, `setNetworkPolicy()` fails with a `HarnessCapabilityUnsupportedError`. That includes every sandbox created with `requestTransformations: true`; see [Request transformations and credential brokering](#request-transformations-and-credential-brokering).
 
-## Credential brokering
+## Request transformations and credential brokering
 
-The session does not implement request transformations, so bridge-backed harness adapters forward model credentials into the sandbox process instead of brokering them. Each harness adapter's `credentialForwarding` setting controls what the sandbox receives.
+Create the sandbox with `requestTransformations: true` to give the session `setRequestTransformations()` and `addRequestTransformations()`:
+
+```ts
+const networkSandboxSession = await createModalNetworkSandboxSession({
+  encryptedPorts: [4000],
+  requestTransformations: true,
+});
+```
+
+Bridge-backed harness adapters such as Claude Code and Codex then broker model credentials: the sandbox process receives a placeholder, and Modal attaches the real credential to the request after it has left the sandbox. Without the option the session has neither method, and the adapters forward model credentials into the sandbox process instead. Each harness adapter's `credentialForwarding` setting controls what the sandbox receives.
+
+The option uses Modal's experimental outbound policy (`ExperimentalOutboundPolicy`), which Modal may change. It is off by default for that reason, and because it comes with these limits:
+
+- **A rule applies to its whole host.** Modal replaces headers per host and has no path, method, query string, or header matcher. A rule's `path` and `headers` matchers are accepted, but the rule is applied to every HTTPS request that the sandbox sends to its host. A brokered credential is therefore attached to every request to that host, whether or not the request carries the placeholder, and a program in the sandbox cannot use a different credential of its own for the same host.
+- **Rules that Modal cannot express are rejected.** A rule with a `method` or `queryString` matcher fails with a `HarnessCapabilityUnsupportedError`, and so do two rules that set the same header to different values for the same host or for overlapping hosts. Nothing is changed when a rule is rejected. A host is an exact name, a name with a `*.` prefix, which on Modal also matches the name itself, or `*`.
+- **No outbound restrictions.** Modal rejects `blockNetwork` and `outboundDomainAllowlist` on a sandbox that uses its outbound policy, and does not apply `outboundCidrAllowlist` to the HTTPS traffic of one. `requestTransformations` therefore cannot be combined with any of the three, and `setNetworkPolicy()` fails with a `HarnessCapabilityUnsupportedError` on such a session.
+- **Modal sees the header values.** They are sent to Modal as part of the sandbox's outbound policy. For the hosts that have a rule, Modal terminates TLS with its own certificate authority, which the sandbox is set up to trust, and sends the requests on over HTTP/1.1.
+
+`setRequestTransformations()` replaces the rules of the session and `addRequestTransformations()` adds to them. Adding a rule with the same matchers and header names as an existing rule replaces that rule, which is how a harness adapter refreshes a credential.
+
+Modal does not report the outbound policy of a sandbox, which shows when a sandbox is resumed:
+
+- `resumeModalNetworkSandboxSession()` gives the session of a sandbox that is still running both methods when the sandbox was created with `requestTransformations`. The session does not know the rules that are in place, so its first call replaces them. Harness adapters add their rules again whenever they start or resume a session.
+- A stopped sandbox is restored as a new sandbox without rules. Pass the option again, together with the open outbound access it requires: `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000], requestTransformations: true, blockNetwork: false })`. A sandbox restored without the option has neither method, and harness adapters forward credentials into it.
+
+A session adapted from a native sandbox has neither method, and `experimentalOutboundPolicy` is not accepted as a creation option. To manage Modal's outbound policy yourself, create the sandbox with the Modal SDK and adapt it.

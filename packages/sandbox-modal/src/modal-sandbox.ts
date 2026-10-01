@@ -6,6 +6,11 @@ import {
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { ModalClient, type Image, type Sandbox } from 'modal';
 import { ModalNetworkSandboxSession } from './modal-network-sandbox-session';
+import {
+  assertRequestTransformationSettings,
+  supportsRequestTransformations,
+  withRequestTransformationSettings,
+} from './modal-request-transformations';
 import { ModalSandboxSession } from './modal-sandbox-session';
 import { findStopSnapshot } from './modal-stop-snapshot';
 import {
@@ -56,7 +61,7 @@ export type ModalNativeSandboxSession = {
 
 type ModalCreationSettings = Omit<
   ModalSandboxCreateParams,
-  'name' | 'h2Ports'
+  'name' | 'h2Ports' | 'experimentalOutboundPolicy'
 > & {
   /**
    * Modal client used for every request. Defaults to a new `ModalClient`,
@@ -76,6 +81,22 @@ type ModalCreationSettings = Omit<
    * Modal `Image`. Defaults to `node:24` with `pnpm` installed.
    */
   image?: Image | string;
+
+  /**
+   * Creates the sandbox with Modal's experimental outbound policy, so that
+   * the session has `setRequestTransformations()` and
+   * `addRequestTransformations()` and harness adapters broker credentials
+   * instead of forwarding them into the sandbox. Modal does not restrict the
+   * outbound HTTPS traffic of such a sandbox, so this cannot be combined with
+   * `blockNetwork` or an outbound allowlist.
+   */
+  requestTransformations?: boolean;
+
+  /**
+   * Not supported: the session owns the outbound policy of a sandbox created
+   * with `requestTransformations` and would replace this one.
+   */
+  experimentalOutboundPolicy?: never;
 
   /**
    * The sandbox is named with `sandboxId`.
@@ -108,7 +129,7 @@ export type ModalNetworkSandboxSessionCreateOptions = Prettify<
  */
 type ModalLookupSettings = Omit<
   ModalSandboxCreateParams,
-  'name' | 'h2Ports'
+  'name' | 'h2Ports' | 'experimentalOutboundPolicy'
 > & {
   /**
    * Modal client used for every request. Defaults to a new `ModalClient`,
@@ -122,6 +143,19 @@ type ModalLookupSettings = Omit<
    * `ai-sdk-sandbox`.
    */
   appName?: string;
+
+  /**
+   * Restores a stopped sandbox with Modal's experimental outbound policy, as
+   * on creation. A sandbox that is still running accepts request
+   * transformations when it was created with this option, whether or not it
+   * is passed again.
+   */
+  requestTransformations?: boolean;
+
+  /**
+   * Not supported, as on creation.
+   */
+  experimentalOutboundPolicy?: never;
 
   /**
    * The sandbox is looked up by `sandboxId`.
@@ -151,18 +185,31 @@ export async function createModalNetworkSandboxSession(
       'createModalNetworkSandboxSession: h2Ports is not supported. Use encryptedPorts to expose ports.',
     );
   }
+  if (options.experimentalOutboundPolicy != null) {
+    throw new Error(
+      'createModalNetworkSandboxSession: experimentalOutboundPolicy is not supported. Pass requestTransformations: true and set the rules on the session.',
+    );
+  }
   const {
     template,
     abortSignal,
     sandboxId,
     sandbox: _sandbox,
     h2Ports: _h2Ports,
+    experimentalOutboundPolicy: _experimentalOutboundPolicy,
+    requestTransformations = false,
     client: clientOption,
     appName = DEFAULT_SANDBOX_APP_NAME,
     image: imageOption,
     name: _name,
     ...nativeOptions
   } = options;
+  if (requestTransformations) {
+    assertRequestTransformationSettings({
+      functionName: 'createModalNetworkSandboxSession',
+      createParams: nativeOptions,
+    });
+  }
   abortSignal?.throwIfAborted();
   const createParams = withDefaultSandboxSettings(nativeOptions);
   const resolveWorkingDirectory = async (sandbox: Sandbox) =>
@@ -198,7 +245,9 @@ export async function createModalNetworkSandboxSession(
       abortSignal?.throwIfAborted();
 
       const sandbox = await client.sandboxes.create(app, image, {
-        ...createParams,
+        ...(requestTransformations
+          ? withRequestTransformationSettings(createParams)
+          : createParams),
         ...(sandboxId != null ? { name: sandboxId } : {}),
       });
       try {
@@ -209,6 +258,7 @@ export async function createModalNetworkSandboxSession(
           workingDirectory: await resolveWorkingDirectory(sandbox),
           ports: createParams.encryptedPorts ?? [],
           stopSnapshot: { client, appName },
+          requestTransformations,
         });
       } catch (error) {
         await sandbox.terminate().catch(() => {});
@@ -227,6 +277,11 @@ export async function resumeModalNetworkSandboxSession(
       'resumeModalNetworkSandboxSession: h2Ports is not supported. Use encryptedPorts to expose ports.',
     );
   }
+  if (options.experimentalOutboundPolicy != null) {
+    throw new Error(
+      'resumeModalNetworkSandboxSession: experimentalOutboundPolicy is not supported. Pass requestTransformations: true and set the rules on the session.',
+    );
+  }
   const {
     sandboxId,
     abortSignal,
@@ -234,8 +289,16 @@ export async function resumeModalNetworkSandboxSession(
     appName = DEFAULT_SANDBOX_APP_NAME,
     name: _name,
     h2Ports: _h2Ports,
+    experimentalOutboundPolicy: _experimentalOutboundPolicy,
+    requestTransformations = false,
     ...nativeOptions
   } = options;
+  if (requestTransformations) {
+    assertRequestTransformationSettings({
+      functionName: 'resumeModalNetworkSandboxSession',
+      createParams: nativeOptions,
+    });
+  }
   abortSignal?.throwIfAborted();
 
   return withModalSandboxAuthenticationError({
@@ -246,9 +309,10 @@ export async function resumeModalNetworkSandboxSession(
       const reattach = async (): Promise<HarnessV1NetworkSandboxSession> => {
         const sandbox = await getRunningSandbox({ client, appName, sandboxId });
         try {
-          const [workingDirectory, tunnels] = await Promise.all([
+          const [workingDirectory, tunnels, tags] = await Promise.all([
             resolveSandboxWorkingDirectory(sandbox),
             sandbox.tunnels(),
+            sandbox.getTags(),
           ]);
           abortSignal?.throwIfAborted();
           return new ModalNetworkSandboxSession({
@@ -257,6 +321,10 @@ export async function resumeModalNetworkSandboxSession(
             workingDirectory,
             ports: getEncryptedTunnelPorts(tunnels),
             stopSnapshot,
+            requestTransformations: supportsRequestTransformations({
+              sandbox,
+              tags,
+            }),
           });
         } catch (error) {
           // The sandbox keeps running; only this process lets go of it.
@@ -294,7 +362,9 @@ export async function resumeModalNetworkSandboxSession(
       for (let attempt = 0; ; attempt++) {
         try {
           sandbox = await client.sandboxes.create(app, image, {
-            ...createParams,
+            ...(requestTransformations
+              ? withRequestTransformationSettings(createParams)
+              : createParams),
             name: sandboxId,
           });
           break;
@@ -327,6 +397,7 @@ export async function resumeModalNetworkSandboxSession(
           workingDirectory: await resolveSandboxWorkingDirectory(sandbox),
           ports: createParams.encryptedPorts ?? [],
           stopSnapshot,
+          requestTransformations,
         });
       } catch (error) {
         await sandbox.terminate().catch(() => {});

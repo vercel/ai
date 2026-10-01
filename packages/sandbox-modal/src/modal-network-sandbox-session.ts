@@ -3,10 +3,12 @@ import {
   type HarnessV1NetworkPolicy,
   type HarnessV1NetworkSandboxSession,
   type HarnessV1PortEndpoint,
+  type HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import type { Sandbox } from 'modal';
 import { setModalNetworkPolicy } from './modal-network-policy';
+import { ModalRequestTransformationManager } from './modal-request-transformations';
 import { ModalSandboxSession } from './modal-sandbox-session';
 import {
   deleteStopSnapshot,
@@ -27,6 +29,12 @@ import { MODAL_PROVIDER_ID, normalizePorts } from './utils';
  *
  * Modal fixes a sandbox's tunnels when the sandbox is created, so `setPorts`
  * is omitted.
+ *
+ * Modal only transforms the requests of a sandbox that was created with its
+ * outbound policy, so `setRequestTransformations` and
+ * `addRequestTransformations` exist only on the sessions of such sandboxes.
+ * Harness adapters broker credentials when the methods exist and forward
+ * credentials into the sandbox when they do not.
  */
 export class ModalNetworkSandboxSession
   extends ModalSandboxSession
@@ -35,6 +43,13 @@ export class ModalNetworkSandboxSession
   readonly id: string;
   readonly defaultWorkingDirectory: string;
   readonly ports: ReadonlyArray<number>;
+  readonly setRequestTransformations?: (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ) => Promise<void>;
+  readonly addRequestTransformations?: (
+    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+  ) => Promise<void>;
+  private readonly requestTransformations: boolean;
   private readonly stopSnapshot: ModalStopSnapshotContext | undefined;
   private stopped: Promise<void> | undefined;
   private terminated: Promise<void> | undefined;
@@ -52,12 +67,25 @@ export class ModalNetworkSandboxSession
      * Present for sessions that keep a stopped sandbox resumable.
      */
     stopSnapshot?: ModalStopSnapshotContext;
+    /**
+     * Whether the sandbox was created with Modal's outbound policy.
+     */
+    requestTransformations?: boolean;
   }) {
     super(input.sandbox, input.workingDirectory);
     this.id = input.id ?? input.sandbox.sandboxId;
     this.defaultWorkingDirectory = input.workingDirectory;
     this.ports = normalizePorts(input.ports);
     this.stopSnapshot = input.stopSnapshot;
+    this.requestTransformations = input.requestTransformations === true;
+    if (this.requestTransformations) {
+      const requestTransformationManager =
+        new ModalRequestTransformationManager({ sandbox: input.sandbox });
+      this.setRequestTransformations = transformations =>
+        requestTransformationManager.setRequestTransformations(transformations);
+      this.addRequestTransformations = transformations =>
+        requestTransformationManager.addRequestTransformations(transformations);
+    }
   }
 
   restricted(): SandboxSession {
@@ -101,6 +129,15 @@ export class ModalNetworkSandboxSession
   };
 
   setNetworkPolicy = async (policy: HarnessV1NetworkPolicy): Promise<void> => {
+    if (this.requestTransformations) {
+      // Modal accepts the update on some of these sandboxes without applying
+      // it to their HTTPS traffic, so the call is refused instead.
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: MODAL_PROVIDER_ID,
+        message:
+          'Modal does not restrict the outbound HTTPS traffic of a sandbox that uses its outbound policy, so the network policy of a sandbox created with `requestTransformations: true` cannot be changed.',
+      });
+    }
     await setModalNetworkPolicy({ sandbox: this.sandbox, policy });
   };
 

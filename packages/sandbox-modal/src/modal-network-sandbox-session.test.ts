@@ -19,6 +19,9 @@ function makeMockSandbox(
   const terminate = overrides.terminate ?? vi.fn(async () => 0);
   const detach = vi.fn();
   const updateNetworkPolicy = vi.fn(async () => {});
+  const experimentalUpdateOutboundPolicy = vi.fn(
+    async (_policy: unknown) => {},
+  );
   const snapshotFilesystem = overrides.snapshotFilesystem ?? vi.fn();
   const poll = vi.fn(async () => overrides.exitCode ?? null);
   const sandbox = {
@@ -27,6 +30,7 @@ function makeMockSandbox(
     terminate,
     detach,
     updateNetworkPolicy,
+    experimentalUpdateOutboundPolicy,
     snapshotFilesystem,
     poll,
   } as unknown as Sandbox;
@@ -37,6 +41,7 @@ function makeMockSandbox(
       terminate,
       detach,
       updateNetworkPolicy,
+      experimentalUpdateOutboundPolicy,
       snapshotFilesystem,
       poll,
     },
@@ -65,6 +70,7 @@ function createSession(
     id?: string;
     ports?: number[];
     stopSnapshot?: { client: ModalClient; appName: string };
+    requestTransformations?: boolean;
   } = {},
 ) {
   return new ModalNetworkSandboxSession({
@@ -73,6 +79,7 @@ function createSession(
     ports: overrides.ports ?? [4000],
     id: overrides.id,
     stopSnapshot: overrides.stopSnapshot,
+    requestTransformations: overrides.requestTransformations,
   });
 }
 
@@ -404,13 +411,28 @@ describe('ModalNetworkSandboxSession', () => {
   });
 
   describe('optional capabilities', () => {
-    it('omits port updates and request transformations', () => {
+    it('omits port updates', () => {
+      const { sandbox } = makeMockSandbox();
+
+      expect('setPorts' in createSession(sandbox)).toBe(false);
+      expect(
+        'setPorts' in createSession(sandbox, { requestTransformations: true }),
+      ).toBe(false);
+    });
+
+    it('omits request transformations unless the sandbox was created with an outbound policy', () => {
       const { sandbox } = makeMockSandbox();
       const session = createSession(sandbox);
 
-      expect('setPorts' in session).toBe(false);
       expect('setRequestTransformations' in session).toBe(false);
       expect('addRequestTransformations' in session).toBe(false);
+
+      const transforming = createSession(sandbox, {
+        requestTransformations: true,
+      });
+
+      expect(transforming.setRequestTransformations).toBeTypeOf('function');
+      expect(transforming.addRequestTransformations).toBeTypeOf('function');
     });
 
     it('keeps network policy off the restricted session', () => {
@@ -421,4 +443,103 @@ describe('ModalNetworkSandboxSession', () => {
       );
     });
   });
+
+  describe('request transformations', () => {
+    const transformation = {
+      match: {
+        host: 'api.example.com',
+        path: { startsWith: '/v1' },
+        headers: [
+          { key: { exact: 'x-api-key' }, value: { exact: 'placeholder' } },
+        ],
+      },
+      transform: { headers: { 'x-api-key': 'real' } },
+    };
+
+    it('replaces the outbound policy of a sandbox that was created with one', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const session = createSession(sandbox, { requestTransformations: true });
+
+      await session.addRequestTransformations?.([transformation]);
+      await session.setRequestTransformations?.([]);
+
+      expect(
+        spies.experimentalUpdateOutboundPolicy.mock.calls.map(
+          ([policy]) => (policy as MockOutboundPolicy).replacements,
+        ),
+      ).toEqual([
+        [{ domain: 'api.example.com', headers: { 'x-api-key': 'real' } }],
+        [],
+      ]);
+    });
+
+    it('rejects a rule that Modal cannot express without calling Modal', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const session = createSession(sandbox, { requestTransformations: true });
+
+      const error = await session
+        .addRequestTransformations?.([
+          {
+            match: { host: 'api.example.com', method: ['POST'] },
+            transform: { headers: { 'x-api-key': 'real' } },
+          },
+        ])
+        .catch(error => error);
+
+      expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+      expect(spies.experimentalUpdateOutboundPolicy).not.toHaveBeenCalled();
+    });
+
+    it('refuses network policy changes, which Modal would not enforce', async () => {
+      const { sandbox, spies } = makeMockSandbox();
+      const session = createSession(sandbox, { requestTransformations: true });
+
+      const error = await session
+        .setNetworkPolicy({ mode: 'deny-all' })
+        .catch(error => error);
+
+      expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+      expect(error.message).toBe(
+        'Modal does not restrict the outbound HTTPS traffic of a sandbox that uses its outbound policy, so the network policy of a sandbox created with `requestTransformations: true` cannot be changed.',
+      );
+      expect(spies.updateNetworkPolicy).not.toHaveBeenCalled();
+    });
+
+    it('keeps request transformations off the restricted session', () => {
+      const { sandbox } = makeMockSandbox();
+      const restricted = createSession(sandbox, {
+        requestTransformations: true,
+      }).restricted();
+
+      expect('setRequestTransformations' in restricted).toBe(false);
+      expect('addRequestTransformations' in restricted).toBe(false);
+    });
+  });
 });
+
+type MockOutboundPolicy = {
+  readonly replacements: ReadonlyArray<{
+    domain: string;
+    headers: Record<string, string>;
+  }>;
+};
+
+const { MockOutboundPolicy } = vi.hoisted(() => ({
+  MockOutboundPolicy: class MockOutboundPolicy {
+    constructor(
+      readonly replacements: ReadonlyArray<{
+        domain: string;
+        headers: Record<string, string>;
+      }> = [],
+    ) {}
+
+    withHeaderReplacement(replacement: {
+      domain: string;
+      headers: Record<string, string>;
+    }) {
+      return new MockOutboundPolicy([...this.replacements, replacement]);
+    }
+  },
+}));
+
+vi.mock('modal', () => ({ ExperimentalOutboundPolicy: MockOutboundPolicy }));

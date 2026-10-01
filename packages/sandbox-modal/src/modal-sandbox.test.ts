@@ -475,22 +475,6 @@ describe('stopped Modal sandbox sessions', () => {
     vi.useRealTimers();
   });
 
-  function makeStoppedFixture() {
-    const fixture = makeMockClient();
-    const snapshot = makeMockImage({ imageId: 'im-stopped' });
-    fixture.spies.sandboxFromName.mockRejectedValue(
-      makeModalError('NotFoundError'),
-    );
-    const missing = makeMockSandbox();
-    missing.spies.poll.mockRejectedValue(
-      Object.assign(new Error('not found'), { code: 5 }),
-    );
-    fixture.spies.sandboxFromId.mockResolvedValue(missing.sandbox);
-    fixture.spies.imageFromName.mockResolvedValue(snapshot);
-    fixture.spies.imageFromId.mockResolvedValue(snapshot);
-    return { ...fixture, snapshot };
-  }
-
   it('restores a stopped sandbox from its stop snapshot under the same ID', async () => {
     const { client, spies, app, snapshot } = makeStoppedFixture();
     const restored = makeMockSandbox({ workingDirectory: '/workspace' });
@@ -790,9 +774,266 @@ describe('stopped Modal sandbox sessions', () => {
   });
 });
 
-const { ModalClientMock } = vi.hoisted(() => ({ ModalClientMock: vi.fn() }));
+describe('Modal sandbox sessions with request transformations', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
 
-vi.mock('modal', () => ({ ModalClient: ModalClientMock }));
+  const TRANSFORMING = {
+    tags: { 'ai-sdk-request-transformations': 'true' },
+    experimentalOutboundPolicy: expect.any(MockOutboundPolicy),
+  };
+
+  it('creates the sandbox with an empty outbound policy only when asked', async () => {
+    const { client, spies } = makeMockClient();
+    spies.create.mockImplementation(async () => makeMockSandbox().sandbox);
+
+    const plain = await createModalNetworkSandboxSession({ client });
+    const transforming = await createModalNetworkSandboxSession({
+      client,
+      requestTransformations: true,
+      encryptedPorts: [4000],
+      tags: { team: 'ai' },
+    });
+
+    expect(spies.create.mock.calls.map(call => call[2])).toEqual([
+      { timeoutMs: 30 * 60 * 1_000, ...ALLOW_ALL },
+      {
+        timeoutMs: 30 * 60 * 1_000,
+        encryptedPorts: [4000],
+        tags: { team: 'ai', 'ai-sdk-request-transformations': 'true' },
+        experimentalOutboundPolicy: expect.any(MockOutboundPolicy),
+      },
+    ]);
+    expect(
+      spies.create.mock.calls[1][2].experimentalOutboundPolicy.replacements,
+    ).toEqual([]);
+    expect('addRequestTransformations' in plain).toBe(false);
+    expect('setRequestTransformations' in plain).toBe(false);
+    expect(transforming.addRequestTransformations).toBeTypeOf('function');
+    expect(transforming.setRequestTransformations).toBeTypeOf('function');
+  });
+
+  it('replaces the outbound policy of the created sandbox', async () => {
+    const { client, spies } = makeMockClient();
+    const created = makeMockSandbox();
+    spies.create.mockResolvedValue(created.sandbox);
+
+    const session = await createModalNetworkSandboxSession({
+      client,
+      requestTransformations: true,
+    });
+    await session.addRequestTransformations?.([
+      {
+        match: { host: 'api.example.com' },
+        transform: { headers: { 'x-api-key': 'real' } },
+      },
+    ]);
+
+    expect(
+      created.spies.experimentalUpdateOutboundPolicy.mock.calls[0][0]
+        .replacements,
+    ).toEqual([
+      { domain: 'api.example.com', headers: { 'x-api-key': 'real' } },
+    ]);
+  });
+
+  it('prepares a template without the outbound policy', async () => {
+    const { client, spies } = makeMockClient();
+    const templateSandbox = makeMockSandbox();
+    templateSandbox.spies.snapshotFilesystem.mockResolvedValue(
+      makeMockImage({ imageId: 'im-template' }),
+    );
+    spies.create
+      .mockResolvedValueOnce(templateSandbox.sandbox)
+      .mockResolvedValue(makeMockSandbox().sandbox);
+
+    await createModalNetworkSandboxSession({
+      client,
+      requestTransformations: true,
+      template: { identity: 'recipe-one', prepare: async () => {} },
+    });
+
+    expect(spies.create.mock.calls.map(call => call[2])).toEqual([
+      { timeoutMs: 30 * 60 * 1_000, ...ALLOW_ALL },
+      { timeoutMs: 30 * 60 * 1_000, ...TRANSFORMING },
+    ]);
+  });
+
+  it.each([
+    { blockNetwork: true },
+    { outboundCidrAllowlist: ['10.0.0.0/8'] },
+    { outboundDomainAllowlist: ['example.com'] },
+  ])('refuses to combine request transformations with %o', async network => {
+    const { client, spies } = makeMockClient();
+
+    await expect(
+      createModalNetworkSandboxSession({
+        client,
+        requestTransformations: true,
+        ...network,
+      }),
+    ).rejects.toThrow(
+      'createModalNetworkSandboxSession: requestTransformations cannot be combined with blockNetwork, outboundCidrAllowlist, or outboundDomainAllowlist.',
+    );
+    await expect(
+      resumeModalNetworkSandboxSession({
+        client,
+        sandboxId: 'live-session',
+        requestTransformations: true,
+        ...network,
+      }),
+    ).rejects.toThrow(
+      'resumeModalNetworkSandboxSession: requestTransformations cannot be combined with blockNetwork, outboundCidrAllowlist, or outboundDomainAllowlist.',
+    );
+    expect(spies.appFromName).not.toHaveBeenCalled();
+    expect(spies.sandboxFromName).not.toHaveBeenCalled();
+  });
+
+  it('rejects an outbound policy of the caller', async () => {
+    const experimentalOutboundPolicy = new MockOutboundPolicy();
+
+    await expect(
+      createModalNetworkSandboxSession({ experimentalOutboundPolicy } as never),
+    ).rejects.toThrow(
+      'createModalNetworkSandboxSession: experimentalOutboundPolicy is not supported. Pass requestTransformations: true and set the rules on the session.',
+    );
+    await expect(
+      resumeModalNetworkSandboxSession({
+        sandboxId: 'live-session',
+        experimentalOutboundPolicy,
+      } as never),
+    ).rejects.toThrow(
+      'resumeModalNetworkSandboxSession: experimentalOutboundPolicy is not supported.',
+    );
+    expect(ModalClientMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps request transformations off adapted native sandboxes', () => {
+    const adapted = createModalNetworkSandboxSessionFromNativeSandbox({
+      sandbox: makeMockSandbox({
+        tags: { 'ai-sdk-request-transformations': 'true' },
+      }).sandbox,
+      workdir: '/app',
+    });
+
+    expect('addRequestTransformations' in adapted).toBe(false);
+    expect('setRequestTransformations' in adapted).toBe(false);
+  });
+
+  it('reattaches with request transformations only to a sandbox that was created with them', async () => {
+    const { client, spies } = makeMockClient();
+    spies.sandboxFromName
+      .mockResolvedValueOnce(
+        makeMockSandbox({ tags: { 'ai-sdk-request-transformations': 'true' } })
+          .sandbox,
+      )
+      .mockResolvedValueOnce(makeMockSandbox({ tags: { team: 'ai' } }).sandbox);
+
+    const transforming = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    });
+    const plain = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+      requestTransformations: true,
+    });
+
+    expect(transforming.addRequestTransformations).toBeTypeOf('function');
+    expect(transforming.setRequestTransformations).toBeTypeOf('function');
+    expect('addRequestTransformations' in plain).toBe(false);
+    expect('setRequestTransformations' in plain).toBe(false);
+    expect(spies.create).not.toHaveBeenCalled();
+  });
+
+  it('restores a stopped sandbox with a new outbound policy', async () => {
+    const { client, spies, app, snapshot } = makeStoppedFixture();
+    const restored = makeMockSandbox();
+    spies.create.mockResolvedValue(restored.sandbox);
+
+    const session = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+      requestTransformations: true,
+      blockNetwork: false,
+    });
+    await session.addRequestTransformations?.([
+      {
+        match: { host: 'api.example.com' },
+        transform: { headers: { 'x-api-key': 'real' } },
+      },
+    ]);
+
+    expect(spies.create).toHaveBeenCalledExactlyOnceWith(app, snapshot, {
+      timeoutMs: 30 * 60 * 1_000,
+      blockNetwork: false,
+      ...TRANSFORMING,
+      name: 'live-session',
+    });
+    expect(
+      restored.spies.experimentalUpdateOutboundPolicy,
+    ).toHaveBeenCalledOnce();
+  });
+
+  it('restores a stopped sandbox without request transformations unless asked', async () => {
+    const { client, spies } = makeStoppedFixture();
+    spies.create.mockResolvedValue(makeMockSandbox().sandbox);
+
+    const session = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+      blockNetwork: false,
+    });
+
+    expect('addRequestTransformations' in session).toBe(false);
+    expect(spies.create.mock.calls[0][2]).toEqual({
+      timeoutMs: 30 * 60 * 1_000,
+      blockNetwork: false,
+      ...ALLOW_ALL,
+      name: 'live-session',
+    });
+  });
+
+  it('still refuses to restore a stopped sandbox without network settings', async () => {
+    const { client, spies } = makeStoppedFixture();
+
+    await expect(
+      resumeModalNetworkSandboxSession({
+        client,
+        sandboxId: 'live-session',
+        requestTransformations: true,
+      }),
+    ).rejects.toThrow(
+      'Modal does not keep the network settings of a stopped sandbox, so pass blockNetwork or the outbound allowlists again, or blockNetwork: false to restore it with open outbound access.',
+    );
+    expect(spies.create).not.toHaveBeenCalled();
+  });
+});
+
+const { ModalClientMock, MockOutboundPolicy } = vi.hoisted(() => ({
+  ModalClientMock: vi.fn(),
+  MockOutboundPolicy: class MockOutboundPolicy {
+    constructor(
+      readonly replacements: ReadonlyArray<{
+        domain: string;
+        headers: Record<string, string>;
+      }> = [],
+    ) {}
+
+    withHeaderReplacement(replacement: {
+      domain: string;
+      headers: Record<string, string>;
+    }) {
+      return new MockOutboundPolicy([...this.replacements, replacement]);
+    }
+  },
+}));
+
+vi.mock('modal', () => ({
+  ModalClient: ModalClientMock,
+  ExperimentalOutboundPolicy: MockOutboundPolicy,
+}));
 
 function useDefaultClient(client: ModalClient) {
   ModalClientMock.mockImplementation(function () {
@@ -865,16 +1106,38 @@ function makeMockClient() {
   };
 }
 
+/**
+ * A client for which no sandbox runs under the session ID while its stop
+ * snapshot exists.
+ */
+function makeStoppedFixture() {
+  const fixture = makeMockClient();
+  const snapshot = makeMockImage({ imageId: 'im-stopped' });
+  fixture.spies.sandboxFromName.mockRejectedValue(
+    makeModalError('NotFoundError'),
+  );
+  const missing = makeMockSandbox();
+  missing.spies.poll.mockRejectedValue(
+    Object.assign(new Error('not found'), { code: 5 }),
+  );
+  fixture.spies.sandboxFromId.mockResolvedValue(missing.sandbox);
+  fixture.spies.imageFromName.mockResolvedValue(snapshot);
+  fixture.spies.imageFromId.mockResolvedValue(snapshot);
+  return { ...fixture, snapshot };
+}
+
 function makeMockSandbox({
   workingDirectory = '/',
   workingDirectoryExitCode = 0,
   exitCode = null,
   tunnels = {},
+  tags = {},
 }: {
   workingDirectory?: string;
   workingDirectoryExitCode?: number;
   exitCode?: number | null;
   tunnels?: Record<number, { url: string; unencryptedHost?: string }>;
+  tags?: Record<string, string>;
 } = {}) {
   const exec = vi.fn(async () => ({
     stdout: { readText: async () => `${workingDirectory}\n` },
@@ -885,8 +1148,12 @@ function makeMockSandbox({
   const detach = vi.fn();
   const poll = vi.fn(async () => exitCode);
   const getTunnels = vi.fn(async () => tunnels);
+  const getTags = vi.fn(async () => tags);
   const snapshotFilesystem = vi.fn();
   const updateNetworkPolicy = vi.fn(async () => {});
+  const experimentalUpdateOutboundPolicy = vi.fn(
+    async (_policy: InstanceType<typeof MockOutboundPolicy>) => {},
+  );
   const sandbox = {
     sandboxId: 'sb-harness',
     exec,
@@ -894,8 +1161,10 @@ function makeMockSandbox({
     detach,
     poll,
     tunnels: getTunnels,
+    getTags,
     snapshotFilesystem,
     updateNetworkPolicy,
+    experimentalUpdateOutboundPolicy,
   } as unknown as Sandbox;
   return {
     sandbox,
@@ -906,6 +1175,7 @@ function makeMockSandbox({
       poll,
       tunnels: getTunnels,
       snapshotFilesystem,
+      experimentalUpdateOutboundPolicy,
     },
   };
 }

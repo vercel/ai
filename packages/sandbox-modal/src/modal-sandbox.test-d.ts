@@ -4,7 +4,12 @@ import type {
   HarnessV1SandboxTemplate,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
-import type { Image, ModalClient, Sandbox } from 'modal';
+import type {
+  ExperimentalOutboundPolicy,
+  Image,
+  ModalClient,
+  Sandbox,
+} from 'modal';
 import type {
   ModalNativeSandboxSession,
   ModalNetworkSandboxSessionCreateOptions,
@@ -43,6 +48,11 @@ expectTypeOf<{
 expectTypeOf<{ sandbox: Sandbox }>().not.toExtend<Options>();
 expectTypeOf<{ h2Ports: number[] }>().not.toExtend<Options>();
 expectTypeOf<{ image: number }>().not.toExtend<Options>();
+expectTypeOf<{ requestTransformations: boolean }>().toExtend<Options>();
+// The session owns the outbound policy of a sandbox it transforms requests for.
+expectTypeOf<{
+  experimentalOutboundPolicy: ExperimentalOutboundPolicy;
+}>().not.toExtend<Options>();
 
 type ResumeOptions = ModalNetworkSandboxSessionResumeOptions;
 expectTypeOf<{
@@ -71,6 +81,15 @@ expectTypeOf<{
 expectTypeOf<{
   sandboxId: string;
   h2Ports: number[];
+}>().not.toExtend<ResumeOptions>();
+expectTypeOf<{
+  sandboxId: string;
+  requestTransformations: boolean;
+  blockNetwork: boolean;
+}>().toExtend<ResumeOptions>();
+expectTypeOf<{
+  sandboxId: string;
+  experimentalOutboundPolicy: ExperimentalOutboundPolicy;
 }>().not.toExtend<ResumeOptions>();
 expectTypeOf<ResumeOptions>().not.toHaveProperty('image');
 expectTypeOf<ResumeOptions>().not.toHaveProperty('template');
