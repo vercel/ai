@@ -29,7 +29,8 @@ expectTypeOf<{
   appName: string;
   image: Image;
 }>().toExtend<Options>();
-expectTypeOf<{ sandboxId: string; name: string }>().toExtend<Options>();
+expectTypeOf<{ sandboxId: string }>().toExtend<Options>();
+expectTypeOf<{ name: string }>().not.toExtend<Options>();
 expectTypeOf<{
   timeoutMs: number;
   workdir: string;
@@ -58,6 +59,9 @@ expectTypeOf<{
   timeoutMs: number;
   cpu: number;
   env: Record<string, string>;
+  blockNetwork: boolean;
+  outboundCidrAllowlist: string[];
+  outboundDomainAllowlist: string[];
 }>().toExtend<ResumeOptions>();
 expectTypeOf<{}>().not.toExtend<ResumeOptions>();
 expectTypeOf<{

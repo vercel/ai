@@ -124,6 +124,20 @@ describe('setModalNetworkPolicy', () => {
     expect(error.cause).toBe(refused);
   });
 
+  it('surfaces a finished sandbox unchanged', async () => {
+    const finished = Object.assign(
+      new Error(
+        '/modal.client.ModalClient/SandboxUpdateNetworkPolicy FAILED_PRECONDITION: Sandbox has already finished with status timeout',
+      ),
+      { code: 9 },
+    );
+    const { sandbox } = makeMockSandbox(vi.fn().mockRejectedValue(finished));
+
+    await expect(
+      setModalNetworkPolicy({ sandbox, policy: { mode: 'deny-all' } }),
+    ).rejects.toBe(finished);
+  });
+
   it('surfaces other Modal failures unchanged', async () => {
     const invalid = Object.assign(
       new Error('outbound allowlist does not support IPv6 CIDRs: ::/0'),

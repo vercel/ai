@@ -54,10 +54,11 @@ Modal cannot restart a terminated sandbox, so the session keeps a stopped sandbo
 
 Where this differs from `@ai-sdk/sandbox-vercel`:
 
-- Modal does not keep the configuration of a stopped sandbox. Pass the creation options again when resuming, for example `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000] })`. They are used only when the sandbox has to be restored, and a restored sandbox without `encryptedPorts` exposes no ports.
-- The restored sandbox is a new Modal sandbox. Its tunnel URLs are new, and a network policy set with `setNetworkPolicy()` is not carried over.
+- Modal does not keep the configuration of a stopped sandbox. Pass the creation options again when resuming, for example `resumeModalNetworkSandboxSession({ sandboxId, encryptedPorts: [4000], blockNetwork: false })`. They are used only when the sandbox has to be restored, and a restored sandbox without `encryptedPorts` exposes no ports.
+- Modal does not keep the network settings of a stopped sandbox either, whether they were set at creation or with `setNetworkPolicy()`, and a restore without them would open all outbound access. `resumeModalNetworkSandboxSession()` therefore refuses to restore a stopped sandbox unless you pass `blockNetwork`, `outboundCidrAllowlist`, or `outboundDomainAllowlist`. `blockNetwork: false` restores it with open outbound access. Reattaching to a sandbox that is still running needs no network settings.
+- The restored sandbox is a new Modal sandbox, so its tunnel URLs are new.
 - Only `stop()` takes a snapshot. A sandbox that ends another way, for example by reaching `timeoutMs`, cannot be restored from its last state: resuming it restores the snapshot of an earlier `stop()` when there is one, and otherwise fails with `Modal sandbox "<id>" has terminated and cannot be resumed.`
-- Modal keeps a snapshot for 30 days. After that the stopped sandbox cannot be resumed.
+- Modal keeps a snapshot for 30 days. After that the stopped sandbox cannot be resumed. Each `stop()` publishes a new snapshot image, `destroy()` deletes the current one, and earlier ones stay in the Modal account until Modal expires them after 30 days.
 - Creating a sandbox with the `sandboxId` of a stopped one starts a fresh sandbox and leaves the old snapshot in place until the next `stop()` or `destroy()`.
 
 `HarnessAgentSession.detach()` and `HarnessAgentSession.stop()` leave a sandbox session that you passed to `createSession()` running; only the sandbox session's own `stop()` and `destroy()` end the sandbox.

@@ -36,10 +36,11 @@ run(async () => {
     console.log('stopped');
 
     // Modal does not keep the configuration of a stopped sandbox, so the
-    // creation options are passed again.
+    // creation options are passed again, and the network access is stated.
     activeSession = await resumeModalNetworkSandboxSession({
       sandboxId: session.id,
       ...creationOptions,
+      blockNetwork: false,
     });
     const restoredEndpoint = await activeSession.getPortEndpoint({
       port: 4000,

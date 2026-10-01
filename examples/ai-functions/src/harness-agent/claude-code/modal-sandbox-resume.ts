@@ -68,6 +68,7 @@ run(async () => {
       activeSandboxSession = await resumeModalNetworkSandboxSession({
         sandboxId: sandboxSession.id,
         ...creationOptions,
+        blockNetwork: false,
       });
       const agent = new HarnessAgent({ harness: claudeCode });
       const session = await agent.createSession({

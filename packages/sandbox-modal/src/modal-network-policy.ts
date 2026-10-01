@@ -3,15 +3,18 @@ import {
   type HarnessV1NetworkPolicy,
 } from '@ai-sdk/harness';
 import type { Sandbox } from 'modal';
-import { ALLOW_ALL_NETWORK_ALLOWLISTS, MODAL_PROVIDER_ID } from './utils';
+import {
+  ALLOW_ALL_NETWORK_ALLOWLISTS,
+  GRPC_STATUS_FAILED_PRECONDITION,
+  MODAL_PROVIDER_ID,
+  getErrorCode,
+  hasSandboxFinishedMessage,
+} from './utils';
 
 type ModalNetworkAllowlists = {
   outboundCidrAllowlist: string[];
   outboundDomainAllowlist: string[];
 };
-
-/** gRPC status code Modal returns when a sandbox cannot change its policy. */
-const GRPC_STATUS_FAILED_PRECONDITION = 9;
 
 /**
  * Maps the harness network policy onto Modal's two outbound allowlists, which
@@ -65,9 +68,8 @@ export async function setModalNetworkPolicy({
     await sandbox.updateNetworkPolicy(allowlists);
   } catch (error) {
     if (
-      error == null ||
-      typeof error !== 'object' ||
-      (error as { code?: unknown }).code !== GRPC_STATUS_FAILED_PRECONDITION
+      getErrorCode(error) !== GRPC_STATUS_FAILED_PRECONDITION ||
+      hasSandboxFinishedMessage(error)
     ) {
       throw error;
     }

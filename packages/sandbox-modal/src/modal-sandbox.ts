@@ -14,6 +14,7 @@ import {
   ensureTemplateImage,
   getEncryptedTunnelPorts,
   getRunningSandbox,
+  hasExplicitNetworkSettings,
   isModalError,
   isSandboxFinishedFailure,
   isSandboxUnavailableError,
@@ -53,7 +54,10 @@ export type ModalNativeSandboxSession = {
   readonly encryptedPorts?: ReadonlyArray<number>;
 };
 
-type ModalCreationSettings = Omit<ModalSandboxCreateParams, 'h2Ports'> & {
+type ModalCreationSettings = Omit<
+  ModalSandboxCreateParams,
+  'name' | 'h2Ports'
+> & {
   /**
    * Modal client used for every request. Defaults to a new `ModalClient`,
    * which reads `MODAL_TOKEN_ID` and `MODAL_TOKEN_SECRET` or the active
@@ -74,6 +78,11 @@ type ModalCreationSettings = Omit<ModalSandboxCreateParams, 'h2Ports'> & {
   image?: Image | string;
 
   /**
+   * The sandbox is named with `sandboxId`.
+   */
+  name?: never;
+
+  /**
    * Not supported: a reattached sandbox reports HTTP/2 tunnels the same way
    * as encrypted tunnels, so they would be offered to bridge-backed harness
    * adapters. Use `encryptedPorts` to expose ports.
@@ -91,7 +100,11 @@ export type ModalNetworkSandboxSessionCreateOptions = Prettify<
  * Besides the lookup settings, resume accepts the native creation options.
  * Modal does not keep the configuration of a stopped sandbox, so they are
  * applied when the sandbox has to be restored from its stop snapshot and
- * ignored when it is still running.
+ * ignored when it is still running. That includes the network settings, and
+ * a missing one would mean open outbound access, so a restore is refused
+ * unless `blockNetwork`, `outboundCidrAllowlist`, or
+ * `outboundDomainAllowlist` is passed. `blockNetwork: false` restores the
+ * sandbox with open outbound access.
  */
 type ModalLookupSettings = Omit<
   ModalSandboxCreateParams,
@@ -147,16 +160,10 @@ export async function createModalNetworkSandboxSession(
     client: clientOption,
     appName = DEFAULT_SANDBOX_APP_NAME,
     image: imageOption,
-    name,
+    name: _name,
     ...nativeOptions
   } = options;
   abortSignal?.throwIfAborted();
-  if (sandboxId != null && name != null && sandboxId !== name) {
-    throw new Error(
-      'createModalNetworkSandboxSession: sandboxId and name must match when both are provided.',
-    );
-  }
-  const liveName = sandboxId ?? name;
   const createParams = withDefaultSandboxSettings(nativeOptions);
   const resolveWorkingDirectory = async (sandbox: Sandbox) =>
     createParams.workdir ?? (await resolveSandboxWorkingDirectory(sandbox));
@@ -192,13 +199,13 @@ export async function createModalNetworkSandboxSession(
 
       const sandbox = await client.sandboxes.create(app, image, {
         ...createParams,
-        ...(liveName != null ? { name: liveName } : {}),
+        ...(sandboxId != null ? { name: sandboxId } : {}),
       });
       try {
         abortSignal?.throwIfAborted();
         return new ModalNetworkSandboxSession({
           sandbox,
-          id: liveName,
+          id: sandboxId,
           workingDirectory: await resolveWorkingDirectory(sandbox),
           ports: createParams.encryptedPorts ?? [],
           stopSnapshot: { client, appName },
@@ -272,6 +279,11 @@ export async function resumeModalNetworkSandboxSession(
       // snapshot, which a new sandbox with the same ID starts from.
       const image = await findStopSnapshot({ ...stopSnapshot, sandboxId });
       if (image == null) throw unavailableError;
+      if (!hasExplicitNetworkSettings(nativeOptions)) {
+        throw new Error(
+          `resumeModalNetworkSandboxSession: Modal sandbox "${sandboxId}" is stopped and has to be restored from its stop snapshot. Modal does not keep the network settings of a stopped sandbox, so pass blockNetwork or the outbound allowlists again, or blockNetwork: false to restore it with open outbound access.`,
+        );
+      }
       abortSignal?.throwIfAborted();
 
       const app = await client.apps.fromName(appName, {

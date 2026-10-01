@@ -142,6 +142,21 @@ export function withDefaultSandboxSettings(
   };
 }
 
+/**
+ * Whether the caller stated the outbound network access of a sandbox. Unlike
+ * the creation default, `blockNetwork: false` counts: it is the explicit
+ * choice of open access.
+ */
+export function hasExplicitNetworkSettings(
+  createParams: ModalSandboxCreateParams,
+): boolean {
+  return (
+    createParams.blockNetwork != null ||
+    createParams.outboundCidrAllowlist != null ||
+    createParams.outboundDomainAllowlist != null
+  );
+}
+
 export function resolveSandboxImage({
   client,
   image,
@@ -269,11 +284,11 @@ export function isSandboxUnavailableError(error: unknown): boolean {
 
 const GRPC_STATUS_INVALID_ARGUMENT = 3;
 const GRPC_STATUS_NOT_FOUND = 5;
-const GRPC_STATUS_FAILED_PRECONDITION = 9;
+export const GRPC_STATUS_FAILED_PRECONDITION = 9;
 
 const MODAL_SANDBOX_FINISHED_MESSAGE = /has already (finished|completed)/i;
 
-function getErrorCode(error: unknown): unknown {
+export function getErrorCode(error: unknown): unknown {
   return error != null && typeof error === 'object'
     ? (error as { code?: unknown }).code
     : undefined;
@@ -296,6 +311,15 @@ function isSandboxLookupFailure(error: unknown): boolean {
 export function isSandboxFinishedFailure(error: unknown): boolean {
   if (isModalError(error, 'ConflictError')) return true;
   if (getErrorCode(error) === GRPC_STATUS_FAILED_PRECONDITION) return true;
+  return hasSandboxFinishedMessage(error);
+}
+
+/**
+ * Matches the message of those errors. Modal uses the same status code when
+ * it refuses a call on a running sandbox, so the message is what tells a
+ * finished sandbox apart.
+ */
+export function hasSandboxFinishedMessage(error: unknown): boolean {
   const message =
     error != null && typeof error === 'object'
       ? (error as { message?: unknown }).message
