@@ -393,7 +393,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             hasToolCalls: content.some(part => part.type === 'tool-call'),
           }),
       usage: {
-        inputTokens: usageMetadata?.promptTokenCount ?? undefined,
+        inputTokens: getInputTokens(usageMetadata),
         outputTokens: usageMetadata?.candidatesTokenCount ?? undefined,
         totalTokens: usageMetadata?.totalTokenCount ?? undefined,
         reasoningTokens: usageMetadata?.thoughtsTokenCount ?? undefined,
@@ -491,7 +491,7 @@ export class GoogleGenerativeAILanguageModel implements LanguageModelV2 {
             const usageMetadata = value.usageMetadata;
 
             if (usageMetadata != null) {
-              usage.inputTokens = usageMetadata.promptTokenCount ?? undefined;
+              usage.inputTokens = getInputTokens(usageMetadata);
               usage.outputTokens =
                 usageMetadata.candidatesTokenCount ?? undefined;
               usage.totalTokens = usageMetadata.totalTokenCount ?? undefined;
@@ -1041,12 +1041,23 @@ const tokenDetailsSchema = z
   )
   .nullish();
 
+// Google bills tool-use prompt tokens (built-in tools, agentic video) as input.
+function getInputTokens(
+  usage: z.infer<typeof usageSchema> | null | undefined,
+): number | undefined {
+  if (usage?.promptTokenCount == null) {
+    return undefined;
+  }
+  return usage.promptTokenCount + (usage.toolUsePromptTokenCount ?? 0);
+}
+
 const usageSchema = z.object({
   cachedContentTokenCount: z.number().nullish(),
   thoughtsTokenCount: z.number().nullish(),
   promptTokenCount: z.number().nullish(),
   candidatesTokenCount: z.number().nullish(),
   totalTokenCount: z.number().nullish(),
+  toolUsePromptTokenCount: z.number().nullish(),
   // https://cloud.google.com/vertex-ai/generative-ai/docs/reference/rest/v1/GenerateContentResponse#TrafficType
   trafficType: z.string().nullish(),
   // https://ai.google.dev/api/generate-content#Modality
