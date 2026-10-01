@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21936,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21936-harness-turn-telemetry.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21936-harness-turn-telemetry.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #21936 reproduced: failed and aborted HarnessAgent turns leave OpenTelemetry spans unexported"
+  }
+}
