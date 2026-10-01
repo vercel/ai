@@ -136,6 +136,15 @@ Claude Code supports schema-backed [`HarnessAgent` structured output](/docs/ai-s
 The adapter passes the JSON Schema through the Agent SDK's native
 `outputFormat` option and returns its `structured_output` value as JSON text.
 
+## Cost Metadata
+
+The `finish` stream part reports cost in
+`harnessMetadata['claude-code'].costUsd` when the Agent SDK provides it. This is
+the latest cumulative `total_cost_usd` reported by the Agent SDK, not the cost
+of the individual harness turn. Multiple results within a turn are not summed.
+Resumed or forked sessions can include costs carried forward from the saved
+transcript, so an unchanged total does not indicate new spending.
+
 ## Authentication
 
 The `auth` setting selects how credentials are resolved from the host

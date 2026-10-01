@@ -393,27 +393,92 @@ describe('Claude Code bridge configuration', () => {
 
     await import('./index');
 
-    const resultCosts = fixture.messages.flatMap(message =>
-      message.type === 'result' &&
-      message.subtype === 'success' &&
-      typeof message.total_cost_usd === 'number'
-        ? [message.total_cost_usd]
-        : [],
-    );
-    const latestCumulativeCost = resultCosts.at(-1);
     const finish = state.emitted.find(message => message.type === 'finish');
-    const claudeCodeMetadata = (
-      finish?.harnessMetadata as
-        | Record<string, Record<string, unknown>>
-        | undefined
-    )?.['claude-code'];
-
-    expect(resultCosts).toHaveLength(2);
-    expect(
-      claudeCodeMetadata?.costUsd,
-      'ISSUE_21865: finish costUsd must use the latest cumulative provider total',
-    ).toBe(latestCumulativeCost);
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { costUsd: 0.0536352 },
+    });
+    expect(finish?.totalUsage).toMatchObject({
+      inputTokens: {
+        total: 38102,
+        noCache: 4,
+        cacheRead: 28766,
+        cacheWrite: 9332,
+      },
+      outputTokens: { total: 12 },
+    });
   });
+
+  test.each([
+    { name: 'a single result', costs: [0.0494524], expected: 0.0494524 },
+    { name: 'a zero-cost result', costs: [0], expected: 0 },
+    { name: 'no reported cost', costs: [undefined], expected: undefined },
+    {
+      name: 'a resumed query with repeated cumulative totals',
+      costs: [0.1573332, 0.1573332],
+      expected: 0.1573332,
+    },
+    {
+      name: 'a resumed query with an increased cumulative total',
+      costs: [0.0298164, 0.05730615],
+      expected: 0.05730615,
+    },
+    {
+      name: 'a later result without a cost',
+      costs: [0.0494524, undefined],
+      expected: 0.0494524,
+    },
+    {
+      name: 'a later result reporting zero cost',
+      costs: [0.0494524, 0],
+      expected: 0,
+    },
+  ])(
+    'reports the latest available cost for $name',
+    async ({ costs, expected }) => {
+      state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+      state.firstTurn = false;
+      state.steering = costs.length > 1;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          await input.next();
+          const steering = state.steering ? await input.next() : undefined;
+
+          for (const cost of costs) {
+            yield {
+              type: 'result',
+              subtype: 'success',
+              result: 'done',
+              session_id: 'claude-session-1',
+              total_cost_usd: cost,
+            };
+          }
+          if (steering != null) {
+            yield {
+              type: 'command_lifecycle',
+              command_uuid: Reflect.get(steering.value as object, 'uuid'),
+              state: 'completed',
+            };
+          }
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).toMatchObject({
+        resume: 'claude-session-1',
+      });
+      const finishes = state.emitted.filter(
+        message => message.type === 'finish',
+      );
+      expect(finishes).toHaveLength(1);
+      expect(finishes[0]?.harnessMetadata).toEqual({
+        'claude-code': {
+          sessionId: 'claude-session-1',
+          ...(expected !== undefined ? { costUsd: expected } : {}),
+        },
+      });
+    },
+  );
 
   test('reports an empty stop payload when no session id was observed', async () => {
     await import('./index');
