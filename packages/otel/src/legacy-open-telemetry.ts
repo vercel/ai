@@ -766,6 +766,10 @@ export class LegacyOpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
     const isStreamText = state.operationId === 'ai.streamText';
 
@@ -976,6 +980,10 @@ export class LegacyOpenTelemetry implements Telemetry {
   private onGenerateEnd(event: GenerateTextEndEvent<ToolSet>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
+
+    if (event.finishReason === 'error') {
+      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
 
     const { telemetry } = state;
 
