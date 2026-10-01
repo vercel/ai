@@ -3647,3 +3647,97 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
     expect(tracer.jsonSpans).toMatchSnapshot();
   });
 });
+
+describe('LegacyOpenTelemetry speech and transcription operations', () => {
+  it('honors speech input and output privacy controls', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const speechCallId = 'speech-call';
+
+    integration.onStart!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      voice: 'alloy',
+      outputFormat: 'mp3',
+      instructions: undefined,
+      speed: undefined,
+      language: undefined,
+      maxRetries: 2,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+    integration.onEnd!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      audio: {
+        byteLength: 1234,
+        mediaType: 'audio/mpeg',
+        format: 'mp3',
+      },
+      usage: { characters: 12 },
+      warnings: [],
+      providerMetadata: undefined,
+      response: {
+        timestamp: new Date(0),
+        modelId: 'gpt-4o-mini-tts',
+      },
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+
+    const startAttributes = getStartSpanAttributes(tracer, 0);
+    const endAttributes = getSetAttributesArg(tracer.spans[0]);
+    expect(startAttributes['ai.request.text']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.size']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.mediaType']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.format']).toBeUndefined();
+    expect(endAttributes['ai.usage.characters']).toBe(12);
+    expect(endAttributes['ai.response.usage']).toBe(
+      JSON.stringify({ characters: 12 }),
+    );
+  });
+
+  it('records streaming transcription errors on the operation span', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const streamCallId = 'stream-call';
+    const error = new Error('stream failed');
+
+    integration.experimental_onStreamTranscriptionStart!({
+      callId: streamCallId,
+      operationId: 'ai.streamTranscribe',
+      provider: 'openai.transcription',
+      modelId: 'gpt-realtime-whisper',
+      audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      maxRetries: undefined,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: undefined,
+      recordOutputs: undefined,
+      functionId: undefined,
+    });
+    integration.onError!({ callId: streamCallId, error });
+
+    expect(tracer.spans[0].recordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'stream failed' }),
+    );
+    expect(tracer.spans[0].setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: SpanStatusCode.ERROR,
+        message: 'stream failed',
+      }),
+    );
+    expect(tracer.spans[0].ended).toBe(true);
+  });
+});

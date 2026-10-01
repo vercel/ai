@@ -1,5 +1,20 @@
 # @ai-sdk/anthropic
 
+## 4.0.71
+
+### Patch Changes
+
+- c35458e: fix(anthropic): preserve invalid toolset calls
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 4.0.69
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # @ai-sdk/provider
 
+## 4.0.21
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+
 ## 4.0.20
 
 ### Patch Changes

@@ -2325,6 +2325,10 @@ export class WorkflowAgent<
         options.experimental_repairToolCall ??
         this.repairToolCall) as ToolCallRepairFunction<ToolSet> | undefined,
       responseFormat: await (options.output ?? this.output)?.responseFormat,
+      experimental_transform: options.experimental_transform as
+        | StreamTextTransform<ToolSet>
+        | Array<StreamTextTransform<ToolSet>>
+        | undefined,
       experimental_sandbox: sandbox,
     });
 

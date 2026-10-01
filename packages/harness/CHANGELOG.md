@@ -1,5 +1,30 @@
 # @ai-sdk/harness
 
+## 1.0.137
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.136
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.135
+
+### Patch Changes
+
+- 8182916: chore(harness): minor code consistency cleanup without functional changes
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 1.0.134
 
 ### Patch Changes

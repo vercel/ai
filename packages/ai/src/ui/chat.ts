@@ -609,7 +609,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     });
 
   addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
-    state = 'output-available',
+    state,
     toolCallId,
     output,
     errorText,
@@ -621,10 +621,41 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
-      ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) && part.toolCallId === toolCallId
-          ? ({ ...part, state, output, errorText } as typeof part)
-          : part;
+      ): UIMessagePart<UIDataTypes, UITools> => {
+        if (!isToolUIPart(part) || part.toolCallId !== toolCallId) {
+          return part;
+        }
+
+        // Output states can only retain approvals that were granted.
+        const { approval: existingApproval, ...toolPart } = part;
+        const approval =
+          existingApproval?.approved === true
+            ? {
+                approval: {
+                  ...existingApproval,
+                  approved: existingApproval.approved,
+                },
+              }
+            : {};
+
+        return state === 'output-error'
+          ? {
+              ...toolPart,
+              ...approval,
+              state,
+              input: part.input,
+              output: undefined,
+              errorText,
+            }
+          : {
+              ...toolPart,
+              ...approval,
+              state: 'output-available',
+              input: part.input,
+              output,
+              errorText: undefined,
+            };
+      };
 
       // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {

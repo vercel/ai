@@ -2241,6 +2241,15 @@ describe('responses', () => {
 
 describe('resourceName validation', () => {
   it.each([
+    'resource\n',
+    'resource\r',
+    'resource.example',
+    'my_resource',
+    'résource',
+    '-resource',
+    'resource-',
+    'a'.repeat(64),
+    '',
     'user@internal:8080/#',
     '169.254.169.254:80/x#',
     'evil.example.com/#',
@@ -2273,4 +2282,48 @@ describe('resourceName validation', () => {
       'https://my-resource.openai.azure.com/',
     );
   });
+
+  it.each(['a', 'a'.repeat(63), 'My-Resource-1'])(
+    'accepts the DNS-label boundary case %j',
+    async resourceName => {
+      const fetch = vi.fn(
+        async (_url: RequestInfo | URL, _init?: RequestInit) =>
+          new Response('{}', { status: 500 }),
+      );
+      const provider = createAzure({ resourceName, apiKey: 'test-key', fetch });
+      await expect(
+        provider('test-deployment').doGenerate({ prompt: TEST_PROMPT }),
+      ).rejects.toBeDefined();
+      expect(new URL(String(fetch.mock.calls[0]?.[0])).hostname).toBe(
+        `${resourceName.toLowerCase()}.openai.azure.com`,
+      );
+    },
+  );
+
+  it('rejects an invalid AZURE_RESOURCE_NAME for non-language models', async () => {
+    vi.stubEnv('AZURE_RESOURCE_NAME', 'user@internal:8080/#');
+    try {
+      const fetch = vi.fn();
+      const provider = createAzure({ apiKey: 'test-key', fetch });
+      await expect(
+        provider.embedding('test-deployment').doEmbed({ values: ['hi'] }),
+      ).rejects.toMatchObject({
+        name: 'AI_InvalidArgumentError',
+        argument: 'resourceName',
+      });
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
+it('does not validate an unused resource name with a custom endpoint', () => {
+  expect(() =>
+    createAzure({
+      resourceName: 'not a resource',
+      baseURL: 'https://proxy.example/openai',
+      apiKey: 'test-key',
+    })('test-deployment'),
+  ).not.toThrow();
 });
