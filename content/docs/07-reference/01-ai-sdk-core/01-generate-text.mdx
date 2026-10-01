@@ -600,6 +600,13 @@ To see `generateText` in action, check out [these examples](#examples).
         'Condition for stopping the generation when there are tool results in the last step. When the condition is an array, any of the conditions can be met to stop the generation. Default: isStepCount(1).',
     },
     {
+      name: 'continueWhen',
+      type: 'ContinueCondition<TOOLS>',
+      isOptional: true,
+      description:
+        'Optional condition for requesting another model step when generation would otherwise finish naturally. stopWhen takes precedence. Because the default stopWhen is isStepCount(1), configure a larger step limit to allow continuation.',
+    },
+    {
       name: 'prepareStep',
       type: '(options: PrepareStepOptions) => PrepareStepResult<TOOLS> | Promise<PrepareStepResult<TOOLS>>',
       isOptional: true,
