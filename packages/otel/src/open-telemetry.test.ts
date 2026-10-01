@@ -21,7 +21,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
-  experimental_evaluate,
+  experimental_decide,
   generateObject,
   generateText,
   streamObject,
@@ -30,7 +30,7 @@ import {
   type Telemetry,
 } from 'ai';
 import {
-  Experimental_EvaluationMockModelV4,
+  Experimental_DecisionMockModelV4,
   MockEmbeddingModelV4,
   MockLanguageModelV4,
 } from 'ai/test';
@@ -2837,16 +2837,16 @@ describe('OpenTelemetry', () => {
   });
 });
 
-describe('OpenTelemetry integration with evaluate', () => {
+describe('OpenTelemetry integration with decide', () => {
   it('creates operation and model-call spans', async () => {
     const tracer = createMockTracer();
     const questions = {
       refund: { type: 'boolean', instructions: 'Refund?' },
     } as const;
 
-    await experimental_evaluate({
-      model: new Experimental_EvaluationMockModelV4({
-        doEvaluate: async () => ({
+    await experimental_decide({
+      model: new Experimental_DecisionMockModelV4({
+        doDecide: async () => ({
           answers: { refund: { type: 'boolean', probability: 0.9 } },
           usage: { inputTokens: 12, outputTokens: 2 },
           warnings: [],
@@ -2857,7 +2857,7 @@ describe('OpenTelemetry integration with evaluate', () => {
       telemetry: {
         integrations: new OpenTelemetry({
           tracer,
-          experimental_evaluation: true,
+          experimental_decision: true,
         }),
       },
     });
@@ -2869,29 +2869,29 @@ describe('OpenTelemetry integration with evaluate', () => {
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
             },
           },
           {
             "ended": true,
             "initAttributes": {
-              "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-              "ai.evaluation.state": "{"message":"Please refund me"}",
-              "gen_ai.operation.name": "evaluate",
+              "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+              "ai.decision.state": "{"message":"Please refund me"}",
+              "gen_ai.operation.name": "decide",
               "gen_ai.provider.name": "mock-provider",
               "gen_ai.request.model": "mock-model-id",
             },
-            "name": "evaluate mock-model-id",
+            "name": "decide mock-model-id",
             "runtimeAttributes": {
-              "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+              "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
               "gen_ai.usage.input_tokens": 12,
               "gen_ai.usage.output_tokens": 2,
             },
@@ -2900,14 +2900,14 @@ describe('OpenTelemetry integration with evaluate', () => {
       `);
   });
 
-  it('ends both spans with error status when evaluation fails', async () => {
+  it('ends both spans with error status when decision fails', async () => {
     const tracer = createMockTracer();
-    const error = new Error('evaluation failed');
+    const error = new Error('decision failed');
 
     await expect(
-      experimental_evaluate({
-        model: new Experimental_EvaluationMockModelV4({
-          doEvaluate: async () => {
+      experimental_decide({
+        model: new Experimental_DecisionMockModelV4({
+          doDecide: async () => {
             throw error;
           },
         }),
@@ -2925,7 +2925,7 @@ describe('OpenTelemetry integration with evaluate', () => {
       expect(span.ended).toBe(true);
       expect(span.status).toEqual({
         code: SpanStatusCode.ERROR,
-        message: 'evaluation failed',
+        message: 'decision failed',
       });
       expect(span.exceptions).toHaveLength(1);
     }

@@ -2231,18 +2231,18 @@ and the `mediaType` should be set to `'application/pdf'`.
   any available provider model ID as a string if needed.
 </Note>
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `anthropic.evaluationModel(modelId)`.
+Create an experimental decision model with `anthropic.decisionModel(modelId)`.
 It uses the Messages API's structured-output support for Choice, Score, and Boolean
 questions. `claude-haiku-4-5-20251001` is one supported model.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: anthropic.evaluationModel('claude-haiku-4-5-20251001'),
+const { answers } = await experimental_decide({
+  model: anthropic.decisionModel('claude-haiku-4-5-20251001'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2272,10 +2272,10 @@ It respects
 `structuredOutputMode`. Supported models use native structured output by default;
 `jsonTool` uses the existing Messages JSON-tool fallback. Usage, warnings,
 response information, and provider metadata are preserved.
-See [Evaluation](/docs/ai-sdk-core/evaluation).
+See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

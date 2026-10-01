@@ -1,11 +1,11 @@
 ---
 title: TypeSafe
-description: Use TypeSafe System One models for typed evaluations with the AI SDK.
+description: Use TypeSafe System One models for typed decisions with the AI SDK.
 ---
 
 # TypeSafe Provider
 
-The [TypeSafe](https://typesafe.ai) provider supports the experimental evaluation
+The [TypeSafe](https://typesafe.ai) provider supports the experimental decision
 API with native Choice, Score, and Boolean answers. It sends all questions in one
 request against the same state.
 
@@ -37,14 +37,14 @@ const customTypeSafe = createTypeSafeAi({
 | `headers` | Additional request headers.                 |
 | `fetch`   | Custom fetch implementation.                |
 
-## Evaluation
+## Decision
 
 ```ts
 import { typeSafeAi } from '@ai-sdk/typesafe-ai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const result = await experimental_evaluate({
-  model: typeSafeAi.evaluationModel('jev-latest'),
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
   state: {
     message: 'I was charged twice. Please refund the duplicate.',
   },
@@ -80,7 +80,7 @@ Use `jev-latest` or another TypeSafe model ID. The response includes the actual
 model ID, such as the resolved version behind the alias. Use model instances,
 custom aliases, or registered providers. With `typeSafeAi` explicitly configured
 as `globalThis.AI_SDK_DEFAULT_PROVIDER`, you can pass `model: 'jev-latest'`
-directly. See [model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+directly. See [model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).
 
 | Question  | Native TypeSafe primitive | Limits and semantics                                                 |
 | --------- | ------------------------- | -------------------------------------------------------------------- |
@@ -115,5 +115,5 @@ No provider-specific options are currently defined. Unknown entries under
 `providerOptions.typesafe` produce unsupported-option warnings. Language,
 embedding, and image model factories throw `NoSuchModelError`.
 
-Evaluation models support workflow serialization. A custom fetch function is not
+Decision models support workflow serialization. A custom fetch function is not
 serialized; restored models use the default fetch implementation.

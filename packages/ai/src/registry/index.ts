@@ -6,4 +6,4 @@ export {
 } from './provider-registry';
 export type { ProviderRegistryProvider } from './provider-registry';
 
-export type { EvaluationProviderRegistry as Experimental_EvaluationProviderRegistry } from './provider-registry';
+export type { DecisionProviderRegistry as Experimental_DecisionProviderRegistry } from './provider-registry';

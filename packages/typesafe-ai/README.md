@@ -10,14 +10,14 @@ questions using TypeSafe's System One models.
 pnpm add @ai-sdk/typesafe-ai ai
 ```
 
-Set `TYPESAFE_AI_API_KEY`, then pass an evaluation model instance:
+Set `TYPESAFE_AI_API_KEY`, then pass a decision model instance:
 
 ```ts
 import { typeSafeAi } from '@ai-sdk/typesafe-ai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const result = await experimental_evaluate({
-  model: typeSafeAi.evaluationModel('jev-latest'),
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
   state: 'I was charged twice. Please refund the duplicate.',
   questions: {
     department: {
@@ -35,9 +35,9 @@ const result = await experimental_evaluate({
 console.log(result.answers);
 ```
 
-Evaluation is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
+Decision is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
 `TypeSafeAiProviderSettings`, `TypeSafeAiProvider`,
-`Experimental_TypeSafeAiEvaluationModelId`, and `VERSION`.
+`Experimental_TypeSafeAiDecisionModelId`, and `VERSION`.
 
 ## Configuration
 

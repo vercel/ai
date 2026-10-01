@@ -1,7 +1,7 @@
 export { AISDKError } from './ai-sdk-error';
 export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
-export { EvaluationUnsupportedQuestionTypeError as Experimental_EvaluationUnsupportedQuestionTypeError } from './evaluation-unsupported-question-type-error';
+export { DecisionUnsupportedQuestionTypeError as Experimental_DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
 export { getErrorMessage } from './get-error-message';
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidPromptError } from './invalid-prompt-error';

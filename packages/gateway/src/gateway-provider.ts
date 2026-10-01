@@ -36,7 +36,7 @@ import { GatewayLanguageModel } from './gateway-language-model';
 import { GatewayEmbeddingModel } from './gateway-embedding-model';
 import { GatewayImageModel } from './gateway-image-model';
 import { GatewayVideoModel } from './gateway-video-model';
-import { GatewayEvaluationModel } from './gateway-evaluation-model';
+import { GatewayDecisionModel } from './gateway-decision-model';
 import { GatewayRerankingModel } from './gateway-reranking-model';
 import { GatewaySpeechModel } from './gateway-speech-model';
 import {
@@ -45,7 +45,7 @@ import {
 } from './gateway-transcription-model';
 import { GatewayRealtimeModel } from './gateway-realtime-model';
 import type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
-import type { GatewayEvaluationModelId } from './gateway-evaluation-model-settings';
+import type { GatewayDecisionModelId } from './gateway-decision-model-settings';
 import type { GatewayImageModelId } from './gateway-image-model-settings';
 import type { GatewayRerankingModelId } from './gateway-reranking-model-settings';
 import type { GatewaySpeechModelId } from './gateway-speech-model-settings';
@@ -63,7 +63,7 @@ import type {
   SpeechModelV4,
   TranscriptionModelV4,
   Experimental_VideoModelV4,
-  Experimental_EvaluationModelV4,
+  Experimental_DecisionModelV4,
   Experimental_RealtimeFactoryV4 as RealtimeFactoryV4,
   Experimental_RealtimeFactoryV4GetTokenOptions as RealtimeFactoryV4GetTokenOptions,
   ProviderV4,
@@ -161,14 +161,12 @@ export interface GatewayProvider extends ProviderV4 {
   /**
    * Creates a model for evaluating state against questions.
    */
-  evaluation(modelId: GatewayEvaluationModelId): Experimental_EvaluationModelV4;
+  decision(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
 
   /**
    * Creates a model for evaluating state against questions.
    */
-  evaluationModel(
-    modelId: GatewayEvaluationModelId,
-  ): Experimental_EvaluationModelV4;
+  decisionModel(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
 
   /**
    * Creates a model for text-to-speech generation.
@@ -583,8 +581,8 @@ export function createGateway(
   };
   provider.rerankingModel = createRerankingModel;
   provider.reranking = createRerankingModel;
-  const createEvaluationModel = (modelId: GatewayEvaluationModelId) => {
-    return new GatewayEvaluationModel(modelId, {
+  const createDecisionModel = (modelId: GatewayDecisionModelId) => {
+    return new GatewayDecisionModel(modelId, {
       provider: 'gateway',
       baseURL,
       headers: getHeaders,
@@ -592,8 +590,8 @@ export function createGateway(
       o11yHeaders: createO11yHeaders(),
     });
   };
-  provider.evaluationModel = createEvaluationModel;
-  provider.evaluation = createEvaluationModel;
+  provider.decisionModel = createDecisionModel;
+  provider.decision = createDecisionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',

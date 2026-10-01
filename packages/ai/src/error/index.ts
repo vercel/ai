@@ -2,7 +2,7 @@ export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
-  Experimental_EvaluationUnsupportedQuestionTypeError,
+  Experimental_DecisionUnsupportedQuestionTypeError,
   InvalidPromptError,
   InvalidResponseDataError,
   JSONParseError,

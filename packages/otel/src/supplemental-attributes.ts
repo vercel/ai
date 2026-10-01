@@ -11,7 +11,7 @@ type SupplementalAttributeOption =
   | 'providerMetadata'
   | 'embedding'
   | 'reranking'
-  | 'experimental_evaluation'
+  | 'experimental_decision'
   | 'runtimeContext'
   | 'headers'
   | 'toolChoice'
@@ -29,7 +29,7 @@ export type OpenTelemetrySpanType =
   | 'tool'
   | 'embedding'
   | 'reranking'
-  | 'experimental_evaluation';
+  | 'experimental_decision';
 
 export type EnrichSpan = (options: {
   spanType: OpenTelemetrySpanType;
@@ -71,9 +71,9 @@ export type OpenTelemetryOptions = {
   reranking?: boolean;
 
   /**
-   * Emit evaluation state, questions, and answers.
+   * Emit decision state, questions, and answers.
    */
-  experimental_evaluation?: boolean;
+  experimental_decision?: boolean;
 
   /**
    * Emit runtime context values.
@@ -101,7 +101,7 @@ const disabledSupplementalAttributes: SupplementalAttributeOptions = {
   providerMetadata: false,
   embedding: false,
   reranking: false,
-  experimental_evaluation: false,
+  experimental_decision: false,
   runtimeContext: false,
   headers: false,
   toolChoice: false,
@@ -117,7 +117,7 @@ export function normalizeSupplementalAttributes(
     providerMetadata: options.providerMetadata ?? false,
     embedding: options.embedding ?? false,
     reranking: options.reranking ?? false,
-    experimental_evaluation: options.experimental_evaluation ?? false,
+    experimental_decision: options.experimental_decision ?? false,
     runtimeContext: options.runtimeContext ?? false,
     headers: options.headers ?? false,
     toolChoice: options.toolChoice ?? false,

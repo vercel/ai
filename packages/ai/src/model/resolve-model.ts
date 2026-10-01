@@ -1,7 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   NoSuchModelError,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
   type Experimental_SpeechTranslationModelV4,
   type Experimental_VideoModelV4,
@@ -12,8 +12,8 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import type { EvaluationModel } from '../evaluate/evaluation-result';
-import type { EvaluationProvider } from '../evaluate/evaluation-provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
 import { UnsupportedModelVersionError } from '../error';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
@@ -217,29 +217,27 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   return asRerankingModelV4(model);
 }
 
-export function resolveEvaluationModel(
-  model: EvaluationModel,
-): EvaluationModelV4 {
+export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
   if (typeof model === 'string') {
     // Use the original provider so experimental methods and their receiver survive.
     const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
-      gateway) as EvaluationProvider;
+      gateway) as DecisionProvider;
 
-    if (typeof provider?.evaluationModel !== 'function') {
+    if (typeof provider?.decisionModel !== 'function') {
       throw new NoSuchModelError({
         modelId: model,
-        modelType: 'evaluationModel',
+        modelType: 'decisionModel',
         message:
-          'The default provider does not support evaluation models. ' +
-          'Pass an evaluation model instance or configure AI_SDK_DEFAULT_PROVIDER with an evaluationModel method.',
+          'The default provider does not support decision models. ' +
+          'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
       });
     }
 
-    const resolvedModel = provider.evaluationModel(model);
+    const resolvedModel = provider.decisionModel(model);
     if (resolvedModel == null) {
       throw new NoSuchModelError({
         modelId: model,
-        modelType: 'evaluationModel',
+        modelType: 'decisionModel',
       });
     }
     model = resolvedModel;

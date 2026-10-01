@@ -24,7 +24,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
-  experimental_evaluate,
+  experimental_decide,
   generateObject,
   generateText,
   isStepCount,
@@ -38,7 +38,7 @@ import {
 } from 'ai';
 import {
   MockEmbeddingModelV4,
-  Experimental_EvaluationMockModelV4,
+  Experimental_DecisionMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2518,13 +2518,13 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
   });
 });
 
-describe('LegacyOpenTelemetry integration with evaluate', () => {
-  it('records evaluation inputs, outputs, and usage', async () => {
+describe('LegacyOpenTelemetry integration with decide', () => {
+  it('records decision inputs, outputs, and usage', async () => {
     const tracer = new IntegrationMockTracer();
 
-    await experimental_evaluate({
-      model: new Experimental_EvaluationMockModelV4({
-        doEvaluate: async () => ({
+    await experimental_decide({
+      model: new Experimental_DecisionMockModelV4({
+        doDecide: async () => ({
           answers: { refund: { type: 'boolean', probability: 0.9 } },
           usage: { inputTokens: 12, outputTokens: 2 },
           warnings: [],
@@ -2543,33 +2543,33 @@ describe('LegacyOpenTelemetry integration with evaluate', () => {
       [
         {
           "attributes": {
-            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
-            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "{"message":"Please refund me"}",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.evaluate",
+            "ai.operationId": "ai.decide",
             "ai.settings.maxRetries": 2,
-            "operation.name": "ai.evaluate",
+            "operation.name": "ai.decide",
           },
           "events": [],
-          "name": "ai.evaluate",
+          "name": "ai.decide",
         },
         {
           "attributes": {
-            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
-            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
-            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.decision.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.decision.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.decision.state": "{"message":"Please refund me"}",
             "ai.model.id": "mock-model-id",
             "ai.model.provider": "mock-provider",
-            "ai.operationId": "ai.evaluate.doEvaluate",
+            "ai.operationId": "ai.decide.doDecide",
             "ai.settings.maxRetries": 2,
             "ai.usage.inputTokens": 12,
             "ai.usage.outputTokens": 2,
-            "operation.name": "ai.evaluate.doEvaluate",
+            "operation.name": "ai.decide.doDecide",
           },
           "events": [],
-          "name": "ai.evaluate.doEvaluate",
+          "name": "ai.decide.doDecide",
         },
       ]
     `);

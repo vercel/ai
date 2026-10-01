@@ -16,7 +16,7 @@ export class NoSuchModelError extends AISDKError {
     | 'speechModel'
     | 'rerankingModel'
     | 'videoModel'
-    | 'evaluationModel';
+    | 'decisionModel';
 
   constructor({
     errorName = name,
@@ -34,7 +34,7 @@ export class NoSuchModelError extends AISDKError {
       | 'speechModel'
       | 'rerankingModel'
       | 'videoModel'
-      | 'evaluationModel';
+      | 'decisionModel';
     message?: string;
   }) {
     super({ name: errorName, message });

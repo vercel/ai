@@ -6,11 +6,11 @@ import type {
   EmbeddingModelCallStartEvent,
 } from '../embed/embed-events';
 import type {
-  EvaluateEndEvent,
-  EvaluateStartEvent,
-  EvaluationModelCallEndEvent,
-  EvaluationModelCallStartEvent,
-} from '../evaluate/evaluate-events';
+  DecideEndEvent,
+  DecideStartEvent,
+  DecisionModelCallEndEvent,
+  DecisionModelCallStartEvent,
+} from '../decide/decide-events';
 import type {
   GenerateObjectEndEvent,
   GenerateObjectStartEvent,
@@ -98,10 +98,10 @@ export interface TelemetryDispatcher {
   onEmbedEnd?: Callback<EmbeddingModelCallEndEvent>;
   onRerankStart?: Callback<RerankingModelCallStartEvent>;
   onRerankEnd?: Callback<RerankingModelCallEndEvent>;
-  experimental_onEvaluateStart?: Callback<EvaluateStartEvent>;
-  experimental_onEvaluationModelCallStart?: Callback<EvaluationModelCallStartEvent>;
-  experimental_onEvaluationModelCallEnd?: Callback<EvaluationModelCallEndEvent>;
-  experimental_onEvaluateEnd?: Callback<EvaluateEndEvent>;
+  experimental_onDecideStart?: Callback<DecideStartEvent>;
+  experimental_onDecisionModelCallStart?: Callback<DecisionModelCallStartEvent>;
+  experimental_onDecisionModelCallEnd?: Callback<DecisionModelCallEndEvent>;
+  experimental_onDecideEnd?: Callback<DecideEndEvent>;
   onEnd?: Callback<OperationEndEvent>;
   onAbort?: Callback<GenerateTextAbortEvent<ToolSet>>;
   onError?: Callback<unknown>;
@@ -224,29 +224,27 @@ export interface Telemetry {
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
-  /** Called when an experimental evaluation operation begins. */
-  experimental_onEvaluateStart?: Callback<
-    InferTelemetryEvent<EvaluateStartEvent>
+  /** Called when an experimental decision operation begins. */
+  experimental_onDecideStart?: Callback<InferTelemetryEvent<DecideStartEvent>>;
+
+  /**
+   * Called immediately before an experimental decision model call begins.
+   * The logical model call includes any provider retries.
+   */
+  experimental_onDecisionModelCallStart?: Callback<
+    InferTelemetryEvent<DecisionModelCallStartEvent>
   >;
 
   /**
-   * Called immediately before an experimental evaluation model call begins.
+   * Called after an experimental decision model response has been validated.
    * The logical model call includes any provider retries.
    */
-  experimental_onEvaluationModelCallStart?: Callback<
-    InferTelemetryEvent<EvaluationModelCallStartEvent>
+  experimental_onDecisionModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
   >;
 
-  /**
-   * Called after an experimental evaluation model response has been validated.
-   * The logical model call includes any provider retries.
-   */
-  experimental_onEvaluationModelCallEnd?: Callback<
-    InferTelemetryEvent<EvaluationModelCallEndEvent>
-  >;
-
-  /** Called when an experimental evaluation operation completes. */
-  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<EvaluateEndEvent>>;
+  /** Called when an experimental decision operation completes. */
+  experimental_onDecideEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
 
   /**
    * Called when an operation completes. Fired for text generation

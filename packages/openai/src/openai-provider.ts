@@ -1,6 +1,6 @@
 import type {
   Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
+  Experimental_DecisionModelV4 as DecisionModelV4,
   EmbeddingModelV4,
   FilesV4,
   ImageModelV4,
@@ -20,7 +20,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -50,8 +50,8 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using the Responses API. */
-  evaluationModel(modelId: OpenAIResponsesModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using the Responses API. */
+  decisionModel(modelId: OpenAIResponsesModelId): DecisionModelV4;
 
   /**
    * Creates an OpenAI model for text generation.
@@ -352,10 +352,10 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
-  provider.evaluationModel = (modelId: OpenAIResponsesModelId) =>
-    new EvaluationLanguageModel({
+  provider.decisionModel = (modelId: OpenAIResponsesModelId) =>
+    new DecisionLanguageModel({
       model: createResponsesModel(modelId),
-      provider: `${providerName}.evaluation`,
+      provider: `${providerName}.decision`,
     });
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;

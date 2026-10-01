@@ -1,5 +1,5 @@
 export type { GatewayEmbeddingModelId } from './gateway-embedding-model-settings';
-export type { GatewayEvaluationModelId } from './gateway-evaluation-model-settings';
+export type { GatewayDecisionModelId } from './gateway-decision-model-settings';
 export type { GatewayImageModelId } from './gateway-image-model-settings';
 export type { GatewayModelId } from './gateway-language-model-settings';
 export {
@@ -47,7 +47,7 @@ export type {
   GatewayProviderMetadata,
 } from './gateway-provider-metadata';
 export type {
-  EvaluationFallbackCondition,
+  DecisionFallbackCondition,
   GatewayModelFallback,
   GatewayProviderOptions,
   /** @deprecated Use `GatewayProviderOptions` instead. */

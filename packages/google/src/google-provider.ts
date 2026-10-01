@@ -1,7 +1,7 @@
 import type {
   EmbeddingModelV4,
   Experimental_BatchV4 as BatchV4,
-  Experimental_EvaluationModelV4 as EvaluationModelV4,
+  Experimental_DecisionModelV4 as DecisionModelV4,
   Experimental_VideoModelV4,
   FilesV4,
   ImageModelV4,
@@ -21,7 +21,7 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { VERSION } from './version';
 import { GoogleEmbeddingModel } from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
@@ -63,8 +63,8 @@ export interface GoogleProvider extends ProviderV4 {
 
   chat(modelId: GoogleModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
-  evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using Gemini. */
+  decisionModel(modelId: GoogleModelId): DecisionModelV4;
 
   experimental_batch(): BatchV4<{
     text: GoogleModelId;
@@ -435,10 +435,10 @@ export function createGoogle(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.generativeAI = createChatModel;
-  provider.evaluationModel = (modelId: GoogleModelId) =>
-    new EvaluationLanguageModel({
+  provider.decisionModel = (modelId: GoogleModelId) =>
+    new DecisionLanguageModel({
       model: createChatModel(modelId),
-      provider: `${providerName.replace(/\.generative-ai$/, '')}.evaluation`,
+      provider: `${providerName.replace(/\.generative-ai$/, '')}.decision`,
     });
   provider.experimental_batch = createBatch;
   provider.embedding = createEmbeddingModel;

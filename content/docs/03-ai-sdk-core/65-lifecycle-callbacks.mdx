@@ -1,12 +1,12 @@
 ---
 title: Lifecycle Callbacks
-description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_evaluate calls
+description: Observe AI SDK lifecycle events in generateText, streamText, embed, embedMany, rerank, and experimental_decide calls
 ---
 
 # Lifecycle Callbacks
 
 Event callbacks let you run your own code at important points in an AI SDK call.
-You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_evaluate` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
+You can attach them directly to `generateText`, `streamText`, `embed`, `embedMany`, `rerank`, and `experimental_decide` calls to observe what happened, record usage, debug multi-step generations, and monitor tool execution.
 
 They are especially useful when you want application-specific logic close to the call site:
 
@@ -452,21 +452,20 @@ const result = await generateText({
   ]}
 />
 
-### `experimental_evaluate`
+### `experimental_decide`
 
 <PropertiesTable
   content={[
     {
       name: 'onStart',
-      type: '(event: Experimental_EvaluateStartEvent) => void | Promise<void>',
+      type: '(event: Experimental_DecideStartEvent) => void | Promise<void>',
       description:
-        'Called when the evaluation operation begins, before the evaluation model is called.',
+        'Called when the decision operation begins, before the decision model is called.',
     },
     {
       name: 'onEnd',
-      type: '(event: Experimental_EvaluateEndEvent) => void | Promise<void>',
-      description:
-        'Called when the evaluation operation completes successfully.',
+      type: '(event: Experimental_DecideEndEvent) => void | Promise<void>',
+      description: 'Called when the decision operation completes successfully.',
     },
   ]}
 />
@@ -1174,10 +1173,10 @@ For `embed`, `value` is a single string. For `embedMany`, `value` is an array of
   ]}
 />
 
-### Evaluation Events
+### Decision Events
 
-Evaluation callbacks are experimental. Their exported types are
-`Experimental_EvaluateStartEvent` and `Experimental_EvaluateEndEvent`.
+Decision callbacks are experimental. Their exported types are
+`Experimental_DecideStartEvent` and `Experimental_DecideEndEvent`.
 
 #### onStart
 
@@ -1186,12 +1185,12 @@ Evaluation callbacks are experimental. Their exported types are
     {
       name: 'callId',
       type: 'string',
-      description: 'Unique identifier for this evaluation call.',
+      description: 'Unique identifier for this decision call.',
     },
     {
       name: 'operationId',
-      type: "'ai.evaluate'",
-      description: 'Evaluation operation identifier.',
+      type: "'ai.decide'",
+      description: 'Decision operation identifier.',
     },
     {
       name: 'runtimeContext',
@@ -1201,12 +1200,12 @@ Evaluation callbacks are experimental. Their exported types are
     {
       name: 'provider',
       type: 'string',
-      description: 'Provider identifier for the evaluation model.',
+      description: 'Provider identifier for the decision model.',
     },
     {
       name: 'modelId',
       type: 'string',
-      description: 'Evaluation model identifier.',
+      description: 'Decision model identifier.',
     },
     {
       name: 'state',
@@ -1215,7 +1214,7 @@ Evaluation callbacks are experimental. Their exported types are
     },
     {
       name: 'questions',
-      type: 'Readonly<Record<string, Experimental_EvaluationQuestion>>',
+      type: 'Readonly<Record<string, Experimental_DecisionQuestion>>',
       description: 'Questions being evaluated against the shared state.',
     },
     {
@@ -1244,18 +1243,18 @@ Includes every `onStart` field plus:
   content={[
     {
       name: 'answers',
-      type: 'Record<string, Experimental_EvaluationAnswer>',
+      type: 'Record<string, Experimental_DecisionAnswer>',
       description: 'Exactly one typed answer per question ID.',
     },
     {
       name: 'usage',
       type: '{ inputTokens: number | undefined; outputTokens: number | undefined; totalTokens: number | undefined }',
-      description: 'Token usage for the evaluation operation.',
+      description: 'Token usage for the decision operation.',
     },
     {
       name: 'warnings',
       type: 'Array<Warning>',
-      description: 'Warnings from the evaluation model.',
+      description: 'Warnings from the decision model.',
     },
     {
       name: 'rounding',

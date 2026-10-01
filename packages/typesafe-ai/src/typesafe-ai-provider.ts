@@ -1,6 +1,6 @@
 import {
   NoSuchModelError,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
@@ -10,14 +10,14 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import {
-  EvaluationTypeSafeAiModel,
-  type TypeSafeAiEvaluationModelId,
-} from './typesafe-ai-evaluation-model';
+  DecisionTypeSafeAiModel,
+  type TypeSafeAiDecisionModelId,
+} from './typesafe-ai-decision-model';
 import { VERSION } from './version';
 
-/** TypeSafe's experimental evaluation capability, isolated from ProviderV4. */
+/** TypeSafe's experimental decision capability, isolated from ProviderV4. */
 export interface TypeSafeAiProvider extends ProviderV4 {
-  evaluationModel(modelId: TypeSafeAiEvaluationModelId): EvaluationModelV4;
+  decisionModel(modelId: TypeSafeAiDecisionModelId): DecisionModelV4;
 }
 
 export interface TypeSafeAiProviderSettings {
@@ -45,9 +45,9 @@ export function createTypeSafeAi(
 
   return {
     specificationVersion: 'v4',
-    evaluationModel: modelId =>
-      new EvaluationTypeSafeAiModel(modelId, {
-        provider: 'typesafe.evaluation',
+    decisionModel: modelId =>
+      new DecisionTypeSafeAiModel(modelId, {
+        provider: 'typesafe.decision',
         baseURL,
         headers,
         fetch: options.fetch,
