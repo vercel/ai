@@ -37,6 +37,7 @@ let lastWsHeaders: Record<string, string> | undefined;
 
 class FakeWebSocket {
   static emitted: Promise<void> = Promise.resolve();
+  static last: FakeWebSocket | undefined;
   binaryType = 'blob';
   onopen: ((ev: unknown) => void) | null = null;
   onmessage: ((ev: { data: unknown }) => void) | null = null;
@@ -46,6 +47,7 @@ class FakeWebSocket {
   onclose: ((ev: { code: number; reason: string }) => void) | null = null;
 
   constructor(url: string, opts?: { headers?: Record<string, string> }) {
+    FakeWebSocket.last = this;
     lastWsUrl = url;
     lastWsHeaders = opts?.headers;
     let done!: () => void;
@@ -313,6 +315,31 @@ describe('SpritesSandboxSession.spawn', () => {
     expect(out).toBe('one\ntwo\n');
     expect(exitCode).toBe(0);
   });
+
+  it.each([
+    { stream: 'stdout', frameType: 1 },
+    { stream: 'stderr', frameType: 2 },
+  ] as const)(
+    'skips a cancelled $stream and still resolves wait()',
+    async ({ stream, frameType }) => {
+      execStayOpen = true;
+      const session = makeSession();
+      const proc = await session.spawn({ command: 'run-it' });
+      await FakeWebSocket.emitted;
+      const socket = FakeWebSocket.last;
+      const other = stream === 'stdout' ? proc.stderr : proc.stdout;
+
+      await proc[stream].cancel();
+      expect(() =>
+        socket?.onmessage?.({ data: frame(frameType, 'late\n') }),
+      ).not.toThrow();
+      socket?.onmessage?.({ data: frame(3, [0]) });
+      expect(() => socket?.onclose?.({ code: 1000, reason: '' })).not.toThrow();
+
+      expect(await proc.wait()).toEqual({ exitCode: 0 });
+      expect(await collect(other)).toBe('');
+    },
+  );
 
   it('kill() calls the kill endpoint with the parsed session id', async () => {
     const fetchMock = vi.fn(
