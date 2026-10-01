@@ -40,6 +40,15 @@ describe('toolSearch options', () => {
     );
   });
 
+  it('describes custom search with its configured result limit', () => {
+    const description = toolSearch({
+      search: () => [],
+      maxResults: 3,
+    }).description;
+    expect(description).toContain('Search for tools matching a query.');
+    expect(description).toContain('Returns up to 3 matching tools.');
+  });
+
   it.each([0, -1, 1.5, NaN, Infinity, -Infinity, Number.MAX_SAFE_INTEGER + 1])(
     'rejects an invalid maxResults of %s',
     maxResults => {
@@ -60,9 +69,14 @@ describe.each([
   'agent.generate',
   'agent.stream',
 ] as const)('%s tool search', mode => {
-  it.each([false, true])(
-    'adds discovered definitions on the next step without injecting messages (early call: %s)',
-    async callEarly => {
+  it.each([
+    { callEarly: false, customSearch: false },
+    { callEarly: true, customSearch: false },
+    { callEarly: false, customSearch: true },
+    { callEarly: true, customSearch: true },
+  ])(
+    'adds discovered definitions on the next step without injecting messages (early call: $callEarly, custom search: $customSearch)',
+    async ({ callEarly, customSearch }) => {
       const executeWeather = vi.fn(
         ({ city }: { city: string }) => `${city}: sunny`,
       );
@@ -142,7 +156,16 @@ describe.each([
       const settings = {
         model,
         tools: {
-          search: toolSearch(),
+          search: toolSearch(
+            customSearch
+              ? {
+                  search: async ({ tools }) =>
+                    tools
+                      .filter(tool => tool.name === 'getWeather')
+                      .map(tool => tool.name),
+                }
+              : undefined,
+          ),
           getWeather: tool({
             deferLoading: true,
             description: 'Weather forecast',
