@@ -92,6 +92,78 @@ describe('startHostToolRelay', () => {
     }
   });
 
+  it('waits for full ACP input before executing a relay request', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'calculator', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['calculator'],
+      ttlMs: 250,
+    });
+    let notifyAuthorizationRequest!: () => void;
+    const authorizationRequested = new Promise<void>(resolve => {
+      notifyAuthorizationRequest = resolve;
+    });
+    const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest();
+        return pending;
+      },
+      emitToolCall: vi.fn(),
+      emitToolResult: vi.fn(),
+      requestToolResult: vi.fn(async () => ({ output: { sum: 5 } })),
+      registerCorrelationInvocation: vi.fn(),
+      removeCorrelationInvocation: vi.fn(),
+    };
+    relay.bindTurn({ turn });
+    try {
+      const input = { operation: 'add', origin: 'client', a: 2, b: 3 };
+      const response = invokeResponse({
+        relay,
+        requestId: 'full-input',
+        toolName: 'calculator',
+        input,
+        catalogRevision: 1,
+      });
+      await authorizationRequested;
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'partial-input',
+          title: 'mcp__ai-sdk-harness-tools__calculator',
+          rawInput: {},
+          status: 'pending',
+        },
+      });
+      expect(turn.emitToolCall).not.toHaveBeenCalled();
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'partial-input',
+          rawInput: input,
+          status: 'in_progress',
+        },
+      });
+
+      await expect(response).resolves.toMatchObject({
+        status: 200,
+        value: { output: { sum: 5 } },
+      });
+      expect(turn.emitToolCall).toHaveBeenCalledWith({
+        toolCallId: 'full-input',
+        toolName: 'calculator',
+        input,
+      });
+      expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
+    } finally {
+      authorization.close();
+      relay.unbindTurn({ turn });
+      await relay.close();
+    }
+  });
+
   it('emits one authoritative call, waits for the caller, and returns the result', async () => {
     let resolveResult!: (result: {
       output: unknown;

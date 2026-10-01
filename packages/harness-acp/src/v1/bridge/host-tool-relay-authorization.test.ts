@@ -123,6 +123,117 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.close();
   });
 
+  it('treats incidental wrapper field names as direct tool arguments', async () => {
+    const authorization = authorizer();
+    const inputs = [
+      { operation: 'add', a: 1, b: 2 },
+      { origin: 'user', city: 'Lima' },
+      { origin: serverName, operation: 'add', a: 1, b: 2 },
+      { providerIdentifier: serverName, city: 'Lima' },
+      { providerIdentifier: serverName, toolName: 'weather', city: 'Lima' },
+      { server: serverName, tool: 'weather', city: 'Lima' },
+      { server: serverName, arguments: { city: 'Lima' }, city: 'Lima' },
+    ];
+
+    for (const [index, input] of inputs.entries()) {
+      authorization.observeUpdate({
+        update: update({ toolCallId: `direct-${index}`, rawInput: input }),
+      });
+      await expect(
+        authorization.waitForToolCallAuthorization({
+          toolName: 'weather',
+          input,
+        }),
+      ).resolves.toBe(true);
+    }
+    authorization.close();
+  });
+
+  it('replaces partial input without leaving the old input authorized', async () => {
+    const authorization = authorizer({ ttlMs: 20 });
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'partial', rawInput: {} }),
+    });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'partial',
+        rawInput: weather.input,
+      },
+    });
+
+    const stale = authorization.waitForToolCallAuthorization({
+      toolName: 'weather',
+      input: {},
+    });
+    const current = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(stale).resolves.toBe(false);
+    await expect(current).resolves.toBe(true);
+  });
+
+  it('authorizes a pending full-input request after partial input', async () => {
+    const authorization = authorizer({ ttlMs: 20 });
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'partial-request', rawInput: {} }),
+    });
+    const pending = authorization.waitForToolCallAuthorization(weather);
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'partial-request',
+        rawInput: weather.input,
+      },
+    });
+    authorization.close();
+    await expect(pending).resolves.toBe(true);
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(false);
+  });
+
+  it('retains the latest input through status-only updates', async () => {
+    const authorization = authorizer();
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'status-only', rawInput: {} }),
+    });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'status-only',
+        rawInput: weather.input,
+      },
+    });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'status-only',
+        status: 'in_progress',
+      },
+    });
+
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+    authorization.close();
+  });
+
+  it('removes an unused authorization when later input becomes unresolvable', async () => {
+    const authorization = authorizer();
+    authorization.observeUpdate({ update: update({ toolCallId: 'invalid' }) });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'invalid',
+        rawInput: null,
+      },
+    });
+
+    const stale = authorization.waitForToolCallAuthorization(weather);
+    authorization.close();
+    await expect(stale).resolves.toBe(false);
+  });
+
   it('does not authorize unqualified, unknown, mismatched, or completed updates', async () => {
     const authorization = authorizer();
     authorization.observeUpdate({
@@ -278,9 +389,30 @@ describe('createHostToolRelayAuthorization', () => {
         },
       }),
     });
-    const invalid = authorization.waitForToolCallAuthorization(weather);
+    const conflictingOrigin = {
+      origin: 'other-server',
+      operation: 'weather',
+      arguments: weather.input,
+    };
+    authorization.observeUpdate({
+      update: update({
+        toolCallId: 'conflicting-origin',
+        rawInput: conflictingOrigin,
+      }),
+    });
+    const invalid = [
+      authorization.waitForToolCallAuthorization(weather),
+      authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: conflictingOrigin,
+      }),
+      authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: { tool_name: `${serverName}__weather`, tool_input: null },
+      }),
+    ];
     authorization.close();
-    await expect(invalid).resolves.toBe(false);
+    for (const pending of invalid) await expect(pending).resolves.toBe(false);
   });
 
   it('uses accepted permission requests as ACP evidence when they precede updates', async () => {
@@ -299,24 +431,50 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.close();
   });
 
-  it('expires unused authorizations and rejects pending requests on close', async () => {
+  it('keeps an unused authorization until consumption, terminal status, or close', async () => {
     vi.useFakeTimers();
     const authorization = authorizer({ ttlMs: 20 });
-    authorization.observeUpdate({ update: update({ toolCallId: 'old' }) });
+    authorization.observeUpdate({ update: update({ toolCallId: 'delayed' }) });
+    await vi.advanceTimersByTimeAsync(21);
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+
+    authorization.observeUpdate({ update: update({ toolCallId: 'later' }) });
     await vi.advanceTimersByTimeAsync(21);
     authorization.observeUpdate({
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'old',
+        toolCallId: 'later',
         status: 'in_progress',
       },
     });
-    const expired = authorization.waitForToolCallAuthorization(weather);
-    authorization.close();
-
-    await expect(expired).resolves.toBe(false);
     await expect(
       authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+
+    authorization.observeUpdate({ update: update({ toolCallId: 'terminal' }) });
+    authorization.observeUpdate({
+      update: {
+        sessionUpdate: 'tool_call_update',
+        toolCallId: 'terminal',
+        status: 'failed',
+      },
+    });
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'terminal' }),
+    });
+    const terminated = authorization.waitForToolCallAuthorization(weather);
+    authorization.observeUpdate({
+      update: update({ toolCallId: 'on-close', rawInput: { city: 'Quito' } }),
+    });
+    authorization.close();
+    await expect(terminated).resolves.toBe(false);
+    await expect(
+      authorization.waitForToolCallAuthorization({
+        toolName: 'weather',
+        input: { city: 'Quito' },
+      }),
     ).resolves.toBe(false);
   });
 });

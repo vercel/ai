@@ -8,16 +8,15 @@ type HostToolCall = {
 type ObservedCall = {
   toolCall: ToolCallUpdate;
   consumed: boolean;
-  offered: boolean;
   terminal: boolean;
 };
 
-const DEFAULT_AUTHORIZATION_TTL_MS = 10_000;
+const DEFAULT_AUTHORIZATION_WAIT_MS = 10_000;
 
 export function createHostToolRelayAuthorization({
   serverName,
   toolNames,
-  ttlMs = DEFAULT_AUTHORIZATION_TTL_MS,
+  ttlMs = DEFAULT_AUTHORIZATION_WAIT_MS,
 }: {
   serverName: string;
   toolNames: ReadonlyArray<string>;
@@ -29,11 +28,7 @@ export function createHostToolRelayAuthorization({
   close(): void;
 } {
   const observedCalls = new Map<string, ObservedCall>();
-  const authorizations: Array<{
-    toolCallId: string;
-    key: string;
-    expiresAt: number;
-  }> = [];
+  const authorizations = new Map<string, string>();
   const pendingRequests: Array<{
     key: string;
     timeout: ReturnType<typeof setTimeout>;
@@ -41,25 +36,8 @@ export function createHostToolRelayAuthorization({
   }> = [];
   let closed = false;
 
-  const pruneExpired = () => {
-    const now = Date.now();
-    for (let index = authorizations.length - 1; index >= 0; index--) {
-      if (authorizations[index].expiresAt <= now) {
-        authorizations.splice(index, 1);
-      }
-    }
-  };
-
-  const removeAuthorization = ({ toolCallId }: { toolCallId: string }) => {
-    const index = authorizations.findIndex(
-      authorization => authorization.toolCallId === toolCallId,
-    );
-    if (index !== -1) authorizations.splice(index, 1);
-  };
-
   const observe = ({ toolCall }: { toolCall: ToolCallUpdate }) => {
     if (closed) return;
-    pruneExpired();
     const previous = observedCalls.get(toolCall.toolCallId);
     if (previous?.consumed || previous?.terminal) return;
     const merged: ToolCallUpdate = {
@@ -82,39 +60,35 @@ export function createHostToolRelayAuthorization({
     const observed: ObservedCall = {
       toolCall: merged,
       consumed: false,
-      offered: previous?.offered ?? false,
       terminal: merged.status === 'completed' || merged.status === 'failed',
     };
     observedCalls.set(toolCall.toolCallId, observed);
     if (observed.terminal) {
-      removeAuthorization({ toolCallId: toolCall.toolCallId });
+      authorizations.delete(toolCall.toolCallId);
       return;
     }
-    if (observed.offered) return;
 
     const call = resolveHostToolCall({
       toolCall: merged,
       serverName,
       toolNames,
     });
-    if (call == null) return;
-    observed.offered = true;
+    if (call == null) {
+      authorizations.delete(toolCall.toolCallId);
+      return;
+    }
     const key = callKey(call);
+    authorizations.set(toolCall.toolCallId, key);
     const pendingIndex = pendingRequests.findIndex(
       request => request.key === key,
     );
     if (pendingIndex !== -1) {
       const [pending] = pendingRequests.splice(pendingIndex, 1);
       clearTimeout(pending.timeout);
+      authorizations.delete(toolCall.toolCallId);
       observed.consumed = true;
       pending.resolve(true);
-      return;
     }
-    authorizations.push({
-      toolCallId: toolCall.toolCallId,
-      key,
-      expiresAt: Date.now() + ttlMs,
-    });
   };
 
   return {
@@ -129,14 +103,11 @@ export function createHostToolRelayAuthorization({
     observeAllowedPermission: ({ toolCall }) => observe({ toolCall }),
     waitForToolCallAuthorization: ({ toolName, input }) => {
       if (closed) return Promise.resolve(false);
-      pruneExpired();
       const key = callKey({ toolName, input });
-      const index = authorizations.findIndex(
-        authorization => authorization.key === key,
-      );
-      if (index !== -1) {
-        const [authorization] = authorizations.splice(index, 1);
-        observedCalls.get(authorization.toolCallId)!.consumed = true;
+      for (const [toolCallId, authorizationKey] of authorizations) {
+        if (authorizationKey !== key) continue;
+        authorizations.delete(toolCallId);
+        observedCalls.get(toolCallId)!.consumed = true;
         return Promise.resolve(true);
       }
       return new Promise(resolve => {
@@ -156,7 +127,7 @@ export function createHostToolRelayAuthorization({
       if (closed) return;
       closed = true;
       observedCalls.clear();
-      authorizations.length = 0;
+      authorizations.clear();
       for (const request of pendingRequests.splice(0)) {
         clearTimeout(request.timeout);
         request.resolve(false);
@@ -177,8 +148,12 @@ function resolveHostToolCall({
   const rawInput = toolCall.rawInput;
   if (!isRecord(rawInput)) return undefined;
   const isDeferred = 'tool_name' in rawInput;
-  const isProvider = 'providerIdentifier' in rawInput;
-  const isOrigin = 'origin' in rawInput || 'operation' in rawInput;
+  const isProvider =
+    'providerIdentifier' in rawInput &&
+    'toolName' in rawInput &&
+    'args' in rawInput;
+  const isOrigin =
+    'origin' in rawInput && 'operation' in rawInput && 'arguments' in rawInput;
   const isCodex =
     'server' in rawInput && 'tool' in rawInput && 'arguments' in rawInput;
   if ([isDeferred, isProvider, isOrigin, isCodex].filter(Boolean).length > 1) {
