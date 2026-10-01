@@ -71,6 +71,24 @@ describe('createHostToolRelayAuthorization', () => {
     authorization.close();
   });
 
+  it('does not authorize another tool with the same input', async () => {
+    vi.useFakeTimers();
+    const authorization = authorizer({ ttlMs: 20 });
+    authorization.observeUpdate({ update: update({ toolCallId: 'weather' }) });
+
+    const otherTool = authorization.waitForToolCallAuthorization({
+      toolName: 'clock',
+      input: weather.input,
+    });
+    await vi.advanceTimersByTimeAsync(20);
+
+    await expect(otherTool).resolves.toBe(false);
+    await expect(
+      authorization.waitForToolCallAuthorization(weather),
+    ).resolves.toBe(true);
+    authorization.close();
+  });
+
   it('accepts a relay request that arrives before the ACP tool call', async () => {
     const authorization = authorizer();
     const pending = authorization.waitForToolCallAuthorization(weather);

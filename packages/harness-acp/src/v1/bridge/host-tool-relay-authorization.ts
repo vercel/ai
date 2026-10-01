@@ -1,4 +1,5 @@
 import type { SessionUpdate, ToolCallUpdate } from '@agentclientprotocol/sdk';
+import { canonicalFingerprint } from './canonical-json-fingerprint';
 
 type HostToolCall = {
   readonly toolName: string;
@@ -225,20 +226,7 @@ function resolveHostToolCall({
 }
 
 function callKey({ toolName, input }: HostToolCall): string {
-  return `${toolName}\0${JSON.stringify(canonicalize({ value: input }))}`;
-}
-
-function canonicalize({ value }: { value: unknown }): unknown {
-  if (Array.isArray(value)) {
-    return value.map(item => canonicalize({ value: item }));
-  }
-  if (!isRecord(value)) return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort()
-      .filter(key => value[key] !== undefined)
-      .map(key => [key, canonicalize({ value: value[key] })]),
-  );
+  return `${toolName}\0${canonicalFingerprint({ value: input })}`;
 }
 
 function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
