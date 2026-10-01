@@ -29,9 +29,14 @@ describe.each([
   'agent.generate',
   'agent.stream',
 ] as const)('%s tool search', mode => {
-  it.each([false, true])(
-    'adds discovered definitions on the next step without injecting messages (early call: %s)',
-    async callEarly => {
+  it.each([
+    { callEarly: false, customSearch: false },
+    { callEarly: true, customSearch: false },
+    { callEarly: false, customSearch: true },
+    { callEarly: true, customSearch: true },
+  ])(
+    'adds discovered definitions on the next step without injecting messages (early call: $callEarly, custom search: $customSearch)',
+    async ({ callEarly, customSearch }) => {
       const executeWeather = vi.fn(
         ({ city }: { city: string }) => `${city}: sunny`,
       );
@@ -111,7 +116,16 @@ describe.each([
       const settings = {
         model,
         tools: {
-          search: toolSearch(),
+          search: toolSearch(
+            customSearch
+              ? {
+                  search: async ({ tools }) =>
+                    tools
+                      .filter(tool => tool.name === 'getWeather')
+                      .map(tool => tool.name),
+                }
+              : undefined,
+          ),
           getWeather: tool({
             deferLoading: true,
             description: 'Weather forecast',

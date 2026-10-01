@@ -5,8 +5,7 @@ description: Search deferred tools and load their definitions on demand for dire
 
 # `toolSearch()`
 
-Creates a tool that searches the surrounding generation's deferred tools by name
-and description. The factory takes no arguments. Use it with `generateText`,
+Creates a tool that searches the surrounding generation's deferred tools. Use it with `generateText`,
 `streamText`, `ToolLoopAgent`, or `WorkflowAgent` from `@ai-sdk/workflow`.
 `WorkflowAgent` supports direct tool calling. The other APIs also support code
 mode configured with `toolDiscovery: 'conversation'`.
@@ -20,6 +19,43 @@ const search = toolSearch();
 See the [Tool Search guide](/docs/ai-sdk-core/tool-search) for direct-calling and
 code mode examples, including how code mode preserves the tool-definition cache.
 
+## Options
+
+Pass a `search` callback to select and rank tools using your application's search
+logic. The callback can return synchronously or asynchronously:
+
+```ts
+const search = toolSearch({
+  search: ({ query, tools }) => {
+    const preferred = /\bgmail\b/i.test(query)
+      ? ['gmail_list_messages', 'gmail_get_message']
+      : [];
+    return preferred.filter(name => tools.some(tool => tool.name === name));
+  },
+});
+```
+
+The callback has this signature:
+
+```ts
+search?: (options: {
+  query: string;
+  tools: Array<{ name: string; description?: string }>;
+}) => string[] | PromiseLike<string[]>;
+```
+
+`tools` contains all eligible deferred tools, before keyword matching or ranking.
+Eligibility respects `activeTools` and caller routing. Descriptions are resolved
+using the current tool context and sandbox; schemas are not included.
+
+Return tool names in ranked order. The SDK ignores unknown or ineligible names,
+removes duplicates while preserving order, and keeps the first five valid names.
+Returned descriptions come from the SDK's candidate catalog. An empty array
+discovers no tools. Callback errors follow normal tool-execution error handling;
+the SDK does not fall back to keyword search.
+
+Without a callback, `toolSearch()` uses the default keyword search described below.
+
 ## Model Input
 
 The model supplies the following input to the search tool:
@@ -28,11 +64,12 @@ The model supplies the following input to the search tool:
 { "query": "weather forecast" }
 ```
 
-`query` is a required, nonempty string of search keywords. Search is local and
+`query` is a required, nonempty string. By default, search is local and
 case-insensitive, matching words in tool names and descriptions. Camel-case names
 are split into words. Name matches rank above description matches; equal scores
 preserve registration order. Function descriptions are resolved with the current
-tool context and sandbox. No embedding service or additional model call is used.
+tool context and sandbox. The default search uses no embedding service or
+additional model call. A custom callback can use either.
 
 ## Output
 

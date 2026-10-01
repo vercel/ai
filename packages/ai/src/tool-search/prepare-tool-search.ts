@@ -11,7 +11,7 @@ import {
 } from '../generate-text/tool-caller-configuration';
 import { resolveToolDescription } from '../prompt/prepare-tools';
 import { getOwn } from '../util/get-own';
-import { isToolSearch } from './tool-search';
+import { getToolSearchFunction, isToolSearch } from './tool-search';
 
 /** Create discovery state for one generation, never for a shared tool instance. */
 export function createToolSearchState({
@@ -90,41 +90,57 @@ export function createToolSearchState({
             searchName,
             {
               ...tool,
-              execute: ({ query }: { query: string }) => {
+              execute: async ({ query }: { query: string }) => {
+                const availableTools = candidates.map(([name, candidate]) => {
+                  const description = resolveToolDescription({
+                    tool: candidate,
+                    toolName: name,
+                    toolsContext,
+                    experimental_sandbox,
+                  });
+                  return {
+                    name,
+                    ...(description == null ? {} : { description }),
+                  };
+                });
+                const toolsByName = new Map(
+                  availableTools.map(tool => [tool.name, tool]),
+                );
+                const customSearch = getToolSearchFunction(tool);
                 const terms = [...new Set(tokenize(query))];
-                const matches = candidates
-                  .map(([name, candidate]) => {
-                    const description = resolveToolDescription({
-                      tool: candidate,
-                      toolName: name,
-                      toolsContext,
-                      experimental_sandbox,
-                    });
-                    const nameTerms = tokenize(name);
-                    const descriptionTerms = tokenize(description ?? '');
-                    const score = terms.reduce(
-                      (score, term) =>
-                        score +
-                        (nameTerms.includes(term) ? 2 : 0) +
-                        (descriptionTerms.includes(term) ? 1 : 0),
-                      0,
-                    );
-                    return { name, description, score };
+                const rankedNames = customSearch
+                  ? await customSearch({
+                      query,
+                      tools: availableTools.map(tool => ({ ...tool })),
+                    })
+                  : availableTools
+                      .map(({ name, description }) => {
+                        const nameTerms = tokenize(name);
+                        const descriptionTerms = tokenize(description ?? '');
+                        const score = terms.reduce(
+                          (score, term) =>
+                            score +
+                            (nameTerms.includes(term) ? 2 : 0) +
+                            (descriptionTerms.includes(term) ? 1 : 0),
+                          0,
+                        );
+                        return { name, score };
+                      })
+                      .filter(match => match.score > 0)
+                      .sort((a, b) => b.score - a.score)
+                      .map(match => match.name);
+                const matches = [...new Set(rankedNames)]
+                  .flatMap(name => {
+                    const match = toolsByName.get(name);
+                    return match == null ? [] : [match];
                   })
-                  .filter(match => match.score > 0)
-                  .sort((a, b) => b.score - a.score)
                   .slice(0, 5);
 
                 for (const { name } of matches) {
                   discovered.add(name);
                 }
 
-                return {
-                  tools: matches.map(({ name, description }) => ({
-                    name,
-                    ...(description == null ? {} : { description }),
-                  })),
-                };
+                return { tools: matches };
               },
             },
           ];

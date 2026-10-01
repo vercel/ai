@@ -1,6 +1,12 @@
 import { jsonSchema, tool, type Tool } from '@ai-sdk/provider-utils';
 
 const toolSearchSymbol = Symbol.for('vercel.ai.toolSearch');
+const toolSearchFunctionSymbol = Symbol.for('vercel.ai.toolSearch.search');
+
+type ToolSearchFunction = (options: {
+  query: string;
+  tools: Array<{ name: string; description?: string }>;
+}) => string[] | PromiseLike<string[]>;
 
 type ToolSearchInput = { query: string };
 type ToolSearchOutput = {
@@ -12,13 +18,21 @@ type ToolSearchOutput = {
  * binds the search registry and makes matches available on the next step.
  * Use directly or through code mode with `toolDiscovery: 'conversation'`.
  */
-export function toolSearch(): Tool<ToolSearchInput, ToolSearchOutput> & {
+export function toolSearch({
+  search,
+}: {
+  /**
+   * Search eligible deferred tools and return their names in ranked order.
+   * Supports synchronous and asynchronous callbacks. Unknown names and
+   * duplicates are ignored before applying the result limit.
+   */
+  search?: ToolSearchFunction;
+} = {}): Tool<ToolSearchInput, ToolSearchOutput> & {
   type: 'function';
 } {
   return Object.assign(
     tool({
-      description:
-        'Search for tools by keywords in their names and descriptions. Returns up to five matching tools. Matches become available on the next model step, after this execution finishes. Wait for their tool definitions before calling the discovered tools. If no tools match, try different keywords.',
+      description: `${search == null ? 'Search for tools by keywords in their names and descriptions.' : 'Search for tools matching a query.'} Returns up to five matching tools. Matches become available on the next model step, after this execution finishes. Wait for their tool definitions before calling the discovered tools. If no tools match, try different keywords.`,
       inputSchema: jsonSchema<ToolSearchInput>({
         type: 'object',
         properties: { query: { type: 'string', minLength: 1 } },
@@ -48,8 +62,20 @@ export function toolSearch(): Tool<ToolSearchInput, ToolSearchOutput> & {
         throw new Error('toolSearch must be bound by an AI SDK generation.');
       },
     }),
-    { type: 'function' as const, [toolSearchSymbol]: true },
+    {
+      type: 'function' as const,
+      [toolSearchSymbol]: true,
+      [toolSearchFunctionSymbol]: search,
+    },
   );
+}
+
+export function getToolSearchFunction(
+  tool: Tool,
+): ToolSearchFunction | undefined {
+  return (tool as Tool & { [toolSearchFunctionSymbol]?: ToolSearchFunction })[
+    toolSearchFunctionSymbol
+  ];
 }
 
 export function isToolSearch(tool: Tool): boolean {
