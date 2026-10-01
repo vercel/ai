@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createSpritesSandbox } from './sprites-sandbox';
+import {
+  createSpritesNetworkSandboxSession,
+  createSpritesSandbox,
+  resumeSpritesNetworkSandboxSession,
+} from './sprites-sandbox';
 
 type Call = { method: string; url: string; body?: string };
 let calls: Call[] = [];
@@ -84,8 +88,48 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
   return fetchMock;
 }
 
+/** Argument vectors of the processes started over the fake exec WebSocket. */
+let execCommands: string[][] = [];
+/** Directory the fake Sprite reports for `pwd`. */
+let execWorkingDirectory = '/home/sprite';
+
+/**
+ * Fake exec WebSocket: answers `pwd` with {@link execWorkingDirectory} and
+ * exits every process with code 0.
+ */
+class FakeExecWebSocket {
+  binaryType = 'blob';
+  onopen: ((ev: unknown) => void) | null = null;
+  onmessage: ((ev: { data: unknown }) => void) | null = null;
+  onerror: ((ev: { message?: string }) => void) | null = null;
+  onclose: ((ev: { code: number; reason: string }) => void) | null = null;
+
+  constructor(url: string) {
+    const argv = new URL(url).searchParams.getAll('cmd');
+    execCommands.push(argv);
+    // Defer so the client can assign handlers first.
+    setTimeout(() => {
+      this.onopen?.({});
+      if (argv[0] === 'pwd') {
+        const output = new TextEncoder().encode(`${execWorkingDirectory}\n`);
+        this.onmessage?.({ data: new Uint8Array([0x01, ...output]).buffer });
+      }
+      this.onmessage?.({ data: new Uint8Array([0x03, 0]).buffer });
+      this.onclose?.({ code: 1000, reason: '' });
+    }, 0);
+  }
+
+  send(): void {}
+  close(): void {
+    this.onclose?.({ code: 1000, reason: '' });
+  }
+}
+
 beforeEach(() => {
   calls = [];
+  execCommands = [];
+  execWorkingDirectory = '/home/sprite';
+  vi.stubGlobal('WebSocket', FakeExecWebSocket as unknown);
   delete process.env.SPRITES_API_KEY;
   delete process.env.SPRITES_TOKEN;
   delete process.env.SPRITES_API_URL;
@@ -455,5 +499,261 @@ describe('resumeSession', () => {
     });
     await provider.resumeSession?.({ sessionId: 'ignored' });
     expect(calls.some(c => c.method === 'PUT')).toBe(false);
+  });
+});
+
+describe('createSpritesNetworkSandboxSession', () => {
+  it('creates a Sprite named with sandboxId and puts it on public url auth', async () => {
+    installFetch({ auth: 'sprite' });
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+    });
+
+    expect(session.id).toBe('my-sandbox');
+    expect([...session.ports]).toEqual([8080]);
+    const create = calls.find(
+      c => c.method === 'POST' && c.url.endsWith('/v1/sprites'),
+    );
+    expect(JSON.parse(create?.body ?? '{}')).toEqual({ name: 'my-sandbox' });
+    const put = calls.find(c => c.method === 'PUT');
+    expect(put?.body).toContain('"auth":"public"');
+  });
+
+  it('assigns a random name when no sandboxId is given', async () => {
+    installFetch();
+    const first = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const second = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+
+    expect(first.id).toMatch(/^ai-sdk-harness-[0-9a-f]{12}$/);
+    expect(second.id).not.toBe(first.id);
+  });
+
+  it('reads the default working directory from the Sprite', async () => {
+    installFetch();
+    execWorkingDirectory = '/workspace/';
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+
+    expect(session.defaultWorkingDirectory).toBe('/workspace');
+    expect(execCommands).toEqual([['pwd']]);
+  });
+
+  it('uses workingDirectory without asking the Sprite', async () => {
+    installFetch();
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      workingDirectory: '/srv/app',
+    });
+
+    expect(session.defaultWorkingDirectory).toBe('/srv/app');
+    expect(execCommands).toEqual([]);
+  });
+
+  it('fails on a name conflict instead of reusing the existing Sprite', async () => {
+    installFetch({ createStatus: 409 });
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        baseUrl: 'https://api.test',
+        sandboxId: 'taken',
+      }),
+    ).rejects.toThrow(/a Sprite named "taken" already exists/);
+    // The existing Sprite belongs to someone else: it is left untouched.
+    expect(calls.some(c => c.method === 'PUT')).toBe(false);
+    expect(calls.some(c => c.method === 'DELETE')).toBe(false);
+  });
+
+  it('keeps sprite url auth when asked to', async () => {
+    installFetch({ auth: 'sprite' });
+    await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      urlAuth: 'sprite',
+    });
+
+    expect(calls.some(c => c.method === 'PUT')).toBe(false);
+  });
+
+  it('prepares the template in the new Sprite with the restricted session', async () => {
+    installFetch();
+    const abortSignal = new AbortController().signal;
+    const prepare = vi.fn(async () => {});
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      template: { identity: 'recipe-hash-1', prepare },
+      abortSignal,
+    });
+
+    expect(prepare).toHaveBeenCalledTimes(1);
+    const [prepareOptions] = prepare.mock.calls[0] as unknown as [
+      { session: object; abortSignal?: AbortSignal },
+    ];
+    expect(prepareOptions.abortSignal).toBe(abortSignal);
+    expect(prepareOptions.session).not.toBe(session);
+    expect('destroy' in prepareOptions.session).toBe(false);
+    expect('getPortEndpoint' in prepareOptions.session).toBe(false);
+  });
+
+  it('deletes the new Sprite when template preparation fails', async () => {
+    installFetch();
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        baseUrl: 'https://api.test',
+        sandboxId: 'half-made',
+        template: {
+          identity: 'recipe-hash-1',
+          prepare: async () => {
+            throw new Error('install failed');
+          },
+        },
+      }),
+    ).rejects.toThrow('install failed');
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/half-made')),
+    ).toBe(true);
+  });
+
+  it('destroy() deletes the Sprite', async () => {
+    installFetch();
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'short-lived',
+    });
+    await session.stop();
+    await session.destroy();
+
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/short-lived')),
+    ).toBe(true);
+  });
+
+  it('rejects spriteName, which belongs to the resume function', async () => {
+    installFetch();
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        spriteName: 'my-existing',
+      } as never),
+    ).rejects.toThrow(/resumeSpritesNetworkSandboxSession/);
+    expect(calls).toEqual([]);
+  });
+
+  it('does nothing when already aborted', async () => {
+    installFetch();
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        abortSignal: AbortSignal.abort(new Error('stopped')),
+      }),
+    ).rejects.toThrow('stopped');
+    expect(calls).toEqual([]);
+  });
+});
+
+describe('resumeSpritesNetworkSandboxSession', () => {
+  it('reattaches to the Sprite named sandboxId without creating one', async () => {
+    installFetch({ auth: 'public' });
+    const session = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+    });
+
+    expect(session.id).toBe('my-sandbox');
+    expect(session.defaultWorkingDirectory).toBe('/home/sprite');
+    expect(calls.map(c => `${c.method} ${new URL(c.url).pathname}`)).toEqual([
+      'GET /v1/sprites/my-sandbox',
+    ]);
+  });
+
+  it('fails when the Sprite does not exist and never creates it', async () => {
+    installFetch({ spriteExists: false });
+
+    await expect(
+      resumeSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        baseUrl: 'https://api.test',
+        sandboxId: 'gone',
+      }),
+    ).rejects.toThrow(/failed: 404/);
+    expect(calls.some(c => c.method === 'POST')).toBe(false);
+  });
+
+  it('returns the same endpoint as the session that created the Sprite', async () => {
+    installFetch({ auth: 'public' });
+    const created = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const resumed = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: created.id,
+    });
+
+    const endpoint = await created.getPortEndpoint({
+      port: 8080,
+      protocol: 'ws',
+    });
+    expect(endpoint).toEqual({ url: `wss://${created.id}-x.sprites.app/` });
+    // Stable across repeated resolution and across reattaching.
+    expect(
+      await created.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).toEqual(endpoint);
+    expect(
+      await resumed.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).toEqual(endpoint);
+  });
+
+  it('changes url auth only when asked to', async () => {
+    installFetch({ auth: 'sprite' });
+    await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+    });
+    expect(calls.some(c => c.method === 'PUT')).toBe(false);
+
+    await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+      urlAuth: 'public',
+    });
+    expect(calls.find(c => c.method === 'PUT')?.body).toContain(
+      '"auth":"public"',
+    );
+  });
+
+  it('destroy() deletes the reattached Sprite', async () => {
+    installFetch({ auth: 'public' });
+    const session = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+    });
+    await session.destroy();
+
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/my-sandbox')),
+    ).toBe(true);
   });
 });
