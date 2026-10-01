@@ -52,6 +52,10 @@ export interface OpenAIProvider extends ProviderV4 {
 
   /** Creates an experimental Choice/Score/Boolean decision model using the Responses API. */
   decisionModel(modelId: OpenAIResponsesModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: OpenAIResponsesModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   /**
    * Creates an OpenAI model for text generation.
@@ -357,6 +361,8 @@ export function createOpenAI(
       model: createResponsesModel(modelId),
       provider: `${providerName}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as OpenAIProvider['evaluationModel'];
   provider.embedding = createEmbeddingModel;
   provider.embeddingModel = createEmbeddingModel;
   provider.textEmbedding = createEmbeddingModel;

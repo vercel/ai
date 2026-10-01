@@ -42,7 +42,7 @@ function setup(body: unknown = fixture) {
   return { model: provider.decisionModel('gpt-5.6-luna'), fetch };
 }
 
-it('evaluates through the configured Responses API with strict structured output', async () => {
+it('decides through the configured Responses API with strict structured output', async () => {
   const { model, fetch } = setup();
   const result = await model.doDecide({
     ...options,
@@ -101,7 +101,7 @@ it('allows provider options to override the default reasoning effort', async () 
   });
 });
 
-it('evaluates Boolean alongside Choice and Score in one Responses request', async () => {
+it('decides Boolean alongside Choice and Score in one Responses request', async () => {
   const body = structuredClone(fixture);
   body.output[0].content[0].text = '{"q0":"c1","q1":1.25,"q2":0.02}';
   const { model, fetch } = setup(body);
@@ -151,4 +151,23 @@ it('rejects a refusal instead of returning partial answers', async () => {
     ],
   });
   await expect(model.doDecide(options)).rejects.toBeInstanceOf(APICallError);
+});
+
+it('preserves the deprecated factory and direct model method', async () => {
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify(fixture), {
+        headers: { 'content-type': 'application/json' },
+      }),
+  );
+  const provider = createOpenAI({ apiKey: 'test-key', fetch });
+  expect(provider.evaluationModel).toBe(provider.decisionModel);
+  const model = provider.evaluationModel('gpt-5.6-luna');
+  const result = await model.doEvaluate(options);
+  expect(result.answers.department).toEqual({
+    type: 'choice',
+    choice: 'billing',
+  });
+  expect(model.provider).toContain('.decision');
+  expect(fetch).toHaveBeenCalledOnce();
 });
