@@ -83,6 +83,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
+          NPM_VERIFY_TIMEOUT_MS: '3600000'
 
       - name: Attach SLSA provenance to GitHub Releases
         if: steps.changesets.outputs.published == 'true'
