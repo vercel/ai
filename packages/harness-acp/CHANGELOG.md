@@ -1,5 +1,11 @@
 # @ai-sdk/harness-acp
 
+## 1.0.77
+
+### Patch Changes
+
+- 58030b5: fix(harness-acp): enforce tool call match with host tool relay
+
 ## 1.0.76
 
 ### Patch Changes
