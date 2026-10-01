@@ -286,7 +286,7 @@ async function resolveSpriteWorkingDirectory({
  * Settings for {@link createSpritesSandbox}. Two mutually-exclusive shapes:
  *
  * - `{ spriteName }` — wrap an already-created Sprite by name. The caller owns
- *   its lifecycle; the provider's `destroy()` is a no-op. `urlAuth` is left
+ *   its lifecycle; the session's `destroy()` is a no-op. `urlAuth` is left
  *   alone unless set: a wrapped Sprite left on `'sprite'` auth is unreachable
  *   to a stock WebSocket bridge client, which is redirected (302) at the auth
  *   gate instead of reaching the in-Sprite bridge. Set `urlAuth` to `'public'`

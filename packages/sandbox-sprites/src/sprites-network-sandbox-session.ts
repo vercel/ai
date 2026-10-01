@@ -33,8 +33,9 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * Such a session supports file and process access only and is not selected by
  * bridge-backed adapters.
  *
- * The session owns the Sprite's lifecycle only when the provider created it;
- * when the provider wraps a caller-named Sprite, `destroy()` is a no-op.
+ * `destroy()` deletes the Sprite when the session owns its lifecycle, which is
+ * every session except one the deprecated provider wraps around a
+ * caller-named Sprite (`spriteName`); there `destroy()` is a no-op.
  */
 export class SpritesNetworkSandboxSession
   extends SpritesSandboxSession
