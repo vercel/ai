@@ -34,5 +34,4 @@ export type GatewayVideoModelId =
   | 'minimax/minimax-h3-max'
   | 'spacexai/grok-imagine-video'
   | 'spacexai/grok-imagine-video-1.5'
-  | 'spacexai/grok-imagine-video-1.5-preview'
   | (string & {});

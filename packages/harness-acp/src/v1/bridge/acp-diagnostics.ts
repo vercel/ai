@@ -66,8 +66,6 @@ function getErrorMessage({ error }: { error: unknown }): string | undefined {
   if (typeof error === 'string') {
     return error;
   }
-
-  return undefined;
 }
 
 function stripMetadata({ value }: { value: unknown }): unknown {

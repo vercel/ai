@@ -1,13 +1,16 @@
 import type {
+  JSONObject,
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4Source,
+  LanguageModelV4StreamPart,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
+import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
+  wrapLanguageModel,
   type Experimental_LanguageModelStreamPart,
   type FinishReason,
   type LanguageModel,
@@ -19,7 +22,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { prepareRetries } from 'ai/internal';
-import type { ProviderOptions } from './workflow-agent.js';
+import type { ProviderOptions, StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -45,6 +48,8 @@ export interface ProviderExecutedToolResult {
   toolName: string;
   result: unknown;
   isError?: boolean;
+  dynamic?: boolean;
+  providerMetadata?: SharedV4ProviderMetadata;
 }
 
 /**
@@ -69,6 +74,9 @@ export interface DoStreamStepOptions {
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_transform?:
+    | StreamTextTransform<ToolSet>
+    | Array<StreamTextTransform<ToolSet>>;
 }
 
 /**
@@ -81,6 +89,8 @@ export interface ParsedToolCall {
   input: unknown;
   providerExecuted?: boolean;
   providerMetadata?: SharedV4ProviderMetadata;
+  title?: string;
+  toolMetadata?: JSONObject;
   dynamic?: boolean;
   invalid?: boolean;
   error?: unknown;
@@ -103,6 +113,10 @@ export type DoStreamStepRawContentPart =
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
+      type: 'reasoning';
+      reasoningIndex: number;
+    }
+  | {
       type: 'file';
       data: string;
       mediaType: string;
@@ -112,21 +126,38 @@ export type DoStreamStepRawContentPart =
   | {
       type: 'tool-call';
       toolCallIndex: number;
+    }
+  | {
+      type: 'provider-tool-result';
+      toolCallId: string;
     };
+
+/**
+ * Compact callback replay data. The start event establishes the tool name for
+ * a call, so delta events do not repeat it and available events reuse the
+ * parsed input already present in `toolCalls`.
+ */
+export type ToolInputLifecycleEvent =
+  | ['start', toolCallId: string, toolName: string]
+  | ['delta', toolCallId: string, inputTextDelta: string]
+  | ['available', toolCallId: string];
 
 /**
  * Minimal aggregates needed to reconstruct a `StepResult` outside the step
  * boundary. By returning only these fields (instead of a fully-populated
  * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant derived fields — duplicate
- * `toolCalls`/`dynamicToolCalls` lists, `text`, `files`, `sources`,
- * `reasoningText`, the always-empty `*ToolResults` arrays, and the per-chunk
- * `chunks[]` snapshot the iterator never reads. The caller reconstructs the
- * full StepResult via `buildStepResult`.
+ * carry StepResult's redundant derived fields — duplicate tool-call lists,
+ * `text`, `files`, `sources`, `reasoningText`, or the tool-result arrays
+ * populated after execution. It also avoids the per-chunk `chunks[]` snapshot
+ * the iterator never reads. The caller reconstructs the full StepResult via
+ * `buildStepResult`.
  */
 export interface DoStreamStepRawResult {
   content: DoStreamStepRawContentPart[];
-  reasoning: Array<{ text: string }>;
+  reasoning: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
 }
@@ -139,6 +170,11 @@ export type DoStreamStepResult =
       finish: StreamFinish | undefined;
       raw: DoStreamStepRawResult;
       providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
+      /**
+       * Optional for compatibility with model-step results persisted before
+       * tool input lifecycle callback replay was added.
+       */
+      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
       /** Present when the model stream emitted an error part. */
       terminalError?: unknown;
     };
@@ -170,7 +206,7 @@ export async function doStreamStep(
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
 
   // Resolve model inside step (must happen here for serialization boundary)
-  const model: LanguageModel =
+  const model =
     typeof modelInit === 'string'
       ? gateway.languageModel(modelInit)
       : modelInit;
@@ -178,9 +214,31 @@ export async function doStreamStep(
   // Reconstruct tools from serializable definitions with Ajv validation.
   // Tools are serialized before crossing the step boundary because zod schemas
   // contain functions that can't be serialized by the workflow runtime.
+  const toolInputLifecycleEvents: ToolInputLifecycleEvent[] = [];
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
+  const modelWithTransforms =
+    options?.experimental_transform == null
+      ? model
+      : wrapLanguageModel({
+          model,
+          middleware: {
+            specificationVersion: 'v4',
+            wrapStream: async ({ doStream }) => {
+              const { stream, ...result } = await doStream();
+
+              return {
+                ...result,
+                stream: applyStreamTransforms({
+                  stream,
+                  transforms: asArray(options.experimental_transform!),
+                  tools: tools ?? {},
+                }),
+              };
+            },
+          },
+        });
 
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
@@ -215,7 +273,7 @@ export async function doStreamStep(
     try {
       const { stream } = await retry(() =>
         streamModelCall({
-          model,
+          model: modelWithTransforms,
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
@@ -266,13 +324,18 @@ export async function doStreamStep(
   // Minimal aggregation — only what buildStepResult needs outside the step.
   const content: DoStreamStepRawContentPart[] = [];
   const textPartIndexes = new Map<string, number>();
-  const reasoningParts: Array<{ text: string }> = [];
+  const reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }> = [];
+  const reasoningPartIndexes = new Map<string, number>();
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
+  const ongoingToolCallToolNames = new Map<string, string>();
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
   const writer = writable?.getWriter();
@@ -285,6 +348,26 @@ export async function doStreamStep(
 
     for await (const part of modelStream) {
       switch (part.type) {
+        case 'tool-input-start':
+          ongoingToolCallToolNames.set(part.id, part.toolName);
+          if (
+            serializedTools?.[part.toolName]?.hasOnInputStart ||
+            serializedTools?.[part.toolName]?.hasOnInputDelta ||
+            serializedTools?.[part.toolName]?.hasOnInputAvailable
+          ) {
+            toolInputLifecycleEvents.push(['start', part.id, part.toolName]);
+          }
+          break;
+        case 'tool-input-delta': {
+          const toolName = ongoingToolCallToolNames.get(part.id);
+          if (
+            toolName != null &&
+            serializedTools?.[toolName]?.hasOnInputDelta
+          ) {
+            toolInputLifecycleEvents.push(['delta', part.id, part.delta]);
+          }
+          break;
+        }
         case 'text-start':
           upsertTextContentPart({
             content,
@@ -311,8 +394,34 @@ export async function doStreamStep(
           });
           textPartIndexes.delete(part.id);
           break;
+        case 'reasoning-start':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
         case 'reasoning-delta':
-          reasoningParts.push({ text: part.text });
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            textDelta: part.text,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
+        case 'reasoning-end':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          reasoningPartIndexes.delete(part.id);
           break;
         case 'file':
           content.push({
@@ -331,6 +440,19 @@ export async function doStreamStep(
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
           const toolCallIndex = toolCalls.length;
+          const lifecycleToolName = ongoingToolCallToolNames.get(
+            toolCallPart.toolCallId,
+          );
+          ongoingToolCallToolNames.delete(toolCallPart.toolCallId);
+          if (
+            lifecycleToolName != null &&
+            serializedTools?.[lifecycleToolName]?.hasOnInputAvailable
+          ) {
+            toolInputLifecycleEvents.push([
+              'available',
+              toolCallPart.toolCallId,
+            ]);
+          }
           toolCalls.push({
             type: 'tool-call',
             toolCallId: toolCallPart.toolCallId,
@@ -338,6 +460,8 @@ export async function doStreamStep(
             input: toolCallPart.input,
             providerExecuted: toolCallPart.providerExecuted,
             providerMetadata: toolCallPart.providerMetadata,
+            title: toolCallPart.title,
+            toolMetadata: toolCallPart.toolMetadata,
             dynamic: toolCallPart.dynamic,
             invalid: toolCallPart.invalid,
             error: toolCallPart.error,
@@ -352,6 +476,12 @@ export async function doStreamStep(
               toolName: part.toolName,
               result: part.output,
               isError: false,
+              dynamic: part.dynamic,
+              providerMetadata: part.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: part.toolCallId,
             });
           }
           break;
@@ -365,6 +495,12 @@ export async function doStreamStep(
               toolName: errorPart.toolName,
               result: errorPart.error,
               isError: true,
+              dynamic: errorPart.dynamic,
+              providerMetadata: errorPart.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: errorPart.toolCallId,
             });
           }
           break;
@@ -437,6 +573,7 @@ export async function doStreamStep(
       warnings,
     },
     providerExecutedToolResults,
+    toolInputLifecycleEvents,
     ...(hasTerminalError ? { terminalError } : {}),
   };
 }
@@ -444,6 +581,61 @@ export async function doStreamStep(
 // Model-call retries are handled above so the workflow runtime must not add
 // another retry layer around the durable step.
 doStreamStep.maxRetries = 0;
+
+function applyStreamTransforms({
+  stream,
+  transforms,
+  tools,
+}: {
+  stream: ReadableStream<LanguageModelV4StreamPart>;
+  transforms: Array<StreamTextTransform<ToolSet>>;
+  tools: ToolSet;
+}): ReadableStream<LanguageModelV4StreamPart> {
+  const sourceReader = stream.getReader();
+  let stopped = false;
+
+  const stopStream = () => {
+    if (stopped) {
+      return;
+    }
+
+    stopped = true;
+    void sourceReader.cancel().catch(() => {});
+  };
+
+  let transformedStream = new ReadableStream<LanguageModelV4StreamPart>(
+    {
+      async pull(controller) {
+        if (stopped) {
+          controller.close();
+          return;
+        }
+
+        const { done, value } = await sourceReader.read();
+
+        if (done || stopped) {
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(value);
+      },
+      cancel(reason) {
+        stopped = true;
+        return sourceReader.cancel(reason);
+      },
+    },
+    { highWaterMark: 0 },
+  );
+
+  for (const transform of transforms) {
+    transformedStream = transformedStream.pipeThrough(
+      transform({ tools, stopStream }),
+    );
+  }
+
+  return transformedStream;
+}
 
 function upsertTextContentPart({
   content,
@@ -475,6 +667,47 @@ function upsertTextContentPart({
   if (part.type !== 'text') {
     throw new Error(`Expected text content at index ${partIndex}.`);
   }
+
+  if (textDelta != null) {
+    part.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+  }
+}
+
+function upsertReasoningContentPart({
+  content,
+  reasoningParts,
+  reasoningPartIndexes,
+  id,
+  textDelta,
+  providerMetadata,
+}: {
+  content: DoStreamStepRawContentPart[];
+  reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  reasoningPartIndexes: Map<string, number>;
+  id: string;
+  textDelta?: string;
+  providerMetadata?: SharedV4ProviderMetadata;
+}) {
+  let partIndex = reasoningPartIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      reasoningParts.push({
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    reasoningPartIndexes.set(id, partIndex);
+    content.push({ type: 'reasoning', reasoningIndex: partIndex });
+  }
+
+  const part = reasoningParts[partIndex];
 
   if (textDelta != null) {
     part.text += textDelta;

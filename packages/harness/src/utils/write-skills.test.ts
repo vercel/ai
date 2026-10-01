@@ -67,7 +67,8 @@ describe('writeSkills', () => {
     const state = makeSandbox();
     const result = await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/home/user/.agents/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [demoSkill],
     });
 
@@ -107,7 +108,8 @@ describe('writeSkills', () => {
     const state = makeSandbox();
     await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [demoSkill],
     });
     const writeCount = state.writes.length;
@@ -115,7 +117,8 @@ describe('writeSkills', () => {
 
     const result = await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [demoSkill],
     });
 
@@ -131,11 +134,12 @@ describe('writeSkills', () => {
 
   it('replaces changed skills and removes only manifest-owned skills', async () => {
     const state = makeSandbox();
-    state.directories.add('/skills/external');
-    state.files.set('/skills/external/SKILL.md', 'external');
+    state.directories.add('/home/user/.agents/skills/external');
+    state.files.set('/home/user/.agents/skills/external/SKILL.md', 'external');
     await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [
         demoSkill,
         { name: 'old', description: 'Old.', content: 'Old.' },
@@ -144,7 +148,8 @@ describe('writeSkills', () => {
 
     const result = await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [{ ...demoSkill, content: 'Changed.' }],
     });
 
@@ -154,16 +159,23 @@ describe('writeSkills', () => {
       removed: ['old'],
       unchanged: [],
     });
-    expect(state.files.get('/skills/demo/SKILL.md')).toContain('Changed.');
-    expect(state.files.has('/skills/old/SKILL.md')).toBe(false);
-    expect(state.files.get('/skills/external/SKILL.md')).toBe('external');
+    expect(
+      state.files.get('/home/user/.agents/skills/demo/SKILL.md'),
+    ).toContain('Changed.');
+    expect(state.files.has('/home/user/.agents/skills/old/SKILL.md')).toBe(
+      false,
+    );
+    expect(state.files.get('/home/user/.agents/skills/external/SKILL.md')).toBe(
+      'external',
+    );
   });
 
   it('sorts result and manifest entries by skill name', async () => {
     const state = makeSandbox();
     const result = await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [
         { name: 'zeta', description: 'Z.', content: 'Z.' },
         { name: 'alpha', description: 'A.', content: 'A.' },
@@ -172,7 +184,7 @@ describe('writeSkills', () => {
 
     expect(result.written).toEqual(['alpha', 'zeta']);
     const manifest = JSON.parse(
-      state.files.get('/skills/.ai-sdk-harness-skills.json')!,
+      state.files.get('/home/user/.agents/skills/.ai-sdk-harness-skills.json')!,
     );
     expect(
       manifest.skills.map((skill: { name: string }) => skill.name),
@@ -181,22 +193,25 @@ describe('writeSkills', () => {
 
   it('rejects collisions with skill directories not owned by the manifest', async () => {
     const state = makeSandbox();
-    state.directories.add('/skills/demo');
+    state.directories.add('/home/user/.agents/skills/demo');
 
     await expect(
       writeSkills({
         sandbox: state.sandbox,
-        rootDir: '/skills',
+        homePath: '/home/user',
+        skillsDir: '.agents/skills',
         skills: [demoSkill],
       }),
     ).rejects.toThrow('already exists and is not owned');
-    expect(state.files.has('/skills/.ai-sdk-harness-skills.json')).toBe(false);
+    expect(
+      state.files.has('/home/user/.agents/skills/.ai-sdk-harness-skills.json'),
+    ).toBe(false);
   });
 
   it('recovers a pending update by clearing every recorded directory', async () => {
     const state = makeSandbox();
     state.files.set(
-      '/skills/.ai-sdk-harness-skills.json',
+      '/home/user/.agents/skills/.ai-sdk-harness-skills.json',
       JSON.stringify({
         version: 1,
         state: 'pending',
@@ -206,12 +221,13 @@ describe('writeSkills', () => {
         ],
       }),
     );
-    state.files.set('/skills/demo/partial.txt', 'partial');
-    state.files.set('/skills/old/SKILL.md', 'old');
+    state.files.set('/home/user/.agents/skills/demo/partial.txt', 'partial');
+    state.files.set('/home/user/.agents/skills/old/SKILL.md', 'old');
 
     const result = await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       skills: [demoSkill],
     });
 
@@ -221,9 +237,15 @@ describe('writeSkills', () => {
       removed: ['old'],
       unchanged: [],
     });
-    expect(state.files.has('/skills/demo/partial.txt')).toBe(false);
-    expect(state.files.has('/skills/old/SKILL.md')).toBe(false);
-    expect(state.files.has('/skills/demo/SKILL.md')).toBe(true);
+    expect(state.files.has('/home/user/.agents/skills/demo/partial.txt')).toBe(
+      false,
+    );
+    expect(state.files.has('/home/user/.agents/skills/old/SKILL.md')).toBe(
+      false,
+    );
+    expect(state.files.has('/home/user/.agents/skills/demo/SKILL.md')).toBe(
+      true,
+    );
   });
 
   it('validates all skill paths before writing', async () => {
@@ -231,7 +253,8 @@ describe('writeSkills', () => {
     await expect(
       writeSkills({
         sandbox: state.sandbox,
-        rootDir: '/skills',
+        homePath: '/home/user',
+        skillsDir: '.agents/skills',
         skills: [
           {
             ...demoSkill,
@@ -248,7 +271,8 @@ describe('writeSkills', () => {
     await expect(
       writeSkills({
         sandbox: makeSandbox().sandbox,
-        rootDir: '/skills',
+        homePath: '/home/user',
+        skillsDir: '.agents/skills',
         skillNamePattern: /^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$/,
         invalidSkillNameMessage: ({ name }) =>
           `Invalid deepagents skill name '${name}': must be lowercase alphanumeric with hyphens, 1-64 chars.`,
@@ -261,7 +285,8 @@ describe('writeSkills', () => {
     const state = makeSandbox();
     await writeSkills({
       sandbox: state.sandbox,
-      rootDir: '/skills',
+      homePath: '/home/user',
+      skillsDir: '.agents/skills',
       filePathMode: 'strip-leading-slashes',
       skills: [
         {
@@ -272,6 +297,55 @@ describe('writeSkills', () => {
         },
       ],
     });
-    expect(state.files.get('/skills/demo/reference.md')).toBe('# Reference');
+    expect(state.files.get('/home/user/.agents/skills/demo/reference.md')).toBe(
+      '# Reference',
+    );
   });
+  it('rejects non-absolute or empty homePath', async () => {
+    const state = makeSandbox();
+    await expect(
+      writeSkills({
+        sandbox: state.sandbox,
+        homePath: 'relative/home',
+        skillsDir: '.agents/skills',
+        skills: [demoSkill],
+      }),
+    ).rejects.toThrow(
+      'Invalid homePath "relative/home": expected an absolute POSIX path.',
+    );
+
+    await expect(
+      writeSkills({
+        sandbox: state.sandbox,
+        homePath: '   ',
+        skillsDir: '.agents/skills',
+        skills: [demoSkill],
+      }),
+    ).rejects.toThrow('Invalid homePath: expected a non-empty string.');
+  });
+
+  it.each([
+    { skillsDir: '/skills', reason: 'absolute POSIX path' },
+    { skillsDir: 'C:\\skills', reason: 'Windows absolute path' },
+    { skillsDir: 'skills\\sub', reason: 'Windows separator' },
+    { skillsDir: '../skills', reason: 'parent traversal' },
+    { skillsDir: 'foo/../../bar', reason: 'nested traversal' },
+    { skillsDir: '', reason: 'empty path' },
+    { skillsDir: '   ', reason: 'whitespace path' },
+    { skillsDir: '.', reason: 'dot path' },
+    { skillsDir: './', reason: 'dot-slash path' },
+  ])(
+    'rejects invalid skillsDir $skillsDir ($reason)',
+    async ({ skillsDir }) => {
+      const state = makeSandbox();
+      await expect(
+        writeSkills({
+          sandbox: state.sandbox,
+          homePath: '/home/user',
+          skillsDir,
+          skills: [demoSkill],
+        }),
+      ).rejects.toThrow('expected a relative POSIX path without traversal');
+    },
+  );
 });

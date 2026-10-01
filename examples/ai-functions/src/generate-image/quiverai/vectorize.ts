@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { images } = await generateImage({
-    model: quiverai.image('arrow-1.1'),
+    model: quiverai.image('arrow-2'),
     prompt: {
       images: [await fs.readFile('data/wtf-logo.png')],
     },

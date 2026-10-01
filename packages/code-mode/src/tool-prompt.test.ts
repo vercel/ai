@@ -1,7 +1,10 @@
 import { jsonSchema, tool } from 'ai';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
-import { experimental_createCodeModeTool as createCodeModeTool } from '../dist/index.js';
+import {
+  experimental_codeModeTool as codeModeTool,
+  experimental_createCodeModeTool as createCodeModeTool,
+} from '../dist/index.js';
 
 const BASE_RULES = `Execute code-mode TypeScript in an isolated sandbox.
 
@@ -187,5 +190,20 @@ return { accepted: result.accepted };
 No host tools. Do not call \`tools.*\`.`,
     );
     expect(wordCount(codeMode.description)).toBeLessThanOrEqual(65);
+  });
+
+  it('uses a stable description for conversation discovery', () => {
+    const codeMode = codeModeTool({ toolDiscovery: 'conversation' });
+
+    expect(codeMode.description)
+      .toBe(`Execute code-mode TypeScript in an isolated sandbox.
+
+Put the full program in \`js\`; top-level \`await\`/\`return\` work. Return a JSON-serializable result.
+Call host tools only as async \`tools.name(input)\`; await each or use \`Promise.all\` for independent calls.
+Use exact names/types from the latest capability update. \`JSON.parse\`/\`JSON.stringify\` are available.
+Fetch: \`fetch\` is not available.
+
+Tools:
+The current host-tool API is provided in "Code mode capability update" user messages. Follow the latest catalog and ignore earlier catalogs.`);
   });
 });

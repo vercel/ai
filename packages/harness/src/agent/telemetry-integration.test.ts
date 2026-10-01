@@ -29,6 +29,25 @@ const usage = {
   outputTokens: { total: 2, text: 2, reasoning: undefined },
 };
 
+function completedTurnScript(modelId: string): HarnessV1StreamPart[] {
+  return [
+    { type: 'stream-start', modelId },
+    { type: 'text-start', id: 't1' },
+    { type: 'text-delta', id: 't1', delta: 'done' },
+    { type: 'text-end', id: 't1' },
+    {
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      usage,
+    },
+    {
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'stop' },
+      totalUsage: usage,
+    },
+  ];
+}
+
 function scriptedHarness(script: HarnessV1StreamPart[]): HarnessV1 {
   const session: HarnessV1Session = {
     sessionId: 'tel-session',
@@ -148,6 +167,104 @@ function recordingIntegration(): {
 }
 
 describe('HarnessAgent telemetry integration', () => {
+  test.each([
+    {
+      name: 'when inclusion is omitted',
+      includeRuntimeContext: undefined,
+      expectedContext: {},
+    },
+    {
+      name: 'when the property is disabled',
+      includeRuntimeContext: { conversationId: false },
+      expectedContext: {},
+    },
+    {
+      name: 'when the property is enabled',
+      includeRuntimeContext: { conversationId: true },
+      expectedContext: { conversationId: 'conversation-1' },
+    },
+  ])(
+    'filters runtime context for direct integrations $name',
+    async ({ includeRuntimeContext, expectedContext }) => {
+      type RuntimeContext = { conversationId: string };
+      const harness = scriptedHarness(completedTurnScript('context-model'));
+      const { integration, events } = recordingIntegration();
+      const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+        harness,
+        sandbox: makeSandboxProvider(),
+        runtimeContext: { conversationId: 'conversation-1' },
+        telemetry: {
+          integrations: [integration],
+          ...(includeRuntimeContext == null ? {} : { includeRuntimeContext }),
+        },
+      });
+
+      const session = await agent.createSession();
+      await agent.generate({ session, prompt: 'go' });
+      await session.destroy();
+
+      const start = events.onStart as { runtimeContext: unknown };
+      const stepStart = events.onStepStart as { runtimeContext: unknown };
+      const stepEnd = events.onStepFinish as { runtimeContext: unknown };
+      const end = events.onEnd as {
+        runtimeContext: unknown;
+        finalStep: { runtimeContext: unknown };
+        steps: Array<{ runtimeContext: unknown }>;
+      };
+      expect([
+        start.runtimeContext,
+        stepStart.runtimeContext,
+        stepEnd.runtimeContext,
+        end.runtimeContext,
+        end.finalStep.runtimeContext,
+        ...end.steps.map(step => step.runtimeContext),
+      ]).toEqual(Array(6).fill(expectedContext));
+    },
+  );
+
+  test.each([
+    {
+      name: 'when inclusion is omitted',
+      includeRuntimeContext: undefined,
+      expectedAttribute: undefined,
+    },
+    {
+      name: 'when the property is disabled',
+      includeRuntimeContext: { conversationId: false },
+      expectedAttribute: undefined,
+    },
+    {
+      name: 'when the property is enabled',
+      includeRuntimeContext: { conversationId: true },
+      expectedAttribute: 'conversation-1',
+    },
+  ])(
+    'filters runtime context from exported spans $name',
+    async ({ includeRuntimeContext, expectedAttribute }) => {
+      type RuntimeContext = { conversationId: string };
+      const harness = scriptedHarness(completedTurnScript('context-model'));
+      const { exporter, tracer } = createSdkTracer();
+      const agent = new HarnessAgent<typeof harness, {}, RuntimeContext>({
+        harness,
+        sandbox: makeSandboxProvider(),
+        runtimeContext: { conversationId: 'conversation-1' },
+        telemetry: {
+          integrations: [new OpenTelemetry({ tracer, runtimeContext: true })],
+          ...(includeRuntimeContext == null ? {} : { includeRuntimeContext }),
+        },
+      });
+
+      const session = await agent.createSession();
+      await agent.generate({ session, prompt: 'go' });
+      await session.destroy();
+
+      const rootSpan = getExportedSpan(exporter, 'ai.harness context-model');
+      expect(rootSpan.attributes['ai.settings.context.conversationId']).toBe(
+        expectedAttribute,
+      );
+    },
+  );
+
   test('drives the Telemetry lifecycle from the turn stream', async () => {
     const harness = scriptedHarness([
       { type: 'stream-start' },
@@ -215,18 +332,26 @@ describe('HarnessAgent telemetry integration', () => {
     };
     expect(lmEnd.content).toEqual([
       { type: 'text', text: 'hi' },
-      {
+      expect.objectContaining({
         type: 'tool-call',
         toolCallId: 'c1',
         toolName: 'bash',
-        input: '{"command":"ls"}',
-      },
+        input: { command: 'ls' },
+      }),
+      expect.objectContaining({
+        type: 'tool-result',
+        toolCallId: 'c1',
+        toolName: 'bash',
+        output: { output: 'ok' },
+      }),
     ]);
-    expect(lmEnd.performance).toEqual({
-      responseTimeMs: undefined,
-      timeToFirstOutputMs: undefined,
-      timeBetweenOutputChunksMs: undefined,
-    });
+    expect(lmEnd.performance).toEqual(
+      expect.objectContaining({
+        responseTimeMs: expect.any(Number),
+        timeToFirstOutputMs: undefined,
+        timeBetweenOutputChunksMs: undefined,
+      }),
+    );
     expect(lmEnd.finishReason).toBe('stop');
     expect(lmEnd.providerMetadata).toEqual({
       gateway: { generationId: 'generation-id' },
@@ -253,19 +378,17 @@ describe('HarnessAgent telemetry integration', () => {
       files: unknown[];
     };
     expect(end.text).toBe('hi');
-    expect(end.finalStep).toEqual({
-      reasoning: [],
-      providerMetadata: {
-        gateway: { generationId: 'generation-id' },
-      },
+    expect(end.finalStep.reasoning).toEqual([]);
+    expect(end.finalStep.providerMetadata).toEqual({
+      gateway: { generationId: 'generation-id' },
     });
     expect(end.toolCalls).toEqual([
-      {
+      expect.objectContaining({
         type: 'tool-call',
         toolCallId: 'c1',
         toolName: 'bash',
-        input: '{"command":"ls"}',
-      },
+        input: { command: 'ls' },
+      }),
     ]);
     expect(end.files).toEqual([]);
     expect(end.finishReason).toBe('stop');
@@ -518,7 +641,9 @@ describe('HarnessAgent telemetry integration', () => {
       finalStep: { reasoning: unknown[] };
     };
     expect(end.text).toBe('final');
-    expect(end.finalStep.reasoning).toEqual([{ text: 'final thought' }]);
+    expect(end.finalStep.reasoning).toEqual([
+      { type: 'reasoning', text: 'final thought' },
+    ]);
   });
 
   test('exports normalized OpenTelemetry spans from HarnessAgent turns', async () => {
@@ -669,7 +794,12 @@ describe('HarnessAgent telemetry integration', () => {
               type: 'tool_call',
               id: 'c1',
               name: 'bash',
-              arguments: '{"command":"ls"}',
+              arguments: { command: 'ls' },
+            },
+            {
+              type: 'tool_call_response',
+              id: 'c1',
+              response: { output: 'ok' },
             },
           ],
           finish_reason: 'stop',

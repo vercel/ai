@@ -37,9 +37,14 @@ export type {
   InitializeResult,
   ListToolsResult,
   McpProviderMetadata,
+  McpToolAnnotations,
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
+export {
+  MCPClientOAuthError,
+  AuthorizationServerMismatchError,
+} from './error/oauth-error';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,

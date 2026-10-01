@@ -17,6 +17,7 @@ import type { ToolSet } from '@ai-sdk/provider-utils';
  * @param options.tools - The tools that are available.
  * @param options.inputSchema - A function that returns the JSON Schema for a tool.
  * @param options.error - The error that occurred while parsing the tool call.
+ * @param options.abortSignal - An optional signal for cancelling the repair.
  */
 export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   instructions: Instructions | undefined;
@@ -29,4 +30,5 @@ export type ToolCallRepairFunction<TOOLS extends ToolSet> = (options: {
   tools: TOOLS;
   inputSchema: (options: { toolName: string }) => PromiseLike<JSONSchema7>;
   error: NoSuchToolError | InvalidToolInputError;
+  abortSignal?: AbortSignal;
 }) => Promise<LanguageModelV4ToolCall | null>;

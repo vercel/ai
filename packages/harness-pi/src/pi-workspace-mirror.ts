@@ -7,6 +7,7 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import path from 'node:path';
+import { gunzipSync } from 'node:zlib';
 import { shellQuote } from '@ai-sdk/harness/utils';
 import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
 
@@ -31,6 +32,21 @@ import type { Experimental_SandboxSession } from '@ai-sdk/provider-utils';
  */
 const PI_CONFIG_DIRS = ['.pi', '.agents'] as const;
 const PI_CONTEXT_FILENAMES = ['AGENTS.md', 'AGENTS.MD'] as const;
+
+/*
+ * The mirror runs on session start and again on every turn, so its cost must
+ * not scale with the number of files in scope. Reading one file per
+ * `readBinaryFile` call turns a `.agents/skills` tree of a few thousand
+ * `SKILL.md` files into a few thousand sequential round trips per turn, which
+ * exhausts the request budget of any sandbox whose filesystem calls are network
+ * calls: the report behind this code saw `429 Rate limit exceeded` from a
+ * MicroVM proxy long before a sync finished. Files are therefore transferred in
+ * batches as a single gzipped tar archive per batch, which is one request for a
+ * few hundred files instead of one request per file. Sandboxes without `tar`,
+ * `gzip`, or `base64` fall back to per-file reads.
+ */
+export const ARCHIVE_BATCH_SIZE = 300;
+const TAR_BLOCK_SIZE = 512;
 
 function normalizeRelativePath(inputPath: string): string {
   const normalized = inputPath.split(path.posix.sep).join(path.sep);
@@ -209,6 +225,109 @@ async function listRemoteWorkspaceEntries(
   return { directories, files };
 }
 
+function readTarString(header: Buffer, offset: number, length: number): string {
+  const field = header.subarray(offset, offset + length);
+  const end = field.indexOf(0);
+  return field.subarray(0, end === -1 ? field.length : end).toString('utf8');
+}
+
+/**
+ * Extract the regular files from a ustar archive, keyed by member name.
+ * Supports the `prefix` field, GNU long-name (`L`) entries, and pax (`x`)
+ * `path` records, which is how the common tar implementations spell a member
+ * path longer than 100 characters.
+ */
+function parseTarFiles(archive: Buffer): Map<string, Buffer> {
+  const files = new Map<string, Buffer>();
+  let overrideName: string | undefined;
+  let offset = 0;
+
+  while (offset + TAR_BLOCK_SIZE <= archive.length) {
+    const header = archive.subarray(offset, offset + TAR_BLOCK_SIZE);
+    if (header.every(byte => byte === 0)) break;
+
+    const size = Number.parseInt(
+      readTarString(header, 124, 12).trim() || '0',
+      8,
+    );
+    const typeFlag = String.fromCharCode(header[156] as number);
+    const dataStart = offset + TAR_BLOCK_SIZE;
+    const data = archive.subarray(dataStart, dataStart + size);
+    offset = dataStart + Math.ceil(size / TAR_BLOCK_SIZE) * TAR_BLOCK_SIZE;
+
+    if (typeFlag === 'L') {
+      overrideName = readTarString(data, 0, data.length);
+      continue;
+    }
+    if (typeFlag === 'x' || typeFlag === 'X') {
+      const pathRecord = data
+        .toString('utf8')
+        .split('\n')
+        .map(record => /^\d+ path=(.*)$/.exec(record)?.[1])
+        .find(value => value != null);
+      if (pathRecord != null) overrideName = pathRecord;
+      continue;
+    }
+
+    if (typeFlag === '0' || typeFlag === '\0') {
+      const name = readTarString(header, 0, 100);
+      const prefix = readTarString(header, 345, 155);
+      files.set(
+        overrideName ?? (prefix === '' ? name : `${prefix}/${name}`),
+        Buffer.from(data),
+      );
+    }
+    overrideName = undefined;
+  }
+
+  return files;
+}
+
+/**
+ * Transfer a batch of sandbox files with a single command. Returns the decoded
+ * contents keyed by the requested sandbox path, leaving out anything the
+ * sandbox could not archive (no `tar`/`gzip`/`base64`, or a file that vanished
+ * mid-sync) so the caller can fall back to a per-file read.
+ */
+async function readSandboxFilesAsArchive(
+  sandbox: Experimental_SandboxSession,
+  sandboxPaths: string[],
+): Promise<Map<string, Buffer>> {
+  // Archive relative to `/` so member names are the requested absolute paths
+  // without their leading slash, wherever the files live: the traversal
+  // resolves symlinks, so these paths can point outside the workspace.
+  const members = sandboxPaths.map(sandboxPath =>
+    sandboxPath.replace(/^\/+/, ''),
+  );
+  const command = `tar -C / -czf - -- ${members
+    .map(shellQuote)
+    .join(' ')} 2>/dev/null | base64`;
+
+  let encoded: string;
+  try {
+    encoded = (await readCommandOutput(sandbox, command)).replace(/\s+/g, '');
+  } catch {
+    return new Map();
+  }
+  if (encoded === '') return new Map();
+
+  let entries: Map<string, Buffer>;
+  try {
+    entries = parseTarFiles(gunzipSync(Buffer.from(encoded, 'base64')));
+  } catch {
+    return new Map();
+  }
+
+  const contents = new Map<string, Buffer>();
+  for (const [index, member] of members.entries()) {
+    const content = entries.get(member);
+    if (content != null) {
+      contents.set(sandboxPaths[index] as string, content);
+    }
+  }
+  return contents;
+}
+
 async function pathKind(
   target: string,
 ): Promise<'file' | 'directory' | undefined> {
@@ -330,27 +449,45 @@ export async function syncHostWorkspaceFromSandbox(args: {
     await mkdir(path.join(hostWorkDir, relativePath), { recursive: true });
   }
 
-  for (const { relativePath, sandboxPath } of remoteEntries.files) {
-    const bytes = await sandbox.readBinaryFile({ path: sandboxPath });
-    if (!bytes) {
-      throw new Error(
-        `Sandbox workspace file disappeared during mirror sync: ${sandboxPath}`,
-      );
-    }
-    const content = Buffer.from(bytes);
+  for (
+    let offset = 0;
+    offset < remoteEntries.files.length;
+    offset += ARCHIVE_BATCH_SIZE
+  ) {
+    const batch = remoteEntries.files.slice(
+      offset,
+      offset + ARCHIVE_BATCH_SIZE,
+    );
+    const archived = await readSandboxFilesAsArchive(
+      sandbox,
+      batch.map(file => file.sandboxPath),
+    );
 
-    const hostPath = path.join(hostWorkDir, relativePath);
-    let shouldWrite = true;
-    try {
-      const existing = await readFile(hostPath);
-      shouldWrite = !existing.equals(content);
-    } catch {
-      shouldWrite = true;
-    }
+    for (const { relativePath, sandboxPath } of batch) {
+      let content = archived.get(sandboxPath);
+      if (content == null) {
+        const bytes = await sandbox.readBinaryFile({ path: sandboxPath });
+        if (!bytes) {
+          throw new Error(
+            `Sandbox workspace file disappeared during mirror sync: ${sandboxPath}`,
+          );
+        }
+        content = Buffer.from(bytes);
+      }
 
-    if (shouldWrite) {
-      await mkdir(path.dirname(hostPath), { recursive: true });
-      await writeFile(hostPath, content);
+      const hostPath = path.join(hostWorkDir, relativePath);
+      let shouldWrite = true;
+      try {
+        const existing = await readFile(hostPath);
+        shouldWrite = !existing.equals(content);
+      } catch {
+        shouldWrite = true;
+      }
+
+      if (shouldWrite) {
+        await mkdir(path.dirname(hostPath), { recursive: true });
+        await writeFile(hostPath, content);
+      }
     }
   }
 }

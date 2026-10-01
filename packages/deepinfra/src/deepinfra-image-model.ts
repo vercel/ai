@@ -39,6 +39,27 @@ export class DeepInfraImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
+  get supportsFileInputs(): boolean | undefined {
+    return [
+      'stabilityai/sd3.5',
+      'black-forest-labs/FLUX-1.1-pro',
+      'black-forest-labs/FLUX-1-schnell',
+      'black-forest-labs/FLUX-1-dev',
+      'black-forest-labs/FLUX-pro',
+      'black-forest-labs/FLUX.1-Kontext-dev',
+      'black-forest-labs/FLUX.1-Kontext-pro',
+      'Qwen/Qwen-Image-Edit',
+      'stabilityai/sd3.5-medium',
+      'stabilityai/sdxl-turbo',
+    ].includes(this.modelId)
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs;
+  }
+
   get provider(): string {
     return this.config.provider;
   }
@@ -97,7 +118,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
             mask: mask != null ? await fileToBlob(mask) : undefined,
             n,
             size,
-            ...(deepInfraOptions ?? {}),
+            ...deepInfraOptions,
           },
           { useArrayBrackets: false },
         ),
@@ -136,7 +157,7 @@ export class DeepInfraImageModel implements ImageModelV4 {
         ...(aspectRatio && { aspect_ratio: aspectRatio }),
         ...(splitSize && { width: splitSize[0], height: splitSize[1] }),
         ...(seed != null && { seed }),
-        ...(deepInfraOptions ?? {}),
+        ...deepInfraOptions,
       },
       failedResponseHandler: createJsonErrorResponseHandler({
         errorSchema: deepInfraErrorSchema,

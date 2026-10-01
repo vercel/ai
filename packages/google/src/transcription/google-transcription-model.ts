@@ -217,6 +217,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       language: undefined,
       durationInSeconds: undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
@@ -226,7 +227,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
       ...(response.usage != null
         ? {
             providerMetadata: {
-              google: { usage: response.usage as JSONObject },
+              google: { usage: response.usage },
             },
           }
         : {}),
@@ -434,6 +435,7 @@ function createGoogleLiveTranscriptionStream({
           segments: [],
           language,
           durationInSeconds: undefined,
+          usage: usageMetadata,
           ...(usageMetadata != null
             ? { providerMetadata: { google: { usageMetadata } } }
             : {}),
@@ -710,5 +712,5 @@ const googleInteractionsTranscriptionResponseSchema = z.object({
       }),
     )
     .nullish(),
-  usage: z.record(z.string(), z.unknown()).nullish(),
+  usage: z.record(z.string(), z.json()).nullish(),
 });

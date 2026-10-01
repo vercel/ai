@@ -7,7 +7,7 @@ import { run } from '../../lib/run';
 run(async () => {
   console.log('Generating base image of an echidna...');
   const baseResult = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt:
       'Generate an image of an echidna swimming across the Mozambique channel.',
     tools: {
@@ -39,7 +39,7 @@ run(async () => {
 
   console.log('Editing image to add vibrant colors...');
   const editResult = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt: [
       {
         role: 'user',

@@ -84,7 +84,7 @@ Tool: bookFlight("BA123", "12th December", ["John Doe", "Jane Doe"])
 Model: Your flight has been booked!
 ```
 
-In the last tool call, the `bookFlight` tool does not include passenger details as it is not available in the application context. As a result, it requests the user to provide the passenger details before proceeding with the booking.
+Before the last tool call, the passenger details needed by the `bookFlight` tool are not available in the application context. As a result, the model asks the user to provide the passenger details before proceeding with the booking.
 
 Looking up passenger information could've been another tool that the model could've called before calling the `bookFlight` tool assuming that the user is logged into the application. This way, the model does not have to ask the user for the passenger details and can proceed with the booking.
 

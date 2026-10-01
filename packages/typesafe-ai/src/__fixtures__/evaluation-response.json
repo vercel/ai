@@ -1,0 +1,40 @@
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "department": {
+      "type": "choice",
+      "choice": "billing",
+      "confidence": 1.0,
+      "probabilities": {
+        "technical": 0.0,
+        "other": 0.0,
+        "billing": 1.0
+      }
+    },
+    "severity": {
+      "type": "score",
+      "score": 0.97,
+      "confidence": 0.64,
+      "legend": {
+        "0": {
+          "meaning": "Cosmetic; functionality works"
+        },
+        "1": "Functionality impaired; workaround exists",
+        "2": "Blocking; no workaround"
+      },
+      "probabilities": {
+        "0": 0.13,
+        "1": 0.76,
+        "2": 0.11
+      }
+    },
+    "requestsRefund": {
+      "type": "noul",
+      "noul": 0.99
+    }
+  },
+  "usage": {
+    "input_tokens": 471,
+    "output_tokens": 71
+  }
+}

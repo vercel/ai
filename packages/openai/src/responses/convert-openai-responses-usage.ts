@@ -1,19 +1,24 @@
-import type { LanguageModelV4Usage } from '@ai-sdk/provider';
+import type { JSONObject, LanguageModelV4Usage } from '@ai-sdk/provider';
 import { createNullLanguageModelUsage } from '@ai-sdk/provider-utils';
 
-export type OpenAIResponsesUsage = {
+export type OpenAIResponsesUsage = JSONObject & {
   input_tokens: number;
   output_tokens: number;
-  input_tokens_details?: {
-    cached_tokens?: number | null;
-    cache_write_tokens?: number | null;
-    orchestration_input_tokens?: number | null;
-    orchestration_input_cached_tokens?: number | null;
-  } | null;
-  output_tokens_details?: {
-    reasoning_tokens?: number | null;
-    orchestration_output_tokens?: number | null;
-  } | null;
+  total_tokens?: number;
+  input_tokens_details?:
+    | (JSONObject & {
+        cached_tokens?: number | null;
+        cache_write_tokens?: number | null;
+        orchestration_input_tokens?: number | null;
+        orchestration_input_cached_tokens?: number | null;
+      })
+    | null;
+  output_tokens_details?:
+    | (JSONObject & {
+        reasoning_tokens?: number | null;
+        orchestration_output_tokens?: number | null;
+      })
+    | null;
 };
 
 export function convertOpenAIResponsesUsage(
