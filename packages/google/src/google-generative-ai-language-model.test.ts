@@ -545,6 +545,32 @@ describe('doGenerate', () => {
     `);
   });
 
+  it('should include tool-use prompt tokens in input usage', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: { parts: [{ text: '8' }], role: 'model' },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+        usageMetadata: {
+          promptTokenCount: 90,
+          candidatesTokenCount: 1,
+          toolUsePromptTokenCount: 27081,
+          totalTokenCount: 27172,
+        },
+      },
+    };
+
+    const { usage } = await model.doGenerate({ prompt: TEST_PROMPT });
+
+    expect(usage.inputTokens).toBe(27171);
+    expect(usage.totalTokens).toBe(27172);
+  });
+
   it('should extract usage', async () => {
     prepareJsonResponse({
       usage: {
@@ -3285,6 +3311,35 @@ describe('doStream', () => {
         },
       ],
     });
+  });
+
+  it('should include tool-use prompt tokens in streamed input usage', async () => {
+    server.urls[TEST_URL_GEMINI_PRO].response = {
+      type: 'stream-chunks',
+      chunks: [
+        `data: ${JSON.stringify({
+          candidates: [
+            {
+              content: { parts: [{ text: '8' }], role: 'model' },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          usageMetadata: {
+            promptTokenCount: 90,
+            candidatesTokenCount: 1,
+            toolUsePromptTokenCount: 27081,
+            totalTokenCount: 27172,
+          },
+        })}\n\n`,
+      ],
+    };
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const parts = await convertReadableStreamToArray(stream);
+    const finish = parts.find(part => part.type === 'finish');
+
+    expect(finish?.type === 'finish' && finish.usage.inputTokens).toBe(27171);
   });
 
   it('should stream text deltas', async () => {
