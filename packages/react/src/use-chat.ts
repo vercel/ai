@@ -13,7 +13,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from 'react';
 import { Chat } from './chat.react';
 
@@ -181,87 +180,75 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, isExternallyManaged]);
 
-  const [messagesState, setMessagesState] = useState(() => ({
+  const [snapshot, setSnapshot] = useState(() => ({
     chat,
     messages: chat.messages,
+    status: chat.status,
+    error: chat.error,
   }));
-
-  const messages =
-    messagesState.chat === chat ? messagesState.messages : chat.messages;
 
   useEffect(() => {
     let isSubscribed = true;
+    const readSnapshot = () => ({
+      chat,
+      messages: chat.messages,
+      status: chat.status,
+      error: chat.error,
+    });
+
+    const publishSnapshot = () => {
+      if (!isSubscribed) {
+        return;
+      }
+
+      const nextSnapshot = readSnapshot();
+      setSnapshot(current =>
+        !isSubscribed ||
+        current.chat !== chat ||
+        (current.messages === nextSnapshot.messages &&
+          current.status === nextSnapshot.status &&
+          current.error === nextSnapshot.error)
+          ? current
+          : nextSnapshot,
+      );
+    };
 
     const updateMessages = () => {
-      const nextMessages = chat.messages;
-      const publishMessages = () => {
-        setMessagesState(current =>
-          !isSubscribed ||
-          current.chat !== chat ||
-          current.messages === nextMessages
-            ? current
-            : { chat, messages: nextMessages },
-        );
-      };
-
       if (chat.status === 'streaming') {
-        startTransition(publishMessages);
+        startTransition(publishSnapshot);
       } else {
-        publishMessages();
+        publishSnapshot();
       }
     };
 
-    const unsubscribe = chat['~registerMessagesCallback'](
-      updateMessages,
-      throttleWaitMs,
-    );
+    const unsubscribes = [
+      chat['~registerMessagesCallback'](updateMessages, throttleWaitMs),
+      chat['~registerStatusCallback'](publishSnapshot),
+      chat['~registerErrorCallback'](publishSnapshot),
+    ];
 
-    // Synchronize changes that may have happened between render and
-    // subscription, including switching to a different Chat instance.
-    const nextMessages = chat.messages;
-    setMessagesState(current =>
-      current.chat === chat && current.messages === nextMessages
+    // Synchronize changes between render and subscription, including replacing
+    // the Chat instance. Each update publishes messages, status, and error together.
+    const nextSnapshot = readSnapshot();
+    setSnapshot(current =>
+      current.chat === chat &&
+      current.messages === nextSnapshot.messages &&
+      current.status === nextSnapshot.status &&
+      current.error === nextSnapshot.error
         ? current
-        : { chat, messages: nextMessages },
+        : nextSnapshot,
     );
 
     return () => {
       isSubscribed = false;
-      unsubscribe();
+      unsubscribes.forEach(unsubscribe => unsubscribe());
     };
   }, [chat, throttleWaitMs]);
 
-  const subscribeToStatus = useCallback(
-    (update: () => void) =>
-      chat['~registerStatusCallback'](() => {
-        if (chat.status === 'ready' || chat.status === 'error') {
-          // Publish the latest messages before the terminal status can render.
-          const nextMessages = chat.messages;
-          setMessagesState(current =>
-            current.chat === chat && current.messages !== nextMessages
-              ? { chat, messages: nextMessages }
-              : current,
-          );
-        }
-
-        update();
-      }),
-    [chat],
-  );
-
-  const getStatusSnapshot = useCallback(() => chat.status, [chat]);
-
-  const status = useSyncExternalStore(
-    subscribeToStatus,
-    getStatusSnapshot,
-    getStatusSnapshot,
-  );
-
-  const error = useSyncExternalStore(
-    chat['~registerErrorCallback'],
-    () => chat.error,
-    () => chat.error,
-  );
+  const { messages, status, error } =
+    snapshot.chat === chat
+      ? snapshot
+      : { messages: chat.messages, status: chat.status, error: chat.error };
 
   const setMessages = useCallback(
     (

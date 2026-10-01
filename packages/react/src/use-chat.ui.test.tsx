@@ -117,6 +117,143 @@ describe('use-chat', () => {
     });
   });
 
+  describe('terminal message snapshot consistency', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      cleanup();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    });
+
+    it('keeps ready message updates throttled during unrelated renders', async () => {
+      const chat = new Chat({ id: 'local-edits' });
+      function TestComponent() {
+        const { messages } = useChat({ chat, throttle: 50 });
+        return <div data-testid="local-message">{messages[0]?.id}</div>;
+      }
+      const { rerender } = render(<TestComponent />);
+
+      act(() => {
+        chat.messages = [{ id: 'first', role: 'assistant', parts: [] }];
+      });
+      expect(screen.getByTestId('local-message')).toHaveTextContent('first');
+
+      act(() => {
+        chat.messages = [{ id: 'second', role: 'assistant', parts: [] }];
+      });
+      rerender(<TestComponent />);
+      expect(screen.getByTestId('local-message')).toHaveTextContent('first');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+      expect(screen.getByTestId('local-message')).toHaveTextContent('second');
+    });
+
+    it.each(['ready', 'error', 'abort'] as const)(
+      'never commits %s beside an outdated message snapshot',
+      async terminal => {
+        let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+        const chat = new Chat({
+          id: terminal,
+          transport: {
+            async sendMessages() {
+              return new ReadableStream<UIMessageChunk>({
+                start(streamController) {
+                  controller = streamController;
+                },
+              });
+            },
+            async reconnectToStream() {
+              return null;
+            },
+          },
+        });
+        const commits: Array<{
+          throttle: number;
+          status: string;
+          text: string;
+          error: string | undefined;
+        }> = [];
+
+        function TestComponent({ throttle }: { throttle: number }) {
+          const { messages, status, error } = useChat({ chat, throttle });
+          const text = messages
+            .flatMap(message => message.parts)
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join('');
+
+          React.useLayoutEffect(() => {
+            commits.push({ throttle, status, text, error: error?.message });
+          });
+
+          return <div>{text}</div>;
+        }
+
+        render(
+          <>
+            <TestComponent throttle={50} />
+            <TestComponent throttle={100} />
+          </>,
+        );
+
+        try {
+          await act(async () => {
+            void chat.sendMessage({ text: 'user' });
+          });
+          await act(async () => {
+            controller.enqueue({ type: 'text-start', id: 'text' });
+            controller.enqueue({
+              type: 'text-delta',
+              id: 'text',
+              delta: 'complete',
+            });
+          });
+          expect(chat.status).toBe('streaming');
+          commits.length = 0;
+
+          await act(async () => {
+            if (terminal === 'abort') {
+              await chat.stop();
+            } else {
+              controller.enqueue(
+                terminal === 'error'
+                  ? { type: 'error', errorText: 'failed' }
+                  : { type: 'text-end', id: 'text' },
+              );
+              controller.close();
+            }
+          });
+
+          const terminalStatus = terminal === 'abort' ? 'ready' : terminal;
+          const terminalCommits = commits.filter(
+            commit => commit.status === terminalStatus,
+          );
+          for (const throttle of [50, 100]) {
+            expect(
+              terminalCommits.some(commit => commit.throttle === throttle),
+            ).toBe(true);
+          }
+          for (const commit of terminalCommits) {
+            expect(commit.text).toBe('usercomplete');
+            expect(commit.error).toBe(
+              terminal === 'error' ? 'failed' : undefined,
+            );
+          }
+        } finally {
+          await act(async () => {
+            await chat.stop();
+          });
+        }
+      },
+    );
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       ({ id: idParam }: { id: string }) => {
