@@ -58,9 +58,9 @@ export class SpritesNetworkSandboxSession
       input.sprite.url,
       input.workingDirectory,
     );
-    // The Sprite name is the durable lookup key the harness persists for
-    // cross-process resume (provider.resumeSession({ sessionId }) derives the
-    // same name).
+    // The Sprite name is the durable lookup key a caller persists for
+    // cross-process resume: resumeSpritesNetworkSandboxSession({ sandboxId })
+    // looks the Sprite up by it.
     this.id = input.sprite.name;
     this.defaultWorkingDirectory = input.workingDirectory;
     this.ownsLifecycle = input.ownsLifecycle;

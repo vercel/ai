@@ -9,9 +9,10 @@ import type { SpritesApiClient } from './sprites-api-client';
 /**
  * `Experimental_SandboxSession` implementation backed by a Sprite. This is the
  * tool-safe surface (file I/O, exec, spawn); it is what
- * {@link SpritesNetworkSandboxSession.restricted} returns and is not
- * constructed directly by consumers. The network sandbox session owns the
- * lifetime of the underlying Sprite.
+ * {@link SpritesNetworkSandboxSession.restricted} and
+ * `createSpritesSandboxSessionFromNativeSandbox` return and is not
+ * constructed directly by consumers. It has no lifecycle of its own: only a
+ * network sandbox session can delete the underlying Sprite.
  */
 export class SpritesSandboxSession implements SandboxSession {
   constructor(
