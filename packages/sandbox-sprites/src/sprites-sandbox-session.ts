@@ -1,8 +1,8 @@
 import { posix } from 'node:path';
 import {
   extractLines,
-  type Experimental_SandboxProcess,
-  type Experimental_SandboxSession,
+  type Experimental_SandboxProcess as SandboxProcess,
+  type Experimental_SandboxSession as SandboxSession,
 } from '@ai-sdk/provider-utils';
 import type { SpritesApiClient } from './sprites-api-client';
 
@@ -13,7 +13,7 @@ import type { SpritesApiClient } from './sprites-api-client';
  * constructed directly by consumers. The network sandbox session owns the
  * lifetime of the underlying Sprite.
  */
-export class SpritesSandboxSession implements Experimental_SandboxSession {
+export class SpritesSandboxSession implements SandboxSession {
   constructor(
     protected readonly client: SpritesApiClient,
     protected readonly spriteName: string,
@@ -74,7 +74,7 @@ export class SpritesSandboxSession implements Experimental_SandboxSession {
     workingDirectory?: string;
     env?: Record<string, string>;
     abortSignal?: AbortSignal;
-  }): Promise<Experimental_SandboxProcess> {
+  }): Promise<SandboxProcess> {
     abortSignal?.throwIfAborted();
 
     return await this.client.exec(this.spriteName, {

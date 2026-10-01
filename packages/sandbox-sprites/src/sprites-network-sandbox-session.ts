@@ -48,7 +48,7 @@ export class SpritesNetworkSandboxSession
 
   constructor(input: {
     client: SpritesApiClient;
-    sprite: SpriteResource;
+    sprite: Pick<SpriteResource, 'name' | 'url' | 'urlAuth'>;
     workingDirectory: string;
     ownsLifecycle: boolean;
   }) {

@@ -44,6 +44,7 @@ session itself carries the infra surface (`ports`, `getPortEndpoint`, `setNetwor
 - Create a network sandbox session with `createSpritesNetworkSandboxSession()` and pass it to `HarnessAgent.createSession({ sandboxSession })`. Pass `template: await agent.getSandboxTemplate()` to the creator function to install the harness bridge while the Sprite is created. Sprites cannot start a new Sprite from a snapshot of another, so the template is prepared in every new Sprite.
 - Set `sandboxId` to name a new Sprite, or persist the returned session's `id`. Creation never resumes an existing Sprite and a conflicting name fails; use `resumeSpritesNetworkSandboxSession({ sandboxId })` to reattach. That is also how you use a Sprite that you created elsewhere.
 - Take a network sandbox session's process-restricted subset with `networkSandboxSession.restricted()` and use it with AI SDK tools that accept `experimental_sandbox`.
+- Adapt an existing Sprite without a request to the Sprites API with `createSpritesSandboxSessionFromNativeSandbox({ sprite, workingDirectory })`, or `createSpritesNetworkSandboxSessionFromNativeSandbox()` for a network sandbox session. The Sprites API reports a Sprite's URL, URL auth and working directory only through asynchronous calls, so the adaptation takes them as `sprite: { name, url, urlAuth }` and `workingDirectory` instead of looking them up.
 
 ### Using it with a bridge harness
 
