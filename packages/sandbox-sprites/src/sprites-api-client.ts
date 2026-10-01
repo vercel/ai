@@ -14,7 +14,7 @@ export const SPRITES_DEFAULT_BASE_URL = 'https://api.sprites.dev';
  * The single internal port a Sprite's public URL
  * (`https://<name>-<suffix>.sprites.app`) proxies to. Sprites expose exactly
  * one HTTP-proxied port; the harness bridge listens here and is reached via
- * {@link SpritesNetworkSandboxSession.getPortUrl}.
+ * {@link SpritesNetworkSandboxSession.getPortEndpoint}.
  */
 export const SPRITE_HTTP_PORT = 8080;
 
