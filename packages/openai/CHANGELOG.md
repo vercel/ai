@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 3.0.124
+
+### Patch Changes
+
+- d131a3b: fix(openai): rewrite recursive Zod schemas that use `allOf` wrappers
+
 ## 3.0.123
 
 ### Patch Changes
