@@ -23,6 +23,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import { throwIfOpenAIStreamErrorBeforeOutput } from '../openai-stream-error';
 import {
   convertOpenAIChatUsage,
@@ -168,7 +169,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV3 {
             ? {
                 type: 'json_schema',
                 json_schema: {
-                  schema: responseFormat.schema,
+                  schema: normalizeOpenAIJsonSchema(responseFormat.schema),
                   strict: strictJsonSchema,
                   name: responseFormat.name ?? 'response',
                   description: responseFormat.description,
