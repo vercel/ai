@@ -1,5 +1,15 @@
 # ai
 
+## 5.0.272
+
+### Patch Changes
+
+- 8db50f1: fix(ui): export `isDynamicToolUIPart` from `ai` package
+- Updated dependencies [44f892a]
+- Updated dependencies [78cac2e]
+- Updated dependencies [fda0906]
+  - @ai-sdk/gateway@2.0.163
+
 ## 5.0.271
 
 ### Patch Changes
