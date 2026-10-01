@@ -250,7 +250,8 @@ const errorSchema = z.object({
 
 // Azure Speech answers invalid requests (style or output format) with an empty
 // 400 body. Unknown voices or styles reset the connection with an Envoy 502
-// whose reason is `protocol error`; other 502s stay retryable.
+// whose reason is `protocol error`; that is a client input error, so it is
+// reported as a non-retryable 400. Other 502s stay retryable.
 const failedResponseHandler: ResponseHandler<APICallError> = async ({
   response,
   url,
@@ -280,7 +281,7 @@ const failedResponseHandler: ResponseHandler<APICallError> = async ({
       message,
       url,
       requestBodyValues,
-      statusCode: response.status,
+      statusCode: isVoiceReset ? 400 : response.status,
       responseHeaders,
       responseBody,
       isRetryable: isVoiceReset ? false : undefined,
