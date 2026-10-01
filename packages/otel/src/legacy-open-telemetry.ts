@@ -517,6 +517,10 @@ export class LegacyOpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.stepSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.stepSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
 
     state.stepSpan.setAttributes(
@@ -1057,6 +1061,10 @@ export class LegacyOpenTelemetry implements Telemetry {
   private onObjectOperationEnd(event: GenerateObjectEndEvent<unknown>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
+
+    if (event.finishReason === 'error') {
+      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
 
     const { telemetry } = state;
 

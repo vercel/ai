@@ -646,6 +646,10 @@ export class OpenTelemetry implements Telemetry {
     const state = this.getCallState(event.callId);
     if (!state?.inferenceSpan) return;
 
+    if (event.finishReason === 'error') {
+      state.inferenceSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
+
     const { telemetry } = state;
 
     state.inferenceSpan.setAttributes(
@@ -1341,6 +1345,10 @@ export class OpenTelemetry implements Telemetry {
   private onObjectOperationEnd(event: GenerateObjectEndEvent<unknown>): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan) return;
+
+    if (event.finishReason === 'error') {
+      state.rootSpan.setStatus({ code: SpanStatusCode.ERROR });
+    }
 
     const { telemetry } = state;
 

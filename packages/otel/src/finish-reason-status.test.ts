@@ -8,8 +8,8 @@ import {
   InMemorySpanExporter,
   SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
-import { generateText, streamText } from 'ai';
-import { MockLanguageModelV4 } from 'ai/test';
+import { generateObject, generateText, streamObject, streamText } from 'ai';
+import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import { describe, expect, it, vi } from 'vitest';
 import { LegacyOpenTelemetry } from './legacy-open-telemetry';
 import { OpenTelemetry } from './open-telemetry';
@@ -34,6 +34,108 @@ describe.each([
       integration: new Integration({ tracer: provider.getTracer('test') }),
     };
   }
+
+  it.each(['streamText', 'streamObject'] as const)(
+    'reports a %s setup failure to telemetry once',
+    async api => {
+      const { exporter, provider, integration } = setup();
+      const error = new Error('provider setup failed');
+      const telemetryOnError = vi.fn();
+      const options = {
+        model: new MockLanguageModelV4({
+          doStream: async () => {
+            throw error;
+          },
+        }),
+        prompt: 'hi',
+        maxRetries: 0,
+        telemetry: {
+          integrations: [integration, { onError: telemetryOnError }],
+        },
+        onError: () => {},
+      };
+
+      const stream =
+        api === 'streamText'
+          ? streamText(options).stream
+          : streamObject({ ...options, output: 'no-schema' }).fullStream;
+      for await (const _part of stream) {
+        // Drain the error chunk that follows the setup failure.
+      }
+
+      expect(telemetryOnError).toHaveBeenCalledTimes(1);
+      expect(telemetryOnError).toHaveBeenCalledWith(
+        expect.objectContaining({ error }),
+      );
+      const spans = exporter.getFinishedSpans();
+      expect(spans).toHaveLength(
+        api === 'streamText' && Integration === OpenTelemetry ? 3 : 2,
+      );
+      for (const span of spans) {
+        expect(span.status.code).toBe(SpanStatusCode.ERROR);
+      }
+      await provider.shutdown();
+    },
+  );
+
+  describe.each(['generateObject', 'streamObject'] as const)('%s', api => {
+    it.each(['error', 'stop'] as const)(
+      'sets span status from the final %s finish reason',
+      async finishReason => {
+        const { exporter, provider, integration } = setup();
+        const text = '{"value":"response"}';
+        const finish = {
+          finishReason: { unified: finishReason, raw: finishReason },
+          usage,
+        };
+        const model = new MockLanguageModelV4({
+          doGenerate: {
+            content: [{ type: 'text', text }],
+            ...finish,
+            warnings: [],
+          },
+          doStream: {
+            stream: convertArrayToReadableStream([
+              { type: 'text-start', id: '0' },
+              { type: 'text-delta', id: '0', delta: text },
+              { type: 'text-end', id: '0' },
+              { type: 'finish', ...finish },
+            ]),
+          },
+        });
+        const options = {
+          model,
+          prompt: 'hi',
+          telemetry: { integrations: integration },
+        };
+
+        if (api === 'generateObject') {
+          const result = await generateObject({
+            ...options,
+            output: 'no-schema',
+          });
+          expect(result.object).toEqual({ value: 'response' });
+        } else {
+          const result = streamObject({ ...options, output: 'no-schema' });
+          for await (const _part of result.fullStream) {
+            // Consume the finish chunk before inspecting the exported spans.
+          }
+          expect(await result.object).toEqual({ value: 'response' });
+        }
+
+        const spans = exporter.getFinishedSpans();
+        expect(spans).toHaveLength(2);
+        for (const span of spans) {
+          expect(span.status.code).toBe(
+            finishReason === 'error'
+              ? SpanStatusCode.ERROR
+              : SpanStatusCode.UNSET,
+          );
+        }
+        await provider.shutdown();
+      },
+    );
+  });
 
   it.each(['error', 'stop'] as const)(
     'sets generateText span status from the final %s finish reason',
