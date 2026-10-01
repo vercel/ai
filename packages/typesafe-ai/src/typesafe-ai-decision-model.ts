@@ -59,6 +59,11 @@ export class DecisionTypeSafeAiModel implements DecisionModelV4 {
     return new DecisionTypeSafeAiModel(options.modelId, options.config);
   }
 
+  /** @deprecated Use `doDecide` instead. */
+  doEvaluate(options: Parameters<DecisionModelV4['doDecide']>[0]) {
+    return this.doDecide(options);
+  }
+
   async doDecide({
     state,
     questions,

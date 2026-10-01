@@ -1,7 +1,7 @@
 # AI SDK TypeSafe Provider
 
 The **[TypeSafe provider](https://ai-sdk.dev/providers/ai-sdk-providers/typesafe-ai)**
-for the [AI SDK](https://ai-sdk.dev/docs) evaluates Choice, Score, and Boolean
+for the [AI SDK](https://ai-sdk.dev/docs) decides answers to Choice, Score, and Boolean
 questions using TypeSafe's System One models.
 
 ## Setup

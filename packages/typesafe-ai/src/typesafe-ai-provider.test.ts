@@ -16,6 +16,13 @@ describe('TypeSafe provider', () => {
     ]);
   });
 
+  it('retains the deprecated factory alias', () => {
+    expect(typeSafeAi.evaluationModel).toBe(typeSafeAi.decisionModel);
+    expect(typeSafeAi.evaluationModel('jev-latest').provider).toBe(
+      'typesafe.decision',
+    );
+  });
+
   it.each(['languageModel', 'embeddingModel', 'imageModel'] as const)(
     'rejects unsupported %s factories',
     factory => {

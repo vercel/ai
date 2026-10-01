@@ -18,6 +18,10 @@ import { VERSION } from './version';
 /** TypeSafe's experimental decision capability, isolated from ProviderV4. */
 export interface TypeSafeAiProvider extends ProviderV4 {
   decisionModel(modelId: TypeSafeAiDecisionModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: TypeSafeAiDecisionModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 }
 
 export interface TypeSafeAiProviderSettings {
@@ -43,15 +47,18 @@ export function createTypeSafeAi(
       `ai-sdk-typesafe-ai/${VERSION}`,
     );
 
+  const decisionModel = (modelId: TypeSafeAiDecisionModelId) =>
+    new DecisionTypeSafeAiModel(modelId, {
+      provider: 'typesafe.decision',
+      baseURL,
+      headers,
+      fetch: options.fetch,
+    });
+
   return {
     specificationVersion: 'v4',
-    decisionModel: modelId =>
-      new DecisionTypeSafeAiModel(modelId, {
-        provider: 'typesafe.decision',
-        baseURL,
-        headers,
-        fetch: options.fetch,
-      }),
+    decisionModel,
+    evaluationModel: decisionModel,
     languageModel: modelId => {
       throw new NoSuchModelError({ modelId, modelType: 'languageModel' });
     },
