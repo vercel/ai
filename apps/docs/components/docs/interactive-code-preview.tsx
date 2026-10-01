@@ -5,7 +5,7 @@ import {
   IconWrench,
 } from '@vercel/geistdocs/assets/icons';
 import { IconArrowUpRight } from '@vercel/geistdocs/assets/icons/icon-arrow-up-right';
-import { LogoIconVercel } from '@vercel/geistdocs/assets/logos';
+import { LogoIconVercelSvg } from '@vercel/geistdocs/assets/logos';
 import { CodeBlock } from '@vercel/geistdocs/components/code-block';
 import {
   DropdownMenu,
@@ -504,7 +504,7 @@ const CrosshairIcon = ({ size = 14 }: { size?: number }) => (
 );
 
 const TABS: { id: TabType; title: string; icon: ReactNode }[] = [
-  { id: 'gateway', title: 'Gateway', icon: <LogoIconVercel size={13} /> },
+  { id: 'gateway', title: 'Gateway', icon: <LogoIconVercelSvg size={13} /> },
   { id: 'provider', title: 'Provider', icon: <CrosshairIcon size={14} /> },
   { id: 'custom', title: 'Custom', icon: <IconWrench size={14} /> },
 ];
