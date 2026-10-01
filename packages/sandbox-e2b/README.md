@@ -34,7 +34,7 @@ await networkSandboxSession.destroy();
 - `baseTemplate`: the name or ID of the E2B template that the sandbox starts from. Defaults to E2B's `base` template. The E2B SDK calls this option `template`; here `template` is the harness sandbox template.
 - `ports`: the ports that the session lists in `ports`. See [Ports](#ports).
 
-E2B kills a sandbox 30 minutes after it is created or resumed unless `timeoutMs` says otherwise. The CPU and memory of a sandbox come from its E2B template.
+The sandbox is killed 30 minutes after it is created or resumed unless `timeoutMs` says otherwise. The CPU and memory of a sandbox come from its E2B template.
 
 ### Use cases
 
