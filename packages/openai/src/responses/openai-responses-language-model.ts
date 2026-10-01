@@ -897,6 +897,12 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
       options.tools?.filter(
         (tool): tool is LanguageModelV4FunctionTool => tool.type === 'function',
       ) ?? [];
+    const hasWebSearchActionSources = response.output.some(
+      part =>
+        part.type === 'web_search_call' &&
+        part.action?.type === 'search' &&
+        part.action.sources?.some(source => source.type === 'url'),
+    );
 
     // flag that checks if there have been client-side tool calls (not executed by openai)
     let hasFunctionCall = false;
@@ -1082,7 +1088,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
             });
 
             for (const annotation of contentPart.annotations) {
-              if (annotation.type === 'file_citation') {
+              // Legacy web-search-preview and citation-only responses do not
+              // provide the retrieved source set. Preserve their normalized
+              // URL sources without duplicating citations for modern responses.
+              if (
+                annotation.type === 'url_citation' &&
+                !hasWebSearchActionSources
+              ) {
+                content.push({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: this.config.generateId?.() ?? generateId(),
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              } else if (annotation.type === 'file_citation') {
                 content.push({
                   type: 'source',
                   sourceType: 'document',
@@ -1618,6 +1638,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
         { type: 'response.output_text.annotation.added' }
       >['annotation']
     > = [];
+    let hasWebSearchActionSources = false;
 
     // track the phase of the current message being streamed
     let activeMessagePhase: 'commentary' | 'final_answer' | undefined;
@@ -2151,6 +2172,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
                 if (value.item.action?.type === 'search') {
                   for (const source of value.item.action.sources ?? []) {
                     if (source.type === 'url') {
+                      hasWebSearchActionSources = true;
                       controller.enqueue({
                         type: 'source',
                         sourceType: 'url',
@@ -2848,7 +2870,21 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
               }
             } else if (isResponseAnnotationAddedChunk(value)) {
               ongoingAnnotations.push(value.annotation);
-              if (value.annotation.type === 'file_citation') {
+              // Legacy web-search-preview and citation-only streams do not
+              // provide the retrieved source set. Preserve their normalized
+              // URL sources without duplicating citations for modern streams.
+              if (
+                value.annotation.type === 'url_citation' &&
+                !hasWebSearchActionSources
+              ) {
+                controller.enqueue({
+                  type: 'source',
+                  sourceType: 'url',
+                  id: self.config.generateId?.() ?? generateId(),
+                  url: value.annotation.url,
+                  title: value.annotation.title,
+                });
+              } else if (value.annotation.type === 'file_citation') {
                 controller.enqueue({
                   type: 'source',
                   sourceType: 'document',

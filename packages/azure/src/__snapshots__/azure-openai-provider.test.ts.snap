@@ -1036,7 +1036,7 @@ exports[`responses > doGenerate > tool call > should extract tool call content 1
 }
 `;
 
-exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doGenerate > web search preview tool > should retain web search preview citation sources 1`] = `
 [
   {
     "input": "{}",
@@ -1099,6 +1099,13 @@ exports[`responses > doGenerate > web search preview tool > should stream web se
 
 If you want more details or other news stories, feel free to ask!",
     "type": "text",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "type": "source",
+    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
   },
 ]
 `;
@@ -5707,7 +5714,7 @@ exports[`responses > doStream > tool call > should stream tool call content 1`] 
 ]
 `;
 
-exports[`responses > doStream > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doStream > web search preview tool > should retain streamed web search preview citation sources 1`] = `
 [
   {
     "type": "stream-start",
@@ -7493,6 +7500,13 @@ exports[`responses > doStream > web search preview tool > should stream web sear
     "delta": "!",
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
     "type": "text-delta",
+  },
+  {
+    "id": "id-0",
+    "sourceType": "url",
+    "title": "While You Were Sleeping: 5 stories you might have missed, Nov 19, 2025",
+    "type": "source",
+    "url": "https://www.straitstimes.com/world/while-you-were-sleeping-5-stories-you-might-have-missed-nov-19-2025",
   },
   {
     "id": "msg_0dcf1a118189f28100691daa5a28488194b14fd6fa1d2895be",
