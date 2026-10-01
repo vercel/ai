@@ -140,7 +140,7 @@ describe('toModalHeaderReplacements', () => {
 
     expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
     expect(error?.message).toBe(
-      'Modal holds one value per host and header and applies it to every request to its host, so the "authorization" header for "api.example.com" cannot be set to a value that differs from the one already set for "api.example.com". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.',
+      'Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so one call cannot set the "authorization" header to different values for "api.example.com" and "api.example.com". The most recently supplied value for a host and header is used by every harness session on the sandbox session, so credentials that must be kept apart need separate sandbox sessions.',
     );
   });
 
@@ -159,7 +159,7 @@ describe('toModalHeaderReplacements', () => {
           rule(second, { 'x-api-key': 'two' }),
         ]),
       ).toThrow(
-        `the "x-api-key" header for "${second}" cannot be set to a value that differs from the one already set for "${first}"`,
+        `one call cannot set the "x-api-key" header to different values for "${first}" and "${second}"`,
       );
     },
   );
@@ -244,21 +244,39 @@ describe('ModalRequestTransformationManager', () => {
     ]);
   });
 
-  it('refreshes the credential of a rule that is added again', async () => {
+  it('uses the most recently supplied value, whichever harness session supplies it', async () => {
     const { manager, appliedReplacements } = makeManager();
+    const anthropicRuleFor = (placeholder: string, key: string) =>
+      createCredentialRequestTransformation({
+        matchUrl: 'https://api.anthropic.com',
+        matchHeaders: { 'x-api-key': placeholder },
+        transformHeaders: { 'x-api-key': key },
+      });
 
-    await manager.addRequestTransformations([anthropicRule, openaiRule]);
     await manager.addRequestTransformations([
-      {
-        match: anthropicRule.match,
-        transform: { headers: { 'x-api-key': 'sk-ant-rotated' } },
-      },
+      anthropicRuleFor('aisdkhc_first', 'sk-ant-one'),
+      openaiRule,
+    ]);
+    await manager.addRequestTransformations([
+      anthropicRuleFor('aisdkhc_second', 'sk-ant-one'),
+    ]);
+    await manager.addRequestTransformations([
+      anthropicRuleFor('aisdkhc_second', 'sk-ant-two'),
+    ]);
+    await manager.addRequestTransformations([
+      anthropicRuleFor('aisdkhc_first', 'sk-ant-three'),
     ]);
 
-    expect(appliedReplacements()[1]).toEqual([
+    expect(appliedReplacements().map(replacements => replacements[0])).toEqual(
+      ['sk-ant-one', 'sk-ant-one', 'sk-ant-two', 'sk-ant-three'].map(key => ({
+        domain: 'api.anthropic.com',
+        headers: { 'x-api-key': key },
+      })),
+    );
+    expect(appliedReplacements()[3]).toEqual([
       {
         domain: 'api.anthropic.com',
-        headers: { 'x-api-key': 'sk-ant-rotated' },
+        headers: { 'x-api-key': 'sk-ant-three' },
       },
       {
         domain: 'api.openai.com',
@@ -267,24 +285,36 @@ describe('ModalRequestTransformationManager', () => {
     ]);
   });
 
-  it('rejects an added rule that conflicts with a managed one and keeps the managed rules', async () => {
+  it('replaces a managed value whatever the spelling of the host and header', async () => {
+    const { manager, appliedReplacements } = makeManager();
+
+    await manager.addRequestTransformations([
+      rule('api.example.com', { Authorization: 'Bearer one' }),
+    ]);
+    await manager.addRequestTransformations([
+      rule('API.example.com', { authorization: 'Bearer two' }),
+    ]);
+
+    expect(appliedReplacements()[1]).toEqual([
+      { domain: 'api.example.com', headers: { Authorization: 'Bearer two' } },
+    ]);
+  });
+
+  it('rejects conflicting values in one call and keeps the managed values', async () => {
     const { manager, experimentalUpdateOutboundPolicy, appliedReplacements } =
       makeManager();
     await manager.addRequestTransformations([anthropicRule]);
 
     const error = await manager
       .addRequestTransformations([
-        createCredentialRequestTransformation({
-          matchUrl: 'https://api.anthropic.com',
-          matchHeaders: { 'x-api-key': 'aisdkhc_other_placeholder' },
-          transformHeaders: { 'x-api-key': 'sk-ant-other' },
-        }),
+        rule('api.anthropic.com', { 'x-api-key': 'sk-ant-other' }),
+        rule('*.anthropic.com', { 'x-api-key': 'sk-ant-another' }),
       ])
       .catch(error => error);
 
     expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
     expect(error.message).toBe(
-      'Modal holds one value per host and header and applies it to every request to its host, so the "x-api-key" header for "api.anthropic.com" cannot be set to a value that differs from the one already set for "api.anthropic.com". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.',
+      'Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so one call cannot set the "x-api-key" header to different values for "api.anthropic.com" and "*.anthropic.com". The most recently supplied value for a host and header is used by every harness session on the sandbox session, so credentials that must be kept apart need separate sandbox sessions.',
     );
     expect(experimentalUpdateOutboundPolicy).toHaveBeenCalledOnce();
 
@@ -298,49 +328,34 @@ describe('ModalRequestTransformationManager', () => {
     ]);
   });
 
-  it('keeps one rule when the same value is added under a new placeholder', async () => {
-    const { manager, appliedReplacements } = makeManager();
-    const underNewPlaceholder = (key: string) =>
-      createCredentialRequestTransformation({
-        matchUrl: 'https://API.anthropic.com',
-        matchHeaders: { 'X-Api-Key': 'aisdkhc_other_placeholder' },
-        transformHeaders: { 'X-Api-Key': key },
-      });
-
+  it('rejects a value for a host that overlaps a managed host with a different value', async () => {
+    const { manager, experimentalUpdateOutboundPolicy, appliedReplacements } =
+      makeManager();
     await manager.addRequestTransformations([anthropicRule]);
+
+    const error = await manager
+      .addRequestTransformations([
+        rule('*.anthropic.com', { 'X-Api-Key': 'sk-ant-other' }),
+      ])
+      .catch(error => error);
+
+    expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+    expect(error.message).toBe(
+      'Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so the "X-Api-Key" header for "*.anthropic.com" cannot be set to a value that differs from the one held for the overlapping host "api.anthropic.com": which of the two Modal would apply is ambiguous. The most recently supplied value for a host and header is used by every harness session on the sandbox session, so credentials that must be kept apart need separate sandbox sessions.',
+    );
+    expect(experimentalUpdateOutboundPolicy).toHaveBeenCalledOnce();
+
     await manager.addRequestTransformations([
-      underNewPlaceholder('sk-ant-real'),
+      rule('*.anthropic.com', { 'x-api-key': 'sk-ant-real' }),
+      rule('*.anthropic.com', { Authorization: 'Bearer other' }),
     ]);
-    await manager.addRequestTransformations([
+    expect(appliedReplacements()[1]).toEqual([
+      { domain: 'api.anthropic.com', headers: { 'x-api-key': 'sk-ant-real' } },
       {
-        match: anthropicRule.match,
-        transform: { headers: { 'x-api-key': 'sk-ant-rotated' } },
+        domain: '*.anthropic.com',
+        headers: { 'x-api-key': 'sk-ant-real', Authorization: 'Bearer other' },
       },
     ]);
-
-    expect(appliedReplacements()).toEqual([
-      [
-        {
-          domain: 'api.anthropic.com',
-          headers: { 'x-api-key': 'sk-ant-real' },
-        },
-      ],
-      [
-        {
-          domain: 'api.anthropic.com',
-          headers: { 'x-api-key': 'sk-ant-real' },
-        },
-      ],
-      [
-        {
-          domain: 'api.anthropic.com',
-          headers: { 'x-api-key': 'sk-ant-rotated' },
-        },
-      ],
-    ]);
-    await expect(
-      manager.addRequestTransformations([underNewPlaceholder('sk-ant-real')]),
-    ).rejects.toThrow('Modal holds one value per host and header');
   });
 
   it('does not keep rules that Modal failed to apply', async () => {

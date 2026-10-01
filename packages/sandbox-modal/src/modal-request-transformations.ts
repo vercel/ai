@@ -28,6 +28,9 @@ const HOST_WIDE_MATCHERS: ReadonlySet<string> = new Set([
   'headers',
 ]);
 
+const SHARED_VALUE_NOTE =
+  'The most recently supplied value for a host and header is used by every harness session on the sandbox session, so credentials that must be kept apart need separate sandbox sessions.';
+
 type ModalHeaderReplacement = {
   domain: string;
   headers: Record<string, string>;
@@ -91,13 +94,15 @@ export function supportsRequestTransformations(
 /**
  * Owns the outbound policy of one live sandbox. Modal replaces the whole
  * policy on every update and does not report the current one, so every
- * mutation composes the complete rule set from private state. A session that
- * reattaches to a running sandbox starts without that state: its first
- * mutation replaces whatever an earlier session installed.
+ * mutation composes the complete policy from private state: what Modal can
+ * express, one value per host and header, shared by every harness session on
+ * the sandbox session. A session that reattaches to a running sandbox starts
+ * without that state: its first mutation replaces whatever an earlier session
+ * installed.
  */
 export class ModalRequestTransformationManager {
   readonly #sandbox: Sandbox;
-  #transformations: ReadonlyArray<HarnessV1RequestTransformation> = [];
+  #replacements: ReadonlyArray<ModalHeaderReplacement> = [];
   #mutationQueue: Promise<void> = Promise.resolve();
 
   constructor({ sandbox }: { sandbox: Sandbox }) {
@@ -108,7 +113,7 @@ export class ModalRequestTransformationManager {
     transformations: ReadonlyArray<HarnessV1RequestTransformation>,
   ): Promise<void> {
     return this.#enqueueMutation(() =>
-      this.#apply(transformations.map(cloneRequestTransformation)),
+      this.#apply(toModalHeaderReplacements(transformations)),
     );
   }
 
@@ -117,9 +122,9 @@ export class ModalRequestTransformationManager {
   ): Promise<void> {
     return this.#enqueueMutation(() =>
       this.#apply(
-        mergeRequestTransformations({
-          existing: this.#transformations,
-          incoming: transformations.map(cloneRequestTransformation),
+        mergeHeaderReplacements({
+          managed: this.#replacements,
+          incoming: toModalHeaderReplacements(transformations),
         }),
       ),
     );
@@ -140,11 +145,9 @@ export class ModalRequestTransformationManager {
   }
 
   async #apply(
-    transformations: ReadonlyArray<HarnessV1RequestTransformation>,
+    replacements: ReadonlyArray<ModalHeaderReplacement>,
   ): Promise<void> {
-    const outboundPolicy = toModalOutboundPolicy(
-      toModalHeaderReplacements(transformations),
-    );
+    const outboundPolicy = toModalOutboundPolicy(replacements);
     try {
       await this.#sandbox.experimentalUpdateOutboundPolicy(outboundPolicy);
     } catch (error) {
@@ -159,7 +162,7 @@ export class ModalRequestTransformationManager {
         error,
       );
     }
-    this.#transformations = transformations;
+    this.#replacements = replacements;
   }
 }
 
@@ -171,7 +174,8 @@ export class ModalRequestTransformationManager {
  * there, with or without the placeholder. Rules that this widening would
  * change in ways a caller cannot expect are rejected: rules with a `method`
  * or `queryString` matcher or any other matcher Modal cannot express, and
- * rules for one host that set the same header to different values.
+ * rules that set the same header to different values for the same host or for
+ * overlapping hosts.
  */
 export function toModalHeaderReplacements(
   transformations: ReadonlyArray<HarnessV1RequestTransformation>,
@@ -202,7 +206,7 @@ export function toModalHeaderReplacements(
       );
       if (conflict != null) {
         throw createRequestTransformationError(
-          `Modal holds one value per host and header and applies it to every request to its host, so the "${name}" header for "${host}" cannot be set to a value that differs from the one already set for "${conflict.host}". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.`,
+          `Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so one call cannot set the "${name}" header to different values for "${conflict.host}" and "${host}". ${SHARED_VALUE_NOTE}`,
         );
       }
       assignments.push({ host, header, value });
@@ -260,82 +264,59 @@ function hostPatternCovers({
 }
 
 /**
- * Adds rules to the managed set. A rule is identified by what Modal can
- * express: its host and the names of the headers it sets. A rule that is
- * added again with the same matchers replaces the managed one, which is how a
- * harness adapter refreshes a credential when it resumes a session. Under
- * other matchers, such as a new placeholder, the same header values leave the
- * managed rule in place, and different ones are added as a second rule, which
- * `toModalHeaderReplacements` rejects.
+ * Adds header replacements to the managed ones. The latest value wins: each
+ * incoming header replaces the managed value for the same host pattern and
+ * header name. A value for a host pattern that overlaps a different managed
+ * pattern holding a different value for that header is rejected, because
+ * which of the two Modal would apply is ambiguous.
  */
-function mergeRequestTransformations({
-  existing,
+function mergeHeaderReplacements({
+  managed,
   incoming,
 }: {
-  existing: ReadonlyArray<HarnessV1RequestTransformation>;
-  incoming: ReadonlyArray<HarnessV1RequestTransformation>;
-}): HarnessV1RequestTransformation[] {
-  const merged = [...existing];
-  for (const transformation of incoming) {
-    const identity = getRequestTransformationIdentity(transformation);
-    const managedIndex = merged.findIndex(
-      managed => getRequestTransformationIdentity(managed) === identity,
-    );
-    const managed = merged[managedIndex];
-    if (managed == null) {
-      merged.push(transformation);
-    } else if (
-      stableSerialize(managed.match) === stableSerialize(transformation.match)
-    ) {
-      merged[managedIndex] = transformation;
-    } else if (
-      stableSerialize(getHeaderAssignments(managed)) !==
-      stableSerialize(getHeaderAssignments(transformation))
-    ) {
-      merged.push(transformation);
+  managed: ReadonlyArray<ModalHeaderReplacement>;
+  incoming: ReadonlyArray<ModalHeaderReplacement>;
+}): ModalHeaderReplacement[] {
+  const merged = managed.map(({ domain, headers }) => ({
+    domain,
+    headers: { ...headers },
+  }));
+  for (const { domain, headers } of incoming) {
+    let replacement = merged.find(candidate => candidate.domain === domain);
+    if (replacement == null) {
+      replacement = { domain, headers: {} };
+      merged.push(replacement);
+    }
+    for (const [name, value] of Object.entries(headers)) {
+      const conflict = merged.find(candidate => {
+        const managedName = findHeaderName(candidate.headers, name);
+        return (
+          candidate.domain !== domain &&
+          managedName != null &&
+          candidate.headers[managedName] !== value &&
+          hostPatternsOverlap(candidate.domain, domain)
+        );
+      });
+      if (conflict != null) {
+        throw createRequestTransformationError(
+          `Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so the "${name}" header for "${domain}" cannot be set to a value that differs from the one held for the overlapping host "${conflict.domain}": which of the two Modal would apply is ambiguous. ${SHARED_VALUE_NOTE}`,
+        );
+      }
+      replacement.headers[findHeaderName(replacement.headers, name) ?? name] =
+        value;
     }
   }
   return merged;
 }
 
-function getRequestTransformationIdentity(
-  transformation: HarnessV1RequestTransformation,
-): string {
-  return stableSerialize({
-    host: transformation.match.host.toLowerCase(),
-    headerNames: getHeaderAssignments(transformation).map(([name]) => name),
-  });
-}
-
-function getHeaderAssignments(
-  transformation: HarnessV1RequestTransformation,
-): Array<[string, string]> {
-  return Object.entries(transformation.transform.headers)
-    .map(([name, value]): [string, string] => [name.toLowerCase(), value])
-    .sort(([firstName], [secondName]) => firstName.localeCompare(secondName));
-}
-
-function stableSerialize(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableSerialize).join(',')}]`;
-  }
-  if (value != null && typeof value === 'object') {
-    return `{${Object.entries(value)
-      .filter(([, entryValue]) => entryValue !== undefined)
-      .sort(([firstKey], [secondKey]) => firstKey.localeCompare(secondKey))
-      .map(
-        ([key, entryValue]) =>
-          `${JSON.stringify(key)}:${stableSerialize(entryValue)}`,
-      )
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function cloneRequestTransformation(
-  transformation: HarnessV1RequestTransformation,
-): HarnessV1RequestTransformation {
-  return structuredClone(transformation);
+function findHeaderName(
+  headers: Record<string, string>,
+  name: string,
+): string | undefined {
+  const header = name.toLowerCase();
+  return Object.keys(headers).find(
+    candidate => candidate.toLowerCase() === header,
+  );
 }
 
 function createRequestTransformationError(

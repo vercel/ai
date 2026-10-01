@@ -66,10 +66,11 @@ run(async () => {
     await expectHeader('matching path', '/headers', injectedValue);
     await expectHeader('other path of the host', '/get', injectedValue);
 
-    // Adding the rule again with a new value replaces the earlier value.
+    // The latest value for a host and header replaces the earlier one,
+    // whatever the other matchers of the rule are.
     await addRequestTransformations(session, [
       {
-        ...transformation,
+        match: { host: echoHost },
         transform: { headers: { [headerName]: rotatedValue } },
       },
     ]);
@@ -78,22 +79,30 @@ run(async () => {
     for (const [label, unsupported] of [
       [
         'method matcher',
-        {
-          match: { host: echoHost, method: ['POST'] },
-          transform: { headers: { [headerName]: injectedValue } },
-        },
+        [
+          {
+            match: { host: echoHost, method: ['POST'] },
+            transform: { headers: { [headerName]: injectedValue } },
+          },
+        ],
       ],
       [
-        'second value for the same host and header',
-        {
-          match: { host: echoHost, path: { exact: '/get' } },
-          transform: { headers: { [headerName]: injectedValue } },
-        },
+        'two values for the same host and header in one call',
+        [
+          {
+            match: { host: echoHost, path: { exact: '/headers' } },
+            transform: { headers: { [headerName]: injectedValue } },
+          },
+          {
+            match: { host: echoHost, path: { exact: '/get' } },
+            transform: { headers: { [headerName]: placeholderValue } },
+          },
+        ],
       ],
     ] as const) {
       let refusal: unknown;
       try {
-        await addRequestTransformations(session, [unsupported]);
+        await addRequestTransformations(session, unsupported);
       } catch (error) {
         refusal = error;
       }
