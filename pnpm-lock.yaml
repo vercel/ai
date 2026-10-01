@@ -29,8 +29,8 @@ importers:
         specifier: ^9.1.7
         version: 9.1.7
       konsistent:
-        specifier: 1.0.0-beta.9
-        version: 1.0.0-beta.9
+        specifier: 1.0.0-beta.11
+        version: 1.0.0-beta.11
       konsistent-provider:
         specifier: workspace:*
         version: link:tools/konsistent-provider
@@ -89,8 +89,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(e13d9eb9847b01d79632bee0c39a634a)
       '@vercel/geistdocs':
-        specifier: 2.7.0
-        version: 2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)
+        specifier: 2.7.7
+        version: 2.7.7(aff8287cfeaf7ca6ee27cf7bcf618115)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -103,6 +103,9 @@ importers:
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.6)
+      motion:
+        specifier: ^12.42.2
+        version: 12.42.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       next:
         specifier: 16.3.3
         version: 16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
@@ -495,6 +498,9 @@ importers:
       '@ai-sdk/togetherai':
         specifier: workspace:*
         version: link:../../packages/togetherai
+      '@ai-sdk/topaz':
+        specifier: workspace:*
+        version: link:../../packages/topaz
       '@ai-sdk/tui':
         specifier: workspace:*
         version: link:../../packages/tui
@@ -531,6 +537,9 @@ importers:
       '@langfuse/otel':
         specifier: ^4.6.1
         version: 4.6.1(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))
+      '@langfuse/vercel-ai-sdk':
+        specifier: ^5.11.1
+        version: 5.11.1(@opentelemetry/api@1.9.1)(ai@packages+ai)(zod@3.25.76)
       '@opentelemetry/auto-instrumentations-node':
         specifier: 0.77.0
         version: 0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)
@@ -4237,6 +4246,34 @@ importers:
         specifier: 3.25.76
         version: 3.25.76
 
+  packages/topaz:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.8.3)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
   packages/tui:
     dependencies:
       ai:
@@ -4576,8 +4613,8 @@ importers:
   tools/konsistent-provider:
     dependencies:
       '@konsistent/convention':
-        specifier: 1.0.0-beta.9
-        version: 1.0.0-beta.9(zod@4.4.3)
+        specifier: 1.0.0-beta.11
+        version: 1.0.0-beta.11(zod@4.4.3)
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -8656,8 +8693,8 @@ packages:
     engines: {node: '>= 12'}
     deprecated: Please upgrade to v15 or higher. All reported bugs in this version are fixed in newer releases, dependencies have been updated, and security has been improved.
 
-  '@konsistent/convention@1.0.0-beta.9':
-    resolution: {integrity: sha512-/SwMIcSQDQkh7Dbbn8WOGV9UZKGwjjJs6pj3x9+5mjt85QrCPxiCba8atsAyb2MZm/aFBh4pvmLSt1szfBYp2A==}
+  '@konsistent/convention@1.0.0-beta.11':
+    resolution: {integrity: sha512-lONY189+kpxSkZi2/022gc3QKghXwvWikCKQfmgWD2fh9fnIIWN/M/iVGCwg2OcdesYOc8ZhdRI7fDIt6gKQOw==}
     engines: {node: '>=22.11.0'}
     hasBin: true
     peerDependencies:
@@ -8870,6 +8907,13 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
+
+  '@langfuse/vercel-ai-sdk@5.11.1':
+    resolution: {integrity: sha512-1FyKHtj40whNtSwxSSYEXRrK/vynjVr0tWCRmf94K6jfyoTsN/fagqErbVbVpAnYVmWCIMfXEBAmgBVDfMWHsg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@opentelemetry/api': ^1.9.0
+      ai: '>=7.0.0 <8'
 
   '@langfuse/vercel-ai-sdk@5.9.1':
     resolution: {integrity: sha512-gZPZJ3JXYTkT7W61VhbNHXgn/88+laoAQGMc082ESeXBwfuMVVPKDueZzM0xy6s0BTtPLW5WmbJ5NkLNCtR3Nw==}
@@ -14685,8 +14729,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.7.0':
-    resolution: {integrity: sha512-somnTc4whWOjcz7DKpWbLObUq4FE+BWZNjqV8mH/szv6FaKZVeYBvm4seG07evEjxwbaMc6E/CpAJn2b+lfkvg==}
+  '@vercel/geistdocs@2.7.7':
+    resolution: {integrity: sha512-CBGA0SwA9ZcuO4sShMnZE/RWIWkk1b0mhcLlOI7jqiCS4Co+ZtJA4LANLOarrU8rupkG89dTql6Wl8BAzoCuWA==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -19461,8 +19505,8 @@ packages:
     resolution: {integrity: sha512-3An0GCLDSR34tsCO4H8Tef8Pp2ngtaZDAZnsWJYelqXUK5wyiHvGItgK/xcSkmHLSTn1Jcho1mRQs2ehRzvKKw==}
     engines: {node: ^4.8.4 || ^6.10.1 || ^7.10.1 || >= 8.1.4}
 
-  konsistent@1.0.0-beta.9:
-    resolution: {integrity: sha512-QoyzGfLcN/BMtqyYnUteMszZqf7apm089z0LohOZheNSvAH3H4bC4Byx1vaXs5Dh7v4UaKCBxAgmCDr2f037mA==}
+  konsistent@1.0.0-beta.11:
+    resolution: {integrity: sha512-INQnoeQMFQWjAHnqrZRYuovq6sjd2F/SSmqvlaSJqv0vnntUOFLiu6RfyrA/kmNLVXL8T1ksQ/sNcOGlwcgFiw==}
     engines: {node: '>=22.11.0'}
     hasBin: true
 
@@ -25140,6 +25184,13 @@ snapshots:
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
+  '@ai-sdk/gateway@4.0.87(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@3.25.76)
+      '@vercel/oidc': 3.2.0
+      zod: 3.25.76
+
   '@ai-sdk/gateway@4.0.87(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 4.0.17
@@ -25182,6 +25233,14 @@ snapshots:
       '@ai-sdk/provider': 4.0.17
       '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
       zod: 4.4.3
+
+  '@ai-sdk/otel@1.0.107(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@opentelemetry/api': 1.9.1
+      ai: 7.0.107(zod@3.25.76)
+    transitivePeerDependencies:
+      - zod
 
   '@ai-sdk/otel@1.0.107(zod@4.4.3)':
     dependencies:
@@ -25229,6 +25288,15 @@ snapshots:
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.1
       zod: 4.4.3
+
+  '@ai-sdk/provider-utils@5.0.45(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@standard-schema/spec': 1.1.0
+      '@workflow/serde': 4.1.0
+      eventsource-parser: 3.1.1
+      undici: 7.29.1
+      zod: 3.25.76
 
   '@ai-sdk/provider-utils@5.0.45(zod@4.4.3)':
     dependencies:
@@ -30353,7 +30421,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@konsistent/convention@1.0.0-beta.9(zod@4.4.3)':
+  '@konsistent/convention@1.0.0-beta.11(zod@4.4.3)':
     dependencies:
       citty: 0.2.2
       jiti: 2.7.0
@@ -30747,6 +30815,15 @@ snapshots:
     dependencies:
       '@langfuse/core': 5.3.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/api': 1.9.1
+
+  '@langfuse/vercel-ai-sdk@5.11.1(@opentelemetry/api@1.9.1)(ai@packages+ai)(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/otel': 1.0.107(zod@3.25.76)
+      '@langfuse/core': 5.11.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.9.1
+      ai: link:packages/ai
+    transitivePeerDependencies:
+      - zod
 
   '@langfuse/vercel-ai-sdk@5.9.1(@opentelemetry/api@1.9.1)(ai@7.0.107(zod@4.4.3))(zod@4.4.3)':
     dependencies:
@@ -33801,7 +33878,7 @@ snapshots:
   '@parcel/watcher-wasm@2.6.0':
     dependencies:
       is-glob: 4.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
 
   '@parcel/watcher-win32-arm64@2.5.6':
     optional: true
@@ -33817,7 +33894,7 @@ snapshots:
       detect-libc: 2.1.2
       is-glob: 4.0.3
       node-addon-api: 7.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       '@parcel/watcher-android-arm64': 2.5.6
       '@parcel/watcher-darwin-arm64': 2.5.6
@@ -35769,10 +35846,10 @@ snapshots:
       '@rollup/pluginutils': 5.3.0(rollup@4.61.1)
       commondir: 1.0.1
       estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.5)
+      fdir: 6.5.0(picomatch@4.0.7)
       is-reference: 1.2.1
       magic-string: 0.30.21
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.61.1
 
@@ -35781,10 +35858,10 @@ snapshots:
       '@rollup/pluginutils': 5.4.0(rollup@4.62.5)
       commondir: 1.0.1
       estree-walker: 2.0.2
-      fdir: 6.5.0(picomatch@4.0.5)
+      fdir: 6.5.0(picomatch@4.0.7)
       is-reference: 1.2.1
       magic-string: 0.30.21
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.62.5
 
@@ -35831,7 +35908,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.61.1
 
@@ -35839,7 +35916,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.9
       estree-walker: 2.0.2
-      picomatch: 4.0.5
+      picomatch: 4.0.7
     optionalDependencies:
       rollup: 4.62.5
 
@@ -37821,7 +37898,7 @@ snapshots:
       '@aws-sdk/credential-provider-web-identity': 3.972.77
       ws: 8.21.3
 
-  '@vercel/geistdocs@2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)':
+  '@vercel/geistdocs@2.7.7(aff8287cfeaf7ca6ee27cf7bcf618115)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0
@@ -37910,7 +37987,7 @@ snapshots:
       glob: 13.0.6
       graceful-fs: 4.2.11
       node-gyp-build: 4.8.4
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       resolve-from: 5.0.0
     transitivePeerDependencies:
       - encoding
@@ -37929,7 +38006,7 @@ snapshots:
       glob: 13.0.6
       graceful-fs: 4.2.11
       node-gyp-build: 4.8.4
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       resolve-from: 5.0.0
     transitivePeerDependencies:
       - encoding
@@ -38316,7 +38393,7 @@ snapshots:
       alien-signals: 3.2.1
       muggle-string: 0.4.1
       path-browserify: 1.0.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
 
   '@vue/reactivity@3.5.12':
     dependencies:
@@ -39868,6 +39945,13 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.37(zod@4.6.5)
       '@opentelemetry/api': 1.9.1
       zod: 4.6.5
+
+  ai@7.0.107(zod@3.25.76):
+    dependencies:
+      '@ai-sdk/gateway': 4.0.87(zod@3.25.76)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@3.25.76)
+      zod: 3.25.76
 
   ai@7.0.107(zod@4.4.3):
     dependencies:
@@ -45159,12 +45243,12 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  konsistent@1.0.0-beta.9:
+  konsistent@1.0.0-beta.11:
     dependencies:
-      '@konsistent/convention': 1.0.0-beta.9(zod@4.4.3)
+      '@konsistent/convention': 1.0.0-beta.11(zod@4.4.3)
       citty: 0.2.2
       picocolors: 1.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       resolve.exports: 2.0.3
       tinyglobby: 0.2.17
       typescript: 5.9.3
@@ -49761,7 +49845,7 @@ snapshots:
   rollup-plugin-visualizer@7.1.1(rolldown@1.2.11)(rollup@4.62.5):
     dependencies:
       open: 11.0.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       source-map: 0.8.0
       yargs: 18.1.0
     optionalDependencies:
@@ -51261,13 +51345,13 @@ snapshots:
 
   tinyglobby@0.2.14:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinyglobby@0.2.17:
     dependencies:
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
 
   tinypool@2.1.0: {}
 
@@ -51718,7 +51802,7 @@ snapshots:
       magic-string: 1.2.2
       mlly: 1.8.2
       pathe: 2.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       pkg-types: 2.3.1
       scule: 1.3.0
       strip-literal: 4.0.0
@@ -51786,7 +51870,7 @@ snapshots:
   unplugin-utils@0.3.2:
     dependencies:
       pathe: 2.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
 
   unplugin-vue-router@0.19.2(@vue/compiler-sfc@3.5.41)(vue-router@4.6.4(vue@3.5.41(typescript@5.8.3)))(vue@3.5.41(typescript@5.8.3)):
     dependencies:
@@ -51802,7 +51886,7 @@ snapshots:
       mlly: 1.8.2
       muggle-string: 0.4.1
       pathe: 2.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       scule: 1.3.0
       tinyglobby: 0.2.17
       unplugin: 2.3.11
@@ -51827,7 +51911,7 @@ snapshots:
       mlly: 1.8.2
       muggle-string: 0.4.1
       pathe: 2.0.3
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       scule: 1.3.0
       tinyglobby: 0.2.17
       unplugin: 2.3.11
@@ -51848,13 +51932,13 @@ snapshots:
     dependencies:
       '@jridgewell/remapping': 2.3.5
       acorn: 8.18.0
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
 
   unplugin@3.3.0(esbuild@0.28.2)(rolldown@1.2.11)(rollup@4.62.5)(vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1))(webpack@5.105.0(@swc/core@1.15.3(@swc/helpers@0.5.23))(cssnano@7.1.9(postcss@8.5.26))(csso@5.0.5)(esbuild@0.28.2)(lightningcss@1.32.0)(postcss@8.5.26)(uglify-js@3.19.3)):
     dependencies:
       '@jridgewell/remapping': 2.3.5
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       esbuild: 0.28.2
@@ -52105,7 +52189,7 @@ snapshots:
       chokidar: 5.0.0
       npm-run-path: 6.0.0
       picocolors: 1.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       proper-lockfile: 4.1.2
       tiny-invariant: 1.3.3
       vite: 7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)
@@ -52120,7 +52204,7 @@ snapshots:
       chokidar: 5.0.0
       npm-run-path: 6.0.0
       picocolors: 1.1.1
-      picomatch: 4.0.5
+      picomatch: 4.0.7
       proper-lockfile: 4.1.2
       tiny-invariant: 1.3.3
       vite: 7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1)
@@ -52226,10 +52310,10 @@ snapshots:
   vite@7.3.2(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.43.1)(tsx@4.23.12)(yaml@2.9.1):
     dependencies:
       esbuild: 0.27.7
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
       postcss: 8.5.26
-      rollup: 4.62.4
+      rollup: 4.62.5
       tinyglobby: 0.2.17
     optionalDependencies:
       '@types/node': 22.19.19
@@ -52245,8 +52329,8 @@ snapshots:
   vite@7.3.6(@types/node@22.19.19)(jiti@2.7.0)(less@4.4.0)(lightningcss@1.32.0)(sass@1.90.0)(terser@5.50.0)(tsx@4.23.12)(yaml@2.9.1):
     dependencies:
       esbuild: 0.28.2
-      fdir: 6.5.0(picomatch@4.0.5)
-      picomatch: 4.0.5
+      fdir: 6.5.0(picomatch@4.0.7)
+      picomatch: 4.0.7
       postcss: 8.5.26
       rollup: 4.62.5
       tinyglobby: 0.2.17

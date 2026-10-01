@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { HarnessV1BridgeToolWire } from '@ai-sdk/harness';
 import type { ACPHostToolMCPTransport } from '../acp-v1-settings';
+import { canonicalFingerprint } from './canonical-json-fingerprint';
 import {
   createHostToolMCPHttpEndpoint,
   HOST_TOOL_MCP_ENDPOINT_PATH,
@@ -18,6 +19,10 @@ export type HostToolCorrelationInvocation = {
 };
 
 export type HostToolRelayTurn = {
+  readonly waitForToolCallAuthorization: (options: {
+    toolName: string;
+    input: Readonly<Record<string, unknown>>;
+  }) => Promise<boolean>;
   readonly emitToolCall: (options: {
     toolCallId: string;
     toolName: string;
@@ -384,6 +389,18 @@ async function handleInvocation({
     });
   }
 
+  if (
+    !(await turn.waitForToolCallAuthorization({
+      toolName: tool.name,
+      input: body.input,
+    }))
+  ) {
+    throw new RelayRequestError({
+      status: 401,
+      message: 'Unauthorized host tool relay request.',
+    });
+  }
+
   const correlationToken = randomBytes(32).toString('hex');
   turn.registerCorrelationInvocation({
     token: correlationToken,
@@ -494,20 +511,7 @@ export function catalogFingerprint({
 }: {
   tools: ReadonlyArray<HarnessV1BridgeToolWire>;
 }): string {
-  return JSON.stringify(canonicalizeJSON({ value: tools }));
-}
-
-function canonicalizeJSON({ value }: { value: unknown }): unknown {
-  if (Array.isArray(value)) {
-    return value.map(item => canonicalizeJSON({ value: item }));
-  }
-  if (!isRecord(value)) return value;
-  return Object.fromEntries(
-    Object.keys(value)
-      .sort()
-      .filter(key => value[key] !== undefined)
-      .map(key => [key, canonicalizeJSON({ value: value[key] })]),
-  );
+  return canonicalFingerprint({ value: tools });
 }
 
 async function readJSONBody({

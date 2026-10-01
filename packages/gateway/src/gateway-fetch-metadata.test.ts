@@ -618,6 +618,59 @@ describe('GatewayFetchMetadata', () => {
       });
     });
 
+    it('should not add team query parameters without a team header', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher().getCredits();
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v1/credits',
+      );
+    });
+
+    it('should forward a team ID from the team header as the teamId query parameter', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher({
+        headers: () => ({
+          Authorization: 'Bearer vca_test-token',
+          'x-vercel-ai-gateway-team': 'team_123',
+        }),
+      }).getCredits();
+
+      expect(server.calls[0].requestUrl).toBe(
+        'https://api.example.com/v1/credits?teamId=team_123',
+      );
+      expect(server.calls[0].requestHeaders).toMatchObject({
+        'x-vercel-ai-gateway-team': 'team_123',
+      });
+    });
+
+    it('should forward a team slug from the team header as the slug query parameter', async () => {
+      server.urls['https://api.example.com/*'].response = {
+        type: 'json-value',
+        body: { balance: '1.00', total_used: '0.00' },
+      };
+
+      await createBasicMetadataFetcher({
+        headers: () => ({
+          Authorization: 'Bearer vca_test-token',
+          'X-Vercel-AI-Gateway-Team': "team-o'brien",
+        }),
+      }).getCredits();
+
+      const url = new URL(server.calls[0].requestUrl);
+      expect(url.pathname).toBe('/v1/credits');
+      expect(url.searchParams.get('slug')).toBe("team-o'brien");
+      expect(url.searchParams.has('teamId')).toBe(false);
+    });
+
     it('should handle API errors for credits endpoint', async () => {
       server.urls['https://api.example.com/*'].response = {
         type: 'error',

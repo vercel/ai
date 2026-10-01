@@ -130,6 +130,7 @@ describe('ACP permission controller', () => {
     const fake = createFakeTurn();
     const emitToolCall = vi.fn();
     const claimHostToolPermission = vi.fn(() => true);
+    const onHostToolPermissionAllowed = vi.fn();
     const controller = createACPPermissionController({
       turn: fake.turn,
       sessionId: 'session-1',
@@ -137,6 +138,7 @@ describe('ACP permission controller', () => {
       hasPermissionModeMapping: true,
       emitToolCall,
       claimHostToolPermission,
+      onHostToolPermissionAllowed,
     });
     const request = permissionRequest({ toolCallId: 'toolu_host' });
 
@@ -147,6 +149,9 @@ describe('ACP permission controller', () => {
       },
     });
     expect(claimHostToolPermission).toHaveBeenCalledWith({
+      toolCall: request.toolCall,
+    });
+    expect(onHostToolPermissionAllowed).toHaveBeenCalledExactlyOnceWith({
       toolCall: request.toolCall,
     });
     expect(emitToolCall).not.toHaveBeenCalled();

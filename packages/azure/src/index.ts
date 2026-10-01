@@ -28,5 +28,6 @@ export type {
   AzureResponsesSourceDocumentProviderMetadata,
 } from './azure-openai-provider-metadata';
 export { VERSION } from './version';
+export type { AzureSpeechModelOptions } from './azure-speech-model-options';
 export type { AzureTranscriptionModelOptions } from './azure-transcription-model-options';
 export type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';

@@ -1,5 +1,49 @@
 # @ai-sdk/azure
 
+## 4.0.90
+
+### Patch Changes
+
+- 8952233: feat(azure): support MAI-Voice-2.1 and MAI-Voice-2.1-Flash speech generation, and MAI-Transcribe-2-Streaming streaming transcription through the MAI realtime API. Adds the `maiBaseURL` and `webSocket` settings and `providerOptions.azure.api: 'mai'`. Unknown MAI voices or styles now fail with a descriptive, non-retryable error.
+
+## 4.0.89
+
+### Patch Changes
+
+- d08102b: Add test coverage for `resourceName` validation edge cases: labels at the 63-character limit, underscores, non-ASCII characters, and invalid `AZURE_RESOURCE_NAME` values for non-language models.
+
+## 4.0.88
+
+### Patch Changes
+
+- 560ac0b: Route `mai-transcribe-1.5` to the Azure Speech API by default, like `mai-transcribe-2`. MAI-Transcribe-1.5 requests no longer send the `segment` timestamps default, which the model rejects.
+- 00f2a59: Add MAI-Voice-2-Flash and MAI-Voice-2 speech generation through `azure.speech()` using Azure Speech text to speech (SSML), with voice, output format, speed, and `style`/`styleDegree` provider options. `language` picks a default voice when no voice is set. Select the API with `providerOptions.azure.api` to override model-based routing, and add `azure.speechModel()` as an alias of `azure.speech()`.
+
+## 4.0.87
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai@4.0.83
+  - @ai-sdk/deepseek@3.0.58
+
+## 4.0.86
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [040033b]
+- Updated dependencies [ea54a10]
+- Updated dependencies [ede5b89]
+  - @ai-sdk/openai@4.0.82
+  - @ai-sdk/deepseek@3.0.57
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.85
 
 ### Patch Changes
