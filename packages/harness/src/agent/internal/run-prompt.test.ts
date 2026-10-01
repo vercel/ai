@@ -3138,7 +3138,10 @@ describe('runPrompt suspension lifecycle', () => {
 describe('runPrompt abort semantics', () => {
   const abortedRun = (
     script: HarnessV1StreamPart[],
-    options?: { onTurnFailed?: () => void },
+    options?: {
+      onTurnFailed?: () => void;
+      telemetry?: Parameters<typeof runPrompt>[0]['telemetry'];
+    },
   ) => {
     const controller = new AbortController();
     controller.abort();
@@ -3154,6 +3157,7 @@ describe('runPrompt abort semantics', () => {
       runtimeContext: {} as never,
       abortSignal: controller.signal,
       onTurnFailed: options?.onTurnFailed,
+      telemetry: options?.telemetry,
     });
   };
 
@@ -3210,6 +3214,25 @@ describe('runPrompt abort semantics', () => {
     await done;
 
     expect(onTurnFailed).toHaveBeenCalledTimes(1);
+  });
+
+  test('dispatches abort telemetry instead of error telemetry', async () => {
+    const onAbort = vi.fn();
+    const onError = vi.fn();
+    const { result, done } = abortedRun(
+      [{ type: 'error', error: 'AbortError: This operation was aborted' }],
+      { telemetry: { integrations: [{ onAbort, onError }] } },
+    );
+
+    await result.consumeStream();
+    await done;
+
+    expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      callId: expect.any(String),
+      steps: [],
+      reason: expect.anything(),
+    });
+    expect(onError).not.toHaveBeenCalled();
   });
 
   test('toUIMessageStream emits an abort chunk, skips onError, and reports isAborted to onEnd for an aborted turn', async () => {
