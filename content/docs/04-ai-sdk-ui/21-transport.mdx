@@ -96,6 +96,76 @@ const { messages, sendMessage } = useChat({
 });
 ```
 
+## WebSocket Transport
+
+Use `WebSocketChatTransport` when you want chat turns to share a persistent
+WebSocket connection instead of opening an HTTP request for every turn. This is
+useful for chats with frequent client-side tool results or other multi-step
+interactions.
+
+```tsx
+import { useChat } from '@ai-sdk/react';
+import { WebSocketChatTransport } from 'ai';
+import { useMemo } from 'react';
+
+export default function Chat() {
+  const transport = useMemo(
+    () =>
+      new WebSocketChatTransport({
+        url: '/api/chat',
+        params: () => ({ token: getShortLivedToken() }),
+      }),
+    [],
+  );
+
+  const { messages, sendMessage } = useChat({ transport });
+
+  // ... render the chat
+}
+```
+
+The transport multiplexes requests by `requestId`, validates incoming
+`UIMessageChunk` values, forwards aborts to the server, and reuses the open
+socket for later turns. HTTP and HTTPS URLs are automatically converted to WS
+and WSS URLs.
+
+The code that creates a transport owns its lifecycle. React and Vue chat hooks
+do not close caller-supplied transports when options change or components are
+disposed, because the same transport can be shared by multiple chats. Call
+`transport.close()` after its last consumer is gone. If a directly managed
+`Chat` instance exclusively owns the transport, call `chat.dispose()`; for a
+shared transport, stop individual chats and close the transport only after all
+consumers are finished.
+
+Your WebSocket server must implement the
+[`WebSocketChatTransport` protocol](/docs/reference/ai-sdk-ui/websocket-chat-transport#wire-protocol).
+The exported `WebSocketChatTransportRequest` and
+`WebSocketChatTransportResponse` types can be used to type server frames. Use
+`safeValidateWebSocketChatTransportRequest` before handling an untrusted client
+frame.
+
+<Note>
+  Browser WebSocket APIs cannot set arbitrary handshake headers. The `headers`
+  option is included inside each application-level request frame. Authenticate
+  the handshake with secure cookies, a short-lived query parameter, or a
+  subprotocol, and validate the connection origin and every frame on the server.
+</Note>
+
+`sendAutomaticallyWhen` still starts a new chat turn after the preceding UI
+message stream finishes. `WebSocketChatTransport` avoids opening another HTTP
+connection for that turn, but it does not send tool results into an active
+model generation.
+
+If the socket closes during a response, the active stream errors. A later send
+opens a new connection. The transport does not automatically replay requests,
+because replaying a generation can duplicate model output or tool effects.
+`reconnectToStream` sends the last accepted chunk sequence so a server can
+replay retained chunks without duplicating client output.
+
+For complete options, protocol details, cancellation behavior, and a server
+example, see the
+[`WebSocketChatTransport` reference](/docs/reference/ai-sdk-ui/websocket-chat-transport).
+
 ## Direct Agent Transport
 
 For scenarios where you want to communicate directly with an [Agent](/docs/reference/ai-sdk-core/agent) without going through HTTP, you can use `DirectChatTransport`. This transport invokes the agent's `stream()` method directly in-process.
