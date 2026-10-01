@@ -14,8 +14,8 @@ import { MODAL_PROVIDER_ID, normalizePorts } from './utils';
  * {@link ModalSandboxSession} with ports and lifecycle. Explicit `stop()` and
  * `destroy()` calls terminate the native sandbox.
  *
- * Modal fixes a sandbox's tunnels and outbound network policy when the
- * sandbox is created, so `setPorts` and `setNetworkPolicy` are omitted.
+ * Modal fixes a sandbox's tunnels when the sandbox is created, so `setPorts`
+ * is omitted. The session does not implement `setNetworkPolicy` either.
  */
 export class ModalNetworkSandboxSession
   extends ModalSandboxSession

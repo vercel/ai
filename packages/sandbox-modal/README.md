@@ -37,6 +37,8 @@ await networkSandboxSession.destroy();
 
 Sandboxes are terminated after 30 minutes unless `timeoutMs` says otherwise. A terminated Modal sandbox cannot be started again: `stop()` and `destroy()` both terminate it.
 
+Unlike `@ai-sdk/sandbox-vercel`, `stop()` does not keep the sandbox resumable. Once the sandbox session's `stop()` or `destroy()` has run, or the sandbox has reached its `timeoutMs`, the sandbox and the working directory that Claude Code and Codex keep their conversation state in are gone: the harness session cannot be resumed, and `resumeModalNetworkSandboxSession()` fails with `Modal sandbox "<id>" has terminated and cannot be resumed.` A harness session stays resumable only while the Modal sandbox keeps running. `HarnessAgentSession.detach()` and `HarnessAgentSession.stop()` leave a sandbox session that you passed to `createSession()` running, so reattach with `resumeModalNetworkSandboxSession({ sandboxId })` and `createSession({ sandboxSession, sessionId, resumeFrom })` before the sandbox is stopped or times out.
+
 ### Use cases
 
 - Create a network sandbox session with `createModalNetworkSandboxSession()` and pass it to `HarnessAgent.createSession({ sandboxSession })`. For reusable templates, pass `template: await agent.getSandboxTemplate()` to the creator function. The prepared filesystem is published as a Modal image named after the template, and later sandboxes start from it.

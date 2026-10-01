@@ -346,6 +346,43 @@ describe('resumed Modal sandbox sessions', () => {
     expect(spies.create).not.toHaveBeenCalled();
   });
 
+  it('rejects sandboxes that terminated but still poll as running', async () => {
+    const { client, spies } = makeMockClient();
+    const { sandbox, spies: sandboxSpies } = makeMockSandbox();
+    sandboxSpies.tunnels.mockRejectedValue(
+      Object.assign(
+        new Error(
+          '/modal.client.ModalClient/SandboxGetTunnels FAILED_PRECONDITION: Sandbox has already finished with status terminated',
+        ),
+        { code: 9 },
+      ),
+    );
+    spies.sandboxFromName.mockResolvedValue(sandbox);
+
+    await expect(
+      resumeModalNetworkSandboxSession({ client, sandboxId: 'finished' }),
+    ).rejects.toThrow(
+      'Modal sandbox "finished" has terminated and cannot be resumed.',
+    );
+    expect(sandboxSpies.poll).toHaveBeenCalledOnce();
+    expect(sandboxSpies.detach).toHaveBeenCalledOnce();
+    expect(sandboxSpies.terminate).not.toHaveBeenCalled();
+  });
+
+  it('surfaces other failures while reattaching unchanged', async () => {
+    const { client, spies } = makeMockClient();
+    const unavailable = Object.assign(new Error('unavailable'), { code: 14 });
+    const { sandbox, spies: sandboxSpies } = makeMockSandbox();
+    sandboxSpies.tunnels.mockRejectedValue(unavailable);
+    spies.sandboxFromName.mockResolvedValue(sandbox);
+
+    await expect(
+      resumeModalNetworkSandboxSession({ client, sandboxId: 'live-session' }),
+    ).rejects.toBe(unavailable);
+    expect(sandboxSpies.detach).toHaveBeenCalledOnce();
+    expect(sandboxSpies.terminate).not.toHaveBeenCalled();
+  });
+
   it('rejects missing sandboxes and respects an aborted signal', async () => {
     const { client, spies } = makeMockClient();
     const notFound = makeModalError('NotFoundError');

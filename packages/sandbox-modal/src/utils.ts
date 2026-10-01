@@ -204,31 +204,61 @@ export async function getRunningSandbox({
     exitCode = await sandbox.poll();
   } catch (error) {
     sandbox.detach();
+    if (isSandboxFinishedFailure(error)) {
+      throw createSandboxTerminatedError(sandboxId);
+    }
     throw notFoundError != null && isSandboxLookupFailure(error)
       ? notFoundError
       : error;
   }
   if (exitCode != null) {
     sandbox.detach();
-    throw new Error(
-      `Modal sandbox "${sandboxId}" has terminated and cannot be resumed.`,
-    );
+    throw createSandboxTerminatedError(sandboxId);
   }
   return sandbox;
 }
 
+export function createSandboxTerminatedError(sandboxId: string): Error {
+  return new Error(
+    `Modal sandbox "${sandboxId}" has terminated and cannot be resumed.`,
+  );
+}
+
 const GRPC_STATUS_INVALID_ARGUMENT = 3;
 const GRPC_STATUS_NOT_FOUND = 5;
+const GRPC_STATUS_FAILED_PRECONDITION = 9;
+
+const MODAL_SANDBOX_FINISHED_MESSAGE = /has already (finished|completed)/i;
+
+function getErrorCode(error: unknown): unknown {
+  return error != null && typeof error === 'object'
+    ? (error as { code?: unknown }).code
+    : undefined;
+}
 
 function isSandboxLookupFailure(error: unknown): boolean {
   if (isModalError(error, 'NotFoundError')) return true;
   if (isModalError(error, 'InvalidError')) return true;
-  const code =
-    error != null && typeof error === 'object'
-      ? (error as { code?: unknown }).code
-      : undefined;
+  const code = getErrorCode(error);
   return (
     code === GRPC_STATUS_INVALID_ARGUMENT || code === GRPC_STATUS_NOT_FOUND
+  );
+}
+
+/**
+ * Matches the errors Modal raises for calls on a sandbox that has already
+ * finished. A sandbox that has just terminated can still poll as running, so
+ * these calls are where the termination first shows.
+ */
+export function isSandboxFinishedFailure(error: unknown): boolean {
+  if (isModalError(error, 'ConflictError')) return true;
+  if (getErrorCode(error) === GRPC_STATUS_FAILED_PRECONDITION) return true;
+  const message =
+    error != null && typeof error === 'object'
+      ? (error as { message?: unknown }).message
+      : undefined;
+  return (
+    typeof message === 'string' && MODAL_SANDBOX_FINISHED_MESSAGE.test(message)
   );
 }
 

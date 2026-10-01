@@ -9,9 +9,11 @@ import { ModalNetworkSandboxSession } from './modal-network-sandbox-session';
 import { ModalSandboxSession } from './modal-sandbox-session';
 import {
   DEFAULT_SANDBOX_APP_NAME,
+  createSandboxTerminatedError,
   ensureTemplateImage,
   getEncryptedTunnelPorts,
   getRunningSandbox,
+  isSandboxFinishedFailure,
   resolveSandboxImage,
   resolveSandboxWorkingDirectory,
   withDefaultSandboxSettings,
@@ -210,7 +212,9 @@ export async function resumeModalNetworkSandboxSession(
       } catch (error) {
         // The sandbox keeps running; only this process lets go of it.
         sandbox.detach();
-        throw error;
+        throw isSandboxFinishedFailure(error)
+          ? createSandboxTerminatedError(sandboxId)
+          : error;
       }
     },
   });
