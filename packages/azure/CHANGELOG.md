@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 3.0.133
+
+### Patch Changes
+
+- fd352cd: feat(azure): support MAI-Voice-2.1 and MAI-Voice-2.1-Flash speech generation. Unknown MAI voices or styles now fail with a descriptive, non-retryable error.
+- Updated dependencies [d131a3b]
+  - @ai-sdk/openai@3.0.124
+
 ## 3.0.132
 
 ### Patch Changes
