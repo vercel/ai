@@ -34,7 +34,7 @@ const MODALITY_CONFIG: Record<
     outputFile: 'gateway-embedding-model-settings.ts',
     typeName: 'GatewayEmbeddingModelId',
   },
-  evaluation: {
+  decision: {
     outputFile: 'gateway-decision-model-settings.ts',
     typeName: 'GatewayDecisionModelId',
   },

@@ -37,6 +37,11 @@ export class GatewayDecisionModel implements DecisionModelV4 {
     return this.config.provider;
   }
 
+  /** @deprecated Use `doDecide` instead. */
+  doEvaluate(options: Parameters<DecisionModelV4['doDecide']>[0]) {
+    return this.doDecide(options);
+  }
+
   async doDecide({
     state,
     questions,
@@ -111,12 +116,12 @@ export class GatewayDecisionModel implements DecisionModelV4 {
   }
 
   private getUrl() {
-    return `${this.config.baseURL}/evaluation-model`;
+    return `${this.config.baseURL}/decision-model`;
   }
 
   private getModelConfigHeaders() {
     return {
-      'ai-evaluation-model-specification-version': '4',
+      'ai-decision-model-specification-version': '4',
       'ai-model-id': this.modelId,
     };
   }

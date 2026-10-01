@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import { createGateway } from './gateway-provider';
 import { GatewayDecisionModel } from './gateway-decision-model';
 import type { GatewayConfig } from './gateway-config';
 import {
@@ -41,7 +42,7 @@ const dummyAnswers = {
 };
 
 const server = createTestServer({
-  'https://api.test.com/evaluation-model': {},
+  'https://api.test.com/decision-model': {},
 });
 
 const createTestModel = (
@@ -82,7 +83,7 @@ describe('GatewayDecisionModel', () => {
     >;
     headers?: Record<string, string>;
   } = {}) {
-    server.urls['https://api.test.com/evaluation-model'].response = {
+    server.urls['https://api.test.com/decision-model'].response = {
       type: 'json-value',
       headers,
       body: {
@@ -103,6 +104,28 @@ describe('GatewayDecisionModel', () => {
     ]);
   });
 
+  it('routes the deprecated factory and model method through the decision protocol', async () => {
+    prepareJsonResponse();
+    const provider = createGateway({
+      baseURL: 'https://api.test.com',
+      apiKey: 'test-token',
+    });
+    expect(provider.evaluationModel).toBe(provider.decisionModel);
+    expect(provider.evaluation).toBe(provider.decision);
+    await provider
+      .evaluationModel('typesafe-ai/jev')
+      .doEvaluate({ state: testState, questions: testQuestions });
+    expect(server.calls[0].requestUrl).toBe(
+      'https://api.test.com/decision-model',
+    );
+    expect(
+      server.calls[0].requestHeaders['ai-decision-model-specification-version'],
+    ).toBe('4');
+    expect(server.calls[0].requestHeaders).not.toHaveProperty(
+      'ai-evaluation-model-specification-version',
+    );
+  });
+
   describe('doDecide', () => {
     it('should pass headers correctly', async () => {
       prepareJsonResponse();
@@ -117,7 +140,7 @@ describe('GatewayDecisionModel', () => {
       expect(headers).toMatchObject({
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
-        'ai-evaluation-model-specification-version': '4',
+        'ai-decision-model-specification-version': '4',
         'ai-model-id': 'typesafe-ai/jev',
       });
     });
@@ -373,7 +396,7 @@ describe('GatewayDecisionModel', () => {
     });
 
     it('should return provider metadata', async () => {
-      server.urls['https://api.test.com/evaluation-model'].response = {
+      server.urls['https://api.test.com/decision-model'].response = {
         type: 'json-value',
         body: {
           answers: dummyAnswers,
@@ -396,7 +419,7 @@ describe('GatewayDecisionModel', () => {
 
   describe('error handling', () => {
     it('should throw GatewayInvalidRequestError on 400', async () => {
-      server.urls['https://api.test.com/evaluation-model'].response = {
+      server.urls['https://api.test.com/decision-model'].response = {
         type: 'error',
         status: 400,
         body: JSON.stringify({
@@ -419,7 +442,7 @@ describe('GatewayDecisionModel', () => {
     });
 
     it('should throw GatewayInternalServerError on 500', async () => {
-      server.urls['https://api.test.com/evaluation-model'].response = {
+      server.urls['https://api.test.com/decision-model'].response = {
         type: 'error',
         status: 500,
         body: JSON.stringify({
@@ -443,7 +466,7 @@ describe('GatewayDecisionModel', () => {
   });
 
   describe('URL construction', () => {
-    it('should post to /evaluation-model endpoint', async () => {
+    it('should post to /decision-model endpoint', async () => {
       prepareJsonResponse();
 
       await createTestModel().doDecide({
@@ -452,7 +475,7 @@ describe('GatewayDecisionModel', () => {
       });
 
       expect(server.calls[0].requestUrl).toBe(
-        'https://api.test.com/evaluation-model',
+        'https://api.test.com/decision-model',
       );
     });
   });

@@ -159,14 +159,24 @@ export interface GatewayProvider extends ProviderV4 {
   rerankingModel(modelId: GatewayRerankingModelId): RerankingModelV4;
 
   /**
-   * Creates a model for evaluating state against questions.
+   * Creates a model for deciding answers to questions against shared state.
    */
   decision(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
 
   /**
-   * Creates a model for evaluating state against questions.
+   * Creates a model for deciding answers to questions against shared state.
    */
   decisionModel(modelId: GatewayDecisionModelId): Experimental_DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(
+    modelId: GatewayDecisionModelId,
+  ): Experimental_DecisionModelV4 & {
+    doEvaluate: Experimental_DecisionModelV4['doDecide'];
+  };
+  /** @deprecated Use `decision` instead. */
+  evaluation(
+    modelId: GatewayDecisionModelId,
+  ): ReturnType<GatewayProvider['evaluationModel']>;
 
   /**
    * Creates a model for text-to-speech generation.
@@ -592,6 +602,8 @@ export function createGateway(
   };
   provider.decisionModel = createDecisionModel;
   provider.decision = createDecisionModel;
+  provider.evaluationModel = createDecisionModel;
+  provider.evaluation = createDecisionModel;
   const createSpeechModel = (modelId: GatewaySpeechModelId) => {
     return new GatewaySpeechModel(modelId, {
       provider: 'gateway',
