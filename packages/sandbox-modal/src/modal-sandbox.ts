@@ -213,7 +213,7 @@ export async function resumeModalNetworkSandboxSession(
         // The sandbox keeps running; only this process lets go of it.
         sandbox.detach();
         throw isSandboxFinishedFailure(error)
-          ? createSandboxTerminatedError(sandboxId)
+          ? createSandboxTerminatedError(sandboxId, error)
           : error;
       }
     },

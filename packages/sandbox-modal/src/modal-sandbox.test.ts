@@ -349,22 +349,47 @@ describe('resumed Modal sandbox sessions', () => {
   it('rejects sandboxes that terminated but still poll as running', async () => {
     const { client, spies } = makeMockClient();
     const { sandbox, spies: sandboxSpies } = makeMockSandbox();
-    sandboxSpies.tunnels.mockRejectedValue(
-      Object.assign(
-        new Error(
-          '/modal.client.ModalClient/SandboxGetTunnels FAILED_PRECONDITION: Sandbox has already finished with status terminated',
-        ),
-        { code: 9 },
+    const finished = Object.assign(
+      new Error(
+        '/modal.client.ModalClient/SandboxGetTunnels FAILED_PRECONDITION: Sandbox has already finished with status terminated',
       ),
+      { code: 9 },
     );
+    sandboxSpies.tunnels.mockRejectedValue(finished);
     spies.sandboxFromName.mockResolvedValue(sandbox);
 
-    await expect(
-      resumeModalNetworkSandboxSession({ client, sandboxId: 'finished' }),
-    ).rejects.toThrow(
+    const error = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'finished',
+    }).catch(error => error);
+
+    expect(error.message).toBe(
       'Modal sandbox "finished" has terminated and cannot be resumed.',
     );
+    expect(error.cause).toBe(finished);
     expect(sandboxSpies.poll).toHaveBeenCalledOnce();
+    expect(sandboxSpies.detach).toHaveBeenCalledOnce();
+    expect(sandboxSpies.terminate).not.toHaveBeenCalled();
+  });
+
+  it('rejects sandboxes whose liveness check reports them finished', async () => {
+    const { client, spies } = makeMockClient();
+    const { sandbox, spies: sandboxSpies } = makeMockSandbox();
+    const finished = Object.assign(new Error('failed precondition'), {
+      code: 9,
+    });
+    sandboxSpies.poll.mockRejectedValue(finished);
+    spies.sandboxFromName.mockResolvedValue(sandbox);
+
+    const error = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'finished',
+    }).catch(error => error);
+
+    expect(error.message).toBe(
+      'Modal sandbox "finished" has terminated and cannot be resumed.',
+    );
+    expect(error.cause).toBe(finished);
     expect(sandboxSpies.detach).toHaveBeenCalledOnce();
     expect(sandboxSpies.terminate).not.toHaveBeenCalled();
   });

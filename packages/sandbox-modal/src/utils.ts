@@ -205,7 +205,7 @@ export async function getRunningSandbox({
   } catch (error) {
     sandbox.detach();
     if (isSandboxFinishedFailure(error)) {
-      throw createSandboxTerminatedError(sandboxId);
+      throw createSandboxTerminatedError(sandboxId, error);
     }
     throw notFoundError != null && isSandboxLookupFailure(error)
       ? notFoundError
@@ -218,10 +218,14 @@ export async function getRunningSandbox({
   return sandbox;
 }
 
-export function createSandboxTerminatedError(sandboxId: string): Error {
-  return new Error(
+export function createSandboxTerminatedError(
+  sandboxId: string,
+  cause?: unknown,
+): Error {
+  const error = new Error(
     `Modal sandbox "${sandboxId}" has terminated and cannot be resumed.`,
   );
+  return cause === undefined ? error : Object.assign(error, { cause });
 }
 
 const GRPC_STATUS_INVALID_ARGUMENT = 3;
