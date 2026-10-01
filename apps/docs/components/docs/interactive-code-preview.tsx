@@ -216,10 +216,12 @@ const providerPreferredModels: Partial<
   image: {
     openai: 'openai/gpt-image-2.5-sunburst',
     xai: 'spacexai/grok-imagine-image-2.0',
+    bfl: 'bfl/flux-2-pro',
   },
   video: {
     google: 'google/veo-3.1-generate-001',
     xai: 'spacexai/grok-imagine-video-1.5',
+    bfl: 'bfl/flux-3-video',
   },
 };
 
@@ -240,14 +242,15 @@ export const FIRST_PARTY_PROVIDERS = [
 
 const MODEL_KIND_PROVIDER_ALLOWLISTS: Record<ModelKind, string[]> = {
   text: FIRST_PARTY_PROVIDERS,
-  image: ['openai', 'google', 'xai'],
-  video: ['google', 'xai'],
+  image: ['openai', 'google', 'xai', 'bfl'],
+  video: ['google', 'xai', 'bfl'],
 };
 
 // Mapping for providers where SDK package/export differs from gateway
 // provider ID: { gatewayId: { pkg: 'package-name', export: 'exportName' } }
 const providerSdkMap: Record<string, { pkg: string; export: string }> = {
   amazon: { pkg: 'amazon-bedrock', export: 'bedrock' },
+  bfl: { pkg: 'black-forest-labs', export: 'blackForestLabs' },
 };
 
 // Mapping for models where the provider SDK model code differs from the
