@@ -11,4 +11,12 @@ export type GatewaySpeechModelId =
   | 'openai/tts-1'
   | 'openai/tts-1-hd'
   | 'spacexai/grok-tts'
+  | 'minimax/speech-2.8-hd'
+  | 'minimax/speech-2.8-turbo'
+  | 'minimax/speech-2.6-hd'
+  | 'minimax/speech-2.6-turbo'
+  | 'minimax/speech-02-hd'
+  | 'minimax/speech-02-turbo'
+  | 'minimax/speech-01-hd'
+  | 'minimax/speech-01-turbo'
   | (string & {});
