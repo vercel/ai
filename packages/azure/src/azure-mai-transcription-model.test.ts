@@ -387,6 +387,24 @@ describe('MAI connection settings', () => {
     expect(ws.options?.headers?.['api-key']).toBeUndefined();
   });
 
+  it('rejects Entra bearer auth without a custom WebSocket', async () => {
+    vi.stubGlobal('WebSocket', MockWebSocket);
+    await expect(
+      startStream({
+        settings: {
+          apiKey: undefined,
+          tokenProvider: async () => 'entra-token',
+          webSocket: undefined,
+        },
+      }),
+    ).rejects.toSatisfy(
+      error =>
+        InvalidArgumentError.isInstance(error) &&
+        (error as InvalidArgumentError).argument === 'webSocket',
+    );
+    expect(MockWebSocket.instances).toHaveLength(0);
+  });
+
   it('routes custom deployment names with api=mai', async () => {
     const { ws } = await startStream({
       modelId: 'my-streaming-deployment',

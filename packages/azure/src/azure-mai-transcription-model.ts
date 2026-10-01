@@ -90,16 +90,32 @@ export class AzureMaiTranscriptionModel implements TranscriptionModelV4 {
       },
     };
 
+    const headers = {
+      ...(await this.config.headers()),
+      ...options.headers,
+    };
+    // Native WebSocket constructors drop headers, so bearer auth would be lost.
+    if (
+      this.config.webSocket == null &&
+      Object.entries(headers).some(
+        ([key, value]) =>
+          key.toLowerCase() === 'authorization' && value != null,
+      )
+    ) {
+      throw new InvalidArgumentError({
+        argument: 'webSocket',
+        message:
+          'MAI streaming transcription with Microsoft Entra ID (tokenProvider) or an Authorization header requires a custom webSocket implementation such as `ws`, because the native WebSocket cannot send headers.',
+      });
+    }
+
     return {
       request: { body: sessionUpdate },
       response: { timestamp: currentDate, modelId: this.modelId },
       stream: createMaiTranscriptionStream({
         ...getConnection({
           url: toWebSocketUrl(this.config.url()),
-          headers: {
-            ...(await this.config.headers()),
-            ...options.headers,
-          },
+          headers,
           supportsHeaders: this.config.webSocket != null,
         }),
         webSocket: this.config.webSocket,

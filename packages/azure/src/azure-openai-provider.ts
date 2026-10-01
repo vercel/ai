@@ -209,7 +209,7 @@ export interface AzureOpenAIProviderSettings {
    * Custom WebSocket implementation for MAI streaming transcription, e.g.
    * `ws` in Node.js. With a custom implementation the API key is sent as a
    * header; otherwise it is sent as the `api-key` query parameter. Entra ID
-   * tokens require header support.
+   * tokens require a custom implementation; streaming rejects them otherwise.
    */
   webSocket?: WebSocketConstructor;
 }

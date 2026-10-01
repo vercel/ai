@@ -150,7 +150,8 @@ You can use the following optional settings to customize the OpenAI provider ins
   the `WebSocket` export of the `ws` package in Node.js. With a custom
   implementation the API key is sent in the `api-key` header; with the native
   `WebSocket` it is sent as the `api-key` query parameter. Microsoft Entra ID
-  (`tokenProvider`) authentication requires a custom implementation.
+  (`tokenProvider`) authentication requires a custom implementation; without one,
+  streaming fails with an `InvalidArgumentError` before connecting.
 
 ## Language Models
 
@@ -1250,12 +1251,16 @@ as `mai-transcribe-2-streaming`, or set `api: 'mai'` for other deployment names.
 ```ts
 import {
   createAzure,
+  type AzureOpenAIProviderSettings,
   type AzureTranscriptionModelOptions,
 } from '@ai-sdk/azure';
 import { experimental_streamTranscribe as streamTranscribe } from 'ai';
 import { WebSocket } from 'ws';
 
-const azure = createAzure({ webSocket: WebSocket });
+const azure = createAzure({
+  // `ws`'s WebSocket type differs from the DOM-style WebSocketConstructor.
+  webSocket: WebSocket as unknown as AzureOpenAIProviderSettings['webSocket'],
+});
 
 const result = streamTranscribe({
   model: azure.transcription('mai-transcribe-2-streaming'),
