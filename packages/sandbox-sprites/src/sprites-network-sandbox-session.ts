@@ -28,7 +28,7 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * `?agent_bridge_token=…`; the Sprite must have `url` auth set to `public` for
  * a stock WebSocket client (no auth header) to reach the in-Sprite bridge.
  *
- * A Sprite on any other URL auth redirects that client at the auth gate, so
+ * A Sprite on any other URL auth turns that client away at the auth gate, so
  * its session exposes no port: `ports` is empty and `getPortEndpoint` throws.
  * Such a session supports file and process access only and is not selected by
  * bridge-backed adapters.
