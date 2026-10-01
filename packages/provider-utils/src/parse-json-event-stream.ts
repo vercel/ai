@@ -15,8 +15,27 @@ export function parseJsonEventStream<T>({
   stream: ReadableStream<Uint8Array>;
   schema: FlexibleSchema<T>;
 }): ReadableStream<ParseResult<T>> {
+  const decoder = new TextDecoder();
+
   return stream
-    .pipeThrough(new TextDecoderStream())
+    .pipeThrough(
+      new TransformStream<Uint8Array, string>({
+        transform(chunk, controller) {
+          // Preserve partial UTF-8 characters across chunks without requiring
+          // TextDecoderStream, which is unavailable in some runtimes (e.g. Expo).
+          const text = decoder.decode(chunk, { stream: true });
+          if (text.length > 0) {
+            controller.enqueue(text);
+          }
+        },
+        flush(controller) {
+          const text = decoder.decode();
+          if (text.length > 0) {
+            controller.enqueue(text);
+          }
+        },
+      }),
+    )
     .pipeThrough(new EventSourceParserStream())
     .pipeThrough(
       new TransformStream<EventSourceMessage, ParseResult<T>>({
