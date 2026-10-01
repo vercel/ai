@@ -398,10 +398,16 @@ export class SpritesApiClient {
       start(controller) {
         stdoutController = controller;
       },
+      cancel() {
+        stdoutController = undefined;
+      },
     });
     const stderr = new ReadableStream<Uint8Array>({
       start(controller) {
         stderrController = controller;
+      },
+      cancel() {
+        stderrController = undefined;
       },
     });
 
