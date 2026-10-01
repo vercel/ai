@@ -246,6 +246,31 @@ const { embedding } = await embed({
 
 The following provider options are available:
 
+- **embeddingType** _'float' | 'int8' | 'uint8' | 'binary' | 'ubinary'_
+
+  Selects one embedding format per call. Defaults to `float`, preserving the
+  existing behavior. Non-float formats require Embed v3.0 or newer. For example:
+
+  ```ts
+  const { embedding } = await embed({
+    model: cohere.embedding('embed-v4.0'),
+    value: 'sunny day at the beach',
+    providerOptions: {
+      cohere: {
+        embeddingType: 'int8',
+      } satisfies CohereEmbeddingModelOptions,
+    },
+  });
+  ```
+
+  The selected format is returned in `embedding` (or `embeddings` for
+  `embedMany`) as number arrays. The provider returns the values without
+  converting or unpacking them. `binary` and `ubinary` contain packed bytes:
+  each number represents eight dimensions. Use a binary-aware vector database
+  or unpack the bits before comparing vectors; do not pass packed bytes directly
+  to `cosineSimilarity`. Compressed formats can affect retrieval quality, and
+  compact storage requires an appropriate database representation.
+
 - **inputType** _'search_document' | 'search_query' | 'classification' | 'clustering'_
 
   Specifies the type of input passed to the model. Default is `search_query`.
