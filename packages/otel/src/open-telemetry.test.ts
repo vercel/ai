@@ -2839,6 +2839,102 @@ describe('OpenTelemetry', () => {
 });
 
 describe('OpenTelemetry integration with decide', () => {
+  it.each(['deprecated', 'current'] as const)(
+    'honors %s subclass hooks with and without super calls',
+    async hooks => {
+      for (const callSuper of [false, true]) {
+        const calls: Array<[string, string]> = [];
+        const tracer = createMockTracer();
+        class DeprecatedHooksIntegration extends OpenTelemetry {
+          override experimental_onEvaluateStart(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateStart(event);
+          }
+          override experimental_onEvaluationModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallStart(event);
+          }
+          override experimental_onEvaluationModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onEvaluationModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluationModelCallEnd(event);
+          }
+          override experimental_onEvaluateEnd(
+            event: Parameters<OpenTelemetry['experimental_onEvaluateEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onEvaluateEnd(event);
+          }
+        }
+        class CurrentHooksIntegration extends OpenTelemetry {
+          override experimental_onDecideStart(
+            event: Parameters<OpenTelemetry['experimental_onDecideStart']>[0],
+          ): void {
+            calls.push(['start', event.operationId]);
+            if (callSuper) super.experimental_onDecideStart(event);
+          }
+          override experimental_onDecisionModelCallStart(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallStart']
+            >[0],
+          ): void {
+            calls.push(['model-start', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallStart(event);
+          }
+          override experimental_onDecisionModelCallEnd(
+            event: Parameters<
+              OpenTelemetry['experimental_onDecisionModelCallEnd']
+            >[0],
+          ): void {
+            calls.push(['model-end', event.operationId]);
+            if (callSuper) super.experimental_onDecisionModelCallEnd(event);
+          }
+          override experimental_onDecideEnd(
+            event: Parameters<OpenTelemetry['experimental_onDecideEnd']>[0],
+          ): void {
+            calls.push(['end', event.operationId]);
+            if (callSuper) super.experimental_onDecideEnd(event);
+          }
+        }
+        const Integration =
+          hooks === 'deprecated'
+            ? DeprecatedHooksIntegration
+            : CurrentHooksIntegration;
+        await experimental_decide({
+          model: new Experimental_DecisionMockModelV4({
+            doDecide: async () => ({
+              answers: { refund: { type: 'boolean', probability: 0.9 } },
+              warnings: [],
+            }),
+          }),
+          state: 'Please refund me',
+          questions: { refund: { type: 'boolean', instructions: 'Refund?' } },
+          telemetry: { integrations: new Integration({ tracer }) },
+        });
+        expect(calls).toEqual([
+          ['start', 'ai.decide'],
+          ['model-start', 'ai.decide.doDecide'],
+          ['model-end', 'ai.decide.doDecide'],
+          ['end', 'ai.decide'],
+        ]);
+        expect(tracer.spans).toHaveLength(callSuper ? 2 : 0);
+        for (const span of tracer.spans) {
+          expect(span.ended).toBe(true);
+          expect(span.end).toHaveBeenCalledOnce();
+        }
+      }
+    },
+  );
+
   it.each(['current', 'deprecated'] as const)(
     'creates decision spans through the %s API',
     async api => {

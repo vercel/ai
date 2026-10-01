@@ -1491,44 +1491,42 @@ export class OpenTelemetry implements Telemetry {
     this.cleanupCallState(event.callId);
   }
 
-  /** @deprecated Use `experimental_onDecideStart` instead. */
-  experimental_onEvaluateStart(
+  // Route through deprecated hooks to preserve existing subclass overrides.
+  experimental_onDecideStart(
     event: InferTelemetryEvent<DecideStartEvent>,
   ): void {
-    this.experimental_onDecideStart(event);
+    this.experimental_onEvaluateStart(event);
   }
 
-  /** @deprecated Use `experimental_onDecideEnd` instead. */
-  experimental_onEvaluateEnd(event: DecideEndEvent): void {
-    this.experimental_onDecideEnd(event);
+  experimental_onDecideEnd(event: DecideEndEvent): void {
+    this.experimental_onEvaluateEnd(event);
   }
 
-  /** @deprecated Use `experimental_onDecisionModelCallStart` instead. */
-  experimental_onEvaluationModelCallStart(
-    event: InferTelemetryEvent<DecisionModelCallStartEvent>,
+  experimental_onDecisionModelCallStart(
+    event: DecisionModelCallStartEvent,
   ): void {
-    this.experimental_onDecisionModelCallStart(event);
+    this.experimental_onEvaluationModelCallStart(event);
   }
 
-  /** @deprecated Use `experimental_onDecisionModelCallEnd` instead. */
-  experimental_onEvaluationModelCallEnd(
-    event: InferTelemetryEvent<DecisionModelCallEndEvent>,
-  ): void {
-    this.experimental_onDecisionModelCallEnd(event);
+  experimental_onDecisionModelCallEnd(event: DecisionModelCallEndEvent): void {
+    this.experimental_onEvaluationModelCallEnd(event);
   }
 
-  experimental_onDecideStart(
+  /** @deprecated Use `experimental_onDecideStart` instead. */
+  experimental_onEvaluateStart(
     event: InferTelemetryEvent<DecideStartEvent>,
   ): void {
     this.onDecideOperationStart(event);
   }
 
-  experimental_onDecideEnd(event: DecideEndEvent): void {
+  /** @deprecated Use `experimental_onDecideEnd` instead. */
+  experimental_onEvaluateEnd(event: DecideEndEvent): void {
     this.onDecideOperationEnd(event);
   }
 
-  experimental_onDecisionModelCallStart(
-    event: DecisionModelCallStartEvent,
+  /** @deprecated Use `experimental_onDecisionModelCallStart` instead. */
+  experimental_onEvaluationModelCallStart(
+    event: InferTelemetryEvent<DecisionModelCallStartEvent>,
   ): void {
     const state = this.getCallState(event.callId);
     if (!state?.rootSpan || !state.rootContext) return;
@@ -1574,7 +1572,10 @@ export class OpenTelemetry implements Telemetry {
     };
   }
 
-  experimental_onDecisionModelCallEnd(event: DecisionModelCallEndEvent): void {
+  /** @deprecated Use `experimental_onDecisionModelCallEnd` instead. */
+  experimental_onEvaluationModelCallEnd(
+    event: InferTelemetryEvent<DecisionModelCallEndEvent>,
+  ): void {
     const state = this.getCallState(event.callId);
     if (!state?.decisionSpan) return;
 
