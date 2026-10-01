@@ -199,6 +199,9 @@
       "path": "../../packages/revai"
     },
     {
+      "path": "../../packages/sandbox-e2b"
+    },
+    {
       "path": "../../packages/sandbox-just-bash"
     },
     {
