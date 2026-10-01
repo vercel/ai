@@ -5,7 +5,9 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSpritesNetworkSandboxSession,
+  createSpritesNetworkSandboxSessionFromNativeSandbox,
   createSpritesSandbox,
+  createSpritesSandboxSessionFromNativeSandbox,
   resumeSpritesNetworkSandboxSession,
 } from './sprites-sandbox';
 
@@ -892,6 +894,18 @@ describe('createSpritesNetworkSandboxSession', () => {
     ).toBe(true);
   });
 
+  it('rejects a native sandbox, which belongs to the adaptation functions', async () => {
+    installFetch();
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        sandbox: { sprite: { name: 'my-existing' } },
+      } as never),
+    ).rejects.toThrow(/createSpritesNetworkSandboxSessionFromNativeSandbox/);
+    expect(calls).toEqual([]);
+  });
+
   it('rejects spriteName, which belongs to the resume function', async () => {
     installFetch();
 
@@ -1198,5 +1212,79 @@ describe('bridge port and url auth', () => {
     });
 
     expect([...session.ports]).toEqual([]);
+  });
+});
+
+describe('native sandbox adaptation', () => {
+  const nativeSandbox = {
+    apiKey: 'tok',
+    baseUrl: 'https://api.test',
+    sprite: {
+      name: 'my-existing',
+      url: 'https://my-existing-x.sprites.app',
+      urlAuth: 'public',
+    },
+    workingDirectory: '/home/sprite',
+  } as const;
+
+  it('adapts an existing Sprite to a network session without any request', async () => {
+    installFetch();
+    const session =
+      createSpritesNetworkSandboxSessionFromNativeSandbox(nativeSandbox);
+
+    expect(session.id).toBe('my-existing');
+    expect(session.defaultWorkingDirectory).toBe('/home/sprite');
+    expect([...session.ports]).toEqual([8080]);
+    expect(
+      await session.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).toEqual({ url: 'wss://my-existing-x.sprites.app/' });
+    expect(calls).toEqual([]);
+    expect(execCommands).toEqual([]);
+  });
+
+  it('exposes no port when the url auth is not given as public', async () => {
+    installFetch();
+    const session = createSpritesNetworkSandboxSessionFromNativeSandbox({
+      ...nativeSandbox,
+      sprite: { name: 'my-existing', url: nativeSandbox.sprite.url },
+    });
+
+    expect([...session.ports]).toEqual([]);
+  });
+
+  it('destroy() deletes the adapted Sprite', async () => {
+    installFetch();
+    const session =
+      createSpritesNetworkSandboxSessionFromNativeSandbox(nativeSandbox);
+    await session.destroy();
+
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/my-existing')),
+    ).toBe(true);
+  });
+
+  it('adapts an existing Sprite to the file and process surface only', async () => {
+    installFetch();
+    const session = createSpritesSandboxSessionFromNativeSandbox(nativeSandbox);
+    await session.writeTextFile({ path: 'hello.txt', content: 'hi' });
+
+    expect('destroy' in session).toBe(false);
+    expect('getPortEndpoint' in session).toBe(false);
+    const write = calls.find(c => c.method === 'PUT');
+    expect(new URL(write?.url ?? '').pathname).toBe(
+      '/v1/sprites/my-existing/fs/write',
+    );
+    expect(new URL(write?.url ?? '').searchParams.get('path')).toBe(
+      '/home/sprite/hello.txt',
+    );
+  });
+
+  it('reports a missing API key as a sandbox authentication error', () => {
+    expect(() =>
+      createSpritesNetworkSandboxSessionFromNativeSandbox({
+        sprite: nativeSandbox.sprite,
+        workingDirectory: '/home/sprite',
+      }),
+    ).toThrow(HarnessSandboxAuthenticationError);
   });
 });

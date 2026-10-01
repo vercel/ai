@@ -7,9 +7,12 @@ import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/prov
 import type { SpritesNetworkSandboxSession } from './sprites-network-sandbox-session';
 import type { SpritesSandboxSession } from './sprites-sandbox-session';
 import type {
+  SpritesNativeSandboxSession,
   SpritesNetworkSandboxSessionCreateOptions,
   SpritesNetworkSandboxSessionResumeOptions,
   createSpritesNetworkSandboxSession,
+  createSpritesNetworkSandboxSessionFromNativeSandbox,
+  createSpritesSandboxSessionFromNativeSandbox,
   resumeSpritesNetworkSandboxSession,
 } from './sprites-sandbox';
 
@@ -32,6 +35,10 @@ expectTypeOf<{ urlAuth: 'private' }>().not.toExtend<Options>();
 expectTypeOf<{ name: string }>().not.toExtend<Options>();
 // An existing Sprite is reattached with the resume function.
 expectTypeOf<{ spriteName: string }>().not.toExtend<Options>();
+// An existing Sprite is adapted with the native sandbox functions.
+expectTypeOf<{
+  sandbox: SpritesNativeSandboxSession;
+}>().not.toExtend<Options>();
 
 type ResumeOptions = SpritesNetworkSandboxSessionResumeOptions;
 
@@ -62,6 +69,31 @@ expectTypeOf<typeof createSpritesNetworkSandboxSession>().returns.toEqualTypeOf<
 expectTypeOf<typeof resumeSpritesNetworkSandboxSession>().returns.toEqualTypeOf<
   Promise<HarnessV1NetworkSandboxSession>
 >();
+
+expectTypeOf<{
+  sprite: { name: string; url: string };
+  workingDirectory: string;
+}>().toExtend<SpritesNativeSandboxSession>();
+expectTypeOf<{
+  apiKey: string;
+  baseUrl: string;
+  sprite: { name: string; url: string; urlAuth: 'public' };
+  workingDirectory: string;
+}>().toExtend<SpritesNativeSandboxSession>();
+expectTypeOf<{
+  sprite: { name: string; url: string };
+}>().not.toExtend<SpritesNativeSandboxSession>();
+expectTypeOf<{
+  sprite: { name: string };
+  workingDirectory: string;
+}>().not.toExtend<SpritesNativeSandboxSession>();
+
+expectTypeOf<
+  typeof createSpritesSandboxSessionFromNativeSandbox
+>().returns.toEqualTypeOf<SandboxSession>();
+expectTypeOf<
+  typeof createSpritesNetworkSandboxSessionFromNativeSandbox
+>().returns.toEqualTypeOf<HarnessV1NetworkSandboxSession>();
 
 // Structural conformance to the session contracts.
 expectTypeOf<SpritesNetworkSandboxSession>().toExtend<HarnessV1NetworkSandboxSession>();

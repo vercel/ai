@@ -14,6 +14,7 @@ import {
   type SpriteUrlAuth,
 } from './sprites-api-client';
 import { SpritesNetworkSandboxSession } from './sprites-network-sandbox-session';
+import { SpritesSandboxSession } from './sprites-sandbox-session';
 
 const SPRITES_PROVIDER_ID = 'sprites-sandbox';
 
@@ -59,6 +60,44 @@ export interface SpritesConnectionSettings {
   workingDirectory?: string;
 }
 
+/**
+ * Flattens an intersection of object types into a single object type so the
+ * resolved shape displays as its named properties rather than a chain of
+ * `A & B & C`.
+ */
+type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
+/**
+ * An existing Sprite together with the facts the session API exposes
+ * synchronously. The Sprites API reports a Sprite's URL, URL auth and working
+ * directory only through asynchronous calls, so the native adaptation receives
+ * them alongside the Sprite's name instead of looking them up.
+ */
+export type SpritesNativeSandboxSession = Pick<
+  SpritesConnectionSettings,
+  'apiKey' | 'baseUrl'
+> & {
+  readonly sprite: {
+    /** Name of the Sprite. */
+    readonly name: string;
+
+    /** Public URL of the Sprite: `https://<name>-<suffix>.sprites.app`. */
+    readonly url: string;
+
+    /**
+     * URL auth mode the Sprite is on. Only a Sprite on `'public'` exposes its
+     * port, so leave it unset for a session that needs no bridge.
+     */
+    readonly urlAuth?: SpriteUrlAuth;
+  };
+
+  /**
+   * Absolute working directory of the Sprite: the directory it starts a
+   * process in, `/home/sprite` on the stock image.
+   */
+  readonly workingDirectory: string;
+};
+
 type SpritesCreationSettings = SpritesConnectionSettings & {
   /**
    * URL auth mode for the created Sprite. Defaults to `'public'`, which is
@@ -72,8 +111,11 @@ type SpritesCreationSettings = SpritesConnectionSettings & {
   spriteName?: never;
 };
 
-export type SpritesNetworkSandboxSessionCreateOptions =
-  HarnessV1SandboxSessionCreateOptions<SpritesCreationSettings>;
+export type SpritesNetworkSandboxSessionCreateOptions = Prettify<
+  HarnessV1SandboxSessionCreateOptions<SpritesCreationSettings> & {
+    sandbox?: never;
+  }
+>;
 
 type SpritesLookupSettings = SpritesConnectionSettings & {
   /**
@@ -85,8 +127,9 @@ type SpritesLookupSettings = SpritesConnectionSettings & {
   spriteName?: never;
 };
 
-export type SpritesNetworkSandboxSessionResumeOptions =
-  HarnessV1SandboxSessionResumeOptions<SpritesLookupSettings>;
+export type SpritesNetworkSandboxSessionResumeOptions = Prettify<
+  HarnessV1SandboxSessionResumeOptions<SpritesLookupSettings>
+>;
 
 /**
  * Create a Sprite and return its network sandbox session. `sandboxId` names
@@ -97,6 +140,11 @@ export type SpritesNetworkSandboxSessionResumeOptions =
 export async function createSpritesNetworkSandboxSession(
   options: SpritesNetworkSandboxSessionCreateOptions = {},
 ): Promise<HarnessV1NetworkSandboxSession> {
+  if ('sandbox' in options) {
+    throw new Error(
+      'createSpritesNetworkSandboxSession: use createSpritesNetworkSandboxSessionFromNativeSandbox for an existing Sprite.',
+    );
+  }
   if ('spriteName' in options) {
     throw new Error(
       'createSpritesNetworkSandboxSession: use resumeSpritesNetworkSandboxSession({ sandboxId }) for an existing Sprite.',
@@ -187,8 +235,38 @@ export async function resumeSpritesNetworkSandboxSession(
   });
 }
 
+/**
+ * Adapt an existing Sprite to the file and process surface, without a request
+ * to the Sprites API.
+ */
+export function createSpritesSandboxSessionFromNativeSandbox(
+  nativeSandbox: SpritesNativeSandboxSession,
+): SandboxSession {
+  return new SpritesSandboxSession(
+    createSpritesApiClient(nativeSandbox),
+    nativeSandbox.sprite.name,
+    nativeSandbox.sprite.url,
+    nativeSandbox.workingDirectory,
+  );
+}
+
+/**
+ * Adapt an existing Sprite to a network sandbox session, without a request to
+ * the Sprites API. The caller owns the Sprite: `destroy()` deletes it.
+ */
+export function createSpritesNetworkSandboxSessionFromNativeSandbox(
+  nativeSandbox: SpritesNativeSandboxSession,
+): HarnessV1NetworkSandboxSession {
+  return new SpritesNetworkSandboxSession({
+    client: createSpritesApiClient(nativeSandbox),
+    sprite: nativeSandbox.sprite,
+    workingDirectory: nativeSandbox.workingDirectory,
+    ownsLifecycle: true,
+  });
+}
+
 function createSpritesApiClient(
-  settings: SpritesConnectionSettings,
+  settings: Pick<SpritesConnectionSettings, 'apiKey' | 'baseUrl'>,
 ): SpritesApiClient {
   const apiKey =
     settings.apiKey ?? process.env.SPRITES_API_KEY ?? process.env.SPRITES_TOKEN;
