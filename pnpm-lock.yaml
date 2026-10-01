@@ -489,6 +489,9 @@ importers:
       '@ai-sdk/sandbox-just-bash':
         specifier: workspace:*
         version: link:../../packages/sandbox-just-bash
+      '@ai-sdk/sandbox-sprites':
+        specifier: workspace:*
+        version: link:../../packages/sandbox-sprites
       '@ai-sdk/sandbox-vercel':
         specifier: workspace:*
         version: link:../../packages/sandbox-vercel
