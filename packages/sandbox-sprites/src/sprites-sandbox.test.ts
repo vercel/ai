@@ -1,3 +1,4 @@
+import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSpritesNetworkSandboxSession,
@@ -31,6 +32,8 @@ interface FetchScenario {
   markerExists?: boolean;
   /** Whether GET /v1/sprites/{name} finds the sprite (default true). */
   spriteExists?: boolean;
+  /** Error status to return for GET /v1/sprites/{name}. */
+  lookupStatus?: number;
 }
 
 function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
@@ -53,6 +56,11 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
     // GET /v1/sprites/{name}
     const getMatch = u.pathname.match(/^\/v1\/sprites\/([^/]+)$/);
     if (getMatch && method === 'GET') {
+      if (scenario.lookupStatus != null) {
+        return new Response('{"error":"rejected"}', {
+          status: scenario.lookupStatus,
+        });
+      }
       if (scenario.spriteExists === false) {
         return new Response('{"error":"not found"}', { status: 404 });
       }
@@ -755,5 +763,81 @@ describe('resumeSpritesNetworkSandboxSession', () => {
     expect(
       calls.some(c => c.method === 'DELETE' && c.url.endsWith('/my-sandbox')),
     ).toBe(true);
+  });
+});
+
+describe('authentication errors', () => {
+  it('reports a missing API key as a sandbox authentication error', async () => {
+    installFetch();
+
+    const error = await createSpritesNetworkSandboxSession().catch(
+      (error: unknown) => error,
+    );
+    expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: expect.stringMatching(/API key is required/),
+      sandboxProviderId: 'sprites-sandbox',
+    });
+    await expect(
+      resumeSpritesNetworkSandboxSession({ sandboxId: 'my-sandbox' }),
+    ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+    expect(() => createSpritesSandbox({})).toThrow(
+      HarnessSandboxAuthenticationError,
+    );
+    expect(calls).toEqual([]);
+  });
+
+  it.each([401, 403])(
+    'reports a %i from creating a Sprite as a sandbox authentication error',
+    async status => {
+      installFetch({ createStatus: status });
+
+      const error = await createSpritesNetworkSandboxSession({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+      }).catch((error: unknown) => error);
+      expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(true);
+      expect(error).toMatchObject({
+        message: expect.stringMatching(/Sprites authentication failed/),
+        sandboxProviderId: 'sprites-sandbox',
+        cause: { status },
+      });
+    },
+  );
+
+  it('reports rejected credentials on resume and through the deprecated provider', async () => {
+    installFetch({ lookupStatus: 401 });
+
+    await expect(
+      resumeSpritesNetworkSandboxSession({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+        sandboxId: 'my-sandbox',
+      }),
+    ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+    await expect(
+      createSpritesSandbox({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+        spriteName: 'my-existing',
+      }).createSession(),
+    ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+    await expect(
+      createSpritesSandbox({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+      }).resumeSession?.({ sessionId: 's1' }),
+    ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+  });
+
+  it('leaves other API failures as they are', async () => {
+    installFetch({ createStatus: 500 });
+
+    const error = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    }).catch((error: unknown) => error);
+    expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(false);
+    expect(error).toMatchObject({ message: expect.stringMatching(/500/) });
   });
 });
