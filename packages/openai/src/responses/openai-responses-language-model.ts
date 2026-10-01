@@ -30,6 +30,7 @@ import {
 import type { OpenAIConfig } from '../openai-config';
 import { openaiFailedResponseHandler } from '../openai-error';
 import { getOpenAILanguageModelCapabilities } from '../openai-language-model-capabilities';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import {
   createOpenAIProviderStreamError,
   throwIfOpenAIStreamErrorBeforeOutput,
@@ -422,7 +423,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV3 {
                     strict: strictJsonSchema,
                     name: responseFormat.name ?? 'response',
                     description: responseFormat.description,
-                    schema: responseFormat.schema,
+                    schema: normalizeOpenAIJsonSchema(responseFormat.schema),
                   }
                 : { type: 'json_object' },
           }),
