@@ -150,11 +150,11 @@ export function createUIMessageStream<UI_MESSAGE extends UIMessage>({
             return;
           }
 
-          const reader = streamArg.getReader();
-          activeReaders.add(reader);
-
           ongoingStreamPromises.push(
             (async () => {
+              const reader = streamArg.getReader();
+              activeReaders.add(reader);
+
               try {
                 while (true) {
                   const { done, value } = await reader.read();

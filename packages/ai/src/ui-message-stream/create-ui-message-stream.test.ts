@@ -337,6 +337,59 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should handle reader acquisition errors without interrupting execute', async () => {
+    const source = new ReadableStream<UIMessageChunk>();
+    const sourceReader = source.getReader();
+    const onError = vi.fn(() => 'merge-error');
+
+    try {
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.merge(source);
+          writer.write({ type: 'text-start', id: '1' });
+        },
+        onError,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'error', errorText: 'merge-error' },
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
+    } finally {
+      sourceReader.releaseLock();
+    }
+  });
+
+  it('should handle reader acquisition errors when merging after execute returns', async () => {
+    const source = new ReadableStream<UIMessageChunk>();
+    const sourceReader = source.getReader();
+    const execution = new DelayedPromise<void>();
+    const onError = vi.fn(() => 'merge-error');
+    let streamWriter!: UIMessageStreamWriter;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        streamWriter = writer;
+        return execution.promise;
+      },
+      onError,
+    });
+
+    try {
+      expect(() => streamWriter.merge(source)).not.toThrow();
+      execution.resolve(undefined);
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'error', errorText: 'merge-error' },
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
+    } finally {
+      execution.resolve(undefined);
+      sourceReader.releaseLock();
+    }
+  });
+
   it('should suppress error when writing to closed stream', async () => {
     let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
