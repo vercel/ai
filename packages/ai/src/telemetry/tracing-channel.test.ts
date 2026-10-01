@@ -178,7 +178,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     const messages = await collectTracingChannelStartMessages(async () => {
       const telemetry = createTelemetryDispatcher({});
 
-      await telemetry.onStart!(event as any);
+      await telemetry.onStart?.(event as any);
     });
 
     expect(messages).toEqual([]);

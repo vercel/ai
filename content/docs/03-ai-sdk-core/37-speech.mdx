@@ -19,6 +19,27 @@ const result = await generateSpeech({
 });
 ```
 
+## Telemetry
+
+`generateSpeech` accepts the standard `telemetry` option. Registered
+integrations receive start, end, and error events with the provider and model,
+source text, generated audio byte length, media type and format, warnings,
+response metadata, provider metadata, and usage when the provider reports it.
+Raw generated audio is not included in telemetry events.
+
+```ts highlight="5-7"
+const result = await generateSpeech({
+  model: openai.speech('gpt-4o-mini-tts'),
+  text: 'Hello from the AI SDK!',
+  telemetry: {
+    functionId: 'speak-greeting',
+  },
+});
+```
+
+Use `recordInputs: false` or `recordOutputs: false` when the text or output
+metadata should not be recorded by telemetry integrations.
+
 To access the generated audio:
 
 ```ts
@@ -137,6 +158,10 @@ try {
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models)               | `tts-1-hd`                          |
 | [OpenAI](/providers/ai-sdk-providers/openai#speech-models)               | `gpt-4o-mini-tts`                   |
 | [Mistral](/providers/ai-sdk-providers/mistral#speech-models)             | `voxtral-mini-tts-2603`             |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2.1-flash`               |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2.1`                     |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2-flash`                 |
+| [Azure Speech](/providers/ai-sdk-providers/azure#mai-voice)              | `mai-voice-2`                       |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_v3`                         |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_multilingual_v2`            |
 | [ElevenLabs](/providers/ai-sdk-providers/elevenlabs#speech-models)       | `eleven_flash_v2_5`                 |

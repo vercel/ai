@@ -67,6 +67,40 @@ describe('createHostToolCorrelation', () => {
     expect(raw).toHaveLength(1);
   });
 
+  it('matches server and tool names nested in metadata with exact input', () => {
+    const { correlation, semantic, raw } = setup();
+    const rawUpdate = {
+      sessionUpdate: 'tool_call',
+      toolCallId: 'nested-identity',
+      status: 'in_progress',
+      rawInput: { city: 'Lima' },
+      _meta: {
+        details: [
+          { serverName: 'ai-sdk-harness-tools' },
+          { toolName: 'weather' },
+        ],
+      },
+    } as const;
+    correlation.update({
+      message: toolUpdate({
+        toolCallId: 'nested-identity',
+        status: 'in_progress',
+      }),
+      rawUpdate,
+    });
+    register({
+      correlation,
+      token: 'nested-identity-token',
+      toolName: 'weather',
+      input: { city: 'Lima' },
+      order: 1,
+    });
+
+    expect(semantic).toEqual([]);
+    expect(raw).toEqual([rawUpdate]);
+    correlation.close();
+  });
+
   it('matches MCP-before-ACP by a server-qualified direct ACP name and input', () => {
     const { correlation, semantic, raw } = setup();
     register({
@@ -220,6 +254,24 @@ describe('createHostToolCorrelation', () => {
     });
 
     expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+  });
+
+  it('claims a host permission with a combined identity nested in metadata', () => {
+    const { correlation } = setup({
+      hostTools: [{ name: 'get_weather' }],
+    });
+    const toolCall = {
+      toolCallId: 'nested-permission-identity',
+      title: 'Opaque display',
+      status: 'pending',
+      rawInput: { city: 'Lima' },
+      _meta: {
+        details: [{ toolName: 'mcp__ai-sdk-harness-tools__get_weather' }],
+      },
+    } as const;
+
+    expect(correlation.claimHostToolPermission({ toolCall })).toBe(true);
+    correlation.close();
   });
 
   it('does not claim a host permission from an unqualified ACP name', () => {

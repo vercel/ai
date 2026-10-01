@@ -1,5 +1,35 @@
 # @ai-sdk/harness-opencode
 
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.139
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.137
+
+### Patch Changes
+
+- 82b6142: fix(harness-opencode): stop aborted OpenCode turns before starting the next turn
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
 ## 1.0.136
 
 ### Patch Changes

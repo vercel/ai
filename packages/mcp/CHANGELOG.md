@@ -1,5 +1,26 @@
 # @ai-sdk/mcp
 
+## 2.0.66
+
+### Patch Changes
+
+- 3ff0f54: feat(mcp): add AuthorizationServerMismatchError for OAuth authorization server pin mismatches
+
+## 2.0.65
+
+### Patch Changes
+
+- 4d0500e: fix(mcp): identify failed OAuth tokens for conditional invalidation
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 2.0.63
 
 ### Patch Changes

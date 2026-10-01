@@ -89,8 +89,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1(e13d9eb9847b01d79632bee0c39a634a)
       '@vercel/geistdocs':
-        specifier: 2.7.0
-        version: 2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)
+        specifier: 2.7.7
+        version: 2.7.7(aff8287cfeaf7ca6ee27cf7bcf618115)
       fumadocs-core:
         specifier: 16.2.2
         version: 16.2.2(@types/react@18.3.28)(algoliasearch@5.35.0)(lucide-react@0.555.0(react@19.2.6))(next@16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(supports-color@10.2.2)
@@ -103,6 +103,9 @@ importers:
       lucide-react:
         specifier: ^0.555.0
         version: 0.555.0(react@19.2.6)
+      motion:
+        specifier: ^12.42.2
+        version: 12.42.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       next:
         specifier: 16.3.3
         version: 16.3.3(@babel/core@7.29.7(supports-color@10.2.2))(@opentelemetry/api@1.9.1)(@playwright/test@1.61.1)(@types/node@22.19.19)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(sass@1.90.0)
@@ -534,6 +537,9 @@ importers:
       '@langfuse/otel':
         specifier: ^4.6.1
         version: 4.6.1(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(@opentelemetry/exporter-trace-otlp-http@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))
+      '@langfuse/vercel-ai-sdk':
+        specifier: ^5.11.1
+        version: 5.11.1(@opentelemetry/api@1.9.1)(ai@packages+ai)(zod@3.25.76)
       '@opentelemetry/auto-instrumentations-node':
         specifier: 0.77.0
         version: 0.77.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.11.0(@opentelemetry/api@1.9.1))(supports-color@8.1.1)
@@ -8902,6 +8908,13 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.9.0
 
+  '@langfuse/vercel-ai-sdk@5.11.1':
+    resolution: {integrity: sha512-1FyKHtj40whNtSwxSSYEXRrK/vynjVr0tWCRmf94K6jfyoTsN/fagqErbVbVpAnYVmWCIMfXEBAmgBVDfMWHsg==}
+    engines: {node: '>=22'}
+    peerDependencies:
+      '@opentelemetry/api': ^1.9.0
+      ai: '>=7.0.0 <8'
+
   '@langfuse/vercel-ai-sdk@5.9.1':
     resolution: {integrity: sha512-gZPZJ3JXYTkT7W61VhbNHXgn/88+laoAQGMc082ESeXBwfuMVVPKDueZzM0xy6s0BTtPLW5WmbJ5NkLNCtR3Nw==}
     engines: {node: '>=22'}
@@ -14716,8 +14729,8 @@ packages:
       ws:
         optional: true
 
-  '@vercel/geistdocs@2.7.0':
-    resolution: {integrity: sha512-somnTc4whWOjcz7DKpWbLObUq4FE+BWZNjqV8mH/szv6FaKZVeYBvm4seG07evEjxwbaMc6E/CpAJn2b+lfkvg==}
+  '@vercel/geistdocs@2.7.7':
+    resolution: {integrity: sha512-CBGA0SwA9ZcuO4sShMnZE/RWIWkk1b0mhcLlOI7jqiCS4Co+ZtJA4LANLOarrU8rupkG89dTql6Wl8BAzoCuWA==}
     hasBin: true
     peerDependencies:
       next: ^16.3.3
@@ -25171,6 +25184,13 @@ snapshots:
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
 
+  '@ai-sdk/gateway@4.0.87(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@3.25.76)
+      '@vercel/oidc': 3.2.0
+      zod: 3.25.76
+
   '@ai-sdk/gateway@4.0.87(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 4.0.17
@@ -25213,6 +25233,14 @@ snapshots:
       '@ai-sdk/provider': 4.0.17
       '@ai-sdk/provider-utils': 5.0.45(zod@4.4.3)
       zod: 4.4.3
+
+  '@ai-sdk/otel@1.0.107(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@opentelemetry/api': 1.9.1
+      ai: 7.0.107(zod@3.25.76)
+    transitivePeerDependencies:
+      - zod
 
   '@ai-sdk/otel@1.0.107(zod@4.4.3)':
     dependencies:
@@ -25260,6 +25288,15 @@ snapshots:
       '@workflow/serde': 4.1.0
       eventsource-parser: 3.1.1
       zod: 4.4.3
+
+  '@ai-sdk/provider-utils@5.0.45(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/provider': 4.0.17
+      '@standard-schema/spec': 1.1.0
+      '@workflow/serde': 4.1.0
+      eventsource-parser: 3.1.1
+      undici: 7.29.1
+      zod: 3.25.76
 
   '@ai-sdk/provider-utils@5.0.45(zod@4.4.3)':
     dependencies:
@@ -30778,6 +30815,15 @@ snapshots:
     dependencies:
       '@langfuse/core': 5.3.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/api': 1.9.1
+
+  '@langfuse/vercel-ai-sdk@5.11.1(@opentelemetry/api@1.9.1)(ai@packages+ai)(zod@3.25.76)':
+    dependencies:
+      '@ai-sdk/otel': 1.0.107(zod@3.25.76)
+      '@langfuse/core': 5.11.1(@opentelemetry/api@1.9.1)
+      '@opentelemetry/api': 1.9.1
+      ai: link:packages/ai
+    transitivePeerDependencies:
+      - zod
 
   '@langfuse/vercel-ai-sdk@5.9.1(@opentelemetry/api@1.9.1)(ai@7.0.107(zod@4.4.3))(zod@4.4.3)':
     dependencies:
@@ -37852,7 +37898,7 @@ snapshots:
       '@aws-sdk/credential-provider-web-identity': 3.972.77
       ws: 8.21.3
 
-  '@vercel/geistdocs@2.7.0(aff8287cfeaf7ca6ee27cf7bcf618115)':
+  '@vercel/geistdocs@2.7.7(aff8287cfeaf7ca6ee27cf7bcf618115)':
     dependencies:
       '@ai-sdk/react': 3.0.223(react@19.2.6)(zod@4.6.5)
       '@clack/prompts': 0.11.0
@@ -39899,6 +39945,13 @@ snapshots:
       '@ai-sdk/provider-utils': 4.0.37(zod@4.6.5)
       '@opentelemetry/api': 1.9.1
       zod: 4.6.5
+
+  ai@7.0.107(zod@3.25.76):
+    dependencies:
+      '@ai-sdk/gateway': 4.0.87(zod@3.25.76)
+      '@ai-sdk/provider': 4.0.17
+      '@ai-sdk/provider-utils': 5.0.45(zod@3.25.76)
+      zod: 3.25.76
 
   ai@7.0.107(zod@4.4.3):
     dependencies:

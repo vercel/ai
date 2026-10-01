@@ -13543,6 +13543,7 @@ describe('computer toolset', () => {
             {
               "id": "toolu_click",
               "input": {
+                "action": "left_click",
                 "coordinate": [
                   640,
                   60,
@@ -13554,7 +13555,9 @@ describe('computer toolset', () => {
             },
             {
               "id": "toolu_screenshot",
-              "input": {},
+              "input": {
+                "action": "screenshot",
+              },
               "name": "screenshot",
               "toolset_name": "computer",
               "type": "tool_use",

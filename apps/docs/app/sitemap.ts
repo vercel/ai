@@ -34,5 +34,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     url: absoluteUrl(path),
   }));
 
-  return [...contentEntries, ...resourceEntries];
+  return [
+    { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
+    ...contentEntries,
+    ...resourceEntries,
+  ];
 }
