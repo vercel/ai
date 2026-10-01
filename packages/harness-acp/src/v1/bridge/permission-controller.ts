@@ -19,6 +19,7 @@ export function createACPPermissionController({
   hasPermissionModeMapping,
   emitToolCall,
   claimHostToolPermission,
+  onHostToolPermissionAllowed,
 }: {
   turn: BridgeTurn;
   sessionId: string;
@@ -26,6 +27,7 @@ export function createACPPermissionController({
   hasPermissionModeMapping: boolean;
   emitToolCall: (options: { toolCall: ToolCallUpdate }) => void;
   claimHostToolPermission: (options: { toolCall: ToolCallUpdate }) => boolean;
+  onHostToolPermissionAllowed?: (options: { toolCall: ToolCallUpdate }) => void;
 }): {
   requestPermission(
     request: RequestPermissionRequest,
@@ -63,6 +65,7 @@ export function createACPPermissionController({
         return cancelled();
       }
       if (claimHostToolPermission({ toolCall: request.toolCall })) {
+        onHostToolPermissionAllowed?.({ toolCall: request.toolCall });
         return {
           outcome: {
             outcome: 'selected',
