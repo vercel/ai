@@ -17,13 +17,6 @@ import { SpritesNetworkSandboxSession } from './sprites-network-sandbox-session'
 
 const SPRITES_PROVIDER_ID = 'sprites-sandbox';
 
-/**
- * Login directory of the Sprite base image (`sprite` user). Used as the
- * session working directory and the base for resolving relative paths. Override
- * via {@link SpritesConnectionSettings.workingDirectory}.
- */
-const DEFAULT_WORKING_DIRECTORY = '/home/sprite';
-
 const SESSION_NAME_PREFIX = 'ai-sdk-harness-session';
 const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness-tmpl';
 const PREWARM_NAME_PREFIX = 'ai-sdk-harness';
@@ -60,9 +53,8 @@ export interface SpritesConnectionSettings {
   baseUrl?: string;
   /**
    * Working directory the session resolves relative paths against and reports
-   * as `defaultWorkingDirectory`. The create and resume functions default to
-   * the directory the Sprite reports for a new process;
-   * {@link createSpritesSandbox} defaults to `/home/sprite`.
+   * as `defaultWorkingDirectory`. Defaults to the directory the Sprite
+   * reports for a new process.
    */
   workingDirectory?: string;
 }
@@ -341,12 +333,23 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
   readonly providerId = SPRITES_PROVIDER_ID;
 
   private readonly client: SpritesApiClient;
-  private readonly workingDirectory: string;
 
   constructor(private readonly settings: SpritesSandboxSettings) {
     this.client = createSpritesApiClient(settings);
-    this.workingDirectory =
-      settings.workingDirectory ?? DEFAULT_WORKING_DIRECTORY;
+  }
+
+  private async resolveWorkingDirectory(
+    spriteName: string,
+    abortSignal: AbortSignal | undefined,
+  ): Promise<string> {
+    return (
+      this.settings.workingDirectory ??
+      (await resolveSpriteWorkingDirectory({
+        client: this.client,
+        spriteName,
+        abortSignal,
+      }))
+    );
   }
 
   createSession = async (options?: {
@@ -370,10 +373,9 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
         this.settings.urlAuth != null &&
         sprite.urlAuth !== this.settings.urlAuth
       ) {
-        await this.client.setUrlAuth(
-          sprite.name,
-          this.settings.urlAuth,
-          options?.abortSignal,
+        const urlAuth = this.settings.urlAuth;
+        await withSpritesSandboxAuthenticationError(() =>
+          this.client.setUrlAuth(sprite.name, urlAuth, options?.abortSignal),
         );
       }
       return new SpritesNetworkSandboxSession({
@@ -382,7 +384,10 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
           this.settings.urlAuth != null
             ? { ...sprite, urlAuth: this.settings.urlAuth }
             : sprite,
-        workingDirectory: this.workingDirectory,
+        workingDirectory: await this.resolveWorkingDirectory(
+          sprite.name,
+          options?.abortSignal,
+        ),
         ownsLifecycle: false,
       });
     }
@@ -412,56 +417,68 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
         }),
     );
 
-    const urlAuth = settings.urlAuth ?? 'public';
-    if (sprite.urlAuth !== urlAuth) {
-      await this.client.setUrlAuth(sprite.name, urlAuth, options?.abortSignal);
-    }
+    try {
+      const urlAuth = settings.urlAuth ?? 'public';
+      if (sprite.urlAuth !== urlAuth) {
+        await withSpritesSandboxAuthenticationError(() =>
+          this.client.setUrlAuth(sprite.name, urlAuth, options?.abortSignal),
+        );
+      }
 
-    const session = new SpritesNetworkSandboxSession({
-      client: this.client,
-      sprite: { ...sprite, urlAuth },
-      workingDirectory: this.workingDirectory,
-      ownsLifecycle: true,
-    });
+      const workingDirectory = await this.resolveWorkingDirectory(
+        sprite.name,
+        options?.abortSignal,
+      );
+      const session = new SpritesNetworkSandboxSession({
+        client: this.client,
+        sprite: { ...sprite, urlAuth },
+        workingDirectory,
+        ownsLifecycle: true,
+      });
 
-    await ensurePnpm({ session, abortSignal: options?.abortSignal });
+      await ensurePnpm({ session, abortSignal: options?.abortSignal });
 
-    // Run one-time setup once per identity. Gate on a persisted completion
-    // marker (not the create-vs-409 result) so a setup that fails *after* the
-    // Sprite is created re-runs next time instead of leaving it permanently
-    // un-bootstrapped.
-    if (options?.onFirstCreate != null) {
-      const marker = identity != null ? this.markerPath(identity) : undefined;
-      const alreadyDone =
-        marker != null
-          ? !created &&
-            (await this.client.readFile(
+      // Run one-time setup once per identity. Gate on a persisted completion
+      // marker (not the create-vs-409 result) so a setup that fails *after* the
+      // Sprite is created re-runs next time instead of leaving it permanently
+      // un-bootstrapped.
+      if (options?.onFirstCreate != null) {
+        const marker =
+          identity != null ? markerPath(workingDirectory, identity) : undefined;
+        const alreadyDone =
+          marker != null
+            ? !created &&
+              (await this.client.readFile(
+                sprite.name,
+                marker,
+                options?.abortSignal,
+              )) != null
+            : !created;
+        if (!alreadyDone) {
+          await options.onFirstCreate(session.restricted(), {
+            ...(options?.abortSignal
+              ? { abortSignal: options.abortSignal }
+              : {}),
+          });
+          if (marker != null) {
+            await this.client.writeFile(
               sprite.name,
               marker,
+              BOOTSTRAP_MARKER,
               options?.abortSignal,
-            )) != null
-          : !created;
-      if (!alreadyDone) {
-        await options.onFirstCreate(session.restricted(), {
-          ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
-        });
-        if (marker != null) {
-          await this.client.writeFile(
-            sprite.name,
-            marker,
-            BOOTSTRAP_MARKER,
-            options?.abortSignal,
-          );
+            );
+          }
         }
       }
+
+      return session;
+    } catch (error) {
+      if (created) {
+        await this.client.deleteSprite(sprite.name).catch(() => {});
+      }
+      throw error;
     }
-
-    return session;
   };
-
-  private markerPath(identity: string): string {
-    return `${this.workingDirectory}/.ai-sdk-harness/bootstrap-${sanitizeName(identity)}.done`;
-  }
 
   resumeSession = async (options: {
     sessionId: string;
@@ -479,10 +496,9 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
         this.settings.urlAuth != null &&
         sprite.urlAuth !== this.settings.urlAuth
       ) {
-        await this.client.setUrlAuth(
-          sprite.name,
-          this.settings.urlAuth,
-          options.abortSignal,
+        const urlAuth = this.settings.urlAuth;
+        await withSpritesSandboxAuthenticationError(() =>
+          this.client.setUrlAuth(sprite.name, urlAuth, options.abortSignal),
         );
       }
       return new SpritesNetworkSandboxSession({
@@ -491,7 +507,10 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
           this.settings.urlAuth != null
             ? { ...sprite, urlAuth: this.settings.urlAuth }
             : sprite,
-        workingDirectory: this.workingDirectory,
+        workingDirectory: await this.resolveWorkingDirectory(
+          sprite.name,
+          options.abortSignal,
+        ),
         ownsLifecycle: false,
       });
     }
@@ -503,7 +522,10 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
     return new SpritesNetworkSandboxSession({
       client: this.client,
       sprite,
-      workingDirectory: this.workingDirectory,
+      workingDirectory: await this.resolveWorkingDirectory(
+        sprite.name,
+        options.abortSignal,
+      ),
       ownsLifecycle: true,
     });
   };
@@ -554,6 +576,11 @@ function sanitizeName(value: string): string {
     // A slice can land mid-hyphen-run, re-introducing a trailing hyphen.
     .replace(/-+$/g, '');
   return slug.length > 0 ? `${slug}-${hash}` : hash;
+}
+
+function markerPath(workingDirectory: string, identity: string): string {
+  const base = workingDirectory === '/' ? '' : workingDirectory;
+  return `${base}/.ai-sdk-harness/bootstrap-${sanitizeName(identity)}.done`;
 }
 
 function randomSuffix(): string {

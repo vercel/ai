@@ -37,6 +37,8 @@ interface FetchScenario {
   spriteExists?: boolean;
   /** Error status to return for GET /v1/sprites/{name}. */
   lookupStatus?: number;
+  /** Error status to return for PUT /v1/sprites/{name} (url auth). */
+  urlAuthStatus?: number;
 }
 
 function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
@@ -73,6 +75,11 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
     }
     // PUT /v1/sprites/{name}  (url auth)
     if (getMatch && method === 'PUT') {
+      if (scenario.urlAuthStatus != null) {
+        return new Response('{"error":"rejected"}', {
+          status: scenario.urlAuthStatus,
+        });
+      }
       return new Response('', { status: 200 });
     }
     // DELETE /v1/sprites/{name}
@@ -302,13 +309,14 @@ describe('create-new pnpm setup', () => {
       },
     });
 
-    expect(commandsBeforeFirstCreate).toHaveLength(1);
-    expect(commandsBeforeFirstCreate[0].join(' ')).toMatch(
+    expect(commandsBeforeFirstCreate).toHaveLength(2);
+    expect(commandsBeforeFirstCreate[0]).toEqual(['pwd']);
+    expect(commandsBeforeFirstCreate[1].join(' ')).toMatch(
       /^bash -c command -v pnpm /,
     );
   });
 
-  it('does not touch a wrapped Sprite', async () => {
+  it('installs nothing in a wrapped Sprite', async () => {
     installFetch({ auth: 'public' });
     await createSpritesSandbox({
       apiKey: 'tok',
@@ -316,6 +324,148 @@ describe('create-new pnpm setup', () => {
       spriteName: 'my-existing',
     }).createSession();
 
+    expect(execCommands).toEqual([['pwd']]);
+  });
+});
+
+describe('deprecated provider cleanup on failed setup', () => {
+  it('deletes the Sprite it created when url auth cannot be set', async () => {
+    installFetch({ auth: 'sprite', urlAuthStatus: 500 });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      name: 'half-made',
+    });
+
+    await expect(provider.createSession()).rejects.toThrow(/failed: 500/);
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/half-made')),
+    ).toBe(true);
+  });
+
+  it('deletes the Sprite it created when pnpm cannot be installed', async () => {
+    installFetch();
+    execFailingCommand = /pnpm/;
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      name: 'half-made',
+    });
+
+    await expect(provider.createSession()).rejects.toThrow(
+      'Failed to install pnpm in the Sprite (exit 1): command failed',
+    );
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/half-made')),
+    ).toBe(true);
+  });
+
+  it('deletes the Sprite it created when onFirstCreate fails', async () => {
+    installFetch();
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      name: 'half-made',
+    });
+
+    await expect(
+      provider.createSession({
+        onFirstCreate: async () => {
+          throw new Error('install failed');
+        },
+      }),
+    ).rejects.toThrow('install failed');
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/half-made')),
+    ).toBe(true);
+  });
+
+  it('keeps a Sprite that already existed when setup fails', async () => {
+    installFetch({ createStatus: 409, markerExists: false });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+
+    await expect(
+      provider.createSession({
+        identity: 'h',
+        onFirstCreate: async () => {
+          throw new Error('install failed');
+        },
+      }),
+    ).rejects.toThrow('install failed');
+    expect(calls.some(c => c.method === 'DELETE')).toBe(false);
+  });
+
+  it('never deletes a wrapped Sprite when url auth cannot be set', async () => {
+    installFetch({ auth: 'sprite', urlAuthStatus: 500 });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+      urlAuth: 'public',
+    });
+
+    await expect(provider.createSession()).rejects.toThrow(/failed: 500/);
+    await expect(
+      provider.resumeSession?.({ sessionId: 'ignored' }),
+    ).rejects.toThrow(/failed: 500/);
+    expect(calls.some(c => c.method === 'DELETE')).toBe(false);
+  });
+});
+
+describe('deprecated provider working directory', () => {
+  it('reads the default working directory from the Sprite', async () => {
+    installFetch({ auth: 'public' });
+    execWorkingDirectory = '/workspace/';
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const wrapping = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+    });
+
+    const created = await provider.createSession({ sessionId: 's1' });
+    const resumed = await provider.resumeSession?.({ sessionId: 's1' });
+    const wrapped = await wrapping.createSession();
+    const wrappedResumed = await wrapping.resumeSession?.({ sessionId: 's1' });
+
+    expect(created.defaultWorkingDirectory).toBe('/workspace');
+    expect(resumed?.defaultWorkingDirectory).toBe('/workspace');
+    expect(wrapped.defaultWorkingDirectory).toBe('/workspace');
+    expect(wrappedResumed?.defaultWorkingDirectory).toBe('/workspace');
+  });
+
+  it('writes the bootstrap marker under the directory the Sprite reports', async () => {
+    installFetch();
+    execWorkingDirectory = '/workspace';
+    await createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    }).createSession({ identity: 'h', onFirstCreate: async () => {} });
+
+    const markerWrite = calls.find(
+      c => c.method === 'PUT' && c.url.includes('/fs/write'),
+    );
+    expect(new URL(markerWrite?.url ?? '').searchParams.get('path')).toMatch(
+      /^\/workspace\/\.ai-sdk-harness\/bootstrap-h-[0-9a-f]{10}\.done$/,
+    );
+  });
+
+  it('uses workingDirectory without asking the Sprite', async () => {
+    installFetch({ auth: 'public' });
+    const session = await createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+      workingDirectory: '/srv/app',
+    }).createSession();
+
+    expect(session.defaultWorkingDirectory).toBe('/srv/app');
     expect(execCommands).toEqual([]);
   });
 });
@@ -922,6 +1072,33 @@ describe('authentication errors', () => {
       }).resumeSession?.({ sessionId: 's1' }),
     ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
   });
+
+  it.each([401, 403])(
+    'reports a %i from setting url auth through the deprecated provider as a sandbox authentication error',
+    async status => {
+      installFetch({ auth: 'sprite', urlAuthStatus: status });
+      const provider = createSpritesSandbox({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+      });
+      const wrapping = createSpritesSandbox({
+        apiKey: 'bad',
+        baseUrl: 'https://api.test',
+        spriteName: 'my-existing',
+        urlAuth: 'public',
+      });
+
+      await expect(
+        provider.createSession({ sessionId: 's1' }),
+      ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+      await expect(wrapping.createSession()).rejects.toSatisfy(
+        HarnessSandboxAuthenticationError.isInstance,
+      );
+      await expect(
+        wrapping.resumeSession?.({ sessionId: 'ignored' }),
+      ).rejects.toSatisfy(HarnessSandboxAuthenticationError.isInstance);
+    },
+  );
 
   it('leaves other API failures as they are', async () => {
     installFetch({ createStatus: 500 });
