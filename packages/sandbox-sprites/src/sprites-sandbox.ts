@@ -1,14 +1,16 @@
-import type {
-  HarnessV1NetworkSandboxSession,
-  HarnessV1SandboxProvider,
-  HarnessV1SandboxSessionCreateOptions,
-  HarnessV1SandboxSessionResumeOptions,
+import {
+  HarnessSandboxAuthenticationError,
+  type HarnessV1NetworkSandboxSession,
+  type HarnessV1SandboxProvider,
+  type HarnessV1SandboxSessionCreateOptions,
+  type HarnessV1SandboxSessionResumeOptions,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import { createHash, randomUUID } from 'node:crypto';
 import {
   SPRITES_DEFAULT_BASE_URL,
   SpritesApiClient,
+  SpritesApiError,
   type SpriteUrlAuth,
 } from './sprites-api-client';
 import { SpritesNetworkSandboxSession } from './sprites-network-sandbox-session';
@@ -102,11 +104,13 @@ export async function createSpritesNetworkSandboxSession(
   const client = createSpritesApiClient(options);
   const name = sandboxId ?? `${PREWARM_NAME_PREFIX}-${randomSuffix()}`;
 
-  const { sprite, created } = await client.getOrCreateSprite({
-    name,
-    ...(waitForCapacity != null ? { waitForCapacity } : {}),
-    ...(abortSignal ? { abortSignal } : {}),
-  });
+  const { sprite, created } = await withSpritesSandboxAuthenticationError(() =>
+    client.getOrCreateSprite({
+      name,
+      ...(waitForCapacity != null ? { waitForCapacity } : {}),
+      ...(abortSignal ? { abortSignal } : {}),
+    }),
+  );
   if (!created) {
     throw new Error(
       `createSpritesNetworkSandboxSession: a Sprite named "${name}" already exists. Use resumeSpritesNetworkSandboxSession({ sandboxId }) to reattach to it.`,
@@ -116,7 +120,9 @@ export async function createSpritesNetworkSandboxSession(
   try {
     const urlAuth = options.urlAuth ?? 'public';
     if (sprite.urlAuth !== urlAuth) {
-      await client.setUrlAuth(sprite.name, urlAuth, abortSignal);
+      await withSpritesSandboxAuthenticationError(() =>
+        client.setUrlAuth(sprite.name, urlAuth, abortSignal),
+      );
     }
     const session = new SpritesNetworkSandboxSession({
       client,
@@ -155,9 +161,13 @@ export async function resumeSpritesNetworkSandboxSession(
   abortSignal?.throwIfAborted();
   const client = createSpritesApiClient(options);
 
-  const sprite = await client.getSprite(sandboxId, abortSignal);
+  const sprite = await withSpritesSandboxAuthenticationError(() =>
+    client.getSprite(sandboxId, abortSignal),
+  );
   if (urlAuth != null && sprite.urlAuth !== urlAuth) {
-    await client.setUrlAuth(sprite.name, urlAuth, abortSignal);
+    await withSpritesSandboxAuthenticationError(() =>
+      client.setUrlAuth(sprite.name, urlAuth, abortSignal),
+    );
   }
   return new SpritesNetworkSandboxSession({
     client,
@@ -179,13 +189,42 @@ function createSpritesApiClient(
   const apiKey =
     settings.apiKey ?? process.env.SPRITES_API_KEY ?? process.env.SPRITES_TOKEN;
   if (apiKey == null || apiKey === '') {
-    throw new Error(
-      'Sprites API key is required. Pass `apiKey` or set the SPRITES_API_KEY environment variable.',
-    );
+    throw new HarnessSandboxAuthenticationError({
+      message:
+        'Sprites API key is required. Pass `apiKey` or set the SPRITES_API_KEY environment variable.',
+      sandboxProviderId: SPRITES_PROVIDER_ID,
+    });
   }
   const baseUrl =
     settings.baseUrl ?? process.env.SPRITES_API_URL ?? SPRITES_DEFAULT_BASE_URL;
   return new SpritesApiClient({ apiKey, baseUrl });
+}
+
+const SPRITES_SANDBOX_AUTHENTICATION_MESSAGE =
+  'Sprites authentication failed. Pass `apiKey` or set the SPRITES_API_KEY environment variable, then verify that the token can access the Sprites API.';
+
+/**
+ * Rethrow rejected credentials (401, 403) from acquiring a Sprite as the
+ * error the harness uses to tell configuration failures apart.
+ */
+async function withSpritesSandboxAuthenticationError<T>(
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (
+      !(error instanceof SpritesApiError) ||
+      (error.status !== 401 && error.status !== 403)
+    ) {
+      throw error;
+    }
+    throw new HarnessSandboxAuthenticationError({
+      message: SPRITES_SANDBOX_AUTHENTICATION_MESSAGE,
+      sandboxProviderId: SPRITES_PROVIDER_ID,
+      cause: error,
+    });
+  }
 }
 
 /**
@@ -293,9 +332,9 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
 
     // Wrap-existing case: caller owns the Sprite.
     if ('spriteName' in this.settings && this.settings.spriteName != null) {
-      const sprite = await this.client.getSprite(
-        this.settings.spriteName,
-        options?.abortSignal,
+      const spriteName = this.settings.spriteName;
+      const sprite = await withSpritesSandboxAuthenticationError(() =>
+        this.client.getSprite(spriteName, options?.abortSignal),
       );
       if (
         this.settings.urlAuth != null &&
@@ -329,13 +368,16 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
           ? `${TEMPLATE_NAME_PREFIX}-${sanitizeName(identity)}`
           : `${PREWARM_NAME_PREFIX}-${randomSuffix()}`);
 
-    const { sprite, created } = await this.client.getOrCreateSprite({
-      name,
-      ...(settings.waitForCapacity != null
-        ? { waitForCapacity: settings.waitForCapacity }
-        : {}),
-      ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
-    });
+    const { sprite, created } = await withSpritesSandboxAuthenticationError(
+      () =>
+        this.client.getOrCreateSprite({
+          name,
+          ...(settings.waitForCapacity != null
+            ? { waitForCapacity: settings.waitForCapacity }
+            : {}),
+          ...(options?.abortSignal ? { abortSignal: options.abortSignal } : {}),
+        }),
+    );
 
     const urlAuth = settings.urlAuth ?? 'public';
     if (sprite.urlAuth !== urlAuth) {
@@ -394,9 +436,9 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
 
     // Wrap-existing case: caller owns the Sprite. Same session as createSession.
     if ('spriteName' in this.settings && this.settings.spriteName != null) {
-      const sprite = await this.client.getSprite(
-        this.settings.spriteName,
-        options.abortSignal,
+      const spriteName = this.settings.spriteName;
+      const sprite = await withSpritesSandboxAuthenticationError(() =>
+        this.client.getSprite(spriteName, options.abortSignal),
       );
       if (
         this.settings.urlAuth != null &&
@@ -417,7 +459,9 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
     }
 
     const name = `${SESSION_NAME_PREFIX}-${sanitizeName(options.sessionId)}`;
-    const sprite = await this.client.getSprite(name, options.abortSignal);
+    const sprite = await withSpritesSandboxAuthenticationError(() =>
+      this.client.getSprite(name, options.abortSignal),
+    );
     return new SpritesNetworkSandboxSession({
       client: this.client,
       sprite,

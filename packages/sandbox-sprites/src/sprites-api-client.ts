@@ -84,6 +84,20 @@ function getWebSocketCtor(): NodeWebSocketCtor {
   return ctor as unknown as NodeWebSocketCtor;
 }
 
+/**
+ * A control-plane response with a non-success status. `status` lets callers
+ * tell rejected credentials apart from other failures.
+ */
+export class SpritesApiError extends Error {
+  readonly status: number;
+
+  constructor({ message, status }: { message: string; status: number }) {
+    super(message);
+    this.name = 'SpritesApiError';
+    this.status = status;
+  }
+}
+
 const WS_FRAME_STDOUT = 0x01;
 const WS_FRAME_STDERR = 0x02;
 const WS_FRAME_EXIT = 0x03;
@@ -131,11 +145,12 @@ export class SpritesApiClient {
     const response = await this.request(url, init);
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      throw new Error(
-        `Sprites API ${init.method ?? 'GET'} ${url} failed: ${response.status} ${response.statusText}${
+      throw new SpritesApiError({
+        message: `Sprites API ${init.method ?? 'GET'} ${url} failed: ${response.status} ${response.statusText}${
           body ? ` — ${body}` : ''
         }`,
-      );
+        status: response.status,
+      });
     }
     return response;
   }
@@ -191,11 +206,12 @@ export class SpritesApiClient {
       };
     }
     const body = await response.text().catch(() => '');
-    const createError = new Error(
-      `Sprites API POST ${this.baseUrl}/v1/sprites failed: ${response.status} ${response.statusText}${
+    const createError = new SpritesApiError({
+      message: `Sprites API POST ${this.baseUrl}/v1/sprites failed: ${response.status} ${response.statusText}${
         body ? ` — ${body}` : ''
       }`,
-    );
+      status: response.status,
+    });
     // The platform's "name already taken" status is ambiguous (docs say 400,
     // observed live 409), so probe for the sprite on either status rather than
     // trusting a single code. Only reuse it if the probe actually finds it —
@@ -220,11 +236,12 @@ export class SpritesApiClient {
     // Treat a missing sprite as already deleted.
     if (!response.ok && response.status !== 404) {
       const body = await response.text().catch(() => '');
-      throw new Error(
-        `Sprites API DELETE ${this.spritePath(name)} failed: ${response.status} ${response.statusText}${
+      throw new SpritesApiError({
+        message: `Sprites API DELETE ${this.spritePath(name)} failed: ${response.status} ${response.statusText}${
           body ? ` — ${body}` : ''
         }`,
-      );
+        status: response.status,
+      });
     }
     await response.body?.cancel();
   }
@@ -273,11 +290,12 @@ export class SpritesApiClient {
     }
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      throw new Error(
-        `Sprites API GET ${url} failed: ${response.status} ${response.statusText}${
+      throw new SpritesApiError({
+        message: `Sprites API GET ${url} failed: ${response.status} ${response.statusText}${
           body ? ` — ${body}` : ''
         }`,
-      );
+        status: response.status,
+      });
     }
     return new Uint8Array(await response.arrayBuffer());
   }
