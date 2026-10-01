@@ -1210,12 +1210,12 @@ Decision callbacks are experimental. Their exported types are
     {
       name: 'state',
       type: 'string | object | array',
-      description: 'Shared state being evaluated.',
+      description: 'Shared state used to make decisions.',
     },
     {
       name: 'questions',
       type: 'Readonly<Record<string, Experimental_DecisionQuestion>>',
-      description: 'Questions being evaluated against the shared state.',
+      description: 'Questions to decide against the shared state.',
     },
     {
       name: 'maxRetries',
