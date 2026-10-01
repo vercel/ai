@@ -1,5 +1,11 @@
 # @ai-sdk/mcp
 
+## 2.0.66
+
+### Patch Changes
+
+- 3ff0f54: feat(mcp): add AuthorizationServerMismatchError for OAuth authorization server pin mismatches
+
 ## 2.0.65
 
 ### Patch Changes

@@ -1,5 +1,16 @@
 # ai
 
+## 7.0.127
+
+### Patch Changes
+
+- 158a718: feat(ai): select and rank eligible deferred tools via 'search()' callback in tool search
+- bb8d33e: fix(ai): cancel merged UI message streams when the consumer disconnects
+- 284dc11: fix(ai): accept unchanged tool approval inputs created in another JavaScript realm
+- ba8afe9: feat(ai): add a configurable maxResults for number of tools returned in tool search
+- Updated dependencies [d1bb9e8]
+  - @ai-sdk/gateway@4.0.103
+
 ## 7.0.126
 
 ### Patch Changes
