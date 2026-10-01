@@ -271,7 +271,7 @@ describe('prewarm / identity', () => {
   });
 });
 
-describe('getPortUrl', () => {
+describe('getPortEndpoint', () => {
   it('maps the proxied port 8080 to the public URL with the requested scheme', async () => {
     installFetch({ auth: 'public' });
     const provider = createSpritesSandbox({
@@ -282,13 +282,15 @@ describe('getPortUrl', () => {
     // The fake control-plane serves the public URL as `<name>-x.sprites.app`.
     const host = `${session.id}-x.sprites.app`;
 
-    expect(await session.getPortUrl({ port: 8080 })).toBe(`https://${host}/`);
-    expect(await session.getPortUrl({ port: 8080, protocol: 'ws' })).toBe(
-      `wss://${host}/`,
-    );
-    expect(await session.getPortUrl({ port: 8080, protocol: 'http' })).toBe(
-      `https://${host}/`,
-    );
+    expect(await session.getPortEndpoint({ port: 8080 })).toEqual({
+      url: `https://${host}/`,
+    });
+    expect(
+      await session.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).toEqual({ url: `wss://${host}/` });
+    expect(
+      await session.getPortEndpoint({ port: 8080, protocol: 'http' }),
+    ).toEqual({ url: `https://${host}/` });
   });
 
   it('throws for any non-proxied port', async () => {
@@ -298,6 +300,22 @@ describe('getPortUrl', () => {
       baseUrl: 'https://api.test',
     });
     const session = await provider.createSession({ sessionId: 'p' });
+    await expect(session.getPortEndpoint({ port: 3000 })).rejects.toThrow(
+      /8080/,
+    );
+  });
+
+  it('keeps getPortUrl as a compatibility wrapper', async () => {
+    installFetch({ auth: 'public' });
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const session = await provider.createSession({ sessionId: 'p' });
+
+    expect(await session.getPortUrl({ port: 8080, protocol: 'ws' })).toBe(
+      `wss://${session.id}-x.sprites.app/`,
+    );
     await expect(session.getPortUrl({ port: 3000 })).rejects.toThrow(/8080/);
   });
 });

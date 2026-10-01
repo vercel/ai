@@ -2,6 +2,7 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1NetworkPolicy,
   type HarnessV1NetworkSandboxSession,
+  type HarnessV1PortEndpoint,
 } from '@ai-sdk/harness';
 import type { Experimental_SandboxSession as SandboxSession } from '@ai-sdk/provider-utils';
 import {
@@ -20,9 +21,9 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * lifecycle, network policy).
  *
  * Sprites proxy a single internal HTTP port ({@link SPRITE_HTTP_PORT}) to the
- * always-on public URL, so `ports` is exactly `[8080]` and `getPortUrl`
+ * always-on public URL, so `ports` is exactly `[8080]` and `getPortEndpoint`
  * resolves that one port to the public URL. Bridge-backed harness adapters
- * dial `getPortUrl({ port: 8080, protocol: 'ws' })` and append
+ * dial `getPortEndpoint({ port: 8080, protocol: 'ws' })` and append
  * `?agent_bridge_token=…`; the Sprite must have `url` auth set to `public` for
  * a stock WebSocket client (no auth header) to reach the in-Sprite bridge.
  *
@@ -68,10 +69,10 @@ export class SpritesNetworkSandboxSession
     );
   }
 
-  getPortUrl = async (options: {
+  getPortEndpoint = async (options: {
     port: number;
     protocol?: 'http' | 'https' | 'ws';
-  }): Promise<string> => {
+  }): Promise<HarnessV1PortEndpoint> => {
     if (options.port !== SPRITE_HTTP_PORT) {
       throw new HarnessCapabilityUnsupportedError({
         harnessId: SPRITES_PROVIDER_ID,
@@ -93,7 +94,19 @@ export class SpritesNetworkSandboxSession
         url.protocol = isSecure ? 'wss:' : 'ws:';
         break;
     }
-    return url.toString();
+    // A public Sprite URL needs no headers: the bridge token in the query
+    // string is the only credential a stock WebSocket client presents.
+    return { url: url.toString() };
+  };
+
+  /**
+   * @deprecated Use `getPortEndpoint` instead.
+   */
+  getPortUrl = async (options: {
+    port: number;
+    protocol?: 'http' | 'https' | 'ws';
+  }): Promise<string> => {
+    return (await this.getPortEndpoint(options)).url;
   };
 
   setNetworkPolicy = async (policy: HarnessV1NetworkPolicy): Promise<void> => {
