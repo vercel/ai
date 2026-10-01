@@ -358,6 +358,29 @@ describe('ModalRequestTransformationManager', () => {
     ]);
   });
 
+  it('refreshes overlapping hosts that hold one value together in one call', async () => {
+    const { manager, appliedReplacements } = makeManager();
+    const rulesFor = (key: string) => [
+      rule('api.anthropic.com', { 'x-api-key': key }),
+      rule('*.anthropic.com', { 'x-api-key': key }),
+    ];
+
+    await manager.addRequestTransformations(rulesFor('sk-ant-one'));
+    await manager.addRequestTransformations(rulesFor('sk-ant-two'));
+
+    expect(appliedReplacements()[1]).toEqual([
+      { domain: 'api.anthropic.com', headers: { 'x-api-key': 'sk-ant-two' } },
+      { domain: '*.anthropic.com', headers: { 'x-api-key': 'sk-ant-two' } },
+    ]);
+    await expect(
+      manager.addRequestTransformations([
+        rule('api.anthropic.com', { 'x-api-key': 'sk-ant-three' }),
+      ]),
+    ).rejects.toThrow(
+      'cannot be set to a value that differs from the one held for the overlapping host "*.anthropic.com"',
+    );
+  });
+
   it('does not keep rules that Modal failed to apply', async () => {
     const failure = Object.assign(new Error('unavailable'), { code: 14 });
     const { manager, experimentalUpdateOutboundPolicy, appliedReplacements } =

@@ -288,6 +288,12 @@ function mergeHeaderReplacements({
       merged.push(replacement);
     }
     for (const [name, value] of Object.entries(headers)) {
+      replacement.headers[findHeaderName(replacement.headers, name) ?? name] =
+        value;
+    }
+  }
+  for (const { domain, headers } of incoming) {
+    for (const [name, value] of Object.entries(headers)) {
       const conflict = merged.find(candidate => {
         const managedName = findHeaderName(candidate.headers, name);
         return (
@@ -302,8 +308,6 @@ function mergeHeaderReplacements({
           `Modal holds one value per host and header for the whole sandbox session and applies it to every request to its host, so the "${name}" header for "${domain}" cannot be set to a value that differs from the one held for the overlapping host "${conflict.domain}": which of the two Modal would apply is ambiguous. ${SHARED_VALUE_NOTE}`,
         );
       }
-      replacement.headers[findHeaderName(replacement.headers, name) ?? name] =
-        value;
     }
   }
   return merged;
