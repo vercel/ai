@@ -926,6 +926,34 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should send agentic media processing on video file parts', async () => {
+    prepareJsonResponse({});
+
+    await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'file',
+              data: 'AAECAw==',
+              mediaType: 'video/mp4',
+              providerOptions: { google: { processing: 'agentic' } },
+            },
+            { type: 'text', text: 'How many times does the square flash?' },
+          ],
+        },
+      ],
+    });
+
+    expect(
+      (await server.calls[0].requestBodyJson).contents[0].parts[0],
+    ).toEqual({
+      inlineData: { mimeType: 'video/mp4', data: 'AAECAw==' },
+      mediaProcessing: 'AGENTIC',
+    });
+  });
+
   it('should pass the model, messages, and options', async () => {
     prepareJsonResponse({});
 
