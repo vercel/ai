@@ -4,7 +4,7 @@ import {
 } from '@ai-sdk/harness';
 import { createCredentialRequestTransformation } from '@ai-sdk/harness/utils';
 import type { Sandbox } from 'modal';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   ModalRequestTransformationManager,
   assertRequestTransformationSettings,
@@ -108,8 +108,18 @@ describe('toModalHeaderReplacements', () => {
 
     expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
     expect(error?.message).toBe(
-      `Modal applies a request transformation to every request to its host, so the transformation for "api.example.com" cannot be limited with a ${matcher} matcher.`,
+      `Modal applies a request transformation to every request to its host, so the transformation for "api.example.com" cannot be limited with a ${matcher} matcher. Only path and headers matchers are accepted, and they do not narrow the transformation: its headers are attached to every request the sandbox sends to that host, with or without the placeholder. A method or queryString matcher, or any other matcher Modal cannot express, is rejected.`,
     );
+  });
+
+  it('rejects a rule with a matcher it does not know', () => {
+    expect(() =>
+      toModalHeaderReplacements([
+        rule('api.example.com', { 'x-api-key': 'key' }, {
+          body: { exact: 'x' },
+        } as never),
+      ]),
+    ).toThrow('cannot be limited with a body matcher');
   });
 
   it('rejects rules for one host that set a header to different values', () => {
@@ -130,7 +140,7 @@ describe('toModalHeaderReplacements', () => {
 
     expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
     expect(error?.message).toBe(
-      'Modal applies a request transformation to every request to its host, so the transformations for "api.example.com" and "api.example.com" cannot set the "authorization" header to different values. Remove one of them, or replace the earlier one with setRequestTransformations().',
+      'Modal holds one value per host and header and applies it to every request to its host, so the "authorization" header for "api.example.com" cannot be set to a value that differs from the one already set for "api.example.com". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.',
     );
   });
 
@@ -148,7 +158,9 @@ describe('toModalHeaderReplacements', () => {
           rule(first, { 'x-api-key': 'one' }),
           rule(second, { 'x-api-key': 'two' }),
         ]),
-      ).toThrow('cannot set the "x-api-key" header to different values');
+      ).toThrow(
+        `the "x-api-key" header for "${second}" cannot be set to a value that differs from the one already set for "${first}"`,
+      );
     },
   );
 
@@ -271,6 +283,9 @@ describe('ModalRequestTransformationManager', () => {
       .catch(error => error);
 
     expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+    expect(error.message).toBe(
+      'Modal holds one value per host and header and applies it to every request to its host, so the "x-api-key" header for "api.anthropic.com" cannot be set to a value that differs from the one already set for "api.anthropic.com". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.',
+    );
     expect(experimentalUpdateOutboundPolicy).toHaveBeenCalledOnce();
 
     await manager.addRequestTransformations([openaiRule]);
@@ -281,6 +296,51 @@ describe('ModalRequestTransformationManager', () => {
         headers: { Authorization: 'Bearer sk-real' },
       },
     ]);
+  });
+
+  it('keeps one rule when the same value is added under a new placeholder', async () => {
+    const { manager, appliedReplacements } = makeManager();
+    const underNewPlaceholder = (key: string) =>
+      createCredentialRequestTransformation({
+        matchUrl: 'https://API.anthropic.com',
+        matchHeaders: { 'X-Api-Key': 'aisdkhc_other_placeholder' },
+        transformHeaders: { 'X-Api-Key': key },
+      });
+
+    await manager.addRequestTransformations([anthropicRule]);
+    await manager.addRequestTransformations([
+      underNewPlaceholder('sk-ant-real'),
+    ]);
+    await manager.addRequestTransformations([
+      {
+        match: anthropicRule.match,
+        transform: { headers: { 'x-api-key': 'sk-ant-rotated' } },
+      },
+    ]);
+
+    expect(appliedReplacements()).toEqual([
+      [
+        {
+          domain: 'api.anthropic.com',
+          headers: { 'x-api-key': 'sk-ant-real' },
+        },
+      ],
+      [
+        {
+          domain: 'api.anthropic.com',
+          headers: { 'x-api-key': 'sk-ant-real' },
+        },
+      ],
+      [
+        {
+          domain: 'api.anthropic.com',
+          headers: { 'x-api-key': 'sk-ant-rotated' },
+        },
+      ],
+    ]);
+    await expect(
+      manager.addRequestTransformations([underNewPlaceholder('sk-ant-real')]),
+    ).rejects.toThrow('Modal holds one value per host and header');
   });
 
   it('does not keep rules that Modal failed to apply', async () => {
@@ -366,11 +426,6 @@ describe('ModalRequestTransformationManager', () => {
 });
 
 describe('request transformation settings', () => {
-  afterEach(() => {
-    vi.doUnmock('modal');
-    vi.resetModules();
-  });
-
   it('adds an empty outbound policy and the tag, and drops the allowlists', () => {
     const createParams = withRequestTransformationSettings({
       timeoutMs: 60_000,
@@ -419,41 +474,13 @@ describe('request transformation settings', () => {
     }
   });
 
-  it('recognizes a tagged sandbox whose SDK can replace the policy', () => {
-    const sandbox = {
-      experimentalUpdateOutboundPolicy: async () => {},
-    } as unknown as Sandbox;
-    const tags = { 'ai-sdk-request-transformations': 'true' };
-
-    expect(supportsRequestTransformations({ sandbox, tags })).toBe(true);
-    expect(supportsRequestTransformations({ sandbox, tags: {} })).toBe(false);
+  it('recognizes a sandbox by its tag', () => {
     expect(
-      supportsRequestTransformations({ sandbox: {} as Sandbox, tags }),
-    ).toBe(false);
-  });
-
-  it('reports an installed SDK without the outbound policy', async () => {
-    vi.resetModules();
-    vi.doMock('modal', () => ({}));
-    const withoutOutboundPolicy =
-      await import('./modal-request-transformations');
-
-    expect(() =>
-      withoutOutboundPolicy.assertRequestTransformationSettings({
-        functionName: 'createModalNetworkSandboxSession',
-        createParams: {},
+      supportsRequestTransformations({
+        'ai-sdk-request-transformations': 'true',
       }),
-    ).toThrow(
-      "createModalNetworkSandboxSession: requestTransformations needs Modal's experimental outbound policy, which the installed modal SDK does not provide.",
-    );
-    expect(
-      withoutOutboundPolicy.supportsRequestTransformations({
-        sandbox: {
-          experimentalUpdateOutboundPolicy: async () => {},
-        } as unknown as Sandbox,
-        tags: { 'ai-sdk-request-transformations': 'true' },
-      }),
-    ).toBe(false);
+    ).toBe(true);
+    expect(supportsRequestTransformations({ team: 'ai' })).toBe(false);
   });
 });
 

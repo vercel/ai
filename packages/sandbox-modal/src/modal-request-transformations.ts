@@ -2,8 +2,7 @@ import {
   HarnessCapabilityUnsupportedError,
   type HarnessV1RequestTransformation,
 } from '@ai-sdk/harness';
-import * as modal from 'modal';
-import type { ExperimentalOutboundPolicy, Sandbox } from 'modal';
+import { ExperimentalOutboundPolicy, type Sandbox } from 'modal';
 import {
   GRPC_STATUS_FAILED_PRECONDITION,
   MODAL_PROVIDER_ID,
@@ -19,22 +18,20 @@ import {
  */
 const REQUEST_TRANSFORMATIONS_TAG = 'ai-sdk-request-transformations';
 
+/**
+ * Matchers that are accepted although Modal cannot express them, because the
+ * rule is applied to its whole host.
+ */
+const HOST_WIDE_MATCHERS: ReadonlySet<string> = new Set([
+  'host',
+  'path',
+  'headers',
+]);
+
 type ModalHeaderReplacement = {
   domain: string;
   headers: Record<string, string>;
 };
-
-/**
- * Modal's outbound policy is experimental, so the class is looked up on the
- * installed SDK instead of being imported by name.
- */
-function getOutboundPolicyClass():
-  | typeof ExperimentalOutboundPolicy
-  | undefined {
-  return 'ExperimentalOutboundPolicy' in modal
-    ? modal.ExperimentalOutboundPolicy
-    : undefined;
-}
 
 /**
  * Rejects creation options that a sandbox with request transformations cannot
@@ -49,11 +46,6 @@ export function assertRequestTransformationSettings({
   functionName: string;
   createParams: ModalSandboxCreateParams;
 }): void {
-  if (getOutboundPolicyClass() == null) {
-    throw new Error(
-      `${functionName}: requestTransformations needs Modal's experimental outbound policy, which the installed modal SDK does not provide.`,
-    );
-  }
   if (
     createParams.blockNetwork === true ||
     createParams.outboundCidrAllowlist != null ||
@@ -88,21 +80,12 @@ export function withRequestTransformationSettings(
 
 /**
  * Whether a running sandbox accepts request transformations: it carries the
- * tag of a sandbox created with an outbound policy, and the installed SDK can
- * replace that policy.
+ * tag of a sandbox created with an outbound policy.
  */
-export function supportsRequestTransformations({
-  sandbox,
-  tags,
-}: {
-  sandbox: Sandbox;
-  tags: Record<string, string>;
-}): boolean {
-  return (
-    tags[REQUEST_TRANSFORMATIONS_TAG] === 'true' &&
-    getOutboundPolicyClass() != null &&
-    typeof sandbox.experimentalUpdateOutboundPolicy === 'function'
-  );
+export function supportsRequestTransformations(
+  tags: Record<string, string>,
+): boolean {
+  return tags[REQUEST_TRANSFORMATIONS_TAG] === 'true';
 }
 
 /**
@@ -183,10 +166,12 @@ export class ModalRequestTransformationManager {
 /**
  * Maps request transformations onto Modal's header replacements, which are
  * scoped by host alone. A rule's `path` and `headers` matchers are accepted
- * and the rule is applied to every request to its host. Rules that this
- * widening would change in ways a caller cannot expect are rejected: rules
- * with a `method` or `queryString` matcher, and rules for one host that set
- * the same header to different values.
+ * without narrowing the rule: it is applied to every request to its host, so
+ * the real header values are attached to every request the sandbox sends
+ * there, with or without the placeholder. Rules that this widening would
+ * change in ways a caller cannot expect are rejected: rules with a `method`
+ * or `queryString` matcher or any other matcher Modal cannot express, and
+ * rules for one host that set the same header to different values.
  */
 export function toModalHeaderReplacements(
   transformations: ReadonlyArray<HarnessV1RequestTransformation>,
@@ -198,10 +183,10 @@ export function toModalHeaderReplacements(
   const headersByHost = new Map<string, Map<string, [string, string]>>();
 
   for (const { match, transform } of transformations) {
-    for (const matcher of ['method', 'queryString'] as const) {
-      if (match[matcher] != null) {
+    for (const [matcher, value] of Object.entries(match)) {
+      if (value != null && !HOST_WIDE_MATCHERS.has(matcher)) {
         throw createRequestTransformationError(
-          `Modal applies a request transformation to every request to its host, so the transformation for "${match.host}" cannot be limited with a ${matcher} matcher.`,
+          `Modal applies a request transformation to every request to its host, so the transformation for "${match.host}" cannot be limited with a ${matcher} matcher. Only path and headers matchers are accepted, and they do not narrow the transformation: its headers are attached to every request the sandbox sends to that host, with or without the placeholder. A method or queryString matcher, or any other matcher Modal cannot express, is rejected.`,
         );
       }
     }
@@ -217,7 +202,7 @@ export function toModalHeaderReplacements(
       );
       if (conflict != null) {
         throw createRequestTransformationError(
-          `Modal applies a request transformation to every request to its host, so the transformations for "${conflict.host}" and "${host}" cannot set the "${name}" header to different values. Remove one of them, or replace the earlier one with setRequestTransformations().`,
+          `Modal holds one value per host and header and applies it to every request to its host, so the "${name}" header for "${host}" cannot be set to a value that differs from the one already set for "${conflict.host}". A different credential for that host needs a new sandbox session, or a resume that carries the original credential environment.`,
         );
       }
       assignments.push({ host, header, value });
@@ -242,16 +227,10 @@ export function toModalHeaderReplacements(
 function toModalOutboundPolicy(
   replacements: ReadonlyArray<ModalHeaderReplacement>,
 ): ExperimentalOutboundPolicy {
-  const OutboundPolicy = getOutboundPolicyClass();
-  if (OutboundPolicy == null) {
-    throw createRequestTransformationError(
-      "The installed modal SDK does not provide Modal's experimental outbound policy.",
-    );
-  }
   return replacements.reduce(
     (outboundPolicy, replacement) =>
       outboundPolicy.withHeaderReplacement(replacement),
-    new OutboundPolicy(),
+    new ExperimentalOutboundPolicy(),
   );
 }
 
@@ -281,9 +260,13 @@ function hostPatternCovers({
 }
 
 /**
- * Adds rules to the managed set. A rule with the same matchers and header
- * names as an existing one replaces it, which is how a harness adapter
- * refreshes a credential when it resumes a session.
+ * Adds rules to the managed set. A rule is identified by what Modal can
+ * express: its host and the names of the headers it sets. A rule that is
+ * added again with the same matchers replaces the managed one, which is how a
+ * harness adapter refreshes a credential when it resumes a session. Under
+ * other matchers, such as a new placeholder, the same header values leave the
+ * managed rule in place, and different ones are added as a second rule, which
+ * `toModalHeaderReplacements` rejects.
  */
 function mergeRequestTransformations({
   existing,
@@ -293,20 +276,23 @@ function mergeRequestTransformations({
   incoming: ReadonlyArray<HarnessV1RequestTransformation>;
 }): HarnessV1RequestTransformation[] {
   const merged = [...existing];
-  const identities = new Map(
-    merged.map((transformation, index) => [
-      getRequestTransformationIdentity(transformation),
-      index,
-    ]),
-  );
   for (const transformation of incoming) {
     const identity = getRequestTransformationIdentity(transformation);
-    const existingIndex = identities.get(identity);
-    if (existingIndex == null) {
-      identities.set(identity, merged.length);
+    const managedIndex = merged.findIndex(
+      managed => getRequestTransformationIdentity(managed) === identity,
+    );
+    const managed = merged[managedIndex];
+    if (managed == null) {
       merged.push(transformation);
-    } else {
-      merged[existingIndex] = transformation;
+    } else if (
+      stableSerialize(managed.match) === stableSerialize(transformation.match)
+    ) {
+      merged[managedIndex] = transformation;
+    } else if (
+      stableSerialize(getHeaderAssignments(managed)) !==
+      stableSerialize(getHeaderAssignments(transformation))
+    ) {
+      merged.push(transformation);
     }
   }
   return merged;
@@ -316,11 +302,17 @@ function getRequestTransformationIdentity(
   transformation: HarnessV1RequestTransformation,
 ): string {
   return stableSerialize({
-    match: transformation.match,
-    transformedHeaderNames: Object.keys(transformation.transform.headers)
-      .map(name => name.toLowerCase())
-      .sort(),
+    host: transformation.match.host.toLowerCase(),
+    headerNames: getHeaderAssignments(transformation).map(([name]) => name),
   });
+}
+
+function getHeaderAssignments(
+  transformation: HarnessV1RequestTransformation,
+): Array<[string, string]> {
+  return Object.entries(transformation.transform.headers)
+    .map(([name, value]): [string, string] => [name.toLowerCase(), value])
+    .sort(([firstName], [secondName]) => firstName.localeCompare(secondName));
 }
 
 function stableSerialize(value: unknown): string {

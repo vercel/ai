@@ -86,9 +86,16 @@ type ModalCreationSettings = Omit<
    * Creates the sandbox with Modal's experimental outbound policy, so that
    * the session has `setRequestTransformations()` and
    * `addRequestTransformations()` and harness adapters broker credentials
-   * instead of forwarding them into the sandbox. Modal does not restrict the
-   * outbound HTTPS traffic of such a sandbox, so this cannot be combined with
-   * `blockNetwork` or an outbound allowlist.
+   * instead of forwarding them into the sandbox.
+   *
+   * Modal applies a rule to its whole host. A rule's `path` and `headers`
+   * matchers are accepted without narrowing it, so a brokered credential is
+   * attached to every request the sandbox makes to that host, with or without
+   * the placeholder. A rule with a `method` or `queryString` matcher, or
+   * anything else Modal cannot express, is rejected.
+   *
+   * Modal does not restrict the outbound HTTPS traffic of such a sandbox, so
+   * this cannot be combined with `blockNetwork` or an outbound allowlist.
    */
   requestTransformations?: boolean;
 
@@ -148,7 +155,9 @@ type ModalLookupSettings = Omit<
    * Restores a stopped sandbox with Modal's experimental outbound policy, as
    * on creation. A sandbox that is still running accepts request
    * transformations when it was created with this option, whether or not it
-   * is passed again.
+   * is passed again. Passing `true` for a running sandbox that was not
+   * created with it fails, instead of returning a session that forwards
+   * credentials into the sandbox.
    */
   requestTransformations?: boolean;
 
@@ -315,16 +324,19 @@ export async function resumeModalNetworkSandboxSession(
             sandbox.getTags(),
           ]);
           abortSignal?.throwIfAborted();
+          const supportsTransformations = supportsRequestTransformations(tags);
+          if (requestTransformations && !supportsTransformations) {
+            throw new Error(
+              `resumeModalNetworkSandboxSession: Modal sandbox "${sandboxId}" is running and was not created with requestTransformations: true, so it cannot broker credentials. Resume it without requestTransformations, or create a new sandbox with it.`,
+            );
+          }
           return new ModalNetworkSandboxSession({
             sandbox,
             id: sandboxId,
             workingDirectory,
             ports: getEncryptedTunnelPorts(tunnels),
             stopSnapshot,
-            requestTransformations: supportsRequestTransformations({
-              sandbox,
-              tags,
-            }),
+            requestTransformations: supportsTransformations,
           });
         } catch (error) {
           // The sandbox keeps running; only this process lets go of it.

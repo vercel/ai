@@ -937,7 +937,6 @@ describe('Modal sandbox sessions with request transformations', () => {
     const plain = await resumeModalNetworkSandboxSession({
       client,
       sandboxId: 'live-session',
-      requestTransformations: true,
     });
 
     expect(transforming.addRequestTransformations).toBeTypeOf('function');
@@ -945,6 +944,49 @@ describe('Modal sandbox sessions with request transformations', () => {
     expect('addRequestTransformations' in plain).toBe(false);
     expect('setRequestTransformations' in plain).toBe(false);
     expect(spies.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses request transformations on a running sandbox that was created without them', async () => {
+    const { client, spies } = makeMockClient();
+    const running = makeMockSandbox({ tags: { team: 'ai' } });
+    spies.sandboxFromName.mockResolvedValue(running.sandbox);
+
+    await expect(
+      resumeModalNetworkSandboxSession({
+        client,
+        sandboxId: 'live-session',
+        requestTransformations: true,
+        blockNetwork: false,
+      }),
+    ).rejects.toThrow(
+      'resumeModalNetworkSandboxSession: Modal sandbox "live-session" is running and was not created with requestTransformations: true, so it cannot broker credentials. Resume it without requestTransformations, or create a new sandbox with it.',
+    );
+    expect(running.spies.detach).toHaveBeenCalledOnce();
+    expect(running.spies.terminate).not.toHaveBeenCalled();
+    expect(spies.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses request transformations when another caller restored the sandbox without them', async () => {
+    const { client, spies } = makeStoppedFixture();
+    const running = makeMockSandbox();
+    spies.sandboxFromName
+      .mockRejectedValueOnce(makeModalError('NotFoundError'))
+      .mockResolvedValue(running.sandbox);
+    spies.create.mockRejectedValue(makeModalError('AlreadyExistsError'));
+
+    await expect(
+      resumeModalNetworkSandboxSession({
+        client,
+        sandboxId: 'live-session',
+        requestTransformations: true,
+        blockNetwork: false,
+      }),
+    ).rejects.toThrow(
+      'Modal sandbox "live-session" is running and was not created with requestTransformations: true',
+    );
+    expect(spies.create).toHaveBeenCalledOnce();
+    expect(running.spies.detach).toHaveBeenCalledOnce();
+    expect(running.spies.terminate).not.toHaveBeenCalled();
   });
 
   it('restores a stopped sandbox with a new outbound policy', async () => {
