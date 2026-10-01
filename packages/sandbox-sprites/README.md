@@ -87,7 +87,7 @@ A session is bridge-capable when its Sprite is on `public` URL auth and has `pnp
 For the bridge URL to be reachable by a stock client (no auth header), the Sprite's URL
 auth must be `public`. Public URLs are reachable by anyone with the URL, so the in-Sprite
 bridge is the authentication boundary (via `agent_bridge_token`). On any other URL auth
-that client is redirected at the auth gate, so the session exposes no port: `ports` is
+that client is turned away at the auth gate, so the session exposes no port: `ports` is
 empty, `getPortEndpoint()` throws a `HarnessCapabilityUnsupportedError`, and bridge-backed
 harness adapters do not select it. Pass `urlAuth: 'public'` to the resume function to put
 an existing Sprite on `public` URL auth.
