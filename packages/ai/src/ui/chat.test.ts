@@ -2135,6 +2135,90 @@ describe('Chat', () => {
     `);
   });
 
+  it('should resume an approved tool result in the existing assistant message', async () => {
+    const state = new TestChatState<UIMessage>([
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Set the price to 12' }],
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-updateProduct',
+            toolCallId: 'call-1',
+            state: 'approval-requested',
+            input: { price: 12 },
+            approval: { id: 'approval-1' },
+          },
+        ],
+      },
+    ]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'tool-output-available',
+                toolCallId: 'call-1',
+                output: { price: 12 },
+              });
+              controller.enqueue({ type: 'text-start', id: 'text-1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'Updated.',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+    expect(chat.messages[1].parts[0]).toMatchObject({
+      state: 'approval-responded',
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toHaveLength(2);
+    expect(chat.messages[1].id).toBe('assistant-1');
+    expect(chat.messages[1].parts).toEqual([
+      expect.objectContaining({
+        type: 'tool-updateProduct',
+        toolCallId: 'call-1',
+        state: 'output-available',
+        input: { price: 12 },
+        output: { price: 12 },
+        approval: expect.objectContaining({
+          id: 'approval-1',
+          approved: true,
+        }),
+      }),
+      expect.objectContaining({
+        type: 'text',
+        state: 'done',
+        text: 'Updated.',
+      }),
+    ]);
+  });
+
   it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
     const state = new TestChatState<UIMessage>([
       {
