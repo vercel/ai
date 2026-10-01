@@ -34,6 +34,16 @@ export const DEFAULT_SANDBOX_APP_NAME = 'ai-sdk-sandbox';
 export const DEFAULT_SANDBOX_IMAGE_TAG = 'node:24';
 
 /**
+ * Allowlists that admit all outbound traffic. Modal only changes the network
+ * policy of a running sandbox that was created with a domain allowlist, so
+ * sandboxes are created with these instead of with no allowlist at all.
+ */
+export const ALLOW_ALL_NETWORK_ALLOWLISTS = {
+  outboundCidrAllowlist: ['0.0.0.0/0'],
+  outboundDomainAllowlist: ['*'],
+} as const;
+
+/**
  * Bridge-backed harness adapters install their in-sandbox bridge with `pnpm`,
  * which the Node.js registry image does not ship. The image also has no
  * working directory of its own, so commands would run in `/`.
@@ -112,9 +122,23 @@ export function isModalError(error: unknown, name: string): boolean {
 export function withDefaultSandboxSettings(
   createParams: ModalSandboxCreateParams,
 ): ModalSandboxCreateParams {
+  const hasNetworkSettings =
+    createParams.blockNetwork === true ||
+    createParams.outboundCidrAllowlist != null ||
+    createParams.outboundDomainAllowlist != null;
   return {
     ...createParams,
     timeoutMs: createParams.timeoutMs ?? DEFAULT_SANDBOX_TIMEOUT_MS,
+    ...(hasNetworkSettings
+      ? {}
+      : {
+          outboundCidrAllowlist: [
+            ...ALLOW_ALL_NETWORK_ALLOWLISTS.outboundCidrAllowlist,
+          ],
+          outboundDomainAllowlist: [
+            ...ALLOW_ALL_NETWORK_ALLOWLISTS.outboundDomainAllowlist,
+          ],
+        }),
   };
 }
 
@@ -218,6 +242,8 @@ export async function getRunningSandbox({
   return sandbox;
 }
 
+const sandboxTerminatedErrors = new WeakSet<Error>();
+
 export function createSandboxTerminatedError(
   sandboxId: string,
   cause?: unknown,
@@ -225,7 +251,20 @@ export function createSandboxTerminatedError(
   const error = new Error(
     `Modal sandbox "${sandboxId}" has terminated and cannot be resumed.`,
   );
+  sandboxTerminatedErrors.add(error);
   return cause === undefined ? error : Object.assign(error, { cause });
+}
+
+/**
+ * Matches the failures that mean no running sandbox has the session ID: the
+ * sandbox was not found, or it has terminated. A stopped sandbox may still be
+ * restored from its stop snapshot in both cases.
+ */
+export function isSandboxUnavailableError(error: unknown): boolean {
+  return (
+    isModalError(error, 'NotFoundError') ||
+    (error instanceof Error && sandboxTerminatedErrors.has(error))
+  );
 }
 
 const GRPC_STATUS_INVALID_ARGUMENT = 3;

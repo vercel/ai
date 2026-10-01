@@ -51,10 +51,25 @@ expectTypeOf<{
   abortSignal: AbortSignal;
 }>().toExtend<ResumeOptions>();
 expectTypeOf<{ sandboxId: string }>().toExtend<ResumeOptions>();
+// Creation options are accepted for restoring a stopped sandbox.
+expectTypeOf<{
+  sandboxId: string;
+  encryptedPorts: number[];
+  timeoutMs: number;
+  cpu: number;
+  env: Record<string, string>;
+}>().toExtend<ResumeOptions>();
 expectTypeOf<{}>().not.toExtend<ResumeOptions>();
+expectTypeOf<{
+  sandboxId: string;
+  name: string;
+}>().not.toExtend<ResumeOptions>();
+expectTypeOf<{
+  sandboxId: string;
+  h2Ports: number[];
+}>().not.toExtend<ResumeOptions>();
 expectTypeOf<ResumeOptions>().not.toHaveProperty('image');
 expectTypeOf<ResumeOptions>().not.toHaveProperty('template');
-expectTypeOf<ResumeOptions>().not.toHaveProperty('encryptedPorts');
 
 expectTypeOf<{
   sandbox: Sandbox;

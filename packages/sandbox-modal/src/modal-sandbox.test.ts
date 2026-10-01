@@ -1,12 +1,17 @@
 import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
 import type { Image, ModalClient, Sandbox } from 'modal';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createModalNetworkSandboxSession,
   createModalNetworkSandboxSessionFromNativeSandbox,
   createModalSandboxSessionFromNativeSandbox,
   resumeModalNetworkSandboxSession,
 } from './modal-sandbox';
+
+const ALLOW_ALL = {
+  outboundCidrAllowlist: ['0.0.0.0/0'],
+  outboundDomainAllowlist: ['*'],
+};
 
 describe('new Modal sandbox sessions', () => {
   beforeEach(() => {
@@ -67,7 +72,7 @@ describe('new Modal sandbox sessions', () => {
       'RUN npm install --global pnpm@11',
       'WORKDIR /workspace',
     ]);
-    expect(params).toEqual({ timeoutMs: 30 * 60 * 1_000 });
+    expect(params).toEqual({ timeoutMs: 30 * 60 * 1_000, ...ALLOW_ALL });
     expect(session.id).toBe('sb-harness');
     expect(session.defaultWorkingDirectory).toBe('/workspace');
     expect(session.ports).toEqual([]);
@@ -100,6 +105,7 @@ describe('new Modal sandbox sessions', () => {
       workdir: '/app',
       timeoutMs: 60_000,
       cpu: 0.5,
+      ...ALLOW_ALL,
     });
     expect(session.ports).toEqual([4000, 8080]);
     expect(session.defaultWorkingDirectory).toBe('/app');
@@ -230,6 +236,27 @@ describe('new Modal sandbox sessions', () => {
     }
   });
 
+  it('keeps the caller network settings instead of the allow-all defaults', async () => {
+    const { client, spies } = makeMockClient();
+    spies.create.mockImplementation(async () => makeMockSandbox().sandbox);
+
+    await createModalNetworkSandboxSession({ client, blockNetwork: true });
+    await createModalNetworkSandboxSession({
+      client,
+      outboundDomainAllowlist: ['example.com'],
+    });
+    await createModalNetworkSandboxSession({
+      client,
+      outboundCidrAllowlist: ['10.0.0.0/8'],
+    });
+
+    expect(spies.create.mock.calls.map(call => call[2])).toEqual([
+      { timeoutMs: 30 * 60 * 1_000, blockNetwork: true },
+      { timeoutMs: 30 * 60 * 1_000, outboundDomainAllowlist: ['example.com'] },
+      { timeoutMs: 30 * 60 * 1_000, outboundCidrAllowlist: ['10.0.0.0/8'] },
+    ]);
+  });
+
   it('prepares a template once and starts sandboxes from its image', async () => {
     const { client, spies } = makeMockClient();
     const templateSandbox = makeMockSandbox({ workingDirectory: '/workspace' });
@@ -265,13 +292,14 @@ describe('new Modal sandbox sessions', () => {
 
     const calls = spies.create.mock.calls;
     expect(calls).toHaveLength(3);
-    expect(calls[0][2]).toEqual({ timeoutMs: 30 * 60 * 1_000 });
+    expect(calls[0][2]).toEqual({ timeoutMs: 30 * 60 * 1_000, ...ALLOW_ALL });
     for (const call of calls.slice(1)) {
       expect(call[1]).toBe(templateImage);
       expect(call[2]).toEqual({
         encryptedPorts: [4000],
         name: 'live-name',
         timeoutMs: 30 * 60 * 1_000,
+        ...ALLOW_ALL,
       });
     }
   });
@@ -463,6 +491,202 @@ describe('resumed Modal sandbox sessions', () => {
   });
 });
 
+describe('stopped Modal sandbox sessions', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function makeStoppedFixture() {
+    const fixture = makeMockClient();
+    const snapshot = makeMockImage({ imageId: 'im-stopped' });
+    fixture.spies.sandboxFromName.mockRejectedValue(
+      makeModalError('NotFoundError'),
+    );
+    const missing = makeMockSandbox();
+    missing.spies.poll.mockRejectedValue(
+      Object.assign(new Error('not found'), { code: 5 }),
+    );
+    fixture.spies.sandboxFromId.mockResolvedValue(missing.sandbox);
+    fixture.spies.imageFromName.mockResolvedValue(snapshot);
+    fixture.spies.imageFromId.mockResolvedValue(snapshot);
+    return { ...fixture, snapshot };
+  }
+
+  it('restores a stopped sandbox from its stop snapshot under the same ID', async () => {
+    const { client, spies, app, snapshot } = makeStoppedFixture();
+    const restored = makeMockSandbox({ workingDirectory: '/workspace' });
+    spies.create.mockResolvedValue(restored.sandbox);
+
+    const session = await resumeModalNetworkSandboxSession({
+      client,
+      appName: 'my-app',
+      sandboxId: 'live-session',
+      encryptedPorts: [4000],
+      cpu: 0.5,
+    });
+
+    expect(spies.imageFromName).toHaveBeenCalledWith(
+      expect.stringMatching(/^ai-sdk-sandbox-stopped-[a-f0-9]{24}$/),
+    );
+    expect(spies.imageFromId).toHaveBeenCalledWith('im-stopped');
+    expect(spies.appFromName).toHaveBeenCalledWith('my-app', {
+      createIfMissing: true,
+    });
+    expect(spies.create).toHaveBeenCalledExactlyOnceWith(app, snapshot, {
+      encryptedPorts: [4000],
+      cpu: 0.5,
+      timeoutMs: 30 * 60 * 1_000,
+      ...ALLOW_ALL,
+      name: 'live-session',
+    });
+    expect(session.id).toBe('live-session');
+    expect(session.defaultWorkingDirectory).toBe('/workspace');
+    expect(session.ports).toEqual([4000]);
+  });
+
+  it('restores a sandbox that terminated after it was stopped', async () => {
+    const { client, spies } = makeStoppedFixture();
+    spies.sandboxFromName.mockResolvedValue(
+      makeMockSandbox({ exitCode: 137 }).sandbox,
+    );
+    spies.create.mockResolvedValue(makeMockSandbox().sandbox);
+
+    const session = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    });
+
+    expect(spies.create).toHaveBeenCalledOnce();
+    expect(session.id).toBe('live-session');
+    expect(session.ports).toEqual([]);
+  });
+
+  it('retries while the name of the stopped sandbox is still reserved', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const { client, spies } = makeStoppedFixture();
+    spies.create
+      .mockRejectedValueOnce(makeModalError('AlreadyExistsError'))
+      .mockRejectedValueOnce(makeModalError('AlreadyExistsError'))
+      .mockResolvedValue(makeMockSandbox().sandbox);
+
+    const resumed = resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    });
+    while (spies.create.mock.calls.length < 3) {
+      await vi.advanceTimersByTimeAsync(500);
+      await new Promise(resolve => setImmediate(resolve));
+    }
+
+    expect((await resumed).id).toBe('live-session');
+    expect(spies.create).toHaveBeenCalledTimes(3);
+  });
+
+  it('reattaches when another caller restored the sandbox first', async () => {
+    const { client, spies } = makeStoppedFixture();
+    const running = makeMockSandbox({
+      tunnels: { 4000: { url: 'https://a.modal.host' } },
+    });
+    spies.sandboxFromName
+      .mockRejectedValueOnce(makeModalError('NotFoundError'))
+      .mockResolvedValue(running.sandbox);
+    spies.create.mockRejectedValue(makeModalError('AlreadyExistsError'));
+
+    const session = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    });
+
+    expect(spies.create).toHaveBeenCalledOnce();
+    expect(session.ports).toEqual([4000]);
+  });
+
+  it('rejects a stopped sandbox whose snapshot no longer exists', async () => {
+    const { client, spies } = makeStoppedFixture();
+    const notFound = makeModalError('NotFoundError');
+    spies.sandboxFromName.mockRejectedValue(notFound);
+    spies.imageFromId.mockRejectedValue(makeModalError('NotFoundError'));
+
+    await expect(
+      resumeModalNetworkSandboxSession({ client, sandboxId: 'live-session' }),
+    ).rejects.toBe(notFound);
+    expect(spies.create).not.toHaveBeenCalled();
+  });
+
+  it('terminates a restored sandbox whose snapshot turns out to be gone', async () => {
+    const { client, spies } = makeStoppedFixture();
+    const expired = makeModalError('NotFoundError');
+    const restored = makeMockSandbox();
+    restored.spies.exec.mockRejectedValue(expired);
+    spies.create.mockResolvedValue(restored.sandbox);
+
+    const error = await resumeModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    }).catch(error => error);
+
+    expect(error.message).toBe(
+      'Modal sandbox "live-session" has terminated and cannot be resumed.',
+    );
+    expect(error.cause).toBe(expired);
+    expect(restored.spies.terminate).toHaveBeenCalledOnce();
+  });
+
+  it('surfaces failures to start the restored sandbox', async () => {
+    const { client, spies } = makeStoppedFixture();
+    const failure = Object.assign(new Error('unavailable'), { code: 14 });
+    spies.create.mockRejectedValue(failure);
+
+    await expect(
+      resumeModalNetworkSandboxSession({ client, sandboxId: 'live-session' }),
+    ).rejects.toBe(failure);
+    expect(spies.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects HTTP/2 tunnels', async () => {
+    await expect(
+      resumeModalNetworkSandboxSession({
+        sandboxId: 'live-session',
+        h2Ports: [4000],
+      } as never),
+    ).rejects.toThrow('h2Ports is not supported');
+    expect(ModalClientMock).not.toHaveBeenCalled();
+  });
+
+  it('publishes a stop snapshot on stop() and deletes it on destroy()', async () => {
+    const { client, spies } = makeMockClient();
+    const created = makeMockSandbox();
+    const snapshot = makeMockImage({ imageId: 'im-stopped' });
+    created.spies.snapshotFilesystem.mockResolvedValue(snapshot);
+    spies.create.mockResolvedValue(created.sandbox);
+    spies.imageFromName.mockResolvedValue(snapshot);
+
+    const session = await createModalNetworkSandboxSession({
+      client,
+      sandboxId: 'live-session',
+    });
+    await session.stop();
+
+    expect(snapshot.publish).toHaveBeenCalledExactlyOnceWith(
+      expect.stringMatching(/^ai-sdk-sandbox-stopped-[a-f0-9]{24}$/),
+    );
+    expect(created.spies.terminate).toHaveBeenCalledOnce();
+    expect(spies.imageDelete).not.toHaveBeenCalled();
+
+    await session.destroy();
+
+    expect(spies.imageFromName).toHaveBeenCalledWith(
+      snapshot.publish.mock.calls[0][0],
+    );
+    expect(spies.imageDelete).toHaveBeenCalledExactlyOnceWith('im-stopped');
+    expect(created.spies.terminate).toHaveBeenCalledOnce();
+  });
+});
+
 const { ModalClientMock } = vi.hoisted(() => ({ ModalClientMock: vi.fn() }));
 
 vi.mock('modal', () => ({ ModalClient: ModalClientMock }));
@@ -502,13 +726,24 @@ function makeMockClient() {
   const app = { appId: 'ap-harness' };
   const appFromName = vi.fn(async () => app);
   const fromRegistry = vi.fn((tag: string) => makeMockImage({ tag }));
-  const imageFromName = vi.fn();
+  const imageFromName = vi.fn(async (_name: string): Promise<Image> => {
+    throw makeModalError('NotFoundError');
+  });
+  const imageFromId = vi.fn(async (imageId: string) =>
+    makeMockImage({ imageId }),
+  );
+  const imageDelete = vi.fn(async (_imageId: string) => {});
   const create = vi.fn();
   const sandboxFromName = vi.fn();
   const sandboxFromId = vi.fn();
   const client = {
     apps: { fromName: appFromName },
-    images: { fromRegistry, fromName: imageFromName },
+    images: {
+      fromRegistry,
+      fromName: imageFromName,
+      fromId: imageFromId,
+      delete: imageDelete,
+    },
     sandboxes: { create, fromName: sandboxFromName, fromId: sandboxFromId },
   } as unknown as ModalClient;
   return {
@@ -518,6 +753,8 @@ function makeMockClient() {
       appFromName,
       fromRegistry,
       imageFromName,
+      imageFromId,
+      imageDelete,
       create,
       sandboxFromName,
       sandboxFromId,
