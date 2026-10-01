@@ -1,5 +1,6 @@
 import { safeParseJSON } from '@ai-sdk/provider-utils';
 import type { RealtimeServerEvent } from '../types/realtime-model';
+import type { RealtimeSessionState } from './realtime-session-state';
 import type {
   DynamicToolUIPart,
   TextUIPart,
@@ -10,6 +11,7 @@ export type RealtimeStatus =
   | 'disconnected'
   | 'connecting'
   | 'connected'
+  | 'closing'
   | 'error';
 
 export interface RealtimeState {
@@ -18,6 +20,7 @@ export interface RealtimeState {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
+  session?: RealtimeSessionState;
 }
 
 export type RealtimeReducerEffect =

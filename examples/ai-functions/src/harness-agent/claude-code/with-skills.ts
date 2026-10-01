@@ -1,8 +1,10 @@
-import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { claudeCode } from '@ai-sdk/harness-claude-code';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { HarnessAgent, type HarnessAgentSession } from '@ai-sdk/harness/agent';
+import { createClaudeCode } from './_create';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { printFullStream } from '../../lib/print-full-stream';
 import { run } from '../../lib/run';
+
+const claudeCode = createClaudeCode();
 
 /*
  * Skills are domain-specific reference material the agent loads on demand
@@ -17,15 +19,8 @@ import { run } from '../../lib/run';
  * in and reads the attached format reference file.
  */
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-    timeout: 10 * 60 * 1000,
-  });
-
   const agent = new HarnessAgent({
     harness: claudeCode,
-    sandbox,
     skills: [
       {
         name: 'release-notes-format',
@@ -60,20 +55,23 @@ End the document with the version tag on a line by itself, prefixed with \`v\`.`
     ],
   });
 
-  let exitCode = 0;
-  const session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session: HarnessAgentSession | undefined;
   try {
+    session = await agent.createSession({ sandboxSession });
     const result = await agent.stream({
       session,
       prompt:
         'Draft release notes for our next release, v2.4.0. We added a dark mode toggle in #892, fixed an autofocus bug in the search bar in #901, and renamed the `--legacy` CLI flag to `--compat` (old flag removed, no alias).',
     });
     await printFullStream({ result });
-  } catch (err) {
-    exitCode = 1;
-    console.error('[example] failed:', err);
   } finally {
-    await session.destroy();
-    process.exit(exitCode);
+    await session?.destroy();
+    await sandboxSession.destroy();
   }
 });

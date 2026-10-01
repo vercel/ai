@@ -15,8 +15,9 @@ import type { UIMessageStreamOptions } from '../generate-text/stream-text-result
 import type { TimeoutConfiguration } from '../prompt/request-options';
 import { pipeUIMessageStreamToResponse } from '../ui-message-stream';
 import type { UIMessageStreamResponseInit } from '../ui-message-stream/ui-message-stream-response-init';
-import type { InferUITools, UIMessage } from '../ui/ui-messages';
+import type { InferUITools, UIMessage, UIDataTypes } from '../ui/ui-messages';
 import type { Agent } from './agent';
+import type { convertToModelMessages } from '../ui/convert-to-model-messages';
 import { createAgentUIStream } from './create-agent-ui-stream';
 
 /**
@@ -25,6 +26,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param response - The Node.js ServerResponse object to pipe to.
  * @param agent - The agent to run.
  * @param uiMessages - The input UI messages.
+ * @param convertDataPart - Optional function to convert custom data parts to text or file model message parts.
  * @param abortSignal - Abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
@@ -35,6 +37,7 @@ import { createAgentUIStream } from './create-agent-ui-stream';
  * @param headers - Additional headers for the response. Optional.
  * @param status - The status code for the response. Optional.
  * @param statusText - The status text for the response. Optional.
+ * @param keepAliveMs - Optional interval for sending SSE keep-alive comments.
  * @param consumeSseStream - Whether to consume the SSE stream. Optional.
  */
 export async function pipeAgentUIStreamToResponse<
@@ -43,17 +46,30 @@ export async function pipeAgentUIStreamToResponse<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
+  UI_MESSAGE extends UIMessage<
+    MESSAGE_METADATA,
+    UIDataTypes,
+    InferUITools<TOOLS>
+  > = UIMessage<MESSAGE_METADATA, UIDataTypes, InferUITools<TOOLS>>,
 >({
   response,
   headers,
   status,
   statusText,
+  keepAliveMs,
   consumeSseStream,
   ...options
 }: {
   response: ServerResponse;
   agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
+  /**
+   * Converts custom UI data parts to text or file model message parts.
+   * Data parts are ignored when omitted or when the callback returns undefined.
+   */
+  convertDataPart?: NonNullable<
+    Parameters<typeof convertToModelMessages<UI_MESSAGE>>[1]
+  >['convertDataPart'];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
@@ -63,14 +79,13 @@ export async function pipeAgentUIStreamToResponse<
   /** @deprecated Use `onStepEnd` instead. */
   onStepFinish?: GenerateTextOnStepFinishCallback<TOOLS>;
 } & UIMessageStreamResponseInit &
-  UIMessageStreamOptions<
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>
-  >): Promise<void> {
+  UIMessageStreamOptions<UI_MESSAGE>): Promise<void> {
   return pipeUIMessageStreamToResponse({
     response,
     headers,
     status,
     statusText,
+    keepAliveMs,
     consumeSseStream,
     stream: await createAgentUIStream(options),
   });

@@ -54,6 +54,14 @@ You can use the following optional settings to customize the Baseten provider in
 
   Custom headers to include in the requests.
 
+- **performanceClient** _PerformanceClient constructor_
+
+  Opt in to Baseten's native performance client for embeddings, for client-side
+  batching and request hedging. Pass the `PerformanceClient` constructor from
+  `@basetenlabs/performance-client`, which you install yourself. When omitted,
+  embeddings use plain HTTP. See
+  [Native performance client](#native-performance-client-optional).
+
 - **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
 
   Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
@@ -112,7 +120,7 @@ const { text } = await generateText({
 
 ## Embedding Models
 
-You can create models that call the Baseten embeddings API using the `.embeddingModel()` factory method. The Baseten provider uses the high-performance `@basetenlabs/performance-client` for optimal embedding performance.
+You can create models that call the Baseten embeddings API using the `.embeddingModel()` factory method. Baseten Embeddings Inference deployments are OpenAI-compatible, so embeddings use plain HTTP by default with no extra dependencies.
 
 <Note>
   **Important:** Embedding models require a dedicated deployment with a custom
@@ -147,25 +155,48 @@ const { embeddings } = await embedMany({
 });
 ```
 
+Each request sends at most 128 values. `embedMany` splits larger inputs into
+chunks of that size and runs them in parallel, so you can pass as many values as
+you like.
+
 ### Endpoint Support for Embeddings
 
 **Supported:**
 
-- `/sync` endpoints (Performance Client automatically adds `/v1/embeddings`)
-- `/sync/v1` endpoints (automatically strips `/v1` before passing to Performance Client)
+- `/sync` endpoints (`/v1/embeddings` is appended for you)
+- `/sync/v1` endpoints
 
 **Not Supported:**
 
-- `/predict` endpoints (not compatible with Performance Client)
+- `/predict` endpoints
 
-### Performance Features
+### Native performance client (optional)
 
-The embedding implementation includes:
+Baseten also publishes `@basetenlabs/performance-client`, a native client that
+adds client-side batching and request hedging on top of the server-side dynamic
+batching your deployment already does. It is **not** installed by default: it is
+a native addon, so it cannot load in edge runtimes and bundlers cannot resolve
+its platform binaries.
 
-- **High-performance client**: Uses `@basetenlabs/performance-client` for optimal performance
-- **Automatic batching**: Efficiently handles multiple texts in a single request
-- **Connection reuse**: Performance Client is created once and reused for all requests
-- **Built-in retries**: Automatic retry logic for failed requests
+To use it, install it yourself and pass the constructor:
+
+```bash
+npm i @basetenlabs/performance-client
+```
+
+```ts
+import { createBaseten } from '@ai-sdk/baseten';
+import { PerformanceClient } from '@basetenlabs/performance-client';
+
+const baseten = createBaseten({
+  modelURL:
+    'https://model-{MODEL_ID}.api.baseten.co/environments/production/sync',
+  performanceClient: PerformanceClient,
+});
+```
+
+When you opt in, the client handles batching itself, so values are sent in a
+single call rather than being split at 128.
 
 ## Error Handling
 

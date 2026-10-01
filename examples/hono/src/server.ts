@@ -30,7 +30,7 @@ app.use(
 app.post('/', async c => {
   console.log('POST /');
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
   return createUIMessageStreamResponse({
@@ -41,7 +41,7 @@ app.post('/', async c => {
 app.post('/text', async c => {
   console.log('POST /text');
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: openai('gpt-6-astra'),
     prompt: 'Write a short poem about coding.',
   });
   return createTextStreamResponse({
@@ -65,7 +65,7 @@ app.post('/stream-data', async c => {
       });
 
       const result = streamText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-6-astra'),
         prompt: 'Invent a new holiday and describe its traditions.',
       });
 

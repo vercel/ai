@@ -100,7 +100,7 @@ export function createCartesia(
         'Cartesia-Version': options.version ?? CARTESIA_API_VERSION,
         ...options.headers,
       },
-      `ai-sdk/cartesia/${VERSION}`,
+      `ai-sdk-cartesia/${VERSION}`,
     );
 
   const createTranscriptionModel = (modelId: CartesiaTranscriptionModelId) =>

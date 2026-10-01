@@ -16,12 +16,17 @@ import { GatewaySpeechModel } from './gateway-speech-model';
 import { GatewayTranscriptionModel } from './gateway-transcription-model';
 import { getVercelOidcToken, getVercelRequestId } from './vercel-environment';
 import { resolve } from '@ai-sdk/provider-utils';
+import { GatewayBatch } from './gateway-batch';
 import { GatewayLanguageModel } from './gateway-language-model';
 import {
   GatewayAuthenticationError,
   GatewayInternalServerError,
 } from './errors';
 import { fail } from 'node:assert';
+
+vi.mock('./gateway-batch', () => ({
+  GatewayBatch: vi.fn(function () {}),
+}));
 
 vi.mock('./gateway-language-model', () => ({
   GatewayLanguageModel: vi.fn(function () {}),
@@ -290,8 +295,27 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
+    });
+
+    it('should create a provider-owned batch service', () => {
+      const provider = createGateway({
+        baseURL: 'https://api.example.com',
+        apiKey: 'test-api-key',
+      });
+
+      provider.experimental_batch();
+
+      expect(GatewayBatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          provider: 'gateway',
+          baseURL: 'https://api.example.com',
+          headers: expect.any(Function),
+          fetch: undefined,
+          o11yHeaders: expect.any(Function),
+        }),
+      );
     });
 
     it('should use OIDC token when no API key is provided', async () => {
@@ -312,7 +336,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'oidc',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
     });
 
@@ -335,7 +359,7 @@ describe('GatewayProvider', () => {
         'x-vercel-ai-gateway-team': 'vercel',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(getVercelOidcToken).not.toHaveBeenCalled();
     });
@@ -346,7 +370,7 @@ describe('GatewayProvider', () => {
         teamIdOrSlug: 'vercel',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -435,7 +459,7 @@ describe('GatewayProvider', () => {
         apiKey: 'test-api-key',
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -455,7 +479,7 @@ describe('GatewayProvider', () => {
         fetch: customFetch,
       });
 
-      const model = provider.imageModel('google/imagen-4.0-generate');
+      const model = provider.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created');
@@ -469,7 +493,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
 
@@ -517,7 +541,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
 
@@ -608,7 +632,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
     });
@@ -666,7 +690,7 @@ describe('GatewayProvider', () => {
         'custom-header': 'value',
         'ai-gateway-protocol-version': expect.any(String),
         'ai-gateway-auth-method': 'api-key',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
       expect(config.fetch).toBe(customFetch);
     });
@@ -873,7 +897,7 @@ describe('GatewayProvider', () => {
 
     it('should expose imageModel on the default provider and construct model', () => {
       expect(typeof gateway.imageModel).toBe('function');
-      const model = gateway.imageModel('google/imagen-4.0-generate');
+      const model = gateway.imageModel('openai/gpt-image-1');
 
       if (!(model instanceof GatewayImageModel)) {
         fail('Expected GatewayImageModel to be created by default provider');
@@ -977,7 +1001,7 @@ describe('GatewayProvider', () => {
       // Verify that the API key was used in the Authorization header
       expect(headers['authorization']).toBe(`Bearer ${testApiKey}`);
       expect(headers['ai-gateway-auth-method']).toBe('api-key');
-      expect(headers['user-agent']).toBe('ai-sdk/gateway/0.0.0-test');
+      expect(headers['user-agent']).toBe('ai-sdk-gateway/0.0.0-test');
 
       // Verify getVercelOidcToken was never called
       expect(getVercelOidcToken).not.toHaveBeenCalled();
@@ -1492,6 +1516,24 @@ describe('GatewayProvider', () => {
       );
     });
 
+    it('should pass teamIdOrSlug to the credits fetcher via the team header', async () => {
+      const provider = createGateway({
+        apiKey: 'vca_test-token',
+        teamIdOrSlug: 'vercel',
+      });
+
+      await provider.getCredits();
+
+      const config = vi.mocked(GatewayFetchMetadata).mock.calls.at(-1)![0];
+      const headers = await (
+        config.headers as () => Promise<Record<string, string>>
+      )();
+      expect(headers).toMatchObject({
+        authorization: 'Bearer vca_test-token',
+        'x-vercel-ai-gateway-team': 'vercel',
+      });
+    });
+
     it('should work with custom baseURL', async () => {
       const customBaseURL = 'https://custom-gateway.example.com/v4/ai';
       const provider = createGateway({
@@ -1548,7 +1590,7 @@ describe('GatewayProvider', () => {
         'ai-gateway-protocol-version': '0.0.1',
         'ai-gateway-auth-method': 'api-key',
         'custom-header': 'custom-value',
-        'user-agent': 'ai-sdk/gateway/0.0.0-test',
+        'user-agent': 'ai-sdk-gateway/0.0.0-test',
       });
     });
 

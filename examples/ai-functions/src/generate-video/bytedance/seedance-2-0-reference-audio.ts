@@ -28,7 +28,6 @@ run(async () => {
             ],
             generateAudio: true,
             watermark: false,
-            pollTimeoutMs: 600000,
           } satisfies ByteDanceVideoModelOptions,
         },
       }),

@@ -9,10 +9,11 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsdown.config.ts"
   ],
   "references": [
     { "path": "../harness" },
-    { "path": "../provider-utils" }
+    { "path": "../provider-utils" },
+    { "path": "../sandbox-just-bash" }
   ]
 }

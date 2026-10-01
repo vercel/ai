@@ -365,6 +365,9 @@ export async function telemetryChat(
 
 export function toUIMessageStream(
   readable: ReadableStream<ModelCallStreamPart>,
+  uiStartIndex = 0,
 ) {
-  return readable.pipeThrough(createModelCallToUIChunkTransform());
+  return readable.pipeThrough(
+    createModelCallToUIChunkTransform({ uiStartIndex }),
+  );
 }

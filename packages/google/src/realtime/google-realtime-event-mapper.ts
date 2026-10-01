@@ -5,8 +5,7 @@ import type {
   Experimental_RealtimeModelV4ServerEvent as RealtimeModelV4ServerEvent,
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
 } from '@ai-sdk/provider';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
-import { convertJSONSchemaToOpenAPISchema } from '../convert-json-schema-to-openapi-schema';
+import { isRecord, safeParseJSON } from '@ai-sdk/provider-utils';
 import { getModelPath } from '../get-model-path';
 import type { GoogleRealtimeModelOptions } from './google-realtime-model-options';
 
@@ -17,6 +16,8 @@ type GoogleRealtimeFunctionCall = {
 };
 
 type GoogleRealtimeServerContent = {
+  generationComplete?: boolean;
+  interactionStatus?: string;
   interrupted?: boolean;
   modelTurn?: {
     parts?: Array<{
@@ -24,9 +25,10 @@ type GoogleRealtimeServerContent = {
       text?: string;
     }>;
   };
-  outputTranscription?: { text?: string };
-  inputTranscription?: { text?: string };
+  outputTranscription?: { text?: string; finished?: boolean };
+  inputTranscription?: { text?: string; finished?: boolean };
   turnComplete?: boolean;
+  waitingForInput?: boolean;
 };
 
 type GoogleRealtimeWireEvent = {
@@ -36,12 +38,14 @@ type GoogleRealtimeWireEvent = {
   };
   toolCallCancellation?: unknown;
   serverContent?: GoogleRealtimeServerContent;
-  inputTranscription?: { text?: string };
+  inputTranscription?: { text?: string; finished?: boolean };
+  goAway?: { timeLeft?: string };
+  sessionResumptionUpdate?: {
+    newHandle?: string;
+    resumable?: boolean;
+    lastConsumedClientMessageIndex?: string;
+  };
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value != null && typeof value === 'object' && !Array.isArray(value);
-}
 
 /**
  * Stateful event mapper for Google's Gemini Live API.
@@ -52,6 +56,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  */
 export class GoogleRealtimeEventMapper {
   private turnCounter = 0;
+  private inputTranscriptionCounter = 0;
+  private inputTranscriptionBuffer = '';
+  private inputTranscriptionBoundary: 'none' | 'interrupted' | 'turn-complete' =
+    'none';
+  private preserveInputTranscriptionAcrossTurnComplete = false;
   private hasAudio = false;
   private hasText = false;
   private hasTranscript = false;
@@ -67,12 +76,11 @@ export class GoogleRealtimeEventMapper {
   }
 
   /**
-   * Rolls over to the next turn lazily, only once new model content actually
-   * arrives. `turnComplete` merely marks the current turn closed; the counter
-   * is not advanced until the next response begins. This keeps a transcript
-   * that arrives shortly after `turnComplete` attached to the turn it belongs
-   * to, since Google delivers transcription independently with no guaranteed
-   * ordering relative to `turnComplete`.
+   * Rolls over to the next turn lazily, once model content for the next turn
+   * arrives. `turnComplete` merely marks the current turn closed.
+   * This keeps an output transcript that arrives shortly after `turnComplete`
+   * attached to the turn it belongs to, since Google delivers transcription
+   * independently with no guaranteed ordering relative to `turnComplete`.
    */
   private beginTurnIfClosed(): void {
     if (!this.turnClosed) return;
@@ -81,6 +89,63 @@ export class GoogleRealtimeEventMapper {
     this.hasText = false;
     this.hasTranscript = false;
     this.turnClosed = false;
+    // Once the next response starts, its completion must delimit its own
+    // input even if the interrupted response never sent a turnComplete.
+    this.preserveInputTranscriptionAcrossTurnComplete = false;
+  }
+
+  // Google streams input transcription as a sequence of non-accumulating
+  // fragments for a single user utterance (e.g. "The quick brown fox",
+  // " jumps over the", " lazy dog."). Concatenate consecutive fragments into
+  // one running transcript under a stable synthetic id so the realtime reducer
+  // (which overwrites the message for a given id) surfaces them as a single
+  // coherent user message rather than one message per fragment. Google's
+  // `finished` signal is the authoritative utterance boundary. For older
+  // payloads without that signal, response boundaries remain a fallback.
+  //
+  // Input transcriptions can arrive independently of response turn events, so
+  // their synthetic IDs use a sequence independent of `turnCounter`.
+  private accumulateInputTranscription({
+    text,
+    finished,
+  }: {
+    text?: string;
+    finished?: boolean;
+  }): { itemId: string; transcript: string } | undefined {
+    // Google can send `finished` separately from text. Process it even when
+    // text is absent or empty, without emitting an empty user message.
+    if (!text) {
+      if (finished === true) {
+        this.finishInputTranscription();
+      }
+      return undefined;
+    }
+
+    const hasFinishedSignal = finished != null;
+    if (
+      this.inputTranscriptionBuffer !== '' &&
+      (this.inputTranscriptionBoundary === 'interrupted' ||
+        (this.inputTranscriptionBoundary === 'turn-complete' &&
+          !hasFinishedSignal))
+    ) {
+      this.finishInputTranscription();
+    }
+    this.inputTranscriptionBoundary = 'none';
+    this.inputTranscriptionBuffer += text;
+    const result = {
+      itemId: `google-input-${this.inputTranscriptionCounter}`,
+      transcript: this.inputTranscriptionBuffer,
+    };
+    if (finished === true) {
+      this.finishInputTranscription();
+    }
+    return result;
+  }
+
+  private finishInputTranscription(): void {
+    if (this.inputTranscriptionBuffer === '') return;
+    this.inputTranscriptionCounter++;
+    this.inputTranscriptionBuffer = '';
   }
 
   parseServerEvent(
@@ -127,17 +192,37 @@ export class GoogleRealtimeEventMapper {
       };
     }
 
+    if (data.goAway != null) {
+      return {
+        type: 'custom',
+        rawType: 'goAway',
+        raw,
+      };
+    }
+
+    if (data.sessionResumptionUpdate != null) {
+      return {
+        type: 'custom',
+        rawType: 'sessionResumptionUpdate',
+        raw,
+      };
+    }
+
     if (data.serverContent != null) {
       return this.parseServerContent(data.serverContent, raw);
     }
 
-    if (data.inputTranscription?.text != null) {
-      return {
-        type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
-        transcript: data.inputTranscription.text,
-        raw,
-      };
+    if (data.inputTranscription != null) {
+      const transcription = this.accumulateInputTranscription(
+        data.inputTranscription,
+      );
+      if (transcription != null) {
+        return {
+          type: 'input-transcription-completed',
+          ...transcription,
+          raw,
+        };
+      }
     }
 
     return { type: 'custom', rawType: String(Object.keys(data)[0]), raw };
@@ -150,6 +235,12 @@ export class GoogleRealtimeEventMapper {
     const events: RealtimeModelV4ServerEvent[] = [];
 
     if (serverContent.interrupted) {
+      // A barge-in ends the current user utterance; the next input
+      // transcription fragment belongs to a fresh utterance. The interrupted
+      // response's trailing turnComplete must not split that new utterance.
+      this.inputTranscriptionBoundary = 'interrupted';
+      this.preserveInputTranscriptionAcrossTurnComplete = true;
+      this.turnClosed = true;
       events.push({
         type: 'speech-started',
         raw,
@@ -194,11 +285,50 @@ export class GoogleRealtimeEventMapper {
       });
     }
 
-    if (serverContent.inputTranscription?.text) {
+    if (serverContent.inputTranscription != null) {
+      const transcription = this.accumulateInputTranscription(
+        serverContent.inputTranscription,
+      );
+      if (transcription != null) {
+        events.push({
+          type: 'input-transcription-completed',
+          ...transcription,
+          raw,
+        });
+      }
+    }
+
+    // `generationComplete` means generation has stopped, but playback and the
+    // turn can remain open. Keep it distinct from `response-done`, which is
+    // emitted only when Google sends `turnComplete`.
+    if (serverContent.generationComplete) {
       events.push({
-        type: 'input-transcription-completed',
-        itemId: `google-input-${this.turnCounter}`,
-        transcript: serverContent.inputTranscription.text,
+        type: 'custom',
+        rawType: 'generationComplete',
+        raw,
+      });
+    }
+
+    // `interactionStatus` (IN_PROGRESS | IDLE | WAITING_FOR_INPUT) is the definitive
+    // session-activity signal for background-reasoning models: `turnComplete`
+    // no longer implies the model is idle, since asynchronous tool calls and
+    // audio may still follow. Surface it as a custom event so clients can
+    // coordinate state on it.
+    if (serverContent.interactionStatus != null) {
+      events.push({
+        type: 'custom',
+        rawType: 'interactionStatus',
+        raw,
+      });
+    }
+
+    // `waitingForInput` is the always-on Proactive Audio turn-taking signal:
+    // the model has yielded the floor and is not generating because it
+    // expects the user to continue.
+    if (serverContent.waitingForInput) {
+      events.push({
+        type: 'custom',
+        rawType: 'waitingForInput',
         raw,
       });
     }
@@ -237,6 +367,17 @@ export class GoogleRealtimeEventMapper {
       // Mark the turn closed but defer advancing the counter until the next
       // response actually begins (see `beginTurnIfClosed`).
       this.turnClosed = true;
+      if (this.preserveInputTranscriptionAcrossTurnComplete) {
+        this.preserveInputTranscriptionAcrossTurnComplete = false;
+      } else {
+        // For payloads without `finished`, the completed response remains the
+        // fallback signal that the next transcription is a new utterance.
+        // A transcription carrying `finished` can still arrive late and close
+        // the preceding utterance after this response boundary.
+        if (this.inputTranscriptionBoundary !== 'interrupted') {
+          this.inputTranscriptionBoundary = 'turn-complete';
+        }
+      }
     }
 
     if (events.length === 0) {
@@ -307,11 +448,33 @@ export class GoogleRealtimeEventMapper {
   }
 }
 
+/**
+ * The value Gemini accepts for `functionResponse.response`.
+ *
+ * The field is typed `google.protobuf.Struct`, which is an object and nothing else, so
+ * a string, number, array or `null` on the wire is a protocol violation and the socket
+ * closes with 1007. `onToolCall` returns `unknown` and `addToolOutput` takes `unknown`,
+ * so those shapes reach here as perfectly valid JSON.
+ *
+ * The field's own docstring says what to do with one: "Use `output` key to specify
+ * function output ... If `output` and `error` keys are not specified, then whole
+ * `response` is treated as function output." An object is passed through unchanged and
+ * everything else is wrapped.
+ */
+function toFunctionResponseStruct(value: unknown): Record<string, unknown> {
+  const isStruct =
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+  return isStruct ? (value as Record<string, unknown>) : { output: value };
+}
+
 async function serializeFunctionCallOutput(
   item: RealtimeModelV4FunctionCallOutput,
 ): Promise<unknown> {
   const parseResult = await safeParseJSON({ text: item.output });
-  const response = parseResult.success ? parseResult.value : {};
+  const response = parseResult.success
+    ? toFunctionResponseStruct(parseResult.value)
+    : // Preserve non-JSON output in the required object wrapper.
+      { output: item.output };
 
   return {
     toolResponse: {
@@ -327,6 +490,16 @@ async function serializeFunctionCallOutput(
 }
 
 /**
+ * Live models that reason in the background (e.g. `gemini-3.8-live-extended-thinking`).
+ * Google requires exactly one of `thinkingLevel` / `thinkingBudget` in their setup and
+ * rejects `thinkingConfig` on every other Live model.
+ */
+function isThinkingLiveModel(modelId: string): boolean {
+  const modelName = modelId.split('/').at(-1)?.toLowerCase() ?? '';
+  return /^gemini-\d+\.\d+-live\b.*thinking/.test(modelName);
+}
+
+/**
  * Builds a Google-specific session configuration from a normalized config.
  * Used to construct the `bidiGenerateContentSetup` payload for auth token creation.
  */
@@ -337,6 +510,11 @@ export function buildGoogleSessionConfig(
   const setup: Record<string, unknown> = {
     model: getModelPath(modelId),
   };
+
+  const { google, ...restProviderOptions } = config?.providerOptions ?? {};
+  const googleOptions = isRecord(google)
+    ? (google as GoogleRealtimeModelOptions)
+    : undefined;
 
   const generationConfig: Record<string, unknown> = {};
 
@@ -372,7 +550,10 @@ export function buildGoogleSessionConfig(
         functionDeclarations: config.tools.map(tool => ({
           name: tool.name,
           description: tool.description,
-          parameters: convertJSONSchemaToOpenAPISchema(tool.parameters),
+          parametersJsonSchema: tool.parameters,
+          ...(googleOptions?.defaultToolBehavior != null
+            ? { behavior: googleOptions.defaultToolBehavior }
+            : {}),
         })),
       },
     ];
@@ -386,16 +567,38 @@ export function buildGoogleSessionConfig(
     setup.outputAudioTranscription = {};
   }
 
+  // Background-reasoning models require a `thinkingLevel` or `thinkingBudget`.
+  // Default to the lowest-latency level when the effective thinking config (the
+  // typed option, else a raw `providerOptions.generationConfig.thinkingConfig`)
+  // sets neither. Merged last so it survives a raw
+  // `providerOptions.generationConfig`.
+  const rawGenerationConfig = restProviderOptions.generationConfig;
+  const explicitThinkingConfig =
+    googleOptions?.thinkingConfig ??
+    (isRecord(rawGenerationConfig) &&
+    isRecord(rawGenerationConfig.thinkingConfig)
+      ? rawGenerationConfig.thinkingConfig
+      : undefined);
+  const thinkingConfig =
+    isThinkingLiveModel(modelId) &&
+    explicitThinkingConfig?.thinkingLevel == null &&
+    explicitThinkingConfig?.thinkingBudget == null
+      ? { ...explicitThinkingConfig, thinkingLevel: 'low' as const }
+      : googleOptions?.thinkingConfig;
+  const applyThinkingConfig = () => {
+    if (thinkingConfig == null) return;
+    const target = isRecord(setup.generationConfig)
+      ? setup.generationConfig
+      : generationConfig;
+    setup.generationConfig = { ...target, thinkingConfig };
+  };
+
   if (config?.providerOptions == null) {
+    applyThinkingConfig();
     return setup;
   }
 
-  const { google, ...providerOptions } = config.providerOptions;
-  Object.assign(setup, providerOptions);
-
-  const googleOptions = isRecord(google)
-    ? (google as GoogleRealtimeModelOptions)
-    : undefined;
+  Object.assign(setup, restProviderOptions);
 
   if (googleOptions?.translationConfig != null) {
     const target = isRecord(setup.generationConfig)
@@ -407,5 +610,6 @@ export function buildGoogleSessionConfig(
     };
   }
 
+  applyThinkingConfig();
   return setup;
 }

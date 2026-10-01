@@ -1,0 +1,17 @@
+{
+  "durationMilliseconds": 17579,
+  "combinedPhrases": [
+    {
+      "text": "Um, so, uh, did you finish the quarterly report for Versal yet?\nYeah, I, uh, I sent it over this morning. It covers the AI gateway numbers.\nGreat. Uh, can you, like, add the transcription pricing too?\nSure. I'll, um, update it by Friday."
+    }
+  ],
+  "phrases": [
+    {
+      "offsetMilliseconds": 0,
+      "durationMilliseconds": 17579,
+      "text": "Um, so, uh, did you finish the quarterly report for Versal yet?\nYeah, I, uh, I sent it over this morning. It covers the AI gateway numbers.\nGreat. Uh, can you, like, add the transcription pricing too?\nSure. I'll, um, update it by Friday.",
+      "locale": "en",
+      "confidence": 0
+    }
+  ]
+}

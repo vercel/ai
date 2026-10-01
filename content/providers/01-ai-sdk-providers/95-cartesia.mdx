@@ -246,6 +246,26 @@ Ink 2 supports English audio and uses Cartesia's native turn detection by
 default. To finalize only when the input audio stream ends, pass
 `providerOptions.cartesia.streaming.turnDetection: false`.
 
+By default, the provider maps `audio/pcm`, `audio/pcmu`, and `audio/pcma` to
+16-bit PCM, G.711 μ-law, and G.711 A-law respectively. To stream another raw
+PCM representation, set `providerOptions.cartesia.streaming.encoding` to
+`pcm_s32le`, `pcm_f16le`, or `pcm_f32le`. For example:
+
+```ts
+const result = streamTranscribe({
+  model: cartesia.transcription('ink-2'),
+  audio,
+  inputAudioFormat: { type: 'audio/pcm', rate: 48000 },
+  providerOptions: {
+    cartesia: {
+      streaming: {
+        encoding: 'pcm_f32le',
+      },
+    },
+  },
+});
+```
+
 See [Transcription](/docs/ai-sdk-core/transcription) for more information about
 streaming transcription.
 

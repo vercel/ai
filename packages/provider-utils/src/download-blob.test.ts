@@ -2,6 +2,12 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { downloadBlob } from './download-blob';
 import { DownloadError } from './download-error';
 
+// Mock only the transport; URL and redirect validation remain real.
+// The Node connector is covered separately in safe-node-fetch.node.test.ts.
+vi.mock('./safe-node-fetch', () => ({
+  getDefaultDownloadFetch: async () => globalThis.fetch,
+}));
+
 function createMockStreamResponse({
   body,
   ok = true,

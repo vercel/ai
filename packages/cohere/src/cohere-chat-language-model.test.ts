@@ -726,11 +726,107 @@ describe('doGenerate', () => {
             "total": 10,
           },
           "raw": {
-            "input_tokens": 507,
-            "output_tokens": 10,
+            "billed_units": {
+              "input_tokens": 12,
+              "output_tokens": 7,
+            },
+            "cached_tokens": 448,
+            "tokens": {
+              "input_tokens": 507,
+              "output_tokens": 10,
+            },
           },
         }
       `);
+    });
+
+    it('should preserve extra top-level and nested fields in raw usage', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: {
+              input_tokens: 12,
+              output_tokens: 7,
+              billing_tier: 'standard',
+            },
+            tokens: {
+              input_tokens: 507,
+              output_tokens: 10,
+              tokenizer: 'command',
+            },
+            cached_tokens: 448,
+            provider_usage_id: 'usage-123',
+          },
+        },
+      };
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage).toStrictEqual({
+        inputTokens: {
+          total: 507,
+          noCache: 507,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+        raw: {
+          billed_units: {
+            input_tokens: 12,
+            output_tokens: 7,
+            billing_tier: 'standard',
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+            tokenizer: 'command',
+          },
+          cached_tokens: 448,
+          provider_usage_id: 'usage-123',
+        },
+      });
+    });
+
+    it('should validate cached token usage', async () => {
+      server.urls['https://api.cohere.com/v2/chat'].response = {
+        type: 'json-value',
+        body: {
+          message: {
+            role: 'assistant',
+            content: [{ type: 'text', text: 'Hello' }],
+          },
+          finish_reason: 'COMPLETE',
+          usage: {
+            billed_units: {
+              input_tokens: 12,
+              output_tokens: 7,
+            },
+            tokens: {
+              input_tokens: 507,
+              output_tokens: 10,
+            },
+            cached_tokens: '448',
+          },
+        },
+      };
+
+      await expect(
+        model.doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toThrow();
     });
 
     it('should send additional response information', async () => {
@@ -790,6 +886,185 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should preserve extra top-level and nested fields in raw usage', async () => {
+      const rawUsage = {
+        billed_units: {
+          input_tokens: 12,
+          output_tokens: 7,
+          billing_tier: 'standard',
+        },
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+          tokenizer: 'command',
+        },
+        cached_tokens: 448,
+        provider_usage_id: 'usage-123',
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: 507,
+              noCache: 507,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 10,
+              text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it('should finish successfully when billed units are absent', async () => {
+      const rawUsage = {
+        tokens: {
+          input_tokens: 507,
+          output_tokens: 10,
+        },
+      };
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage: rawUsage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect((await convertReadableStreamToArray(stream)).at(-1)).toStrictEqual(
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'stop',
+            raw: 'COMPLETE',
+          },
+          usage: {
+            inputTokens: {
+              total: 507,
+              noCache: 507,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: 10,
+              text: 10,
+              reasoning: undefined,
+            },
+            raw: rawUsage,
+          },
+        },
+      );
+    });
+
+    it.each([
+      {
+        field: 'billed input tokens',
+        usage: {
+          billed_units: {
+            input_tokens: '12',
+            output_tokens: 7,
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+          },
+          cached_tokens: 448,
+        },
+      },
+      {
+        field: 'cached tokens',
+        usage: {
+          billed_units: {
+            input_tokens: 12,
+            output_tokens: 7,
+          },
+          tokens: {
+            input_tokens: 507,
+            output_tokens: 10,
+          },
+          cached_tokens: '448',
+        },
+      },
+    ])('should validate streamed $field', async ({ usage }) => {
+      prepareChunkLinesResponse([
+        {
+          type: 'message-end',
+          delta: {
+            finish_reason: 'COMPLETE',
+            usage,
+          },
+        },
+      ]);
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        {
+          type: 'stream-start',
+          warnings: [],
+        },
+        {
+          type: 'error',
+          error: expect.any(Error),
+        },
+        {
+          type: 'finish',
+          finishReason: {
+            unified: 'error',
+            raw: undefined,
+          },
+          usage: {
+            inputTokens: {
+              total: undefined,
+              noCache: undefined,
+              cacheRead: undefined,
+              cacheWrite: undefined,
+            },
+            outputTokens: {
+              total: undefined,
+              text: undefined,
+              reasoning: undefined,
+            },
+          },
+        },
+      ]);
     });
   });
 

@@ -2,7 +2,7 @@ import { delay } from '@ai-sdk/provider-utils';
 import type { JSONRPCMessage } from './json-rpc-message';
 import type { MCPTransport } from './mcp-transport';
 import {
-  LATEST_PROTOCOL_VERSION,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   type MCPTool,
   type MCPResource,
   type MCPPrompt,
@@ -163,7 +163,7 @@ export class MockMCPTransport implements MCPTransport {
           jsonrpc: '2.0',
           id: message.id,
           result: this.initializeResult || {
-            protocolVersion: LATEST_PROTOCOL_VERSION,
+            protocolVersion: LATEST_LEGACY_PROTOCOL_VERSION,
             serverInfo: {
               name: 'mock-mcp-server',
               version: '1.0.0',

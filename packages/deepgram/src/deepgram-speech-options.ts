@@ -1,10 +1,6 @@
-export type DeepgramSpeechModelId =
-  | 'aura-asteria-en'
-  | 'aura-2-asteria-en'
-  | 'aura-2-thalia-en'
-  | 'aura-2-helena-en'
-  | 'aura-2-orpheus-en'
-  | 'aura-2-zeus-en'
-  | 'aura-luna-en'
-  | 'aura-stella-en'
-  | (string & {});
+// Deepgram TTS voices are addressed by voice family; the upstream model ID
+// is composed from the family, the `voice` option, and the `language`
+// option (`<family>-<voice>-<language>`, e.g. 'aura-2' + 'thalia' + 'en' →
+// 'aura-2-thalia-en'). Full voice list:
+// https://developers.deepgram.com/docs/tts-models
+export type DeepgramSpeechModelId = 'aura' | 'aura-2' | (string & {});

@@ -35,14 +35,16 @@ Examples are organized by AI SDK function in `examples/ai-functions/src/`:
 
 ## File Naming Convention
 
-Examples follow the pattern: `{provider}-{feature}.ts`
+Group examples by function and provider. Name the entry example `basic.ts` and use descriptive `kebab-case.ts` names for additional examples:
 
-| Pattern                                  | Example                                    | Description                |
-| ---------------------------------------- | ------------------------------------------ | -------------------------- |
-| `{provider}.ts`                          | `openai.ts`                                | Basic provider usage       |
-| `{provider}-{feature}.ts`                | `openai-tool-call.ts`                      | Specific feature           |
-| `{provider}-{sub-provider}.ts`           | `amazon-bedrock-anthropic.ts`              | Provider with sub-provider |
-| `{provider}-{sub-provider}-{feature}.ts` | `google-vertex-anthropic-cache-control.ts` | Sub-provider with feature  |
+| Pattern                                             | Example                                                | Description                |
+| --------------------------------------------------- | ------------------------------------------------------ | -------------------------- |
+| `<function>/<provider>/basic.ts`                    | `generate-text/openai/basic.ts`                        | Basic provider usage       |
+| `<function>/<provider>/<feature>.ts`                | `stream-text/openai/tool-call.ts`                      | Specific feature           |
+| `<function>/<provider>/<sub-provider>.ts`           | `stream-text/amazon-bedrock/anthropic.ts`              | Provider with sub-provider |
+| `<function>/<provider>/<sub-provider>-<feature>.ts` | `stream-text/google/vertex-anthropic-cache-control.ts` | Sub-provider with feature  |
+
+Do not create flat provider files such as `generate-text/openai.ts`.
 
 ## Example Structure
 
@@ -56,7 +58,7 @@ All examples use the `run()` wrapper from `lib/run.ts` which:
 ```typescript
 import { providerName } from '@ai-sdk/provider-name';
 import { generateText } from 'ai';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -75,8 +77,8 @@ run(async () => {
 ```typescript
 import { providerName } from '@ai-sdk/provider-name';
 import { streamText } from 'ai';
-import { printFullStream } from '../lib/print-full-stream';
-import { run } from '../lib/run';
+import { printFullStream } from '../../lib/print-full-stream';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
@@ -94,7 +96,7 @@ run(async () => {
 import { providerName } from '@ai-sdk/provider-name';
 import { generateText, tool } from 'ai';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
@@ -123,7 +125,7 @@ run(async () => {
 import { providerName } from '@ai-sdk/provider-name';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { run } from '../lib/run';
+import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateObject({
@@ -145,9 +147,9 @@ run(async () => {
 From the `examples/ai-functions` directory:
 
 ```bash
-pnpm tsx src/generate-text/openai.ts
-pnpm tsx src/stream-text/openai-tool-call.ts
-pnpm tsx src/agent/openai-generate.ts
+pnpm tsx src/generate-text/openai/basic.ts
+pnpm tsx src/stream-text/openai/tool-call.ts
+pnpm tsx src/agent/openai/generate.ts
 ```
 
 ## When to Write Examples

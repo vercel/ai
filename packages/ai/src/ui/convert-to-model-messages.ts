@@ -33,6 +33,7 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from './ui-messages';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
@@ -56,14 +57,30 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
 ): Promise<ModelMessage[]> {
   const modelMessages: ModelMessage[] = [];
 
-  if (options?.ignoreIncompleteToolCalls) {
-    messages = messages.map(message => ({
+  warnIfUIMessageHasDeprecatedRawInput(messages);
+
+  // A later user message supersedes unresolved approval requests. Keeping
+  // those requests would leave unmatched tool calls at the user boundary.
+  const lastUserMessageIndex = messages.reduce(
+    (lastIndex, message, index) =>
+      message.role === 'user' ? index : lastIndex,
+    -1,
+  );
+
+  if (options?.ignoreIncompleteToolCalls || lastUserMessageIndex > 0) {
+    messages = messages.map((message, messageIndex) => ({
       ...message,
       parts: message.parts.filter(
         part =>
           !isToolUIPart(part) ||
-          (part.state !== 'input-streaming' &&
-            part.state !== 'input-available'),
+          ((part.state !== 'approval-requested' ||
+            messageIndex >= lastUserMessageIndex) &&
+            (!options?.ignoreIncompleteToolCalls ||
+              part.state === 'approval-responded' ||
+              (part.state === 'output-available' &&
+                part.preliminary !== true) ||
+              part.state === 'output-error' ||
+              part.state === 'output-denied')),
       ),
     }));
   }
@@ -210,6 +227,12 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                 const toolName = getToolName(part);
 
                 if (part.state !== 'input-streaming') {
+                  const callProviderMetadata =
+                    part.callProviderMetadata ??
+                    (part.state === 'output-error'
+                      ? part.resultProviderMetadata
+                      : undefined);
+
                   content.push({
                     type: 'tool-call' as const,
                     toolCallId: part.toolCallId,
@@ -220,8 +243,8 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           ('rawInput' in part ? part.rawInput : undefined))
                         : part.input,
                     providerExecuted: part.providerExecuted,
-                    ...(part.callProviderMetadata != null
-                      ? { providerOptions: part.callProviderMetadata }
+                    ...(callProviderMetadata != null
+                      ? { providerOptions: callProviderMetadata }
                       : {}),
                   });
 
@@ -231,6 +254,17 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       approvalId: part.approval.id,
                       toolCallId: part.toolCallId,
                       isAutomatic: part.approval.isAutomatic,
+                      ...(part.approval.requestReason != null
+                        ? { reason: part.approval.requestReason }
+                        : {}),
+                      ...(Object.prototype.hasOwnProperty.call(
+                        part.approval,
+                        'inputSchemaInput',
+                      )
+                        ? {
+                            inputSchemaInput: part.approval.inputSchemaInput,
+                          }
+                        : {}),
                       ...(part.approval.signature != null
                         ? { signature: part.approval.signature }
                         : {}),

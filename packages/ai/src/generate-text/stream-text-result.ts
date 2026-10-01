@@ -104,6 +104,11 @@ export type UIMessageStreamOptions<UI_MESSAGE extends UIMessage> = {
   /**
    * Process an error, e.g. to log it. Default to `() => 'An error occurred.'`.
    *
+   * Tool execution errors marked `providerExecuted: true` bypass this callback.
+   * Their strings pass through unchanged; other values are JSON-stringified to
+   * preserve provider error data for model-message round trips and harness
+   * runtime error messages. Stream errors and invalid tool calls still use it.
+   *
    * @returns error message to include in the data stream.
    */
   onError?: (error: unknown) => string;
@@ -300,8 +305,9 @@ export interface StreamTextResult<
 
   /**
    * A text stream that returns only the generated text deltas. You can use it
-   * as either an AsyncIterable or a ReadableStream. When an error occurs, the
-   * stream will throw the error.
+   * as either an AsyncIterable or a ReadableStream. Error parts are not
+   * surfaced in this stream. Use the `onError` callback or `stream` to observe
+   * them.
    */
   readonly textStream: AsyncIterableStream<string>;
 

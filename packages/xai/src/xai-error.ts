@@ -1,7 +1,7 @@
 import { createJsonErrorResponseHandler } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
-const chatCompletionsErrorSchema = z.object({
+const apiErrorSchema = z.object({
   error: z.object({
     message: z.string(),
     type: z.string().nullish(),
@@ -15,15 +15,25 @@ const responsesErrorSchema = z.object({
   error: z.string(),
 });
 
+// Text to Speech error shape, e.g. {"error":"speed must be between 0.7 and 1.5"}
+const speechErrorSchema = z.object({
+  error: z.string(),
+});
+
 export const xaiErrorDataSchema = z.union([
-  chatCompletionsErrorSchema,
+  apiErrorSchema,
   responsesErrorSchema,
+  speechErrorSchema,
 ]);
 
 export type XaiErrorData = z.infer<typeof xaiErrorDataSchema>;
 
 export const xaiFailedResponseHandler = createJsonErrorResponseHandler({
   errorSchema: xaiErrorDataSchema,
-  errorToMessage: data =>
-    'code' in data ? `${data.code}: ${data.error}` : data.error.message,
+  errorToMessage: data => {
+    if (typeof data.error === 'string') {
+      return 'code' in data ? `${data.code}: ${data.error}` : data.error;
+    }
+    return data.error.message;
+  },
 });

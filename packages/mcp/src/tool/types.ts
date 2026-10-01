@@ -2,9 +2,11 @@ import { z } from 'zod/v4';
 import type { JSONObject } from '@ai-sdk/provider';
 import type { FlexibleSchema, Tool } from '@ai-sdk/provider-utils';
 
-export const LATEST_PROTOCOL_VERSION = '2025-11-25';
+export const LATEST_PROTOCOL_VERSION = '2026-07-28';
+export const LATEST_LEGACY_PROTOCOL_VERSION = '2025-11-25';
 export const SUPPORTED_PROTOCOL_VERSIONS = [
   LATEST_PROTOCOL_VERSION,
+  LATEST_LEGACY_PROTOCOL_VERSION,
   '2025-06-18',
   '2025-03-26',
   '2024-11-05',
@@ -14,7 +16,23 @@ export type McpProviderMetadata = {
   clientName?: string;
   title?: string;
   toolName?: string;
+  annotations?: McpToolAnnotations;
   app?: JSONObject;
+};
+
+/**
+ * Behavioral hints reported by an MCP server for a tool.
+ *
+ * These annotations are untrusted unless the server itself is trusted.
+ *
+ * @see https://modelcontextprotocol.io/specification/2026-07-28/schema#toolannotations
+ */
+export type McpToolAnnotations = {
+  title?: string;
+  readOnlyHint?: boolean;
+  destructiveHint?: boolean;
+  idempotentHint?: boolean;
+  openWorldHint?: boolean;
 };
 
 /** MCP tool metadata - keys should follow MCP _meta key format specification */
@@ -73,7 +91,9 @@ export const BaseParamsSchema = z.looseObject({
   _meta: z.optional(z.object({}).loose()),
 });
 type BaseParams = z.infer<typeof BaseParamsSchema>;
-export const ResultSchema = BaseParamsSchema;
+export const ResultSchema = BaseParamsSchema.extend({
+  resultType: z.optional(z.string()),
+});
 
 export const RequestSchema = z.object({
   method: z.string(),
@@ -128,6 +148,15 @@ export const ClientCapabilitiesSchema = z
 export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
 export type ElicitationCapability = z.infer<typeof ElicitationCapabilitySchema>;
 
+export const DiscoverResultSchema = ResultSchema.extend({
+  supportedVersions: z.array(z.string()),
+  capabilities: ServerCapabilitiesSchema,
+  instructions: z.optional(z.string()),
+  ttlMs: z.optional(z.number()),
+  cacheScope: z.optional(z.union([z.literal('public'), z.literal('private')])),
+});
+export type DiscoverResult = z.infer<typeof DiscoverResultSchema>;
+
 export const InitializeResultSchema = ResultSchema.extend({
   protocolVersion: z.string(),
   capabilities: ServerCapabilitiesSchema,
@@ -154,12 +183,10 @@ const ToolSchema = z
      */
     title: z.optional(z.string()),
     description: z.optional(z.string()),
-    inputSchema: z
-      .object({
-        type: z.literal('object'),
-        properties: z.optional(z.object({}).loose()),
-      })
-      .loose(),
+    inputSchema: z.looseObject({
+      type: z.optional(z.unknown()),
+      properties: z.optional(z.object({}).loose()),
+    }),
     /**
      * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#output-schema
      */
@@ -168,6 +195,10 @@ const ToolSchema = z
       z
         .object({
           title: z.optional(z.string()),
+          readOnlyHint: z.optional(z.boolean()),
+          destructiveHint: z.optional(z.boolean()),
+          idempotentHint: z.optional(z.boolean()),
+          openWorldHint: z.optional(z.boolean()),
         })
         .loose(),
     ),
@@ -251,24 +282,55 @@ const ResourceLinkContentSchema = z
     mimeType: z.optional(z.string()),
   })
   .loose();
+const UnknownContentSchema = z
+  .object({ type: z.string() })
+  .loose()
+  .refine(
+    content =>
+      !['text', 'image', 'resource', 'resource_link'].includes(content.type),
+    { message: 'Known content types must match their schema' },
+  );
 
-export const CallToolResultSchema = ResultSchema.extend({
+const CallToolResultWithContentSchema = ResultSchema.extend({
   content: z.array(
     z.union([
       TextContentSchema,
       ImageContentSchema,
       EmbeddedResourceSchema,
       ResourceLinkContentSchema,
+      UnknownContentSchema,
     ]),
   ),
   /**
-   * @see https://modelcontextprotocol.io/specification/2025-06-18/server/tools#structured-content
+   * @see https://modelcontextprotocol.io/specification/2026-07-28/server/tools#structured-content
    */
   structuredContent: z.optional(z.unknown()),
   isError: z.boolean().default(false).optional(),
-}).or(
+});
+
+const CallToolResultWithStructuredContentSchema = ResultSchema.extend({
+  content: z.never().optional(),
+  structuredContent: z.json(),
+  isError: z.boolean().default(false).optional(),
+})
+  .transform(
+    (result): z.infer<typeof CallToolResultWithContentSchema> => ({
+      ...result,
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result.structuredContent),
+        },
+      ],
+    }),
+  )
+  .pipe(CallToolResultWithContentSchema);
+
+export const CallToolResultSchema = CallToolResultWithContentSchema.or(
+  CallToolResultWithStructuredContentSchema,
+).or(
   ResultSchema.extend({
-    toolResult: z.unknown(),
+    toolResult: z.unknown().nonoptional(),
   }),
 );
 export type CallToolResult = z.infer<typeof CallToolResultSchema>;

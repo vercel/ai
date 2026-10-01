@@ -15,3 +15,13 @@ export const openaiFilesResponseSchema = lazySchema(() =>
     }),
   ),
 );
+
+export const openaiFileDeleteResponseSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      id: z.string(),
+      object: z.string().nullish(),
+      deleted: z.boolean(),
+    }),
+  ),
+);

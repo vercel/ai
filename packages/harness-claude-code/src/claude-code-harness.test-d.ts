@@ -2,8 +2,15 @@ import type {
   HarnessAgentAdapter,
   HarnessAgentSettings,
 } from '@ai-sdk/harness/agent';
+import type { HarnessV1QuestionsToolOutput } from '@ai-sdk/harness';
+import type { SandboxChannelReconnectOptions } from '@ai-sdk/harness/utils';
+import type { InferToolInput, InferToolOutput } from '@ai-sdk/provider-utils';
 import { assertType, describe, expectTypeOf, test } from 'vitest';
-import { claudeCode, createClaudeCode } from './index';
+import {
+  claudeCode,
+  createClaudeCode,
+  type ClaudeCodeHarnessSettings,
+} from './index';
 
 /*
  * Regression guard for the harness Zod compatibility contract: a concrete
@@ -31,5 +38,65 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ): THarness => harness;
 
     assertType<typeof claudeCode>(acceptsHarness(claudeCode));
+  });
+
+  test('new built-in tool inputs retain their schema types', () => {
+    assertType<InferToolInput<typeof claudeCode.builtinTools.CronCreate>>({
+      cron: '0 9 * * *',
+      prompt: 'Prepare the daily summary.',
+      recurring: true,
+    });
+    assertType<InferToolInput<typeof claudeCode.builtinTools.SendMessage>>({
+      to: 'reviewer',
+      message: {
+        type: 'plan_approval_response',
+        request_id: 'request-1',
+        approve: false,
+        feedback: 'Add a regression test.',
+      },
+    });
+  });
+
+  test('the question tool retains its output type', () => {
+    expectTypeOf<
+      InferToolOutput<typeof claudeCode.builtinTools.askUserQuestions>
+    >().toEqualTypeOf<HarnessV1QuestionsToolOutput>();
+  });
+
+  test('canonical and legacy MCP names remain available', () => {
+    assertType(claudeCode.builtinTools.ListMcpResources);
+    assertType(claudeCode.builtinTools.ListMcpResourcesTool);
+    assertType(claudeCode.builtinTools.ReadMcpResource);
+    assertType(claudeCode.builtinTools.ReadMcpResourceTool);
+  });
+
+  test('createClaudeCode accepts environment configuration', () => {
+    expectTypeOf(
+      createClaudeCode({
+        env: { DEPLOYMENT_ENV: 'staging' },
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts asynchronous credential forwarding', () => {
+    expectTypeOf(
+      createClaudeCode({
+        credentialForwarding: async ({ credential }) => credential,
+      }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+  });
+
+  test('createClaudeCode accepts sandbox bridge reconnect settings', () => {
+    const settings: ClaudeCodeHarnessSettings = {
+      reconnect: {
+        maxElapsedMs: 120_000,
+        initialDelayMs: 100,
+        maxDelayMs: 5_000,
+      },
+    };
+    createClaudeCode(settings);
+    expectTypeOf(settings.reconnect).toEqualTypeOf<
+      SandboxChannelReconnectOptions | undefined
+    >();
   });
 });

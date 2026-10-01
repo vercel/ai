@@ -23,7 +23,7 @@ export type MistralUserMessageContent =
 
 export interface MistralAssistantMessage {
   role: 'assistant';
-  content: string;
+  content: string | Array<MistralAssistantMessageContent>;
   prefix?: boolean;
   tool_calls?: Array<{
     id: string;
@@ -31,6 +31,14 @@ export interface MistralAssistantMessage {
     function: { name: string; arguments: string };
   }>;
 }
+
+export type MistralAssistantMessageContent =
+  | { type: 'text'; text: string }
+  | {
+      type: 'thinking';
+      thinking: Array<{ type: 'text'; text: string }>;
+      closed: true;
+    };
 
 export interface MistralToolMessage {
   role: 'tool';

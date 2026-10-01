@@ -33,6 +33,4 @@ export function forwardAnthropicContainerIdFromLastStep({
       };
     }
   }
-
-  return undefined;
 }

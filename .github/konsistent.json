@@ -22,7 +22,7 @@
           "use": "aisdk/package-must-have-changelog"
         },
         {
-          "use": "aisdk/package-must-have-tsup-config",
+          "use": "aisdk/package-must-have-tsdown-config",
           "excludeFiles": ["packages/svelte"]
         }
       ]
@@ -48,6 +48,7 @@
         "packages/{providerId}/src/index.ts",
         "!packages/ai",
         "!packages/angular",
+        "!packages/code-mode",
         "!packages/codemod",
         "!packages/devtools",
         "!packages/harness",
@@ -100,30 +101,199 @@
         {
           "use": "aisdk/provider-model-file-must-export-model-class",
           "excludeFiles": [
+            "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "packages/gateway/src/gateway-embedding-model.ts",
-            "packages/gateway/src/gateway-image-model.ts",
-            "packages/gateway/src/gateway-language-model.ts",
-            "packages/gateway/src/gateway-realtime-model.ts",
-            "packages/gateway/src/gateway-reranking-model.ts",
-            "packages/gateway/src/gateway-speech-model.ts",
-            "packages/gateway/src/gateway-transcription-model.ts"
+            "${providerId}-evaluation-model.ts"
           ]
         },
         {
           "use": "aisdk/provider-model-file-with-subtype-must-export-model-class",
           "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
+            "packages/deepinfra/src/deepinfra-chat-language-model.ts",
+            "packages/moonshotai/src/moonshotai-chat-language-model.ts"
+          ]
+        },
+        "aisdk/provider-realtime-model-file-must-export-model-class",
+        "aisdk/provider-speech-translation-model-file-must-export-model-class",
+        "aisdk/provider-video-model-file-must-export-model-class",
+        {
+          "use": "aisdk/provider-evaluation-model-file-must-export-model-class",
+          "excludeFiles": ["packages/gateway/src/gateway-evaluation-model.ts"]
+        },
+        {
+          "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "${providerId}-realtime-model.ts",
+            "${providerId}-video-model.ts",
+            "packages/gateway/src/gateway-embedding-model.ts",
+            "packages/gateway/src/gateway-evaluation-model.ts",
+            "packages/gateway/src/gateway-image-model.ts",
+            "packages/gateway/src/gateway-language-model.ts",
+            "packages/gateway/src/gateway-realtime-model.ts",
+            "packages/gateway/src/gateway-reranking-model.ts",
+            "packages/gateway/src/gateway-speech-model.ts",
+            "packages/gateway/src/gateway-transcription-model.ts",
+            "packages/typesafe-ai/src/typesafe-ai-evaluation-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-model-file-with-subtype-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "${providerId}-speech-translation-model.ts",
             "packages/deepinfra/src/deepinfra-chat-language-model.ts",
             "packages/moonshotai/src/moonshotai-chat-language-model.ts"
           ]
         },
         {
-          "use": "aisdk/provider-video-model-file-must-export-model-class",
+          "use": "aisdk/provider-realtime-model-file-must-have-matching-model-options-file",
+          "excludeFiles": ["packages/gateway/src/gateway-realtime-model.ts"]
+        },
+        {
+          "use": "aisdk/provider-speech-translation-model-file-must-have-matching-model-options-file",
+          "excludeFiles": [
+            "packages/gateway/src/gateway-speech-translation-model.ts"
+          ]
+        },
+        {
+          "use": "aisdk/provider-video-model-file-must-have-matching-model-options-file",
           "excludeFiles": ["packages/gateway/src/gateway-video-model.ts"]
         },
         "aisdk/provider-language-model-file-must-import-workflow-serialization",
         "aisdk/provider-model-options-file-must-export-model-options-type",
-        "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type"
+        {
+          "use": "aisdk/provider-model-options-file-with-subtype-must-export-model-options-type",
+          "excludeFiles": ["${providerId}-speech-translation-model-options.ts"]
+        },
+        "aisdk/provider-speech-translation-model-options-file-must-export-model-options-type"
+      ]
+    },
+    {
+      "name": "harness-layer-must-define-clearly-separate-entrypoints",
+      "description": "The harness layer package must define clearly separate entrypoints.",
+      "paths": ["packages/harness"],
+      "must": [
+        {
+          "name": "harness-layer-package-must-have-necessary-entrypoints",
+          "description": "The harness layer package must have the necessary entrypoints.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "src/index.ts",
+              "agent/index.ts",
+              "bridge/index.ts",
+              "utils/index.ts"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-main-entrypoint-must-export-v1-spec",
+          "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
+          "for": { "files": ["src/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "./v1" }],
+            "exportValuesFrom": ["./v1", "./errors/*"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ],
+            "exportTypesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-agent-entrypoint-must-export-agent-api",
+          "description": "The harness layer agent entrypoint must export the entire HarnessAgent API.",
+          "for": { "files": ["agent/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/agent" }],
+            "exportValuesFrom": ["../src/agent"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-bridge-entrypoint-must-export-bridge-api",
+          "description": "The harness layer bridge entrypoint must export the entire bridge API.",
+          "for": { "files": ["bridge/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/bridge" }],
+            "exportValuesFrom": ["../src/bridge"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-utils-entrypoint-must-export-utils",
+          "description": "The harness layer utils entrypoint must export all utilities.",
+          "for": { "files": ["utils/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/utils" }],
+            "exportValuesFrom": ["../src/utils"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        }
       ]
     },
     {
@@ -135,7 +305,7 @@
           "name": "harness-package-must-export-harness-creator-and-settings",
           "description": "Every harness package must export a harness creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
                 "name": "create${harnessId.toPascalCase()}",
                 "from": "./${harnessId}-harness"
@@ -145,7 +315,6 @@
                 "from": "./version"
               }
             ],
-            "exportConstants": ["${harnessId.toCamelCase()}"],
             "exportTypes": [
               {
                 "name": "${harnessId.toPascalCase()}HarnessSettings",
@@ -153,6 +322,14 @@
               }
             ],
             "haveFiles": ["${harnessId}-harness.ts", "version.ts"]
+          }
+        },
+        {
+          "name": "harness-package-must-export-default-instance",
+          "description": "Every fixed-runtime harness package must export its default instance.",
+          "excludeFiles": ["packages/harness-acp/src/index.ts"],
+          "must": {
+            "exportConstants": ["${harnessId.toCamelCase()}"]
           }
         },
         {
@@ -168,7 +345,6 @@
           "description": "Every harness file must export a harness creator function and a harness settings type.",
           "for": { "files": ["${harnessId}-harness.ts"] },
           "must": {
-            "haveFiles": ["${harnessId}-auth.ts"],
             "importTypes": [
               {
                 "name": "HarnessV1",
@@ -184,7 +360,18 @@
                 "returnValueOfType": "HarnessV1"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}HarnessSettings"]
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "auth": "${harnessId.toPascalCase()}AuthenticationMode",
+                    "mcpServers": "Record<string, unknown>"
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -204,12 +391,166 @@
           "for": { "files": ["${harnessId}-harness.ts"] },
           "if": { "hasFile": "bridge/index.ts" },
           "must": {
-            "haveFiles": ["${harnessId}-bridge-protocol.ts"],
+            "haveFiles": [
+              "${harnessId}-bridge-protocol.ts",
+              "${harnessId}-bootstrap.ts"
+            ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "resolveSandboxCredentialEnvironment",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
             "declareConstants": [
               "${harnessId.toCamelCase()}BridgeCoordsSchema",
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "harness-file-acp-backed-must-declare-bridge-contracts",
+          "description": "Every harness file for an ACP backed harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": {
+            "hasValueImport": {
+              "name": "createACP",
+              "from": "@ai-sdk/harness-acp"
+            }
+          },
+          "must": {
+            "callFunction": ["createACP"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "importTypes": [
+              {
+                "name": "SandboxChannelReconnectOptions",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ],
+            "declareConstants": [
+              "${harnessId.toCamelCase()}BridgeCoordsSchema",
+              "${harnessId.toCamelCase()}ResumeStateSchema"
+            ],
+            "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-declare-bridge-contracts",
+          "description": "Every harness file for a bridge harness must declare its bridge contracts.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "haveFiles": [
+              "${harnessId}-${version}-bridge-protocol.ts",
+              "${harnessId}-${version}-bootstrap.ts"
+            ],
+            "importValues": [
+              {
+                "name": "createBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "withBridgeToken",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-file-with-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
+          }
+        },
+        {
+          "name": "versioned-harness-file-with-nested-bridge-must-materialize-skills",
+          "description": "Every harness file for a bridge harness must support materializing skills.",
+          "for": { "files": ["{version}/${harnessId}-{version}-harness.ts"] },
+          "if": { "hasFile": "v1/bridge/index.ts" },
+          "must": {
+            "importValues": [
+              {
+                "name": "writeSkills",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ]
           }
         },
         {
@@ -229,17 +570,31 @@
           }
         },
         {
+          "name": "harness-file-must-have-corresponding-auth-file",
+          "description": "Every harness file must be accompanied by its corresponding auth file.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "excludeFiles": [
+            "cursor-harness.ts",
+            "fx-harness.ts",
+            "github-copilot-harness.ts",
+            "grok-build-harness.ts"
+          ],
+          "must": {
+            "haveFiles": ["${harnessId}-auth.ts"]
+          }
+        },
+        {
           "name": "harness-auth-file-must-export-relevant-symbols",
           "description": "Every harness auth file must export the relevant symbols.",
           "for": { "files": ["${harnessId}-auth.ts"] },
           "must": {
-            "import": [
+            "importValues": [
               {
                 "name": "getAiGatewayAuthFromEnv",
                 "from": "@ai-sdk/harness/utils"
               }
             ],
-            "exportTypes": ["${harnessId.toPascalCase()}AuthOptions"],
+            "exportTypes": ["${harnessId.toPascalCase()}AuthenticationMode"],
             "exportFunctions": [
               {
                 "name": "resolve${harnessId.toPascalCase()}Env",
@@ -247,8 +602,38 @@
               }
             ],
             "useDeclarationOrder": [
-              "${harnessId.toPascalCase()}AuthOptions",
+              "${harnessId.toPascalCase()}AuthenticationMode",
               "resolve${harnessId.toPascalCase()}Env"
+            ]
+          }
+        },
+        {
+          "name": "harness-auth-file-for-bridge-harness-must-export-relevant-symbols",
+          "description": "Every harness auth file for a bridge based harness must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-auth.ts"] },
+          "if": { "hasFile": "bridge/index.ts" },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1RequestTransformation",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1RequestTransformationSources",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "exportConstants": [
+              "${harnessId.toConstantCase()}_CREDENTIAL_ENVIRONMENT_VARIABLES"
+            ],
+            "exportFunctions": [
+              {
+                "name": "create${harnessId.toPascalCase()}RequestTransformations",
+                "receiveParamsOfTypes": [
+                  "HarnessV1RequestTransformationSources<${harnessId.toPascalCase()}ResolvedAuthenticationMode>"
+                ],
+                "returnValueOfType": "HarnessV1RequestTransformation[]"
+              }
             ]
           }
         },
@@ -282,14 +667,47 @@
           }
         },
         {
+          "name": "harness-sandbox-bootstrap-file-must-export-relevant-symbols",
+          "description": "Every harness sandbox bootstrap file must export the relevant symbols.",
+          "for": { "files": ["${harnessId}-bootstrap.ts"] },
+          "must": {
+            "importValues": [
+              {
+                "name": "createReadBridgeAsset",
+                "from": "@ai-sdk/harness/utils"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "HarnessV1Bootstrap",
+                "from": "@ai-sdk/harness"
+              }
+            ],
+            "declareConstants": ["readBridgeAsset"],
+            "exportConstants": ["${harnessId.toConstantCase()}_BOOTSTRAP_DIR"],
+            "exportFunctions": [
+              {
+                "name": "get${harnessId.toPascalCase()}Bootstrap",
+                "receiveParamsOfTypes": [],
+                "returnValueOfType": "Promise<HarnessV1Bootstrap>"
+              }
+            ]
+          }
+        },
+        {
           "name": "harness-bridge-must-declare-and-use-relevant-symbols",
           "description": "Every harness bridge index file must declare and use the relevant symbols.",
           "for": { "files": ["bridge/index.ts"] },
           "must": {
-            "import": [
+            "haveFiles": ["create-emit-stream-event.ts"],
+            "importValues": [
               {
                 "name": "runBridge",
                 "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
               }
             ],
             "importTypes": [
@@ -316,11 +734,63 @@
           }
         },
         {
+          "name": "harness-nested-bridge-must-declare-and-use-relevant-symbols",
+          "description": "Every harness bridge index file must declare and use the relevant symbols.",
+          "for": { "files": ["{harnessSubId}/bridge/index.ts"] },
+          "must": {
+            "haveFiles": ["create-emit-stream-event.ts"],
+            "importValues": [
+              {
+                "name": "runBridge",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "createEmitStreamEvent",
+                "from": "./create-emit-stream-event"
+              }
+            ],
+            "importTypes": [
+              {
+                "name": "StartMessage",
+                "from": "../${harnessId}-${harnessSubId}-bridge-protocol"
+              },
+              {
+                "name": "BridgeEvent",
+                "from": "@ai-sdk/harness/bridge"
+              },
+              {
+                "name": "BridgeTurn",
+                "from": "@ai-sdk/harness/bridge"
+              }
+            ],
+            "declareFunctions": [
+              {
+                "name": "runTurn",
+                "receiveParamsOfTypes": ["StartMessage", "BridgeTurn"],
+                "returnValueOfType": "Promise<void>"
+              }
+            ]
+          }
+        },
+        {
+          "name": "harness-stream-event-emitter-must-export-factory",
+          "description": "Every harness stream event emitter file must export its factory function.",
+          "for": {
+            "files": [
+              "bridge/create-emit-stream-event.ts",
+              "*/bridge/create-emit-stream-event.ts"
+            ]
+          },
+          "must": {
+            "exportFunctions": ["createEmitStreamEvent"]
+          }
+        },
+        {
           "name": "harness-bridge-must-not-use-parent-imports",
           "description": "Every harness bridge file must not use parent imports, only local and external imports.",
-          "for": { "files": ["bridge/*.ts"] },
+          "for": { "files": ["bridge/*.ts", "*/bridge/*.ts"] },
           "mustNot": {
-            "importFromParents": true
+            "importValuesFromParents": true
           }
         }
       ]
@@ -334,54 +804,200 @@
           "name": "sandbox-package-must-export-sandbox-creator-and-settings",
           "description": "Every sandbox package must export a sandbox creator function and settings from its index.ts file.",
           "must": {
-            "export": [
+            "exportValues": [
               {
-                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox",
                 "from": "./${sandboxId}-sandbox"
               }
             ],
             "exportTypes": [
               {
-                "name": "${sandboxId.toPascalCase()}SandboxSettings",
+                "name": "${sandboxId.toPascalCase()}NativeSandboxSession",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
                 "from": "./${sandboxId}-sandbox"
               }
             ],
-            "haveFiles": ["${sandboxId}-sandbox.ts"]
+            "haveFiles": [
+              "${sandboxId}-sandbox.ts",
+              "${sandboxId}-sandbox-session.ts",
+              "${sandboxId}-network-sandbox-session.ts"
+            ]
           }
         },
         {
           "name": "sandbox-file-must-export-sandbox-creator-and-settings-type",
-          "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
-          "for": { "files": ["{sandboxId}-sandbox.ts"] },
+          "description": "Every sandbox file must export sandbox creator functions and sandbox settings types.",
+          "for": { "files": ["${sandboxId}-sandbox.ts"] },
           "must": {
             "importTypes": [
               {
-                "name": "HarnessV1SandboxProvider",
+                "name": "HarnessV1NetworkSandboxSession",
                 "from": "@ai-sdk/harness"
-              }
-            ],
-            "exportClasses": [
+              },
               {
-                "name": "${sandboxId.toPascalCase()}SandboxProvider",
-                "implement": ["HarnessV1SandboxProvider"]
+                "name": "HarnessV1SandboxSessionCreateOptions",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1SandboxSessionResumeOptions",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
               }
             ],
             "exportFunctions": [
               {
-                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSession",
                 "receiveParamsOfTypes": [
-                  "${sandboxId.toPascalCase()}SandboxSettings"
+                  "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions"
                 ],
-                "returnValueOfType": "HarnessV1SandboxProvider"
+                "returnValueOfType": "Promise<HarnessV1NetworkSandboxSession>"
+              },
+              {
+                "name": "resume${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions"
+                ],
+                "returnValueOfType": "Promise<HarnessV1NetworkSandboxSession>"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NativeSandboxSession"
+                ],
+                "returnValueOfType": "SandboxSession"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NativeSandboxSession"
+                ],
+                "returnValueOfType": "HarnessV1NetworkSandboxSession"
               }
             ],
-            "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
+            "declareTypes": [
+              "${sandboxId.toPascalCase()}CreationSettings",
+              "${sandboxId.toPascalCase()}LookupSettings"
+            ],
+            "exportTypes": [
+              "${sandboxId.toPascalCase()}NativeSandboxSession",
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+                "type": "Prettify<HarnessV1SandboxSessionCreateOptions<${sandboxId.toPascalCase()}CreationSettings> & { sandbox?: never; }>"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+                "type": "Prettify<HarnessV1SandboxSessionResumeOptions<${sandboxId.toPascalCase()}LookupSettings>>"
+              }
+            ],
+            "useDeclarationOrder": [
+              "${sandboxId.toPascalCase()}NativeSandboxSession",
+              "${sandboxId.toPascalCase()}CreationSettings",
+              "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+              "${sandboxId.toPascalCase()}LookupSettings",
+              "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+              "create${sandboxId.toPascalCase()}NetworkSandboxSession",
+              "resume${sandboxId.toPascalCase()}NetworkSandboxSession",
+              "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+              "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox"
+            ]
+          }
+        },
+        {
+          "name": "sandbox-session-file-must-export-sandbox-session-class",
+          "description": "Every sandbox session file must export a sandbox session class.",
+          "for": { "files": ["${sandboxId}-sandbox-session.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
+              },
+              {
+                "name": "Experimental_SandboxProcess",
+                "alias": "SandboxProcess",
+                "from": "@ai-sdk/provider-utils"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSession",
+                "implement": ["SandboxSession"]
+              }
+            ]
+          }
+        },
+        {
+          "name": "network-sandbox-session-file-must-export-network-sandbox-session-class",
+          "description": "Every network sandbox session file must export a network sandbox session class.",
+          "for": { "files": ["${sandboxId}-network-sandbox-session.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1NetworkSandboxSession",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
+              }
+            ],
+            "importValues": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSession",
+                "from": "./${sandboxId}-sandbox-session"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "extend": "${sandboxId.toPascalCase()}SandboxSession",
+                "implement": ["HarnessV1NetworkSandboxSession"]
+              }
+            ]
           }
         }
       ]
+    },
+    {
+      "name": "harness-bridge-must-not-import-core-ai-sdk-packages",
+      "description": "Harness bridge code must not import AI SDK packages that are unavailable in the isolated bridge runtime.",
+      "paths": ["packages/harness-*/src/**/bridge/*.ts"],
+      "mustNot": {
+        "importValuesFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/*",
+          "!@ai-sdk/harness/bridge"
+        ],
+        "importTypesFrom": [
+          "ai",
+          "ai/*",
+          "@ai-sdk/*",
+          "!@ai-sdk/harness",
+          "!@ai-sdk/harness/bridge"
+        ]
+      }
     }
   ],
   "kebabToPascalMap": {
+    "acp": "ACP",
     "assemblyai": "AssemblyAI",
     "bytedance": "ByteDance",
     "cartesia": "Cartesia",
@@ -389,17 +1005,21 @@
     "deepinfra": "DeepInfra",
     "deepseek": "DeepSeek",
     "elevenlabs": "ElevenLabs",
+    "github-copilot": "GitHubCopilot",
     "huggingface": "HuggingFace",
     "klingai": "KlingAI",
-    "lmnt": "LMNT",
+    "minimax": "MiniMax",
     "moonshotai": "MoonshotAI",
     "openai": "OpenAI",
     "openai-compatible": "OpenAICompatible",
     "opencode": "OpenCode",
     "quiverai": "QuiverAI",
-    "togetherai": "TogetherAI"
+    "togetherai": "TogetherAI",
+    "typesafe-ai": "TypeSafeAi"
   },
   "kebabToCamelMap": {
-    "lmnt": "lmnt"
+    "acp": "acp",
+    "github-copilot": "githubCopilot",
+    "minimax": "minimax"
   }
 }

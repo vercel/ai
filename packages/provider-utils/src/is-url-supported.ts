@@ -1,11 +1,11 @@
 /**
  * Checks if the given URL is supported natively by the model.
  *
- * @param mediaType - The media type of the URL. Case-sensitive. May be a full
+ * @param mediaType - The media type of the URL. Case-insensitive. May be a full
  *                    `type/subtype`, a wildcard `type/*`, or just the
  *                    top-level segment (e.g. `image`).
  * @param url - The URL to check.
- * @param supportedUrls - A record where keys are case-sensitive media types (or '*')
+ * @param supportedUrls - A record where keys are case-insensitive media types (or '*')
  *                        and values are arrays of RegExp patterns for URLs.
  *
  * @returns `true` if the URL matches a pattern under the specific media type
@@ -46,10 +46,29 @@ export function isUrlSupported({
         if (isTopLevelOnly) {
           return `${mediaType}/` === mediaTypePrefix;
         }
-        return mediaType.startsWith(mediaTypePrefix);
+        return mediaTypePrefix.endsWith('/')
+          ? mediaType.startsWith(mediaTypePrefix)
+          : mediaType === mediaTypePrefix;
       })
       .flatMap(({ regexes }) => regexes)
       // check if any pattern matches the url:
-      .some(pattern => pattern.test(url))
+      .some(pattern => testRegExpFromStart(pattern, url))
   );
+}
+
+function testRegExpFromStart(pattern: RegExp, value: string): boolean {
+  if (!pattern.global && !pattern.sticky) {
+    return pattern.test(value);
+  }
+
+  // Global and sticky regexes retain match state in lastIndex.
+  // Evaluate from the start without changing caller-owned state.
+  const lastIndex = pattern.lastIndex;
+  pattern.lastIndex = 0;
+
+  try {
+    return pattern.test(value);
+  } finally {
+    pattern.lastIndex = lastIndex;
+  }
 }
