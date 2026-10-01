@@ -28,6 +28,17 @@ const SESSION_NAME_PREFIX = 'ai-sdk-harness-session';
 const TEMPLATE_NAME_PREFIX = 'ai-sdk-harness-tmpl';
 const PREWARM_NAME_PREFIX = 'ai-sdk-harness';
 
+/**
+ * Bridge-backed harness adapters install their in-sandbox bridge with `pnpm`.
+ * The stock Sprite image ships `node`, `npm` and `corepack` but no `pnpm` on
+ * `PATH`, so a Sprite created here gets it before anything else runs. A
+ * Sprite that already has `pnpm` is left as it is.
+ */
+const PNPM_SETUP_COMMAND =
+  'command -v pnpm >/dev/null 2>&1 || ' +
+  '{ corepack enable --install-directory /usr/local/bin pnpm && ' +
+  'corepack prepare pnpm@11 --activate; }';
+
 /** Written into a Sprite once `onFirstCreate` succeeds, keyed by identity. */
 const BOOTSTRAP_MARKER = new TextEncoder().encode('done');
 
@@ -136,6 +147,7 @@ export async function createSpritesNetworkSandboxSession(
         })),
       ownsLifecycle: true,
     });
+    await ensurePnpm({ session, abortSignal });
     // Sprites have no snapshot to start further Sprites from, so the template
     // is prepared in every new Sprite.
     await template?.prepare({
@@ -224,6 +236,24 @@ async function withSpritesSandboxAuthenticationError<T>(
       sandboxProviderId: SPRITES_PROVIDER_ID,
       cause: error,
     });
+  }
+}
+
+async function ensurePnpm({
+  session,
+  abortSignal,
+}: {
+  session: SandboxSession;
+  abortSignal: AbortSignal | undefined;
+}): Promise<void> {
+  const { exitCode, stdout, stderr } = await session.run({
+    command: PNPM_SETUP_COMMAND,
+    ...(abortSignal ? { abortSignal } : {}),
+  });
+  if (exitCode !== 0) {
+    throw new Error(
+      `Failed to install pnpm in the Sprite (exit ${exitCode}): ${stderr || stdout}`,
+    );
   }
 }
 
@@ -393,6 +423,8 @@ export class SpritesSandboxProvider implements HarnessV1SandboxProvider {
       workingDirectory: this.workingDirectory,
       ownsLifecycle: true,
     });
+
+    await ensurePnpm({ session, abortSignal: options?.abortSignal });
 
     // Run one-time setup once per identity. Gate on a persisted completion
     // marker (not the create-vs-409 result) so a setup that fails *after* the
