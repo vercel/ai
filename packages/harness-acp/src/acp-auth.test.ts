@@ -8,7 +8,7 @@ import {
 import type { ACPAuthenticationMode, ACPProviderAuthentication } from './v1';
 
 const clientApp = {
-  name: 'ai-sdk/harness-acp',
+  name: 'ai-sdk-harness-acp',
   version: '0.0.0-test',
 } as const;
 

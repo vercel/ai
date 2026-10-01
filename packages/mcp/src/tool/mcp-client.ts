@@ -1163,7 +1163,8 @@ class DefaultMCPClient implements MCPClient {
     },
   ): McpToolSet<TOOL_SCHEMAS> {
     definitions = this.prepareToolDefinitions(definitions);
-    const tools: Record<string, Tool & { _meta?: ToolMeta }> = {};
+    const tools: Record<string, Tool & { _meta?: ToolMeta }> =
+      Object.create(null);
 
     for (const {
       name,

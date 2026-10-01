@@ -49,7 +49,7 @@ const createTestModel = (
     GatewayConfig & { o11yHeaders?: Record<string, string> }
   > = {},
 ) =>
-  new GatewayEvaluationModel('typesafe-ai/jev-latest', {
+  new GatewayEvaluationModel('typesafe-ai/jev', {
     provider: 'gateway',
     baseURL: 'https://api.test.com',
     headers: () => ({
@@ -64,12 +64,14 @@ const createTestModel = (
 describe('GatewayEvaluationModel', () => {
   function prepareJsonResponse({
     answers = dummyAnswers,
+    model,
     rounding,
     usage,
     warnings,
     headers,
   }: {
     answers?: Record<string, unknown>;
+    model?: string;
     rounding?: { probabilityDecimals?: number; scoreDecimals?: number };
     usage?: { inputTokens?: number; outputTokens?: number };
     warnings?: Array<
@@ -85,6 +87,7 @@ describe('GatewayEvaluationModel', () => {
       headers,
       body: {
         answers,
+        ...(model && { model }),
         ...(rounding && { rounding }),
         ...(usage && { usage }),
         ...(warnings && { warnings }),
@@ -115,7 +118,7 @@ describe('GatewayEvaluationModel', () => {
         authorization: 'Bearer test-token',
         'custom-header': 'test-value',
         'ai-evaluation-model-specification-version': '4',
-        'ai-model-id': 'typesafe-ai/jev-latest',
+        'ai-model-id': 'typesafe-ai/jev',
       });
     });
 
@@ -164,6 +167,95 @@ describe('GatewayEvaluationModel', () => {
       expect(body).toMatchObject({
         providerOptions: { typesafe: { effort: 'high' } },
       });
+    });
+
+    it('should pass conditional model fallbacks into request body', async () => {
+      prepareJsonResponse();
+
+      const providerOptions = {
+        gateway: {
+          models: [
+            {
+              model: 'openai/gpt-5.6-sol',
+              when: {
+                any: [
+                  { question: 'tone', confidenceBelow: 0.6 },
+                  {
+                    question: 'correct',
+                    probabilityBetween: [0.4, 0.6],
+                  },
+                ],
+              },
+            },
+            'anthropic/claude-sonnet-5',
+          ],
+        },
+      } as const;
+
+      await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        providerOptions,
+      });
+    });
+
+    it('should pass service-owned gateway options through with conditional fallbacks', async () => {
+      prepareJsonResponse();
+
+      const providerOptions = {
+        gateway: {
+          models: [
+            {
+              model: 'openai/gpt-5.6-sol',
+              when: { question: 'tone', confidenceBelow: 0.6 },
+            },
+          ],
+          order: ['openai'],
+          serviceOwnedOption: { nested: ['value', 1, true] },
+        },
+        typesafe: { effort: 'high' },
+      } as const;
+
+      await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+
+      expect(await server.calls[0].requestBodyJson).toStrictEqual({
+        state: testState,
+        questions: testQuestions,
+        providerOptions,
+      });
+    });
+
+    it('should reject invalid conditional model fallbacks', async () => {
+      prepareJsonResponse();
+
+      await expect(
+        createTestModel().doEvaluate({
+          state: testState,
+          questions: testQuestions,
+          providerOptions: {
+            gateway: {
+              models: [
+                {
+                  model: 'openai/gpt-5.6-sol',
+                  when: {
+                    question: 'correct',
+                    probabilityBetween: [0.7, 0.3],
+                  },
+                },
+              ],
+            },
+          },
+        }),
+      ).rejects.toThrow('invalid gateway provider options');
+      expect(server.calls).toHaveLength(0);
     });
 
     it('should extract choice, score, and boolean answers', async () => {
@@ -254,8 +346,30 @@ describe('GatewayEvaluationModel', () => {
         questions: testQuestions,
       });
 
-      expect(result.response?.modelId).toBe('typesafe-ai/jev-latest');
+      expect(result.response?.modelId).toBe('typesafe-ai/jev');
       expect(result.response?.headers?.['x-request-id']).toBe('req-123');
+    });
+
+    it('should attribute the response to the returned model after a fallback', async () => {
+      prepareJsonResponse({ model: 'anthropic/claude-sonnet-5' });
+
+      const result = await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(result.response?.modelId).toBe('anthropic/claude-sonnet-5');
+    });
+
+    it('should attribute the response to the requested model when none is returned', async () => {
+      prepareJsonResponse();
+
+      const result = await createTestModel().doEvaluate({
+        state: testState,
+        questions: testQuestions,
+      });
+
+      expect(result.response?.modelId).toBe('typesafe-ai/jev');
     });
 
     it('should return provider metadata', async () => {

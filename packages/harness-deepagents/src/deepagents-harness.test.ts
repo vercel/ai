@@ -256,7 +256,7 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-deepagents/0.0.0-test',
+      'ai-sdk-harness-deepagents/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(
@@ -402,6 +402,54 @@ describe('createDeepAgents', () => {
     );
     expect(JSON.stringify(spawnEnvs.at(0))).not.toContain('anthropic-secret');
 
+    await session.doDestroy();
+  });
+
+  it('adds a Gateway placeholder when resuming Anthropic authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            ANTHROPIC_API_KEY: 'saved-anthropic-placeholder',
+          },
+        },
+      },
+    } as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawnEnvs[0]?.ANTHROPIC_API_KEY).toBe('saved-anthropic-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'saved-anthropic-placeholder' },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'current-gateway-secret' } },
+      },
+    ]);
     await session.doDestroy();
   });
 

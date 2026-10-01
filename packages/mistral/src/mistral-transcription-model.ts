@@ -194,6 +194,7 @@ export class MistralTranscriptionModel implements TranscriptionModelV4 {
         segments.at(-1)?.endSecond ??
         undefined,
       warnings,
+      ...(response.usage != null && { usage: response.usage }),
       response: {
         timestamp: currentDate,
         modelId: response.model,

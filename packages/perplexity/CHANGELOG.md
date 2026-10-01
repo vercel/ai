@@ -1,5 +1,75 @@
 # @ai-sdk/perplexity
 
+## 5.0.5
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 5.0.4
+
+### Patch Changes
+
+- dabd5fa: Add Perplexity integration attribution to provider requests.
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 5.0.3
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 5.0.2
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 5.0.1
+
+### Patch Changes
+
+- 6da8aa0: Accept `null` fields in Agent API stream events, such as `contents: null` on `response.reasoning.fetch_url_results` when no URLs were fetched. Previously these events failed validation and errored the stream.
+
+## 5.0.0
+
+### Major Changes
+
+- 38fe0e5: BREAKING: Migrate language generation from the Sonar Chat Completions API to the Agent API. Replace Sonar model IDs and provider options with Agent API presets, models, and tools. The new API changes request and response metadata, raw stream events, usage and cost data, and does not support Sonar PDF input or image and video results.
+
+### Patch Changes
+
+- 38fe0e5: Recover missing text from Agent API terminal events and output items, including incomplete responses, without repeating text already received as deltas. Track each message content part separately.
+- 38fe0e5: Accept native Agent API tool traces such as finance results without validating them as web search results. Preserve these traces in raw responses and stream chunks.
+- 38fe0e5: Preserve URL citation annotations as sources in Agent API streams, including completed and incomplete terminal responses.
+- 38fe0e5: Emit each Agent API source URL once while preserving search result IDs for citation correlation when a URL is fetched or annotated before it appears in search results.
+
+## 4.0.52
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.51
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 4.0.50
 
 ### Patch Changes

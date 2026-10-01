@@ -5,14 +5,13 @@ import {
   anthropicTools,
 } from '@ai-sdk/anthropic/internal';
 import { loadOptionalSetting, loadSetting } from '@ai-sdk/provider-utils';
+import type * as ProviderUtilsModule from '@ai-sdk/provider-utils';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 
-vi.mock('@ai-sdk/provider-utils', async () => {
-  const actual = await vi.importActual('@ai-sdk/provider-utils');
+vi.mock('@ai-sdk/provider-utils', async importOriginal => {
+  const actual = await importOriginal<typeof ProviderUtilsModule>();
   return {
-    WORKFLOW_SERIALIZE: (actual as any).WORKFLOW_SERIALIZE,
-    WORKFLOW_DESERIALIZE: (actual as any).WORKFLOW_DESERIALIZE,
-    serializeModelOptions: (actual as any).serializeModelOptions,
+    ...actual,
     loadOptionalSetting: vi.fn().mockImplementation(({ settingValue }) => {
       // Return undefined for API key to test SigV4 flow
       if (settingValue === undefined) return undefined;
@@ -334,7 +333,7 @@ describe('amazon-bedrock-anthropic-provider', () => {
     expect(config.headers).toEqual(expect.any(Function));
     const resolvedHeaders = await (config.headers as Function)();
     expect(resolvedHeaders).toMatchObject(customHeaders);
-    expect(resolvedHeaders['user-agent']).toContain('ai-sdk/amazon-bedrock/');
+    expect(resolvedHeaders['user-agent']).toContain('ai-sdk-amazon-bedrock/');
   });
 
   it('should build correct URL for non-streaming requests', () => {

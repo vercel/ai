@@ -36,6 +36,7 @@ To see `streamUI` in action, check out [these examples](#examples).
     },
     {
       name: 'instructions',
+      isOptional: true,
       type: 'Instructions',
       description:
         'Instructions to use that specify the behavior of the model.'
@@ -207,7 +208,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'role',
               type: "'tool'",
-              description: 'The role for the assistant message.',
+              description: 'The role for the tool message.',
             },
             {
               name: 'content',
@@ -363,7 +364,7 @@ To see `streamUI` in action, check out [these examples](#examples).
             {
               name: 'generate',
               isOptional: true,
-              type: '(async (parameters) => ReactNode) | AsyncGenerator<ReactNode, ReactNode, void>',
+              type: '(parameters) => ReactNode | Promise<ReactNode> | Generator<ReactNode, ReactNode, void> | AsyncGenerator<ReactNode, ReactNode, void>',
               description:
                 'A function or a generator function that is called with the arguments from the tool call and yields React nodes as the UI.',
             },

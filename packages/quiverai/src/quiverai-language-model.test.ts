@@ -113,7 +113,7 @@ describe('QuiverAI language model', () => {
         'x-custom': 'custom-value',
       });
       expect(
-        server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+        server.calls[0].requestUserAgent?.match(/ai-sdk-quiverai\//g),
       ).toHaveLength(1);
       const requestBody = await server.calls[0].requestBodyJson;
       expect(requestBody).toMatchObject({
@@ -325,9 +325,9 @@ describe('QuiverAI language model', () => {
       authorization: 'Bearer test-api-key',
       'content-type': 'application/json',
     });
-    expect(server.calls[0].requestUserAgent).toContain('ai-sdk/quiverai/');
+    expect(server.calls[0].requestUserAgent).toContain('ai-sdk-quiverai/');
     expect(
-      server.calls[0].requestUserAgent?.match(/ai-sdk\/quiverai\//g),
+      server.calls[0].requestUserAgent?.match(/ai-sdk-quiverai\//g),
     ).toHaveLength(1);
     expect(await server.calls[0].requestBodyJson).toEqual({
       model: 'arrow-2',

@@ -270,6 +270,21 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes subagent activity options to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;

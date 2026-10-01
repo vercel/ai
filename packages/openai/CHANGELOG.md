@@ -1,5 +1,82 @@
 # @ai-sdk/openai
 
+## 4.0.83
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.82
+
+### Patch Changes
+
+- 040033b: feat(openai): add GPT-6.1 Sol model support
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.81
+
+### Patch Changes
+
+- 4e94782: fix(openai): rewrite recursive Zod schemas that use `allOf` wrappers
+
+## 4.0.80
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.79
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.78
+
+### Patch Changes
+
+- 94d5d6d: Support `reasoningEffortUpdate: 'none'` for GPT-6 Sol and Luna in request-level options and positioned system messages. Validate update efforts against the model's supported efforts, warning and omitting unsupported request-level updates and rejecting unsupported historical updates.
+
+## 4.0.77
+
+### Patch Changes
+
+- 2abd503: Default OpenAI Responses function tools to `strict: false` when tool strict mode is omitted.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 4.0.75
 
 ### Patch Changes

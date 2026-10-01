@@ -1056,6 +1056,17 @@ function convertAnthropicBatchResponse(
         }
         break;
       case 'fallback':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.fallback',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: part.from,
+              to: part.to,
+            },
+          },
+        });
         break;
     }
   }

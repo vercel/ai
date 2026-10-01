@@ -15,6 +15,10 @@ import {
  *
  * OpenAI also does not support regex lookaround in JSON Schema `pattern`
  * values. Those patterns are removed and left to client-side validation.
+ *
+ * Zod 4 represents recursive references as singleton `allOf` schemas. OpenAI
+ * does not support `allOf`, but a singleton local reference can be rewritten
+ * to a direct reference without changing its validation behavior.
  */
 export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
   schema: JSONSchema7;
@@ -23,7 +27,7 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
   let removedPropertyNames = false;
   let removedLookaroundPattern = false;
 
-  const normalizedSchema = normalizeSchema(schema);
+  const normalizedSchema = normalizeSchema(schema, true);
 
   const warnings: SharedV4Warning[] = [];
 
@@ -50,7 +54,7 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
     warnings,
   };
 
-  function normalizeSchema(schema: JSONSchema7): JSONSchema7 {
+  function normalizeSchema(schema: JSONSchema7, isRoot = false): JSONSchema7 {
     const propertyNames = schema.propertyNames;
 
     if (propertyNames != null) {
@@ -160,7 +164,76 @@ export function normalizeOpenAIJsonSchema(schema: JSONSchema7): {
       }
     }
 
-    return normalizedSchema;
+    const reference = getSingletonReference(normalizedSchema);
+
+    if (reference == null) {
+      return normalizedSchema;
+    }
+
+    const { allOf: _allOf, ...schemaWithoutAllOf } = normalizedSchema;
+
+    if (!isRoot) {
+      // A one-item allOf has the same validation behavior as its reference.
+      return {
+        ...schemaWithoutAllOf,
+        $ref: reference,
+      };
+    }
+
+    const referencedSchema = getLocalReferenceSchema(
+      reference,
+      normalizedSchema,
+    );
+
+    // OpenAI requires an object at the schema root, so a local root reference
+    // must be expanded instead of being sent as a direct $ref.
+    if (referencedSchema == null) {
+      return normalizedSchema;
+    }
+
+    return {
+      ...referencedSchema,
+      ...schemaWithoutAllOf,
+    };
+  }
+
+  function getSingletonReference(schema: JSONSchema7): string | undefined {
+    // Do not rewrite intersections: only a single reference is equivalent to
+    // a direct $ref.
+    if (schema.allOf?.length !== 1) {
+      return undefined;
+    }
+
+    const [allOfSchema] = schema.allOf;
+
+    return typeof allOfSchema === 'object' &&
+      allOfSchema != null &&
+      Object.keys(allOfSchema).length === 1 &&
+      typeof allOfSchema.$ref === 'string'
+      ? allOfSchema.$ref
+      : undefined;
+  }
+
+  function getLocalReferenceSchema(
+    reference: string,
+    schema: JSONSchema7,
+  ): JSONSchema7 | undefined {
+    const match = /^#\/(definitions|\$defs)\/(.+)$/.exec(reference);
+
+    if (match == null) {
+      return undefined;
+    }
+
+    const [, keyword, encodedName] = match;
+    const name = encodedName.replace(/~1/g, '/').replace(/~0/g, '~');
+    const definition =
+      keyword === 'definitions'
+        ? schema.definitions?.[name]
+        : schema.$defs?.[name];
+
+    return typeof definition === 'object' && definition != null
+      ? definition
+      : undefined;
   }
 
   function normalizeSchemaRecord(

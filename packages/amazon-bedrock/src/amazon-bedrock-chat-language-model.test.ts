@@ -92,6 +92,11 @@ const novaGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   novaModelId,
 )}/converse`;
 
+const novaMicroModelId = 'us.amazon.nova-micro-v1:0';
+const novaMicroGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
+  novaMicroModelId,
+)}/converse`;
+
 const openaiModelId = 'openai.gpt-oss-120b-1:0';
 const openaiGenerateUrl = `${baseUrl}/model/${encodeURIComponent(
   openaiModelId,
@@ -160,6 +165,7 @@ const server = createTestServer({
   [anthropicGenerateUrl]: {},
   [legacyAnthropic37GenerateUrl]: {},
   [novaGenerateUrl]: {},
+  [novaMicroGenerateUrl]: {},
   [openaiGenerateUrl]: {},
   [usOpenaiGenerateUrl]: {},
   [globalOpenaiGenerateUrl]: {},
@@ -244,6 +250,13 @@ const model = new AmazonBedrockChatLanguageModel(modelId, {
 });
 
 const novaModel = new AmazonBedrockChatLanguageModel(novaModelId, {
+  baseUrl: () => baseUrl,
+  headers: {},
+  fetch: fakeFetchWithAuth,
+  generateId: () => 'test-id',
+});
+
+const novaMicroModel = new AmazonBedrockChatLanguageModel(novaMicroModelId, {
   baseUrl: () => baseUrl,
   headers: {},
   fetch: fakeFetchWithAuth,
@@ -5086,6 +5099,8 @@ describe('doGenerate', () => {
       'anthropic.claude-opus-5-5',
       'us.anthropic.claude-opus-5-5',
       'global.anthropic.claude-opus-5-5',
+      'anthropic.claude-sonnet-5-5',
+      'us.anthropic.claude-sonnet-5-5',
     ])(
       'should build an auto tool choice for required choice on %s',
       async modelId => {
@@ -8332,7 +8347,7 @@ describe('doGenerate', () => {
       ).toBeUndefined();
     });
 
-    it('should map reasoning to reasoningConfig.maxReasoningEffort for other models', async () => {
+    it('should map portable reasoning for Nova 2', async () => {
       server.urls[novaGenerateUrl].response = simpleResponse;
 
       await novaModel.doGenerate({
@@ -8341,10 +8356,177 @@ describe('doGenerate', () => {
       });
 
       const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 high reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'maxOutputTokens',
+        details: `maxOutputTokens is not supported by ${novaModelId} when high reasoning is enabled and will be ignored`,
+      });
+    });
+
+    it('should preserve maxOutputTokens for Nova 2 medium reasoning', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'medium',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBe(1024);
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'medium',
+        },
+      );
+      expect(result.warnings).not.toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 xhigh portable reasoning (max effort)', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'xhigh',
+        maxOutputTokens: 1024,
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should omit maxOutputTokens for Nova 2 explicit max reasoning effort', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'max',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.inferenceConfig?.maxTokens).toBeUndefined();
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toContainEqual(
+        expect.objectContaining({ feature: 'maxOutputTokens' }),
+      );
+    });
+
+    it('should map reasoning to reasoningConfig when explicitly enabled for Nova 2', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
+    });
+
+    it('should ignore portable reasoning for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      const result = await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'high',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.reasoningConfig
-          ?.maxReasoningEffort,
-      ).toBe('high');
+        requestBody.additionalModelRequestFields?.reasoningConfig,
+      ).toBeUndefined();
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'reasoning',
+        details:
+          'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
+      });
+    });
+
+    it('should forward explicit reasoningConfig for models without known reasoning support', async () => {
+      server.urls[novaMicroGenerateUrl].response = simpleResponse;
+
+      await novaMicroModel.doGenerate({
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          amazonBedrock: {
+            reasoningConfig: {
+              type: 'enabled',
+              maxReasoningEffort: 'high',
+            },
+          },
+        },
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'high',
+        },
+      );
     });
 
     it('should let explicit reasoningConfig fields win over derived reasoning values', async () => {

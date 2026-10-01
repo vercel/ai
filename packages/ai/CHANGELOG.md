@@ -1,5 +1,139 @@
 # ai
 
+## 7.0.126
+
+### Patch Changes
+
+- 4f3d236: fix: clear tool approvals when `addToolOutput` runs
+
+## 7.0.125
+
+### Patch Changes
+
+- ff3dcef: feat(ai): add `convertDataPart` to agent UI stream helpers
+
+## 7.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [e25994e]
+- Updated dependencies [527a163]
+- Updated dependencies [e74afc5]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/gateway@4.0.102
+
+## 7.0.123
+
+### Patch Changes
+
+- 05cdac6: fix(ai): keep idle UI message streams open with optional SSE heartbeats
+- 4514fc1: fix(ai): prune all tool content when retaining zero trailing messages
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 2a625cf: fix(ai): preserve partial reasoning tags when streamed text parts end
+- 50a26d5: fix(ai): ignore pending tool approvals superseded by user messages
+- Updated dependencies [040033b]
+- Updated dependencies [ede5b89]
+  - @ai-sdk/gateway@4.0.101
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 7.0.122
+
+### Patch Changes
+
+- f3575f8: Clarify that provider-executed tool execution errors bypass the UI stream's `onError` callback to preserve provider error data and harness runtime messages. Stream errors and invalid tool calls still use the callback. Runtime behavior is unchanged.
+- 27ab8d4: Encode chat IDs in default stream reconnection URLs so slashes, query delimiters, and fragments stay within the ID. Reject standalone `.` and `..` IDs before fetching. Custom URLs returned by `prepareReconnectToStreamRequest` remain unchanged.
+- Updated dependencies [870f509]
+- Updated dependencies [a75f1fd]
+  - @ai-sdk/gateway@4.0.100
+
+## 7.0.121
+
+### Patch Changes
+
+- c5e90bb: fix(ai): preserve hydrated partial static tool input across stream resumptions
+- 868c475: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- 119536f: Preserve provider metadata on corresponding `smoothStream` chunks without carrying it into subsequent metadata-free deltas.
+- 9941f32: Prevent automatic chat resumption when completed tool output is followed by terminal text without a completed stream state, while preserving resumption after completed model text.
+- Updated dependencies [dbddb5b]
+- Updated dependencies [c2511c1]
+  - @ai-sdk/gateway@4.0.99
+  - @ai-sdk/provider-utils@5.0.51
+
+## 7.0.120
+
+### Patch Changes
+
+- b032d70: fix(ai): preserve tool metadata from tool output chunks
+- e21b98b: fix(ai): continue active UI message parts when resuming after a disconnect
+- Updated dependencies [e361d39]
+  - @ai-sdk/gateway@4.0.98
+
+## 7.0.119
+
+### Patch Changes
+
+- 33e94ba: fix(ai): cancel response streams when clients disconnect
+- 34d869e: fix(ai): prevent unhandled stream completion rejections in non-Node runtimes
+- def4df8: fix(ai): store static tool input errors in the current input field
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/gateway@4.0.97
+
+## 7.0.118
+
+### Patch Changes
+
+- Updated dependencies [e6a7996]
+- Updated dependencies [e19f0fc]
+  - @ai-sdk/gateway@4.0.96
+
+## 7.0.117
+
+### Patch Changes
+
+- Updated dependencies [b67b1b7]
+  - @ai-sdk/gateway@4.0.95
+
+## 7.0.116
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/gateway@4.0.94
+
+## 7.0.115
+
+### Patch Changes
+
+- be877ff: Use the new `fetchUntrustedUrl` helper for SDK downloads, preserving the existing
+  user-agent header and URL validation while enforcing first-hop credential isolation.
+- Updated dependencies [80b9100]
+- Updated dependencies [d3cc6ae]
+- Updated dependencies [be877ff]
+  - @ai-sdk/gateway@4.0.93
+  - @ai-sdk/provider-utils@5.0.48
+
 ## 7.0.114
 
 ### Patch Changes

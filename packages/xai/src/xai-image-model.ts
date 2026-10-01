@@ -32,6 +32,17 @@ export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
+  get supportsFileInputs(): boolean | undefined {
+    return this.modelId === 'grok-imagine-image' ||
+      this.modelId === 'grok-imagine-image-pro'
+      ? true
+      : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    return this.supportsFileInputs === true ? false : undefined;
+  }
+
   get provider(): string {
     return this.config.provider;
   }

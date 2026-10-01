@@ -207,7 +207,7 @@ vi.mock('node:fs/promises', async importOriginal => {
       if (path.endsWith('/bridge/host-tool-mcp.mjs'))
         return '// mock host tool MCP\n';
       if (path.endsWith('/bridge/package.json'))
-        return '{"name":"@ai-sdk/harness-acp-bridge"}\n';
+        return '{"name":"@ai-sdk-harness-acp-bridge"}\n';
       if (path.endsWith('/bridge/pnpm-lock.yaml'))
         return 'lockfileVersion: "9.0"\n';
       const readFile = actual.readFile as unknown as (
@@ -1191,6 +1191,126 @@ describe('createACP', () => {
     await resumedSession.doDestroy();
   });
 
+  it('uses new placeholders after a brokered cold restore changes credential names', async () => {
+    vi.stubEnv('GITHUB_TOKEN', 'old-github-secret');
+    vi.stubEnv('GITLAB_TOKEN', undefined);
+    const addRequestTransformations = vi.fn(async () => {});
+    const spawns: Array<{
+      command: string;
+      env: Record<string, string | undefined>;
+    }> = [];
+    const sandboxSession = fakeSandbox({
+      runs: [],
+      spawns,
+      stop: async () => {},
+      addRequestTransformations,
+    });
+    const harness = createACP({
+      harnessId: 'changing-credentials-acp',
+      ...agentSettings,
+      forwardEnv: [],
+      credentialEnv: ['GITHUB_TOKEN', 'GITLAB_TOKEN'],
+      permissionModeMapping,
+      credentialBrokering: ({ env, sandboxEnv }) =>
+        (['GITHUB_TOKEN', 'GITLAB_TOKEN'] as const).flatMap(name =>
+          env[name] == null || sandboxEnv?.[name] == null
+            ? []
+            : [
+                {
+                  match: {
+                    host: 'tokens.example',
+                    headers: [
+                      {
+                        key: { exact: 'Authorization' },
+                        value: { exact: `Bearer ${sandboxEnv[name]}` },
+                      },
+                    ],
+                  },
+                  transform: {
+                    headers: { Authorization: `Bearer ${env[name]}` },
+                  },
+                },
+              ],
+        ),
+    });
+
+    const firstSession = await harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      permissionMode: 'allow-edits',
+    });
+    const firstPlaceholder = spawns[0]?.env.GITHUB_TOKEN;
+    expect(firstPlaceholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    const firstTurn = await firstSession.doPromptTurn({
+      skills: [],
+      prompt: 'Remember this.',
+      tools: [],
+      emit: () => {},
+    });
+    const firstChannel = harnessUtilsMocks.channels[0]!;
+    firstChannel.emit({ type: 'bridge-thread', threadId: 'acp-session-1' });
+    firstChannel.emit({
+      type: 'finish',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      totalUsage: unknownUsage(),
+    });
+    await firstTurn.done;
+    const resumeFrom = await firstSession.doStop();
+    expect(
+      (
+        resumeFrom.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITHUB_TOKEN: firstPlaceholder });
+
+    vi.stubEnv('GITHUB_TOKEN', undefined);
+    vi.stubEnv('GITLAB_TOKEN', 'new-gitlab-secret');
+    const resumedPromise = harness.doStart({
+      sessionId: 'session-1',
+      sandboxSession,
+      sessionWorkDir: '/workspace/user-project',
+      resumeFrom,
+      permissionMode: 'allow-edits',
+    });
+    await vi.waitFor(() => {
+      expect(harnessUtilsMocks.channels).toHaveLength(2);
+      expect(harnessUtilsMocks.channels[1]?.sent).toHaveLength(1);
+    });
+    const newPlaceholder = spawns[1]?.env.GITLAB_TOKEN;
+    expect(newPlaceholder).toMatch(/^aisdkhc_[A-Za-z0-9_-]{43}$/);
+    expect(spawns[1]?.env.GITHUB_TOKEN).toBeUndefined();
+    expect(JSON.stringify(spawns[1]?.env)).not.toContain('new-gitlab-secret');
+    expect(addRequestTransformations).toHaveBeenNthCalledWith(2, [
+      {
+        match: {
+          host: 'tokens.example',
+          headers: [
+            {
+              key: { exact: 'Authorization' },
+              value: { exact: `Bearer ${newPlaceholder}` },
+            },
+          ],
+        },
+        transform: { headers: { Authorization: 'Bearer new-gitlab-secret' } },
+      },
+    ]);
+    emitColdRestoration({
+      channel: harnessUtilsMocks.channels[1]!,
+      method: 'resume',
+    });
+    const resumedSession = await resumedPromise;
+    const nextState = await resumedSession.doStop();
+    expect(
+      (
+        nextState.data as {
+          sandboxCredentialEnvironment: Record<string, string>;
+        }
+      ).sandboxCredentialEnvironment,
+    ).toEqual({ GITLAB_TOKEN: newPlaceholder });
+  });
+
   it('preserves real credential forwarding when additive transformations are unavailable', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.stubEnv('PROVIDER_API_KEY', 'legacy-secret');
@@ -1763,7 +1883,7 @@ describe('createACP', () => {
     ]);
     expect(
       first.files.find(file => file.path.endsWith('/package.json'))?.content,
-    ).toContain('@ai-sdk/harness-acp-bridge');
+    ).toContain('@ai-sdk-harness-acp-bridge');
     expect(
       first.files.find(file =>
         file.path.endsWith('/implementation/package.json'),
@@ -1924,7 +2044,7 @@ describe('createACP', () => {
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns[0].env.BRIDGE_CHANNEL_TOKEN).not.toBe('test-key');
     expect(spawns[0].env.AI_SDK_ACP_GATEWAY_API_KEY).toBeUndefined();
-    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk/harness-acp');
+    expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_NAME).toBe('ai-sdk-harness-acp');
     expect(spawns[0].env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(stop).not.toHaveBeenCalled();
 
@@ -2925,7 +3045,7 @@ describe('createACP', () => {
       'https://gateway.example/custom',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_NAME).toBe(
-      'ai-sdk/harness-acp',
+      'ai-sdk-harness-acp',
     );
     expect(spawns[1]?.env.AI_SDK_ACP_CLIENT_APP_VERSION).toBe('0.0.0-test');
     expect(writes).toHaveLength(writeCount);

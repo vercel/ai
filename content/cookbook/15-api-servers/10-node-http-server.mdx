@@ -51,6 +51,7 @@ createServer(async (req, res) => {
 ### Sending Custom Data
 
 `createUIMessageStream` and `pipeUIMessageStreamToResponse` can be used to send custom data to the client.
+This example handles the `/stream-data` path, so test it with `curl -X POST http://localhost:8080/stream-data`.
 
 ```ts filename='index.ts'
 import {
