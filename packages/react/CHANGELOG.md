@@ -1,5 +1,18 @@
 # @ai-sdk/react
 
+## 4.0.130
+
+### Patch Changes
+
+- 8f05086: fix(react): prevent streamed chat updates from starving navigation transitions
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [3ff0f54]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+  - @ai-sdk/mcp@2.0.66
+
 ## 4.0.129
 
 ### Patch Changes
