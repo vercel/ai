@@ -37,84 +37,126 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
-  describe('streamed message update priority', () => {
-    afterEach(() => {
-      cleanup();
-    });
+  describe('updates during suspended navigation', () => {
+    afterEach(cleanup);
 
-    it('keeps the current UI visible when a streamed message update suspends', async () => {
-      let responseController:
-        | ReadableStreamDefaultController<UIMessageChunk>
-        | undefined;
-      let resolvePending: () => void;
-      let shouldSuspend = true;
-      const pending = new Promise<void>(resolve => {
-        resolvePending = resolve;
-      });
-      const chat = new Chat({
-        id: 'chat-id',
-        generateId: mockId(),
-        transport: {
-          async sendMessages() {
-            return new ReadableStream<UIMessageChunk>({
-              start(controller) {
-                responseController = controller;
-              },
-            });
+    it.each(['streamed text', 'local edit'] as const)(
+      'renders %s while a sibling transition is suspended',
+      async update => {
+        let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+        let resolvePending!: () => void;
+        let isPending = true;
+        const pending = new Promise<void>(resolve => {
+          resolvePending = resolve;
+        });
+        const chat = new Chat({
+          id: 'chat-id',
+          transport: {
+            async sendMessages() {
+              return new ReadableStream<UIMessageChunk>({
+                start(streamController) {
+                  controller = streamController;
+                },
+              });
+            },
+            async reconnectToStream() {
+              return null;
+            },
           },
-          async reconnectToStream() {
-            return null;
-          },
-        },
-      });
+        });
 
-      function TestComponent() {
-        const { messages } = useChat({ chat });
-        const text = messages
-          .flatMap(message => message.parts)
-          .filter(part => part.type === 'text')
-          .map(part => part.text)
-          .join('');
-
-        if (shouldSuspend && text.includes('Hello')) {
-          throw pending;
+        function ChatView() {
+          const { messages, setMessages } = useChat({ chat });
+          return (
+            <>
+              <div data-testid="chat-text">{JSON.stringify(messages)}</div>
+              <button
+                data-testid="edit-message"
+                onClick={() =>
+                  setMessages([
+                    {
+                      id: 'edited',
+                      role: 'assistant',
+                      parts: [{ type: 'text', text: 'Edited' }],
+                    },
+                  ])
+                }
+              />
+            </>
+          );
         }
 
-        return <div data-testid="visible-chat">Current chat</div>;
-      }
+        function Navigation() {
+          const [destination, setDestination] = useState(false);
+          if (destination && isPending) {
+            throw pending;
+          }
+          return (
+            <>
+              <div data-testid="destination">{destination ? 'new' : 'old'}</div>
+              <button
+                data-testid="navigate"
+                onClick={() =>
+                  React.startTransition(() => setDestination(true))
+                }
+              />
+            </>
+          );
+        }
 
-      render(
-        <React.Suspense fallback={<div data-testid="fallback">Loading</div>}>
-          <TestComponent />
-        </React.Suspense>,
-      );
+        render(
+          <>
+            <ChatView />
+            <React.Suspense fallback={<div>Loading</div>}>
+              <Navigation />
+            </React.Suspense>
+          </>,
+        );
 
-      await act(async () => {
-        void chat.sendMessage({ text: 'hi' });
-        await Promise.resolve();
-      });
-      expect(responseController).toBeDefined();
-
-      await act(async () => {
-        responseController!.enqueue({ type: 'text-start', id: '0' });
-        responseController!.enqueue({
-          type: 'text-delta',
-          id: '0',
-          delta: 'Hello',
+        let request!: Promise<void>;
+        await act(async () => {
+          request = chat.sendMessage({ text: 'hi' });
         });
-        await Promise.resolve();
-      });
 
-      expect(screen.getByTestId('visible-chat')).toBeInTheDocument();
-      expect(screen.queryByTestId('fallback')).not.toBeInTheDocument();
+        try {
+          await act(async () => {
+            controller.enqueue({ type: 'text-start', id: '0' });
+            controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hello' });
+          });
+          await waitFor(() => {
+            expect(screen.getByTestId('chat-text')).toHaveTextContent('Hello');
+          });
+          await userEvent.click(screen.getByTestId('navigate'));
 
-      await act(async () => {
-        shouldSuspend = false;
-        resolvePending!();
-        responseController!.close();
-        await Promise.resolve();
-      });
-    });
+          if (update === 'streamed text') {
+            await act(async () => {
+              controller.enqueue({
+                type: 'text-delta',
+                id: '0',
+                delta: ' world',
+              });
+            });
+          } else {
+            await userEvent.click(screen.getByTestId('edit-message'));
+          }
+
+          await waitFor(() => {
+            expect(screen.getByTestId('chat-text')).toHaveTextContent(
+              update === 'streamed text' ? 'Hello world' : 'Edited',
+            );
+          });
+          expect(screen.getByTestId('destination')).toHaveTextContent('old');
+          expect(chat.status).toBe('streaming');
+        } finally {
+          await act(async () => {
+            isPending = false;
+            resolvePending();
+            controller.close();
+            await request;
+          });
+        }
+      },
+    );
   });
 
   describe('terminal message snapshot consistency', () => {
@@ -3120,7 +3162,7 @@ describe('use-chat', () => {
       },
     );
 
-    it('should keep the active stream connected before an id change commits', async () => {
+    it('should keep rendering the active stream before an id change commits', async () => {
       await userEvent.click(screen.getByTestId('suspended-chat-send'));
       await waitFor(() => {
         expect(requestSignal).toBeDefined();
@@ -3144,6 +3186,11 @@ describe('use-chat', () => {
           });
         });
 
+        await waitFor(() => {
+          expect(
+            screen.getByTestId('suspended-chat-messages'),
+          ).toHaveTextContent('Hello');
+        });
         expect(requestSignal?.aborted).toBe(false);
       } finally {
         responseController!.close();

@@ -6,14 +6,7 @@ import {
   type UIMessage,
   DefaultChatTransport,
 } from 'ai';
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Chat } from './chat.react';
 
 export type { CreateUIMessage, UIMessage };
@@ -101,6 +94,36 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   };
 }
 
+type ChatSnapshot<UI_MESSAGE extends UIMessage> = {
+  chat: Chat<UI_MESSAGE>;
+  messages: UI_MESSAGE[];
+  status: Chat<UI_MESSAGE>['status'];
+  error: Error | undefined;
+};
+
+function readChatSnapshot<UI_MESSAGE extends UIMessage>(
+  chat: Chat<UI_MESSAGE>,
+): ChatSnapshot<UI_MESSAGE> {
+  return {
+    chat,
+    messages: chat.messages,
+    status: chat.status,
+    error: chat.error,
+  };
+}
+
+function equalChatSnapshots<UI_MESSAGE extends UIMessage>(
+  current: ChatSnapshot<UI_MESSAGE>,
+  next: ChatSnapshot<UI_MESSAGE>,
+) {
+  return (
+    current.chat === next.chat &&
+    current.messages === next.messages &&
+    current.status === next.status &&
+    current.error === next.error
+  );
+}
+
 export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
   throttle,
   experimental_throttle,
@@ -180,63 +203,41 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, isExternallyManaged]);
 
-  const [snapshot, setSnapshot] = useState(() => ({
-    chat,
-    messages: chat.messages,
-    status: chat.status,
-    error: chat.error,
-  }));
+  // Each consumer owns its rendered snapshot, so consumers with different
+  // throttle intervals can display different versions of the same Chat.
+  const [snapshot, setSnapshot] = useState(() => readChatSnapshot(chat));
+
+  if (snapshot.chat !== chat) {
+    setSnapshot(readChatSnapshot(chat));
+  }
 
   useEffect(() => {
     let isSubscribed = true;
-    const readSnapshot = () => ({
-      chat,
-      messages: chat.messages,
-      status: chat.status,
-      error: chat.error,
-    });
-
     const publishSnapshot = () => {
       if (!isSubscribed) {
         return;
       }
 
-      const nextSnapshot = readSnapshot();
+      const nextSnapshot = readChatSnapshot(chat);
       setSnapshot(current =>
-        !isSubscribed ||
-        current.chat !== chat ||
-        (current.messages === nextSnapshot.messages &&
-          current.status === nextSnapshot.status &&
-          current.error === nextSnapshot.error)
+        current.chat !== chat || equalChatSnapshots(current, nextSnapshot)
           ? current
           : nextSnapshot,
       );
     };
 
-    const updateMessages = () => {
-      if (chat.status === 'streaming') {
-        startTransition(publishSnapshot);
-      } else {
-        publishSnapshot();
-      }
-    };
-
     const unsubscribes = [
-      chat['~registerMessagesCallback'](updateMessages, throttleWaitMs),
+      chat['~registerMessagesCallback'](publishSnapshot, throttleWaitMs),
       chat['~registerStatusCallback'](publishSnapshot),
       chat['~registerErrorCallback'](publishSnapshot),
     ];
 
-    // Synchronize changes between render and subscription, including replacing
-    // the Chat instance. Each update publishes messages, status, and error together.
-    const nextSnapshot = readSnapshot();
+    // Catch changes between render and subscription. Publish messages, status,
+    // and error together using ordinary React state updates, so streaming can
+    // continue while an unrelated transition is suspended.
+    const nextSnapshot = readChatSnapshot(chat);
     setSnapshot(current =>
-      current.chat === chat &&
-      current.messages === nextSnapshot.messages &&
-      current.status === nextSnapshot.status &&
-      current.error === nextSnapshot.error
-        ? current
-        : nextSnapshot,
+      equalChatSnapshots(current, nextSnapshot) ? current : nextSnapshot,
     );
 
     return () => {
@@ -245,10 +246,7 @@ export function useChat<UI_MESSAGE extends UIMessage = UIMessage>({
     };
   }, [chat, throttleWaitMs]);
 
-  const { messages, status, error } =
-    snapshot.chat === chat
-      ? snapshot
-      : { messages: chat.messages, status: chat.status, error: chat.error };
+  const { messages, status, error } = snapshot;
 
   const setMessages = useCallback(
     (
