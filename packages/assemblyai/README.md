@@ -43,6 +43,36 @@ const { text } = await transcribe({
 });
 ```
 
+## Streaming Example
+
+```ts
+import {
+  createAssemblyAI,
+  type AssemblyAIProviderSettings,
+} from '@ai-sdk/assemblyai';
+import { experimental_streamTranscribe as streamTranscribe } from 'ai';
+import { WebSocket } from 'ws';
+
+// AssemblyAI authenticates the streaming WebSocket with a header. The AI SDK
+// passes headers through a constructor option the native WebSocket does not
+// accept, so pass a header-capable implementation such as `ws`.
+const assemblyai = createAssemblyAI({
+  webSocket: WebSocket as unknown as AssemblyAIProviderSettings['webSocket'],
+});
+
+const result = streamTranscribe({
+  model: assemblyai.transcription('universal-3-5-pro'),
+  audio: pcmAudioStream, // ReadableStream<Uint8Array>
+  inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'transcript-final') {
+    console.log(part.text);
+  }
+}
+```
+
 ## Documentation
 
 Please check out the **[AssemblyAI provider documentation](https://ai-sdk.dev/providers/ai-sdk-providers/assemblyai)** for more information.

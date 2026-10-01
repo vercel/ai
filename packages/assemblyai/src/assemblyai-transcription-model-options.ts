@@ -228,6 +228,139 @@ export const assemblyaiTranscriptionModelOptionsSchema = z.object({
    * Use `keytermsPrompt` instead.
    */
   wordBoost: z.array(z.string()).nullish(),
+
+  /**
+   * Options for streaming transcription over WebSocket
+   * (`experimental_streamTranscribe`). Ignored by `transcribe`.
+   *
+   * The following top-level options also apply to streaming: `prompt`
+   * (up to 1,750 characters), `keytermsPrompt` (up to 100 terms),
+   * `languageCode`, `languageDetection`, `speakerLabels`, `filterProfanity`,
+   * `redactPii`, `redactPiiPolicies`, `redactPiiSub`, `domain`, `webhookUrl`,
+   * `webhookAuthHeaderName`, and `webhookAuthHeaderValue`. All other
+   * top-level options are pre-recorded only.
+   *
+   * @see https://www.assemblyai.com/docs/api-reference/streaming-api/streaming-api
+   */
+  streaming: z
+    .object({
+      /**
+       * Accuracy/latency preset: `min_latency` (fastest time-to-text),
+       * `balanced` (default; voice agents), or `max_accuracy` (scribes,
+       * post-call). Universal-3.5 Pro and later only.
+       */
+      mode: z.enum(['min_latency', 'balanced', 'max_accuracy']).nullish(),
+      /**
+       * Emit formatted final turns with punctuation, casing, and inverse text
+       * normalization. Universal-3.x Pro models always format final turns.
+       */
+      formatTurns: z.boolean().nullish(),
+      /**
+       * ISO 639-1 codes (max 10) to steer transcription toward. Biases output
+       * while still allowing code-switching among the listed languages.
+       * Universal-3.5 Pro and later only.
+       */
+      languageCodes: z.array(z.string()).max(10).nullish(),
+      /**
+       * Hard cap (1-10) on distinct speaker labels. Only used when
+       * `speakerLabels` is enabled.
+       */
+      maxSpeakers: z.number().int().min(1).max(10).nullish(),
+      /**
+       * Silence in milliseconds before a speculative end-of-turn check.
+       * The server clamps values to 50-10000.
+       */
+      minTurnSilence: z.number().int().min(0).nullish(),
+      /**
+       * Maximum silence in milliseconds before the turn is forced to end.
+       */
+      maxTurnSilence: z.number().int().min(0).nullish(),
+      /**
+       * Confidence threshold (0-1) for end-of-turn detection. Universal
+       * Streaming English/Multilingual only; Universal-3.x Pro uses
+       * punctuation-based turn detection and ignores it.
+       */
+      endOfTurnConfidenceThreshold: z.number().min(0).max(1).nullish(),
+      /**
+       * VAD confidence threshold (0-1) below which audio frames count as
+       * silence. Increase in noisy environments.
+       */
+      vadThreshold: z.number().min(0).max(1).nullish(),
+      /**
+       * Milliseconds (0-1000) before the first partial of a turn is emitted.
+       * The server adds a fixed 256ms. Universal-3.5 Pro and later only.
+       */
+      interruptionDelay: z.number().int().min(0).max(1000).nullish(),
+      /**
+       * Emit additional partials (about every 3 seconds) during long turns.
+       * Universal-3.5 Pro and later only.
+       */
+      continuousPartials: z.boolean().nullish(),
+      /**
+       * Your voice agent's most recent spoken reply (max 1750 characters),
+       * used as context for the next user turn. Universal-3.5 Pro and later
+       * only.
+       */
+      agentContext: z.string().max(1750).nullish(),
+      /**
+       * Number of prior conversation entries (0-100) carried forward as
+       * context; `0` disables context carryover. Universal-3.5 Pro and later
+       * only.
+       */
+      previousContextNTurns: z.number().int().min(0).max(100).nullish(),
+      /**
+       * Noise suppression profile: `near-field` (headsets, handsets) or
+       * `far-field` (conference rooms, laptop mics). Universal-3.5 Pro and
+       * later only.
+       */
+      voiceFocus: z.enum(['near-field', 'far-field']).nullish(),
+      /**
+       * How aggressively to suppress background audio (0-1) when `voiceFocus`
+       * is set.
+       */
+      voiceFocusThreshold: z.number().min(0).max(1).nullish(),
+      /**
+       * Whether to emit non-final `transcript-partial` parts. Defaults to
+       * `true`, or to `false` when `redactPii` is enabled: the server only
+       * redacts final turns, so partials would contain unredacted text. The
+       * provider applies the same default on the client, so with `redactPii`
+       * no `transcript-partial` parts are emitted unless this is explicitly
+       * `true`. Setting `false` also drops the unformatted end-of-turn
+       * message Universal Streaming models send when `formatTurns` is enabled.
+       */
+      includePartialTurns: z.boolean().nullish(),
+      /**
+       * Cadence in milliseconds of audio time at which the server emits
+       * mid-stream `SpeakerRevision` messages with corrected speaker labels
+       * for earlier turns (a final one is always emitted at session end).
+       * Non-zero values are clamped by the server to 120000-300000; `0`
+       * behaves like unset. Only used when `speakerLabels` is enabled.
+       */
+      speakerLabelsRevisionIntervalMs: z
+        .number()
+        .int()
+        .min(0)
+        .max(86_400_000)
+        .nullish(),
+      /**
+       * Opt in to periodic `Heartbeat` messages reporting audio received,
+       * session duration, and the real-time ingest factor. Surfaced as `raw`
+       * parts when `includeRawChunks` is enabled.
+       */
+      sessionHeartbeat: z.boolean().nullish(),
+      /**
+       * Opt in to `Silence` messages (roughly once per second while no speech
+       * is transcribed). Universal-3.x Pro only. Surfaced as `raw` parts when
+       * `includeRawChunks` is enabled.
+       */
+      acknowledgeSilence: z.boolean().nullish(),
+      /**
+       * Seconds of inactivity (5 to 3600) before the server closes the
+       * session. Omit to disable the timeout.
+       */
+      inactivityTimeout: z.number().int().min(5).max(3600).nullish(),
+    })
+    .nullish(),
 });
 
 export type AssemblyAITranscriptionModelOptions = z.infer<

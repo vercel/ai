@@ -1,7 +1,9 @@
-import type {
-  TranscriptionModelV4,
-  SharedV4Warning,
-  SharedV4ProviderMetadata,
+import {
+  UnsupportedFunctionalityError,
+  type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
+  type TranscriptionModelV4,
+  type SharedV4Warning,
+  type SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -18,8 +20,42 @@ import { z } from 'zod/v4';
 import type { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
 import { assemblyaiTranscriptionModelOptionsSchema } from './assemblyai-transcription-model-options';
-import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
+import {
+  isAssemblyAIPrerecordedOnlyModelId,
+  isAssemblyAIStreamingOnlyModelId,
+  type AssemblyAITranscriptionModelId,
+} from './assemblyai-transcription-settings';
 import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
+import {
+  buildAssemblyAIStreamingUrl,
+  createAssemblyAIStreamingTranscriptionStream,
+  getAssemblyAIStreamingWarnings,
+} from './assemblyai-streaming-transcription';
+
+const defaultStreamingUrl = ({ path }: { path: string }) =>
+  `https://streaming.assemblyai.com${path}`;
+
+/**
+ * Provider options that apply to streaming transcription. Every other
+ * top-level option is pre-recorded only and produces an `unsupported`
+ * warning when passed to `doStream`.
+ */
+const streamingOptionKeys: ReadonlySet<string> = new Set([
+  'prompt',
+  'keytermsPrompt',
+  'languageDetection',
+  'speakerLabels',
+  'filterProfanity',
+  'redactPii',
+  'redactPiiPolicies',
+  'redactPiiSub',
+  'domain',
+  'languageCode',
+  'webhookUrl',
+  'webhookAuthHeaderName',
+  'webhookAuthHeaderValue',
+  'streaming',
+]);
 
 interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   _internal?: {
@@ -71,6 +107,15 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
     });
 
     const body: Omit<AssemblyAITranscriptionAPITypes, 'audio_url'> = {};
+
+    if (assemblyaiOptions?.streaming != null) {
+      warnings.push({
+        type: 'unsupported',
+        feature: 'providerOptions.assemblyai.streaming',
+        details:
+          'Streaming options only apply to experimental_streamTranscribe and are ignored by transcribe.',
+      });
+    }
 
     // The legacy `best` model is selected via the deprecated singular
     // `speech_model` parameter. All other models (e.g. `universal-2`,
@@ -337,6 +382,15 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   async doGenerate(
     options: Parameters<TranscriptionModelV4['doGenerate']>[0],
   ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    if (isAssemblyAIStreamingOnlyModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `pre-recorded transcription with ${this.modelId}`,
+        message:
+          `The AssemblyAI model '${this.modelId}' is only available for streaming transcription. ` +
+          "Use experimental_streamTranscribe, or use 'universal-3-5-pro' with transcribe.",
+      });
+    }
+
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({
@@ -445,6 +499,101 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders, // Headers from final GET request
         body: rawTranscript, // Full raw response from final GET request
       },
+    };
+  }
+
+  /**
+   * Streams a transcript for live audio over the AssemblyAI Streaming v3
+   * WebSocket API.
+   *
+   * @see https://www.assemblyai.com/docs/api-reference/streaming-api/streaming-api
+   */
+  async doStream(
+    options: TranscriptionModelV4StreamOptions,
+  ): Promise<
+    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+  > {
+    if (isAssemblyAIPrerecordedOnlyModelId(this.modelId)) {
+      throw new UnsupportedFunctionalityError({
+        functionality: `streaming transcription with ${this.modelId}`,
+        message:
+          `The AssemblyAI model '${this.modelId}' is only available for pre-recorded transcription. ` +
+          "Use 'universal-3-5-pro' or another streaming model with experimental_streamTranscribe.",
+      });
+    }
+
+    const currentDate = this.config._internal?.currentDate?.() ?? new Date();
+    const warnings: SharedV4Warning[] = [];
+
+    const assemblyaiOptions = await parseProviderOptions({
+      provider: 'assemblyai',
+      providerOptions: options.providerOptions,
+      schema: assemblyaiTranscriptionModelOptionsSchema,
+    });
+
+    const rawOptions = options.providerOptions?.assemblyai ?? {};
+    for (const key of Object.keys(rawOptions)) {
+      if (rawOptions[key] == null || streamingOptionKeys.has(key)) continue;
+      warnings.push({
+        type: 'unsupported',
+        feature: `providerOptions.assemblyai.${key}`,
+        details: `AssemblyAI streaming transcription does not support ${key}.`,
+      });
+    }
+
+    warnings.push(
+      ...getAssemblyAIStreamingWarnings({
+        modelId: this.modelId,
+        options: assemblyaiOptions ?? undefined,
+      }),
+    );
+
+    const url = buildAssemblyAIStreamingUrl({
+      baseUrl: (this.config.streamingUrl ?? defaultStreamingUrl)({
+        path: '/v3/ws',
+        modelId: this.modelId,
+      }),
+      modelId: this.modelId,
+      inputAudioFormat: options.inputAudioFormat,
+      options: assemblyaiOptions ?? undefined,
+    });
+
+    // a single steered language is reported as the transcript language until
+    // the server reports a detected one ('multi' is a model selector, not a
+    // language):
+    const languageCodes =
+      assemblyaiOptions?.streaming?.languageCodes ??
+      (assemblyaiOptions?.languageCode != null
+        ? [assemblyaiOptions.languageCode]
+        : undefined);
+
+    return {
+      request: { body: url.toString() },
+      response: {
+        timestamp: currentDate,
+        modelId: this.modelId,
+      },
+      stream: createAssemblyAIStreamingTranscriptionStream({
+        webSocket: this.config.webSocket,
+        url,
+        headers: combineHeaders(this.config.headers?.(), options.headers),
+        warnings,
+        modelId: this.modelId,
+        audio: options.audio,
+        abortSignal: options.abortSignal,
+        includeRawChunks: options.includeRawChunks,
+        formatTurns: assemblyaiOptions?.streaming?.formatTurns === true,
+        // Mirrors the server default: partials are off when PII redaction is
+        // on (the server only redacts final turns) unless explicitly enabled.
+        includePartialTurns:
+          assemblyaiOptions?.streaming?.includePartialTurns ??
+          assemblyaiOptions?.redactPii !== true,
+        initialLanguage:
+          languageCodes?.length === 1 && languageCodes[0] !== 'multi'
+            ? languageCodes[0]
+            : undefined,
+        currentDate,
+      }),
     };
   }
 }
