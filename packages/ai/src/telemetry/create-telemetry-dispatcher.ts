@@ -142,10 +142,18 @@ export function createTelemetryDispatcher({
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
+    deprecatedKey?: keyof Telemetry,
   ): Callback<TelemetryEvent<KEY>> => {
     const integrationCallbacks = (
       integrations
-        .map(integration => integration[key]?.bind(integration))
+        .map(integration => {
+          const callback =
+            integration[key] ??
+            (deprecatedKey == null ? undefined : integration[deprecatedKey]);
+          return typeof callback === 'function'
+            ? callback.bind(integration)
+            : undefined;
+        })
         .filter(Boolean) as Array<
         Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
       >
@@ -217,15 +225,19 @@ export function createTelemetryDispatcher({
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
     experimental_onDecideStart: mergeTelemetryCallback(
       'experimental_onDecideStart',
+      'experimental_onEvaluateStart',
     ),
     experimental_onDecisionModelCallStart: mergeTelemetryCallback(
       'experimental_onDecisionModelCallStart',
+      'experimental_onEvaluationModelCallStart',
     ),
     experimental_onDecisionModelCallEnd: mergeTelemetryCallback(
       'experimental_onDecisionModelCallEnd',
+      'experimental_onEvaluationModelCallEnd',
     ),
     experimental_onDecideEnd: mergeTelemetryCallback(
       'experimental_onDecideEnd',
+      'experimental_onEvaluateEnd',
     ),
     onEnd: mergeTelemetryCallback('onEnd'),
     onAbort: mergeTelemetryCallback('onAbort'),

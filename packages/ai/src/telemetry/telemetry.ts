@@ -224,6 +224,24 @@ export interface Telemetry {
    */
   onRerankEnd?: Callback<InferTelemetryEvent<RerankingModelCallEndEvent>>;
 
+  /** @deprecated Use `experimental_onDecideStart` instead. */
+  experimental_onEvaluateStart?: Callback<
+    InferTelemetryEvent<DecideStartEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecisionModelCallStart` instead. */
+  experimental_onEvaluationModelCallStart?: Callback<
+    InferTelemetryEvent<DecisionModelCallStartEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecisionModelCallEnd` instead. */
+  experimental_onEvaluationModelCallEnd?: Callback<
+    InferTelemetryEvent<DecisionModelCallEndEvent>
+  >;
+
+  /** @deprecated Use `experimental_onDecideEnd` instead. */
+  experimental_onEvaluateEnd?: Callback<InferTelemetryEvent<DecideEndEvent>>;
+
   /** Called when an experimental decision operation begins. */
   experimental_onDecideStart?: Callback<InferTelemetryEvent<DecideStartEvent>>;
 
