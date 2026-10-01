@@ -56,6 +56,10 @@ export interface AnthropicProvider extends ProviderV4 {
 
   /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
   decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -214,6 +218,8 @@ export function createAnthropic(
       model: createChatModel(modelId),
       provider: `${providerName.replace(/\.messages$/, '')}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {

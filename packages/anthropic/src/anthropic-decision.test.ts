@@ -163,7 +163,7 @@ it('validates score bounds locally', async () => {
   );
 });
 it.each(['outputFormat', 'jsonTool'] as const)(
-  'evaluates Boolean alongside Choice and Score using %s',
+  'decides Boolean alongside Choice and Score using %s',
   async structuredOutputMode => {
     const values = { q0: 'c1', q1: 1.25, q2: 0.02 };
     const { model, fetch } = setup({
@@ -202,3 +202,22 @@ it.each(['outputFormat', 'jsonTool'] as const)(
     expect(schema.properties.q2).not.toHaveProperty('maximum');
   },
 );
+
+it('preserves the deprecated factory and direct model method', async () => {
+  const fetch = vi.fn(
+    async () =>
+      new Response(JSON.stringify(fixture), {
+        headers: { 'content-type': 'application/json' },
+      }),
+  );
+  const provider = createAnthropic({ apiKey: 'test-key', fetch });
+  expect(provider.evaluationModel).toBe(provider.decisionModel);
+  const model = provider.evaluationModel('claude-sonnet-4-6');
+  const result = await model.doEvaluate(options);
+  expect(result.answers.department).toEqual({
+    type: 'choice',
+    choice: 'billing',
+  });
+  expect(model.provider).toContain('.decision');
+  expect(fetch).toHaveBeenCalledOnce();
+});
