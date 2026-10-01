@@ -158,8 +158,8 @@ forward model credentials into the Sprite instead of brokering them. Each harnes
 ### Deprecated provider
 
 `createSpritesSandbox()` returns a `HarnessV1SandboxProvider` for the deprecated
-`HarnessAgent({ sandbox })` setting. It accepts `apiKey`, `baseUrl`, `workingDirectory`
-(default `/home/sprite`), `urlAuth` and `waitForCapacity`, plus `name` to name the created
+`HarnessAgent({ sandbox })` setting. It accepts `apiKey`, `baseUrl`, `workingDirectory`,
+`urlAuth` and `waitForCapacity`, plus `name` to name the created
 Sprite or `spriteName` to wrap an existing one, which it then never deletes. Use the create
 and resume functions for new code.
 
