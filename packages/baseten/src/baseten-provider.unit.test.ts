@@ -653,7 +653,7 @@ describe('BasetenProvider', () => {
       });
 
       expect(fetchMock.mock.calls[0][1].headers['user-agent']).toContain(
-        'ai-sdk/baseten/0.0.0-test',
+        'ai-sdk-baseten/0.0.0-test',
       );
     });
   });

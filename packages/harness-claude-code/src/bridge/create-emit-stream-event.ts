@@ -21,6 +21,10 @@ export type ClaudeMessage = {
   event?: {
     type?: string;
     index?: number;
+    usage?: Record<string, unknown>;
+    message?: {
+      usage?: Record<string, unknown>;
+    };
     content_block?: {
       type?: string;
       id?: string;
@@ -34,7 +38,7 @@ export type ClaudeMessage = {
     };
   };
   message?: {
-    content?: ReadonlyArray<MessageBlock>;
+    content?: string | ReadonlyArray<MessageBlock>;
     usage?: Record<string, unknown>;
   };
   result?: string;
@@ -72,7 +76,10 @@ export type ClaudeStreamEventState = {
   partialBlocks: Map<number, PartialBlock>;
   stepUsage: Record<string, unknown> | undefined;
   pendingStepToolUseIds: Set<string>;
+  pendingStepAssistantUsage: Record<string, unknown> | undefined;
+  pendingStepDeltaUsage: Record<string, unknown> | undefined;
   pendingStepUsage: Record<string, unknown> | undefined;
+  pendingResponseUsage: Record<string, unknown> | undefined;
   stepOpen: boolean;
   /*
    * Tool-use ids that originated from the MCP server hosting user-supplied
@@ -97,7 +104,10 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
     partialBlocks: new Map(),
     stepUsage: undefined,
     pendingStepToolUseIds: new Set(),
+    pendingStepAssistantUsage: undefined,
+    pendingStepDeltaUsage: undefined,
     pendingStepUsage: undefined,
+    pendingResponseUsage: undefined,
     stepOpen: false,
     mcpToolUseIds: new Set(),
     externalMcpToolUseIds: new Set(),
@@ -108,6 +118,13 @@ export function createClaudeStreamEventState(): ClaudeStreamEventState {
 
 const UNRECOVERABLE_API_RETRY_STATUSES = new Set([401, 403, 404]);
 const HOST_TOOL_PREFIX = 'mcp__harness-tools__';
+const RAW_TASK_MESSAGE_SUBTYPES = new Set([
+  'background_tasks_changed',
+  'task_started',
+  'task_progress',
+  'task_updated',
+  'task_notification',
+]);
 
 export function isExternalMcpTool(nativeName: string): boolean {
   return (
@@ -210,16 +227,28 @@ export function createEmitStreamEvent({
       return;
     }
 
+    if (
+      type === 'tool_progress' ||
+      (type === 'system' &&
+        msg.subtype != null &&
+        RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype))
+    ) {
+      emit({ type: 'raw', rawValue: msg });
+      return;
+    }
+
     // Messages emitted by a Task-tool subagent carry the parent tool-use id.
-    // They belong to the subagent stream and must not affect the parent step,
-    // including partial stream events that arrive before assistant messages.
+    // Forward them for correlation and nested rendering, but do not map them
+    // into regular stream parts or let them affect the parent step.
     if (msg.parent_tool_use_id != null) {
+      emit({ type: 'raw', rawValue: msg });
       return;
     }
 
     if (type === 'stream_event') {
       handleStreamEvent({
         event: msg.event,
+        message: msg,
         state,
         send: emit,
         toCommonName,
@@ -227,11 +256,12 @@ export function createEmitStreamEvent({
       return;
     }
 
-    if (type === 'assistant' && msg.message?.content) {
-      const usage = mapUsage(msg.message.usage);
+    const messageContent = msg.message?.content;
+    if (type === 'assistant' && Array.isArray(messageContent)) {
+      const usage = toUsageRecord(msg.message?.usage);
       const toolUseIds: string[] = [];
       let opensStep = false;
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_use' &&
           typeof block.id === 'string' &&
@@ -274,19 +304,22 @@ export function createEmitStreamEvent({
       }
       if (opensStep || toolUseIds.length === 0) {
         state.stepOpen = true;
-        if (usage) state.pendingStepUsage = usage;
+        if (usage) {
+          state.pendingStepAssistantUsage = usage;
+          updatePendingStepUsage(state);
+        }
       }
       return;
     }
 
-    if (type === 'user' && msg.message?.content) {
-      const toolResultBlocks = msg.message.content.filter(
+    if (type === 'user' && Array.isArray(messageContent)) {
+      const toolResultBlocks = messageContent.filter(
         block => block.type === 'tool_result',
       );
       const toolUseResult =
         toolResultBlocks.length === 1 ? msg.tool_use_result : undefined;
 
-      for (const block of msg.message.content) {
+      for (const block of messageContent) {
         if (
           block.type === 'tool_result' &&
           typeof block.tool_use_id === 'string'
@@ -360,6 +393,8 @@ export function emitFinishStep({
     usage: usage ?? defaultUsage(),
   });
   state.stepUsage = usage ?? state.stepUsage;
+  state.pendingStepAssistantUsage = undefined;
+  state.pendingStepDeltaUsage = undefined;
   state.pendingStepUsage = undefined;
   state.pendingStepToolUseIds = new Set();
   state.stepOpen = false;
@@ -403,16 +438,53 @@ function formatApiRetryWarning(msg: ClaudeMessage): string {
 
 function handleStreamEvent({
   event,
+  message,
   state,
   send,
   toCommonName,
 }: {
   event: ClaudeMessage['event'] | undefined;
+  message: ClaudeMessage;
   state: ClaudeStreamEventState;
   send: Emit;
   toCommonName: (nativeName: string) => string;
 }): void {
-  if (!event || typeof event.index !== 'number') return;
+  if (!event) return;
+
+  if (event.type === 'message_start') {
+    state.pendingResponseUsage = toUsageRecord(event.message?.usage);
+    return;
+  }
+
+  if (event.type === 'message_delta') {
+    const usage = toUsageRecord(event.usage);
+    if (usage) {
+      state.pendingResponseUsage = mergeNonNullUsage(
+        state.pendingResponseUsage,
+        usage,
+      );
+      state.pendingStepDeltaUsage = mergeNonNullUsage(
+        state.pendingStepDeltaUsage,
+        usage,
+      );
+      updatePendingStepUsage(state);
+    }
+    return;
+  }
+
+  if (event.type === 'message_stop') {
+    send({
+      type: 'raw',
+      rawValue: {
+        ...message,
+        usage: state.pendingResponseUsage ?? {},
+      },
+    });
+    state.pendingResponseUsage = undefined;
+    return;
+  }
+
+  if (typeof event.index !== 'number') return;
   const index = event.index;
   const partialBlocks = state.partialBlocks;
 
@@ -500,6 +572,35 @@ function handleStreamEvent({
       send({ type: 'tool-input-end', id: block.id });
     }
   }
+}
+
+function toUsageRecord(usage: unknown): Record<string, unknown> | undefined {
+  return usage != null && typeof usage === 'object'
+    ? (usage as Record<string, unknown>)
+    : undefined;
+}
+
+function mergeNonNullUsage(
+  current: Record<string, unknown> | undefined,
+  update: Record<string, unknown>,
+): Record<string, unknown> {
+  const merged = { ...current };
+  for (const [key, value] of Object.entries(update)) {
+    if (value != null) {
+      merged[key] = value;
+    }
+  }
+  return merged;
+}
+
+function updatePendingStepUsage(state: ClaudeStreamEventState): void {
+  const assistantUsage = state.pendingStepAssistantUsage;
+  const deltaUsage = state.pendingStepDeltaUsage;
+  state.pendingStepUsage = mapUsage(
+    assistantUsage || deltaUsage
+      ? { ...assistantUsage, ...deltaUsage }
+      : undefined,
+  );
 }
 
 function isTextEntry(entry: unknown): entry is { text?: unknown } {

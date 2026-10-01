@@ -5,7 +5,7 @@ import { print } from '../../lib/print';
 
 run(async () => {
   const result = await generateText({
-    model: anthropic('claude-opus-4-8'),
+    model: anthropic('claude-opus-5-5'),
     allowSystemInMessages: true,
     messages: [
       {

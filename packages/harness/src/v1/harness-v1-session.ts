@@ -11,6 +11,7 @@ import type {
   HarnessV1TurnSettings,
 } from './harness-v1-lifecycle-state';
 import type { HarnessV1StreamPart } from './harness-v1-stream-part';
+import type { HarnessV1Message } from './harness-v1-message';
 import type { HarnessV1BuiltinToolFiltering } from './harness-v1-tool-filtering';
 
 /**
@@ -88,6 +89,15 @@ export type HarnessV1StartOptions = {
    * before `doStart`.
    */
   readonly sessionWorkDir: string;
+};
+
+/**
+ * Result of `HarnessV1Session.doReadHistory`.
+ */
+export type HarnessV1ReadHistoryResult = {
+  readonly messages: ReadonlyArray<HarnessV1Message>;
+  /** Opaque position; pass back as `since` to read only what follows. */
+  readonly cursor: string;
 };
 
 /**
@@ -191,6 +201,34 @@ export type HarnessV1Session = {
    * `customInstructions`, when supported, steer the compaction summary.
    */
   doCompact(customInstructions?: string): PromiseLike<void>;
+
+  /**
+   * Read the conversation history the runtime itself persisted, normalized
+   * to `HarnessV1Message`.
+   *
+   * The session's history can grow outside the harness contract: the same
+   * runtime conversation may be continued interactively (`claude --resume`),
+   * by another process, or before this session attached. Hosts that render a
+   * continuous record of the conversation — not just the turns they drove —
+   * need to read that history back, and the runtime's own store is the only
+   * source that has it. The adapter owns its runtime's persistence format,
+   * so the read belongs here rather than in every host.
+   *
+   * `since` is the `cursor` from a previous read; the result then contains
+   * only messages recorded after it. The cursor is adapter-owned and opaque
+   * to the host.
+   *
+   * Optional capability: adapters that cannot read their runtime's store
+   * omit the method entirely, and the agent surfaces that as
+   * `HarnessCapabilityUnsupportedError`. An adapter that implements it but
+   * cannot reach the store from the current environment (e.g. it lives
+   * inside a remote sandbox) throws `HarnessHistoryUnavailableError`. A
+   * conversation with no recorded messages yet is not an error — it resolves
+   * to an empty `messages` array.
+   */
+  doReadHistory?(options: {
+    readonly since?: string;
+  }): PromiseLike<HarnessV1ReadHistoryResult>;
 
   /**
    * Continue the in-flight turn **without a new user prompt**, returning the

@@ -67,22 +67,24 @@ describe.runIf(runningOnNode)(
       }
     });
 
-    it('observes completion when not running on Node', async () => {
+    it('handles rejected span completion when not running on Node', async () => {
       vi.mocked(isNodeRuntime).mockReturnValue(false);
 
       const completion = Promise.reject(new Error('completion failed'));
       const catchSpy = vi.spyOn(completion, 'catch');
 
-      const context = openTelemetryChannelSpanContext({
-        message,
-        completion,
-      });
+      try {
+        expect(
+          openTelemetryChannelSpanContext({
+            message,
+            completion,
+          }),
+        ).toBeUndefined();
 
-      expect(context).toBeUndefined();
-      expect(catchSpy).toHaveBeenCalledOnce();
-
-      // Prevent the intentionally rejected test promise from leaking
-      await completion.catch(() => {});
+        expect(catchSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        await completion.catch(() => {});
+      }
     });
 
     it('traces through the diagnostics channel when running on Node', async () => {

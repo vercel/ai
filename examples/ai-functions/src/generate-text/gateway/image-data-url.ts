@@ -9,7 +9,7 @@ run(async () => {
   const dataUrl = `data:image/png;base64,${base64Data}`;
 
   const result = await generateText({
-    model: 'xai/grok-4.5',
+    model: 'spacexai/grok-4.7',
     messages: [
       {
         role: 'user',

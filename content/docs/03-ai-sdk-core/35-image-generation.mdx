@@ -96,6 +96,44 @@ const { images } = await generateImage({
 });
 ```
 
+### Checking Image Editing Support
+
+Image model instances can advertise whether they support reference image files
+and masks. Check these capabilities before routing an image editing request:
+
+```ts
+import { openai } from '@ai-sdk/openai';
+
+const model = openai.image('gpt-image-1');
+const needsMask = true;
+
+if ((await model.supportsFileInputs) !== true) {
+  throw new Error(
+    'The selected model does not advertise image editing support.',
+  );
+}
+
+if (needsMask && (await model.supportsMaskInputs) !== true) {
+  throw new Error('The selected model does not advertise mask support.');
+}
+```
+
+`supportsFileInputs` and `supportsMaskInputs` can be `true`, `false`, or
+`undefined` (unknown), and providers may expose any of these values
+asynchronously. Treat only `true` as confirmed support when selecting a model for an edit. File and mask
+support are separate because some models accept reference images but do not
+accept masks.
+
+These capabilities describe support for the SDK's standardized image and mask
+inputs, including the provider's request mapping. A model name that resembles a
+supported family is not sufficient evidence of support. A model may still require
+provider-specific options or impose limits on input formats and counts.
+
+The AI SDK does not automatically reject editing inputs based on these
+capabilities. Applications can decide whether to reject the request, ask the
+user to choose another model, or use a fallback when support is false or
+unknown.
+
 ### Providing a Seed
 
 You can provide a seed to the `generateImage` function to control the output of the image generation process.
@@ -222,6 +260,8 @@ for (const call of calls) {
 ### Error Handling
 
 When `generateImage` cannot generate a valid image, it throws a [`AI_NoImageGeneratedError`](/docs/reference/ai-sdk-errors/ai-no-image-generated-error).
+Unclassified empty image responses are retried according to `maxRetries` before this error is thrown.
+Providers can classify terminal empty responses, such as moderation blocks, with `isRetryable: false`; these responses are not retried.
 
 This error occurs when the AI provider fails to generate an image. It can arise due to the following reasons:
 
@@ -284,7 +324,7 @@ const { image } = await generateImage({
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.5-flash-image` support multi-modal outputs including images.
+Some language models such as Google `gemini-3.1-flash-image-preview` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -292,7 +332,7 @@ import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: google('gemini-2.5-flash-image'),
+  model: google('gemini-3.1-flash-image-preview'),
   prompt: 'Generate an image of a comic cat',
 });
 
@@ -312,6 +352,8 @@ for (const file of result.files) {
 | Provider                                                                        | Model                                                        | Support sizes (`width x height`) or aspect ratios (`width : height`)                                                                                                |
 | ------------------------------------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [xAI Grok](/providers/ai-sdk-providers/xai#image-models)                        | `grok-imagine-image`                                         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                                                         |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2.5-flare`                                        | 1024x1024, 1536x1024, 1024x1536, custom                                                                                                                             |
+| [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2.5-sunburst`                                     | 1024x1024, 1536x1024, 1024x1536, custom                                                                                                                             |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `gpt-image-2`                                                | 1024x1024, 1536x1024, 1024x1536                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-3`                                                   | 1024x1024, 1792x1024, 1024x1792                                                                                                                                     |
 | [OpenAI](/providers/ai-sdk-providers/openai#image-models)                       | `dall-e-2`                                                   | 256x256, 512x512, 1024x1024                                                                                                                                         |

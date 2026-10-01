@@ -7,10 +7,10 @@ import { withSpinner } from '../../lib/spinner';
 
 run(async () => {
   const { video } = await withSpinner(
-    'Generating xAI reference-to-video with grok-imagine-video...',
+    'Generating xAI reference-to-video with grok-imagine-video-1.5...',
     () =>
       generateVideo({
-        model: xai.video('grok-imagine-video'),
+        model: xai.video('grok-imagine-video-1.5'),
         prompt:
           '<IMAGE_1> and <IMAGE_2> ' +
           'are having a playful chase through a sunlit park. ' +

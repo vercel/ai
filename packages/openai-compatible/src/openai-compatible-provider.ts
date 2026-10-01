@@ -92,6 +92,14 @@ export interface OpenAICompatibleProviderSettings {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether chat models support multi-part content in tool results.
+   *
+   * Enable this for providers that extend the OpenAI Chat Completions API with
+   * structured tool-result content. Defaults to `false`.
+   */
+  supportsMultiPartToolContent?: boolean;
+
+  /**
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
@@ -149,7 +157,7 @@ export function createOpenAICompatible<
   };
 
   const getHeaders = () =>
-    withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION}`);
+    withUserAgentSuffix(headers, `ai-sdk-openai-compatible/${VERSION}`);
 
   const getCommonModelConfig = (modelType: string): CommonModelConfig => ({
     provider: `${providerName}.${modelType}`,
@@ -172,6 +180,7 @@ export function createOpenAICompatible<
       ...getCommonModelConfig('chat'),
       includeUsage: options.includeUsage,
       supportsStructuredOutputs: options.supportsStructuredOutputs,
+      supportsMultiPartToolContent: options.supportsMultiPartToolContent,
       supportedUrls: options.supportedUrls,
       transformRequestBody: options.transformRequestBody,
       metadataExtractor: options.metadataExtractor,

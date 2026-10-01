@@ -1,5 +1,6 @@
 export * from '../google-language-model';
 export * from '../google-speech-model';
+export { getGoogleSpeechInput } from '../google-speech-input';
 export { googleTools } from '../google-tools';
 export type { GoogleModelId } from '../google-language-model-options';
 export {

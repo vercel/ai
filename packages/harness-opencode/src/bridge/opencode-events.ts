@@ -114,7 +114,6 @@ export function getOpenCodeEventSessionId(
   const part = props.part;
   const partObject = asOpenCodeObject(part);
   if (typeof partObject?.sessionID === 'string') return partObject.sessionID;
-  return undefined;
 }
 
 export function isStepSettlementEvent(event: OpenCodeEvent): boolean {

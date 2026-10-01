@@ -4,6 +4,7 @@ export type OpenAILanguageModelCapabilities = {
   supportsFlexProcessing: boolean;
   supportsPriorityProcessing: boolean;
   supportsConfigurationUpdate: boolean;
+  supportsAsyncToolCalling: boolean;
   supportedReasoningEfforts: readonly string[] | undefined;
 
   /**
@@ -22,6 +23,8 @@ export function getOpenAILanguageModelCapabilities(
     (gptVersion?.variant?.startsWith('chat') ?? false);
   const isGptNanoModel = gptVersion?.variant?.startsWith('nano') ?? false;
   const isGpt6OrLaterModel = gptVersion != null && gptVersion.major >= 6;
+
+  const isGpt6SolOrLuna = modelId === 'gpt-6-sol' || modelId === 'gpt-6-luna';
 
   const supportsFlexProcessing =
     (oSeriesVersion != null && oSeriesVersion >= 3) ||
@@ -55,9 +58,12 @@ export function getOpenAILanguageModelCapabilities(
     supportsFlexProcessing,
     supportsPriorityProcessing,
     supportsConfigurationUpdate: isGpt6OrLaterModel,
-    supportedReasoningEfforts: isGpt6OrLaterModel
-      ? ['low', 'medium', 'high', 'xhigh', 'max']
-      : undefined,
+    supportsAsyncToolCalling: isGpt6OrLaterModel,
+    supportedReasoningEfforts: isGpt6SolOrLuna
+      ? ['none', 'low', 'medium', 'high', 'xhigh', 'max']
+      : isGpt6OrLaterModel
+        ? ['low', 'medium', 'high', 'xhigh', 'max']
+        : undefined,
     isReasoningModel,
     systemMessageMode,
     supportsNonReasoningParameters,

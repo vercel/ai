@@ -12,7 +12,10 @@ const closeHolder: { fire?: (code: number, reason: string) => void } = {};
 const sentMessages: unknown[] = [];
 const channelMocks = vi.hoisted(() => ({
   connectOnOpen: false,
-  connects: [] as Array<() => Promise<unknown>>,
+  connects: [] as Array<
+    (options: { abortSignal: AbortSignal }) => Promise<unknown>
+  >,
+  reconnects: [] as Array<unknown>,
 }));
 const webSocketMocks = vi.hoisted(() => {
   type Listener = (...args: unknown[]) => void;
@@ -60,12 +63,21 @@ vi.mock('ws', () => ({ WebSocket: webSocketMocks.WebSocket }));
 vi.mock('@ai-sdk/harness/utils', async importOriginal => {
   const actual = await importOriginal<typeof HarnessUtils>();
   class FakeSandboxChannel {
-    constructor({ connect }: { connect: () => Promise<unknown> }) {
+    constructor({
+      connect,
+      reconnect,
+    }: {
+      connect: (options: { abortSignal: AbortSignal }) => Promise<unknown>;
+      reconnect?: unknown;
+    }) {
       channelMocks.connects.push(connect);
+      channelMocks.reconnects.push(reconnect);
     }
     async open(): Promise<void> {
       if (channelMocks.connectOnOpen) {
-        await channelMocks.connects.at(-1)!();
+        await channelMocks.connects.at(-1)!({
+          abortSignal: new AbortController().signal,
+        });
       }
     }
     on(): () => void {
@@ -184,6 +196,7 @@ describe('createDeepAgents', () => {
   beforeEach(() => {
     channelMocks.connectOnOpen = false;
     channelMocks.connects.length = 0;
+    channelMocks.reconnects.length = 0;
     webSocketMocks.calls.length = 0;
   });
 
@@ -221,8 +234,8 @@ describe('createDeepAgents', () => {
   });
 
   it('shares the getter across configured harness instances', () => {
-    const first = createDeepAgents({ model: 'first-model' });
-    const second = createDeepAgents({ model: 'second-model' });
+    const first = createDeepAgents({ effort: 'low' });
+    const second = createDeepAgents({ effort: 'high' });
 
     expect(first.getBootstrap).toBe(second.getBootstrap);
   });
@@ -235,7 +248,7 @@ describe('createDeepAgents', () => {
   it('passes the harness client app to the bridge environment', async () => {
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
     const spawns: string[] = [];
-    const harness = createDeepAgents({ model: 'legacy-model' });
+    const harness = createDeepAgents();
     const session = await harness.doStart({
       sessionId: 'test-session',
       sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
@@ -243,14 +256,14 @@ describe('createDeepAgents', () => {
     } as unknown as Parameters<typeof harness.doStart>[0]);
 
     expect(spawnEnvs.at(0)?.AI_SDK_HARNESS_CLIENT_APP).toBe(
-      'ai-sdk/harness-deepagents/0.0.0-test',
+      'ai-sdk-harness-deepagents/0.0.0-test',
     );
     expect(spawnEnvs.at(0)?.BRIDGE_CHANNEL_TOKEN).toMatch(/^[a-f0-9]{64}$/);
     expect(spawns.at(0)).toContain(
-      "node '/vercel/sandbox/.harness-bootstrap/deepagents/bridge.mjs'",
+      "node '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents/bridge.mjs'",
     );
     expect(spawns.at(0)).toContain(
-      "--bootstrap-dir '/vercel/sandbox/.harness-bootstrap/deepagents'",
+      "--bootstrap-dir '/home/vercel-sandbox/.ai-sdk-harness/.harness-bootstrap/deepagents'",
     );
     const control = await session.doPromptTurn({
       model: 'agent-model',
@@ -392,6 +405,54 @@ describe('createDeepAgents', () => {
     await session.doDestroy();
   });
 
+  it('adds a Gateway placeholder when resuming Anthropic authentication', async () => {
+    const spawnEnvs: Array<Record<string, string | undefined>> = [];
+    const addRequestTransformations = vi.fn(async () => {});
+    const sandboxSession = fakeSandboxSession({ spawnEnvs });
+    Object.assign(sandboxSession, { addRequestTransformations });
+    const harness = createDeepAgents({
+      auth: { AI_GATEWAY_API_KEY: 'current-gateway-secret' },
+    });
+    const session = await harness.doStart({
+      sessionId: 'test-session',
+      sandboxSession,
+      sessionWorkDir: '/vercel/sandbox/deepagents-test-session',
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'deepagents',
+        specificationVersion: 'harness-v1',
+        data: {
+          sandboxCredentialEnvironment: {
+            ANTHROPIC_API_KEY: 'saved-anthropic-placeholder',
+          },
+        },
+      },
+    } as Parameters<typeof harness.doStart>[0]);
+
+    expect(spawnEnvs[0]?.ANTHROPIC_API_KEY).toBe('saved-anthropic-placeholder');
+    expect(spawnEnvs[0]?.AI_GATEWAY_API_KEY).toMatch(
+      /^aisdkhc_[A-Za-z0-9_-]{43}$/,
+    );
+    expect(JSON.stringify(spawnEnvs[0])).not.toContain(
+      'current-gateway-secret',
+    );
+    expect(addRequestTransformations).toHaveBeenCalledWith([
+      {
+        match: {
+          host: 'ai-gateway.vercel.sh',
+          headers: [
+            {
+              key: { exact: 'x-api-key' },
+              value: { exact: 'saved-anthropic-placeholder' },
+            },
+          ],
+        },
+        transform: { headers: { 'x-api-key': 'current-gateway-secret' } },
+      },
+    ]);
+    await session.doDestroy();
+  });
+
   it('customizes real credentials when request transformations are unavailable', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const spawnEnvs: Array<Record<string, string | undefined>> = [];
@@ -520,7 +581,16 @@ describe('createDeepAgents', () => {
       url: 'wss://sandbox.example/bridge?existing=value',
       headers: { 'E2B-Traffic-Access-Token': 'traffic-token' },
     };
-    const harness = createDeepAgents({ mintBridgeToken, portEndpoint });
+    const reconnect = {
+      maxElapsedMs: 120_000,
+      initialDelayMs: 100,
+      maxDelayMs: 5_000,
+    };
+    const harness = createDeepAgents({
+      mintBridgeToken,
+      portEndpoint,
+      reconnect,
+    });
     const sandboxSession = fakeSandboxSession({
       spawnEnvs,
       bridgePortEndpoint: { url: 'ws://unused.example' },
@@ -548,6 +618,7 @@ describe('createDeepAgents', () => {
       resumeFrom,
     });
     expect(mintBridgeToken).toHaveBeenCalledTimes(1);
+    expect(channelMocks.reconnects).toEqual([reconnect, reconnect]);
     expect(webSocketMocks.calls).toEqual([
       {
         url: 'wss://sandbox.example/bridge?existing=value&agent_bridge_token=token-for-test-sandbox',

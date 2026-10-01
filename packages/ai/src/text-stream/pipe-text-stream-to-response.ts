@@ -29,11 +29,9 @@ export function pipeTextStreamToResponse({
     response,
     status,
     statusText,
-    headers: Object.fromEntries(
-      prepareHeaders(headers, {
-        'content-type': 'text/plain; charset=utf-8',
-      }).entries(),
-    ),
+    headers: prepareHeaders(headers, {
+      'content-type': 'text/plain; charset=utf-8',
+    }),
     stream: stream.pipeThrough(new TextEncoderStream()),
   });
 }

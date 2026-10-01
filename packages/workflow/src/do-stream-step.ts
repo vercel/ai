@@ -3,12 +3,14 @@ import type {
   LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
   LanguageModelV4Source,
+  LanguageModelV4StreamPart,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
+import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
+  wrapLanguageModel,
   type Experimental_LanguageModelStreamPart,
   type FinishReason,
   type LanguageModel,
@@ -20,7 +22,7 @@ import {
   type ToolSet,
 } from 'ai';
 import { prepareRetries } from 'ai/internal';
-import type { ProviderOptions } from './workflow-agent.js';
+import type { ProviderOptions, StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
@@ -46,6 +48,8 @@ export interface ProviderExecutedToolResult {
   toolName: string;
   result: unknown;
   isError?: boolean;
+  dynamic?: boolean;
+  providerMetadata?: SharedV4ProviderMetadata;
 }
 
 /**
@@ -70,6 +74,9 @@ export interface DoStreamStepOptions {
   includeRawChunks?: boolean;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
+  experimental_transform?:
+    | StreamTextTransform<ToolSet>
+    | Array<StreamTextTransform<ToolSet>>;
 }
 
 /**
@@ -106,6 +113,10 @@ export type DoStreamStepRawContentPart =
       providerMetadata?: SharedV4ProviderMetadata;
     }
   | {
+      type: 'reasoning';
+      reasoningIndex: number;
+    }
+  | {
       type: 'file';
       data: string;
       mediaType: string;
@@ -115,6 +126,10 @@ export type DoStreamStepRawContentPart =
   | {
       type: 'tool-call';
       toolCallIndex: number;
+    }
+  | {
+      type: 'provider-tool-result';
+      toolCallId: string;
     };
 
 /**
@@ -139,7 +154,10 @@ export type ToolInputLifecycleEvent =
  */
 export interface DoStreamStepRawResult {
   content: DoStreamStepRawContentPart[];
-  reasoning: Array<{ text: string }>;
+  reasoning: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
   responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
   warnings?: unknown[];
 }
@@ -188,7 +206,7 @@ export async function doStreamStep(
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
 
   // Resolve model inside step (must happen here for serialization boundary)
-  const model: LanguageModel =
+  const model =
     typeof modelInit === 'string'
       ? gateway.languageModel(modelInit)
       : modelInit;
@@ -200,6 +218,27 @@ export async function doStreamStep(
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
+  const modelWithTransforms =
+    options?.experimental_transform == null
+      ? model
+      : wrapLanguageModel({
+          model,
+          middleware: {
+            specificationVersion: 'v4',
+            wrapStream: async ({ doStream }) => {
+              const { stream, ...result } = await doStream();
+
+              return {
+                ...result,
+                stream: applyStreamTransforms({
+                  stream,
+                  transforms: asArray(options.experimental_transform!),
+                  tools: tools ?? {},
+                }),
+              };
+            },
+          },
+        });
 
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
@@ -234,7 +273,7 @@ export async function doStreamStep(
     try {
       const { stream } = await retry(() =>
         streamModelCall({
-          model,
+          model: modelWithTransforms,
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
@@ -285,7 +324,11 @@ export async function doStreamStep(
   // Minimal aggregation — only what buildStepResult needs outside the step.
   const content: DoStreamStepRawContentPart[] = [];
   const textPartIndexes = new Map<string, number>();
-  const reasoningParts: Array<{ text: string }> = [];
+  const reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }> = [];
+  const reasoningPartIndexes = new Map<string, number>();
   let responseMetadata:
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
@@ -351,8 +394,34 @@ export async function doStreamStep(
           });
           textPartIndexes.delete(part.id);
           break;
+        case 'reasoning-start':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
         case 'reasoning-delta':
-          reasoningParts.push({ text: part.text });
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            textDelta: part.text,
+            providerMetadata: part.providerMetadata,
+          });
+          break;
+        case 'reasoning-end':
+          upsertReasoningContentPart({
+            content,
+            reasoningParts,
+            reasoningPartIndexes,
+            id: part.id,
+            providerMetadata: part.providerMetadata,
+          });
+          reasoningPartIndexes.delete(part.id);
           break;
         case 'file':
           content.push({
@@ -407,6 +476,12 @@ export async function doStreamStep(
               toolName: part.toolName,
               result: part.output,
               isError: false,
+              dynamic: part.dynamic,
+              providerMetadata: part.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: part.toolCallId,
             });
           }
           break;
@@ -420,6 +495,12 @@ export async function doStreamStep(
               toolName: errorPart.toolName,
               result: errorPart.error,
               isError: true,
+              dynamic: errorPart.dynamic,
+              providerMetadata: errorPart.providerMetadata,
+            });
+            content.push({
+              type: 'provider-tool-result',
+              toolCallId: errorPart.toolCallId,
             });
           }
           break;
@@ -501,6 +582,61 @@ export async function doStreamStep(
 // another retry layer around the durable step.
 doStreamStep.maxRetries = 0;
 
+function applyStreamTransforms({
+  stream,
+  transforms,
+  tools,
+}: {
+  stream: ReadableStream<LanguageModelV4StreamPart>;
+  transforms: Array<StreamTextTransform<ToolSet>>;
+  tools: ToolSet;
+}): ReadableStream<LanguageModelV4StreamPart> {
+  const sourceReader = stream.getReader();
+  let stopped = false;
+
+  const stopStream = () => {
+    if (stopped) {
+      return;
+    }
+
+    stopped = true;
+    void sourceReader.cancel().catch(() => {});
+  };
+
+  let transformedStream = new ReadableStream<LanguageModelV4StreamPart>(
+    {
+      async pull(controller) {
+        if (stopped) {
+          controller.close();
+          return;
+        }
+
+        const { done, value } = await sourceReader.read();
+
+        if (done || stopped) {
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(value);
+      },
+      cancel(reason) {
+        stopped = true;
+        return sourceReader.cancel(reason);
+      },
+    },
+    { highWaterMark: 0 },
+  );
+
+  for (const transform of transforms) {
+    transformedStream = transformedStream.pipeThrough(
+      transform({ tools, stopStream }),
+    );
+  }
+
+  return transformedStream;
+}
+
 function upsertTextContentPart({
   content,
   textPartIndexes,
@@ -531,6 +667,47 @@ function upsertTextContentPart({
   if (part.type !== 'text') {
     throw new Error(`Expected text content at index ${partIndex}.`);
   }
+
+  if (textDelta != null) {
+    part.text += textDelta;
+  }
+
+  if (providerMetadata != null) {
+    part.providerMetadata = providerMetadata;
+  }
+}
+
+function upsertReasoningContentPart({
+  content,
+  reasoningParts,
+  reasoningPartIndexes,
+  id,
+  textDelta,
+  providerMetadata,
+}: {
+  content: DoStreamStepRawContentPart[];
+  reasoningParts: Array<{
+    text: string;
+    providerMetadata?: SharedV4ProviderMetadata;
+  }>;
+  reasoningPartIndexes: Map<string, number>;
+  id: string;
+  textDelta?: string;
+  providerMetadata?: SharedV4ProviderMetadata;
+}) {
+  let partIndex = reasoningPartIndexes.get(id);
+
+  if (partIndex == null) {
+    partIndex =
+      reasoningParts.push({
+        text: '',
+        ...(providerMetadata != null ? { providerMetadata } : {}),
+      }) - 1;
+    reasoningPartIndexes.set(id, partIndex);
+    content.push({ type: 'reasoning', reasoningIndex: partIndex });
+  }
+
+  const part = reasoningParts[partIndex];
 
   if (textDelta != null) {
     part.text += textDelta;

@@ -526,6 +526,113 @@ describe('streamTextIterator', () => {
       `);
     });
 
+    it('interleaves provider-executed results while keeping client results in a tool message', async () => {
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [
+              {
+                type: 'tool-call',
+                toolCallId: 'provider-call',
+                toolName: 'providerTool',
+                input: { query: 'docs' },
+                providerExecuted: true,
+              },
+              {
+                type: 'tool-call',
+                toolCallId: 'client-call',
+                toolName: 'clientTool',
+                input: { id: 1 },
+              },
+            ],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                { type: 'tool-call', toolCallIndex: 0 },
+                { type: 'tool-call', toolCallIndex: 1 },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(async prompt => {
+          capturedPrompt = prompt;
+          return createMockDoStreamStepResult();
+        });
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      await iterator.next();
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'provider-call',
+          toolName: 'providerTool',
+          output: {
+            type: 'json',
+            value: [{ toolName: 'clientTool' }],
+          },
+        },
+        {
+          type: 'tool-result',
+          toolCallId: 'client-call',
+          toolName: 'clientTool',
+          output: { type: 'json', value: { result: 'success' } },
+        },
+      ]);
+
+      expect(capturedPrompt).toEqual([
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'test' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              input: { query: 'docs' },
+              providerExecuted: true,
+            },
+            {
+              type: 'tool-result',
+              toolCallId: 'provider-call',
+              toolName: 'providerTool',
+              output: {
+                type: 'json',
+                value: [{ toolName: 'clientTool' }],
+              },
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              input: { id: 1 },
+            },
+          ],
+        },
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'client-call',
+              toolName: 'clientTool',
+              output: { type: 'json', value: { result: 'success' } },
+            },
+          ],
+        },
+      ]);
+    });
+
     it('preserves generated files in the assistant message history', async () => {
       vi.mocked(doStreamStep).mockResolvedValueOnce(
         createMockDoStreamStepResult({
@@ -765,6 +872,112 @@ describe('streamTextIterator', () => {
   });
 
   describe('providerMetadata to providerOptions mapping', () => {
+    it('replays reasoning and provider metadata with tool calls in emission order', async () => {
+      const providerMetadata = {
+        anthropic: { signature: 'reasoning-signature' },
+        openai: { reasoningEncryptedContent: 'encrypted-reasoning' },
+      };
+      let capturedPrompt: LanguageModelV4Prompt | undefined;
+      const toolCall: LanguageModelV4ToolCall = {
+        type: 'tool-call',
+        toolCallId: 'call-1',
+        toolName: 'testTool',
+        input: '{"query":"test"}',
+        providerMetadata: {
+          openai: {
+            itemId: 'function-call-item',
+            reasoningEncryptedContent: 'encrypted-reasoning',
+          },
+        },
+      };
+
+      vi.mocked(doStreamStep)
+        .mockResolvedValueOnce(
+          createMockDoStreamStepResult({
+            toolCalls: [toolCall],
+            finishReason: 'tool-calls',
+            finishRaw: 'tool_calls',
+            rawOverrides: {
+              content: [
+                { type: 'reasoning', reasoningIndex: 0 },
+                { type: 'text', text: 'I will inspect the configuration.' },
+                { type: 'tool-call', toolCallIndex: 0 },
+              ],
+              reasoning: [
+                {
+                  text: 'Inspect the configuration first.',
+                  providerMetadata,
+                },
+              ],
+            },
+          }),
+        )
+        .mockImplementationOnce(
+          async (prompt, _modelInit, _writable, _tools, _options) => {
+            capturedPrompt = prompt;
+            return createMockDoStreamStepResult();
+          },
+        );
+
+      const iterator = streamTextIterator({
+        prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+        tools: {
+          testTool: {
+            description: 'A test tool',
+            execute: async () => ({ result: 'success' }),
+          },
+        } as unknown as ToolSet,
+        writable: createMockWritable(),
+        model: vi.fn() as any,
+      });
+
+      const firstResult = await iterator.next();
+      const firstValue = firstResult.value as StreamTextIteratorYieldValue;
+
+      expect(firstValue.step?.reasoning).toEqual([
+        {
+          type: 'reasoning',
+          text: 'Inspect the configuration first.',
+          providerMetadata,
+        },
+      ]);
+
+      await iterator.next([
+        {
+          type: 'tool-result',
+          toolCallId: 'call-1',
+          toolName: 'testTool',
+          output: { type: 'text', value: '{"result":"success"}' },
+        },
+      ]);
+
+      expect(
+        capturedPrompt?.find(message => message.role === 'assistant'),
+      ).toEqual({
+        role: 'assistant',
+        content: [
+          {
+            type: 'reasoning',
+            text: 'Inspect the configuration first.',
+            providerOptions: providerMetadata,
+          },
+          { type: 'text', text: 'I will inspect the configuration.' },
+          {
+            type: 'tool-call',
+            toolCallId: 'call-1',
+            toolName: 'testTool',
+            input: '{"query":"test"}',
+            providerOptions: {
+              openai: {
+                itemId: 'function-call-item',
+                reasoningEncryptedContent: 'encrypted-reasoning',
+              },
+            },
+          },
+        ],
+      });
+    });
+
     it('should preserve providerMetadata as providerOptions in tool-call messages', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
@@ -1120,13 +1333,12 @@ describe('streamTextIterator', () => {
       expect(toolWithoutMeta?.providerOptions).toBeUndefined();
     });
 
-    it('should strip OpenAI itemId from providerMetadata to avoid reasoning item errors', async () => {
+    it('preserves OpenAI itemId in tool-call provider metadata', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // OpenAI Responses API returns itemId which requires reasoning items we don't preserve
       const toolCallWithOpenAIMetadata: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -1186,18 +1398,20 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // itemId should be stripped, leaving no providerOptions
       expect(toolCallPart).toBeDefined();
-      expect(toolCallPart.providerOptions).toBeUndefined();
+      expect(toolCallPart.providerOptions).toEqual({
+        openai: {
+          itemId: 'fc_0402bf2d292dd7ed00697a35fb10e0819ab0098545c4d0d7f5',
+        },
+      });
     });
 
-    it('should preserve other OpenAI metadata while stripping itemId', async () => {
+    it('preserves all OpenAI tool-call provider metadata fields', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // OpenAI metadata with both itemId (should be stripped) and other fields (should be preserved)
       const toolCallWithMixedOpenAIMetadata: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -1258,22 +1472,21 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // itemId should be stripped, but other fields preserved
       expect(toolCallPart).toBeDefined();
       expect(toolCallPart.providerOptions).toEqual({
         openai: {
+          itemId: 'fc_0402bf2d292dd7ed00697a35fb10e0819ab0098545c4d0d7f5',
           someOtherField: 'should-be-preserved',
         },
       });
     });
 
-    it('should preserve Gemini metadata while stripping OpenAI itemId in mixed provider metadata', async () => {
+    it('preserves mixed provider metadata on tool calls', async () => {
       const mockWritable = createMockWritable();
       const mockModel = vi.fn();
 
       let capturedPrompt: LanguageModelV4Prompt | undefined;
 
-      // Mixed provider metadata - Gemini should be fully preserved, OpenAI itemId stripped
       const toolCallWithMixedProviders: LanguageModelV4ToolCall = {
         type: 'tool-call',
         toolCallId: 'call-1',
@@ -1284,7 +1497,7 @@ describe('streamTextIterator', () => {
             thoughtSignature: 'sig_gemini_preserved',
           },
           openai: {
-            itemId: 'fc_should_be_stripped',
+            itemId: 'fc_should_be_preserved',
           },
         },
       };
@@ -1336,11 +1549,13 @@ describe('streamTextIterator', () => {
         part => part.type === 'tool-call',
       );
 
-      // Gemini metadata should be preserved, OpenAI itemId stripped
       expect(toolCallPart).toBeDefined();
       expect(toolCallPart.providerOptions).toEqual({
         google: {
           thoughtSignature: 'sig_gemini_preserved',
+        },
+        openai: {
+          itemId: 'fc_should_be_preserved',
         },
       });
     });

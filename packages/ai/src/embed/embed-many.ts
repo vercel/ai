@@ -1,17 +1,21 @@
 import { InvalidResponseDataError } from '@ai-sdk/provider';
 import {
   createIdGenerator,
+  type Context,
   withUserAgentSuffix,
   type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { logWarnings } from '../logger/log-warnings';
 import { getEmbeddingModelMaxInputBytesPerCall } from '../model/get-embedding-model-max-input-bytes-per-call';
+import { getEmbeddingModelProviderOptionsTransformer } from '../model/get-embedding-model-provider-options-transformer';
 import { resolveEmbeddingModel } from '../model/resolve-model';
-import { createTelemetryDispatcher } from '../telemetry/create-telemetry-dispatcher';
+import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { Embedding, EmbeddingModel, ProviderMetadata } from '../types';
 import type { Warning } from '../types/warning';
 import type { Callback } from '../util/callback';
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import { notify } from '../util/notify';
 import { prepareRetries } from '../util/prepare-retries';
 import { splitArray } from '../util/split-array';
@@ -39,9 +43,12 @@ const originalGenerateCallId = createIdGenerator({
  * @param abortSignal - An optional abort signal that can be used to cancel the call.
  * @param headers - Additional HTTP headers to be sent with the request. Only applicable for HTTP-based providers.
  *
- * @param maxParallelCalls - Maximum number of concurrent requests. Default: Infinity.
+ * @param maxParallelCalls - Maximum number of concurrent requests when a request is split into
+ * multiple model calls. Must be greater than 0 when the model supports parallel calls.
+ * Default: Infinity.
  *
  * @param telemetry - Optional telemetry configuration.
+ * @param runtimeContext - User-defined runtime context passed to callbacks and, when explicitly included, telemetry.
  *
  * @param providerOptions - Additional provider-specific options. They are passed through
  * to the provider from the AI SDK and enable provider-specific
@@ -49,7 +56,7 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embeddings, the value, and additional information.
  */
-export async function embedMany({
+export async function embedMany<RUNTIME_CONTEXT extends Context = Context>({
   model: modelArg,
   values,
   maxParallelCalls = Infinity,
@@ -59,6 +66,7 @@ export async function embedMany({
   providerOptions,
   experimental_telemetry,
   telemetry = experimental_telemetry,
+  runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
   experimental_onStart,
   onEnd,
@@ -96,14 +104,19 @@ export async function embedMany({
   /**
    * Optional telemetry configuration.
    */
-  telemetry?: TelemetryOptions;
+  telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
 
   /**
    * Optional telemetry configuration.
    *
    * @deprecated Use `telemetry` instead. This alias will be removed in a future major release.
    */
-  experimental_telemetry?: TelemetryOptions;
+  experimental_telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
+
+  /**
+   * User-defined runtime context. Treat runtime context as immutable.
+   */
+  runtimeContext?: RUNTIME_CONTEXT;
 
   /**
    * Additional provider-specific options. They are passed through
@@ -113,7 +126,8 @@ export async function embedMany({
   providerOptions?: ProviderOptions;
 
   /**
-   * Maximum number of concurrent requests.
+   * Maximum number of concurrent requests when a request is split into multiple model calls.
+   * Must be greater than 0 when the model supports parallel calls.
    *
    * @default Infinity
    */
@@ -123,7 +137,7 @@ export async function embedMany({
    * Callback that is called when the embedMany operation begins,
    * before the embedding model is called.
    */
-  onStart?: Callback<EmbedStartEvent>;
+  onStart?: Callback<EmbedStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embedMany operation begins,
@@ -131,13 +145,13 @@ export async function embedMany({
    *
    * @deprecated Use `onStart` instead.
    */
-  experimental_onStart?: Callback<EmbedStartEvent>;
+  experimental_onStart?: Callback<EmbedStartEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embedMany operation completes,
    * after all embedding model calls return.
    */
-  onEnd?: Callback<EmbedEndEvent>;
+  onEnd?: Callback<EmbedEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Callback that is called when the embedMany operation completes,
@@ -145,7 +159,7 @@ export async function embedMany({
    *
    * @deprecated Use `onEnd` instead.
    */
-  experimental_onEnd?: Callback<EmbedEndEvent>;
+  experimental_onEnd?: Callback<EmbedEndEvent<RUNTIME_CONTEXT>>;
 
   /**
    * Internal. For test use only. May change without notice.
@@ -170,7 +184,7 @@ export async function embedMany({
 
   const callId = generateCallId();
 
-  const telemetryDispatcher = createTelemetryDispatcher({
+  const telemetryDispatcher = createRestrictedTelemetryDispatcher({
     telemetry,
   });
 
@@ -182,6 +196,7 @@ export async function embedMany({
   const startEvent = {
     callId,
     operationId: 'ai.embedMany',
+    runtimeContext,
     provider: model.provider,
     modelId: model.modelId,
     value: values,
@@ -277,6 +292,7 @@ export async function embedMany({
             event: {
               callId,
               operationId: 'ai.embedMany',
+              runtimeContext,
               provider: model.provider,
               modelId: model.modelId,
               value: values,
@@ -308,6 +324,8 @@ export async function embedMany({
             ? maxInputBytesPerCall
             : Infinity,
         });
+        const providerOptionsTransformer =
+          getEmbeddingModelProviderOptionsTransformer(model);
 
         const embeddings: Array<Embedding> = [];
         const warnings: Array<Warning> = [];
@@ -326,9 +344,22 @@ export async function embedMany({
           supportsParallelCalls ? maxParallelCalls : 1,
         );
 
+        let nextChunkStartIndex = 0;
         for (const parallelChunk of parallelChunks) {
           const results = await Promise.all(
             parallelChunk.map(async chunk => {
+              // Capture the range before awaiting transformations or retrying.
+              const startIndex = nextChunkStartIndex;
+              nextChunkStartIndex += chunk.length;
+              const chunkProviderOptions = providerOptionsTransformer
+                ? await providerOptionsTransformer({
+                    providerOptions,
+                    values,
+                    startIndex,
+                    endIndex: startIndex + chunk.length,
+                  })
+                : providerOptions;
+
               const result = await retry(async () => {
                 const embedCallId = generateCallId();
 
@@ -348,7 +379,7 @@ export async function embedMany({
                   values: chunk,
                   abortSignal,
                   headers: headersWithUserAgent,
-                  providerOptions,
+                  providerOptions: chunkProviderOptions,
                 });
 
                 const chunkEmbeddings = modelResponse.embeddings;
@@ -398,10 +429,10 @@ export async function embedMany({
                 for (const [providerName, metadata] of Object.entries(
                   result.providerMetadata,
                 )) {
-                  providerMetadata[providerName] = {
-                    ...(providerMetadata[providerName] ?? {}),
+                  setOwn(providerMetadata, providerName, {
+                    ...getOwn(providerMetadata, providerName),
                     ...metadata,
-                  };
+                  });
                 }
               }
             }
@@ -418,6 +449,7 @@ export async function embedMany({
           event: {
             callId,
             operationId: 'ai.embedMany',
+            runtimeContext,
             provider: model.provider,
             modelId: model.modelId,
             value: values,

@@ -19,6 +19,7 @@ import {
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { openaiResponsesSystemMessageOptionsSchema } from './openai-responses-language-model-options';
 import {
   applyPatchInputSchema,
   applyPatchOutputSchema,
@@ -136,6 +137,32 @@ async function convertFunctionToolResultOutput({
               const topLevel = getTopLevelMediaType(item.mediaType);
               const imageDetail =
                 item.providerOptions?.[providerOptionsName]?.imageDetail;
+
+              if (item.data.type === 'reference') {
+                const fileId = resolveProviderReference({
+                  reference: item.data.reference,
+                  provider: providerOptionsName,
+                });
+
+                if (topLevel === 'image') {
+                  return {
+                    type: 'input_image' as const,
+                    file_id: fileId,
+                    detail: imageDetail,
+                    ...(promptCacheBreakpoint != null && {
+                      prompt_cache_breakpoint: promptCacheBreakpoint,
+                    }),
+                  };
+                }
+
+                return {
+                  type: 'input_file' as const,
+                  file_id: fileId,
+                  ...(promptCacheBreakpoint != null && {
+                    prompt_cache_breakpoint: promptCacheBreakpoint,
+                  }),
+                };
+              }
 
               if (item.data.type === 'data') {
                 const fullMediaType = resolveFullMediaType({ part: item });
@@ -341,6 +368,7 @@ export async function convertToOpenAIResponsesInput({
   toolNameMapping,
   systemMessageMode,
   providerOptionsName,
+  explicitMessageItemType = false,
   fileIdPrefixes,
   passThroughUnsupportedFiles = false,
   store,
@@ -353,11 +381,13 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName,
   customProviderToolNames,
   outputSchemaToolNames,
+  configurationUpdateUnsupportedReason,
 }: {
   prompt: LanguageModelV4Prompt;
   toolNameMapping: ToolNameMapping;
   systemMessageMode: 'system' | 'developer' | 'remove';
   providerOptionsName: string;
+  explicitMessageItemType?: boolean;
   /** @deprecated Use provider references instead. */
   fileIdPrefixes?: readonly string[];
   passThroughUnsupportedFiles?: boolean;
@@ -371,6 +401,7 @@ export async function convertToOpenAIResponsesInput({
   toolSearchToolName?: string;
   customProviderToolNames?: Set<string>;
   outputSchemaToolNames?: Set<string>;
+  configurationUpdateUnsupportedReason?: string;
 }): Promise<{
   input: OpenAIResponsesInput;
   warnings: Array<SharedV4Warning>;
@@ -378,6 +409,7 @@ export async function convertToOpenAIResponsesInput({
   let input: OpenAIResponsesInput = [];
   const warnings: Array<SharedV4Warning> = [];
   const processedApprovalIds = new Set<string>();
+  const programmaticToolCallIds = new Set<string>();
   const parallelToolResultGroups =
     hasConversation || hasPreviousResponseId
       ? collectCompleteParallelToolResultGroups({
@@ -391,6 +423,42 @@ export async function convertToOpenAIResponsesInput({
   for (const { role, content, providerOptions } of prompt) {
     switch (role) {
       case 'system': {
+        // Keep effort updates at their original positions so they apply to
+        // the same parts of the conversation when the history is sent again.
+        let options = await parseProviderOptions({
+          provider: providerOptionsName,
+          providerOptions,
+          schema: openaiResponsesSystemMessageOptionsSchema,
+        });
+        if (options == null && providerOptionsName !== 'openai') {
+          options = await parseProviderOptions({
+            provider: 'openai',
+            providerOptions,
+            schema: openaiResponsesSystemMessageOptionsSchema,
+          });
+        }
+        const effort = options?.reasoningEffortUpdate;
+        if (effort != null) {
+          const unsupportedReason =
+            content !== ''
+              ? 'Message-level reasoningEffortUpdate requires empty system message content.'
+              : configurationUpdateUnsupportedReason;
+
+          if (unsupportedReason != null) {
+            throw new UnsupportedFunctionalityError({
+              functionality: 'Message-level reasoningEffortUpdate',
+              message: unsupportedReason,
+            });
+          }
+
+          input.push({
+            type: 'configuration_update',
+            reasoning: { effort },
+          });
+          // The control is independent of systemMessageMode's text handling.
+          break;
+        }
+
         switch (systemMessageMode) {
           case 'system': {
             const promptCacheBreakpoint = getPromptCacheBreakpoint(
@@ -398,6 +466,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'system',
               content:
                 promptCacheBreakpoint == null
@@ -418,6 +487,7 @@ export async function convertToOpenAIResponsesInput({
               providerOptionsName,
             );
             input.push({
+              ...(explicitMessageItemType && { type: 'message' as const }),
               role: 'developer',
               content:
                 promptCacheBreakpoint == null
@@ -451,6 +521,7 @@ export async function convertToOpenAIResponsesInput({
 
       case 'user': {
         input.push({
+          ...(explicitMessageItemType && { type: 'message' as const }),
           role: 'user',
           content: content.map((part, index) => {
             switch (part.type) {
@@ -603,9 +674,9 @@ export async function convertToOpenAIResponsesInput({
               }
 
               input.push({
+                ...(explicitMessageItemType && { type: 'message' as const }),
                 role: 'assistant',
-                content: [{ type: 'output_text', text: part.text }],
-                id,
+                content: part.text,
                 ...(phase != null && { phase }),
               });
 
@@ -677,11 +748,26 @@ export async function convertToOpenAIResponsesInput({
                 ).providerMetadata?.[providerOptionsName]?.namespace) as
                 | string
                 | undefined;
+              const isAsync = (part.providerOptions?.[providerOptionsName]
+                ?.async ??
+                (
+                  part as {
+                    providerMetadata?: {
+                      [providerOptionsName]?: { async?: boolean };
+                    };
+                  }
+                ).providerMetadata?.[providerOptionsName]?.async) as
+                | boolean
+                | undefined;
               const caller = part.providerOptions?.[providerOptionsName]
                 ?.caller as
                 | { type: 'direct' }
                 | { type: 'program'; callerId: string }
                 | undefined;
+
+              if (caller?.type === 'program') {
+                programmaticToolCallIds.add(part.toolCallId);
+              }
 
               if (hasConversation && id != null) {
                 break;
@@ -904,6 +990,7 @@ export async function convertToOpenAIResponsesInput({
                     typeof part.input === 'string'
                       ? part.input
                       : JSON.stringify(part.input),
+                  ...(isAsync != null && { async: isAsync }),
                   id,
                 });
                 break;
@@ -914,6 +1001,7 @@ export async function convertToOpenAIResponsesInput({
                 call_id: part.toolCallId,
                 name: resolvedToolName,
                 arguments: serializeToolCallArguments(part.input),
+                ...(isAsync != null && { async: isAsync }),
                 ...(namespace != null && { namespace }),
                 ...(caller != null && {
                   caller: mapToolCaller(caller),
@@ -1555,6 +1643,23 @@ export async function convertToOpenAIResponsesInput({
             continue;
           }
 
+          const resultCaller = part.providerOptions?.[providerOptionsName]
+            ?.caller as
+            | { type: 'direct' }
+            | { type: 'program'; callerId: string }
+            | undefined;
+
+          if (
+            output.type === 'execution-denied' &&
+            (resultCaller?.type === 'program' ||
+              programmaticToolCallIds.has(part.toolCallId))
+          ) {
+            throw new UnsupportedFunctionalityError({
+              functionality:
+                'execution-denied results for programmatic tool calls',
+            });
+          }
+
           const contentValue = await convertFunctionToolResultOutput({
             output,
             toolName: part.toolName,
@@ -1568,12 +1673,7 @@ export async function convertToOpenAIResponsesInput({
             warnings,
           });
 
-          const caller = mapToolCaller(
-            part.providerOptions?.[providerOptionsName]?.caller as
-              | { type: 'direct' }
-              | { type: 'program'; callerId: string }
-              | undefined,
-          );
+          const caller = mapToolCaller(resultCaller);
 
           input.push({
             type: 'function_call_output',

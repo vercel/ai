@@ -17,7 +17,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: tool({
@@ -71,7 +71,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'LanguageModel',
       isRequired: true,
       description:
-        "The language model to use. A string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-sonnet-4-6') or a provider instance (e.g., `openai('gpt-4o')`).",
+        "The language model to use. A string compatible with the Vercel AI Gateway (e.g., 'anthropic/claude-sonnet-5.5') or a provider instance (e.g., `openai('gpt-6-astra')`).",
     },
     {
       name: 'instructions',
@@ -120,7 +120,7 @@ To see `WorkflowAgent` in action, check out [these examples](#examples).
       type: 'ToolCallRepairFunction',
       isOptional: true,
       description:
-        'Default function to repair tool calls that fail to parse. Per-stream values override this default.',
+        "Default function to repair tool calls that fail to parse. Mark the function with 'use step' when used in a workflow. Per-stream values override this default.",
     },
     {
       name: 'experimental_download',
@@ -573,13 +573,13 @@ const result = await agent.stream({
       name: 'repairToolCall',
       type: 'ToolCallRepairFunction',
       isOptional: true,
-      description: 'Callback to attempt automatic recovery when a tool call cannot be parsed.',
+      description: "Callback to attempt automatic recovery when a tool call cannot be parsed. Mark the function with 'use step' when used in a workflow.",
     },
     {
       name: 'experimental_transform',
       type: 'StreamTextTransform | Array<StreamTextTransform>',
       isOptional: true,
-      description: 'Stream transformations applied in order. Must maintain the stream structure.',
+      description: "Factories for stream transformations, applied in order to raw provider events before model processing and writable output. Each factory must return a TransformStream synchronously and maintain the stream structure. Mark each factory with 'use step' when used in a workflow.",
     },
     {
       name: 'experimental_download',
@@ -750,6 +750,63 @@ Returns a `Promise<WorkflowAgentStreamResult>` with the following properties:
   ]}
 />
 
+### `repairToolCall` in a workflow
+
+`repairToolCall` runs inside the model step. When you use it in a workflow,
+define the callback as a function with a `'use step'` directive. You can set
+it on the constructor or pass it to `stream()`.
+
+Workflow saves a reference to the registered function and loads its
+implementation inside the model step. Keep any values captured by the
+function serializable. An ordinary inline callback causes a serialization
+error when it crosses this step boundary.
+
+The callback can be asynchronous. Return the repaired tool call, or `null`
+if the repair cannot be completed. See [tool call repair](/docs/ai-sdk-core/tools-and-tool-calling#tool-call-repair)
+for repair strategies.
+
+### `experimental_transform` in a workflow
+
+Pass a transform factory, or an array of factories, to `stream()`.
+Mark each factory with `'use step'` so Workflow can load it inside the model
+step. The factory must return a `TransformStream` synchronously. Keep any
+captured values serializable.
+
+```ts
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import { WorkflowAgent } from '@ai-sdk/workflow';
+import { getWritable } from 'workflow';
+
+function uppercaseText() {
+  'use step';
+
+  return new TransformStream<
+    LanguageModelV4StreamPart,
+    LanguageModelV4StreamPart
+  >({
+    transform(part, controller) {
+      controller.enqueue(
+        part.type === 'text-delta'
+          ? { ...part, delta: part.delta.toUpperCase() }
+          : part,
+      );
+    },
+  });
+}
+
+export async function uppercaseWorkflow() {
+  'use workflow';
+
+  const agent = new WorkflowAgent({ model: 'openai/gpt-5' });
+
+  return agent.stream({
+    messages: [{ role: 'user', content: 'Write a short greeting.' }],
+    writable: getWritable(),
+    experimental_transform: uppercaseText,
+  });
+}
+```
+
 ## Utilities
 
 ### `createModelCallToUIChunkTransform(options?)`
@@ -808,7 +865,7 @@ Infers the UI message type for a `WorkflowAgent` instance. Optionally accepts a 
 import { WorkflowAgent, InferWorkflowAgentUIMessage } from '@ai-sdk/workflow';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
   tools: { weather: weatherTool },
 });
 
@@ -835,7 +892,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
   instructions: 'You are a helpful assistant.',
   tools: {
     weather: tool({
@@ -890,7 +947,7 @@ export async function chat(messages: UIMessage[]) {
   const modelMessages = await convertToModelMessages(messages);
 
   const agent = new WorkflowAgent({
-    model: 'anthropic/claude-sonnet-4-6',
+    model: 'anthropic/claude-sonnet-5.5',
     instructions: 'You are a flight booking assistant.',
     tools: {
       searchFlights: tool({
@@ -937,7 +994,7 @@ import { WorkflowAgent, Output } from '@ai-sdk/workflow';
 import { z } from 'zod';
 
 const analysisAgent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
 });
 
 const result = await analysisAgent.stream({
@@ -977,7 +1034,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
   experimental_toolApprovalSecret: {
     environmentVariable: 'TOOL_APPROVAL_SECRET',
   },
@@ -1009,7 +1066,7 @@ serialize it. A stream-level reference overrides the constructor value.
 import { WorkflowAgent } from '@ai-sdk/workflow';
 
 const agent = new WorkflowAgent({
-  model: 'anthropic/claude-sonnet-4-6',
+  model: 'anthropic/claude-sonnet-5.5',
   tools: { weather: weatherTool },
 
   // Agent-wide callbacks
@@ -1022,7 +1079,7 @@ const result = await agent.stream({
   messages,
 
   // Per-call callbacks (both fire)
-  onStepEnd({ usage }) {
+  async onStepEnd({ usage }) {
     await trackUsage(usage);
   },
 

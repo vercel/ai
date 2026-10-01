@@ -3,7 +3,7 @@ import 'dotenv/config';
 
 async function main() {
   const result = streamText({
-    model: 'openai/gpt-5-nano',
+    model: 'openai/gpt-5.4-nano',
     prompt:
       'Who leads the Premier League, and how did the top teams do this weekend?',
     tools: {

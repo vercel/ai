@@ -20,6 +20,7 @@ import type {
   InferUIMessageTools,
   InferUITools,
   UIMessage,
+  UIDataTypes,
 } from '../ui/ui-messages';
 import { validateUIMessagesForAgent } from '../ui/validate-ui-messages';
 import {
@@ -33,6 +34,7 @@ import type { Agent } from './agent';
  *
  * @param agent - The agent to run.
  * @param uiMessages - The input UI messages.
+ * @param convertDataPart - Optional function to convert custom data parts to text or file model message parts.
  * @param abortSignal - The abort signal. Optional.
  * @param timeout - Timeout in milliseconds. Optional.
  * @param experimental_sandbox - The sandbox environment that is passed through to tool execution. Optional.
@@ -49,11 +51,15 @@ export async function createAgentUIStream<
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
   MESSAGE_METADATA = unknown,
-  UI_MESSAGE extends UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>> =
-    UIMessage<MESSAGE_METADATA, never, InferUITools<TOOLS>>,
+  UI_MESSAGE extends UIMessage<
+    MESSAGE_METADATA,
+    UIDataTypes,
+    InferUITools<TOOLS>
+  > = UIMessage<MESSAGE_METADATA, UIDataTypes, InferUITools<TOOLS>>,
 >({
   agent,
   uiMessages,
+  convertDataPart,
   options,
   abortSignal,
   timeout,
@@ -65,6 +71,13 @@ export async function createAgentUIStream<
 }: {
   agent: Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>;
   uiMessages: unknown[];
+  /**
+   * Converts custom UI data parts to text or file model message parts.
+   * Data parts are ignored when omitted or when the callback returns undefined.
+   */
+  convertDataPart?: NonNullable<
+    Parameters<typeof convertToModelMessages<UI_MESSAGE>>[1]
+  >['convertDataPart'];
   abortSignal?: AbortSignal;
   timeout?: TimeoutConfiguration<TOOLS>;
   experimental_sandbox?: SandboxSession;
@@ -91,6 +104,7 @@ export async function createAgentUIStream<
 
   const modelMessages = await convertToModelMessages(validatedMessages, {
     tools: agent.tools,
+    convertDataPart,
   });
 
   const result = await agent.stream({
