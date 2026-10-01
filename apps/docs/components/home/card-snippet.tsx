@@ -5,12 +5,11 @@ import { IconCopy } from '@vercel/geistdocs/assets/icons/icon-copy';
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * Install snippet that is safe to render inside a linked card. The copy button
- * sits inside the card's anchor, so its click would otherwise follow the href;
- * cancelling in the capture phase keeps copying from navigating. The
- * `data-card-snippet` attribute lets the card skip its hover state while the
- * pointer is on the snippet. Pass `label` to show a caption (e.g. "Copy install
- * prompt") instead of the `$ command` that gets copied.
+ * Install snippet that is safe to render inside a linked card. The snippet is
+ * one large copy button, and cancelling its click keeps the card from opening.
+ * The `data-card-snippet` attribute lets the card skip its hover state while
+ * the pointer is on the snippet. Pass `label` to show a caption (e.g. "Copy
+ * install prompt") instead of the `$ command` that gets copied.
  */
 export function CardSnippet({ text, label }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -29,13 +28,15 @@ export function CardSnippet({ text, label }: { text: string; label?: string }) {
   };
 
   return (
-    <div
-      className="relative w-full rounded-md border border-gray-alpha-400 bg-background-100 py-[10px] pr-12 pl-3 font-mono text-copy-13 leading-5 text-gray-1000"
+    <button
+      aria-label={copied ? 'Copied' : (label ?? `Copy ${text}`)}
+      className="relative w-full rounded-md border border-gray-alpha-400 bg-background-100 py-[10px] pr-12 pl-3 text-left font-mono text-copy-13 leading-5 text-gray-1000 transition-colors hover:bg-gray-alpha-100"
       data-card-snippet
-      onClickCapture={event => event.preventDefault()}
-      onKeyDownCapture={event => {
-        if (event.key === 'Enter' || event.key === ' ') event.preventDefault();
+      onClick={event => {
+        event.preventDefault();
+        void copy();
       }}
+      type="button"
     >
       {label ?? (
         <>
@@ -43,14 +44,9 @@ export function CardSnippet({ text, label }: { text: string; label?: string }) {
           {text}
         </>
       )}
-      <button
-        aria-label={copied ? 'Copied' : (label ?? `Copy ${text}`)}
-        className="absolute top-1/2 right-1 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-gray-1000 transition-colors hover:bg-gray-alpha-100"
-        onClick={copy}
-        type="button"
-      >
+      <span className="absolute top-1/2 right-1 flex size-8 -translate-y-1/2 items-center justify-center rounded-md text-gray-1000">
         {copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
-      </button>
-    </div>
+      </span>
+    </button>
   );
 }
