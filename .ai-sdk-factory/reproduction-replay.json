@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21916,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21916-resume-approved-tool.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21916-resume-approved-tool.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21916_REPRODUCED: resumeStream did not apply the approved tool output to the existing assistant message"
+  }
+}
