@@ -103,10 +103,12 @@ function installFetch(scenario: FetchScenario = {}): ReturnType<typeof vi.fn> {
 let execCommands: string[][] = [];
 /** Directory the fake Sprite reports for `pwd`. */
 let execWorkingDirectory = '/home/sprite';
+/** Processes whose command line matches fail with exit code 1. */
+let execFailingCommand: RegExp | undefined;
 
 /**
  * Fake exec WebSocket: answers `pwd` with {@link execWorkingDirectory} and
- * exits every process with code 0.
+ * exits every process with code 0, unless {@link execFailingCommand} matches.
  */
 class FakeExecWebSocket {
   binaryType = 'blob';
@@ -125,7 +127,14 @@ class FakeExecWebSocket {
         const output = new TextEncoder().encode(`${execWorkingDirectory}\n`);
         this.onmessage?.({ data: new Uint8Array([0x01, ...output]).buffer });
       }
-      this.onmessage?.({ data: new Uint8Array([0x03, 0]).buffer });
+      const failed = execFailingCommand?.test(argv.join(' ')) ?? false;
+      if (failed) {
+        const output = new TextEncoder().encode('command failed\n');
+        this.onmessage?.({ data: new Uint8Array([0x02, ...output]).buffer });
+      }
+      this.onmessage?.({
+        data: new Uint8Array([0x03, failed ? 1 : 0]).buffer,
+      });
       this.onclose?.({ code: 1000, reason: '' });
     }, 0);
   }
@@ -140,6 +149,7 @@ beforeEach(() => {
   calls = [];
   execCommands = [];
   execWorkingDirectory = '/home/sprite';
+  execFailingCommand = undefined;
   vi.stubGlobal('WebSocket', FakeExecWebSocket as unknown);
   delete process.env.SPRITES_API_KEY;
   delete process.env.SPRITES_TOKEN;
@@ -274,6 +284,39 @@ describe('create-new createSession', () => {
     await expect(provider.createSession({ sessionId: 's1' })).rejects.toThrow(
       /failed: 500/,
     );
+  });
+});
+
+describe('create-new pnpm setup', () => {
+  it('installs pnpm before onFirstCreate runs', async () => {
+    installFetch();
+    const provider = createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+    });
+    const commandsBeforeFirstCreate: string[][] = [];
+    await provider.createSession({
+      sessionId: 's1',
+      onFirstCreate: async () => {
+        commandsBeforeFirstCreate.push(...execCommands);
+      },
+    });
+
+    expect(commandsBeforeFirstCreate).toHaveLength(1);
+    expect(commandsBeforeFirstCreate[0].join(' ')).toMatch(
+      /^bash -c command -v pnpm /,
+    );
+  });
+
+  it('does not touch a wrapped Sprite', async () => {
+    installFetch({ auth: 'public' });
+    await createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+    }).createSession();
+
+    expect(execCommands).toEqual([]);
   });
 });
 
@@ -556,7 +599,7 @@ describe('createSpritesNetworkSandboxSession', () => {
     });
 
     expect(session.defaultWorkingDirectory).toBe('/workspace');
-    expect(execCommands).toEqual([['pwd']]);
+    expect(execCommands[0]).toEqual(['pwd']);
   });
 
   it('uses workingDirectory without asking the Sprite', async () => {
@@ -568,7 +611,7 @@ describe('createSpritesNetworkSandboxSession', () => {
     });
 
     expect(session.defaultWorkingDirectory).toBe('/srv/app');
-    expect(execCommands).toEqual([]);
+    expect(execCommands.some(argv => argv[0] === 'pwd')).toBe(false);
   });
 
   it('fails on a name conflict instead of reusing the existing Sprite', async () => {
@@ -595,6 +638,51 @@ describe('createSpritesNetworkSandboxSession', () => {
     });
 
     expect(calls.some(c => c.method === 'PUT')).toBe(false);
+  });
+
+  it('installs pnpm in the new Sprite before preparing the template', async () => {
+    installFetch();
+    const commandsBeforePrepare: string[][] = [];
+    await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      template: {
+        identity: 'recipe-hash-1',
+        prepare: async () => {
+          commandsBeforePrepare.push(...execCommands);
+        },
+      },
+    });
+
+    expect(commandsBeforePrepare).toEqual([
+      ['pwd'],
+      [
+        'bash',
+        '-c',
+        'command -v pnpm >/dev/null 2>&1 || { corepack enable --install-directory /usr/local/bin pnpm && corepack prepare pnpm@11 --activate; }',
+      ],
+    ]);
+  });
+
+  it('deletes the new Sprite when pnpm cannot be installed', async () => {
+    installFetch();
+    execFailingCommand = /pnpm/;
+    const prepare = vi.fn(async () => {});
+
+    await expect(
+      createSpritesNetworkSandboxSession({
+        apiKey: 'tok',
+        baseUrl: 'https://api.test',
+        sandboxId: 'no-pnpm',
+        template: { identity: 'recipe-hash-1', prepare },
+      }),
+    ).rejects.toThrow(
+      'Failed to install pnpm in the Sprite (exit 1): command failed',
+    );
+    expect(prepare).not.toHaveBeenCalled();
+    expect(
+      calls.some(c => c.method === 'DELETE' && c.url.endsWith('/no-pnpm')),
+    ).toBe(true);
   });
 
   it('prepares the template in the new Sprite with the restricted session', async () => {
@@ -693,6 +781,8 @@ describe('resumeSpritesNetworkSandboxSession', () => {
     expect(calls.map(c => `${c.method} ${new URL(c.url).pathname}`)).toEqual([
       'GET /v1/sprites/my-sandbox',
     ]);
+    // An existing Sprite is reattached as it is: nothing is installed in it.
+    expect(execCommands).toEqual([['pwd']]);
   });
 
   it('fails when the Sprite does not exist and never creates it', async () => {
