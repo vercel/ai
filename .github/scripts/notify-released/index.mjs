@@ -231,22 +231,20 @@ const packageTable = publishedPackages
     const isAvailable = initialResults.find(
       result => result.name === pkg.name && result.version === pkg.version,
     )?.exists;
-    const npmStatus = isAvailable
-      ? 'Available on npm'
-      : ':warning: Still propagating on npm';
-    return `| \`${pkg.name}\` | ${pkg.version} [github](${githubReleaseUrl}) [npm](${npmUrl}) | ${npmStatus} |`;
+    const packageName = isAvailable ? `\`${pkg.name}\`` : `⚠️ \`${pkg.name}\``;
+    return `| ${packageName} | ${pkg.version} [github](${githubReleaseUrl}) [npm](${npmUrl}) |`;
   })
   .join('\n');
 
-const propagationWarning = timedOut
-  ? '\n\n:warning: Some packages are still propagating on npm. The release workflow will continue waiting until they are available.'
+const propagationLegend = timedOut
+  ? '\n\n⚠️ This version had not yet propagated to npm after 10 minutes. The release workflow will continue waiting until it is available.'
   : '';
 
 const commentBody = `:rocket: Published in:
 
-| Package | Version | npm status |
-| --- | --- | --- |
-${packageTable}${propagationWarning}`;
+| Package | Version |
+| --- | --- |
+${packageTable}${propagationLegend}`;
 
 const allNumbers = [...prNumbers, ...issueNumbers];
 
