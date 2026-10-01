@@ -5,6 +5,7 @@ const { realtimeInstances } = vi.hoisted(() => ({
   realtimeInstances: [] as Array<{
     options: {
       api: { token: string };
+      playback?: boolean | { getPositionMs: () => number };
       onError?: (error: Error) => void;
     };
     dispose: ReturnType<typeof vi.fn>;
@@ -24,6 +25,7 @@ vi.mock('ai', () => ({
 
     readonly options: {
       api: { token: string };
+      playback?: boolean | { getPositionMs: () => number };
       onError?: (error: Error) => void;
     };
     dispose = vi.fn();
@@ -31,6 +33,7 @@ vi.mock('ai', () => ({
     constructor(options: {
       api: { token: string };
       maxEvents?: number;
+      playback?: boolean | { getPositionMs: () => number };
       onError?: (error: Error) => void;
     }) {
       this.options = options;
@@ -63,14 +66,17 @@ const testModel = {} as never;
 
 function TestComponent({
   token,
+  playback,
   onError,
 }: {
   token: string;
+  playback?: boolean | { getPositionMs: () => number };
   onError?: (error: Error) => void;
 }) {
   experimental_useRealtime({
     model: testModel,
     api: { token },
+    playback,
     onError,
   });
 
@@ -115,6 +121,19 @@ describe('experimental_useRealtime', () => {
     expect(realtimeInstances[1].options.api.token).toBe(
       '/api/realtime/setup-b',
     );
+    expect(firstInstance.dispose).toHaveBeenCalledOnce();
+  });
+
+  it('forwards playback configuration and replaces the session when it changes', () => {
+    const { rerender } = render(
+      <TestComponent token="/api/realtime/setup" playback />,
+    );
+    const firstInstance = realtimeInstances[0];
+
+    rerender(<TestComponent token="/api/realtime/setup" playback={false} />);
+
+    expect(realtimeInstances).toHaveLength(2);
+    expect(realtimeInstances[1].options.playback).toBe(false);
     expect(firstInstance.dispose).toHaveBeenCalledOnce();
   });
 });

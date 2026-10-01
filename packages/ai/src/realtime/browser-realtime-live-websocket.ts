@@ -27,6 +27,7 @@ export class BrowserRealtimeLiveWebSocket {
       sessionConfig?: Partial<RealtimeSessionConfig>;
       sampleRate?: number;
       maxPlaybackBufferSeconds?: number;
+      playback?: boolean;
       onEvent: (event: RealtimeServerEvent) => Promise<void>;
       onError: (error: Error) => void;
       onFatalError: (error: Error, drain?: Promise<void>) => void;
@@ -106,11 +107,13 @@ export class BrowserRealtimeLiveWebSocket {
     }
     this.stream = options.stream;
     this.captureEnabled = options.capture !== false;
-    // Create/resume playback while connect is still in the caller's user gesture.
-    this.audio.ensurePlaybackContext();
-    void this.audio.resumePlayback().catch(error => {
-      if (generation === this.generation) this.options.onError(error);
-    });
+    if (this.options.playback !== false) {
+      // Create/resume playback while connect is still in the caller's user gesture.
+      this.audio.ensurePlaybackContext();
+      void this.audio.resumePlayback().catch(error => {
+        if (generation === this.generation) this.options.onError(error);
+      });
+    }
     this.transport.connect({
       mode: 'relay',
       url: options.url,

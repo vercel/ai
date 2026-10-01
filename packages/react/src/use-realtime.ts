@@ -129,6 +129,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     sampleRate,
     maxEvents,
     maxPlaybackBufferSeconds,
+    playback,
     onToolCall,
     onEvent,
     onError,
@@ -156,6 +157,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
       sampleRate,
       maxEvents,
       maxPlaybackBufferSeconds,
+      playback,
       onEvent: (...args) =>
         ownerRef.current?.store === store
           ? ownerRef.current.onEvent?.(...args)
@@ -179,6 +181,7 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     sampleRate,
     maxEvents,
     maxPlaybackBufferSeconds,
+    playback,
   ]);
 
   // Publish before child layout effects; insertion cleanup only revokes refs.

@@ -224,6 +224,21 @@ is discarded, playback pauses, and `onError` reports an audible gap. The connect
 stays alive; `resumePlayback()` resumes from fresh audio at the live edge. Captions
 and completion of delegated work do not prove that the corresponding audio was heard.
 
+## Application-managed playback
+
+Set `playback: false` to disable the SDK's speaker output and route `audio-delta`
+(turn-based) or `audio-chunk` (continuous WebSocket) events to your own sink.
+For turn-based interruption handling, use
+`playback: { getPositionMs: () => number }`. The callback reports milliseconds
+played for the current response audio item so the SDK can send an accurate
+conversation truncation when the user interrupts.
+
+The application owns its sink and must stop or flush it when a
+`speech-started` event arrives. With SDK playback disabled, `isPlaying` stays
+`false`, and `stopPlayback()` and `resumePlayback()` are no-ops. WebRTC does not
+deliver remote audio as JSON events; disabling playback prevents attachment to
+the SDK audio element but does not expose the remote track.
+
 ## Import
 
 <Snippet
@@ -333,6 +348,13 @@ and completion of delegated work do not prove that the corresponding audio was h
         'Continuous WebSocket PCM playback budget before reporting a recoverable gap and pausing playback. Defaults to 2. Unsupported with WebRTC.',
     },
     {
+      name: 'playback',
+      type: 'boolean | { getPositionMs: () => number }',
+      isOptional: true,
+      description:
+        'Controls SDK-managed model audio playback. true or omitted uses the default browser output. false disables SDK playback. An object also disables SDK playback and reports application-managed turn-based playback progress in milliseconds for interruption truncation.',
+    },
+    {
       name: 'onToolCall',
       type: '(options: { toolCall: { toolCallId: string; toolName: string; args: unknown } }) => unknown | Promise<unknown> | undefined',
       isOptional: true,
@@ -384,7 +406,8 @@ and completion of delegated work do not prove that the corresponding audio was h
     {
       name: 'isPlaying',
       type: 'boolean',
-      description: 'Whether model audio playback is active.',
+      description:
+        'Whether SDK-managed model audio playback is active. Remains false when playback is application-managed.',
     },
     {
       name: 'session',
@@ -475,13 +498,14 @@ and completion of delegated work do not prove that the corresponding audio was h
     {
       name: 'stopPlayback',
       type: '() => void',
-      description: 'Stops queued model audio playback.',
+      description:
+        'Stops queued SDK-managed model audio playback. No-op when SDK playback is disabled.',
     },
     {
       name: 'resumePlayback',
       type: '() => Promise<void>',
       description:
-        'Retries browser playback after interruption, suspension, or buffer overflow. Discarded stale audio is not replayed.',
+        'Retries SDK-managed browser playback after interruption, suspension, or buffer overflow. Discarded stale audio is not replayed. No-op when SDK playback is disabled.',
     },
   ]}
 />
