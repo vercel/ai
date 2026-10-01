@@ -75,15 +75,10 @@ jobs:
 
       - name: Notify released PRs and issues
         if: steps.changesets.outputs.published == 'true'
-        run: |
-          cd .github/scripts/notify-released
-          npm install --no-save
-          node index.mjs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
-          PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
-          NPM_VERIFY_TIMEOUT_MS: '3600000'
+        uses: ./.github/actions/notify-released
+        with:
+          published-packages: ${{ steps.changesets.outputs.publishedPackages }}
+          pull-request-number: ${{ steps.release-pr.outputs.number }}
 
       - name: Attach SLSA provenance to GitHub Releases
         if: steps.changesets.outputs.published == 'true'
