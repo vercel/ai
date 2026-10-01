@@ -45,6 +45,11 @@
       "types": "./dist/experimental-decision/index.d.ts",
       "import": "./dist/experimental-decision/index.js",
       "default": "./dist/experimental-decision/index.js"
+    },
+    "./experimental-evaluation": {
+      "types": "./dist/experimental-evaluation/index.d.ts",
+      "import": "./dist/experimental-evaluation/index.js",
+      "default": "./dist/experimental-evaluation/index.js"
     }
   },
   "dependencies": {

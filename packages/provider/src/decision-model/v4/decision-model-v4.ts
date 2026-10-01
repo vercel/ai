@@ -9,7 +9,7 @@ export type DecisionModelV4 = {
   readonly modelId: string;
   /** Supported question types, used to reject unsupported calls before any I/O. */
   readonly supportedQuestionTypes: readonly DecisionModelV4Question['type'][];
-  /** Evaluate every question against the same state. No partial results. */
+  /** Decide every answer against the same state. No partial results. */
   doDecide(
     options: DecisionModelV4CallOptions,
   ): PromiseLike<DecisionModelV4Result>;

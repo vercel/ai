@@ -75,6 +75,9 @@ export type OpenTelemetryOptions = {
    */
   experimental_decision?: boolean;
 
+  /** @deprecated Use `experimental_decision` instead. */
+  experimental_evaluation?: boolean;
+
   /**
    * Emit runtime context values.
    */
@@ -117,7 +120,8 @@ export function normalizeSupplementalAttributes(
     providerMetadata: options.providerMetadata ?? false,
     embedding: options.embedding ?? false,
     reranking: options.reranking ?? false,
-    experimental_decision: options.experimental_decision ?? false,
+    experimental_decision:
+      options.experimental_decision ?? options.experimental_evaluation ?? false,
     runtimeContext: options.runtimeContext ?? false,
     headers: options.headers ?? false,
     toolChoice: options.toolChoice ?? false,

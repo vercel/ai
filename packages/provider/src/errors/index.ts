@@ -1,3 +1,5 @@
+import { DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
+
 export { AISDKError } from './ai-sdk-error';
 export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
@@ -16,3 +18,10 @@ export { TooManyEmbeddingValuesForCallError } from './too-many-embedding-values-
 export type { TypeValidationContext } from './type-validation-error';
 export { TypeValidationError } from './type-validation-error';
 export { UnsupportedFunctionalityError } from './unsupported-functionality-error';
+
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export const Experimental_EvaluationUnsupportedQuestionTypeError =
+  DecisionUnsupportedQuestionTypeError;
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export type Experimental_EvaluationUnsupportedQuestionTypeError =
+  DecisionUnsupportedQuestionTypeError;
