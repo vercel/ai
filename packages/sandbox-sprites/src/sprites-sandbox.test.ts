@@ -1,4 +1,7 @@
-import { HarnessSandboxAuthenticationError } from '@ai-sdk/harness';
+import {
+  HarnessCapabilityUnsupportedError,
+  HarnessSandboxAuthenticationError,
+} from '@ai-sdk/harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSpritesNetworkSandboxSession,
@@ -839,5 +842,94 @@ describe('authentication errors', () => {
     }).catch((error: unknown) => error);
     expect(HarnessSandboxAuthenticationError.isInstance(error)).toBe(false);
     expect(error).toMatchObject({ message: expect.stringMatching(/500/) });
+  });
+});
+
+describe('bridge port and url auth', () => {
+  it('exposes no port on a Sprite created with sprite url auth', async () => {
+    installFetch({ auth: 'sprite' });
+    const session = await createSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'private',
+      urlAuth: 'sprite',
+    });
+
+    expect([...session.ports]).toEqual([]);
+    const error = await Promise.resolve(
+      session.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).catch((error: unknown) => error);
+    expect(HarnessCapabilityUnsupportedError.isInstance(error)).toBe(true);
+    expect(error).toMatchObject({
+      message: expect.stringMatching(
+        /Sprite "private" is not on public URL auth/,
+      ),
+    });
+    await expect(session.getPortUrl({ port: 8080 })).rejects.toThrow(
+      /not on public URL auth/,
+    );
+  });
+
+  it('exposes the port on resume only once the Sprite is public', async () => {
+    installFetch({ auth: 'sprite' });
+    const asFound = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+    });
+    expect([...asFound.ports]).toEqual([]);
+
+    const madePublic = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'my-sandbox',
+      urlAuth: 'public',
+    });
+    expect([...madePublic.ports]).toEqual([8080]);
+    expect(
+      await madePublic.getPortEndpoint({ port: 8080, protocol: 'ws' }),
+    ).toEqual({ url: 'wss://my-sandbox-x.sprites.app/' });
+  });
+
+  it('exposes the port on a wrapped Sprite that the deprecated provider made public', async () => {
+    installFetch({ auth: 'sprite' });
+    const wrappedAsFound = await createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+    }).createSession();
+    expect([...wrappedAsFound.ports]).toEqual([]);
+
+    const wrappedMadePublic = await createSpritesSandbox({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      spriteName: 'my-existing',
+      urlAuth: 'public',
+    }).createSession();
+    expect([...wrappedMadePublic.ports]).toEqual([8080]);
+  });
+
+  it('exposes no port when the API does not report the url auth', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              id: 'sprite-unknown',
+              name: 'unknown',
+              url: 'https://unknown-x.sprites.app',
+            }),
+            { status: 200 },
+          ),
+      ),
+    );
+    const session = await resumeSpritesNetworkSandboxSession({
+      apiKey: 'tok',
+      baseUrl: 'https://api.test',
+      sandboxId: 'unknown',
+    });
+
+    expect([...session.ports]).toEqual([]);
   });
 });

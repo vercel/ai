@@ -9,6 +9,7 @@ import {
   SPRITE_HTTP_PORT,
   type SpriteNetworkRule,
   type SpriteResource,
+  type SpriteUrlAuth,
   type SpritesApiClient,
 } from './sprites-api-client';
 import { SpritesSandboxSession } from './sprites-sandbox-session';
@@ -27,6 +28,11 @@ const SPRITES_PROVIDER_ID = 'sprites-sandbox';
  * `?agent_bridge_token=…`; the Sprite must have `url` auth set to `public` for
  * a stock WebSocket client (no auth header) to reach the in-Sprite bridge.
  *
+ * A Sprite on any other URL auth redirects that client at the auth gate, so
+ * its session exposes no port: `ports` is empty and `getPortEndpoint` throws.
+ * Such a session supports file and process access only and is not selected by
+ * bridge-backed adapters.
+ *
  * The session owns the Sprite's lifecycle only when the provider created it;
  * when the provider wraps a caller-named Sprite, `destroy()` is a no-op.
  */
@@ -37,6 +43,7 @@ export class SpritesNetworkSandboxSession
   readonly id: string;
   readonly defaultWorkingDirectory: string;
   private readonly ownsLifecycle: boolean;
+  private readonly urlAuth: SpriteUrlAuth | undefined;
 
   constructor(input: {
     client: SpritesApiClient;
@@ -56,9 +63,12 @@ export class SpritesNetworkSandboxSession
     this.id = input.sprite.name;
     this.defaultWorkingDirectory = input.workingDirectory;
     this.ownsLifecycle = input.ownsLifecycle;
+    this.urlAuth = input.sprite.urlAuth;
   }
 
-  readonly ports: ReadonlyArray<number> = [SPRITE_HTTP_PORT];
+  get ports(): ReadonlyArray<number> {
+    return this.urlAuth === 'public' ? [SPRITE_HTTP_PORT] : [];
+  }
 
   restricted(): SandboxSession {
     return new SpritesSandboxSession(
@@ -79,6 +89,14 @@ export class SpritesNetworkSandboxSession
         message:
           `Sprites proxy only the single HTTP port ${SPRITE_HTTP_PORT} to the public URL. ` +
           `Requested port ${options.port} is not reachable.`,
+      });
+    }
+    if (this.urlAuth !== 'public') {
+      throw new HarnessCapabilityUnsupportedError({
+        harnessId: SPRITES_PROVIDER_ID,
+        message:
+          `Sprite "${this.spriteName}" is not on public URL auth, so port ${SPRITE_HTTP_PORT} cannot be reached without Sprites credentials. ` +
+          "Set `urlAuth: 'public'` to expose it.",
       });
     }
     const url = new URL(this.spritePublicUrl);
