@@ -27,6 +27,7 @@ import {
   resolveTranscriptionModel,
   resolveVideoModel,
   resolveDecisionModel,
+  asEvaluationModel,
 } from '../model/resolve-model';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { ImageModel } from '../types/image-model';
@@ -84,7 +85,8 @@ export function customProvider<
   speechModels,
   rerankingModels,
   videoModels,
-  decisionModels,
+  decisionModels: decisionModelsArg,
+  evaluationModels,
   files,
   skills,
   fallbackProvider: fallbackProviderArg,
@@ -97,6 +99,8 @@ export function customProvider<
   rerankingModels?: RERANKING_MODELS;
   videoModels?: VIDEO_MODELS;
   decisionModels?: DECISION_MODELS;
+  /** @deprecated Use `decisionModels` instead. When both are set, `decisionModels` takes precedence. */
+  evaluationModels?: DECISION_MODELS;
   files?: FILES;
   skills?: SKILLS;
   fallbackProvider?: FALLBACK;
@@ -111,6 +115,10 @@ export function customProvider<
   speechModel(modelId: ExtractModelId<SPEECH_MODELS>): SpeechModelV4;
   videoModel(modelId: ExtractModelId<VIDEO_MODELS>): Experimental_VideoModelV4;
   decisionModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 } & (FILES extends FilesV4
     ? { files(): FilesV4 }
     : [FALLBACK] extends [{ files: () => FilesV4 }]
@@ -121,6 +129,7 @@ export function customProvider<
     : [FALLBACK] extends [{ skills: () => SkillsV4 }]
       ? { skills(): SkillsV4 }
       : { skills?(): SkillsV4 }) {
+  const decisionModels = decisionModelsArg ?? evaluationModels;
   const fallbackProvider =
     fallbackProviderArg == null ? undefined : asProviderV4(fallbackProviderArg);
 
@@ -137,6 +146,12 @@ export function customProvider<
       modelId: ExtractModelId<VIDEO_MODELS>,
     ): Experimental_VideoModelV4;
     decisionModel(modelId: ExtractModelId<DECISION_MODELS>): DecisionModelV4;
+    /** @deprecated Use `decisionModel` instead. */
+    evaluationModel(
+      modelId: ExtractModelId<DECISION_MODELS>,
+    ): DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
   } = {
     specificationVersion: 'v4',
     languageModel(modelId: ExtractModelId<LANGUAGE_MODELS>): LanguageModelV4 {
@@ -229,14 +244,20 @@ export function customProvider<
       }
 
       const provider = fallbackProviderArg as DecisionProvider | undefined;
-      if (typeof provider?.decisionModel === 'function') {
-        const model = provider.decisionModel(modelId);
+      const factory:
+        | ((modelId: string) => Exclude<DecisionModel, string>)
+        | undefined = provider?.decisionModel ?? provider?.evaluationModel;
+      if (typeof factory === 'function') {
+        const model = factory.call(provider, modelId);
         if (model != null) {
           return resolveDecisionModel(model);
         }
       }
 
       throw new NoSuchModelError({ modelId, modelType: 'decisionModel' });
+    },
+    evaluationModel(modelId: ExtractModelId<DECISION_MODELS>) {
+      return asEvaluationModel(this.decisionModel(modelId));
     },
     videoModel(
       modelId: ExtractModelId<VIDEO_MODELS>,

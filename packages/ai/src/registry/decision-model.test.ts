@@ -179,7 +179,7 @@ describe('decision registry', () => {
 
 describe('decision model resolution', () => {
   const server = createTestServer({
-    'https://ai-gateway.vercel.sh/v4/ai/evaluation-model': {
+    'https://ai-gateway.vercel.sh/v4/ai/decision-model': {
       response: {
         type: 'json-value',
         body: {
@@ -196,7 +196,7 @@ describe('decision model resolution', () => {
   });
 
   it.each(['string', 'alias'])(
-    'evaluates through Gateway using a model %s when no default provider is configured',
+    'decides through Gateway using a model %s when no default provider is configured',
     async resolution => {
       vi.stubGlobal('AI_SDK_DEFAULT_PROVIDER', undefined);
       vi.stubEnv('AI_GATEWAY_API_KEY', 'test-api-key');
@@ -223,7 +223,7 @@ describe('decision model resolution', () => {
       expect(server.calls[0].requestHeaders).toMatchObject({
         authorization: 'Bearer test-api-key',
         'ai-model-id': modelId,
-        'ai-evaluation-model-specification-version': '4',
+        'ai-decision-model-specification-version': '4',
       });
       expect(await server.calls[0].requestBodyJson).toEqual({
         state,
@@ -284,7 +284,7 @@ describe('decision model resolution', () => {
   });
 
   it.each(['instance', 'string'])(
-    'evaluates with %s model resolution and forwards options in one call',
+    'decides with %s model resolution and forwards options in one call',
     async resolution => {
       const doDecide = vi.fn().mockResolvedValue({
         answers: { route: { type: 'choice', choice: 'billing' } },

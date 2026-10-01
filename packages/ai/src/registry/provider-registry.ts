@@ -14,8 +14,12 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
+import type { DecisionModel } from '../decide/decision-result';
 import type { DecisionProvider } from '../decide/decision-provider';
-import { resolveDecisionModel } from '../model/resolve-model';
+import {
+  resolveDecisionModel,
+  asEvaluationModel,
+} from '../model/resolve-model';
 import { wrapImageModel } from '../middleware/wrap-image-model';
 import { wrapLanguageModel } from '../middleware/wrap-language-model';
 import { asProviderV4 } from '../model/as-provider-v4';
@@ -50,7 +54,9 @@ type ProviderDecisionModelIdentifier<PROVIDER> = PROVIDER extends {
   decisionModel: (...args: infer ARGS) => unknown;
 }
   ? ExtractLiteralUnion<ARGS[0]>
-  : never;
+  : PROVIDER extends { evaluationModel: (...args: infer ARGS) => unknown }
+    ? ExtractLiteralUnion<ARGS[0]>
+    : never;
 
 /** Registry with experimental decision access, separate from the stable interface. */
 export type DecisionProviderRegistry<
@@ -68,6 +74,16 @@ export type DecisionProviderRegistry<
   decisionModel<KEY extends keyof PROVIDERS>(
     id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
   ): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string
+      ? `${KEY & string}${SEPARATOR}${ProviderDecisionModelIdentifier<PROVIDERS[KEY]>}`
+      : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: KEY extends string ? `${KEY & string}${SEPARATOR}${string}` : never,
+  ): DecisionModelV4 & { doEvaluate: DecisionModelV4['doDecide'] };
 };
 
 export interface ProviderRegistryProvider<
@@ -432,13 +448,23 @@ class DefaultProviderRegistry<
   ): DecisionModelV4 {
     const [providerId, modelId] = this.splitId(id, 'decisionModel');
     const provider = this.getProvider(providerId, 'decisionModel');
-    const model = provider.decisionModel?.(modelId);
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    const model = factory?.call(provider, modelId);
 
     if (model == null) {
       throw new NoSuchModelError({ modelId: id, modelType: 'decisionModel' });
     }
 
     return resolveDecisionModel(model);
+  }
+
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel<KEY extends keyof PROVIDERS>(
+    id: `${KEY & string}${SEPARATOR}${string}`,
+  ) {
+    return asEvaluationModel(this.decisionModel(id));
   }
 
   files<KEY extends keyof PROVIDERS>(id: KEY & string): FilesV4 {
