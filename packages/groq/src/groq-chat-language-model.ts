@@ -1,4 +1,3 @@
-import { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 import {
   InvalidResponseDataError,
   type LanguageModelV4,
@@ -14,6 +13,7 @@ import {
 import {
   StreamingToolCallTracker,
   combineHeaders,
+  convertJsonResponseToolStream,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
   createProviderStreamError,

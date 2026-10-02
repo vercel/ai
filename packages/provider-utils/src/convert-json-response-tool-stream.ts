@@ -1,6 +1,11 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
-/** Converts the internal response tool into structured text. */
+/**
+ * Converts the named JSON response tool's input events into text events and
+ * suppresses conversational text. Application tool calls pass through so the
+ * caller can execute them. A response containing only the JSON tool finishes
+ * with `stop`; a response containing application calls keeps its finish reason.
+ */
 export function convertJsonResponseToolStream(toolName: string) {
   const responseToolIds = new Set<string>();
   const responseToolsWithDeltas = new Set<string>();

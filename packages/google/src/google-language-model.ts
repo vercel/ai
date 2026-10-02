@@ -1,4 +1,3 @@
-import { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -15,6 +14,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertJsonResponseToolStream,
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,

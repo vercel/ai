@@ -69,6 +69,64 @@ function setResponse(modelId: string, name = 'json') {
 }
 
 describe('structured output with tools', () => {
+  it.each(['generate', 'stream'])(
+    'preserves an application call alongside the response tool in %s',
+    async mode => {
+      const body = response();
+      body.candidates[0].content.parts.push({
+        functionCall: {
+          id: 'application',
+          name: 'resolveDate',
+          args: { date: '2031-06-17' },
+        },
+        thoughtSignature: 'application-signature',
+      });
+      server.urls[`${baseURL}/models/${modelIds[0]}:generateContent`].response =
+        mode === 'generate'
+          ? { type: 'json-value', body }
+          : {
+              type: 'stream-chunks',
+              chunks: [`data: ${JSON.stringify(body)}\n\n`],
+            };
+
+      if (mode === 'generate') {
+        const result = await provider(modelIds[0]).doGenerate(options);
+        expect(result.content).toContainEqual({
+          type: 'text',
+          text: '{"date":"2031-06-17"}',
+          providerMetadata: { google: { thoughtSignature: 'signature' } },
+        });
+        expect(result.content).toContainEqual({
+          type: 'tool-call',
+          toolCallId: 'application',
+          toolName: 'resolveDate',
+          input: '{"date":"2031-06-17"}',
+          providerMetadata: {
+            google: { thoughtSignature: 'application-signature' },
+          },
+        });
+        expect(result.finishReason.unified).toBe('tool-calls');
+      } else {
+        const { stream } = await provider(modelIds[0]).doStream(options);
+        const parts = await convertReadableStreamToArray(stream);
+        expect(parts.find(part => part.type === 'tool-call')).toMatchObject({
+          toolName: 'resolveDate',
+          toolCallId: 'application',
+        });
+        expect(
+          parts
+            .filter(part => part.type === 'text-delta')
+            .map(part => part.delta)
+            .join(''),
+        ).toBe('{"date":"2031-06-17"}');
+        expect(parts.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: { unified: 'tool-calls' },
+        });
+      }
+    },
+  );
+
   it('avoids a caller tool named json and preserves its calls', async () => {
     setResponse(modelIds[0], 'json');
     const result = await provider(modelIds[0]).doGenerate({
