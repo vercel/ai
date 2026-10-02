@@ -226,6 +226,7 @@ describe('GatewayFetchMetadata', () => {
       const knownTypes = [
         'embedding',
         'decision',
+        'evaluation',
         'image',
         'language',
         'realtime',
