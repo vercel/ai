@@ -7843,6 +7843,119 @@ describe('AnthropicLanguageModel', () => {
       `);
     });
 
+    it.each([2, 0, undefined])(
+      'should emit raw message-start usage with output tokens %s when enabled',
+      async outputTokens => {
+        const initialUsage = {
+          input_tokens: 10,
+          output_tokens: outputTokens,
+          cache_read_input_tokens: 20,
+          cache_creation_input_tokens: 30,
+          service_tier: 'standard',
+        };
+        server.urls['https://api.anthropic.com/v1/messages'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: initialUsage,
+              },
+            },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn', stop_sequence: null },
+              usage: {
+                input_tokens: 12,
+                output_tokens: 7,
+                cache_read_input_tokens: 22,
+                cache_creation_input_tokens: 32,
+              },
+            },
+            { type: 'message_stop' },
+          ].map(chunk => `data: ${JSON.stringify(chunk)}\n\n`),
+        };
+
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          providerOptions: { anthropic: { includeMessageStart: true } },
+        });
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'includeMessageStart',
+        );
+        const reader = stream.getReader();
+        try {
+          expect((await reader.read()).value?.type).toBe('stream-start');
+          expect((await reader.read()).value).toEqual({
+            type: 'response-metadata',
+            id: 'msg_initial_usage',
+            modelId: 'claude-haiku-4-5',
+          });
+          const start = (await reader.read()).value;
+          const expectedUsage = {
+            input_tokens: 10,
+            ...(outputTokens != null ? { output_tokens: outputTokens } : {}),
+            cache_read_input_tokens: 20,
+            cache_creation_input_tokens: 30,
+            service_tier: 'standard',
+          };
+          expect(start).toEqual({
+            type: 'custom',
+            kind: 'anthropic.message_start',
+            providerMetadata: {
+              anthropic: {
+                id: 'msg_initial_usage',
+                model: 'claude-haiku-4-5',
+                usage: expectedUsage,
+              },
+            },
+          });
+          expect((await reader.read()).value).toMatchObject({
+            type: 'finish',
+            usage: {
+              inputTokens: {
+                total: 66,
+                noCache: 12,
+                cacheRead: 22,
+                cacheWrite: 32,
+              },
+              outputTokens: { total: 7 },
+            },
+          });
+          expect((await reader.read()).done).toBe(true);
+          // Terminal deltas must not mutate the initial snapshot.
+          expect(
+            start?.type === 'custom' &&
+              start.providerMetadata?.anthropic?.usage,
+          ).toEqual(expectedUsage);
+        } finally {
+          reader.releaseLock();
+        }
+      },
+    );
+
+    it.each([undefined, false])(
+      'should omit the message-start custom part when includeMessageStart is %s',
+      async includeMessageStart => {
+        prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
+        const { stream } = await model.doStream({
+          prompt: TEST_PROMPT,
+          ...(includeMessageStart != null && {
+            providerOptions: { anthropic: { includeMessageStart } },
+          }),
+        });
+        const parts = await convertReadableStreamToArray(stream);
+        expect(
+          parts.some(
+            part =>
+              part.type === 'custom' && part.kind === 'anthropic.message_start',
+          ),
+        ).toBe(false);
+      },
+    );
+
     it('should use input_tokens from message_delta when different from message_start', async () => {
       // Fixture has message_start.usage.input_tokens=43, message_delta.usage.input_tokens=61
       // The final usage should use the value from message_delta (61)

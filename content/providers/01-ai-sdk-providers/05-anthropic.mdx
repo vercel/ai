@@ -93,7 +93,14 @@ Anthropic language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Provider options
+
 The following optional provider options are available for Anthropic models:
+
+- `includeMessageStart` _boolean_
+
+  Include an `anthropic.message_start` custom stream part with the initial
+  message ID, model, and raw token usage. Defaults to `false`. Streaming only.
 
 - `disableParallelToolUse` _boolean_
 
