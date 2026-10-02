@@ -105,6 +105,10 @@ You can use the following optional settings to customize the AI Gateway provider
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
+  `baseURL` and `fetch` configure requests from the SDK to AI Gateway. They do
+  not configure the upstream endpoint AI Gateway uses for a model; provider
+  routing and upstream connection behavior are controlled by AI Gateway.
+
 - **metadataCacheRefreshMillis** _number_
 
   How frequently to refresh the metadata cache in milliseconds. Defaults to 5 minutes (300,000ms).
