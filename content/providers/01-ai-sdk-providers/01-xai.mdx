@@ -1053,11 +1053,11 @@ const { images } = await generateImage({
 });
 ```
 
-- **resolution** _'1k' | '2k'_
+- **resolution** _'1k' | '1.5k' | '2k'_
 
-  Output resolution. `1k` produces ~1024×1024 images, `2k` produces ~2048×2048
-  images (actual dimensions vary based on aspect ratio). Available for
-  `grok-imagine-image-pro`.
+  Output resolution: `1k` (default, ~1024×1024), `1.5k` (~1408×1408), or `2k`
+  (~2048×2048). Actual dimensions vary based on aspect ratio.
+  `grok-imagine-image` does not support `1.5k`.
 
 - **quality** _'low' | 'medium' | 'high'_
 
@@ -1065,10 +1065,10 @@ const { images } = await generateImage({
 
 ### Image Model Capabilities
 
-| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing |
-| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
-| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
-| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
+| Model                    | Resolution         | Aspect Ratios                                                                                               | Image Editing |
+| ------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------- | ------------- |
+| `grok-imagine-image-pro` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
+| `grok-imagine-image`     | `1k`, `2k`         | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
 
 ## Video Models
 
