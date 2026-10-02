@@ -158,7 +158,9 @@ export class MiniMaxFiles implements FilesV4 {
 
     return {
       warnings: [],
-      deleted: response.file_id === Number(fileId),
+      deleted:
+        response.base_resp.status_code === 0 &&
+        response.file_id === Number(fileId),
       providerReference: { minimax: response.file_id.toString() },
     };
   }
