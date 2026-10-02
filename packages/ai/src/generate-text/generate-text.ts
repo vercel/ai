@@ -92,6 +92,10 @@ import { resolveToolApproval } from './resolve-tool-approval';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import {
+  asInternalSteeringSignal,
+  type SteeringSignal,
+} from './steering-controller';
+import {
   DefaultStepResult,
   type StepResult,
   type StepResultPerformance,
@@ -257,6 +261,7 @@ export async function generateText<
   activeTools,
   toolOrder,
   prepareStep,
+  experimental_steeringSignal,
   experimental_repairToolCall,
   repairToolCall = experimental_repairToolCall,
   experimental_refineToolInput: refineToolInput,
@@ -389,6 +394,13 @@ export async function generateText<
      * Optional function that you can use to provide different settings for a step.
      */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+    /**
+     * Optional steering signal to enable mid-turn steering.
+     *
+     * @experimental
+     */
+    experimental_steeringSignal?: SteeringSignal | undefined;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -652,6 +664,11 @@ export async function generateText<
   } as Prompt);
 
   const callId = generateCallId();
+
+  const internalSteeringSignal = asInternalSteeringSignal(
+    experimental_steeringSignal,
+  );
+  internalSteeringSignal?.bind(callId, mergedAbortSignal);
 
   const telemetryDispatcher = createRestrictedTelemetryDispatcher<
     TOOLS,
@@ -1511,15 +1528,35 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+
+        const hasCompletedClientToolCalls =
+          clientToolOutputs.length + deniedToolApprovalResponses.length ===
+          clientToolCalls.length;
+        const hasPendingToolCalls =
+          clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0;
+
+        const hasToolContinuation =
+          hasCompletedClientToolCalls && hasPendingToolCalls;
+
+        const isNaturalStopConditionMet = hasToolContinuation
+          ? await isStopConditionMet({ stopConditions, steps })
+          : true;
+
+        const canContinueNaturally =
+          hasToolContinuation && !isNaturalStopConditionMet;
+
+        const steeredItems = internalSteeringSignal?.drain() ?? [];
+
+        if (steeredItems.length > 0) {
+          for (const item of steeredItems) {
+            messagesForNextStep.push(...item.messages);
+            item.resolve({ stepNumber: steps.length });
+          }
+        } else if (!canContinueNaturally) {
+          internalSteeringSignal?.seal();
+          break;
+        }
+      } while (true);
 
       const lastStep = steps[steps.length - 1];
 
@@ -1617,8 +1654,11 @@ export async function generateText<
         output: resolvedOutput,
       });
     } catch (error) {
+      internalSteeringSignal?.abort(error);
       await telemetryDispatcher.onError?.({ callId, error });
       throw wrapGatewayError(error);
+    } finally {
+      internalSteeringSignal?.complete();
     }
   };
 
