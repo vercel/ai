@@ -12,6 +12,15 @@ export type CohereEmbeddingModelId =
 
 export const cohereEmbeddingModelOptions = z.object({
   /**
+   * The format of the returned embedding. Defaults to `float`.
+   * Non-float formats require Embed v3.0 or newer.
+   * Binary formats contain packed bytes, not individual vector dimensions.
+   */
+  embeddingType: z
+    .enum(['float', 'int8', 'uint8', 'binary', 'ubinary'])
+    .optional(),
+
+  /**
    * Specifies the type of input passed to the model. Default is `search_query`.
    *
    * - "search_document": Used for embeddings stored in a vector database for search use-cases.

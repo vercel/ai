@@ -234,6 +234,14 @@ export function runPrompt<
     result.fail(err);
   };
 
+  const settleLifecycle = async (err: unknown): Promise<void> => {
+    if (input.abortSignal?.aborted) {
+      await lifecycle.abort(input.abortSignal.reason);
+    } else {
+      await lifecycle.error(err);
+    }
+  };
+
   const done = (async () => {
     let bridge: Awaited<ReturnType<typeof toHarnessStream>>;
     try {
@@ -269,7 +277,7 @@ export function runPrompt<
               },
       });
     } catch (err) {
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,
@@ -998,7 +1006,7 @@ export function runPrompt<
           // Telemetry and stderr diagnostics keep the raw error (absolute
           // paths help debugging); the consumer-facing settle uses the
           // workDir-stripped one, like every other forwarded part.
-          await lifecycle.error(value.error);
+          await settleLifecycle(value.error);
           // A turn the caller itself aborted ends with an error-shaped part by
           // construction; diagnosing the caller's own signal to stderr reads
           // as a malfunction. `settleFailure` below still reports it as an
@@ -1477,7 +1485,7 @@ export function runPrompt<
       } catch {
         // Preserve the error that stopped the reader loop.
       }
-      await lifecycle.error(err);
+      await settleLifecycle(err);
       logBridgeError({
         harnessId: input.harness.harnessId,
         sessionId: input.session.sessionId,

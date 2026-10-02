@@ -354,6 +354,10 @@ class MyIntegration implements Telemetry {
   async onAbort(event) {
     console.log('Stream aborted after', event.steps.length, 'finished steps');
   }
+
+  async onError(event) {
+    console.error('Generation failed:', event.callId, event.error);
+  }
 }
 
 export function myIntegration(): Telemetry {
@@ -447,6 +451,12 @@ export function myIntegration(): Telemetry {
       type: '(event: GenerateTextAbortEvent) => void | PromiseLike<void>',
       description:
         'Called when a streaming text generation operation is aborted before it completes.',
+    },
+    {
+      name: 'onError',
+      type: '(event: { callId: string; error: unknown }) => void | PromiseLike<void>',
+      description:
+        'Called when an unrecoverable error occurs. The event identifies the operation and contains the thrown value.',
     },
   ]}
 />
