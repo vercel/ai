@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import type { z } from 'zod/v4';
 
@@ -362,49 +361,57 @@ describe('Claude Code bridge configuration', () => {
   });
 
   test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
-    const fixture = JSON.parse(
-      readFileSync(
-        new URL(
-          './__fixtures__/issue-21865-multiple-results.json',
-          import.meta.url,
-        ),
-        'utf8',
-      ),
-    ) as {
-      messages: Record<string, unknown>[];
-    };
-
     state.steering = true;
     state.createQuery = args =>
       (async function* () {
         const input = args.prompt[Symbol.asyncIterator]();
-        const initial = await input.next();
+        await input.next();
         const steering = await input.next();
-        state.queryInputs.push(initial.value, steering.value);
-        const steeringUuid = Reflect.get(steering.value as object, 'uuid');
-
-        for (const message of fixture.messages) {
-          yield message.type === 'command_lifecycle' &&
-          message.command_uuid === 'live-cost-second'
-            ? { ...message, command_uuid: steeringUuid }
-            : message;
-        }
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'first',
+          total_cost_usd: 0.05,
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'second',
+          total_cost_usd: 0.06,
+          usage: {
+            input_tokens: 11,
+            cache_creation_input_tokens: 13,
+            cache_read_input_tokens: 17,
+            output_tokens: 19,
+          },
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: Reflect.get(steering.value as object, 'uuid'),
+          state: 'completed',
+        };
       })();
 
     await import('./index');
 
     const finish = state.emitted.find(message => message.type === 'finish');
     expect(finish?.harnessMetadata).toMatchObject({
-      'claude-code': { costUsd: 0.0536352 },
+      'claude-code': { costUsd: 0.06 },
     });
     expect(finish?.totalUsage).toMatchObject({
       inputTokens: {
-        total: 38102,
-        noCache: 4,
-        cacheRead: 28766,
-        cacheWrite: 9332,
+        total: 51,
+        noCache: 13,
+        cacheRead: 22,
+        cacheWrite: 16,
       },
-      outputTokens: { total: 12 },
+      outputTokens: { total: 26 },
     });
   });
 
