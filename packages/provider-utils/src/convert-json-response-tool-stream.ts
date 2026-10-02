@@ -1,8 +1,11 @@
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 /**
- * Converts the named JSON response tool's input events into text events and
- * suppresses conversational text. Application tool calls pass through so the
+ * Providers that cannot use native structured output for a request can use a
+ * JSON response tool instead. This utility converts that tool's streamed input
+ * into text events so the SDK can parse it as structured output.
+ *
+ * Conversational text is suppressed. Application tool calls pass through so the
  * caller can execute them. A response containing only the JSON tool finishes
  * with `stop`; a response containing application calls keeps its finish reason.
  */

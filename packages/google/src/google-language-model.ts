@@ -456,7 +456,9 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   ) {
     const { responseFormat, tools, toolChoice } = options;
     let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
-    // Gemini 3 supports the combination in AUTO mode. ANY mode still rejects it.
+    // Gemini models before Gemini 3 reject JSON response formatting together
+    // with function tools. Gemini 3 supports the combination only with automatic
+    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
