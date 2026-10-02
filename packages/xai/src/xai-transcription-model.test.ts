@@ -1,4 +1,8 @@
 import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
+import {
   convertArrayToReadableStream,
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
@@ -44,6 +48,19 @@ class MockWebSocket {
   message(value: unknown) {
     this.onmessage?.({ data: JSON.stringify(value) });
   }
+}
+
+function createStreamingModel(
+  modelId = '',
+  config: Partial<ConstructorParameters<typeof XaiTranscriptionModel>[1]> = {},
+) {
+  return new XaiTranscriptionModel(modelId, {
+    provider: 'xai.transcription',
+    baseURL: 'https://api.x.ai/v1',
+    headers: () => ({ Authorization: 'Bearer test-api-key' }),
+    webSocket: MockWebSocket,
+    ...config,
+  });
 }
 
 const flush = () => new Promise(resolve => setTimeout(resolve, 0));
@@ -172,18 +189,100 @@ describe('doGenerate', () => {
     const request = fetchMock.mock.calls[0][1];
     const body = request.body as FormData;
     expect(Array.from(body.keys())).toEqual([
-      'audio_format',
       'sample_rate',
       'language',
-      'format',
       'multichannel',
       'channels',
       'diarize',
       'filler_words',
       'keyterm',
       'keyterm',
+      'audio_format',
+      'format',
       'file',
     ]);
+  });
+
+  it('should send the model id and vad_threshold before the file field', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ text: 'Hello from the AI SDK!' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const customModel = new XaiTranscriptionModel('grok-voice-transcribe-2.0', {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+      fetch: fetchMock as unknown as typeof fetch,
+    });
+
+    const result = await customModel.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: { xai: { vadThreshold: 0.3 } },
+    });
+
+    const body = fetchMock.mock.calls[0][1].body as FormData;
+    expect(Array.from(body.keys())).toEqual(['model', 'vad_threshold', 'file']);
+    expect(body.get('model')).toBe('grok-voice-transcribe-2.0');
+    expect(body.get('vad_threshold')).toBe('0.3');
+    expect(result.response.modelId).toBe('grok-voice-transcribe-2.0');
+  });
+
+  it('should send the model id selected via the provider', async () => {
+    prepareJsonResponse();
+
+    await provider.transcription('grok-voice-transcribe-2.0').doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).toMatchObject({ model: 'grok-voice-transcribe-2.0' });
+  });
+
+  it('should not send a model when no model id is set', async () => {
+    prepareJsonResponse();
+
+    await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+    });
+
+    const body = await server.calls[0].requestBodyMultipart;
+    expect(body).not.toHaveProperty('model');
+  });
+
+  it('should keep the model id across a workflow serialization round trip', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ text: 'Hello from the AI SDK!' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+    const config = {
+      provider: 'xai.transcription',
+      baseURL: 'https://api.x.ai/v1',
+      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+    };
+    const original = new XaiTranscriptionModel(
+      'grok-voice-transcribe-2.0',
+      config,
+    );
+
+    const serialized = XaiTranscriptionModel[WORKFLOW_SERIALIZE](original);
+    expect(serialized.modelId).toBe('grok-voice-transcribe-2.0');
+
+    const restored = XaiTranscriptionModel[WORKFLOW_DESERIALIZE]({
+      modelId: serialized.modelId as string,
+      config: { ...config, fetch: fetchMock as unknown as typeof fetch },
+    });
+    await restored.doGenerate({ audio: audioData, mediaType: 'audio/wav' });
+
+    const body = fetchMock.mock.calls[0][1].body as FormData;
+    expect(restored.modelId).toBe('grok-voice-transcribe-2.0');
+    expect(body.get('model')).toBe('grok-voice-transcribe-2.0');
   });
 
   it('should pass headers and the xAI user agent', async () => {
@@ -320,11 +419,7 @@ describe('doStream', () => {
   it('should stream xAI STT over WebSocket', async () => {
     MockWebSocket.instances = [];
     const testDate = new Date(0);
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
+    const model = createStreamingModel('', {
       _internal: { currentDate: () => testDate },
     });
 
@@ -349,7 +444,7 @@ describe('doStream', () => {
     const partsPromise = convertReadableStreamToArray(result.stream);
     const ws = MockWebSocket.instances[0];
     expect(ws.url.toString()).toBe(
-      'wss://api.x.ai/v1/stt?sample_rate=16000&encoding=pcm&language=en&diarize=true&interim_results=true&endpointing=500&smart_turn=0.7&smart_turn_timeout=3000&keyterm=AI+SDK&keyterm=Grok',
+      'wss://api.x.ai/v1/stt?sample_rate=16000&language=en&diarize=true&keyterm=AI+SDK&keyterm=Grok&encoding=pcm&interim_results=true&endpointing=500&smart_turn=0.7&smart_turn_timeout=3000',
     );
     expect(ws.options?.headers).toMatchObject({
       Authorization: 'Bearer test-api-key',
@@ -415,14 +510,81 @@ describe('doStream', () => {
     expect(result.response).toEqual({ timestamp: testDate, modelId: '' });
   });
 
+  it('should send the model id and vad_threshold as query params', async () => {
+    MockWebSocket.instances = [];
+    const model = createStreamingModel('grok-voice-transcribe-2.0');
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+      providerOptions: { xai: { vadThreshold: 0.3 } },
+    });
+
+    void result.stream.cancel();
+    expect(MockWebSocket.instances[0].url.toString()).toBe(
+      'wss://api.x.ai/v1/stt?model=grok-voice-transcribe-2.0&sample_rate=16000&vad_threshold=0.3&encoding=pcm',
+    );
+    expect(result.response?.modelId).toBe('grok-voice-transcribe-2.0');
+  });
+
+  it('should not send a model query param when no model id is set', async () => {
+    MockWebSocket.instances = [];
+    const model = createStreamingModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 16000 },
+    });
+
+    void result.stream.cancel();
+    const wsUrl = new URL(MockWebSocket.instances[0].url.toString());
+    expect(wsUrl.searchParams.has('model')).toBe(false);
+  });
+
+  it('should map audio/opus input to opus encoding without a warning', async () => {
+    MockWebSocket.instances = [];
+    const model = createStreamingModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/opus', rate: 48000 },
+    });
+
+    const partsPromise = convertReadableStreamToArray(result.stream);
+    const ws = MockWebSocket.instances[0];
+    expect(new URL(ws.url.toString()).searchParams.get('encoding')).toBe(
+      'opus',
+    );
+
+    ws.message({ type: 'transcript.created' });
+    await flush();
+    ws.message({ type: 'transcript.done', text: 'Hello' });
+
+    const parts = await partsPromise;
+    expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+  });
+
+  it('should accept opus as an explicit audioFormat for streaming', async () => {
+    MockWebSocket.instances = [];
+    const model = createStreamingModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/pcm', rate: 48000 },
+      providerOptions: { xai: { audioFormat: 'opus' } },
+    });
+
+    void result.stream.cancel();
+    expect(
+      new URL(MockWebSocket.instances[0].url.toString()).searchParams.get(
+        'encoding',
+      ),
+    ).toBe('opus');
+  });
+
   it('should strip undefined header values before the WebSocket constructor', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -447,10 +609,7 @@ describe('doStream', () => {
         audioCancelled = true;
       },
     });
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
+    const model = createStreamingModel('', {
       webSocket: class {
         constructor() {
           throw new Error('constructor failed');
@@ -480,12 +639,7 @@ describe('doStream', () => {
         audioCancelled = true;
       },
     });
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio,
@@ -512,12 +666,7 @@ describe('doStream', () => {
   // and `transcript.done` carries an empty `text`.
   it('should emit one transcript-final per utterance and reconstruct the finish text when transcript.done is empty', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -584,12 +733,7 @@ describe('doStream', () => {
   // eventual `speech_final` event, so they are not stable finals.
   it('should treat is_final fragments as partials and use the speech_final text for finish', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -641,12 +785,7 @@ describe('doStream', () => {
 
   it('should fall back to the latest pending text when no speech_final arrived before transcript.done', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -679,12 +818,7 @@ describe('doStream', () => {
 
   it('should join finalized utterances per channel when transcript.done is empty', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -724,12 +858,7 @@ describe('doStream', () => {
 
   it('should error the stream with the server message on error events', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
@@ -753,12 +882,7 @@ describe('doStream', () => {
 
   it('should close the WebSocket and stop reading audio when the stream is cancelled', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     let audioCancelled = false;
     const audio = new ReadableStream<Uint8Array>({
@@ -785,12 +909,7 @@ describe('doStream', () => {
 
   it('should warn on unrecognized inputAudioFormat types', async () => {
     MockWebSocket.instances = [];
-    const model = new XaiTranscriptionModel('', {
-      provider: 'xai.transcription',
-      baseURL: 'https://api.x.ai/v1',
-      headers: () => ({ Authorization: 'Bearer test-api-key' }),
-      webSocket: MockWebSocket,
-    });
+    const model = createStreamingModel();
 
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
