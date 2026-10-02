@@ -297,6 +297,47 @@ describe('doEmbed', () => {
     `);
   });
 
+  describe.each(['embed-v5.0-pro', 'embed-v5.0-fast'])(
+    '%s output dimensions',
+    modelId => {
+      it.each([256, 512, 768, 1024, 1536, 2048])(
+        'should pass output_dimension %i',
+        async outputDimension => {
+          await provider.embeddingModel(modelId).doEmbed({
+            values: testValues,
+            providerOptions: { cohere: { outputDimension } },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toEqual({
+            embedding_types: ['float'],
+            input_type: 'search_query',
+            model: modelId,
+            output_dimension: outputDimension,
+            texts: testValues,
+          });
+        },
+      );
+
+      it('should leave the default output dimension to the API', async () => {
+        await provider.embeddingModel(modelId).doEmbed({ values: testValues });
+
+        expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+          'output_dimension',
+        );
+      });
+
+      it('should reject an unsupported output dimension before sending a request', async () => {
+        await expect(
+          provider.embeddingModel(modelId).doEmbed({
+            values: testValues,
+            providerOptions: { cohere: { outputDimension: 1000 } },
+          }),
+        ).rejects.toThrow('invalid cohere provider options');
+        expect(server.calls).toHaveLength(0);
+      });
+    },
+  );
+
   it('should pass headers', async () => {
     const provider = createCohere({
       apiKey: 'test-api-key',
