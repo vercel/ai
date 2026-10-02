@@ -40,7 +40,7 @@ Creates a client-server context provider that can be used to wrap parts of your 
     },
     {
       name: 'onGetUIState',
-      type: '() => UIState',
+      type: '() => Promise<UIState | undefined>',
       description: 'is called during SSR to compare and update UI state.',
     },
     {

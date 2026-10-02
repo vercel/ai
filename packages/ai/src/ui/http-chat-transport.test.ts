@@ -1,6 +1,7 @@
 import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
 import {
   HttpChatTransport,
@@ -290,6 +291,82 @@ describe('HttpChatTransport', () => {
   });
 
   describe('reconnectToStream', () => {
+    it.each([
+      { chatId: 'a/b', encodedId: 'a%2Fb' },
+      { chatId: '../other-route', encodedId: '..%2Fother-route' },
+      {
+        chatId: 'a?mode=other#fragment',
+        encodedId: 'a%3Fmode%3Dother%23fragment',
+      },
+      {
+        chatId: 'a b/日本語',
+        encodedId: 'a%20b%2F%E6%97%A5%E6%9C%AC%E8%AA%9E',
+      },
+      { chatId: '%2F', encodedId: '%252F' },
+      { chatId: 'a\\b', encodedId: 'a%5Cb' },
+    ])(
+      'encodes chat ID $chatId as one path segment',
+      async ({ chatId, encodedId }) => {
+        const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+        const transport = new MockHttpChatTransport({
+          api: '/api/chat?mode=demo#section',
+          fetch,
+        });
+
+        await transport.reconnectToStream({ chatId });
+
+        expect(fetch).toHaveBeenCalledWith(
+          `/api/chat/${encodedId}/stream?mode=demo#section`,
+          expect.objectContaining({ method: 'GET' }),
+        );
+      },
+    );
+
+    it('keeps a leading slash in a chat ID from changing the origin with an empty API', async () => {
+      const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+      const transport = new MockHttpChatTransport({ api: '', fetch });
+
+      await transport.reconnectToStream({ chatId: '/other.example/chat' });
+
+      expect(fetch).toHaveBeenCalledWith(
+        '/%2Fother.example%2Fchat/stream',
+        expect.anything(),
+      );
+    });
+
+    it.each(['.', '..'])(
+      'rejects the dot-segment chat ID %s before fetching',
+      async chatId => {
+        const fetch = vi.fn();
+        const transport = new MockHttpChatTransport({ fetch });
+
+        await expect(
+          transport.reconnectToStream({ chatId }),
+        ).rejects.toBeInstanceOf(InvalidArgumentError);
+        expect(fetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['a/b?c#d', '..'])(
+      'preserves a prepared reconnect URL and passes the original ID %s to the callback',
+      async chatId => {
+        const fetch = vi.fn(async () => new Response(null, { status: 204 }));
+        const api = '/custom-stream?token=a%2Fb';
+        const prepareReconnectToStreamRequest = vi.fn(() => ({ api }));
+        const transport = new MockHttpChatTransport({
+          fetch,
+          prepareReconnectToStreamRequest,
+        });
+
+        await transport.reconnectToStream({ chatId });
+
+        expect(prepareReconnectToStreamRequest).toHaveBeenCalledWith(
+          expect.objectContaining({ id: chatId }),
+        );
+        expect(fetch).toHaveBeenCalledWith(api, expect.anything());
+      },
+    );
+
     it.each([
       {
         api: '/api/chat?mode=demo',

@@ -211,10 +211,6 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
         schema: xaiLanguageModelResponsesOptions,
       })) ?? {};
 
-    if (topK != null) {
-      warnings.push({ type: 'unsupported', feature: 'topK' });
-    }
-
     if (frequencyPenalty != null) {
       warnings.push({ type: 'unsupported', feature: 'frequencyPenalty' });
     }
@@ -318,6 +314,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       max_output_tokens: maxOutputTokens,
       temperature,
       top_p: topP,
+      top_k: topK,
+      min_p: options.minP,
       seed,
       ...(responseFormat?.type === 'json' && {
         text: {
@@ -333,15 +331,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               : { type: 'json_object' },
         },
       }),
-      ...((resolvedReasoningEffort != null ||
-        options.reasoningSummary != null) && {
+      ...(resolvedReasoningEffort != null && {
         reasoning: {
-          ...(resolvedReasoningEffort != null && {
-            effort: resolvedReasoningEffort,
-          }),
-          ...(options.reasoningSummary != null && {
-            summary: options.reasoningSummary,
-          }),
+          effort: resolvedReasoningEffort,
         },
       }),
       ...(options.store === false && {
@@ -353,8 +345,23 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
       ...(options.previousResponseId != null && {
         previous_response_id: options.previousResponseId,
       }),
+      ...(options.maxTurns != null && {
+        max_turns: options.maxTurns,
+      }),
+      ...(options.parallelToolCalls != null && {
+        parallel_tool_calls: options.parallelToolCalls,
+      }),
+      ...(options.promptCacheKey != null && {
+        prompt_cache_key: options.promptCacheKey,
+      }),
+      ...(options.safetyIdentifier != null && {
+        safety_identifier: options.safetyIdentifier,
+      }),
       ...(options.serviceTier != null && {
         service_tier: options.serviceTier,
+      }),
+      ...(options.user != null && {
+        user: options.user,
       }),
     };
 
@@ -644,7 +651,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             outputTokens: { total: 0, text: 0, reasoning: 0 },
           },
       ...((response.usage?.cost_in_usd_ticks != null ||
-        response.service_tier != null) && {
+        response.service_tier != null ||
+        response.prompt_cache_key != null ||
+        response.safety_identifier != null) && {
         providerMetadata: {
           xai: {
             ...(response.usage?.cost_in_usd_ticks != null && {
@@ -652,6 +661,12 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
             }),
             ...(response.service_tier != null && {
               serviceTier: response.service_tier,
+            }),
+            ...(response.prompt_cache_key != null && {
+              promptCacheKey: response.prompt_cache_key,
+            }),
+            ...(response.safety_identifier != null && {
+              safetyIdentifier: response.safety_identifier,
             }),
           },
         },
@@ -704,6 +719,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     let usage: LanguageModelV4Usage | undefined = undefined;
     let costInUsdTicks: number | undefined = undefined;
     let serviceTier: string | undefined = undefined;
+    let promptCacheKey: string | undefined = undefined;
+    let safetyIdentifier: string | undefined = undefined;
     let isFirstChunk = true;
     const contentBlocks: Record<string, { type: 'text' }> = {};
     const seenToolCalls = new Set<string>();
@@ -899,6 +916,8 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
               }
 
               serviceTier = response.service_tier ?? undefined;
+              promptCacheKey = response.prompt_cache_key ?? undefined;
+              safetyIdentifier = response.safety_identifier ?? undefined;
 
               if (event.type === 'response.incomplete') {
                 const reason =
@@ -1371,11 +1390,16 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
                 },
                 outputTokens: { total: 0, text: 0, reasoning: 0 },
               },
-              ...((costInUsdTicks != null || serviceTier != null) && {
+              ...((costInUsdTicks != null ||
+                serviceTier != null ||
+                promptCacheKey != null ||
+                safetyIdentifier != null) && {
                 providerMetadata: {
                   xai: {
                     ...(costInUsdTicks != null && { costInUsdTicks }),
                     ...(serviceTier != null && { serviceTier }),
+                    ...(promptCacheKey != null && { promptCacheKey }),
+                    ...(safetyIdentifier != null && { safetyIdentifier }),
                   },
                 },
               }),

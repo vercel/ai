@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/code-mode",
-  "version": "1.0.66",
+  "version": "1.0.84",
   "description": "QuickJS-backed code mode tool for AI SDK",
   "keywords": [
     "ai",
@@ -37,8 +37,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "clean": "del-cli build dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "clean": "del-cli build *.tsbuildinfo",
     "type-check": "tsc --build && tsc -p src/tsconfig.json",
     "test": "pnpm test:node",
     "test:watch": "vitest --config vitest.node.config.js",
@@ -52,7 +52,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

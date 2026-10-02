@@ -19,7 +19,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
  * compiled `bridge/index.mjs`. They are declared `external` in
- * tsup.config.ts and resolved at runtime from the node_modules that this
+ * tsdown.config.ts and resolved at runtime from the node_modules that this
  * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
  * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
  * package — is the single source of truth for these packages and their
@@ -30,7 +30,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
  * in sync, or the bridge will either get the dependency bundled in or fail
  * to resolve it in the sandbox:
  *   1. the import statement below,
- *   2. the `external` array in tsup.config.ts, and
+ *   2. the `external` array in tsdown.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
@@ -174,7 +174,7 @@ function createPermissionOptions(input: {
     inactiveNativeTools,
   });
 
-  return {
+  const baseOptions = {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
@@ -183,6 +183,23 @@ function createPermissionOptions(input: {
           : 'default',
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
+  };
+
+  if (permissionMode === 'allow-all') {
+    return {
+      ...baseOptions,
+      /*
+       * Claude Code exposes AskUserQuestion in headless SDK sessions only
+       * when a permission prompt tool is configured. The stdio prompt tool
+       * preserves that tool surface without supplying the canUseTool callback
+       * that bypassPermissions guarantees it will never invoke.
+       */
+      permissionPromptToolName: 'stdio',
+    };
+  }
+
+  return {
+    ...baseOptions,
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
@@ -373,7 +390,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const streamEventState = createClaudeStreamEventState();
 
-  const mcpServers: Record<string, unknown> = { ...(start.mcpServers ?? {}) };
+  const mcpServers: Record<string, unknown> = { ...start.mcpServers };
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
       name: 'harness-tools',
@@ -467,6 +484,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.agentProgressSummaries !== undefined
+        ? { agentProgressSummaries: start.agentProgressSummaries }
+        : {}),
+      ...(start.forwardSubagentText !== undefined
+        ? { forwardSubagentText: start.forwardSubagentText }
+        : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),

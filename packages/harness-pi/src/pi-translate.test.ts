@@ -692,7 +692,7 @@ describe('translatePiEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"query\":\"AI SDK\"}",
+          "input": "{"query":"AI SDK"}",
           "providerExecuted": true,
           "toolCallId": "mcp-call",
           "toolName": "mcp__memory_search",
@@ -763,7 +763,7 @@ describe('translatePiEvent', () => {
           "type": "tool-result",
         },
         {
-          "result": "{\"path\":\"README.md\"}",
+          "result": "{"path":"README.md"}",
           "toolCallId": "native-call",
           "toolName": "read",
           "type": "tool-result",

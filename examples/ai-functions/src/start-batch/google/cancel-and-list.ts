@@ -16,7 +16,7 @@ run(async () => {
       {
         id: 'capital-france',
         type: 'text',
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.8-flash',
         prompt: 'What is the capital of France?',
       },
     ],

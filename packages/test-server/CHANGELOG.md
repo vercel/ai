@@ -1,5 +1,17 @@
 # @ai-sdk/test-server
 
+## 2.0.3
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+
+## 2.0.2
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+
 ## 2.0.1
 
 ### Patch Changes

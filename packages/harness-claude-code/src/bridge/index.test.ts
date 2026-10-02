@@ -270,6 +270,21 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes subagent activity options to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;
@@ -369,6 +384,38 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('omits canUseTool when bypassing permissions', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
+  test('preserves inactive tool filtering when bypassing permissions', async () => {
+    state.start = {
+      ...state.start,
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+      disallowedTools: ['Bash'],
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+      },
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
       ...state.start,
@@ -384,7 +431,8 @@ describe('Claude Code bridge configuration', () => {
           options: { toolUseID: string },
         ) => Promise<unknown>)
       | undefined;
-    await canUseTool?.(
+    expect(canUseTool).toBeTypeOf('function');
+    await canUseTool!(
       'mcp__context7__query-docs',
       { libraryId: '/vercel/next.js' },
       { toolUseID: 'external-tool' },
@@ -444,7 +492,10 @@ describe('Claude Code bridge configuration', () => {
       }>;
     };
     const questionHook = hooks.PreToolUse[0];
-    expect(state.queryArgs[0]?.options).toHaveProperty('canUseTool');
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
     const result = await questionHook.hooks[0](
       {
         hook_event_name: 'PreToolUse',

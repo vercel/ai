@@ -297,6 +297,13 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
   | {
       state: 'input-streaming';
       input?: DeepPartial<asUITool<TOOL>['input']> | undefined;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -324,6 +331,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -340,6 +348,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -358,6 +367,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -380,6 +390,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -396,6 +407,7 @@ export type UIToolInvocation<TOOL extends UITool | Tool> = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );
@@ -429,6 +441,13 @@ export type DynamicToolUIPart = {
   | {
       state: 'input-streaming';
       input?: unknown;
+      /**
+       * The raw tool input text received so far.
+       *
+       * This is used to continue input streaming when a message is persisted
+       * and later resumed.
+       */
+      rawInput?: string;
       output?: never;
       errorText?: never;
       callProviderMetadata?: ProviderMetadata;
@@ -456,6 +475,7 @@ export type DynamicToolUIPart = {
         reason?: never;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -472,6 +492,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -490,6 +511,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -507,6 +529,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
   | {
@@ -523,6 +546,7 @@ export type DynamicToolUIPart = {
         reason?: string;
         isAutomatic?: boolean;
         signature?: string;
+        inputSchemaInput?: unknown;
       };
     }
 );

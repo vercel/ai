@@ -8,6 +8,7 @@ export type AzureDeepSeekLanguageModelOptions = Omit<
 export type AzureDeepSeekChatOptions = AzureDeepSeekLanguageModelOptions;
 export type {
   OpenAILanguageModelResponsesOptions,
+  OpenAIResponsesSystemMessageOptions,
   /** @deprecated Use `OpenAILanguageModelResponsesOptions` instead. */
   OpenAILanguageModelResponsesOptions as OpenAIResponsesProviderOptions,
   OpenAILanguageModelChatOptions,
@@ -27,3 +28,6 @@ export type {
   AzureResponsesSourceDocumentProviderMetadata,
 } from './azure-openai-provider-metadata';
 export { VERSION } from './version';
+export type { AzureSpeechModelOptions } from './azure-speech-model-options';
+export type { AzureTranscriptionModelOptions } from './azure-transcription-model-options';
+export type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';

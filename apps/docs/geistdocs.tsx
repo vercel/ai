@@ -30,6 +30,7 @@ export const nav: NonNullable<GeistdocsConfig['nav']> = [
     ],
   },
   { label: 'Providers', href: '/providers' },
+  { label: 'Playground', href: 'https://playground.ai-sdk.dev' },
 ];
 
 export const content: NonNullable<GeistdocsConfig['content']> = [

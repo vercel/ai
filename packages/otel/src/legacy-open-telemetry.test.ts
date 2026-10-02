@@ -24,6 +24,7 @@ import { z } from 'zod/v4';
 import {
   embed,
   embedMany,
+  experimental_evaluate,
   generateObject,
   generateText,
   isStepCount,
@@ -37,6 +38,7 @@ import {
 } from 'ai';
 import {
   MockEmbeddingModelV4,
+  Experimental_EvaluationMockModelV4,
   MockLanguageModelV4,
   MockRerankingModelV4,
   mockValues,
@@ -2516,6 +2518,64 @@ describe('LegacyOpenTelemetry integration with rerank', () => {
   });
 });
 
+describe('LegacyOpenTelemetry integration with evaluate', () => {
+  it('records evaluation inputs, outputs, and usage', async () => {
+    const tracer = new IntegrationMockTracer();
+
+    await experimental_evaluate({
+      model: new Experimental_EvaluationMockModelV4({
+        doEvaluate: async () => ({
+          answers: { refund: { type: 'boolean', probability: 0.9 } },
+          usage: { inputTokens: 12, outputTokens: 2 },
+          warnings: [],
+        }),
+      }),
+      state: { message: 'Please refund me' },
+      questions: {
+        refund: { type: 'boolean', instructions: 'Refund?' },
+      },
+      telemetry: {
+        integrations: new LegacyOpenTelemetry({ tracer }),
+      },
+    });
+
+    expect(tracer.jsonSpans).toMatchInlineSnapshot(`
+      [
+        {
+          "attributes": {
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.evaluate",
+            "ai.settings.maxRetries": 2,
+            "operation.name": "ai.evaluate",
+          },
+          "events": [],
+          "name": "ai.evaluate",
+        },
+        {
+          "attributes": {
+            "ai.evaluation.answers": "{"refund":{"type":"boolean","probability":0.9}}",
+            "ai.evaluation.questions": "{"refund":{"type":"boolean","instructions":"Refund?"}}",
+            "ai.evaluation.state": "{"message":"Please refund me"}",
+            "ai.model.id": "mock-model-id",
+            "ai.model.provider": "mock-provider",
+            "ai.operationId": "ai.evaluate.doEvaluate",
+            "ai.settings.maxRetries": 2,
+            "ai.usage.inputTokens": 12,
+            "ai.usage.outputTokens": 2,
+            "operation.name": "ai.evaluate.doEvaluate",
+          },
+          "events": [],
+          "name": "ai.evaluate.doEvaluate",
+        },
+      ]
+    `);
+  });
+});
+
 // --- embed integration fixtures ---
 
 const embedDummyEmbedding = [0.1, 0.2, 0.3];
@@ -3585,5 +3645,99 @@ describe('LegacyOpenTelemetry integration with streamText transform', () => {
     await result.consumeStream();
 
     expect(tracer.jsonSpans).toMatchSnapshot();
+  });
+});
+
+describe('LegacyOpenTelemetry speech and transcription operations', () => {
+  it('honors speech input and output privacy controls', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const speechCallId = 'speech-call';
+
+    integration.onStart!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      voice: 'alloy',
+      outputFormat: 'mp3',
+      instructions: undefined,
+      speed: undefined,
+      language: undefined,
+      maxRetries: 2,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+    integration.onEnd!({
+      callId: speechCallId,
+      operationId: 'ai.generateSpeech',
+      provider: 'openai.speech',
+      modelId: 'gpt-4o-mini-tts',
+      text: 'private text',
+      audio: {
+        byteLength: 1234,
+        mediaType: 'audio/mpeg',
+        format: 'mp3',
+      },
+      usage: { characters: 12 },
+      warnings: [],
+      providerMetadata: undefined,
+      response: {
+        timestamp: new Date(0),
+        modelId: 'gpt-4o-mini-tts',
+      },
+      recordInputs: false,
+      recordOutputs: false,
+      functionId: undefined,
+    });
+
+    const startAttributes = getStartSpanAttributes(tracer, 0);
+    const endAttributes = getSetAttributesArg(tracer.spans[0]);
+    expect(startAttributes['ai.request.text']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.size']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.mediaType']).toBeUndefined();
+    expect(endAttributes['ai.response.audio.format']).toBeUndefined();
+    expect(endAttributes['ai.usage.characters']).toBe(12);
+    expect(endAttributes['ai.response.usage']).toBe(
+      JSON.stringify({ characters: 12 }),
+    );
+  });
+
+  it('records streaming transcription errors on the operation span', () => {
+    const tracer = createMockTracer();
+    const integration: Telemetry = new LegacyOpenTelemetry({ tracer });
+    const streamCallId = 'stream-call';
+    const error = new Error('stream failed');
+
+    integration.experimental_onStreamTranscriptionStart!({
+      callId: streamCallId,
+      operationId: 'ai.streamTranscribe',
+      provider: 'openai.transcription',
+      modelId: 'gpt-realtime-whisper',
+      audio: { byteLength: undefined, mediaType: 'audio/pcm' },
+      inputAudioFormat: { type: 'audio/pcm', rate: 24000 },
+      maxRetries: undefined,
+      headers: undefined,
+      providerOptions: {},
+      recordInputs: undefined,
+      recordOutputs: undefined,
+      functionId: undefined,
+    });
+    integration.onError!({ callId: streamCallId, error });
+
+    expect(tracer.spans[0].recordException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'stream failed' }),
+    );
+    expect(tracer.spans[0].setStatus).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: SpanStatusCode.ERROR,
+        message: 'stream failed',
+      }),
+    );
+    expect(tracer.spans[0].ended).toBe(true);
   });
 });

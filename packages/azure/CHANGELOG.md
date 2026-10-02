@@ -1,5 +1,148 @@
 # @ai-sdk/azure
 
+## 4.0.90
+
+### Patch Changes
+
+- 8952233: feat(azure): support MAI-Voice-2.1 and MAI-Voice-2.1-Flash speech generation, and MAI-Transcribe-2-Streaming streaming transcription through the MAI realtime API. Adds the `maiBaseURL` and `webSocket` settings and `providerOptions.azure.api: 'mai'`. Unknown MAI voices or styles now fail with a descriptive, non-retryable error.
+
+## 4.0.89
+
+### Patch Changes
+
+- d08102b: Add test coverage for `resourceName` validation edge cases: labels at the 63-character limit, underscores, non-ASCII characters, and invalid `AZURE_RESOURCE_NAME` values for non-language models.
+
+## 4.0.88
+
+### Patch Changes
+
+- 560ac0b: Route `mai-transcribe-1.5` to the Azure Speech API by default, like `mai-transcribe-2`. MAI-Transcribe-1.5 requests no longer send the `segment` timestamps default, which the model rejects.
+- 00f2a59: Add MAI-Voice-2-Flash and MAI-Voice-2 speech generation through `azure.speech()` using Azure Speech text to speech (SSML), with voice, output format, speed, and `style`/`styleDegree` provider options. `language` picks a default voice when no voice is set. Select the API with `providerOptions.azure.api` to override model-based routing, and add `azure.speechModel()` as an alias of `azure.speech()`.
+
+## 4.0.87
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai@4.0.83
+  - @ai-sdk/deepseek@3.0.58
+
+## 4.0.86
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [040033b]
+- Updated dependencies [ea54a10]
+- Updated dependencies [ede5b89]
+  - @ai-sdk/openai@4.0.82
+  - @ai-sdk/deepseek@3.0.57
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.85
+
+### Patch Changes
+
+- Updated dependencies [4e94782]
+  - @ai-sdk/openai@4.0.81
+
+## 4.0.84
+
+### Patch Changes
+
+- 5b9f10b: Reject an Azure `resourceName` that is not a single DNS label, so a malformed value cannot rewrite the request host.
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/deepseek@3.0.56
+  - @ai-sdk/openai@4.0.80
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.83
+
+### Patch Changes
+
+- 354af1c: Add MAI-Transcribe-2 file transcription through `azure.transcription()` using the Azure Speech API, with diarization, word/segment timestamps, transcript styles, locale forcing, and phrase lists. Select the API with `providerOptions.azure.api` to override model-based routing, add a `speechBaseURL` setting for the Speech endpoint, and add `azure.transcriptionModel()` as an alias of `azure.transcription()`.
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/openai@4.0.79
+  - @ai-sdk/deepseek@3.0.55
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.82
+
+### Patch Changes
+
+- Updated dependencies [94d5d6d]
+  - @ai-sdk/openai@4.0.78
+
+## 4.0.81
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [2abd503]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/openai@4.0.77
+  - @ai-sdk/deepseek@3.0.54
+
+## 4.0.80
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/deepseek@3.0.53
+  - @ai-sdk/openai@4.0.76
+
+## 4.0.79
+
+### Patch Changes
+
+- ca31b89: Export `OpenAIResponsesSystemMessageOptions` for typed message-level reasoning effort updates in Azure Responses models.
+- Updated dependencies [ca31b89]
+  - @ai-sdk/openai@4.0.75
+
+## 4.0.78
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [4cf5a99]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai@4.0.74
+  - @ai-sdk/deepseek@3.0.52
+
+## 4.0.77
+
+### Patch Changes
+
+- Updated dependencies [6d1f881]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [618dc11]
+  - @ai-sdk/openai@4.0.73
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/deepseek@3.0.51
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 4.0.76
 
 ### Patch Changes

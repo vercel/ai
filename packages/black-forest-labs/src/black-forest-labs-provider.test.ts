@@ -113,13 +113,13 @@ describe('BlackForestLabs provider', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/black-forest-labs/',
+      'ai-sdk-black-forest-labs/',
     );
     expect(server.calls[1].requestUserAgent).toContain(
-      'ai-sdk/black-forest-labs/',
+      'ai-sdk-black-forest-labs/',
     );
     expect(server.calls[2].requestUserAgent).toContain(
-      'ai-sdk/black-forest-labs/',
+      'ai-sdk-black-forest-labs/',
     );
   });
 
@@ -195,7 +195,7 @@ describe('BlackForestLabs provider', () => {
     });
 
     expect(server.calls[0].requestUserAgent).toContain(
-      'ai-sdk/black-forest-labs/',
+      'ai-sdk-black-forest-labs/',
     );
 
     // The signed video URL is returned rather than downloaded, so submit and

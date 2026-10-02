@@ -75,6 +75,58 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should cancel merged streams when the consumer cancels', async () => {
+    const pullStarted = new DelayedPromise<void>();
+    const pullRelease = new DelayedPromise<void>();
+    const pullFinished = new DelayedPromise<void>();
+    const cancelReason = new Error('client disconnected');
+    let sourceCancelled = false;
+    let sourceContinuedAfterCancel = false;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.merge(
+          new ReadableStream({
+            start(controller) {
+              controller.enqueue({ type: 'start' });
+            },
+            async pull(controller) {
+              pullStarted.resolve(undefined);
+              await pullRelease.promise;
+
+              if (!sourceCancelled) {
+                sourceContinuedAfterCancel = true;
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'continued-source',
+                  delta: 'discarded',
+                });
+                controller.close();
+              }
+
+              pullFinished.resolve(undefined);
+            },
+            cancel(reason) {
+              expect(reason).toBe(cancelReason);
+              sourceCancelled = true;
+            },
+          }),
+        );
+      },
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await pullStarted.promise;
+    await reader.cancel(cancelReason);
+
+    pullRelease.resolve(undefined);
+    await pullFinished.promise;
+
+    expect(sourceCancelled).toBe(true);
+    expect(sourceContinuedAfterCancel).toBe(false);
+  });
+
   it('should send async message annotation and close the stream', async () => {
     const wait = new DelayedPromise<void>();
 
@@ -285,6 +337,59 @@ describe('createUIMessageStream', () => {
     `);
   });
 
+  it('should handle reader acquisition errors without interrupting execute', async () => {
+    const source = new ReadableStream<UIMessageChunk>();
+    const sourceReader = source.getReader();
+    const onError = vi.fn(() => 'merge-error');
+
+    try {
+      const stream = createUIMessageStream({
+        execute: ({ writer }) => {
+          writer.merge(source);
+          writer.write({ type: 'text-start', id: '1' });
+        },
+        onError,
+      });
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'text-start', id: '1' },
+        { type: 'error', errorText: 'merge-error' },
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
+    } finally {
+      sourceReader.releaseLock();
+    }
+  });
+
+  it('should handle reader acquisition errors when merging after execute returns', async () => {
+    const source = new ReadableStream<UIMessageChunk>();
+    const sourceReader = source.getReader();
+    const execution = new DelayedPromise<void>();
+    const onError = vi.fn(() => 'merge-error');
+    let streamWriter!: UIMessageStreamWriter;
+
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        streamWriter = writer;
+        return execution.promise;
+      },
+      onError,
+    });
+
+    try {
+      expect(() => streamWriter.merge(source)).not.toThrow();
+      execution.resolve(undefined);
+
+      expect(await convertReadableStreamToArray(stream)).toEqual([
+        { type: 'error', errorText: 'merge-error' },
+      ]);
+      expect(onError).toHaveBeenCalledExactlyOnceWith(expect.any(TypeError));
+    } finally {
+      execution.resolve(undefined);
+      sourceReader.releaseLock();
+    }
+  });
+
   it('should suppress error when writing to closed stream', async () => {
     let uiMessageStreamWriter: UIMessageStreamWriter<UIMessage>;
 
@@ -475,6 +580,31 @@ describe('createUIMessageStream', () => {
           },
         ],
       },
+    });
+  });
+
+  it('should report consumer cancellation when the consumer cancels before an outcome is declared', async () => {
+    const execution = new DelayedPromise<void>();
+    const onEnd = vi.fn();
+    const stream = createUIMessageStream({
+      execute: ({ writer }) => {
+        writer.write({ type: 'start' });
+        return execution.promise;
+      },
+      onEnd,
+      generateId: () => 'response-message-id',
+    });
+
+    const reader = stream.getReader();
+    await reader.read();
+    await reader.cancel('client disconnected');
+    execution.resolve(undefined);
+
+    expect(onEnd).toHaveBeenCalledTimes(1);
+    expect(onEnd.mock.calls[0][0]).toMatchObject({
+      isAborted: false,
+      isCancelled: true,
+      outcome: { status: 'unknown' },
     });
   });
 

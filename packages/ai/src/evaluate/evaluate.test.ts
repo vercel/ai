@@ -7,6 +7,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvalidArgumentError } from '../error/invalid-argument-error';
 import { UnsupportedModelVersionError } from '../error/unsupported-model-version-error';
+import type { Telemetry } from '../telemetry/telemetry';
 import { EvaluationMockModelV4 } from '../test/evaluation-mock-model-v4';
 import { evaluate } from './evaluate';
 import type { EvaluationQuestion } from './evaluation-result';
@@ -420,6 +421,8 @@ describe('response validation', () => {
 
 it('retries transient errors with the configured retry limit', async () => {
   const { model, doEvaluate } = setup();
+  const experimental_onEvaluationModelCallStart = vi.fn();
+  const experimental_onEvaluationModelCallEnd = vi.fn();
   doEvaluate.mockRejectedValueOnce(
     new APICallError({
       message: 'Rate limited',
@@ -430,9 +433,22 @@ it('retries transient errors with the configured retry limit', async () => {
     }),
   );
   await expect(
-    evaluate({ model, state: 'text', questions, maxRetries: 1 }),
+    evaluate({
+      model,
+      state: 'text',
+      questions,
+      maxRetries: 1,
+      telemetry: {
+        integrations: {
+          experimental_onEvaluationModelCallStart,
+          experimental_onEvaluationModelCallEnd,
+        },
+      },
+    }),
   ).resolves.toBeDefined();
   expect(doEvaluate).toHaveBeenCalledTimes(2);
+  expect(experimental_onEvaluationModelCallStart).toHaveBeenCalledOnce();
+  expect(experimental_onEvaluationModelCallEnd).toHaveBeenCalledOnce();
 });
 
 it('honors maxRetries: 0', async () => {
@@ -482,4 +498,144 @@ it('does not return a result after cancellation during a call', async () => {
       abortSignal: controller.signal,
     }),
   ).rejects.toBe(reason);
+});
+
+describe('telemetry', () => {
+  it('emits operation and model-call lifecycle events', async () => {
+    const onStart = vi.fn();
+    const onEnd = vi.fn();
+    const experimental_onEvaluateStart = vi.fn();
+    const experimental_onEvaluationModelCallStart = vi.fn();
+    const experimental_onEvaluationModelCallEnd = vi.fn();
+    const experimental_onEvaluateEnd = vi.fn();
+    const evaluateOnStart = vi.fn();
+    const evaluateOnEnd = vi.fn();
+    const integration: Telemetry = {
+      onStart,
+      onEnd,
+      experimental_onEvaluateStart,
+      experimental_onEvaluationModelCallStart,
+      experimental_onEvaluationModelCallEnd,
+      experimental_onEvaluateEnd,
+    };
+    const state = { message: 'refund' };
+
+    await evaluate({
+      ...setup({
+        answers,
+        warnings: [],
+        usage: { inputTokens: 30, outputTokens: 4 },
+      }),
+      state,
+      questions,
+      telemetry: {
+        integrations: integration,
+        functionId: 'evaluate-test',
+        recordInputs: false,
+        recordOutputs: true,
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      onStart: evaluateOnStart,
+      onEnd: evaluateOnEnd,
+      _internal: { generateCallId: () => 'test-call-id' },
+    });
+
+    expect(onStart).not.toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
+
+    expect(experimental_onEvaluateStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate',
+        provider: 'mock-provider',
+        modelId: 'mock-model-id',
+        state,
+        questions,
+        runtimeContext: {},
+        maxRetries: 2,
+        recordInputs: false,
+        recordOutputs: true,
+        functionId: 'evaluate-test',
+      }),
+    );
+    expect(experimental_onEvaluationModelCallStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate.doEvaluate',
+        state,
+        questions,
+      }),
+    );
+    expect(experimental_onEvaluationModelCallEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate.doEvaluate',
+        answers,
+        usage: { inputTokens: 30, outputTokens: 4 },
+      }),
+    );
+    expect(experimental_onEvaluateEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        callId: 'test-call-id',
+        operationId: 'ai.evaluate',
+        answers,
+        usage: { inputTokens: 30, outputTokens: 4, totalTokens: 34 },
+        runtimeContext: {},
+      }),
+    );
+    expect(evaluateOnStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: 'ai.evaluate',
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      }),
+    );
+    expect(evaluateOnEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operationId: 'ai.evaluate',
+        runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+      }),
+    );
+  });
+
+  it('includes only selected runtime context fields', async () => {
+    const experimental_onEvaluateStart = vi.fn();
+
+    await evaluate({
+      ...setup(),
+      state: 'text',
+      questions,
+      telemetry: {
+        integrations: { experimental_onEvaluateStart },
+        includeRuntimeContext: { requestId: true },
+      },
+      runtimeContext: { requestId: 'request-1', secret: 'hidden' },
+    });
+
+    expect(experimental_onEvaluateStart).toHaveBeenCalledWith(
+      expect.objectContaining({ runtimeContext: { requestId: 'request-1' } }),
+    );
+  });
+
+  it('emits an error event when evaluation fails', async () => {
+    const error = new Error('evaluation failed');
+    const onError = vi.fn();
+    const { model } = setup();
+    model.doEvaluate = vi.fn().mockRejectedValue(error);
+
+    await expect(
+      evaluate({
+        model,
+        state: 'text',
+        questions,
+        maxRetries: 0,
+        telemetry: { integrations: { onError } },
+        _internal: { generateCallId: () => 'test-call-id' },
+      }),
+    ).rejects.toBe(error);
+
+    expect(onError).toHaveBeenCalledWith({
+      callId: 'test-call-id',
+      error,
+    });
+  });
 });

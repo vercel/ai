@@ -1,5 +1,94 @@
 # @ai-sdk/mcp
 
+## 2.0.66
+
+### Patch Changes
+
+- 3ff0f54: feat(mcp): add AuthorizationServerMismatchError for OAuth authorization server pin mismatches
+
+## 2.0.65
+
+### Patch Changes
+
+- 4d0500e: fix(mcp): identify failed OAuth tokens for conditional invalidation
+
+## 2.0.64
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 2.0.63
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 2.0.62
+
+### Patch Changes
+
+- 868c475: Preserve prototype-named tools, providers, and provider metadata as own properties without changing lookup object prototypes. Prevent inherited names from resolving as registered providers or causing image metadata aggregation to fail.
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 2.0.61
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 2.0.60
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 2.0.59
+
+### Patch Changes
+
+- be877ff: Use `fetchUntrustedUrl` for OAuth metadata discovery, with an explicit opt-in
+  for the MCP protocol-version header. Protocol metadata remains available while
+  unknown headers are withheld from untrusted first-hop URLs.
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 2.0.58
+
+### Patch Changes
+
+- 1ffd453: fix(mcp): preserve explicit stdio transport environment values
+
+## 2.0.57
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 2.0.56
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
 ## 2.0.55
 
 ### Patch Changes

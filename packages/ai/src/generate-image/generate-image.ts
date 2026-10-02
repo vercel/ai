@@ -25,6 +25,8 @@ import type { ImageModel } from '../types/image-model';
 import type { ImageModelResponseMetadata } from '../types/image-model-response-metadata';
 import { addImageModelUsage, type ImageModelUsage } from '../types/usage';
 import type { Warning } from '../types/warning';
+import { getOwn } from '../util/get-own';
+import { setOwn } from '../util/set-own';
 import { prepareRetries } from '../util/prepare-retries';
 import { RetryError } from '../util/retry-error';
 import { VERSION } from '../version';
@@ -324,8 +326,11 @@ export async function generateImage({
               .images;
           }
         } else {
-          providerMetadata[providerName] ??= { images: [] };
-          providerMetadata[providerName].images.push(...metadata.images);
+          const currentEntry = getOwn(providerMetadata, providerName) ?? {
+            images: [],
+          };
+          currentEntry.images.push(...metadata.images);
+          setOwn(providerMetadata, providerName, currentEntry);
         }
       }
     }
@@ -393,9 +398,9 @@ export function getImageProviderMetadata(
 
   for (const [providerName, metadata] of Object.entries(providerMetadata)) {
     const value = metadata.images?.[imageIndex];
-
+    
     if (isJSONObject(value)) {
-      (imageMetadata ??= {})[providerName] = value;
+      setOwn((imageMetadata ??= {}), providerName, value);
     }
   }
 

@@ -28,7 +28,6 @@ vi.mock('@ai-sdk/provider-utils', async importOriginal => {
         ) {
           return process.env.GOOGLE_VERTEX_API_KEY;
         }
-        return undefined;
       }),
     generateId: vi.fn().mockReturnValue('mock-id'),
     withoutTrailingSlash: vi.fn().mockImplementation(url => url),
@@ -112,7 +111,10 @@ describe('google-vertex-provider-base', () => {
     expect(GoogleLanguageModel).toHaveBeenCalledWith(
       'test-model-id',
       expect.objectContaining({
-        downloadToolResultFiles: { maxBytes: 20 * 1024 * 1024 },
+        downloadToolResultFiles: {
+          maxBytes: 20 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
       }),
     );
   });
@@ -534,6 +536,7 @@ describe('google-vertex-provider-base', () => {
           "baseURL": "https://aiplatform.us.rep.googleapis.com/v1beta1/projects/test-project/locations/us/publishers/google",
           "downloadToolResultFiles": {
             "maxBytes": 7340032,
+            "supportsGoogleCloudStorageUrls": true,
           },
           "fetch": undefined,
           "generateId": [MockFunction],
@@ -557,6 +560,7 @@ describe('google-vertex-provider-base', () => {
           "baseURL": "https://aiplatform.eu.rep.googleapis.com/v1beta1/projects/test-project/locations/eu/publishers/google",
           "downloadToolResultFiles": {
             "maxBytes": 7340032,
+            "supportsGoogleCloudStorageUrls": true,
           },
           "fetch": undefined,
           "generateId": [MockFunction],

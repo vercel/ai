@@ -1,5 +1,174 @@
 # @ai-sdk/amazon-bedrock
 
+## 5.0.105
+
+### Patch Changes
+
+- 2850ad8: Add `requestMetadata` support to the Converse and ConverseStream APIs via `providerOptions.amazonBedrock.requestMetadata`. Accepts a `Record<string, string>` for per-request tagging in Amazon Bedrock invocation logs for cost attribution.
+
+## 5.0.104
+
+### Patch Changes
+
+- Updated dependencies [c35458e]
+  - @ai-sdk/anthropic@4.0.71
+
+## 5.0.103
+
+### Patch Changes
+
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/openai@4.0.83
+  - @ai-sdk/anthropic@4.0.70
+
+## 5.0.102
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [040033b]
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/openai@4.0.82
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [4e94782]
+  - @ai-sdk/openai@4.0.81
+
+## 5.0.100
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/openai@4.0.80
+  - @ai-sdk/provider-utils@5.0.51
+
+## 5.0.99
+
+### Patch Changes
+
+- e361d39: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), `reasoning: 'none'` maps to `between_tools` thinking, and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [e361d39]
+- Updated dependencies [8373a22]
+  - @ai-sdk/anthropic@4.0.67
+
+## 5.0.98
+
+### Patch Changes
+
+- 9c7ff9a: fix(amazon-bedrock): omit max output tokens for Nova 2 Lite high reasoning
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/openai@4.0.79
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/anthropic@4.0.66
+
+## 5.0.97
+
+### Patch Changes
+
+- Updated dependencies [94d5d6d]
+  - @ai-sdk/openai@4.0.78
+
+## 5.0.96
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [2abd503]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/openai@4.0.77
+  - @ai-sdk/anthropic@4.0.65
+
+## 5.0.95
+
+### Patch Changes
+
+- 2bff9cc: fix(bedrock): prevent duplicate Mistral tool-call IDs in Amazon Bedrock conversations
+- 4e6a98c: fix(amazon-bedrock): fall back to automatic tool choice for models that reject forced tool use
+- b134d74: fix(amazon-bedrock): ignore portable reasoning for models without known reasoning support
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/openai@4.0.76
+
+## 5.0.94
+
+### Patch Changes
+
+- Updated dependencies [154221f]
+- Updated dependencies [ca31b89]
+  - @ai-sdk/anthropic@4.0.63
+  - @ai-sdk/openai@4.0.75
+
+## 5.0.93
+
+### Patch Changes
+
+- b7bc639: fix(amazon-bedrock): route supported Mantle models through the OpenAI endpoint
+- 31fb009: fix(amazon-bedrock): omit unsupported sampling parameters for newer Claude models
+- fbdda09: fix(amazon-bedrock): omit unsupported OpenAI sampling settings from Converse requests
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [4cf5a99]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/openai@4.0.74
+  - @ai-sdk/anthropic@4.0.62
+
+## 5.0.92
+
+### Patch Changes
+
+- 4b75a77: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [6d1f881]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+- Updated dependencies [618dc11]
+  - @ai-sdk/openai@4.0.73
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.91
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+  - @ai-sdk/anthropic@4.0.60
+
 ## 5.0.90
 
 ### Patch Changes

@@ -53,6 +53,7 @@ import type {
 } from './language-model-events';
 import type { Output } from './output';
 import { parseToolCall } from './parse-tool-call';
+import { resolveGeneratedFileData } from './resolve-generated-file-data';
 import type {
   TextStreamFilePart,
   TextStreamPart,
@@ -565,10 +566,10 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
         case 'file':
         case 'reasoning-file': {
           const file = new DefaultGeneratedFileWithType({
-            data:
-              chunk.data.type === 'data'
-                ? chunk.data.data
-                : chunk.data.url.toString(),
+            data: await resolveGeneratedFileData({
+              data: chunk.data,
+              abortSignal,
+            }),
             mediaType: chunk.mediaType,
           });
 
