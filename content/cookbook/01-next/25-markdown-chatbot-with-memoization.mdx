@@ -8,6 +8,8 @@ tags: ['next', 'streaming', 'chatbot', 'markdown']
 
 When building a chatbot with Next.js and the AI SDK, you'll likely want to render the model's responses in Markdown format using a library like `react-markdown`. However, this can have negative performance implications as the Markdown is re-rendered on each new token received from the streaming response.
 
+> **Note:** For new streaming chat interfaces, consider [Streamdown](https://streamdown.ai/), a Markdown renderer designed for AI streaming output. This recipe demonstrates the memoization technique for applications that use `react-markdown` and need to optimize repeated renders.
+
 As conversations get longer and more complex, this performance impact becomes exponentially worse since the entire conversation history is re-rendered with each new token.
 
 This recipe uses memoization - a performance optimization technique where the results of expensive function calls are cached and reused to avoid unnecessary re-computation. In this case, parsed Markdown blocks are memoized to prevent them from being re-parsed and re-rendered on each token update, which means that once a block is fully parsed, it's cached and reused rather than being regenerated. This approach significantly improves rendering performance for long conversations by eliminating redundant parsing and rendering operations.
