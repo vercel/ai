@@ -714,7 +714,7 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    docsUrl: 'https://www.pipe0.com/docs/sdks/ai-sdk',
+    docsUrl: 'https://www.pipe0.com/docs/sdks/integrations/ai-sdk',
     apiKeyUrl: 'https://www.pipe0.com/docs/authentication',
     websiteUrl: 'https://www.pipe0.com',
     npmUrl: 'https://www.npmjs.com/package/@pipe0/ai-sdk',
