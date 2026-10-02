@@ -30,6 +30,12 @@ type Record_ = { ts: number } & Record<string, unknown>;
 
 export type FileReporter = Telemetry & HarnessDiagnosticConsumer;
 
+function serializeError(error: unknown): unknown {
+  return error instanceof Error
+    ? { name: error.name, message: error.message }
+    : error;
+}
+
 export function createFileReporter(options: FileReporterOptions): FileReporter {
   const fileName = options.fileName ?? 'events.jsonl';
   const path = `${options.dir}/${fileName}`;
@@ -181,16 +187,25 @@ export function createFileReporter(options: FileReporterOptions): FileReporter {
       });
       finishTurn(e.callId);
     },
-    onError(error) {
-      if (lastOpenCallId != null) bucketFor(lastOpenCallId).errored = true;
-      record(lastOpenCallId, {
+    onError(event) {
+      const { callId, error } = event as { callId: string; error: unknown };
+      bucketFor(callId).errored = true;
+      record(callId, {
         ts: Date.now(),
         kind: 'error',
-        error:
-          error instanceof Error
-            ? { name: error.name, message: error.message }
-            : error,
+        callId,
+        error: serializeError(error),
       });
+      finishTurn(callId);
+    },
+    onAbort({ callId, reason }) {
+      record(callId, {
+        ts: Date.now(),
+        kind: 'turn-abort',
+        callId,
+        ...(reason !== undefined ? { reason: serializeError(reason) } : {}),
+      });
+      finishTurn(callId);
     },
     ingestDiagnostic(diagnostic: HarnessDiagnostic) {
       if (diagnostic.level === 'error' && lastOpenCallId != null) {

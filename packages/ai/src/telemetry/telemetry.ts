@@ -297,7 +297,8 @@ export interface Telemetry {
 
   /**
    * Called when an unrecoverable error occurs during the generation lifecycle.
-   * The error value is untyped — it may be an `Error` instance, an `AISDKError`,
+   * The event contains the operation's `callId` and the thrown value in `error`.
+   * The nested error is untyped — it may be an `Error` instance, an `AISDKError`,
    * or any thrown value.
    *
    * Use this to record error details on telemetry spans and set error status.

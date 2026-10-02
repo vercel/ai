@@ -978,7 +978,6 @@ describe('LegacyOpenTelemetry', () => {
     it('does nothing without callId', () => {
       otelIntegration.onStart!(makeOnStartEvent());
 
-      // @ts-expect-error Verify the runtime guard for malformed telemetry events.
       otelIntegration.onError!({ error: new Error('no callId') });
 
       const rootSpan = tracer.spans[0];
