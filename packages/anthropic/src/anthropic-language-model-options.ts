@@ -133,12 +133,6 @@ export const anthropicLanguageModelOptions = z.object({
   sendReasoning: z.boolean().optional(),
 
   /**
-   * Include the initial message ID, model, and raw usage as an
-   * `anthropic.message_start` custom stream part. Defaults to false.
-   */
-  includeMessageStart: z.boolean().optional(),
-
-  /**
    * Determines how structured outputs are generated.
    *
    * - `outputFormat`: Use the `output_config.format` parameter to specify the structured output format.

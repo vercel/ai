@@ -2,4 +2,4 @@
 '@ai-sdk/anthropic': patch
 ---
 
-feat(anthropic): expose message-start usage through opt-in custom stream parts
+feat(anthropic): expose message-start usage through custom stream parts

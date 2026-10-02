@@ -1089,7 +1089,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
-      includeMessageStart: anthropicOptions.includeMessageStart ?? false,
     };
   }
 
@@ -1837,7 +1836,6 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       toolNameMapping,
       providerOptionsName,
       usedCustomProviderKey,
-      includeMessageStart,
     } = await this.getArgs({
       ...options,
       stream: true,
@@ -2908,19 +2906,17 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 modelId: value.message.model ?? undefined,
               });
 
-              if (includeMessageStart) {
-                controller.enqueue({
-                  type: 'custom',
-                  kind: 'anthropic.message_start',
-                  providerMetadata: {
-                    anthropic: {
-                      id: value.message.id ?? null,
-                      model: value.message.model ?? null,
-                      usage: rawUsage,
-                    },
+              controller.enqueue({
+                type: 'custom',
+                kind: 'anthropic.message_start',
+                providerMetadata: {
+                  anthropic: {
+                    id: value.message.id ?? null,
+                    model: value.message.model ?? null,
+                    usage: rawUsage,
                   },
-                });
-              }
+                },
+              });
 
               // Programmatic tool calling: process pre-populated content blocks
               // (for deferred tool calls, content may be in message_start)

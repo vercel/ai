@@ -93,14 +93,35 @@ Anthropic language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
 
+### Message-start events
+
+During streaming, each Anthropic `message_start` event is exposed as an
+`anthropic.message_start` custom stream part containing the message ID, model,
+and raw initial token usage. No provider option is required.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-haiku-4-5'),
+  prompt: 'Say hi in one word.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'custom' && part.kind === 'anthropic.message_start') {
+    console.log(part.providerMetadata?.anthropic);
+  }
+}
+```
+
+Initial usage may be incomplete; use `result.usage` for final token counts.
+Like other custom parts, this event is included in response content and forwarded
+to UI message streams. It is ignored when replaying conversation history to Anthropic.
+
 ### Provider options
 
 The following optional provider options are available for Anthropic models:
-
-- `includeMessageStart` _boolean_
-
-  Include an `anthropic.message_start` custom stream part with the initial
-  message ID, model, and raw token usage. Defaults to `false`. Streaming only.
 
 - `disableParallelToolUse` _boolean_
 
