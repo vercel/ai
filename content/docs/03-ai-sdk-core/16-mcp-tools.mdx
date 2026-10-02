@@ -314,6 +314,36 @@ invalid tool arguments, are surfaced immediately without retrying. Successful
 MCP tool responses with `isError: true` are also returned to the model without
 retrying.
 
+`maxRetries` applies to `tools/call` requests, not to client initialization. To
+decide whether to retry `createMCPClient`, use the exported `MCPClientError`
+type guard and its optional HTTP status:
+
+```typescript
+import { createMCPClient, MCPClientError } from '@ai-sdk/mcp';
+
+try {
+  await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://your-server.com/mcp',
+    },
+  });
+} catch (error) {
+  if (
+    MCPClientError.isInstance(error) &&
+    error.statusCode != null &&
+    error.statusCode < 500
+  ) {
+    throw error;
+  }
+
+  // Retry according to your application's backoff policy.
+}
+```
+
+For network, timeout, abort, and non-HTTP transport failures, `statusCode` is
+`undefined`.
+
 <Note type="warning">
   Only enable retries for MCP tools where retrying is safe. Retrying
   non-idempotent tools, such as tools that send emails or create records, can

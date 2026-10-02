@@ -641,6 +641,42 @@ The client throws `MCPClientError` for:
 - Missing server capabilities
 - Connection failures
 
+Import `MCPClientError` from `@ai-sdk/mcp` and use its `isInstance` method to
+safely narrow unknown errors:
+
+```typescript
+import { createMCPClient, MCPClientError } from '@ai-sdk/mcp';
+
+try {
+  await createMCPClient({
+    transport: {
+      type: 'http',
+      url: 'https://your-server.com/mcp',
+    },
+  });
+} catch (error) {
+  if (MCPClientError.isInstance(error)) {
+    if (error.statusCode === 401 || error.statusCode === 403) {
+      // Authentication or authorization must be fixed before retrying.
+      throw error;
+    }
+
+    // Handle a transient transport or protocol failure.
+  }
+
+  throw error;
+}
+```
+
+The error exposes the optional `code`, `statusCode`, `url`, and `responseBody`
+properties. `code` is the JSON-RPC application error code. `statusCode`, `url`,
+and `responseBody` contain HTTP transport context when it is available. They
+are `undefined` for failures without an HTTP response, such as network errors,
+timeouts, aborted requests, and stdio transport failures.
+
+Avoid logging `url` or `responseBody` without redacting sensitive endpoint,
+query parameter, or server response data.
+
 For tool execution, errors are propagated as `CallToolError` errors.
 
 For unknown errors, the client exposes an `onUncaughtError` callback that can be used to manually log or handle errors that are not covered by known error types.

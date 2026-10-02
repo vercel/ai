@@ -45,6 +45,7 @@ export {
   MCPClientOAuthError,
   AuthorizationServerMismatchError,
 } from './error/oauth-error';
+export { MCPClientError } from './error/mcp-client-error';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,
