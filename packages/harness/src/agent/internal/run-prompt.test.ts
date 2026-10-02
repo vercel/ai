@@ -3136,6 +3136,53 @@ describe('runPrompt suspension lifecycle', () => {
 });
 
 describe('runPrompt abort semantics', () => {
+  test('dispatches abort telemetry when the caller stops an active turn', async () => {
+    const controller = new AbortController();
+    const reason = new Error('user stopped');
+    const onAbort = vi.fn();
+    const onError = vi.fn();
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start', modelId: 'mock-model' },
+        { type: 'text-start', id: 't1' },
+        { type: 'error', error: new Error('adapter stopped') },
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: controller.signal,
+      telemetry: {
+        integrations: [
+          {
+            onLanguageModelCallStart() {
+              expect(controller.signal.aborted).toBe(false);
+              controller.abort(reason);
+            },
+            onAbort,
+            onError,
+          },
+        ],
+      },
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(onAbort).toHaveBeenCalledExactlyOnceWith({
+      callId: expect.any(String),
+      steps: [],
+      reason,
+    });
+    expect(onError).not.toHaveBeenCalled();
+    expect(parts.at(-1)!.type).toBe('abort');
+  });
+
   const abortedRun = (
     script: HarnessV1StreamPart[],
     options?: {
