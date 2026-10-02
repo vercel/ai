@@ -436,32 +436,35 @@ describe('XaiImageModel', () => {
       });
     });
 
-    it('should pass quality provider option', async () => {
-      const model = createModel();
+    it.each(['high', 'auto'] as const)(
+      'should pass %s quality provider option',
+      async quality => {
+        const model = createModel();
 
-      await model.doGenerate({
-        prompt,
-        files: undefined,
-        mask: undefined,
-        n: 1,
-        size: undefined,
-        aspectRatio: undefined,
-        seed: undefined,
-        providerOptions: {
-          xai: {
-            quality: 'high',
+        await model.doGenerate({
+          prompt,
+          files: undefined,
+          mask: undefined,
+          n: 1,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {
+            xai: {
+              quality,
+            },
           },
-        },
-      });
+        });
 
-      expect(await server.calls[0].requestBodyJson).toStrictEqual({
-        model: 'grok-imagine-image',
-        prompt,
-        n: 1,
-        response_format: 'b64_json',
-        quality: 'high',
-      });
-    });
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'grok-imagine-image',
+          prompt,
+          n: 1,
+          response_format: 'b64_json',
+          quality,
+        });
+      },
+    );
 
     it('should pass user provider option', async () => {
       const model = createModel();

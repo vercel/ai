@@ -1059,9 +1059,13 @@ const { images } = await generateImage({
   images (actual dimensions vary based on aspect ratio). Available for
   `grok-imagine-image-pro`.
 
-- **quality** _'low' | 'medium' | 'high'_
+- **quality** _'low' | 'medium' | 'high' | 'auto'_
 
-  Image quality level. Higher quality may increase generation time.
+  Image quality level. Only supported by `grok-imagine-image-2.0`, which accepts
+  `low`, `medium`, and `auto`. `auto` is the default when omitted: it serves
+  `low` for generation and `medium` for editing, billed at the quality served.
+  `high` is not documented by xAI but is still accepted by older models, and is
+  kept for backward compatibility.
 
 ### Image Model Capabilities
 
