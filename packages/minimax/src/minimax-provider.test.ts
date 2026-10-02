@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { loadApiKey } from '@ai-sdk/provider-utils';
-import { NoSuchModelError } from '@ai-sdk/provider';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxVideoModel } from './minimax-video-model';
+import { MiniMaxFiles } from './files/minimax-files';
 
 const AnthropicLanguageModelMock = AnthropicLanguageModel as unknown as Mock;
 const MiniMaxVideoModelMock = MiniMaxVideoModel as unknown as Mock;
+const MiniMaxFilesMock = MiniMaxFiles as unknown as Mock;
 
 vi.mock('@ai-sdk/anthropic/internal', () => {
   const mockConstructor = vi.fn().mockImplementation(function (
@@ -35,6 +36,49 @@ vi.mock('./minimax-video-model', () => {
   });
   return {
     MiniMaxVideoModel: mockConstructor,
+  };
+});
+
+vi.mock('./speech/minimax-speech-model', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    modelId: string,
+    config: any,
+  ) {
+    this.provider = config.provider;
+    this.modelId = modelId;
+    this.config = config;
+  });
+  return {
+    MinimaxSpeechModel: mockConstructor,
+  };
+});
+
+vi.mock('./image/minimax-image-model', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    modelId: string,
+    config: any,
+  ) {
+    this.provider = config.provider;
+    this.modelId = modelId;
+    this.config = config;
+  });
+  return {
+    MinimaxImageModel: mockConstructor,
+  };
+});
+
+vi.mock('./files/minimax-files', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    config: any,
+  ) {
+    this.provider = config.provider;
+    this.config = config;
+  });
+  return {
+    MiniMaxFiles: mockConstructor,
   };
 });
 
@@ -238,22 +282,82 @@ describe('MiniMaxProvider', () => {
     });
   });
 
-  describe('unsupported model types', () => {
-    it('should throw NoSuchModelError for embeddingModel', () => {
+  describe('files', () => {
+    it('should construct a files instance with the files provider id', () => {
       const provider = createMiniMax();
-      expect(() => provider.embeddingModel('foo')).toThrow(NoSuchModelError);
+      const files = provider.files();
+
+      expect(files).toBeInstanceOf(MiniMaxFiles);
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].provider).toBe('minimax.files');
     });
 
-    it('should throw NoSuchModelError for textEmbeddingModel', () => {
+    it('should use the default files base URL', () => {
       const provider = createMiniMax();
-      expect(() => provider.textEmbeddingModel('foo')).toThrow(
-        NoSuchModelError,
-      );
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].baseURL).toBe('https://api.minimax.io');
     });
 
-    it('should throw NoSuchModelError for imageModel', () => {
-      const provider = createMiniMax();
-      expect(() => provider.imageModel('foo')).toThrow(NoSuchModelError);
+    it('should use a custom filesBaseURL', () => {
+      const provider = createMiniMax({
+        filesBaseURL: 'https://api.minimaxi.com',
+      });
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].baseURL).toBe('https://api.minimaxi.com');
+    });
+
+    it('should not derive the files base URL from the chat baseURL', () => {
+      const provider = createMiniMax({
+        baseURL: 'https://custom.url/anthropic/v1',
+      });
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should send a bearer token for authentication', () => {
+      const provider = createMiniMax({ apiKey: 'test-key' });
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      const headers = constructorCall[0].headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+      });
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: 'test-key',
+        environmentVariableName: 'MINIMAX_API_KEY',
+        description: 'MiniMax API key',
+      });
+    });
+
+    it('should merge custom headers into the files headers', () => {
+      const provider = createMiniMax({
+        headers: { 'Custom-Header': 'value' },
+      });
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].headers()).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'value',
+      });
+    });
+
+    it('should pass a custom fetch to the files instance', () => {
+      const customFetch = vi.fn();
+      const provider = createMiniMax({ fetch: customFetch });
+      provider.files();
+
+      const constructorCall = MiniMaxFilesMock.mock.calls[0];
+      expect(constructorCall[0].fetch).toBe(customFetch);
     });
   });
 });
