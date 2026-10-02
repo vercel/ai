@@ -85,6 +85,38 @@ describe('getGoogleModelCapabilities', () => {
         usesGemini3Features: false,
       },
     },
+    {
+      modelId: 'au.gemini-3.5-flash',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: true,
+      },
+    },
+    {
+      modelId: 'eu.gemini-3.5-flash',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: true,
+      },
+    },
+    {
+      modelId: 'us.gemini-3.1-pro',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: true,
+      },
+    },
+    {
+      modelId: 'au.gemini-2.5-flash',
+      expected: {
+        supportsGemini2Tools: true,
+        supportsFileSearch: true,
+        usesGemini3Features: false,
+      },
+    },
   ])(
     'classifies $modelId without falling back to legacy behavior',
     ({ modelId, expected }) => {
