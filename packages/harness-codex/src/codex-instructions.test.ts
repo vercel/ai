@@ -139,6 +139,10 @@ async function waitForStart({
   return lastStart();
 }
 
+async function waitForDeferredStarts(): Promise<void> {
+  await new Promise(resolve => setTimeout(resolve, 10));
+}
+
 describe('codex adapter — instructions transport', () => {
   beforeEach(() => {
     sentMessages.length = 0;
@@ -293,6 +297,71 @@ describe('codex adapter — instructions transport', () => {
     expect(start.prompt).toBe('Continue.');
     expect(start.instructions).toBe('Use turbo build --concurrency=4.');
     expect(start.resumeThreadId).toBe('thread-abc');
+  });
+
+  it('reruns a recovered suspended turn only once', async () => {
+    const session = await startSession({
+      continueFrom: {
+        type: 'continue-turn',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForDeferredStarts();
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Continue.',
+        resumeThreadId: 'thread-abc',
+      }),
+    ]);
+  });
+
+  it('does not rerun a recovered session after its first prompt starts', async () => {
+    const session = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+
+    await session.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'Recovered prompt',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+
+    await session.doContinueTurn({
+      skills: [],
+      tools: [],
+      emit: () => {},
+    });
+    await waitForDeferredStarts();
+
+    expect(sentMessages.filter(message => message.type === 'start')).toEqual([
+      expect.objectContaining({
+        prompt: 'Recovered prompt',
+        resumeThreadId: 'thread-abc',
+      }),
+    ]);
   });
 });
 
