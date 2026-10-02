@@ -9,7 +9,7 @@ run(async () => {
   console.log('Testing OpenAI Flex Processing...\n');
 
   const result = streamText({
-    model: openai('o3-mini'),
+    model: openai('gpt-6-luna'),
     prompt: 'Explain quantum computing in simple terms.',
     providerOptions: {
       openai: {

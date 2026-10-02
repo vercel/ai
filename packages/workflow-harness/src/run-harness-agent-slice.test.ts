@@ -40,6 +40,7 @@ function fakeSession(
   options: {
     unfinishedTurn?: boolean;
     suspendState?: HarnessV1ContinueTurnState;
+    detachError?: Error;
   } = {},
 ): HarnessAgentSession & {
   suspendCalls: number;
@@ -62,6 +63,9 @@ function fakeSession(
     },
     async detach() {
       session.detachCalls++;
+      if (options.detachError != null) {
+        throw options.detachError;
+      }
       return resumeState('detached');
     },
     async stop() {
@@ -244,6 +248,129 @@ describe('runHarnessAgentTimeSlice', () => {
     expect(session.detachCalls).toBe(0);
     expect(session.stopCalls).toBe(0);
     expect(next.resumeFrom).toBeUndefined();
+  });
+
+  test('stream startup failures detach the session and return fresh resume state', async () => {
+    const session = fakeSession();
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => {
+        throw new Error('configuration unavailable');
+      }),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first turn');
+      }),
+    };
+
+    const next = await runHarnessAgentTimeSlice({
+      agent,
+      state: createHarnessWorkflowState({
+        prompt: 'hi',
+        sessionId: 'ses_1',
+        resumeFrom: resumeState('stale'),
+      }),
+      writable: collectingWritable().writable,
+      destroyOnFinish: false,
+    });
+
+    expect(next).toMatchObject({
+      status: 'failed',
+      error: 'configuration unavailable',
+      resumeFrom: resumeState('detached'),
+    });
+    expect(session.detachCalls).toBe(1);
+    expect(session.destroyCalls).toBe(0);
+  });
+
+  test('provider errors detach the session and return fresh resume state', async () => {
+    const session = fakeSession();
+    const { result } = streamResult({
+      chunks: [{ type: 'error', errorText: 'provider unavailable' }],
+    });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => result),
+      continueStream: vi.fn(async () => result),
+    };
+
+    const next = await runHarnessAgentTimeSlice({
+      agent,
+      state: createHarnessWorkflowState({
+        prompt: 'hi',
+        sessionId: 'ses_1',
+        resumeFrom: resumeState('stale'),
+      }),
+      writable: collectingWritable().writable,
+      destroyOnFinish: false,
+    });
+
+    expect(next).toMatchObject({
+      status: 'failed',
+      error: 'harness turn emitted an error',
+      resumeFrom: resumeState('detached'),
+    });
+    expect(session.detachCalls).toBe(1);
+    expect(session.destroyCalls).toBe(0);
+  });
+
+  test('failed runs still destroy the session when destroyOnFinish is enabled', async () => {
+    const session = fakeSession();
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => {
+        throw new Error('configuration unavailable');
+      }),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first turn');
+      }),
+    };
+
+    const next = await runHarnessAgentTimeSlice({
+      agent,
+      state: createHarnessWorkflowState({
+        prompt: 'hi',
+        sessionId: 'ses_1',
+        resumeFrom: resumeState('stale'),
+      }),
+      writable: collectingWritable().writable,
+      destroyOnFinish: true,
+    });
+
+    expect(next.status).toBe('failed');
+    expect(next.resumeFrom).toBeUndefined();
+    expect(session.detachCalls).toBe(0);
+    expect(session.destroyCalls).toBe(1);
+  });
+
+  test('failed runs surface detach failures instead of returning stale resume state', async () => {
+    const session = fakeSession({
+      detachError: new Error('could not save resume state'),
+    });
+    const agent: HarnessWorkflowAgent = {
+      createSession: vi.fn(async () => session),
+      stream: vi.fn(async () => {
+        throw new Error('configuration unavailable');
+      }),
+      continueStream: vi.fn(async () => {
+        throw new Error('continue should not be called on the first turn');
+      }),
+    };
+
+    await expect(
+      runHarnessAgentTimeSlice({
+        agent,
+        state: createHarnessWorkflowState({
+          prompt: 'hi',
+          sessionId: 'ses_1',
+          resumeFrom: resumeState('stale'),
+        }),
+        writable: collectingWritable().writable,
+        destroyOnFinish: false,
+      }),
+    ).rejects.toThrow('could not save resume state');
+
+    expect(session.detachCalls).toBe(1);
+    expect(session.destroyCalls).toBe(0);
   });
 
   test('tool approval pause suspends the turn and closes the response stream', async () => {

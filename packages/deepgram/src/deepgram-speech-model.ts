@@ -516,6 +516,7 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     return {
       audio,
       warnings,
+      ...(charCount != null ? { usage: { characters: charCount } } : {}),
       request: {
         body: JSON.stringify(requestBody),
       },

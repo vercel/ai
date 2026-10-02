@@ -57,8 +57,59 @@ function prepareJsonResponse({
 }
 
 describe('GoogleVertexImageModel', () => {
-  it('should return 10 for maxImagesPerCall', () => {
-    expect(model.maxImagesPerCall).toBe(10);
+  describe('capabilities', () => {
+    it.each([
+      {
+        modelId: 'gemini-2.5-flash-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3-pro-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-3.1-flash-image-preview',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
+        modelId: 'gemini-2.5-pro',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-3-pro-preview',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'gemini-custom',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+      {
+        modelId: 'legacy-image-model',
+        supportsFileInputs: undefined,
+        supportsMaskInputs: undefined,
+      },
+    ] as const)(
+      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
+      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
+        const capabilityModel = new GoogleVertexImageModel(modelId, {
+          provider: 'google.vertex.image',
+          baseURL: 'https://api.example.com',
+        });
+
+        expect(capabilityModel.supportsFileInputs).toBe(supportsFileInputs);
+        expect(capabilityModel.supportsMaskInputs).toBe(supportsMaskInputs);
+      },
+    );
+  });
+
+  it('should return 1 for maxImagesPerCall', () => {
+    expect(model.maxImagesPerCall).toBe(1);
   });
 
   describe('doGenerate', () => {
@@ -343,7 +394,7 @@ describe('GoogleVertexImageModel', () => {
       ]);
     });
 
-    it('should reject unsupported URL editing input, multiple images, and masks', async () => {
+    it('should reject unsupported URL editing input and masks', async () => {
       prepareJsonResponse({});
 
       await expect(
@@ -358,21 +409,6 @@ describe('GoogleVertexImageModel', () => {
           providerOptions: {},
         }),
       ).rejects.toThrow(/media type "image\/\*".*not passed as inline bytes/);
-
-      await expect(
-        model.doGenerate({
-          prompt: 'A beautiful sunset',
-          files: undefined,
-          mask: undefined,
-          n: 2,
-          size: undefined,
-          aspectRatio: undefined,
-          seed: undefined,
-          providerOptions: {},
-        }),
-      ).rejects.toThrow(
-        'Gemini image models do not support generating a set number of images per call.',
-      );
 
       await expect(
         model.doGenerate({

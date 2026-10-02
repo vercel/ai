@@ -1,5 +1,308 @@
 # @ai-sdk/tui
 
+## 1.0.128
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 1.0.127
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 1.0.126
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 1.0.125
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+
+## 1.0.124
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+
+## 1.0.123
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+
+## 1.0.122
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+
+## 1.0.121
+
+### Patch Changes
+
+- 8e0fbcc: Escape untrusted terminal control characters in agent output, tool content, errors, titles, and prompts before rendering, preventing terminal escape sequence injection while preserving TUI formatting.
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+
+## 1.0.119
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 1.0.118
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 1.0.117
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+
+## 1.0.116
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - ai@7.0.115
+
+## 1.0.115
+
+### Patch Changes
+
+- Updated dependencies [b5679a7]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+
+## 1.0.114
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [dcdb011]
+- Updated dependencies [8f72832]
+- Updated dependencies [fe07867]
+- Updated dependencies [b74c0cb]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [c93ee90]
+- Updated dependencies [771e74b]
+  - ai@7.0.113
+
+## 1.0.113
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+
+## 1.0.112
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 1.0.111
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 1.0.110
+
+### Patch Changes
+
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 1.0.109
+
+### Patch Changes
+
+- abcd1d5: fix(tui): delete complete grapheme clusters when backspacing in prompts
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - ai@7.0.108
+
+## 1.0.108
+
+### Patch Changes
+
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+
+## 1.0.107
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+  - ai@7.0.106
+
+## 1.0.106
+
+### Patch Changes
+
+- Updated dependencies [6982e9d]
+  - ai@7.0.105
+
+## 1.0.105
+
+### Patch Changes
+
+- Updated dependencies [a7dd893]
+- Updated dependencies [227f3b0]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - ai@7.0.104
+
+## 1.0.104
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [25a0447]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [123d71f]
+  - ai@7.0.103
+
+## 1.0.103
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+- Updated dependencies [8b92ba9]
+- Updated dependencies [4b306c2]
+- Updated dependencies [4b306c2]
+  - ai@7.0.102
+
+## 1.0.102
+
+### Patch Changes
+
+- Updated dependencies [6aa7c54]
+  - ai@7.0.101
+
+## 1.0.101
+
+### Patch Changes
+
+- Updated dependencies [6431635]
+  - ai@7.0.100
+
+## 1.0.100
+
+### Patch Changes
+
+- Updated dependencies [615ac89]
+  - ai@7.0.99
+
+## 1.0.99
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [db59d78]
+- Updated dependencies [7469a3b]
+- Updated dependencies [f87bf07]
+- Updated dependencies [bc5cb7a]
+- Updated dependencies [a5f449a]
+  - ai@7.0.98
+
+## 1.0.98
+
+### Patch Changes
+
+- Updated dependencies [ef3bac4]
+- Updated dependencies [9942196]
+  - ai@7.0.97
+
+## 1.0.97
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [c595e6e]
+  - ai@7.0.96
+
+## 1.0.96
+
+### Patch Changes
+
+- Updated dependencies [27f6d7a]
+  - ai@7.0.95
+
 ## 1.0.95
 
 ### Patch Changes

@@ -13,7 +13,7 @@ Unlike [`DefaultChatTransport`](/docs/ai-sdk-ui/transport) which assumes the ful
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 
 export default function Chat() {
   const { messages, sendMessage } = useChat({
@@ -30,7 +30,7 @@ export default function Chat() {
 ## Import
 
 <Snippet
-  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow"`}
+  text={`import { WorkflowChatTransport } from "@ai-sdk/workflow/client"`}
   prompt={false}
 />
 
@@ -238,7 +238,7 @@ See the [WorkflowAgent guide](/docs/agents/workflow-agent) for complete endpoint
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo } from 'react';
 
 export default function Chat() {
@@ -271,7 +271,7 @@ export default function Chat() {
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { WorkflowChatTransport } from '@ai-sdk/workflow';
+import { WorkflowChatTransport } from '@ai-sdk/workflow/client';
 import { useMemo } from 'react';
 
 export default function Chat() {

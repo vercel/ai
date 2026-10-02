@@ -38,10 +38,11 @@ import {
   convertGoogleUsage,
   type GoogleUsageMetadata,
 } from './convert-google-usage';
-import { convertJSONSchemaToOpenAPISchema } from './convert-json-schema-to-openapi-schema';
 import { convertToGoogleMessages } from './convert-to-google-messages';
+import { downloadToolResultFiles } from './download-tool-result-files';
 import { getModelPath } from './get-model-path';
 import { googleFailedResponseHandler } from './google-error';
+import { sanitizeResponseJsonSchema } from './sanitize-response-json-schema';
 import {
   googleLanguageModelOptions,
   type GoogleLanguageModelOptions,
@@ -65,6 +66,14 @@ const configurableSafetySettingCategories = [
 
 const gemini25ModelPattern = /(^|\/)gemini-2\.5(?:[.-]|$)/i;
 
+const googleCloudStorageFunctionResponseUrls = {
+  'image/png': [/^gs:\/\/.*$/],
+  'image/jpeg': [/^gs:\/\/.*$/],
+  'image/webp': [/^gs:\/\/.*$/],
+  'application/pdf': [/^gs:\/\/.*$/],
+  'text/plain': [/^gs:\/\/.*$/],
+} satisfies Record<string, RegExp[]>;
+
 export type GoogleLanguageModelConfig = {
   provider: string;
   baseURL: string;
@@ -76,6 +85,14 @@ export type GoogleLanguageModelConfig = {
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
+
+  /**
+   * Settings for downloading remote files in tool results before conversion.
+   */
+  downloadToolResultFiles?: {
+    maxBytes: number;
+    supportsGoogleCloudStorageUrls?: boolean;
+  };
 };
 
 export class GoogleLanguageModel implements LanguageModelV4 {
@@ -132,6 +149,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       toolChoice,
       reasoning,
       providerOptions,
+      abortSignal,
     },
     isStreaming = false,
   }: {
@@ -286,15 +304,32 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     }
 
     const { usesGemini3Features } = getGoogleModelCapabilities(modelId);
+    const supportedFunctionResponseUrls =
+      usesGemini3Features &&
+      config.downloadToolResultFiles?.supportsGoogleCloudStorageUrls
+        ? googleCloudStorageFunctionResponseUrls
+        : undefined;
 
-    const { contents, systemInstruction } = convertToGoogleMessages(prompt, {
-      isGemmaModel,
-      isGemini3Model: usesGemini3Features,
-      onWarning: warning => warnings.push(warning),
-      providerOptionsNames,
-      supportsFunctionResponseParts: usesGemini3Features,
-      includeFunctionCallIds: !isVertexProvider,
-    });
+    const promptWithDownloadedToolResultFiles = config.downloadToolResultFiles
+      ? await downloadToolResultFiles(prompt, {
+          abortSignal,
+          maxBytes: config.downloadToolResultFiles.maxBytes,
+          supportedUrls: supportedFunctionResponseUrls,
+        })
+      : prompt;
+
+    const { contents, systemInstruction } = convertToGoogleMessages(
+      promptWithDownloadedToolResultFiles,
+      {
+        isGemmaModel,
+        isGemini3Model: usesGemini3Features,
+        onWarning: warning => warnings.push(warning),
+        providerOptionsNames,
+        supportsFunctionResponseParts: usesGemini3Features,
+        includeFunctionCallIds: !isVertexProvider,
+        supportedFunctionResponseUrls,
+      },
+    );
 
     const {
       tools: googleTools,
@@ -376,14 +411,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           // response format:
           responseMimeType:
             responseFormat?.type === 'json' ? 'application/json' : undefined,
-          responseSchema:
+          responseJsonSchema:
             responseFormat?.type === 'json' &&
             responseFormat.schema != null &&
-            // Google GenAI does not support all OpenAPI Schema features,
-            // so this is needed as an escape hatch:
+            // Google does not support all JSON Schema features in
+            // responseJsonSchema, so this is needed as an escape hatch:
             // TODO convert into provider option
             (googleOptions?.structuredOutputs ?? true)
-              ? convertJSONSchemaToOpenAPISchema(responseFormat.schema)
+              ? sanitizeResponseJsonSchema(responseFormat.schema)
               : undefined,
           ...(googleOptions?.audioTimestamp && {
             audioTimestamp: googleOptions.audioTimestamp,
@@ -444,10 +479,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       ) as SharedV4ProviderMetadata;
     const candidate = response.candidates?.[0];
     const promptBlockReason = response.promptFeedback?.blockReason;
+    const confirmedPromptBlockReason = isConfirmedPromptBlockReason(
+      promptBlockReason,
+    )
+      ? promptBlockReason
+      : undefined;
     const isPromptBlocked =
-      candidate?.finishReason == null && promptBlockReason != null;
+      candidate?.finishReason == null && confirmedPromptBlockReason != null;
     const rawFinishReason =
-      candidate?.finishReason ?? promptBlockReason ?? undefined;
+      candidate?.finishReason ?? confirmedPromptBlockReason;
     const content: Array<LanguageModelV4Content> = [];
 
     // map ordered parts to content:
@@ -707,9 +747,12 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       raw: undefined,
     };
     let usage: GoogleUsageMetadata | undefined = undefined;
-    let providerMetadata: SharedV4ProviderMetadata | undefined = undefined;
+    let promptFeedback: PromptFeedbackSchema | null = null;
     let lastGroundingMetadata: GroundingMetadataSchema | null = null;
     let lastUrlContextMetadata: UrlContextMetadataSchema | null = null;
+    let lastSafetyRatings: SafetyRatingSchema[] | null = null;
+    let lastFinishMessage: string | null = null;
+    let confirmedPromptBlockReason: string | undefined;
 
     const generateId = this.config.generateId;
     let hasToolCalls = false;
@@ -806,37 +849,47 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               usage = usageMetadata;
             }
 
-            const candidate = value.candidates?.[0];
+            if (
+              value.promptFeedback != null &&
+              confirmedPromptBlockReason == null
+            ) {
+              promptFeedback = value.promptFeedback;
 
-            // sometimes the API returns an empty candidates array
-            if (candidate == null) {
-              const promptBlockReason = value.promptFeedback?.blockReason;
-              if (promptBlockReason != null) {
+              if (
+                isConfirmedPromptBlockReason(value.promptFeedback.blockReason)
+              ) {
+                confirmedPromptBlockReason = value.promptFeedback.blockReason;
                 finishReason = {
                   unified: 'content-filter',
-                  raw: promptBlockReason,
+                  raw: confirmedPromptBlockReason,
                 };
-                providerMetadata = wrapProviderMetadata({
-                  promptFeedback: value.promptFeedback ?? null,
-                  groundingMetadata: lastGroundingMetadata,
-                  urlContextMetadata: lastUrlContextMetadata,
-                  safetyRatings: null,
-                  usageMetadata: usageMetadata ?? null,
-                  finishMessage: null,
-                  serviceTier: usage?.serviceTier ?? null,
-                } satisfies GoogleProviderMetadata);
               }
+            }
+
+            const candidate = value.candidates?.[0];
+
+            if (candidate != null) {
+              if (candidate.groundingMetadata != null) {
+                lastGroundingMetadata = candidate.groundingMetadata;
+              }
+              if (candidate.urlContextMetadata != null) {
+                lastUrlContextMetadata = candidate.urlContextMetadata;
+              }
+              if (candidate.safetyRatings != null) {
+                lastSafetyRatings = candidate.safetyRatings;
+              }
+              if (candidate.finishMessage != null) {
+                lastFinishMessage = candidate.finishMessage;
+              }
+            }
+
+            // A confirmed prompt block is terminal for generated content, but
+            // later chunks can still contribute usage and provider metadata.
+            if (confirmedPromptBlockReason != null || candidate == null) {
               return;
             }
 
             const content = candidate.content;
-
-            if (candidate.groundingMetadata != null) {
-              lastGroundingMetadata = candidate.groundingMetadata;
-            }
-            if (candidate.urlContextMetadata != null) {
-              lastUrlContextMetadata = candidate.urlContextMetadata;
-            }
 
             const sources = extractSources({
               groundingMetadata: candidate.groundingMetadata,
@@ -1203,32 +1256,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               }
             }
 
-            const promptBlockReason = value.promptFeedback?.blockReason;
-            const isPromptBlocked =
-              candidate.finishReason == null && promptBlockReason != null;
-            const rawFinishReason =
-              candidate.finishReason ?? promptBlockReason ?? undefined;
-
-            if (rawFinishReason != null) {
+            if (candidate.finishReason != null) {
               finishReason = {
-                unified: isPromptBlocked
-                  ? 'content-filter'
-                  : mapGoogleFinishReason({
-                      finishReason: rawFinishReason,
-                      hasToolCalls,
-                    }),
-                raw: rawFinishReason,
+                unified: mapGoogleFinishReason({
+                  finishReason: candidate.finishReason,
+                  hasToolCalls,
+                }),
+                raw: candidate.finishReason,
               };
-
-              providerMetadata = wrapProviderMetadata({
-                promptFeedback: value.promptFeedback ?? null,
-                groundingMetadata: lastGroundingMetadata,
-                urlContextMetadata: lastUrlContextMetadata,
-                safetyRatings: candidate.safetyRatings ?? null,
-                usageMetadata: usageMetadata ?? null,
-                finishMessage: candidate.finishMessage ?? null,
-                serviceTier: usage?.serviceTier ?? null,
-              } satisfies GoogleProviderMetadata);
             }
           },
 
@@ -1250,7 +1285,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
               type: 'finish',
               finishReason,
               usage: convertGoogleUsage(usage),
-              providerMetadata,
+              providerMetadata: wrapProviderMetadata({
+                promptFeedback,
+                groundingMetadata: lastGroundingMetadata,
+                urlContextMetadata: lastUrlContextMetadata,
+                safetyRatings: lastSafetyRatings,
+                usageMetadata: usage ?? null,
+                finishMessage: lastFinishMessage,
+                serviceTier: usage?.serviceTier ?? null,
+              } satisfies GoogleProviderMetadata),
             });
           },
         }),
@@ -1775,3 +1818,14 @@ const chunkSchema = lazySchema(() =>
 );
 
 type ChunkSchema = InferSchema<typeof chunkSchema>;
+
+function isConfirmedPromptBlockReason(
+  blockReason: string | null | undefined,
+): blockReason is string {
+  return (
+    blockReason != null &&
+    blockReason !== '' &&
+    blockReason !== 'BLOCK_REASON_UNSPECIFIED' &&
+    blockReason !== 'BLOCKED_REASON_UNSPECIFIED'
+  );
+}

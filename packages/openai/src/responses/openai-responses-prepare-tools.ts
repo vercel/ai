@@ -21,6 +21,7 @@ import { shellArgsSchema } from '../tool/shell';
 import { toolSearchArgsSchema } from '../tool/tool-search';
 import { webSearchArgsSchema } from '../tool/web-search';
 import { webSearchPreviewArgsSchema } from '../tool/web-search-preview';
+import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
 import type {
   OpenAIResponsesAllowedTool,
   OpenAIResponsesFunctionTool,
@@ -147,6 +148,7 @@ export async function prepareResponsesTools({
         const openaiFunctionTool = prepareFunctionTool({
           tool,
           options: openaiOptions,
+          toolWarnings,
           async: resolveAsyncToolOption({
             value: openaiOptions?.async,
             supportsAsyncToolCalling,
@@ -627,27 +629,39 @@ function toAllowedToolResolution(
 function prepareFunctionTool({
   tool,
   options,
+  toolWarnings,
   async,
 }: {
   tool: LanguageModelV4FunctionTool;
   options: OpenAIToolOptions | undefined;
+  toolWarnings: SharedV4Warning[];
   async: boolean | undefined;
 }): OpenAIResponsesFunctionTool {
   const deferLoading = options?.deferLoading;
+  const normalizedInputSchema = normalizeOpenAIJsonSchema(tool.inputSchema);
+  const normalizedOutputSchema =
+    options?.outputSchema != null
+      ? normalizeOpenAIJsonSchema(options.outputSchema as JSONSchema7)
+      : undefined;
+
+  toolWarnings.push(
+    ...normalizedInputSchema.warnings,
+    ...(normalizedOutputSchema?.warnings ?? []),
+  );
 
   return {
     type: 'function',
     name: tool.name,
     description: tool.description,
-    parameters: tool.inputSchema,
+    parameters: normalizedInputSchema.schema,
     ...(async != null ? { async } : {}),
-    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    strict: tool.strict ?? false,
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
       : {}),
     ...(options?.outputSchema != null
-      ? { output_schema: options.outputSchema as JSONSchema7 }
+      ? { output_schema: normalizedOutputSchema?.schema }
       : {}),
   };
 }
@@ -672,7 +686,6 @@ function resolveAsyncToolOption({
     feature: `async tool calling for "${toolName}"`,
     details: 'Async tool calling is only supported by GPT-6 and later models.',
   });
-  return undefined;
 }
 
 function mapShellEnvironment(environment: {

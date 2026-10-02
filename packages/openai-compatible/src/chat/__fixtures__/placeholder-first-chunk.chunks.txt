@@ -1,0 +1,4 @@
+{"choices":[],"created":0,"id":"","model":"","object":""}
+{"choices":[{"delta":{"content":"Hello","role":"assistant"},"finish_reason":null,"index":0}],"created":1700000000,"id":"chatcmpl-123","model":"actual-model-name","object":"chat.completion.chunk"}
+{"choices":[{"delta":{},"finish_reason":"stop","index":0}],"created":1700000000,"id":"chatcmpl-123","model":"actual-model-name","object":"chat.completion.chunk"}
+{"choices":[],"created":1700000000,"id":"chatcmpl-123","model":"actual-model-name","object":"chat.completion.chunk","usage":{"prompt_tokens":10,"completion_tokens":1,"total_tokens":11}}

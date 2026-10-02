@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { z } from 'zod/v4';
 
 type QueryArgs = {
   prompt: AsyncIterable<unknown>;
@@ -119,10 +120,17 @@ vi.mock('@anthropic-ai/claude-agent-sdk', () => ({
 
 vi.mock('@modelcontextprotocol/sdk/server/mcp.js', () => ({
   McpServer: class {
-    tool(...args: [string, string, unknown, ToolHandler]): void {
-      const name = args[0];
-      const handler = args[3];
-      state.toolHandlers.set(name, handler);
+    registerTool(
+      name: string,
+      config: {
+        description: string;
+        inputSchema: z.ZodType<Record<string, unknown>>;
+      },
+      handler: ToolHandler,
+    ): void {
+      state.toolHandlers.set(name, async (input, extra) =>
+        handler(await config.inputSchema.parseAsync(input), extra),
+      );
     }
   },
 }));
@@ -262,6 +270,21 @@ describe('Claude Code bridge configuration', () => {
     expect(state.queryArgs[0]?.options).toMatchObject({ effort: 'max' });
   });
 
+  test('passes subagent activity options to the Agent SDK', async () => {
+    state.start = {
+      ...state.start,
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      agentProgressSummaries: true,
+      forwardSubagentText: true,
+    });
+  });
+
   test('resumes the exact conversation when the start names one', async () => {
     state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
     state.firstTurn = false;
@@ -361,6 +384,38 @@ describe('Claude Code bridge configuration', () => {
     });
   });
 
+  test('omits canUseTool when bypassing permissions', async () => {
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
+  test('preserves inactive tool filtering when bypassing permissions', async () => {
+    state.start = {
+      ...state.start,
+      builtinToolFiltering: { mode: 'deny', toolNames: ['bash'] },
+    };
+
+    await import('./index');
+
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionMode: 'bypassPermissions',
+      allowDangerouslySkipPermissions: true,
+      permissionPromptToolName: 'stdio',
+      disallowedTools: ['Bash'],
+      settings: {
+        permissions: { ask: ['Bash(*)'] },
+        sandbox: { autoAllowBashIfSandboxed: false },
+      },
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
+  });
+
   test('marks approval-gated external MCP tool calls as dynamic', async () => {
     state.start = {
       ...state.start,
@@ -376,7 +431,8 @@ describe('Claude Code bridge configuration', () => {
           options: { toolUseID: string },
         ) => Promise<unknown>)
       | undefined;
-    await canUseTool?.(
+    expect(canUseTool).toBeTypeOf('function');
+    await canUseTool!(
       'mcp__context7__query-docs',
       { libraryId: '/vercel/next.js' },
       { toolUseID: 'external-tool' },
@@ -436,7 +492,10 @@ describe('Claude Code bridge configuration', () => {
       }>;
     };
     const questionHook = hooks.PreToolUse[0];
-    expect(state.queryArgs[0]?.options).toHaveProperty('canUseTool');
+    expect(state.queryArgs[0]?.options).toMatchObject({
+      permissionPromptToolName: 'stdio',
+    });
+    expect(state.queryArgs[0]?.options).not.toHaveProperty('canUseTool');
     const result = await questionHook.hooks[0](
       {
         hook_event_name: 'PreToolUse',
@@ -495,6 +554,45 @@ describe('Claude Code bridge configuration', () => {
         },
       },
     });
+  });
+
+  test('preserves root and nested open-object fields in host tool calls', async () => {
+    state.start = {
+      ...state.start,
+      tools: [
+        {
+          name: 'stripe_api_read',
+          inputSchema: {
+            type: 'object',
+            properties: { parameters: { type: 'object' } },
+            required: ['parameters'],
+          },
+        },
+      ],
+    };
+    const input = {
+      parameters: { customer: 'cus_example', limit: 1 },
+      account: 'acct_example',
+    };
+    state.messages = [
+      {
+        type: 'invoke-host-tools',
+        calls: [{ toolName: 'stripe_api_read', toolCallId: 'read-1', input }],
+      },
+      ...state.messages,
+    ];
+
+    await import('./index');
+
+    expect(state.emitted.filter(event => event.type === 'tool-call')).toEqual([
+      {
+        type: 'tool-call',
+        toolCallId: 'read-1',
+        toolName: 'stripe_api_read',
+        input: JSON.stringify(input),
+        providerExecuted: false,
+      },
+    ]);
   });
 
   test('uses callback metadata to correlate identical parallel host tool calls', async () => {

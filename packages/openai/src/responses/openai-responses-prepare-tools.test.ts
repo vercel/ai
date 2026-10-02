@@ -4,6 +4,114 @@ import { prepareResponsesTools } from './openai-responses-prepare-tools';
 import { describe, it, expect } from 'vitest';
 
 describe('prepareResponsesTools', () => {
+  it('should remove string propertyNames from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+                propertyNames: { type: 'string', format: 'uuid' },
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'get_weather',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              values: {
+                type: 'object',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema propertyNames',
+          details:
+            'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+        },
+      ],
+    });
+  });
+
+  it('should remove regex lookaround patterns from function tools and warn', async () => {
+    const result = await prepareResponsesTools({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+                pattern: '^(?!\\.).+@.+$',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+        },
+      ],
+      toolChoice: undefined,
+    });
+
+    expect(result).toEqual({
+      tools: [
+        {
+          type: 'function',
+          name: 'create_contact',
+          description: undefined,
+          parameters: {
+            type: 'object',
+            properties: {
+              email: {
+                type: 'string',
+                format: 'email',
+              },
+              username: {
+                type: 'string',
+                pattern: '^@[a-zA-Z0-9_]+$',
+              },
+            },
+          },
+          strict: false,
+        },
+      ],
+      toolChoice: undefined,
+      toolWarnings: [
+        {
+          type: 'compatibility',
+          feature: 'JSON Schema pattern with regex lookaround',
+          details:
+            'OpenAI does not support regex lookaround in JSON Schema patterns. The pattern was removed before sending the schema, so OpenAI will not enforce that constraint.',
+        },
+      ],
+    });
+  });
+
   describe('async tools', () => {
     it('should pass through async mode for function tools', async () => {
       const result = await prepareResponsesTools({
@@ -38,6 +146,7 @@ describe('prepareResponsesTools', () => {
             additionalProperties: false,
           },
           async: true,
+          strict: false,
         },
       ]);
     });
@@ -100,6 +209,7 @@ describe('prepareResponsesTools', () => {
           name: 'get_weather',
           description: undefined,
           parameters: { type: 'object', properties: {} },
+          strict: false,
         },
         {
           type: 'custom',
@@ -194,7 +304,7 @@ describe('prepareResponsesTools', () => {
       `);
     });
 
-    it('should not include strict mode when strict is undefined', async () => {
+    it('should default strict mode to false when strict is undefined', async () => {
       const result = await prepareResponsesTools({
         tools: [
           {
@@ -219,6 +329,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -285,6 +396,7 @@ describe('prepareResponsesTools', () => {
                 "properties": {},
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -536,6 +648,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1011,6 +1124,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1717,6 +1831,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1890,6 +2005,7 @@ describe('prepareResponsesTools', () => {
                 },
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
             {
@@ -1979,6 +2095,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2079,6 +2196,7 @@ describe('prepareResponsesTools', () => {
                     ],
                     "type": "object",
                   },
+                  "strict": false,
                   "type": "function",
                 },
                 {
@@ -2118,6 +2236,7 @@ describe('prepareResponsesTools', () => {
                 ],
                 "type": "object",
               },
+              "strict": false,
               "type": "function",
             },
           ],
@@ -2744,6 +2863,7 @@ describe('prepareResponsesTools', () => {
             required: ['sku'],
             additionalProperties: false,
           },
+          strict: false,
           allowed_callers: ['programmatic'],
           output_schema: {
             type: 'object',

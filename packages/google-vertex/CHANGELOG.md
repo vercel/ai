@@ -1,5 +1,308 @@
 # @ai-sdk/google-vertex
 
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [04be48f]
+- Updated dependencies [c35458e]
+  - @ai-sdk/openai-compatible@3.0.62
+  - @ai-sdk/anthropic@4.0.71
+
+## 5.0.100
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/google@4.0.87
+  - @ai-sdk/anthropic@4.0.70
+  - @ai-sdk/openai-compatible@3.0.61
+
+## 5.0.99
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/google@4.0.86
+  - @ai-sdk/openai-compatible@3.0.60
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 5.0.98
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/anthropic@4.0.68
+  - @ai-sdk/google@4.0.85
+  - @ai-sdk/openai-compatible@3.0.59
+  - @ai-sdk/provider-utils@5.0.51
+
+## 5.0.97
+
+### Patch Changes
+
+- e361d39: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), `reasoning: 'none'` maps to `between_tools` thinking, and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- Updated dependencies [e361d39]
+- Updated dependencies [8373a22]
+- Updated dependencies [d0290cf]
+  - @ai-sdk/anthropic@4.0.67
+  - @ai-sdk/google@4.0.84
+
+## 5.0.96
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [32cf2f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/openai-compatible@3.0.58
+  - @ai-sdk/google@4.0.83
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/anthropic@4.0.66
+
+## 5.0.95
+
+### Patch Changes
+
+- bc49f78: fix(google): forward supported Vertex tool result URLs as function response file data
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/google@4.0.82
+  - @ai-sdk/anthropic@4.0.65
+  - @ai-sdk/openai-compatible@3.0.57
+
+## 5.0.94
+
+### Patch Changes
+
+- Updated dependencies [67f8000]
+- Updated dependencies [be877ff]
+- Updated dependencies [b126c4b]
+  - @ai-sdk/anthropic@4.0.64
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/google@4.0.81
+  - @ai-sdk/openai-compatible@3.0.56
+
+## 5.0.93
+
+### Patch Changes
+
+- Updated dependencies [154221f]
+- Updated dependencies [8beac3e]
+  - @ai-sdk/anthropic@4.0.63
+  - @ai-sdk/google@4.0.80
+
+## 5.0.92
+
+### Patch Changes
+
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2db5621]
+- Updated dependencies [2693319]
+- Updated dependencies [771e74b]
+  - @ai-sdk/google@4.0.79
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/anthropic@4.0.62
+  - @ai-sdk/openai-compatible@3.0.55
+
+## 5.0.91
+
+### Patch Changes
+
+- 4b75a77: fix(amazon-bedrock): avoid forced structured-output tools for incompatible Claude models
+- Updated dependencies [ffb0e76]
+- Updated dependencies [3733d6e]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/google@4.0.78
+  - @ai-sdk/anthropic@4.0.61
+  - @ai-sdk/openai-compatible@3.0.54
+  - @ai-sdk/provider-utils@5.0.46
+
+## 5.0.90
+
+### Patch Changes
+
+- Updated dependencies [49295bb]
+- Updated dependencies [8dbe0be]
+  - @ai-sdk/anthropic@4.0.60
+  - @ai-sdk/google@4.0.77
+
+## 5.0.89
+
+### Patch Changes
+
+- Updated dependencies [f7b7b2a]
+  - @ai-sdk/anthropic@4.0.59
+
+## 5.0.88
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/anthropic@4.0.58
+  - @ai-sdk/google@4.0.76
+  - @ai-sdk/openai-compatible@3.0.53
+
+## 5.0.87
+
+### Patch Changes
+
+- e369c4d: fix(google): advertise the supported Gemini image per-call limit
+- Updated dependencies [e369c4d]
+- Updated dependencies [2b391f8]
+- Updated dependencies [1284569]
+- Updated dependencies [0455398]
+  - @ai-sdk/google@4.0.75
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/anthropic@4.0.57
+  - @ai-sdk/openai-compatible@3.0.52
+
+## 5.0.86
+
+### Patch Changes
+
+- Updated dependencies [d4d96bf]
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/anthropic@4.0.56
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/google@4.0.74
+  - @ai-sdk/provider@4.0.17
+  - @ai-sdk/openai-compatible@3.0.51
+
+## 5.0.85
+
+### Patch Changes
+
+- Updated dependencies [a22b5b2]
+- Updated dependencies [132bdae]
+- Updated dependencies [11b4c2d]
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/google@4.0.73
+  - @ai-sdk/anthropic@4.0.55
+  - @ai-sdk/openai-compatible@3.0.50
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 5.0.84
+
+### Patch Changes
+
+- c83bc67: feat: add Claude Fable 5.1 model IDs to Bedrock and Vertex providers
+- Updated dependencies [4a994ad]
+  - @ai-sdk/google@4.0.72
+
+## 5.0.83
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/anthropic@4.0.54
+  - @ai-sdk/google@4.0.71
+  - @ai-sdk/openai-compatible@3.0.49
+  - @ai-sdk/provider-utils@5.0.41
+
+## 5.0.82
+
+### Patch Changes
+
+- Updated dependencies [2a32459]
+- Updated dependencies [d93e295]
+  - @ai-sdk/google@4.0.70
+
+## 5.0.81
+
+### Patch Changes
+
+- f88c7dc: fix(vertex): download tool result file URLs
+- Updated dependencies [f88c7dc]
+  - @ai-sdk/google@4.0.69
+
+## 5.0.80
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [e4292e7]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/anthropic@4.0.53
+  - @ai-sdk/google@4.0.68
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+  - @ai-sdk/openai-compatible@3.0.48
+
+## 5.0.79
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+- Updated dependencies [ab6e9f9]
+- Updated dependencies [5a7e647]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/google@4.0.67
+  - @ai-sdk/anthropic@4.0.52
+  - @ai-sdk/openai-compatible@3.0.47
+  - @ai-sdk/provider-utils@5.0.39
+
+## 5.0.78
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+- Updated dependencies [ccb8952]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/openai-compatible@3.0.46
+  - @ai-sdk/anthropic@4.0.51
+  - @ai-sdk/google@4.0.66
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 5.0.77
 
 ### Patch Changes

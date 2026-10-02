@@ -1,11 +1,14 @@
 import {
   InvalidArgumentError,
+  UnsupportedFunctionalityError,
   type Experimental_BatchV4 as BatchV4,
+  type Experimental_BatchV4CancelResult as BatchV4CancelResult,
   type Experimental_BatchV4ItemResult as BatchV4ItemResult,
   type Experimental_BatchV4OperationOptions as BatchV4OperationOptions,
   type Experimental_BatchV4StartResult as BatchV4StartResult,
   type Experimental_BatchV4Status as BatchV4Status,
   type Experimental_BatchV4StartOptions as BatchV4StartOptions,
+  type Experimental_TextBatchV4Request as TextBatchV4Request,
   type LanguageModelV4CallOptions,
   type SharedV4ProviderMetadata,
   type SharedV4ProviderOptions,
@@ -52,6 +55,7 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
   }: BatchV4StartOptions<{
     text: GatewayModelId;
   }>): Promise<BatchV4StartResult> {
+    assertTextBatchRequests(requests);
     const modelId = validateSingleModel(requests);
 
     const resolvedHeaders = this.config.headers
@@ -210,7 +214,54 @@ export class GatewayBatch implements BatchV4<{ text: GatewayModelId }> {
     }
   }
 
-  private getBatchUrl(path: 'results' | 'start' | 'status') {
+  /** Requests cancellation; status and partial results remain separate reads. */
+  async doCancelBatch({
+    batchId,
+    headers,
+    abortSignal,
+  }: BatchV4OperationOptions): Promise<BatchV4CancelResult> {
+    const resolvedHeaders = this.config.headers
+      ? await resolve(this.config.headers)
+      : undefined;
+
+    try {
+      const { value: responseBody } = await postJsonToApi({
+        url: this.getBatchUrl('cancel'),
+        headers: combineHeaders(
+          resolvedHeaders,
+          headers,
+          await resolve(this.config.o11yHeaders),
+        ),
+        body: { batchId },
+        successfulResponseHandler: createJsonResponseHandler(
+          gatewayBatchStatusResponseSchema,
+        ),
+        failedResponseHandler: createJsonErrorResponseHandler({
+          errorSchema: z.any(),
+          errorToMessage: data => getErrorMessage(data) ?? 'unknown error',
+        }),
+        ...(abortSignal && { abortSignal }),
+        fetch: this.config.fetch,
+      });
+
+      return {
+        ...(responseBody.providerMetadata != null && {
+          providerMetadata:
+            responseBody.providerMetadata as SharedV4ProviderMetadata,
+        }),
+      };
+    } catch (error) {
+      if (isAbortOrTimeoutError(error)) {
+        throw error;
+      }
+      throw await asGatewayError(
+        error,
+        await parseAuthMethod(resolvedHeaders ?? {}),
+      );
+    }
+  }
+
+  private getBatchUrl(path: 'cancel' | 'results' | 'start' | 'status') {
     return `${this.config.baseURL}/batch/${path}`;
   }
 }
@@ -251,7 +302,7 @@ function maybeBase64EncodeFileData<T extends { type: string }>(data: T): T {
 }
 
 function validateSingleModel(
-  requests: BatchV4StartOptions<{ text: GatewayModelId }>['requests'],
+  requests: ReadonlyArray<TextBatchV4Request<GatewayModelId>>,
 ): GatewayModelId {
   const modelId = requests[0]?.modelId;
 
@@ -274,6 +325,20 @@ function validateSingleModel(
   }
 
   return modelId;
+}
+
+function assertTextBatchRequests(
+  requests: BatchV4StartOptions['requests'],
+): asserts requests is ReadonlyArray<TextBatchV4Request<GatewayModelId>> {
+  for (const request of requests) {
+    const requestType = request.type;
+    if (requestType !== 'text') {
+      throw new UnsupportedFunctionalityError({
+        functionality: `batch request type: ${requestType}`,
+        message: `The AI Gateway Batch API does not support batch requests with type "${requestType}".`,
+      });
+    }
+  }
 }
 
 /**

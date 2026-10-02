@@ -228,9 +228,7 @@ export default function Chat() {
                     return <div key={callId}>Approval response received.</div>;
                   case 'output-available':
                     return (
-                      <div key={callId}>
-                        Location access allowed: {part.output}
-                      </div>
+                      <div key={callId}>Confirmation result: {part.output}</div>
                     );
                   case 'output-error':
                     return <div key={callId}>Error: {part.errorText}</div>;
@@ -329,7 +327,7 @@ export default function Chat() {
 
 ### Error handling
 
-Sometimes an error may occur during client-side tool execution. Use the `addToolOutput` method with a `state` of `output-error` and `errorText` value instead of `output` record the error.
+Sometimes an error may occur during client-side tool execution. Use the `addToolOutput` method with a `state` of `output-error` and `errorText` value instead of `output` to record the error.
 
 ```tsx filename='app/page.tsx' highlight="19,36-41"
 'use client';
@@ -356,27 +354,42 @@ export default function Chat() {
         return;
       }
 
-      if (toolCall.toolName === 'getWeatherInformation') {
+      if (toolCall.toolName === 'getLocation') {
         try {
-          const weather = await getWeatherInformation(toolCall.input);
+          const location = await getLocation();
 
           // No await - avoids potential deadlocks
           addToolOutput({
-            tool: 'getWeatherInformation',
+            tool: 'getLocation',
             toolCallId: toolCall.toolCallId,
-            output: weather,
+            output: location,
           });
         } catch (err) {
           addToolOutput({
-            tool: 'getWeatherInformation',
+            tool: 'getLocation',
             toolCallId: toolCall.toolCallId,
             state: 'output-error',
-            errorText: 'Unable to get the weather information',
+            errorText: 'Unable to get the user location',
           });
         }
       }
     },
   });
+}
+```
+
+When rendering messages, use `isToolOutputErrorUIPart` to identify failed
+static and dynamic tool parts without checking the tool state directly:
+
+```tsx
+import { isToolOutputErrorUIPart, type UIMessage } from 'ai';
+
+function ToolError({ part }: { part: UIMessage['parts'][number] }) {
+  if (!isToolOutputErrorUIPart(part)) {
+    return null;
+  }
+
+  return <div role="alert">{part.errorText}</div>;
 }
 ```
 
@@ -765,7 +778,16 @@ export async function POST(req: Request) {
 Language models can make errors when calling tools.
 By default, these errors are masked for security reasons, and show up as "An error occurred" in the UI.
 
-To surface the errors, you can use the `onError` function when calling `toUIMessageResponse`.
+Tool execution errors marked `providerExecuted: true` bypass this masking and the
+UI stream's `onError` callback. String errors pass through unchanged; other error
+values are serialized with `JSON.stringify`. The original error data is needed
+when converting persisted UI messages back into model messages, for example to
+preserve Anthropic tool error codes. Harness runtime tool errors also retain
+their original messages. The callback still handles invalid tool calls and
+stream errors, regardless of whether a tool is provider-executed.
+
+To customize masked errors, pass `onError` to `toUIMessageStream`. This callback
+does not redact provider-executed tool execution errors sent to the client.
 
 ```tsx
 export function errorHandler(error: unknown) {

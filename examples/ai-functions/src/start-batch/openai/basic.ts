@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = openai;
-  const model = 'gpt-4.1-nano';
+  const model = 'gpt-5.4-nano';
 
   const batch = await startBatch({
     provider,
@@ -45,7 +45,10 @@ run(async () => {
 
   for await (const item of getBatchResults({ provider, batch })) {
     if (item.status === 'succeeded') {
-      print('Result:', { id: item.id, text: item.text });
+      print('Result:', {
+        id: item.id,
+        output: item.type === 'text' ? item.text : item.images,
+      });
     } else {
       print('Error:', { id: item.id, error: item.error });
     }

@@ -1,5 +1,179 @@
 # @ai-sdk/quiverai
 
+## 2.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/open-responses@2.0.58
+
+## 2.0.53
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/open-responses@2.0.57
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 2.0.52
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/open-responses@2.0.56
+  - @ai-sdk/provider-utils@5.0.51
+
+## 2.0.51
+
+### Patch Changes
+
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+- Updated dependencies [8cf3f5b]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/open-responses@2.0.55
+
+## 2.0.50
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/open-responses@2.0.54
+
+## 2.0.49
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/open-responses@2.0.53
+
+## 2.0.48
+
+### Patch Changes
+
+- 2147b86: Add QuiverAI Arrow 2 language models through the Responses API, with provider-local reasoning validation, stateless history replay, and workflow serialization that preserves QuiverAI configuration and behavior.
+
+  Add reusable Open Responses transport configuration, response-error metadata extraction for generation and streaming, cache-write accounting, and OpenAI-compatible custom tools. Preserve text, image, and file custom-tool results and complete tool inputs when streaming deltas are omitted.
+
+- Updated dependencies [2147b86]
+  - @ai-sdk/open-responses@2.0.52
+
+## 2.0.47
+
+### Patch Changes
+
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 2.0.45
+
+### Patch Changes
+
+- 9528712: feat(quiverai): add SVG editing with source validation, reference images, and edit settings
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 2.0.44
+
+### Patch Changes
+
+- 351b2ac: feat(quiverai): support Arrow 2 SVG animation through generateImage
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
+## 2.0.43
+
+### Patch Changes
+
+- 89febde: Add Arrow 2 and Arrow 2 Telos model IDs, reasoning effort and SVG viewBox options, and fixed-credit billing metadata. Respect Arrow 2 output-token limits, stop applying legacy reference limits to newer models, and omit the unsupported vectorization output count with guidance for splitting multiple vectorizations into separate calls.
+- Updated dependencies [215b25e]
+- Updated dependencies [d4d96bf]
+- Updated dependencies [a7dd893]
+- Updated dependencies [3456e2c]
+- Updated dependencies [c4e76de]
+  - @ai-sdk/provider-utils@5.0.43
+  - @ai-sdk/provider@4.0.17
+
+## 2.0.42
+
+### Patch Changes
+
+- Updated dependencies [91c2128]
+- Updated dependencies [2cd80b3]
+- Updated dependencies [d06bb2a]
+- Updated dependencies [123d71f]
+- Updated dependencies [2fa5e0e]
+  - @ai-sdk/provider-utils@5.0.42
+  - @ai-sdk/provider@4.0.16
+
+## 2.0.41
+
+### Patch Changes
+
+- Updated dependencies [5c0054d]
+- Updated dependencies [39535af]
+  - @ai-sdk/provider@4.0.15
+  - @ai-sdk/provider-utils@5.0.41
+
+## 2.0.40
+
+### Patch Changes
+
+- Updated dependencies [5ec21a6]
+- Updated dependencies [7469a3b]
+- Updated dependencies [813bb36]
+- Updated dependencies [c43e4b7]
+  - @ai-sdk/provider@4.0.14
+  - @ai-sdk/provider-utils@5.0.40
+
+## 2.0.39
+
+### Patch Changes
+
+- Updated dependencies [9942196]
+  - @ai-sdk/provider@4.0.13
+  - @ai-sdk/provider-utils@5.0.39
+
+## 2.0.38
+
+### Patch Changes
+
+- Updated dependencies [912fb01]
+  - @ai-sdk/provider@4.0.12
+  - @ai-sdk/provider-utils@5.0.38
+
 ## 2.0.37
 
 ### Patch Changes

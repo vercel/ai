@@ -214,6 +214,7 @@ export type OpenAIResponsesApplyPatchOperationDiffDoneChunk = {
 };
 
 export type OpenAIResponsesSystemMessage = {
+  type?: 'message';
   role: 'system' | 'developer';
   content:
     | string
@@ -225,6 +226,7 @@ export type OpenAIResponsesSystemMessage = {
 };
 
 export type OpenAIResponsesUserMessage = {
+  type?: 'message';
   role: 'user';
   content: Array<
     | {
@@ -262,9 +264,9 @@ export type OpenAIResponsesUserMessage = {
 };
 
 export type OpenAIResponsesAssistantMessage = {
+  type?: 'message';
   role: 'assistant';
-  content: Array<{ type: 'output_text'; text: string }>;
-  id?: string;
+  content: string;
   phase?: 'commentary' | 'final_answer' | null;
 };
 
@@ -296,6 +298,11 @@ export type OpenAIResponsesFunctionCallOutput = {
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
         | {
+            type: 'input_image';
+            file_id: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
             type: 'input_file';
             filename: string;
             file_data: string;
@@ -304,6 +311,11 @@ export type OpenAIResponsesFunctionCallOutput = {
         | {
             type: 'input_file';
             file_url: string;
+            prompt_cache_breakpoint?: { mode: 'explicit' };
+          }
+        | {
+            type: 'input_file';
+            file_id: string;
             prompt_cache_breakpoint?: { mode: 'explicit' };
           }
       >;
@@ -474,7 +486,7 @@ export type OpenAIResponsesCompactionItem = {
 export type OpenAIResponsesConfigurationUpdate = {
   type: 'configuration_update';
   reasoning: {
-    effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max';
+    effort: 'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
   };
 };
 
@@ -757,7 +769,7 @@ const openaiResponsesNestedErrorChunkSchema = z.object({
   sequence_number: z.number(),
   error: z.object({
     type: z.string(),
-    code: z.string(),
+    code: z.string().nullish(),
     message: z.string(),
     param: z.string().nullish(),
   }),

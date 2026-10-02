@@ -77,13 +77,15 @@ export function createPiModelResolver({
     if (gatewayMatch) return gatewayMatch;
 
     const scopedMatch = findScopedMatch(effectiveId, models);
-    if (scopedMatch && !modelRegistry.hasConfiguredAuth(scopedMatch)) {
-      const authenticatedFlatMatches = models.filter(
-        m => m.id === effectiveId && modelRegistry.hasConfiguredAuth(m),
-      );
-      if (authenticatedFlatMatches.length === 1) {
-        return authenticatedFlatMatches[0];
-      }
+    if (scopedMatch && modelRegistry.hasConfiguredAuth(scopedMatch)) {
+      return scopedMatch;
+    }
+
+    const authenticatedFlatMatches = models.filter(
+      m => matches(m) && modelRegistry.hasConfiguredAuth(m),
+    );
+    if (authenticatedFlatMatches.length === 1) {
+      return authenticatedFlatMatches[0];
     }
 
     return scopedMatch ?? models.find(matches);

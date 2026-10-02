@@ -7,7 +7,8 @@ import {
 import { isHarnessAuthenticationEnvironment } from '@ai-sdk/harness/utils';
 import { tool } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { resolveClineEnv, type ClineAuthenticationMode } from './cline-auth';
+import type { ClineAuthenticationMode } from './cline-auth';
+import { resolveClineAuthentication } from './cline-subscription';
 import { clineResumeStateSchema } from './cline-resume-state';
 import { createClineSession, type ClineReasoningEffort } from './cline-session';
 import { VERSION } from './version';
@@ -15,7 +16,7 @@ import { VERSION } from './version';
 /**
  * Value used to identify the harness in provider request headers.
  */
-const CLINE_CLIENT_APP = `ai-sdk/harness-cline/${VERSION}`;
+const CLINE_CLIENT_APP = `ai-sdk-harness-cline/${VERSION}`;
 
 /**
  * Configuration knobs for `createCline`. The Cline runtime
@@ -166,7 +167,11 @@ export function createCline(
     supportsBuiltinToolFiltering: true,
     lifecycleStateSchema: clineResumeStateSchema,
     doStart: async startOpts => {
-      const authEnv = resolveClineEnv({ auth: settings.auth });
+      const authentication = await resolveClineAuthentication({
+        auth: settings.auth,
+        providerId: settings.providerId,
+        apiKey: settings.apiKey,
+      });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const resumeData = lifecycleState?.data as
         | { historyFileName?: string }
@@ -177,12 +182,14 @@ export function createCline(
         sandboxSession: startOpts.sandboxSession,
         sessionWorkDir: startOpts.sessionWorkDir,
         settings: {
-          authEnv,
+          authEnv: authentication.environment,
           isAuthenticationEnvironmentOverride:
             isHarnessAuthenticationEnvironment(settings.auth),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
           ...(settings.providerId ? { providerId: settings.providerId } : {}),
-          ...(settings.apiKey ? { apiKey: settings.apiKey } : {}),
+          ...((settings.apiKey ?? authentication.subscriptionApiKey)
+            ? { apiKey: settings.apiKey ?? authentication.subscriptionApiKey }
+            : {}),
           ...(settings.baseUrl ? { baseUrl: settings.baseUrl } : {}),
           ...(settings.headers ? { headers: settings.headers } : {}),
           ...(startOpts.headers ? { agentHeaders: startOpts.headers } : {}),

@@ -223,12 +223,16 @@ const nonReasoningModelIds = openaiResponsesModelIds.filter(
     ),
 );
 
-function createModel(modelId: string) {
+function createModel(
+  modelId: string,
+  config: { supportsWebSearchSourcesInclude?: boolean } = {},
+) {
   return new OpenAIResponsesLanguageModel(modelId, {
     provider: 'openai',
     url: ({ path }) => `https://api.openai.com/v1${path}`,
     headers: () => ({ Authorization: `Bearer APIKEY` }),
     generateId: mockId(),
+    ...config,
   });
 }
 
@@ -244,7 +248,6 @@ describe('OpenAIResponsesLanguageModel', () => {
         fs.readFileSync(`src/responses/__fixtures__/${filename}.json`, 'utf8'),
       ),
     };
-    return;
   }
 
   function prepareChunksFixtureResponse(filename: string) {
@@ -1312,6 +1315,22 @@ describe('OpenAIResponsesLanguageModel', () => {
         expect(warnings).toStrictEqual([]);
       });
 
+      it.each(['gpt-6-sol', 'gpt-6-luna'])(
+        'should preserve disabled reasoning for %s',
+        async modelId => {
+          const { warnings } = await createModel(modelId).doGenerate({
+            prompt: TEST_PROMPT,
+            providerOptions: { openai: { reasoningEffort: 'none' } },
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: modelId,
+            reasoning: { effort: 'none' },
+          });
+          expect(warnings).toStrictEqual([]);
+        },
+      );
+
       it.each(['none', 'minimal'])(
         'should omit unsupported GPT-6 reasoning effort %s',
         async reasoningEffort => {
@@ -2217,6 +2236,64 @@ describe('OpenAIResponsesLanguageModel', () => {
         `);
 
         expect(warnings).toStrictEqual([]);
+      });
+
+      it('should remove string propertyNames from response schemas and warn', async () => {
+        const { warnings } = await createModel('gpt-4o').doGenerate({
+          responseFormat: {
+            type: 'json',
+            schema: {
+              type: 'object',
+              properties: {
+                variables: {
+                  type: 'object',
+                  propertyNames: { type: 'string', pattern: '^[A-Z_]+$' },
+                  additionalProperties: { type: 'string' },
+                },
+              },
+              required: ['variables'],
+              additionalProperties: false,
+            },
+          },
+          prompt: TEST_PROMPT,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toStrictEqual({
+          model: 'gpt-4o',
+          text: {
+            format: {
+              type: 'json_schema',
+              strict: true,
+              name: 'response',
+              schema: {
+                type: 'object',
+                properties: {
+                  variables: {
+                    type: 'object',
+                    additionalProperties: { type: 'string' },
+                  },
+                },
+                required: ['variables'],
+                additionalProperties: false,
+              },
+            },
+          },
+          input: [
+            {
+              role: 'user',
+              content: [{ type: 'input_text', text: 'Hello' }],
+            },
+          ],
+        });
+
+        expect(warnings).toStrictEqual([
+          {
+            type: 'compatibility',
+            feature: 'JSON Schema propertyNames',
+            details:
+              'OpenAI does not support JSON Schema propertyNames. It was removed before sending the schema, so OpenAI will not enforce property-name constraints.',
+          },
+        ]);
       });
 
       it('should send responseFormat json_schema format with strictJsonSchema false', async () => {
@@ -4044,6 +4121,53 @@ describe('OpenAIResponsesLanguageModel', () => {
       });
     });
 
+    it('should not include web search sources when disabled by provider options', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano').doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+        providerOptions: {
+          openai: {
+            includeWebSearchSources: false,
+          },
+        },
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
+    });
+
+    it('should not include unsupported web search sources', async () => {
+      prepareJsonFixtureResponse('openai-web-search-tool.1');
+
+      await createModel('gpt-5-nano', {
+        supportsWebSearchSourcesInclude: false,
+      }).doGenerate({
+        tools: [
+          {
+            type: 'provider',
+            id: 'openai.web_search',
+            name: 'webSearch',
+            args: {},
+          },
+        ],
+        prompt: TEST_PROMPT,
+      });
+
+      expect(await server.calls[0].requestBodyJson).not.toHaveProperty(
+        'include',
+      );
+    });
+
     describe('shell tool', () => {
       let result: LanguageModelV4GenerateResult;
 
@@ -5364,6 +5488,13 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         it('should include apply_patch tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should use tool-calls finish reason', () => {
+          expect(result.finishReason).toEqual({
+            unified: 'tool-calls',
+            raw: undefined,
+          });
         });
       });
     });
@@ -8863,6 +8994,26 @@ describe('OpenAIResponsesLanguageModel', () => {
         });
       });
 
+      it('should throw a retryable api error for nested error events with a null code before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":null,"message":"Sorry, something went wrong.","param":null}}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-5').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Sorry, something went wrong.',
+          statusCode: 500,
+          isRetryable: true,
+        });
+      });
+
       it('should throw an api error for documented top-level error events before output starts', async () => {
         server.urls['https://api.openai.com/v1/responses'].response = {
           type: 'stream-chunks',
@@ -10146,7 +10297,18 @@ describe('OpenAIResponsesLanguageModel', () => {
           ],
         });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+        const result = await convertReadableStreamToArray(stream);
+
+        expect(result).toContainEqual(
+          expect.objectContaining({
+            type: 'finish',
+            finishReason: {
+              unified: 'tool-calls',
+              raw: undefined,
+            },
+          }),
+        );
+        expect(result).toMatchSnapshot();
       });
 
       it('should stream apply_patch delete_file calls', async () => {

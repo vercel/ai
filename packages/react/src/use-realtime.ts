@@ -1,3 +1,4 @@
+import { secureJsonParse } from '@ai-sdk/provider-utils';
 import {
   Experimental_AbstractRealtimeSession as AbstractRealtimeSession,
   type Experimental_RealtimeServerEvent as RealtimeServerEvent,
@@ -6,125 +7,84 @@ import {
   type Experimental_RealtimeStatus as RealtimeStatus,
   type UIMessage,
 } from 'ai';
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useInsertionEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 
 type UseRealtimeOptions = RealtimeSessionOptions;
 
 type RealtimeStateKey = keyof RealtimeState;
-type RealtimeStoreKey = {
-  model: RealtimeSessionOptions['model'];
-  token: RealtimeSessionOptions['api']['token'];
-  sessionConfig: RealtimeSessionOptions['sessionConfig'];
-  sampleRate: RealtimeSessionOptions['sampleRate'];
-  maxEvents: RealtimeSessionOptions['maxEvents'];
-};
 
-function getRealtimeStoreKey(options: UseRealtimeOptions): RealtimeStoreKey {
-  return {
-    model: options.model,
-    token: options.api.token,
-    sessionConfig: options.sessionConfig,
-    sampleRate: options.sampleRate,
-    maxEvents: options.maxEvents,
-  };
-}
+const useIsomorphicLayoutEffect =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
-function shouldCreateRealtimeStore(
-  currentKey: RealtimeStoreKey,
-  nextOptions: UseRealtimeOptions,
-): boolean {
-  return (
-    currentKey.model !== nextOptions.model ||
-    currentKey.token !== nextOptions.api.token ||
-    currentKey.sessionConfig !== nextOptions.sessionConfig ||
-    currentKey.sampleRate !== nextOptions.sampleRate ||
-    currentKey.maxEvents !== nextOptions.maxEvents
-  );
-}
-
-class RealtimeStore extends AbstractRealtimeSession {
-  protected state: RealtimeState = {
-    status: 'disconnected',
-    messages: [],
-    events: [],
-    isCapturing: false,
-    isPlaying: false,
-  };
-
-  private callbacks: { [K in RealtimeStateKey]: Set<() => void> } = {
-    status: new Set(),
-    messages: new Set(),
-    events: new Set(),
-    isCapturing: new Set(),
-    isPlaying: new Set(),
-  };
-
-  get status(): RealtimeStatus {
-    return this.state.status;
-  }
-
-  get messages(): UIMessage[] {
-    return this.state.messages;
-  }
-
-  get events(): RealtimeServerEvent[] {
-    return this.state.events;
-  }
-
-  get isCapturing(): boolean {
-    return this.state.isCapturing;
-  }
-
-  get isPlaying(): boolean {
-    return this.state.isPlaying;
-  }
-
-  subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
-    this.callbacks[key].add(onChange);
-
-    return () => {
-      this.callbacks[key].delete(onChange);
+const RealtimeStore = /* @__PURE__ */ (() =>
+  class RealtimeStore extends AbstractRealtimeSession {
+    protected state: RealtimeState = {
+      status: 'disconnected',
+      messages: [],
+      events: [],
+      isCapturing: false,
+      isPlaying: false,
     };
-  }
 
-  protected setState<K extends RealtimeStateKey>(
-    key: K,
-    value: RealtimeState[K],
-  ): void {
-    this.state = { ...this.state, [key]: value };
-    this.callbacks[key].forEach(callback => callback());
-  }
-
-  protected pushMessage(message: UIMessage): void {
-    this.state = {
-      ...this.state,
-      messages: [...this.state.messages, message],
+    private callbacks: { [K in RealtimeStateKey]-?: Set<() => void> } = {
+      status: new Set(),
+      messages: new Set(),
+      events: new Set(),
+      isCapturing: new Set(),
+      isPlaying: new Set(),
+      session: new Set(),
     };
-    this.callbacks.messages.forEach(callback => callback());
-  }
 
-  protected updateMessages(
-    updater: (messages: UIMessage[]) => UIMessage[],
-  ): void {
-    this.state = {
-      ...this.state,
-      messages: updater(this.state.messages),
-    };
-    this.callbacks.messages.forEach(callback => callback());
-  }
+    get status(): RealtimeStatus {
+      return this.state.status;
+    }
 
-  protected pushEvent(event: RealtimeServerEvent): void {
-    const nextEvents = [...this.state.events, event];
-    this.state = {
-      ...this.state,
-      events:
-        nextEvents.length > this.maxEvents
-          ? nextEvents.slice(-this.maxEvents)
-          : nextEvents,
-    };
-    this.callbacks.events.forEach(callback => callback());
-  }
-}
+    get messages(): UIMessage[] {
+      return this.state.messages;
+    }
+
+    get events(): RealtimeServerEvent[] {
+      return this.state.events;
+    }
+
+    get isCapturing(): boolean {
+      return this.state.isCapturing;
+    }
+
+    get isPlaying(): boolean {
+      return this.state.isPlaying;
+    }
+
+    get session(): RealtimeState['session'] {
+      return this.state.session;
+    }
+
+    subscribe(key: RealtimeStateKey, onChange: () => void): () => void {
+      this.callbacks[key].add(onChange);
+
+      return () => {
+        this.callbacks[key].delete(onChange);
+      };
+    }
+
+    protected setState<K extends RealtimeStateKey>(
+      key: K,
+      value: RealtimeState[K],
+    ): void {
+      this.state = { ...this.state, [key]: value };
+      this.callbacks[key].forEach(callback => callback());
+    }
+  })();
+
+type RealtimeStore = InstanceType<typeof RealtimeStore>;
 
 type UseRealtimeReturn = {
   status: RealtimeStatus;
@@ -132,11 +92,15 @@ type UseRealtimeReturn = {
   events: RealtimeServerEvent[];
   isCapturing: boolean;
   isPlaying: boolean;
+  session?: RealtimeState['session'];
 
-  connect: () => Promise<void>;
+  connect: AbstractRealtimeSession['connect'];
+  close: AbstractRealtimeSession['close'];
+  resumePlayback: () => Promise<void>;
+  resumeAudioCapture: () => Promise<void>;
   disconnect: () => void;
   addToolOutput: (callId: string, result: unknown) => void;
-  sendEvent: RealtimeStore['sendEvent'];
+  sendEvent: AbstractRealtimeSession['sendEvent'];
   sendTextMessage: (text: string) => void;
   sendAudio: (base64Audio: string) => void;
   commitAudio: () => void;
@@ -149,43 +113,126 @@ type UseRealtimeReturn = {
 };
 
 function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
-  const callbacksRef = useRef({
-    onToolCall: options.onToolCall,
-    onEvent: options.onEvent,
-    onError: options.onError,
-  });
-  callbacksRef.current = {
-    onToolCall: options.onToolCall,
-    onEvent: options.onEvent,
-    onError: options.onError,
-  };
-
-  const realtimeRef = useRef<{
+  const ownerRef = useRef<{
     store: RealtimeStore;
-    key: RealtimeStoreKey;
+    onToolCall: UseRealtimeOptions['onToolCall'];
+    onEvent: UseRealtimeOptions['onEvent'];
+    onError: UseRealtimeOptions['onError'];
   } | null>(null);
+  const {
+    model,
+    api,
+    startupTimeoutMs,
+    closeTimeoutMs,
+    rtcDisconnectTimeoutMs,
+    sessionConfig,
+    sampleRate,
+    maxEvents,
+    maxPlaybackBufferSeconds,
+    onToolCall,
+    onEvent,
+    onError,
+  } = options;
+  const { token, websocket, session: sessionEndpoint } = api;
+  const protocols = JSON.stringify(api.protocols ?? []);
 
-  let realtimeEntry = realtimeRef.current;
+  // Candidates allocate no transports or media; only a committed owner can act.
+  const rt = useMemo(() => {
+    const store: RealtimeStore = new RealtimeStore({
+      model,
+      api:
+        token != null
+          ? { token }
+          : sessionEndpoint != null
+            ? { session: sessionEndpoint }
+            : {
+                websocket: websocket as string,
+                protocols: secureJsonParse(protocols) as string[],
+              },
+      startupTimeoutMs,
+      closeTimeoutMs,
+      rtcDisconnectTimeoutMs,
+      sessionConfig,
+      sampleRate,
+      maxEvents,
+      maxPlaybackBufferSeconds,
+      onEvent: (...args) =>
+        ownerRef.current?.store === store
+          ? ownerRef.current.onEvent?.(...args)
+          : undefined,
+      onError: (...args) =>
+        ownerRef.current?.store === store
+          ? ownerRef.current.onError?.(...args)
+          : undefined,
+    });
+    return store;
+  }, [
+    model,
+    token,
+    sessionEndpoint,
+    websocket,
+    protocols,
+    startupTimeoutMs,
+    closeTimeoutMs,
+    rtcDisconnectTimeoutMs,
+    sessionConfig,
+    sampleRate,
+    maxEvents,
+    maxPlaybackBufferSeconds,
+  ]);
 
-  if (
-    realtimeEntry == null ||
-    shouldCreateRealtimeStore(realtimeEntry.key, options)
-  ) {
-    realtimeEntry = {
-      store: new RealtimeStore({
-        ...options,
-        onToolCall: (...args) => callbacksRef.current.onToolCall?.(...args),
-        onEvent: (...args) => callbacksRef.current.onEvent?.(...args),
-        onError: (...args) => callbacksRef.current.onError?.(...args),
-      }),
-      key: getRealtimeStoreKey(options),
+  // Publish before child layout effects; insertion cleanup only revokes refs.
+  useInsertionEffect(() => {
+    ownerRef.current = { store: rt, onToolCall, onEvent, onError };
+    rt.onToolCall =
+      onToolCall == null
+        ? undefined
+        : (...args) =>
+            ownerRef.current?.store === rt
+              ? ownerRef.current.onToolCall?.(...args)
+              : undefined;
+    return () => {
+      ownerRef.current = null;
     };
-    realtimeRef.current = realtimeEntry;
-  } else {
-    realtimeEntry.key = getRealtimeStoreKey(options);
-  }
+  });
 
-  const rt = realtimeEntry.store;
+  // StrictMode replays layout effects, but keeps the insertion-phase owner.
+  useIsomorphicLayoutEffect(() => {
+    return () => rt.dispose();
+  }, [rt]);
+
+  const actions = useMemo(() => {
+    const current = () => {
+      if (ownerRef.current == null)
+        throw new Error('Realtime controls require a mounted hook');
+      return ownerRef.current.store;
+    };
+    return {
+      connect: async (options?: {
+        stream?: MediaStream;
+        capture?: boolean;
+      }) => {
+        const store = current();
+        return options == null ? store.connect() : store.connect(options);
+      },
+      close: async options => current().close(options),
+      resumePlayback: async () => current().resumePlayback(),
+      resumeAudioCapture: async () => current().resumeAudioCapture(),
+      disconnect: () => current().disconnect(),
+      addToolOutput: (callId, result) =>
+        current().addToolOutput(callId, result),
+      sendEvent: event => current().sendEvent(event),
+      sendTextMessage: text => current().sendTextMessage(text),
+      sendAudio: audio => current().sendAudio(audio),
+      commitAudio: () => current().commitAudio(),
+      clearAudioBuffer: () => current().clearAudioBuffer(),
+      requestResponse: options => current().requestResponse(options),
+      cancelResponse: () => current().cancelResponse(),
+      startAudioCapture: stream => current().startAudioCapture(stream),
+      stopAudioCapture: () => current().stopAudioCapture(),
+      stopPlayback: () => current().stopPlayback(),
+    } satisfies Omit<UseRealtimeReturn, keyof RealtimeState>;
+  }, []);
 
   const status = useSyncExternalStore(
     useCallback(cb => rt.subscribe('status', cb), [rt]),
@@ -217,9 +264,11 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     () => rt.isPlaying,
   );
 
-  useEffect(() => {
-    return () => rt.dispose();
-  }, [rt]);
+  const session = useSyncExternalStore(
+    useCallback(cb => rt.subscribe('session', cb), [rt]),
+    () => rt.session,
+    () => rt.session,
+  );
 
   return {
     status,
@@ -227,19 +276,8 @@ function useRealtime(options: UseRealtimeOptions): UseRealtimeReturn {
     events,
     isCapturing,
     isPlaying,
-    connect: rt.connect.bind(rt),
-    disconnect: rt.disconnect.bind(rt),
-    addToolOutput: rt.addToolOutput.bind(rt),
-    sendEvent: rt.sendEvent.bind(rt),
-    sendTextMessage: rt.sendTextMessage.bind(rt),
-    sendAudio: rt.sendAudio.bind(rt),
-    commitAudio: rt.commitAudio.bind(rt),
-    clearAudioBuffer: rt.clearAudioBuffer.bind(rt),
-    requestResponse: rt.requestResponse.bind(rt),
-    cancelResponse: rt.cancelResponse.bind(rt),
-    startAudioCapture: rt.startAudioCapture.bind(rt),
-    stopAudioCapture: rt.stopAudioCapture.bind(rt),
-    stopPlayback: rt.stopPlayback.bind(rt),
+    session,
+    ...actions,
   };
 }
 

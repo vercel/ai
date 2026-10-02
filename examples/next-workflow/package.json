@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "ultracite check"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "workspace:*",
@@ -16,7 +16,7 @@
     "@ai-sdk/react": "workspace:*",
     "@ai-sdk/workflow": "workspace:*",
     "ai": "workspace:*",
-    "next": "^15.5.21",
+    "next": "^16.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "workflow": "5.0.0-beta.42",
