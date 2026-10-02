@@ -1567,6 +1567,251 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+<<<<<<< HEAD:packages/anthropic/src/convert-to-anthropic-messages-prompt.test.ts
+=======
+  it('should ignore message-start accounting parts when replaying assistant content', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.message_start',
+              providerOptions: {
+                anthropic: {
+                  id: 'msg_usage',
+                  model: 'claude-haiku-4-5',
+                  usage: { input_tokens: 13, output_tokens: 1 },
+                },
+              },
+            },
+            { type: 'text', text: 'Hi!' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi!', cache_control: undefined }],
+      },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('should preserve fallback boundaries between reasoning blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Primary model thinking',
+              providerOptions: {
+                anthropic: { signature: 'primary-signature' },
+              },
+            },
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                  to: { model: 'claude-opus-4-8' },
+                },
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Fallback model thinking',
+              providerOptions: {
+                anthropic: { signature: 'fallback-signature' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Primary model thinking',
+            signature: 'primary-signature',
+          },
+          {
+            type: 'fallback',
+            from: { model: 'claude-opus-5-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+          {
+            type: 'thinking',
+            thinking: 'Fallback model thinking',
+            signature: 'fallback-signature',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should warn and omit fallback boundaries with invalid metadata', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'anthropic fallback metadata must include from.model and to.model',
+      },
+    ]);
+  });
+
+  it('should omit empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'user content' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+            { type: 'text', text: 'assistant content' },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'user content' }],
+      },
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'assistant content' }],
+      },
+    ]);
+  });
+
+  it('should omit an assistant message that only contains an empty compaction block', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'first user message' }],
+        },
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: '',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'second user message' }],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'first user message' }],
+      },
+      {
+        role: 'user',
+        content: [{ type: 'text', text: 'second user message' }],
+      },
+    ]);
+  });
+
+  it('should preserve non-empty compaction blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'Summary of the conversation',
+              providerOptions: { anthropic: { type: 'compaction' } },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'compaction',
+            content: 'Summary of the conversation',
+            cache_control: undefined,
+          },
+        ],
+      },
+    ]);
+  });
+
+>>>>>>> b5dfea15a5 (feat(anthropic): expose message-start usage through opt-in custom stream parts (#21979)):packages/anthropic/src/convert-to-anthropic-prompt.test.ts
   it('should preserve citations on assistant text', async () => {
     const result = await convertToAnthropicMessagesPrompt({
       prompt: [
