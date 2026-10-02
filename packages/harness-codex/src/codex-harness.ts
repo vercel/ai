@@ -1048,6 +1048,8 @@ function createSession({
         ...(debug ? { debug } : {}),
       };
       pendingResumeThreadId = undefined;
+      // Recovery starts a native turn once. Later continuations attach to it.
+      rerunContinue = false;
       turn.sendStart(() => channel.send(startMessage));
 
       return turn.control;
@@ -1092,6 +1094,7 @@ function createSession({
        * fallback; the common slice path is `attach`.
        */
       if (rerunContinue) {
+        rerunContinue = false;
         const threadId = pendingResumeThreadId ?? latestThreadId;
         pendingResumeThreadId = undefined;
         turn.sendStart(() =>
