@@ -689,4 +689,34 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'pipe0',
+    name: 'pipe0',
+    description:
+      'GTM data for agents. pipe0 finds people by job title, employer, seniority, and location, and enriches them with work emails, phone numbers, profiles, and company firmographics. Each lookup runs a waterfall across dozens of data providers, so one API key covers them all.',
+    packageName: '@pipe0/ai-sdk',
+    tags: ['enrichment', 'people-search', 'contact-data', 'sales', 'gtm'],
+    apiKeyEnvName: 'PIPE0_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pipe0/ai-sdk',
+      npm: 'npm install @pipe0/ai-sdk',
+      yarn: 'yarn add @pipe0/ai-sdk',
+      bun: 'bun add @pipe0/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { pipe0Tools } from '@pipe0/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt: 'Find the CTO of Linear and get their work email.',
+  tools: pipe0Tools(),
+  stopWhen: isStepCount(10),
+});
+
+console.log(text);`,
+    docsUrl: 'https://www.pipe0.com/docs/sdks/integrations/ai-sdk',
+    apiKeyUrl: 'https://www.pipe0.com/docs/authentication',
+    websiteUrl: 'https://www.pipe0.com',
+    npmUrl: 'https://www.npmjs.com/package/@pipe0/ai-sdk',
+  },
 ];
