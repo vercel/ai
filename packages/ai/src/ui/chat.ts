@@ -849,6 +849,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    // the continued stream can start with either
+    // 1) input deltas
+    // 2) or the result of an answered tool approval request
+    // Keep the tool part so in case 2, those chunks can find their tool call
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
@@ -955,6 +959,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
+          resetStateOnMessageIdChange: trigger === 'resume-stream',
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
