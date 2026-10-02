@@ -661,7 +661,7 @@ try {
       throw error;
     }
 
-    // Handle a transient transport or protocol failure.
+    // Inspect error.code and error.statusCode according to your application's policy.
   }
 
   throw error;
@@ -673,6 +673,11 @@ properties. `code` is the JSON-RPC application error code. `statusCode`, `url`,
 and `responseBody` contain HTTP transport context when it is available. They
 are `undefined` for failures without an HTTP response, such as network errors,
 timeouts, aborted requests, and stdio transport failures.
+
+`MCPClientError` also represents configuration and protocol errors, so its
+type or a missing `statusCode` alone does not indicate a retryable failure.
+OAuth failures can instead throw the separately exported `UnauthorizedError`
+or `MCPClientOAuthError`.
 
 Avoid logging `url` or `responseBody` without redacting sensitive endpoint,
 query parameter, or server response data.

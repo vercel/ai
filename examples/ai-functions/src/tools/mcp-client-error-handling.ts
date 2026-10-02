@@ -30,7 +30,14 @@ run(async () => {
     if (MCPClientError.isInstance(error)) {
       print('MCP failure:', {
         statusCode: error.statusCode,
-        shouldRetry: error.statusCode == null || error.statusCode >= 500,
+        // Only classify potentially transient HTTP failures here.
+        shouldRetry:
+          error.code == null &&
+          error.statusCode != null &&
+          (error.statusCode === 408 ||
+            error.statusCode === 409 ||
+            error.statusCode === 429 ||
+            error.statusCode >= 500),
       });
       return;
     }
