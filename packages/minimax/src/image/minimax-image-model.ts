@@ -102,6 +102,7 @@ export class MinimaxImageModel implements ImageModelV4 {
           }))
         : undefined;
 
+    const { width, height } = getSizeFromDimensions(size ?? '', warnings);
     const { value: response, responseHeaders } = await postJsonToApi({
       url: `${this.config.baseURL}/v1/image_generation`,
       body: {
@@ -111,8 +112,8 @@ export class MinimaxImageModel implements ImageModelV4 {
         aspect_ratio: aspectRatio ?? minimaxOptions?.aspect_ratio ?? '1:1',
         seed: seed ?? minimaxOptions?.seed,
         prompt_optimizer: minimaxOptions?.prompt_optimizer,
-        width: size ?? minimaxOptions?.width,
-        height: size ?? minimaxOptions?.height,
+        width: width ?? minimaxOptions?.width,
+        height: height ?? minimaxOptions?.height,
         response_format: minimaxOptions?.response_format ?? 'url',
         ...(subjectReference != null
           ? { subject_reference: subjectReference }
@@ -150,4 +151,20 @@ export class MinimaxImageModel implements ImageModelV4 {
       },
     };
   }
+}
+
+function getSizeFromDimensions(
+  size: string,
+  warnings: SharedV4Warning[],
+): { width: number; height: number } {
+  const [width, height] = size.split('x').map(Number);
+  if (size && (isNaN(width) || isNaN(height))) {
+    warnings.push({
+      type: 'unsupported',
+      feature: 'size',
+      details: `Invalid size format: ${size}. Expected format is WIDTHxHEIGHT.`,
+    });
+    return { width: 512, height: 512 };
+  }
+  return { width, height };
 }

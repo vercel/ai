@@ -30,7 +30,7 @@ export const minimaxImageModelProviderOptions = z.object({
     .default('url')
     .optional(),
   seed: z.number().optional(),
-  n: z.number().int().min(1).max(0).default(1).optional(),
+  n: z.number().int().min(1).max(9).default(1).optional(),
   prompt_optimizer: z.boolean().default(false).optional(),
 });
 
