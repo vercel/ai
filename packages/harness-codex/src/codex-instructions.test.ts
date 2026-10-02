@@ -251,6 +251,97 @@ describe('codex adapter — instructions transport', () => {
   });
 
   it('starts a fresh native thread when resumed turn configuration changes', async () => {
+    const firstSession = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: {
+          threadId: 'thread-abc',
+        },
+      },
+    });
+
+    await firstSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'first turn',
+      instructions: 'Use the previous turn instructions.',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+    const persistedState = await firstSession.doDetach();
+    const resumedSession = await startSession({ resumeFrom: persistedState });
+
+    await resumedSession.doPromptTurn({
+      skills: [],
+      tools: [],
+      prompt: 'resumed turn',
+      instructions: 'Use the current turn instructions.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 2 });
+    expect(start.restartThread).toBe(true);
+    expect(start.resumeThreadId).toBeUndefined();
+  });
+
+  it('preserves the native thread when persisted tool keys are reordered', async () => {
+    const firstSession = await startSession({
+      resumeFrom: {
+        type: 'resume-session',
+        harnessId: 'codex',
+        specificationVersion: 'harness-v1',
+        data: { threadId: 'thread-abc' },
+      },
+    });
+    const toolsBefore: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        name: 'get_weather',
+        description: 'Get weather',
+        inputSchema: {
+          type: 'object',
+          properties: { city: { type: 'string' } },
+          required: ['city'],
+        },
+      },
+    ];
+
+    await firstSession.doPromptTurn({
+      skills: [],
+      tools: toolsBefore,
+      prompt: 'first turn',
+      instructions: 'Use the weather tool.',
+      emit: () => {},
+    });
+    await waitForStart({ count: 1 });
+    const persistedState = await firstSession.doDetach();
+    const resumedSession = await startSession({ resumeFrom: persistedState });
+    const toolsAfter: ReadonlyArray<HarnessV1ToolSpec> = [
+      {
+        inputSchema: {
+          required: ['city'],
+          properties: { city: { type: 'string' } },
+          type: 'object',
+        },
+        description: 'Get weather',
+        name: 'get_weather',
+      },
+    ];
+
+    await resumedSession.doPromptTurn({
+      skills: [],
+      tools: toolsAfter,
+      prompt: 'resumed turn',
+      instructions: 'Use the weather tool.',
+      emit: () => {},
+    });
+
+    const start = await waitForStart({ count: 2 });
+    expect(start.restartThread).toBeUndefined();
+  });
+
+  it('preserves the native thread while replacing a legacy fingerprint', async () => {
     const session = await startSession({
       resumeFrom: {
         type: 'resume-session',
@@ -258,7 +349,7 @@ describe('codex adapter — instructions transport', () => {
         specificationVersion: 'harness-v1',
         data: {
           threadId: 'thread-abc',
-          turnConfigurationFingerprint: 'previous-configuration',
+          turnConfigurationFingerprint: 'legacy-fingerprint',
         },
       },
     });
@@ -272,8 +363,14 @@ describe('codex adapter — instructions transport', () => {
     });
 
     const start = await waitForStart({ count: 1 });
-    expect(start.restartThread).toBe(true);
-    expect(start.resumeThreadId).toBeUndefined();
+    expect(start.restartThread).toBeUndefined();
+    expect(start.resumeThreadId).toBe('thread-abc');
+    const persistedState = await session.doDetach();
+    expect(persistedState).toMatchObject({
+      data: {
+        turnConfigurationFingerprint: expect.stringMatching(/^v2:/),
+      },
+    });
   });
 
   it('forwards instructions when rerunning a suspended turn', async () => {
