@@ -13,6 +13,7 @@ import type {
   GoogleGenerativeAIContentPart,
   GoogleGenerativeAIFunctionResponsePart,
   GoogleGenerativeAIPrompt,
+  GoogleGenerativeAIVideoPartFields,
 } from './google-generative-ai-prompt';
 
 /**
@@ -34,6 +35,7 @@ type GoogleProviderOptions = {
   thoughtSignature?: unknown;
   serverToolCallId?: unknown;
   serverToolType?: unknown;
+  processing?: unknown;
 };
 
 function getGoogleProviderOptions(
@@ -238,6 +240,62 @@ function appendLegacyToolResultParts(
   }
 }
 
+/**
+ * Maps `providerOptions.google.processing` on a video file part to the
+ * generateContent part fields.
+ */
+function getVideoPartFields({
+  mediaType,
+  processing,
+  onWarning,
+}: {
+  mediaType: string;
+  processing: unknown;
+  onWarning?: (warning: SharedV3Warning) => void;
+}): GoogleGenerativeAIVideoPartFields {
+  if (processing == null || !mediaType.startsWith('video/')) {
+    return {};
+  }
+
+  if (processing === 'agentic') {
+    return { mediaProcessing: 'AGENTIC' };
+  }
+
+  if (processing === 'static') {
+    return { mediaProcessing: 'STATIC' };
+  }
+
+  if (
+    typeof processing === 'object' &&
+    !Array.isArray(processing) &&
+    (processing as { type?: unknown }).type === 'static'
+  ) {
+    const { startOffset, endOffset, fps } = processing as {
+      startOffset?: unknown;
+      endOffset?: unknown;
+      fps?: unknown;
+    };
+    const videoMetadata = {
+      ...(typeof startOffset === 'number'
+        ? { startOffset: `${startOffset}s` }
+        : {}),
+      ...(typeof endOffset === 'number' ? { endOffset: `${endOffset}s` } : {}),
+      ...(typeof fps === 'number' ? { fps } : {}),
+    };
+    return {
+      mediaProcessing: 'STATIC',
+      ...(Object.keys(videoMetadata).length > 0 ? { videoMetadata } : {}),
+    };
+  }
+
+  onWarning?.({
+    type: 'other',
+    message:
+      'invalid providerOptions.google.processing on video file part; expected "agentic", "static", or a static processing configuration. Option dropped.',
+  });
+  return {};
+}
+
 export function convertToGoogleGenerativeAIMessages(
   prompt: LanguageModelV3Prompt,
   options?: {
@@ -314,6 +372,17 @@ export function convertToGoogleGenerativeAIMessages(
               const mediaType =
                 part.mediaType === 'image/*' ? 'image/jpeg' : part.mediaType;
 
+              const videoFields = getVideoPartFields({
+                mediaType,
+                processing: getGoogleProviderOptions(
+                  part.providerOptions as
+                    | Record<string, GoogleProviderOptions>
+                    | undefined,
+                  providerOptionsName,
+                )?.processing,
+                onWarning,
+              });
+
               parts.push(
                 part.data instanceof URL
                   ? {
@@ -325,12 +394,14 @@ export function convertToGoogleGenerativeAIMessages(
                             ? part.originalUrl
                             : part.data.toString(),
                       },
+                      ...videoFields,
                     }
                   : {
                       inlineData: {
                         mimeType: mediaType,
                         data: convertToBase64(part.data),
                       },
+                      ...videoFields,
                     },
               );
 
