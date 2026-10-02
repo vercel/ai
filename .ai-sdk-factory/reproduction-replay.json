@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 21954,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21954.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21954.ts",
+    "packages/harness-codex/src/issue-21954.test.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21954: reordered value-equivalent tools spuriously restarted the Codex thread"
+  }
+}
