@@ -1,8 +1,10 @@
+import { convertJsonResponseToolStream } from './convert-json-response-tool-stream';
 import {
   InvalidResponseDataError,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
+  type LanguageModelV4FunctionTool,
   type LanguageModelV4FinishReason,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4StreamPart,
@@ -149,6 +151,26 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       schema: groqLanguageModelChatOptions,
     });
 
+    // Groq rejects JSON response formatting together with function tools.
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
     const structuredOutputs = groqOptions?.structuredOutputs ?? true;
     const strictJsonSchema = groqOptions?.strictJsonSchema ?? true;
 
@@ -159,7 +181,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     if (
       responseFormat?.type === 'json' &&
       responseFormat.schema != null &&
-      !structuredOutputs
+      !structuredOutputs &&
+      jsonResponseTool == null
     ) {
       warnings.push({
         type: 'unsupported',
@@ -173,7 +196,19 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       tools: groqTools,
       toolChoice: groqToolChoice,
       toolWarnings,
-    } = prepareTools({ tools, toolChoice, modelId: this.modelId });
+    } = prepareTools({
+      tools:
+        jsonResponseTool != null ? [...(tools ?? []), jsonResponseTool] : tools,
+      toolChoice:
+        jsonResponseTool == null
+          ? toolChoice
+          : toolChoice?.type === 'tool'
+            ? toolChoice
+            : toolChoice?.type === 'none'
+              ? { type: 'tool', toolName: jsonResponseTool.name }
+              : { type: 'required' },
+      modelId: this.modelId,
+    });
 
     let reasoningEffort = groqOptions?.reasoningEffort;
     if (reasoningEffort == null && isCustomReasoning(reasoning)) {
@@ -209,7 +244,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // model specific settings:
         user: groqOptions?.user,
-        parallel_tool_calls: groqOptions?.parallelToolCalls,
+        parallel_tool_calls:
+          jsonResponseTool != null ? false : groqOptions?.parallelToolCalls,
 
         // standardized settings:
         max_tokens: maxOutputTokens,
@@ -222,7 +258,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
         // response format:
         response_format:
-          responseFormat?.type === 'json'
+          jsonResponseTool == null && responseFormat?.type === 'json'
             ? structuredOutputs && responseFormat.schema != null
               ? {
                   type: 'json_schema',
@@ -249,13 +285,15 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
         tool_choice: groqToolChoice,
       },
       warnings: [...warnings, ...toolWarnings],
+      jsonResponseToolName: jsonResponseTool?.name,
     };
   }
 
   async doGenerate(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4GenerateResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = JSON.stringify(args);
 
@@ -290,7 +328,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
     // text content:
     const text = choice.message.content;
-    if (text != null && text.length > 0) {
+    if (jsonResponseToolName == null && text != null && text.length > 0) {
       content.push({ type: 'text', text: text });
     }
 
@@ -306,19 +344,29 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     // tool calls:
     if (choice.message.tool_calls != null) {
       for (const toolCall of choice.message.tool_calls) {
-        content.push({
-          type: 'tool-call',
-          toolCallId: toolCall.id || generateId(),
-          toolName: toolCall.function.name,
-          input: toolCall.function.arguments!,
-        });
+        if (toolCall.function.name === jsonResponseToolName) {
+          content.push({ type: 'text', text: toolCall.function.arguments });
+        } else {
+          content.push({
+            type: 'tool-call',
+            toolCallId: toolCall.id || generateId(),
+            toolName: toolCall.function.name,
+            input: toolCall.function.arguments!,
+          });
+        }
       }
     }
 
     return {
       content,
       finishReason: {
-        unified: mapGroqFinishReason(choice.finish_reason),
+        unified:
+          jsonResponseToolName != null &&
+          content.some(part => part.type === 'text') &&
+          !content.some(part => part.type === 'tool-call') &&
+          choice.finish_reason === 'tool_calls'
+            ? 'stop'
+            : mapGroqFinishReason(choice.finish_reason),
         raw: choice.finish_reason ?? undefined,
       },
       usage: convertGroqUsage(response.usage),
@@ -335,7 +383,8 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   async doStream(
     options: LanguageModelV4CallOptions,
   ): Promise<LanguageModelV4StreamResult> {
-    const { args, warnings } = await this.getArgs(options);
+    const { args, warnings, jsonResponseToolName } =
+      await this.getArgs(options);
 
     const body = { ...args, stream: true };
 
@@ -381,7 +430,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     let isActiveText = false;
     let isActiveReasoning = false;
 
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof groqChatChunkSchema>>,
@@ -510,7 +559,10 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
 
           flush(controller) {
             if (isActiveReasoning) {
-              controller.enqueue({ type: 'reasoning-end', id: 'reasoning-0' });
+              controller.enqueue({
+                type: 'reasoning-end',
+                id: 'reasoning-0',
+              });
             }
 
             if (isActiveText) {
@@ -529,6 +581,15 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
       ),
       request: { body: JSON.stringify(body) },
       response: { headers: responseHeaders },
+    };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
     };
   }
 }
