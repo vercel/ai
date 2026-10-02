@@ -4,9 +4,12 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
 import { createMiniMax } from './minimax-provider';
 import { MiniMaxVideoModel } from './minimax-video-model';
+import { MinimaxImageModel } from './image/minimax-image-model';
 
 const AnthropicLanguageModelMock = AnthropicLanguageModel as unknown as Mock;
 const MiniMaxVideoModelMock = MiniMaxVideoModel as unknown as Mock;
+
+const MinimaxImageModelMock = MinimaxImageModel as unknown as Mock;
 
 vi.mock('@ai-sdk/anthropic/internal', () => {
   const mockConstructor = vi.fn().mockImplementation(function (
@@ -35,6 +38,21 @@ vi.mock('./minimax-video-model', () => {
   });
   return {
     MiniMaxVideoModel: mockConstructor,
+  };
+});
+
+vi.mock('./image/minimax-image-model', () => {
+  const mockConstructor = vi.fn().mockImplementation(function (
+    this: any,
+    modelId: string,
+    config: any,
+  ) {
+    this.provider = config.provider;
+    this.modelId = modelId;
+    this.config = config;
+  });
+  return {
+    MinimaxImageModel: mockConstructor,
   };
 });
 
@@ -238,6 +256,112 @@ describe('MiniMaxProvider', () => {
     });
   });
 
+  describe('image', () => {
+    it('should construct an image model with the image provider id', () => {
+      const provider = createMiniMax();
+      const model = provider.image('image-01');
+
+      expect(model).toBeInstanceOf(MinimaxImageModel);
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('image-01');
+      expect(constructorCall[1].provider).toBe('minimax.image');
+    });
+
+    it('should use the default image base URL', () => {
+      const provider = createMiniMax();
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should use a custom imageBaseURL', () => {
+      const provider = createMiniMax({
+        imageBaseURL: 'https://api.minimaxi.com',
+      });
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimaxi.com');
+    });
+
+    it('should not derive the image base URL from the chat baseURL', () => {
+      const provider = createMiniMax({
+        baseURL: 'https://custom.url/anthropic/v1',
+      });
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should send a bearer token for authentication', () => {
+      const provider = createMiniMax({ apiKey: 'test-key' });
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      const headers = constructorCall[1].headers();
+
+      expect(headers).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+      });
+      expect(loadApiKey).toHaveBeenCalledWith({
+        apiKey: 'test-key',
+        environmentVariableName: 'MINIMAX_API_KEY',
+        description: 'MiniMax API key',
+      });
+    });
+
+    it('should merge custom headers into the image headers', () => {
+      const provider = createMiniMax({
+        headers: { 'Custom-Header': 'value' },
+      });
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].headers()).toMatchObject({
+        authorization: 'Bearer mock-api-key',
+        'custom-header': 'value',
+      });
+    });
+
+    it('should pass a custom fetch to the image model', () => {
+      const customFetch = vi.fn();
+      const provider = createMiniMax({ fetch: customFetch });
+      provider.image('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].fetch).toBe(customFetch);
+    });
+  });
+
+  describe('imageModel', () => {
+    it('should construct the same image model as image()', () => {
+      const provider = createMiniMax();
+      const model = provider.imageModel('image-01');
+
+      expect(model).toBeInstanceOf(MinimaxImageModel);
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[0]).toBe('image-01');
+      expect(constructorCall[1].provider).toBe('minimax.image');
+      expect(constructorCall[1].baseURL).toBe('https://api.minimax.io');
+    });
+
+    it('should use the same custom imageBaseURL as image()', () => {
+      const provider = createMiniMax({
+        imageBaseURL: 'https://custom-image.example.com',
+      });
+      provider.imageModel('image-01');
+
+      const constructorCall = MinimaxImageModelMock.mock.calls[0];
+      expect(constructorCall[1].baseURL).toBe(
+        'https://custom-image.example.com',
+      );
+    });
+  });
+
   describe('unsupported model types', () => {
     it('should throw NoSuchModelError for embeddingModel', () => {
       const provider = createMiniMax();
@@ -249,11 +373,6 @@ describe('MiniMaxProvider', () => {
       expect(() => provider.textEmbeddingModel('foo')).toThrow(
         NoSuchModelError,
       );
-    });
-
-    it('should throw NoSuchModelError for imageModel', () => {
-      const provider = createMiniMax();
-      expect(() => provider.imageModel('foo')).toThrow(NoSuchModelError);
     });
   });
 });
