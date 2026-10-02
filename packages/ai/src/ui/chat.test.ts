@@ -2135,6 +2135,85 @@ describe('Chat', () => {
     `);
   });
 
+  it('should continue an approved tool call when resuming a stream', async () => {
+    const state = new TestChatState<UIMessage>([
+      {
+        id: 'user-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'Set the price to 12' }],
+      },
+      {
+        id: 'assistant-1',
+        role: 'assistant',
+        parts: [
+          {
+            type: 'tool-updateProduct',
+            toolCallId: 'tool-1',
+            state: 'approval-responded',
+            input: { id: 'product-1', price: 12 },
+            approval: { id: 'approval-1', approved: true },
+          },
+        ],
+      },
+    ]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({
+                type: 'tool-output-available',
+                toolCallId: 'tool-1',
+                output: { price: 12 },
+              });
+              controller.enqueue({ type: 'text-start', id: 'text-1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'Updated.',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toHaveLength(2);
+    expect(chat.messages[1]).toMatchObject({
+      id: 'assistant-1',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-updateProduct',
+          toolCallId: 'tool-1',
+          state: 'output-available',
+          input: { id: 'product-1', price: 12 },
+          output: { price: 12 },
+          approval: { id: 'approval-1', approved: true },
+        },
+        {
+          type: 'text',
+          state: 'done',
+          text: 'Updated.',
+        },
+      ],
+    });
+  });
+
   it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
     const state = new TestChatState<UIMessage>([
       {
