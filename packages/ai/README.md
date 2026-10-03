@@ -16,7 +16,7 @@ npm install ai
 
 ## Skill for Coding Agents
 
-If you use coding agents such as Claude Code or Cursor, we highly recommend adding the AI SDK skill to your repository:
+If you use coding agents such as Claude Code, Cursor, or AdaL, we highly recommend adding the AI SDK skill to your repository:
 
 ```shell
 npx skills add vercel/ai
