@@ -21,13 +21,40 @@ export type {
   GatewayLanguageModelEntry,
   GatewayLanguageModelSpecification,
 } from './gateway-model-entry';
-export type { GatewayCreditsResponse } from './gateway-fetch-metadata';
 export type {
+  GatewayRequestArguments,
+  GatewayRequestParameters,
+  GatewayRequestRoute,
+  GatewayRequestResponse,
+} from './gateway-request';
+export type {
+  GatewayRestModelArchitecture,
+  GatewayRestModelEndpoint,
+  GatewayRestModelEndpointMetric,
+  GatewayRestModelEndpointPricing,
+  GatewayRestModelEndpoints,
+  GatewayRestModelEndpointsParams,
+  GatewayRestModelEndpointsResponse,
+  GatewayRestModel,
+  GatewayRestModelPricing,
+  GatewayRestModelPricingTier,
+  GatewayRestModelReasoningOption,
+  GatewayRestModelsResponse,
+} from './gateway-rest-types';
+export type {
+  GatewayCreditsResponse,
+  GatewayRestCreditsResponse,
+} from './gateway-fetch-metadata';
+export type {
+  GatewayRestSpendReportResponse,
+  GatewayRestSpendReportRow,
   GatewaySpendReportParams,
   GatewaySpendReportRow,
   GatewaySpendReportResponse,
 } from './gateway-spend-report';
 export type {
+  GatewayRestGenerationInfo,
+  GatewayRestGenerationInfoResponse,
   GatewayGenerationInfoParams,
   GatewayGenerationInfo,
 } from './gateway-generation-info';
