@@ -1,0 +1,90 @@
+---
+title: Pay for an x402 API
+description: Learn how to let an agent pay an x402-gated API on an HTTP 402 using the AI SDK and Node
+tags: ['node', 'tool use', 'agent']
+---
+
+# Pay for an x402 API
+
+Some APIs charge per request with [x402](https://x402.org): an unpaid request comes back as
+`HTTP 402 Payment Required` with a small on-chain price. Given a payment-capable tool, an agent can
+settle that charge itself and continue — all within a spend cap you set.
+
+This recipe gives the model a single tool that fetches a URL and, if the response is a `402`, pays and
+retries. It uses [PipRail](https://github.com/piprail/piprail) (`@piprail/sdk`), a self-custody x402
+client: the agent's own key signs and your own RPC verifies, with no facilitator and no fee. It is the
+pay-side complement to Vercel's receive-side [`x402-mcp`](https://github.com/ethanniser/x402-mcp).
+
+<Snippet text="pnpm install ai @ai-sdk/openai @piprail/sdk zod" />
+
+```ts
+import { generateText, tool, isStepCount } from 'ai';
+import { z } from 'zod';
+import { PipRailClient } from '@piprail/sdk';
+
+// A self-custody client. `policy.maxTotal` is a hard ceiling the model cannot cross.
+const piprail = new PipRailClient({
+  chain: 'base',
+  wallet: { key: process.env.PIPRAIL_PRIVATE_KEY! },
+  schemes: ['onchain-proof', 'exact'], // 'exact' also pays standard x402 servers — gasless for the buyer
+  policy: { maxTotal: '5.00' }, // lifetime USDC ceiling
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-4.1',
+  stopWhen: isStepCount(5),
+  tools: {
+    fetchPaid: tool({
+      description:
+        'Fetch a URL. If it returns HTTP 402 Payment Required, pay the on-chain charge and retry automatically.',
+      inputSchema: z.object({ url: z.string().describe('The URL to fetch') }),
+      execute: async ({ url }) => {
+        const res = await piprail.fetch(url); // pays the 402 within the policy, returns the 200
+        return await res.json();
+      },
+    }),
+  },
+  prompt: 'Fetch the premium quote at https://api.example.com/premium and summarize it.',
+});
+```
+
+<Note>
+  `PIPRAIL_PRIVATE_KEY` is a self-custody wallet key — fund it with a little USDC on your chain. The
+  `policy` (here `maxTotal: '5.00'`) is enforced by PipRail before any payment, so the model can't
+  spend beyond it. Pass a different `chain` to pay on any of the supported networks.
+</Note>
+
+## Expose the full payment toolkit
+
+To let the model discover, quote, plan, and pay as distinct steps, map PipRail's agent tools onto AI
+SDK tools — each carries a JSON Schema you wrap with `jsonSchema`:
+
+```ts
+import { generateText, tool, jsonSchema, isStepCount } from 'ai';
+import { PipRailClient, paymentTools } from '@piprail/sdk';
+
+const piprail = new PipRailClient({
+  chain: 'base',
+  wallet: { key: process.env.PIPRAIL_PRIVATE_KEY! },
+  schemes: ['onchain-proof', 'exact'],
+  policy: { maxTotal: '5.00' },
+});
+
+const tools = Object.fromEntries(
+  paymentTools(piprail).map((t) => [
+    t.name,
+    tool({ description: t.description, inputSchema: jsonSchema(t.parameters), execute: t.invoke }),
+  ]),
+);
+
+const { text } = await generateText({
+  model: 'openai/gpt-4.1',
+  stopWhen: isStepCount(5),
+  tools,
+  prompt: 'Find and pay for a weather API, then give me the forecast for London.',
+});
+```
+
+This adds eight tools — `piprail_discover`, `piprail_quote_payment`, `piprail_plan_payment`,
+`piprail_pay_request`, `piprail_register`, `piprail_budget`, `piprail_guide`, and
+`piprail_verify_receipt` — all bound by the same spend policy.
