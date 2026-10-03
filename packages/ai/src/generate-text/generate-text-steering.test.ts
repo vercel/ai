@@ -282,4 +282,121 @@ describe('generateText with SteeringController', () => {
     const serialized = JSON.stringify(prepareStepObservedMessages);
     expect(serialized).toContain('PrepareStep check');
   });
+
+  it('should not allow steering to bypass pending tool approval and should allow steering after approval is supplied', async () => {
+    // 1. Turn 1: Assistant produces a tool call requiring user approval. Steering is submitted during turn 1.
+    const controllerTurn1 = new SteeringController();
+    let stepCountTurn1 = 0;
+    let steerPromiseTurn1: Promise<unknown> | undefined;
+
+    const resultTurn1 = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async () => {
+          stepCountTurn1++;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+            content: [
+              {
+                type: 'tool-call',
+                toolCallType: 'function',
+                toolCallId: 'call-1',
+                toolName: 'sensitiveAction',
+                input: JSON.stringify({ action: 'delete' }),
+              },
+            ],
+          };
+        },
+      }),
+      tools: {
+        sensitiveAction: {
+          inputSchema: z.object({ action: z.string() }),
+          needsApproval: () => true,
+          execute: async () => 'action executed',
+        },
+      },
+      prompt: 'do action',
+      experimental_steeringSignal: controllerTurn1.signal,
+      onStepEnd: () => {
+        steerPromiseTurn1 = controllerTurn1.steer(
+          'Steer during pending approval',
+        );
+      },
+    });
+
+    // Verify steering did NOT cause another LLM step with the incomplete conversation:
+    expect(stepCountTurn1).toBe(1);
+    expect(resultTurn1.steps).toHaveLength(1);
+    expect(resultTurn1.finishReason).toBe('tool-calls');
+    await expect(steerPromiseTurn1).rejects.toThrow(SteeringClosedError);
+
+    // 2. Turn 2: Supply the required tool approval response, and verify steering proceeds normally:
+    const controllerTurn2 = new SteeringController();
+    let stepCountTurn2 = 0;
+    let steerPromiseTurn2: Promise<unknown> | undefined;
+    let receivedTurn2Step1Prompt: unknown = undefined;
+
+    const approvalRequest = resultTurn1.steps[0].content.find(
+      c => c.type === 'tool-approval-request',
+    ) as { approvalId: string };
+
+    const resultTurn2 = await generateText({
+      model: new MockLanguageModelV4({
+        doGenerate: async ({ prompt }) => {
+          stepCountTurn2++;
+          if (stepCountTurn2 === 1) {
+            steerPromiseTurn2 = controllerTurn2.steer(
+              'Steer after tool resolved',
+            );
+            return {
+              ...dummyResponseValues,
+              finishReason: { unified: 'stop', raw: 'stop' },
+              content: [
+                { type: 'text', text: 'Step 0 text after tool result' },
+              ],
+            };
+          }
+
+          receivedTurn2Step1Prompt = prompt;
+          return {
+            ...dummyResponseValues,
+            finishReason: { unified: 'stop', raw: 'stop' },
+            content: [{ type: 'text', text: 'Step 1 text after steering' }],
+          };
+        },
+      }),
+      tools: {
+        sensitiveAction: {
+          inputSchema: z.object({ action: z.string() }),
+          needsApproval: () => true,
+          execute: async () => 'action executed',
+        },
+      },
+      messages: [
+        ...resultTurn1.response.messages,
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-approval-response',
+              approvalId: approvalRequest.approvalId,
+              toolCall: resultTurn1.toolCalls[0],
+              approved: true,
+            },
+          ],
+        },
+      ],
+      experimental_steeringSignal: controllerTurn2.signal,
+    });
+
+    const receiptTurn2 = await steerPromiseTurn2;
+    expect(receiptTurn2).toEqual({ stepNumber: 1 });
+    expect(stepCountTurn2).toBe(2);
+    expect(resultTurn2.steps).toHaveLength(2);
+    expect(resultTurn2.text).toBe('Step 1 text after steering');
+
+    const promptStr = JSON.stringify(receivedTurn2Step1Prompt);
+    expect(promptStr).toContain('Steer after tool resolved');
+    expect(promptStr).toContain('action executed');
+  });
 });

@@ -1545,7 +1545,9 @@ export async function generateText<
         const canContinueNaturally =
           hasToolContinuation && !isNaturalStopConditionMet;
 
-        const steeredItems = internalSteeringSignal?.drain() ?? [];
+        const steeredItems = hasCompletedClientToolCalls
+          ? (internalSteeringSignal?.drain() ?? [])
+          : [];
 
         if (steeredItems.length > 0) {
           for (const item of steeredItems) {
