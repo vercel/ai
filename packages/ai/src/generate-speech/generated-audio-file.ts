@@ -1,3 +1,4 @@
+import { InvalidArgumentError } from '../error/invalid-argument-error';
 import {
   DefaultGeneratedFile,
   type GeneratedFile,
@@ -41,10 +42,12 @@ export class DefaultGeneratedAudioFile
     }
 
     if (!format) {
-      // TODO this should be an AI SDK error
-      throw new Error(
-        'Audio format must be provided or determinable from media type',
-      );
+      throw new InvalidArgumentError({
+        parameter: 'mediaType',
+        value: mediaType,
+        message:
+          'Audio format must be provided or determinable from media type',
+      });
     }
 
     this.format = format;
