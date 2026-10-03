@@ -34,7 +34,7 @@ import type { UploadFileResult } from './upload-file-result';
  * metadata, and — when reported by the provider — `byteSize`, `createdAt`,
  * and `expiresAt` (the provider-applied retention expiry).
  */
-export async function uploadFile({
+export async function uploadFile<FILES_MODEL extends FilesV4 = FilesV4>({
   api,
   data: dataArg,
   mediaType: mediaTypeArg,
@@ -47,7 +47,7 @@ export async function uploadFile({
    * The files API interface to use for uploading.
    * Can be a `FilesV4` instance or a `ProviderV4` instance with a `files()` method.
    */
-  api: FilesV4 | ProviderV4;
+  api: FILES_MODEL | ProviderV4;
 } & Omit<FilesV4UploadFileCallOptions, 'mediaType' | 'data'> & {
     /**
      * The file data. Accepts the tagged `{ type: 'data' | 'text' }` shapes, or

@@ -4,6 +4,7 @@ import type { VideoModelV4Result } from './video-model-v4-result';
 import type { VideoModelV4OperationStartResult } from './video-model-v4-operation-start-result';
 import type { VideoModelV4OperationStatusResult } from './video-model-v4-operation-status-result';
 import type { VideoModelV4OperationWebhook } from './video-model-v4-operation-webhook';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 type GetMaxVideosPerCallFunction = (options: {
   modelId: string;
@@ -12,7 +13,9 @@ type GetMaxVideosPerCallFunction = (options: {
 /**
  * Video generation model specification version 4.
  */
-export type VideoModelV4 = {
+export type VideoModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The video model must specify which video model interface
    * version it implements. This will allow us to evolve the video
@@ -50,7 +53,7 @@ export type VideoModelV4 = {
    * the asynchronous start/status flow.
    */
   doGenerate?(
-    options: VideoModelV4CallOptions,
+    options: VideoModelV4CallOptions<ProviderOptions>,
   ): PromiseLike<VideoModelV4Result>;
 
   /**
@@ -96,7 +99,7 @@ export type VideoModelV4 = {
    * the provider to implement its own polling loop in `doGenerate`.
    */
   doStart?(
-    options: VideoModelV4CallOptions & {
+    options: VideoModelV4CallOptions<ProviderOptions> & {
       /**
        * When provided, the provider should register this URL to receive
        * a webhook notification when the video generation completes.

@@ -1,7 +1,9 @@
 import type { JSONObject } from '../../json-value';
 import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared/v4';
 
-export type RerankingModelV4CallOptions = {
+export type RerankingModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Documents to rerank.
    * Either a list of texts or a list of JSON objects.
@@ -30,7 +32,7 @@ export type RerankingModelV4CallOptions = {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Additional HTTP headers to be sent with the request.

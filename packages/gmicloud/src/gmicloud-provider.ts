@@ -9,7 +9,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { GmicloudChatLanguageModel } from './gmicloud-chat-language-model';
+import {
+  GmicloudChatLanguageModel,
+  type GmicloudChatLanguageModelV4ProviderOptions,
+} from './gmicloud-chat-language-model';
 import type { GmicloudChatModelId } from './gmicloud-chat-options';
 import { gmicloudErrorStructure } from './gmicloud-error';
 import { VERSION } from './version';
@@ -40,17 +43,23 @@ export interface GmicloudProvider extends ProviderV4 {
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  (modelId: GmicloudChatModelId): LanguageModelV4;
+  (
+    modelId: GmicloudChatModelId,
+  ): LanguageModelV4<GmicloudChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a GMI Cloud model for text generation.
    */
-  languageModel(modelId: GmicloudChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: GmicloudChatModelId,
+  ): LanguageModelV4<GmicloudChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a GMI Cloud chat model for text generation.
    */
-  chat(modelId: GmicloudChatModelId): LanguageModelV4;
+  chat(
+    modelId: GmicloudChatModelId,
+  ): LanguageModelV4<GmicloudChatLanguageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

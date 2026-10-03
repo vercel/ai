@@ -8,6 +8,7 @@ import type {
   Experimental_VideoModelV4FrameImage,
   Experimental_VideoModelV4FrameType,
   SharedV4ProviderMetadata,
+  InferSharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
@@ -16,7 +17,6 @@ import {
   withUserAgentSuffix,
   type DataContent,
   detectMediaType,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoVideoGeneratedError } from '../error/no-video-generated-error';
 import {
@@ -116,7 +116,9 @@ export type GenerateVideoWebhookFactory = () => PromiseLike<{
  */
 const defaultDownload = createDownload();
 
-export async function experimental_generateVideo({
+export async function experimental_generateVideo<
+  VIDEO_MODEL extends VideoModel = VideoModel,
+>({
   model: modelArg,
   prompt: promptArg,
   n = 1,
@@ -140,7 +142,7 @@ export async function experimental_generateVideo({
   /**
    * The video model to use.
    */
-  model: VideoModel;
+  model: VIDEO_MODEL;
 
   /**
    * The prompt that should be used to generate the video.
@@ -229,7 +231,7 @@ export async function experimental_generateVideo({
    * Additional provider-specific options that are passed through to the provider
    * as body parameters.
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<VIDEO_MODEL>;
 
   /**
    * Maximum number of retries per video model call. Set to 0 to disable retries.

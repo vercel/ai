@@ -21,31 +21,57 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
-import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
+import {
+  OpenAIChatLanguageModel,
+  type OpenAIChatLanguageModelV4ProviderOptions,
+} from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
-import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
+import {
+  OpenAICompletionLanguageModel,
+  type OpenAICompletionLanguageModelV4ProviderOptions,
+} from './completion/openai-completion-language-model';
 import type { OpenAICompletionModelId } from './completion/openai-completion-language-model-options';
-import { OpenAIEmbeddingModel } from './embedding/openai-embedding-model';
+
+import {
+  OpenAIEmbeddingModel,
+  type OpenAIEmbeddingModelV4ProviderOptions,
+} from './embedding/openai-embedding-model';
 import { OpenAIFiles } from './files/openai-files';
 import type { OpenAIEmbeddingModelId } from './embedding/openai-embedding-model-options';
-import { OpenAIImageModel } from './image/openai-image-model';
+import {
+  OpenAIImageModel,
+  type OpenAIImageModelV4ProviderOptions,
+} from './image/openai-image-model';
 import type { OpenAIImageModelId } from './image/openai-image-model-options';
 import { openaiTools } from './openai-tools';
 import { OpenAIBatch } from './openai-batch';
-import { OpenAIResponsesLanguageModel } from './responses/openai-responses-language-model';
+import {
+  OpenAIResponsesLanguageModel,
+  type OpenAIResponsesLanguageV4ProviderOptions,
+} from './responses/openai-responses-language-model';
 import {
   createOpenAIRealtimeFactory,
   type OpenAIRealtimeFactory,
 } from './realtime/openai-realtime-factory';
 import type { OpenAIResponsesModelId } from './responses/openai-responses-language-model-options';
-import { OpenAISpeechModel } from './speech/openai-speech-model';
+import {
+  OpenAISpeechModel,
+  type OpenAISpeechModelV4ProviderOptions,
+} from './speech/openai-speech-model';
 import type { OpenAISpeechModelId } from './speech/openai-speech-model-options';
-import { OpenAITranscriptionModel } from './transcription/openai-transcription-model';
+import {
+  OpenAITranscriptionModel,
+  type OpenAITranscriptionModelV4ProviderOptions,
+} from './transcription/openai-transcription-model';
 import type { OpenAITranscriptionModelId } from './transcription/openai-transcription-model-options';
-import { OpenAISpeechTranslationModel } from './speech-translation/openai-speech-translation-model';
+import {
+  OpenAISpeechTranslationModel,
+  type OpenAISpeechTranslationModelV4ProviderOptions,
+} from './speech-translation/openai-speech-translation-model';
 import type { OpenAISpeechTranslationModelId } from './speech-translation/openai-speech-translation-model-options';
 import { OpenAISkills } from './skills/openai-skills';
 import { VERSION } from './version';
+import type { OpenAIFilesOptions } from './files/openai-files-options';
 
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
@@ -56,76 +82,99 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Creates an OpenAI model for text generation.
    */
-  languageModel(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  languageModel(
+    modelId: OpenAIResponsesModelId,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * Creates an OpenAI chat model for text generation.
    */
-  chat(modelId: OpenAIChatModelId): LanguageModelV4;
-
+  chat(
+    modelId: OpenAIChatModelId,
+  ): LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions>;
   /**
    * Creates an OpenAI responses API model for text generation.
    */
-  responses(modelId: OpenAIResponsesModelId): LanguageModelV4;
+  responses(
+    modelId: OpenAIResponsesModelId,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * Creates an OpenAI completion model for text generation.
    */
-  completion(modelId: OpenAICompletionModelId): LanguageModelV4;
+  completion(
+    modelId: OpenAICompletionModelId,
+  ): LanguageModelV4<OpenAICompletionLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: OpenAIEmbeddingModelId,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: OpenAIEmbeddingModelId,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: OpenAIEmbeddingModelId,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: OpenAIEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: OpenAIEmbeddingModelId,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: OpenAIImageModelId): ImageModelV4;
+  image(
+    modelId: OpenAIImageModelId,
+  ): ImageModelV4<OpenAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: OpenAIImageModelId): ImageModelV4;
+  imageModel(
+    modelId: OpenAIImageModelId,
+  ): ImageModelV4<OpenAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: OpenAITranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: OpenAITranscriptionModelId,
+  ): TranscriptionModelV4<OpenAITranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   translation(
     modelId: OpenAISpeechTranslationModelId,
-  ): SpeechTranslationModelV4;
+  ): SpeechTranslationModelV4<OpenAISpeechTranslationModelV4ProviderOptions>;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
     modelId: OpenAISpeechTranslationModelId,
-  ): SpeechTranslationModelV4;
+  ): SpeechTranslationModelV4<OpenAISpeechTranslationModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: OpenAISpeechModelId): SpeechModelV4;
+  speech(
+    modelId: OpenAISpeechModelId,
+  ): SpeechModelV4<OpenAISpeechModelV4ProviderOptions>;
 
   /**
    * Creates an experimental realtime model for bidirectional audio/text
@@ -136,7 +185,7 @@ export interface OpenAIProvider extends ProviderV4 {
   /**
    * Returns a FilesV4 interface for uploading files to OpenAI.
    */
-  files(): FilesV4;
+  files(): FilesV4<{ openai?: OpenAIFilesOptions }>;
 
   /**
    * Returns a SkillsV4 interface for uploading skills to OpenAI.

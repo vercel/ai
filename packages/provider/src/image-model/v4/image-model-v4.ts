@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { ImageModelV4CallOptions } from './image-model-v4-call-options';
 import type { ImageModelV4Result } from './image-model-v4-result';
 
@@ -8,7 +9,9 @@ type GetMaxImagesPerCallFunction = (options: {
 /**
  * Image generation model specification version 4.
  */
-export type ImageModelV4 = {
+export type ImageModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The image model must specify which image model interface
    * version it implements. This will allow us to evolve the image
@@ -55,5 +58,7 @@ export type ImageModelV4 = {
   /**
    * Generates an array of images.
    */
-  doGenerate(options: ImageModelV4CallOptions): PromiseLike<ImageModelV4Result>;
+  doGenerate(
+    options: ImageModelV4CallOptions<ProviderOptions>,
+  ): PromiseLike<ImageModelV4Result>;
 };

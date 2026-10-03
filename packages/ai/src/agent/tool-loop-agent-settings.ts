@@ -5,7 +5,6 @@ import type {
   IdGenerator,
   InferToolSetContext,
   MaybePromiseLike,
-  ProviderOptions,
   ToolSet,
 } from '@ai-sdk/provider-utils';
 import type { ActiveTools } from '../generate-text/active-tools';
@@ -42,6 +41,7 @@ import type { TelemetryOptions } from '../telemetry/telemetry-options';
 import type { LanguageModel, ToolChoice } from '../types/language-model';
 import type { DownloadFunction } from '../util/download/download-function';
 import type { AgentCallParameters } from './agent';
+import type { InferSharedV4ProviderOptions } from '@ai-sdk/provider';
 
 /**
  * Configuration options for an agent.
@@ -51,6 +51,7 @@ export type ToolLoopAgentSettings<
   TOOLS extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
+  LANGUAGE_MODEL extends LanguageModel = LanguageModel,
 > = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
   ToolsContextParameter<TOOLS> & {
@@ -79,7 +80,7 @@ export type ToolLoopAgentSettings<
     /**
      * The language model to use.
      */
-    model: LanguageModel;
+    model: LANGUAGE_MODEL;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -275,7 +276,7 @@ export type ToolLoopAgentSettings<
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: ProviderOptions;
+    providerOptions?: InferSharedV4ProviderOptions<LANGUAGE_MODEL>;
 
     /**
      * Custom download function to use for URLs.

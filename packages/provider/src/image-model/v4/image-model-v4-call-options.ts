@@ -1,7 +1,9 @@
 import type { SharedV4ProviderOptions } from '../../shared';
 import type { ImageModelV4File } from './image-model-v4-file';
 
-export type ImageModelV4CallOptions = {
+export type ImageModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Prompt for the image generation. Some operations, like upscaling, may not require a prompt.
    */
@@ -59,7 +61,7 @@ export type ImageModelV4CallOptions = {
    * }
    * ```
    */
-  providerOptions: SharedV4ProviderOptions;
+  providerOptions: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

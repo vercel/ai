@@ -4,6 +4,8 @@ import {
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   connectToWebSocket,
@@ -24,11 +26,15 @@ type StreamOptions = Parameters<
 const SUPPORTED_SAMPLE_RATES = [16000, 24000];
 const DEFAULT_SAMPLE_RATE = 24000;
 
+export type AzureMaiTranscriptionModelV4ProviderOptions = {
+  azure?: AzureTranscriptionModelMaiOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * MAI streaming transcription over the OpenAI Realtime-compatible
  * `/mai/v1/realtime` WebSocket. The model ID is the Foundry deployment name.
  */
-export class AzureMaiTranscriptionModel implements TranscriptionModelV4 {
+export class AzureMaiTranscriptionModel implements TranscriptionModelV4<AzureMaiTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.transcription';
 
@@ -45,7 +51,11 @@ export class AzureMaiTranscriptionModel implements TranscriptionModelV4 {
   ) {}
 
   async doGenerate(): Promise<
-    Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<AzureMaiTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     throw new UnsupportedFunctionalityError({
       functionality: `file transcription with ${this.modelId} (use streaming transcription)`,
@@ -57,7 +67,13 @@ export class AzureMaiTranscriptionModel implements TranscriptionModelV4 {
     maiOptions: AzureTranscriptionModelMaiOptions = {},
     warnings: SharedV4Warning[] = [],
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<AzureMaiTranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { type, rate = DEFAULT_SAMPLE_RATE } = options.inputAudioFormat;

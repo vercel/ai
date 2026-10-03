@@ -2,7 +2,6 @@ import {
   createIdGenerator,
   type Context,
   withUserAgentSuffix,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { InvalidResponseDataError } from '../error';
 import { logWarnings } from '../logger/log-warnings';
@@ -16,6 +15,7 @@ import { prepareRetries } from '../util/prepare-retries';
 import { VERSION } from '../version';
 import type { EmbedEndEvent, EmbedStartEvent } from './embed-events';
 import type { EmbedResult } from './embed-result';
+import type { InferSharedV4ProviderOptions } from '@ai-sdk/provider';
 
 const originalGenerateCallId = createIdGenerator({
   prefix: 'call',
@@ -41,7 +41,10 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the embedding, the value, and additional information.
  */
-export async function embed<RUNTIME_CONTEXT extends Context = Context>({
+export async function embed<
+  RUNTIME_CONTEXT extends Context = Context,
+  EMBEDDING_MODEL extends EmbeddingModel = EmbeddingModel,
+>({
   model: modelArg,
   value,
   providerOptions,
@@ -60,7 +63,7 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
   /**
    * The embedding model to use.
    */
-  model: EmbeddingModel;
+  model: EMBEDDING_MODEL;
 
   /**
    * The value that should be embedded.
@@ -90,7 +93,7 @@ export async function embed<RUNTIME_CONTEXT extends Context = Context>({
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<EMBEDDING_MODEL>;
 
   /**
    * Optional telemetry configuration.

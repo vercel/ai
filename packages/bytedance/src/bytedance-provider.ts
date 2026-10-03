@@ -9,9 +9,15 @@ import {
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { ByteDanceImageModel } from './bytedance-image-model';
+import {
+  ByteDanceImageModel,
+  type ByteDanceImageModelV4ProviderOptions,
+} from './bytedance-image-model';
 import type { ByteDanceImageModelId } from './bytedance-image-settings';
-import { ByteDanceVideoModel } from './bytedance-video-model';
+import {
+  ByteDanceVideoModel,
+  type ByteDanceVideoModelV4ProviderOptions,
+} from './bytedance-video-model';
 import type { ByteDanceVideoModelId } from './bytedance-video-settings';
 
 export interface ByteDanceProviderSettings {
@@ -43,22 +49,30 @@ export interface ByteDanceProvider extends ProviderV4 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: ByteDanceVideoModelId,
+  ): Experimental_VideoModelV4<ByteDanceVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: ByteDanceVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: ByteDanceVideoModelId,
+  ): Experimental_VideoModelV4<ByteDanceVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ByteDanceImageModelId): ImageModelV4;
+  image(
+    modelId: ByteDanceImageModelId,
+  ): ImageModelV4<ByteDanceImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ByteDanceImageModelId): ImageModelV4;
+  imageModel(
+    modelId: ByteDanceImageModelId,
+  ): ImageModelV4<ByteDanceImageModelV4ProviderOptions>;
 }
 
 const defaultBaseURL = 'https://ark.ap-southeast.bytepluses.com/api/v3';

@@ -1,8 +1,8 @@
-import type { JSONObject } from '../../json-value/json-value';
+import type { SharedV4ProviderOptions } from '../../shared';
 
-type SpeechModelV4ProviderOptions = Record<string, JSONObject>;
-
-export type SpeechModelV4CallOptions = {
+export type SpeechModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Text to convert to speech.
    */
@@ -47,7 +47,7 @@ export type SpeechModelV4CallOptions = {
    * }
    * ```
    */
-  providerOptions?: SpeechModelV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

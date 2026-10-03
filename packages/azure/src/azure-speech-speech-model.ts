@@ -2,6 +2,8 @@ import {
   APICallError,
   type SharedV4Warning,
   type SpeechModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -13,7 +15,10 @@ import {
   type ResponseHandler,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import { getMAIVoiceModel } from './azure-speech-model-options';
+import {
+  getMAIVoiceModel,
+  type AzureSpeechModelOptions,
+} from './azure-speech-model-options';
 import type { AzureSpeechModelSpeechOptions } from './azure-speech-speech-model-options';
 
 const DEFAULT_VOICE = 'en-US-Harper';
@@ -50,11 +55,15 @@ const OUTPUT_FORMATS = new Map([
 const NATIVE_OUTPUT_FORMAT =
   /^(?:amr|audio|g722|ogg|raw|riff|webm)-[a-z0-9-]+$/;
 
+export type AzureSpeechSpeechModelV4ProviderOptions = {
+  azure?: AzureSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Azure Speech text to speech with SSML. The model is appended to the voice
  * name, e.g. `en-US-Harper:MAI-Voice-2`.
  */
-export class AzureSpeechSpeechModel implements SpeechModelV4 {
+export class AzureSpeechSpeechModel implements SpeechModelV4<AzureSpeechSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.speech';
 
@@ -69,9 +78,17 @@ export class AzureSpeechSpeechModel implements SpeechModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
+    options: Parameters<
+      SpeechModelV4<AzureSpeechSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
     azureOptions: AzureSpeechModelSpeechOptions = {},
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<AzureSpeechSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
     const { style, styleDegree } = azureOptions;

@@ -7,6 +7,8 @@ import {
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -109,7 +111,11 @@ function convertInputReferenceImage(
   return image != null ? { image, referenceType: 'asset' } : undefined;
 }
 
-export class GoogleVertexVideoModel implements VideoModelV4 {
+export type GoogleVertexVideoModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleVertexVideoModel implements VideoModelV4<GoogleVertexVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -127,7 +133,11 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
   ) {}
 
   private async buildRequest(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<GoogleVertexVideoModelV4ProviderOptions>['doStart']
+      >
+    >[0],
   ): Promise<{
     instances: Array<Record<string, unknown>>;
     parameters: Record<string, unknown>;
@@ -344,7 +354,11 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<GoogleVertexVideoModelV4ProviderOptions>['doStart']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
@@ -389,7 +403,11 @@ export class GoogleVertexVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<GoogleVertexVideoModelV4ProviderOptions>['doStatus']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { operationName } = options.operation as { operationName: string };

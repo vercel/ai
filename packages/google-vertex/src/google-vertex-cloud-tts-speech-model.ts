@@ -1,4 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  SpeechModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -13,7 +18,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { googleVertexFailedResponseHandler } from './google-vertex-error';
-import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
+import type {
+  GoogleVertexSpeechModelId,
+  GoogleVertexSpeechModelOptions,
+} from './google-vertex-speech-model-options';
 
 interface GoogleVertexCloudTTSSpeechModelConfig {
   provider: string;
@@ -38,6 +46,10 @@ const CHIRP3_HD_VOICE_INFIX = 'Chirp3-HD';
 const CLOUD_TTS_SYNTHESIZE_URL =
   'https://texttospeech.googleapis.com/v1/text:synthesize';
 
+export type GoogleVertexCloudTTSSpeechModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Speech model for Chirp 3: HD voices on the Google Cloud Text-to-Speech API.
  *
@@ -46,7 +58,7 @@ const CLOUD_TTS_SYNTHESIZE_URL =
  * served by the dedicated Cloud Text-to-Speech `text:synthesize` endpoint,
  * reusing the provider's Google Cloud credentials.
  */
-export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
+export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4<GoogleVertexCloudTTSSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexCloudTTSSpeechModel) {
@@ -73,8 +85,16 @@ export class GoogleVertexCloudTTSSpeechModel implements SpeechModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<GoogleVertexCloudTTSSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<GoogleVertexCloudTTSSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 

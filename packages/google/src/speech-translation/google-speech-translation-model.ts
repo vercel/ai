@@ -5,6 +5,8 @@ import {
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type Experimental_SpeechTranslationModelV4Usage as SpeechTranslationModelV4Usage,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   connectToWebSocket,
@@ -82,7 +84,11 @@ export type GoogleSpeechTranslationModelConfig = {
   };
 };
 
-export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4 {
+export type GoogleSpeechTranslationModelV4ProviderOptions = {
+  google?: GoogleSpeechTranslationModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4<GoogleSpeechTranslationModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleSpeechTranslationModelId;
 
@@ -115,7 +121,7 @@ export class GoogleSpeechTranslationModel implements SpeechTranslationModelV4 {
   }
 
   async doStream(
-    options: SpeechTranslationModelV4StreamOptions,
+    options: SpeechTranslationModelV4StreamOptions<GoogleSpeechTranslationModelV4ProviderOptions>,
   ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({

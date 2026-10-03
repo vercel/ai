@@ -7,6 +7,8 @@ import type {
   LanguageModelV4StreamResult,
   SharedV4ProviderMetadata,
   SharedV4Warning,
+  JSONValue,
+  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -40,6 +42,7 @@ import {
 import {
   openaiLanguageModelCompletionOptions,
   type OpenAICompletionModelId,
+  type OpenAILanguageModelCompletionOptions,
 } from './openai-completion-language-model-options';
 type OpenAICompletionConfig = {
   provider: string;
@@ -48,7 +51,11 @@ type OpenAICompletionConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAICompletionLanguageModel implements LanguageModelV4 {
+export type OpenAICompletionLanguageModelV4ProviderOptions = {
+  openai?: OpenAILanguageModelCompletionOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAICompletionLanguageModel implements LanguageModelV4<OpenAICompletionLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAICompletionModelId;
@@ -103,7 +110,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
     toolChoice,
     seed,
     providerOptions,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<OpenAICompletionLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -181,7 +188,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAICompletionLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
@@ -231,7 +238,7 @@ export class OpenAICompletionLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAICompletionLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 

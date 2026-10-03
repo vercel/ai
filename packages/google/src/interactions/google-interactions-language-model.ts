@@ -1,4 +1,6 @@
 import type {
+  JSONValue,
+  SharedV4ProviderOptions,
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4FinishReason,
@@ -35,6 +37,7 @@ import {
 import {
   googleInteractionsLanguageModelOptions,
   type GoogleInteractionsModelId,
+  type GoogleLanguageModelInteractionsOptions,
 } from './google-interactions-language-model-options';
 import type {
   GoogleInteractionsAgentConfig,
@@ -71,7 +74,11 @@ export type GoogleInteractionsModelInput =
   | { agent: string }
   | { managedAgent: string };
 
-export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
+export type GoogleInteractionsModelV4ProviderOptions = {
+  google?: GoogleLanguageModelInteractionsOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleInteractionsLanguageModel implements LanguageModelV4<GoogleInteractionsModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: string;
@@ -142,7 +149,9 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
     };
   }
 
-  private async getArgs(options: LanguageModelV4CallOptions) {
+  private async getArgs(
+    options: LanguageModelV4CallOptions<GoogleInteractionsModelV4ProviderOptions>,
+  ) {
     const warnings: Array<SharedV4Warning> = [];
 
     const googleOptions = await parseProviderOptions({
@@ -480,7 +489,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GoogleInteractionsModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, isAgent, pollingTimeoutMs } =
       await this.getArgs(options);
@@ -613,7 +622,7 @@ export class GoogleInteractionsLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GoogleInteractionsModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings, isBackground, pollingTimeoutMs } =
       await this.getArgs(options);

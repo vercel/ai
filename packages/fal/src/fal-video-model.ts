@@ -6,6 +6,8 @@ import {
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -31,7 +33,11 @@ interface FalVideoModelConfig extends FalConfig {
   };
 }
 
-export class FalVideoModel implements VideoModelV4 {
+export type FalVideoModelV4ProviderOptions = {
+  fal?: FalVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FalVideoModel implements VideoModelV4<FalVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // FAL video models support 1 video at a time
 
@@ -49,14 +55,20 @@ export class FalVideoModel implements VideoModelV4 {
   ) {}
 
   async handleWebhookOption(
-    options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<FalVideoModelV4ProviderOptions>['handleWebhookOption']
+      >
+    >[0],
   ) {
     const { url, received } = await options.webhook();
     return { webhookUrl: url, received };
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<FalVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -84,7 +96,9 @@ export class FalVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<FalVideoModelV4ProviderOptions>['doStatus']>
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { responseUrl, submitUrl } = options.operation as {
@@ -138,7 +152,9 @@ export class FalVideoModel implements VideoModelV4 {
   }
 
   private async buildRequestBody(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<FalVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<{
     body: Record<string, unknown>;
     falOptions: FalVideoModelOptions | undefined;

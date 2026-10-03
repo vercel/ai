@@ -11,6 +11,8 @@ import type {
   LanguageModelV4StreamResult,
   SharedV4ProviderMetadata,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -106,7 +108,12 @@ function createAmazonBedrockStreamError({
   });
 }
 
-export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
+export type AmazonBedrockChatLanguageModelV4ProviderOptions = {
+  amazonBedrock?: AmazonBedrockLanguageModelChatOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AmazonBedrockChatLanguageModel implements LanguageModelV4<AmazonBedrockChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
@@ -144,7 +151,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
     toolChoice,
     reasoning,
     providerOptions,
-  }: LanguageModelV4CallOptions): Promise<{
+  }: LanguageModelV4CallOptions<AmazonBedrockChatLanguageModelV4ProviderOptions>): Promise<{
     command: AmazonBedrockConverseInput;
     warnings: SharedV4Warning[];
     usesJsonInstruction: boolean;
@@ -691,7 +698,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AmazonBedrockChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const {
       command: args,
@@ -881,7 +888,7 @@ export class AmazonBedrockChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AmazonBedrockChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const {
       command: args,

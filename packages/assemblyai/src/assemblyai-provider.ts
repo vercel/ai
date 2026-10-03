@@ -8,7 +8,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AssemblyAITranscriptionModel } from './assemblyai-transcription-model';
+import {
+  AssemblyAITranscriptionModel,
+  type AssemblyAITranscriptionModelV4ProviderOptions,
+} from './assemblyai-transcription-model';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import { VERSION } from './version';
 
@@ -23,7 +26,9 @@ export interface AssemblyAIProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: AssemblyAITranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: AssemblyAITranscriptionModelId,
+  ): TranscriptionModelV4<AssemblyAITranscriptionModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

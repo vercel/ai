@@ -12,51 +12,76 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { CohereChatLanguageModel } from './cohere-chat-language-model';
+import {
+  CohereChatLanguageModel,
+  type CohereChatLanguageModelV4ProviderOptions,
+} from './cohere-chat-language-model';
 import type { CohereChatModelId } from './cohere-chat-language-model-options';
-import { CohereEmbeddingModel } from './cohere-embedding-model';
+import {
+  CohereEmbeddingModel,
+  type CohereEmbeddingModelV4ProviderOptions,
+} from './cohere-embedding-model';
 import type { CohereRerankingModelId } from './reranking/cohere-reranking-model-options';
-import { CohereRerankingModel } from './reranking/cohere-reranking-model';
+import {
+  CohereRerankingModel,
+  type CohereRerankingModelV4ProviderOptions,
+} from './reranking/cohere-reranking-model';
 import type { CohereEmbeddingModelId } from './cohere-embedding-model-options';
 import { VERSION } from './version';
 
 export interface CohereProvider extends ProviderV4 {
-  (modelId: CohereChatModelId): LanguageModelV4;
+  (
+    modelId: CohereChatModelId,
+  ): LanguageModelV4<CohereChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: CohereChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: CohereChatModelId,
+  ): LanguageModelV4<CohereChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: CohereEmbeddingModelId,
+  ): EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: CohereEmbeddingModelId,
+  ): EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: CohereEmbeddingModelId,
+  ): EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: CohereEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: CohereEmbeddingModelId,
+  ): EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking.
    */
-  reranking(modelId: CohereRerankingModelId): RerankingModelV4;
+  reranking(
+    modelId: CohereRerankingModelId,
+  ): RerankingModelV4<CohereRerankingModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking.
    */
-  rerankingModel(modelId: CohereRerankingModelId): RerankingModelV4;
+  rerankingModel(
+    modelId: CohereRerankingModelId,
+  ): RerankingModelV4<CohereRerankingModelV4ProviderOptions>;
 }
 
 export interface CohereProviderSettings {

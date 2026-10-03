@@ -4,6 +4,8 @@ import {
   type SharedV4Warning,
   type TranscriptionModelV4,
   type TranscriptionModelV4CallOptions,
+  type JSONValue,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -31,22 +33,19 @@ import {
   type OpenAITranscriptionModelId,
   type OpenAITranscriptionModelOptions,
 } from './openai-transcription-model-options';
+
 export type OpenAITranscriptionCallOptions = Omit<
   TranscriptionModelV4CallOptions,
   'providerOptions'
 > & {
-  providerOptions?: {
-    openai?: OpenAITranscriptionModelOptions;
-  };
+  providerOptions?: OpenAITranscriptionModelV4ProviderOptions;
 };
 
 export type OpenAITranscriptionStreamOptions = Omit<
   TranscriptionModelV4StreamOptions,
   'providerOptions'
 > & {
-  providerOptions?: {
-    openai?: OpenAITranscriptionModelOptions;
-  };
+  providerOptions?: OpenAITranscriptionModelV4ProviderOptions;
 };
 
 type OpenAIRealtimeTranscriptionEvent = {
@@ -136,7 +135,11 @@ const languageMap = {
   welsh: 'cy',
 };
 
-export class OpenAITranscriptionModel implements TranscriptionModelV4 {
+export type OpenAITranscriptionModelV4ProviderOptions = {
+  openai?: OpenAITranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAITranscriptionModel implements TranscriptionModelV4<OpenAITranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAITranscriptionModel) {
@@ -269,7 +272,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
 
   async doGenerate(
     options: OpenAITranscriptionCallOptions,
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<OpenAITranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (isRealtimeTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `non-streaming transcription with ${this.modelId}`,
@@ -354,7 +363,13 @@ export class OpenAITranscriptionModel implements TranscriptionModelV4 {
   async doStream(
     options: OpenAITranscriptionStreamOptions,
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<OpenAITranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     if (!isRealtimeTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({

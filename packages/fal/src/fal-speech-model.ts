@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -14,7 +19,10 @@ import {
 import { z } from 'zod/v4';
 import type { FalConfig } from './fal-config';
 import { falFailedResponseHandler } from './fal-error';
-import { falSpeechModelOptionsSchema } from './fal-speech-model-options';
+import {
+  falSpeechModelOptionsSchema,
+  type FalSpeechModelOptions,
+} from './fal-speech-model-options';
 import type { FalSpeechModelId } from './fal-speech-settings';
 
 interface FalSpeechModelConfig extends FalConfig {
@@ -23,7 +31,11 @@ interface FalSpeechModelConfig extends FalConfig {
   };
 }
 
-export class FalSpeechModel implements SpeechModelV4 {
+export type FalSpeechModelV4ProviderOptions = {
+  fal?: FalSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FalSpeechModel implements SpeechModelV4<FalSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -56,7 +68,9 @@ export class FalSpeechModel implements SpeechModelV4 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<FalSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     const falOptions = await parseProviderOptions({
@@ -96,8 +110,14 @@ export class FalSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<FalSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<SpeechModelV4<FalSpeechModelV4ProviderOptions>['doGenerate']>
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

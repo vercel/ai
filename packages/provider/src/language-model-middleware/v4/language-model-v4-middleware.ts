@@ -2,13 +2,16 @@ import type { LanguageModelV4 } from '../../language-model/v4/language-model-v4'
 import type { LanguageModelV4CallOptions } from '../../language-model/v4/language-model-v4-call-options';
 import type { LanguageModelV4GenerateResult } from '../../language-model/v4/language-model-v4-generate-result';
 import type { LanguageModelV4StreamResult } from '../../language-model/v4/language-model-v4-stream-result';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 /**
  * Experimental middleware for LanguageModelV4.
  * This type defines the structure for middleware that can be used to modify
  * the behavior of LanguageModelV4 operations.
  */
-export type LanguageModelV4Middleware = {
+export type LanguageModelV4Middleware<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Middleware specification version. Use `v4` for the current version.
    */
@@ -18,20 +21,24 @@ export type LanguageModelV4Middleware = {
    * Override the provider name if desired.
    * @param options.model - The language model instance.
    */
-  overrideProvider?: (options: { model: LanguageModelV4 }) => string;
+  overrideProvider?: (options: {
+    model: LanguageModelV4<ProviderOptions>;
+  }) => string;
 
   /**
    * Override the model ID if desired.
    * @param options.model - The language model instance.
    */
-  overrideModelId?: (options: { model: LanguageModelV4 }) => string;
+  overrideModelId?: (options: {
+    model: LanguageModelV4<ProviderOptions>;
+  }) => string;
 
   /**
    * Override the supported URLs if desired.
    * @param options.model - The language model instance.
    */
   overrideSupportedUrls?: (options: {
-    model: LanguageModelV4;
+    model: LanguageModelV4<ProviderOptions>;
   }) => PromiseLike<Record<string, RegExp[]>> | Record<string, RegExp[]>;
 
   /**
@@ -43,9 +50,9 @@ export type LanguageModelV4Middleware = {
    */
   transformParams?: (options: {
     type: 'generate' | 'stream';
-    params: LanguageModelV4CallOptions;
-    model: LanguageModelV4;
-  }) => PromiseLike<LanguageModelV4CallOptions>;
+    params: LanguageModelV4CallOptions<ProviderOptions>;
+    model: LanguageModelV4<ProviderOptions>;
+  }) => PromiseLike<LanguageModelV4CallOptions<ProviderOptions>>;
 
   /**
    * Wraps the generate operation of the language model.
@@ -60,8 +67,8 @@ export type LanguageModelV4Middleware = {
   wrapGenerate?: (options: {
     doGenerate: () => PromiseLike<LanguageModelV4GenerateResult>;
     doStream: () => PromiseLike<LanguageModelV4StreamResult>;
-    params: LanguageModelV4CallOptions;
-    model: LanguageModelV4;
+    params: LanguageModelV4CallOptions<ProviderOptions>;
+    model: LanguageModelV4<ProviderOptions>;
   }) => PromiseLike<LanguageModelV4GenerateResult>;
 
   /**
@@ -78,7 +85,7 @@ export type LanguageModelV4Middleware = {
   wrapStream?: (options: {
     doGenerate: () => PromiseLike<LanguageModelV4GenerateResult>;
     doStream: () => PromiseLike<LanguageModelV4StreamResult>;
-    params: LanguageModelV4CallOptions;
-    model: LanguageModelV4;
+    params: LanguageModelV4CallOptions<ProviderOptions>;
+    model: LanguageModelV4<ProviderOptions>;
   }) => PromiseLike<LanguageModelV4StreamResult>;
 };

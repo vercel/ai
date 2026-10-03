@@ -1,12 +1,15 @@
 import type { EmbeddingModelV4 } from '../../embedding-model/v4/embedding-model-v4';
 import type { EmbeddingModelV4CallOptions } from '../../embedding-model/v4/embedding-model-v4-call-options';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 /**
  * Middleware for EmbeddingModelV4.
  * This type defines the structure for middleware that can be used to modify
  * the behavior of EmbeddingModelV4 operations.
  */
-export type EmbeddingModelV4Middleware = {
+export type EmbeddingModelV4Middleware<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Middleware specification version. Use `v4` for the current version.
    */
@@ -47,9 +50,9 @@ export type EmbeddingModelV4Middleware = {
    * @returns A promise that resolves to the transformed parameters.
    */
   transformParams?: (options: {
-    params: EmbeddingModelV4CallOptions;
+    params: EmbeddingModelV4CallOptions<ProviderOptions>;
     model: EmbeddingModelV4;
-  }) => PromiseLike<EmbeddingModelV4CallOptions>;
+  }) => PromiseLike<EmbeddingModelV4CallOptions<ProviderOptions>>;
 
   /**
    * Wraps the embed operation of the embedding model.
@@ -63,7 +66,7 @@ export type EmbeddingModelV4Middleware = {
    */
   wrapEmbed?: (options: {
     doEmbed: () => ReturnType<EmbeddingModelV4['doEmbed']>;
-    params: EmbeddingModelV4CallOptions;
+    params: EmbeddingModelV4CallOptions<ProviderOptions>;
     model: EmbeddingModelV4;
   }) => Promise<Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>>;
 };

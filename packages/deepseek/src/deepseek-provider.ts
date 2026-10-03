@@ -11,8 +11,14 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { DeepSeekChatModelId } from './chat/deepseek-chat-language-model-options';
-import { DeepSeekChatLanguageModel } from './chat/deepseek-chat-language-model';
-import { DeepSeekFiles } from './files/deepseek-files';
+import {
+  DeepSeekChatLanguageModel,
+  type DeepSeekChatLanguageModelV4ProviderOptions,
+} from './chat/deepseek-chat-language-model';
+import {
+  DeepSeekFiles,
+  type DeepSeekFilesV4ProviderOptions,
+} from './files/deepseek-files';
 import { VERSION } from './version';
 
 export interface DeepSeekProviderSettings {
@@ -42,22 +48,28 @@ export interface DeepSeekProvider extends ProviderV4 {
   /**
    * Creates a DeepSeek model for text generation.
    */
-  (modelId: DeepSeekChatModelId): LanguageModelV4;
+  (
+    modelId: DeepSeekChatModelId,
+  ): LanguageModelV4<DeepSeekChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a DeepSeek model for text generation.
    */
-  languageModel(modelId: DeepSeekChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: DeepSeekChatModelId,
+  ): LanguageModelV4<DeepSeekChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a DeepSeek chat model for text generation.
    */
-  chat(modelId: DeepSeekChatModelId): LanguageModelV4;
+  chat(
+    modelId: DeepSeekChatModelId,
+  ): LanguageModelV4<DeepSeekChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a DeepSeek files interface for uploading images.
    */
-  files(): FilesV4;
+  files(): FilesV4<DeepSeekFilesV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

@@ -4,6 +4,8 @@ import type {
   ImageModelV4,
   LanguageModelV4Prompt,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   convertToBase64,
@@ -14,6 +16,7 @@ import {
   type Resolvable,
 } from '@ai-sdk/provider-utils';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
+import type { GoogleVertexImageModelOptions } from './google-vertex-image-model-options';
 
 interface GoogleVertexImageModelConfig {
   provider: string;
@@ -32,7 +35,11 @@ const googleVertexImageModelsWithFileInputSupport = new Set<string>([
   'gemini-3.1-flash-image-preview',
 ]);
 
-export class GoogleVertexImageModel implements ImageModelV4 {
+export type GoogleVertexImageModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleVertexImageModel implements ImageModelV4<GoogleVertexImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexImageModel) {
@@ -71,8 +78,16 @@ export class GoogleVertexImageModel implements ImageModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<ImageModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    options: Parameters<
+      ImageModelV4<GoogleVertexImageModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<GoogleVertexImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (!this.modelId.startsWith('gemini-')) {
       throw new Error(
         'Google image models other than Gemini are no longer supported. Use a model ID that starts with `gemini-`.',

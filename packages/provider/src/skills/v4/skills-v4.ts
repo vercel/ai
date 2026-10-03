@@ -1,10 +1,13 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { SkillsV4UploadSkillCallOptions } from './skills-v4-upload-skill-call-options';
 import type { SkillsV4UploadSkillResult } from './skills-v4-upload-skill-result';
 
 /**
  * Skills specification version 4.
  */
-export interface SkillsV4 {
+export interface SkillsV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> {
   /**
    * The skills implementation must specify which skills interface
    * version it implements. This will allow us to evolve the skills
@@ -23,6 +26,6 @@ export interface SkillsV4 {
    * Uploads a new skill from the given files.
    */
   uploadSkill(
-    params: SkillsV4UploadSkillCallOptions,
+    params: SkillsV4UploadSkillCallOptions<ProviderOptions>,
   ): PromiseLike<SkillsV4UploadSkillResult>;
 }

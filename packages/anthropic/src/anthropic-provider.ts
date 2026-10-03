@@ -19,7 +19,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { AnthropicFiles } from './anthropic-files';
-import { AnthropicLanguageModel } from './anthropic-language-model';
+import {
+  AnthropicLanguageModel,
+  type AnthropicLanguageModelV4ProviderOptions,
+} from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
 import type { AnthropicModelId } from './anthropic-language-model-options';
 import { anthropicTools } from './anthropic-tools';
@@ -43,16 +46,24 @@ export interface AnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicModelId): LanguageModelV4;
+  (
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicModelId): LanguageModelV4;
+  languageModel(
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
-  chat(modelId: AnthropicModelId): LanguageModelV4;
+  chat(
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
-  messages(modelId: AnthropicModelId): LanguageModelV4;
+  messages(
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
   evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;

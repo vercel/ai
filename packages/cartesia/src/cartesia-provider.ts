@@ -12,9 +12,15 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { CartesiaTranscriptionModel } from './cartesia-transcription-model';
+import {
+  CartesiaTranscriptionModel,
+  type CartesiaTranscriptionModelV4ProviderOptions,
+} from './cartesia-transcription-model';
 import type { CartesiaTranscriptionModelId } from './cartesia-transcription-options';
-import { CartesiaSpeechModel } from './cartesia-speech-model';
+import {
+  CartesiaSpeechModel,
+  type CartesiaSpeechModelV4ProviderOptions,
+} from './cartesia-speech-model';
 import type { CartesiaSpeechModelId } from './cartesia-speech-options';
 import { CartesiaRealtimeModel } from './cartesia-realtime-model';
 import type { CartesiaRealtimeModelId } from './cartesia-realtime-model-options';
@@ -37,12 +43,16 @@ export interface CartesiaProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: CartesiaTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: CartesiaTranscriptionModelId,
+  ): TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: CartesiaSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: CartesiaSpeechModelId,
+  ): SpeechModelV4<CartesiaSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a realtime Ink speech-to-text model.

@@ -1,9 +1,11 @@
-import type { SharedV4ProviderMetadata } from '../../shared';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 /**
  * An image file that can be used for image editing or variation generation.
  */
-export type ImageModelV4File =
+export type ImageModelV4File<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> =
   | {
       type: 'file';
 
@@ -27,7 +29,7 @@ export type ImageModelV4File =
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerOptions?: SharedV4ProviderMetadata;
+      providerOptions?: ProviderOptions;
     }
   | {
       type: 'url';
@@ -40,5 +42,5 @@ export type ImageModelV4File =
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerOptions?: SharedV4ProviderMetadata;
+      providerOptions?: ProviderOptions;
     };

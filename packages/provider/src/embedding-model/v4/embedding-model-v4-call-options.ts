@@ -1,6 +1,8 @@
 import type { SharedV4Headers, SharedV4ProviderOptions } from '../../shared';
 
-export type EmbeddingModelV4CallOptions = {
+export type EmbeddingModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * List of text values to generate embeddings for.
    */
@@ -16,7 +18,7 @@ export type EmbeddingModelV4CallOptions = {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Additional HTTP headers to be sent with the request.

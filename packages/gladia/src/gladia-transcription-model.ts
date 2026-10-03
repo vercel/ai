@@ -2,6 +2,8 @@ import {
   AISDKError,
   type TranscriptionModelV4,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,7 +22,10 @@ import {
 import { z } from 'zod/v4';
 import type { GladiaConfig } from './gladia-config';
 import { gladiaFailedResponseHandler } from './gladia-error';
-import { gladiaTranscriptionModelOptionsSchema } from './gladia-transcription-model-options';
+import {
+  gladiaTranscriptionModelOptionsSchema,
+  type GladiaTranscriptionModelOptions,
+} from './gladia-transcription-model-options';
 import type { GladiaTranscriptionInitiateAPITypes } from './gladia-api-types';
 
 interface GladiaTranscriptionModelConfig extends GladiaConfig {
@@ -29,7 +34,11 @@ interface GladiaTranscriptionModelConfig extends GladiaConfig {
   };
 }
 
-export class GladiaTranscriptionModel implements TranscriptionModelV4 {
+export type GladiaTranscriptionModelV4ProviderOptions = {
+  gladia?: GladiaTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GladiaTranscriptionModel implements TranscriptionModelV4<GladiaTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -57,7 +66,9 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<GladiaTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -197,8 +208,16 @@ export class GladiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<GladiaTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<GladiaTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     // Create form data with base fields

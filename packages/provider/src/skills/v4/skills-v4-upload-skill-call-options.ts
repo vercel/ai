@@ -19,7 +19,9 @@ export interface SkillsV4File {
   data: SharedV4FileDataData | SharedV4FileDataText;
 }
 
-export interface SkillsV4UploadSkillCallOptions {
+export interface SkillsV4UploadSkillCallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> {
   /**
    * The files that make up the skill.
    */
@@ -33,5 +35,5 @@ export interface SkillsV4UploadSkillCallOptions {
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 }

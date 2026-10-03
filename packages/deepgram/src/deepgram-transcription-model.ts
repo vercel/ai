@@ -1,4 +1,9 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  TranscriptionModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -12,7 +17,10 @@ import { z } from 'zod/v4';
 import type { DeepgramTranscriptionAPITypes } from './deepgram-api-types';
 import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { deepgramTranscriptionModelOptionsSchema } from './deepgram-transcription-model-options';
+import {
+  deepgramTranscriptionModelOptionsSchema,
+  type DeepgramTranscriptionModelOptions,
+} from './deepgram-transcription-model-options';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
 
 interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
@@ -21,7 +29,11 @@ interface DeepgramTranscriptionModelConfig extends DeepgramConfig {
   };
 }
 
-export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
+export type DeepgramTranscriptionModelV4ProviderOptions = {
+  deepgram?: DeepgramTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class DeepgramTranscriptionModel implements TranscriptionModelV4<DeepgramTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -49,7 +61,9 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<DeepgramTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -100,8 +114,16 @@ export class DeepgramTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<DeepgramTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<DeepgramTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { queryParams, warnings } = await this.getArgs(options);
 

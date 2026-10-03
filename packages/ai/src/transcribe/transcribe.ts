@@ -1,9 +1,11 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  JSONObject,
+  InferSharedV4ProviderOptions,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
   withUserAgentSuffix,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoTranscriptGeneratedError } from '../error/no-transcript-generated-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -45,10 +47,12 @@ const originalGenerateCallId = createIdGenerator({
  */
 const defaultDownload = createDownload();
 
-export async function transcribe({
+export async function transcribe<
+  TRANSCRIPTION_MODEL extends TranscriptionModel = TranscriptionModel,
+>({
   model,
   audio,
-  providerOptions = {},
+  providerOptions = {} as InferSharedV4ProviderOptions<TRANSCRIPTION_MODEL>,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -59,7 +63,7 @@ export async function transcribe({
   /**
    * The transcription model to use.
    */
-  model: TranscriptionModel;
+  model: TRANSCRIPTION_MODEL;
 
   /**
    * The audio data to transcribe.
@@ -80,7 +84,7 @@ export async function transcribe({
    * }
    * ```
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<TRANSCRIPTION_MODEL>;
 
   /**
    * Maximum number of retries per transcript model call. Set to 0 to disable retries.

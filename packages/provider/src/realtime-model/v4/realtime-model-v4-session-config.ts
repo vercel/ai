@@ -1,11 +1,16 @@
-import type { SharedV4AudioFormat } from '../../shared';
+import type {
+  SharedV4AudioFormat,
+  SharedV4ProviderOptions,
+} from '../../shared';
 import type { RealtimeModelV4ToolDefinition } from './realtime-model-v4-tool-definition';
 
 /**
  * Provider-neutral configuration for a realtime session.
  * Each provider maps this to their specific session.update payload.
  */
-export type RealtimeModelV4SessionConfig = {
+export type RealtimeModelV4SessionConfig<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * System instructions for the model.
    */
@@ -119,5 +124,5 @@ export type RealtimeModelV4SessionConfig = {
   /**
    * Provider-specific options that are passed through to the provider.
    */
-  providerOptions?: Record<string, unknown>;
+  providerOptions?: ProviderOptions;
 };

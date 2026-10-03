@@ -7,6 +7,8 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -28,6 +30,7 @@ import { z } from 'zod/v4';
 import {
   cohereLanguageModelChatOptions,
   type CohereChatModelId,
+  type CohereLanguageModelChatOptions,
 } from './cohere-chat-language-model-options';
 import { cohereFailedResponseHandler } from './cohere-error';
 import { prepareTools } from './cohere-prepare-tools';
@@ -43,7 +46,11 @@ type CohereChatConfig = {
   generateId: () => string;
 };
 
-export class CohereChatLanguageModel implements LanguageModelV4 {
+export type CohereChatLanguageModelV4ProviderOptions = {
+  cohere?: CohereLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class CohereChatLanguageModel implements LanguageModelV4<CohereChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: CohereChatModelId;
@@ -92,7 +99,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<CohereChatLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     const cohereOptions =
@@ -159,7 +166,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<CohereChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
@@ -244,7 +251,7 @@ export class CohereChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<CohereChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 

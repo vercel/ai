@@ -1,14 +1,11 @@
 import type {
   Experimental_SpeechTranslationModelV4StreamPart,
   Experimental_SpeechTranslationModelV4Usage,
+  InferSharedV4ProviderOptions,
   JSONObject,
   SharedV4AudioFormat,
 } from '@ai-sdk/provider';
-import {
-  DelayedPromise,
-  withUserAgentSuffix,
-  type ProviderOptions,
-} from '@ai-sdk/provider-utils';
+import { DelayedPromise, withUserAgentSuffix } from '@ai-sdk/provider-utils';
 import { NoTranslationGeneratedError } from '../error/no-translation-generated-error';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveSpeechTranslationModel } from '../model/resolve-model';
@@ -39,14 +36,17 @@ import type {
  *
  * @returns A result object that contains the streaming translation and final translation metadata.
  */
-export function streamTranslate({
+export function streamTranslate<
+  SPEECH_TRANSLATION_MODEL extends SpeechTranslationModel =
+    SpeechTranslationModel,
+>({
   model,
   audio,
   inputAudioFormat,
   targetLanguage,
   sourceLanguage,
   outputAudioFormat,
-  providerOptions = {},
+  providerOptions = {} as InferSharedV4ProviderOptions<SPEECH_TRANSLATION_MODEL>,
   abortSignal,
   headers,
   includeRawChunks,
@@ -55,7 +55,7 @@ export function streamTranslate({
   /**
    * The speech translation model to use.
    */
-  model: SpeechTranslationModel;
+  model: SPEECH_TRANSLATION_MODEL;
 
   /**
    * Raw audio chunks to translate.
@@ -89,7 +89,7 @@ export function streamTranslate({
   /**
    * Additional provider-specific options.
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<SPEECH_TRANSLATION_MODEL>;
 
   /**
    * Abort signal.

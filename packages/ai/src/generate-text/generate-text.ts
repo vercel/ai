@@ -1,4 +1,5 @@
 import type {
+  InferSharedV4ProviderOptions,
   LanguageModelV4GenerateResult,
   LanguageModelV4ToolCall,
 } from '@ai-sdk/provider';
@@ -12,7 +13,6 @@ import {
   type Experimental_SandboxSession as SandboxSession,
   type IdGenerator,
   type InferToolSetContext,
-  type ProviderOptions,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
 import { NoOutputGeneratedError, ToolChoiceViolationError } from '../error';
@@ -232,6 +232,7 @@ export async function generateText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string>,
+  LANGUAGE_MODEL extends LanguageModel = LanguageModel,
 >({
   model: modelArg,
   tools,
@@ -294,7 +295,7 @@ export async function generateText<
     /**
      * The language model to use.
      */
-    model: LanguageModel;
+    model: LANGUAGE_MODEL;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -326,7 +327,7 @@ export async function generateText<
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: ProviderOptions;
+    providerOptions?: InferSharedV4ProviderOptions<LANGUAGE_MODEL>;
 
     /**
      * The sandbox environment that is passed through to tool execution.

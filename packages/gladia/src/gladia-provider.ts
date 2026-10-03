@@ -8,7 +8,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { GladiaTranscriptionModel } from './gladia-transcription-model';
+import {
+  GladiaTranscriptionModel,
+  type GladiaTranscriptionModelV4ProviderOptions,
+} from './gladia-transcription-model';
 import { VERSION } from './version';
 
 export interface GladiaProvider extends ProviderV4 {
@@ -19,7 +22,7 @@ export interface GladiaProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(): TranscriptionModelV4;
+  transcription(): TranscriptionModelV4<GladiaTranscriptionModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

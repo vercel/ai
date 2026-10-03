@@ -1,10 +1,13 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { RerankingModelV4CallOptions } from './reranking-model-v4-call-options';
 import type { RerankingModelV4Result } from './reranking-model-v4-result';
 
 /**
  * Specification for a reranking model that implements the reranking model interface version 4.
  */
-export type RerankingModelV4 = {
+export type RerankingModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The reranking model must specify which reranking model interface version it implements.
    */
@@ -25,6 +28,6 @@ export type RerankingModelV4 = {
    */
   // Naming: "do" prefix to prevent accidental direct usage of the method by the user.
   doRerank(
-    options: RerankingModelV4CallOptions,
+    options: RerankingModelV4CallOptions<ProviderOptions>,
   ): PromiseLike<RerankingModelV4Result>;
 };

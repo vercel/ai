@@ -5,13 +5,18 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
 } from '@ai-sdk/provider-utils';
-import type { CerebrasChatModelId } from './cerebras-chat-language-model-options';
+import type {
+  CerebrasChatModelId,
+  CerebrasLanguageModelChatOptions,
+} from './cerebras-chat-language-model-options';
 
 type CerebrasChatConfig = ConstructorParameters<
   typeof OpenAICompatibleChatLanguageModel
@@ -33,9 +38,13 @@ function isStructuredOutputWithToolCallsFinishReason({
   );
 }
 
+export type CerebrasChatLanguageModelV4ProviderOptions = {
+  cerebras?: CerebrasLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 export class CerebrasChatLanguageModel
   extends OpenAICompatibleChatLanguageModel
-  implements LanguageModelV4
+  implements LanguageModelV4<CerebrasChatLanguageModelV4ProviderOptions>
 {
   static [WORKFLOW_SERIALIZE](model: CerebrasChatLanguageModel) {
     return serializeModelOptions({
@@ -52,7 +61,7 @@ export class CerebrasChatLanguageModel
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<CerebrasChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const result = await super.doGenerate(options);
 
@@ -81,7 +90,7 @@ export class CerebrasChatLanguageModel
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<CerebrasChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const result = await super.doStream(options);
     let hasText = false;

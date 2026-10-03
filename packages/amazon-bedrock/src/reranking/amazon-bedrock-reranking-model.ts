@@ -1,4 +1,8 @@
-import type { RerankingModelV4 } from '@ai-sdk/provider';
+import type {
+  RerankingModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -16,6 +20,7 @@ import {
 import {
   amazonBedrockRerankingModelOptionsSchema,
   type AmazonBedrockRerankingModelId,
+  type AmazonBedrockRerankingModelOptions,
 } from './amazon-bedrock-reranking-model-options';
 type AmazonBedrockRerankingConfig = {
   baseUrl: () => string;
@@ -24,9 +29,18 @@ type AmazonBedrockRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-type DoRerankResponse = Awaited<ReturnType<RerankingModelV4['doRerank']>>;
+type DoRerankResponse = Awaited<
+  ReturnType<
+    RerankingModelV4<AmazonBedrockRerankingModelV4ProviderOptions>['doRerank']
+  >
+>;
 
-export class AmazonBedrockRerankingModel implements RerankingModelV4 {
+export type AmazonBedrockRerankingModelV4ProviderOptions = {
+  amazonBedrock?: AmazonBedrockRerankingModelOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AmazonBedrockRerankingModel implements RerankingModelV4<AmazonBedrockRerankingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
@@ -42,7 +56,9 @@ export class AmazonBedrockRerankingModel implements RerankingModelV4 {
     topN,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<DoRerankResponse> {
+  }: Parameters<
+    RerankingModelV4<AmazonBedrockRerankingModelV4ProviderOptions>['doRerank']
+  >[0]): Promise<DoRerankResponse> {
     // Prefer `amazonBedrock`; fall back to legacy `bedrock` for backward
     // compatibility.
     const amazonBedrockOptions =

@@ -2,6 +2,8 @@ import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -26,6 +28,8 @@ import {
   openaiImageModelGenerationOptions,
   type OpenAIImageModelEditOptions,
   type OpenAIImageModelId,
+  type OpenAIImageModelGenerationOptions,
+  type OpenAIImageModelOptions,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
   imageInputCapabilities?: {
@@ -37,7 +41,15 @@ interface OpenAIImageModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAIImageModel implements ImageModelV4 {
+export type OpenAIImageModelV4ProviderOptions = {
+  openai?:
+    | OpenAIImageModelOptions
+    | OpenAIImageModelEditOptions
+    | OpenAIImageModelGenerationOptions
+    | Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAIImageModel implements ImageModelV4<OpenAIImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAIImageModel) {
@@ -111,8 +123,12 @@ export class OpenAIImageModel implements ImageModelV4 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<OpenAIImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<ImageModelV4<OpenAIImageModelV4ProviderOptions>['doGenerate']>
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
 

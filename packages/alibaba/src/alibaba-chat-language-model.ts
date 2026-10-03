@@ -6,7 +6,9 @@ import type {
   LanguageModelV4GenerateResult,
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
+  SharedV4ProviderOptions,
   SharedV4Warning,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -30,6 +32,7 @@ import { z } from 'zod/v4';
 import {
   alibabaLanguageModelChatOptions,
   type AlibabaChatModelId,
+  type AlibabaLanguageModelChatOptions,
 } from './alibaba-chat-language-model-options';
 import type { AlibabaConfig } from './alibaba-config';
 import { alibabaFailedResponseHandler } from './alibaba-error';
@@ -41,6 +44,10 @@ import { mapAlibabaFinishReason } from './map-alibaba-finish-reason';
 import { supportsJsonSchemaOutput } from './supports-json-schema-output';
 import { supportsPreservedThinking } from './supports-preserved-thinking';
 
+export type AlibabaChatLanguageModelV4ProviderOptions = {
+  alibaba?: AlibabaLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Alibaba language model implementation.
  *
@@ -50,7 +57,7 @@ import { supportsPreservedThinking } from './supports-preserved-thinking';
  * - Thinking budget control (thinking_budget)
  * - Prompt caching (cached_tokens tracking)
  */
-export class AlibabaChatLanguageModel implements LanguageModelV4 {
+export class AlibabaChatLanguageModel implements LanguageModelV4<AlibabaChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaChatModelId;
 
@@ -102,7 +109,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
     providerOptions,
     tools,
     toolChoice,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<AlibabaChatLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     const cacheControlValidator = new CacheControlValidator();
@@ -215,7 +222,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AlibabaChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
@@ -283,7 +290,7 @@ export class AlibabaChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AlibabaChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
     const body = {

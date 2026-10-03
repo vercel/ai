@@ -9,9 +9,15 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { FishAudioSpeechModel } from './fish-audio-speech-model';
+import {
+  FishAudioSpeechModel,
+  type FishAudioSpeechModelV4ProviderOptions,
+} from './fish-audio-speech-model';
 import type { FishAudioSpeechModelId } from './fish-audio-speech-options';
-import { FishAudioTranscriptionModel } from './fish-audio-transcription-model';
+import {
+  FishAudioTranscriptionModel,
+  type FishAudioTranscriptionModelV4ProviderOptions,
+} from './fish-audio-transcription-model';
 import type { FishAudioTranscriptionModelId } from './fish-audio-transcription-options';
 import { VERSION } from './version';
 
@@ -26,19 +32,25 @@ export interface FishAudioProvider extends ProviderV4 {
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: FishAudioSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: FishAudioSpeechModelId,
+  ): SpeechModelV4<FishAudioSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    *
    * Narrowed to required: Fish Audio always provides speech models.
    */
-  speechModel(modelId: FishAudioSpeechModelId): SpeechModelV4;
+  speechModel(
+    modelId: FishAudioSpeechModelId,
+  ): SpeechModelV4<FishAudioSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId?: FishAudioTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId?: FishAudioTranscriptionModelId,
+  ): TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription.
@@ -47,7 +59,7 @@ export interface FishAudioProvider extends ProviderV4 {
    */
   transcriptionModel(
     modelId?: FishAudioTranscriptionModelId,
-  ): TranscriptionModelV4;
+  ): TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions>;
 }
 
 export interface FishAudioProviderSettings {

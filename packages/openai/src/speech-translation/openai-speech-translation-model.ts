@@ -4,6 +4,7 @@ import {
   type Experimental_SpeechTranslationModelV4StreamOptions as SpeechTranslationModelV4StreamOptions,
   type Experimental_SpeechTranslationModelV4StreamPart as SpeechTranslationModelV4StreamPart,
   type SharedV4Warning,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -23,6 +24,7 @@ import type { OpenAIConfig } from '../openai-config';
 import {
   openAISpeechTranslationModelOptions,
   type OpenAISpeechTranslationModelId,
+  type OpenAISpeechTranslationModelOptions,
 } from './openai-speech-translation-model-options';
 
 type OpenAIRealtimeSpeechTranslationEvent = {
@@ -37,7 +39,11 @@ interface OpenAISpeechTranslationModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAISpeechTranslationModel implements SpeechTranslationModelV4 {
+export type OpenAISpeechTranslationModelV4ProviderOptions = {
+  openai?: OpenAISpeechTranslationModelOptions & Record<string, JSONValue>;
+};
+
+export class OpenAISpeechTranslationModel implements SpeechTranslationModelV4<OpenAISpeechTranslationModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAISpeechTranslationModel) {
@@ -64,8 +70,14 @@ export class OpenAISpeechTranslationModel implements SpeechTranslationModelV4 {
   ) {}
 
   async doStream(
-    options: SpeechTranslationModelV4StreamOptions,
-  ): Promise<Awaited<ReturnType<SpeechTranslationModelV4['doStream']>>> {
+    options: SpeechTranslationModelV4StreamOptions<OpenAISpeechTranslationModelV4ProviderOptions>,
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechTranslationModelV4<OpenAISpeechTranslationModelV4ProviderOptions>['doStream']
+      >
+    >
+  > {
     if (options.targetLanguage == null) {
       throw new InvalidArgumentError({
         argument: 'targetLanguage',

@@ -1,10 +1,9 @@
-import type { JSONValue } from '@ai-sdk/provider';
+import type { InferSharedV4ProviderOptions, JSONValue } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
   type FlexibleSchema,
   type InferSchema,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoObjectGeneratedError } from '../error/no-object-generated-error';
 import { extractReasoningContent } from '../generate-text/extract-reasoning-content';
@@ -126,6 +125,7 @@ export async function generateObject<
   RESULT = OUTPUT extends 'array'
     ? Array<InferSchema<SCHEMA>>
     : InferSchema<SCHEMA>,
+  LANGUAGE_MODEL extends LanguageModel = LanguageModel,
 >(
   options: Omit<LanguageModelCallOptions, 'stopSequences'> &
     Omit<RequestOptions, 'timeout'> &
@@ -165,7 +165,7 @@ export async function generateObject<
       /**
        * The language model to use.
        */
-      model: LanguageModel;
+      model: LANGUAGE_MODEL;
       /**
        * A function that attempts to repair the raw output of the model
        * to enable JSON parsing.
@@ -204,7 +204,7 @@ export async function generateObject<
        * to the provider from the AI SDK and enable provider-specific
        * functionality that can be fully encapsulated in the provider.
        */
-      providerOptions?: ProviderOptions;
+      providerOptions?: InferSharedV4ProviderOptions<LANGUAGE_MODEL>;
 
       /**
        * Callback that is called when the generateObject operation begins,

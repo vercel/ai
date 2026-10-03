@@ -2,7 +2,9 @@ import type { SharedV4ProviderOptions } from '../../shared';
 import type { VideoModelV4File } from './video-model-v4-file';
 import type { VideoModelV4FrameImage } from './video-model-v4-frame-image';
 
-export type VideoModelV4CallOptions = {
+export type VideoModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Text prompt for the video generation.
    */
@@ -89,7 +91,7 @@ export type VideoModelV4CallOptions = {
    *   }
    * }
    */
-  providerOptions: SharedV4ProviderOptions;
+  providerOptions: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

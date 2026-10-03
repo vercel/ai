@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type JSONValue,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,10 +19,15 @@ import { openaiFailedResponseHandler } from '../openai-error';
 import {
   openaiEmbeddingModelOptions,
   type OpenAIEmbeddingModelId,
+  type OpenAIEmbeddingModelOptions,
 } from './openai-embedding-model-options';
 import { openaiTextEmbeddingResponseSchema } from './openai-embedding-api';
 
-export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
+export type OpenAIEmbeddingModelV4ProviderOptions = {
+  openai?: OpenAIEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAIEmbeddingModel implements EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: OpenAIEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 2048;
@@ -57,8 +64,14 @@ export class OpenAIEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

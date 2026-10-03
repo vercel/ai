@@ -49,7 +49,7 @@ import {
   type AnthropicLanguageModelConfig,
 } from './anthropic-language-model';
 import {
-  anthropicLanguageModelOptions,
+  anthropicLanguageModelOptionsSchema,
   type AnthropicModelId,
 } from './anthropic-language-model-options';
 import type {
@@ -61,9 +61,10 @@ import { mapAnthropicStopReason } from './map-anthropic-stop-reason';
 
 const anthropicBatchRequestIdPattern = /^[A-Za-z0-9_-]{1,64}$/;
 
-const anthropicBatchProviderOptionsSchema = anthropicLanguageModelOptions.pick({
-  anthropicBeta: true,
-});
+const anthropicBatchProviderOptionsSchema =
+  anthropicLanguageModelOptionsSchema.pick({
+    anthropicBeta: true,
+  });
 
 type AnthropicBatchRequest = TextBatchV4Request<AnthropicModelId>;
 

@@ -1,6 +1,8 @@
 import {
   OpenAIChatLanguageModel,
   OpenAIResponsesLanguageModel,
+  type OpenAIChatLanguageModelV4ProviderOptions,
+  type OpenAIResponsesLanguageV4ProviderOptions,
 } from '@ai-sdk/openai/internal';
 import {
   InvalidArgumentError,
@@ -32,24 +34,32 @@ export interface BedrockMantleProvider extends ProviderV4 {
    * Creates a model for text generation using the Chat Completions API.
    * Chat Completions has the broadest model support on Mantle.
    */
-  (modelId: BedrockMantleChatModelId): LanguageModelV4;
+  (
+    modelId: BedrockMantleChatModelId,
+  ): LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation using the Chat Completions API.
    */
-  languageModel(modelId: BedrockMantleChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: BedrockMantleChatModelId,
+  ): LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation using the Chat Completions API.
    */
-  chat(modelId: BedrockMantleChatModelId): LanguageModelV4;
+  chat(
+    modelId: BedrockMantleChatModelId,
+  ): LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation using the Responses API.
    * Not all Mantle models support this API. Notably, gpt-oss-safeguard models
    * are Chat-only.
    */
-  responses(modelId: BedrockMantleResponsesModelId): LanguageModelV4;
+  responses(
+    modelId: BedrockMantleResponsesModelId,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * @deprecated Mantle does not support embedding models.

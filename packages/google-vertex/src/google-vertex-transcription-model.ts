@@ -2,6 +2,8 @@ import {
   InvalidArgumentError,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -64,7 +66,12 @@ function convertBcp47ToIso6391(
   }
 }
 
-export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
+export type GoogleVertexTranscriptionModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexTranscriptionModelOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleVertexTranscriptionModel implements TranscriptionModelV4<GoogleVertexTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexTranscriptionModel) {
@@ -91,8 +98,16 @@ export class GoogleVertexTranscriptionModel implements TranscriptionModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<GoogleVertexTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<GoogleVertexTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
