@@ -1,5 +1,11 @@
 # @ai-sdk/anthropic
 
+## 4.0.72
+
+### Patch Changes
+
+- b5dfea1: feat(anthropic): expose message-start usage through custom stream parts
+
 ## 4.0.71
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 4.0.55
+
+### Patch Changes
+
+- f17f0ce: feat(cohere): support selecting embedding formats
+
 ## 4.0.54
 
 ### Patch Changes

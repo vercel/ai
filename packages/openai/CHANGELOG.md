@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.84
+
+### Patch Changes
+
+- 5b8e63b: feat(openai): warn when reasoningSummary is used with chat models
+
 ## 4.0.83
 
 ### Patch Changes
