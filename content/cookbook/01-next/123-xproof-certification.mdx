@@ -1,0 +1,171 @@
+---
+title: Certify AI Generations on the Blockchain with xProof
+description: Learn how to automatically certify every AI generation with a tamper-proof blockchain proof using xProof middleware.
+---
+
+# Certify AI Generations with xProof
+
+[xProof](https://xproof.app) provides a proof and accountability layer for AI agents. The `xproofMiddleware` wraps `streamText` and `generateText` transparently — every generation is automatically hashed and anchored on the MultiversX blockchain.
+
+**Why:** Regulated industries (finance, healthcare, legal) require verifiable records of AI decisions. xProof makes every generation auditable without changing application code.
+
+## Installation
+
+```bash
+npm install @xproof/xproof
+```
+
+## Basic Setup
+
+```typescript
+import { xproofMiddleware } from "@xproof/xproof/vercel";
+import { streamText, wrapLanguageModel } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+const certifiedModel = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: xproofMiddleware({
+    apiKey: process.env.XPROOF_API_KEY!,
+    agentName: "my-nextjs-agent",
+  }),
+});
+
+// streamText is now automatically certified on every call
+const result = await streamText({
+  model: certifiedModel,
+  prompt: "Summarize the Q1 earnings report",
+});
+```
+
+## Next.js App Router Route Handler
+
+```typescript
+// app/api/chat/route.ts
+import { xproofMiddleware } from "@xproof/xproof/vercel";
+import { streamText, wrapLanguageModel } from "ai";
+import { openai } from "@ai-sdk/openai";
+
+const certifiedModel = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: xproofMiddleware({
+    apiKey: process.env.XPROOF_API_KEY!,
+    agentName: "chat-agent",
+  }),
+});
+
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+
+  const result = streamText({
+    model: certifiedModel,
+    messages,
+  });
+
+  return result.toDataStreamResponse();
+}
+```
+
+## Selective Certification
+
+Use `shouldCertify` to only certify important generations:
+
+```typescript
+const certifiedModel = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: xproofMiddleware({
+    apiKey: process.env.XPROOF_API_KEY!,
+    agentName: "selective-agent",
+    shouldCertify: ({ prompt }) => {
+      // Only certify when the prompt contains sensitive keywords
+      const text = JSON.stringify(prompt);
+      return text.includes("decision") || text.includes("recommendation");
+    },
+  }),
+});
+```
+
+## Batch Mode (High-Throughput)
+
+For applications with many requests, batch mode groups certifications and flushes every N seconds:
+
+```typescript
+const certifiedModel = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware: xproofMiddleware({
+    apiKey: process.env.XPROOF_API_KEY!,
+    agentName: "high-volume-agent",
+    batch: true,
+    batchFlushInterval: 5000, // flush every 5 seconds
+    batchSize: 50,            // or when 50 items accumulate
+  }),
+});
+```
+
+## Accessing Proof IDs
+
+After generation, proof IDs are tracked on the middleware instance:
+
+```typescript
+import { xproofMiddleware } from "@xproof/xproof/vercel";
+
+const middleware = xproofMiddleware({
+  apiKey: process.env.XPROOF_API_KEY!,
+  agentName: "my-agent",
+});
+
+const certifiedModel = wrapLanguageModel({
+  model: openai("gpt-4o"),
+  middleware,
+});
+
+await generateText({ model: certifiedModel, prompt: "Hello" });
+
+// Access proof after generation
+console.log(middleware.proofs);
+// [{ id: "uuid", transactionHash: "0x...", fileHash: "sha256..." }]
+```
+
+## Getting an API Key
+
+```typescript
+import { XProofClient } from "@xproof/xproof";
+
+// Register for a free trial key (10 certs/day, no credit card)
+const client = await XProofClient.register("my-agent");
+console.log(client.registration?.apiKey); // Save this
+```
+
+Or get a key at [xproof.app](https://xproof.app).
+
+## Environment Variables
+
+```bash
+# .env.local
+XPROOF_API_KEY=pm_your_key_here
+```
+
+## How It Works
+
+1. Before each generation: prompt is hashed locally with SHA-256
+2. After generation: output is hashed locally
+3. Both hashes are sent to xProof API — **no content leaves your server**
+4. xProof anchors the hashes on MultiversX blockchain
+5. A permanent, verifiable proof URL is returned: `https://xproof.app/proof/<id>`
+
+## API Reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `apiKey` | `string` | — | xProof API key (required) |
+| `agentName` | `string` | — | Agent identifier |
+| `shouldCertify` | `function` | `() => true` | Filter which generations to certify |
+| `batch` | `boolean` | `false` | Enable batch mode |
+| `batchFlushInterval` | `number` | `3000` | Flush interval in ms |
+| `batchSize` | `number` | `50` | Max items per batch |
+| `defaultWhy` | `string` | — | Default WHY metadata for all certs |
+
+## Links
+
+- [xProof Documentation](https://xproof.app/docs)
+- [npm package](https://www.npmjs.com/package/@xproof/xproof)
+- [4W Accountability Standard](https://xproof.app/docs/4w)
