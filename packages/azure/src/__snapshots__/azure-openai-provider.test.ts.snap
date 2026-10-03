@@ -1036,7 +1036,7 @@ exports[`responses > doGenerate > tool call > should extract tool call content 1
 }
 `;
 
-exports[`responses > doGenerate > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doGenerate > web search preview tool > should retain web search preview citation sources 1`] = `
 [
   {
     "input": "{}",
@@ -5714,7 +5714,7 @@ exports[`responses > doStream > tool call > should stream tool call content 1`] 
 ]
 `;
 
-exports[`responses > doStream > web search preview tool > should stream web search preview results include 1`] = `
+exports[`responses > doStream > web search preview tool > should retain streamed web search preview citation sources 1`] = `
 [
   {
     "type": "stream-start",

@@ -4119,6 +4119,34 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should expose visited URLs as sources and keep citations in text metadata', () => {
+        const sources = result.content.filter(
+          (
+            part,
+          ): part is Extract<
+            LanguageModelV4Content,
+            { type: 'source'; sourceType: 'url' }
+          > => part.type === 'source' && part.sourceType === 'url',
+        );
+        const textParts = result.content.filter(part => part.type === 'text');
+
+        expect(sources).toHaveLength(16);
+        expect(sources.map(source => source.url)).toContain(
+          'https://www.investing.com/news/stock-market-news/ai-coding-startup-vercel-raises-300-million-valued-at-93-billion-4264199',
+        );
+        expect(sources.map(source => source.url)).not.toContain(
+          'https://www.investopedia.com/5-things-to-know-before-the-stock-market-opens-december-5-2025-11862701?utm_source=openai',
+        );
+        expect(
+          textParts.flatMap(
+            part =>
+              (part.providerMetadata?.openai?.annotations as
+                | unknown[]
+                | null) ?? [],
+          ),
+        ).toHaveLength(10);
+      });
     });
 
     it('should not include web search sources when disabled by provider options', async () => {
@@ -5675,7 +5703,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       `);
     });
 
-    it('should handle mixed url_citation and file_citation annotations', async () => {
+    it('should retain citation sources when retrieved sources are unavailable', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'json-value',
         body: {
@@ -5744,6 +5772,16 @@ describe('OpenAIResponsesLanguageModel', () => {
         prompt: TEST_PROMPT,
       });
 
+      expect(result.content).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'url',
+            url: 'https://example.com',
+            title: 'Example URL',
+          }),
+        ]),
+      );
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
@@ -7946,7 +7984,21 @@ describe('OpenAIResponsesLanguageModel', () => {
           prompt: TEST_PROMPT,
         });
 
-        expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
+        const events = await convertReadableStreamToArray(stream);
+        const sources = events.filter(
+          (
+            event,
+          ): event is Extract<
+            LanguageModelV4StreamPart,
+            { type: 'source'; sourceType: 'url' }
+          > => event.type === 'source' && event.sourceType === 'url',
+        );
+
+        expect(sources).toHaveLength(21);
+        expect(sources.map(source => source.url)).not.toContain(
+          'https://www.wired.com/story/the-big-interview-2025-recap?utm_source=openai',
+        );
+        expect(events).toMatchSnapshot();
       });
 
       it('should handle streaming web search with action query field', async () => {
@@ -10332,7 +10384,7 @@ describe('OpenAIResponsesLanguageModel', () => {
   });
 
   describe('mixed citation types', () => {
-    it('should handle both url_citation and file_citation annotations', async () => {
+    it('should retain streamed citation sources when retrieved sources are unavailable', async () => {
       server.urls['https://api.openai.com/v1/responses'].response = {
         type: 'stream-chunks',
         chunks: [
@@ -10353,6 +10405,16 @@ describe('OpenAIResponsesLanguageModel', () => {
 
       const result = await convertReadableStreamToArray(stream);
 
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: 'source',
+            sourceType: 'url',
+            url: 'https://example.com',
+            title: 'Example URL',
+          }),
+        ]),
+      );
       expect(result).toMatchInlineSnapshot(`
         [
           {

@@ -1396,19 +1396,6 @@ describe('Anthropic batch', () => {
                 },
               },
             },
-            {
-              type: 'source',
-              sourceType: 'url',
-              id: 'citation-source',
-              url: 'https://example.com/weather',
-              title: 'Paris weather',
-              providerMetadata: {
-                anthropic: {
-                  citedText: 'Paris is sunny.',
-                  encryptedIndex: 'encrypted-index',
-                },
-              },
-            },
           ],
         },
       },
