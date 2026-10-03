@@ -39,6 +39,9 @@ jobs:
   konsistent:
     name: 'Code Consistency'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,12 +58,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
+
       - name: Run konsistent
         run: pnpm konsistent
 
   build-examples:
     name: 'Build Examples (${{ matrix.shard }})'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -99,6 +110,11 @@ jobs:
           key: ${{ runner.os }}-build-examples-${{ matrix.shard }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-build-examples-${{ matrix.shard }}-
+
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Build Examples
         run: pnpm exec turbo build ${{ matrix.filters }}
@@ -204,6 +220,9 @@ jobs:
   build-packages:
     name: 'Build Packages'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -219,6 +238,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Build packages
         run: pnpm run build:packages
@@ -300,9 +324,9 @@ jobs:
     name: 'Test'
     runs-on: ubuntu-latest
     needs: [build-packages, test_node_versions]
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix:
         node-version: ${{ fromJSON(needs.test_node_versions.outputs.node_versions) }}
@@ -329,6 +353,11 @@ jobs:
 
       - name: Extract package build artifacts
         run: tar -xzf package-build-artifacts.tgz
+
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Run tests
         env:
@@ -576,6 +605,9 @@ jobs:
   test_ai_matrix:
     name: 'Test AI'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix:
         node-version: [22, 24, 26]
@@ -595,6 +627,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Set up Turborepo Remote Cache
+        uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+        with:
+          team: ${{ vars.TURBO_TEAM }}
 
       - name: Build AI dependencies
         run: pnpm exec turbo build --filter=ai
