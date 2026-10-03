@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 22005,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/anthropic-fallback-replay-beta.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/anthropic-fallback-replay-beta.ts",
+    "packages/anthropic/src/anthropic-language-model.test.ts",
+    "packages/anthropic/src/__fixtures__/anthropic-fallback-replay-without-beta.error.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22005_REPRODUCED: replayed anthropic.fallback was rejected without the server-side-fallback beta: claude-opus-4-8, claude-opus-5-5"
+  }
+}
