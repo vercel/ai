@@ -22,11 +22,11 @@ export type GoogleContent = {
 
 export type GoogleContentPart =
   | { text: string; thought?: boolean; thoughtSignature?: string }
-  | {
+  | ({
       inlineData: { mimeType: string; data: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleVideoPartFields)
   | {
       functionCall: { id?: string; name: string; args: unknown };
       thoughtSignature?: string;
@@ -39,11 +39,11 @@ export type GoogleContentPart =
         parts?: Array<GoogleFunctionResponsePart>;
       };
     }
-  | {
+  | ({
       fileData: { mimeType: string; fileUri: string };
       thought?: boolean;
       thoughtSignature?: string;
-    }
+    } & GoogleVideoPartFields)
   | {
       toolCall: {
         toolType: string;
@@ -72,6 +72,11 @@ export type GoogleContentPart =
         output: string;
       };
     };
+
+export type GoogleVideoPartFields = {
+  mediaProcessing?: 'AGENTIC' | 'STATIC';
+  videoMetadata?: { startOffset?: string; endOffset?: string; fps?: number };
+};
 
 export type GoogleFunctionResponsePart =
   | {

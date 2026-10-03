@@ -375,6 +375,63 @@ const result = await generateText({
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
 
+#### Video processing
+
+Gemini 3.8 Flash, 3.7 Flash, 3.6 Flash, and 3.5 Flash Lite support agentic
+video understanding: instead of sampling the whole video at a fixed frame
+rate, the model navigates the timeline and loads only the transcript, frames,
+or audio it needs. Set `processing: 'agentic'` in the Google provider options
+of a video file part. This is the same option that the
+[Interactions API](#agentic-video-understanding) accepts:
+
+```ts
+import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
+import { generateText } from 'ai';
+
+const result = await generateText({
+  model: google('gemini-3.8-flash'),
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'file',
+          data: 'https://www.youtube.com/watch?v=9hE5-98ZeCg',
+          mediaType: 'video/mp4',
+          providerOptions: {
+            google: {
+              processing: 'agentic',
+            } satisfies GoogleInteractionsVideoOptions,
+          },
+        },
+        { type: 'text', text: 'Identify the three most important moments.' },
+      ],
+    },
+  ],
+});
+```
+
+Use `'static'` for fixed-rate sampling, or pass a static configuration to clip
+the video and set the frame rate (`startOffset` and `endOffset` are in
+seconds); these map to Gemini's `videoMetadata`:
+
+```ts
+providerOptions: {
+  google: {
+    processing: { type: 'static', startOffset: 0, endOffset: 30, fps: 2 },
+  } satisfies GoogleInteractionsVideoOptions,
+},
+```
+
+<Note>
+  Video loaded on demand during agentic processing is reported in
+  `usage.inputTokens`. Gemini silently ignores the video when agentic processing
+  is requested on a model that does not support it, so only use it with the
+  models listed above. On Vertex AI, agentic video understanding requires the
+  `v1beta1` API (the default for `@ai-sdk/google-vertex`, but not for express
+  mode).
+</Note>
+
 ### Cached Content
 
 Google supports both explicit and implicit caching to help reduce costs on repetitive content.
@@ -1588,7 +1645,8 @@ loads the transcripts, frames, or audio needed for the prompt.
 
 Set `processing: 'agentic'` in the Google provider options of an individual
 video file part. You can validate the per-file options with
-`GoogleInteractionsVideoOptions`:
+`GoogleInteractionsVideoOptions`. The same option also works with
+`google(...)` models ([Video processing](#video-processing)):
 
 ```ts
 import { google, type GoogleInteractionsVideoOptions } from '@ai-sdk/google';
