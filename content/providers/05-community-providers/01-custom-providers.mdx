@@ -771,7 +771,6 @@ private handleError(error: unknown): never {
       url: error.url,
       requestBodyValues: undefined,
       statusCode: status,
-      statusText: error.statusText,
       responseHeaders: Object.fromEntries(error.headers.entries()),
       cause: error,
     });
