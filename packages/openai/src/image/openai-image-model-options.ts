@@ -124,6 +124,12 @@ export const openaiImageModelEditOptions = lazySchema(() =>
        * Fidelity of the output image(s) to the input image(s).
        */
       inputFidelity: z.enum(['high', 'low']).optional(),
+
+      /**
+       * Content moderation level for the edited image(s). `low` applies
+       * less restrictive filtering. Supported by GPT Image models.
+       */
+      moderation: z.enum(['auto', 'low']).optional(),
     }),
   ),
 );
