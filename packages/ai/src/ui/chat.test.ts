@@ -896,6 +896,8 @@ describe('Chat', () => {
     let chat: TestChat;
     let letOnFinishArgs: any[] = [];
     let isAborted = false;
+    let statusAfterStop: ChatStatus;
+    let onFinishCalledAfterStop = false;
 
     beforeEach(async () => {
       let controller: ReadableStreamDefaultController<UIMessageChunk>;
@@ -948,12 +950,19 @@ describe('Chat', () => {
       }
 
       await chat.stop();
+      statusAfterStop = chat.status;
+      onFinishCalledAfterStop = letOnFinishArgs.length > 0;
 
       await finishPromise.promise;
     });
 
     it('should have been aborted', async () => {
       expect(isAborted).toBe(true);
+    });
+
+    it('should finish the request pipeline before stop resolves', async () => {
+      expect(statusAfterStop).toBe('ready');
+      expect(onFinishCalledAfterStop).toBe(true);
     });
 
     it('should call onFinish with message and messages', async () => {
@@ -1128,6 +1137,49 @@ describe('Chat', () => {
     });
   });
 
+  it('should not send automatically after a response is stopped', async () => {
+    let sendCount = 0;
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({ type: 'text-start', id: 'text-1' });
+        controller.enqueue({
+          type: 'text-delta',
+          id: 'text-1',
+          delta: 'Hello',
+        });
+      },
+    });
+
+    const chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+          return responseStream;
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+
+    while ((chat.messages[1]?.parts[1] as any)?.text !== 'Hello') {
+      await vi.advanceTimersByTimeAsync(0);
+    }
+
+    await chat.stop();
+    await sendPromise;
+
+    expect(sendCount).toBe(1);
+    expect(chat.status).toBe('ready');
+  });
+
   it('should not send a message when stopped during message preparation', async () => {
     const sendMessages = vi.fn(async () => new ReadableStream());
     const chat = new TestChat({
@@ -1235,7 +1287,7 @@ describe('Chat', () => {
     const resumePromise = chat.resumeStream();
 
     expect(chat.status).toBe('ready');
-    await chat.stop();
+    const stopPromise = chat.stop();
     expect(reconnectAbortSignal?.aborted).toBe(true);
 
     reconnectResult.resolve(
@@ -1256,6 +1308,7 @@ describe('Chat', () => {
       }),
     );
 
+    await stopPromise;
     await resumePromise;
 
     expect(isCancelled).toBe(true);
