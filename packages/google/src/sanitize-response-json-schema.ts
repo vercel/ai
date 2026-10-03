@@ -42,6 +42,9 @@ export function sanitizeResponseJsonSchema(schema: JSONSchema7): JSONSchema7 {
     ...(result.$defs != null
       ? { $defs: sanitizeDefinitions(result.$defs) }
       : {}),
+    ...(result.definitions != null
+      ? { definitions: sanitizeDefinitions(result.definitions) }
+      : {}),
   };
 }
 
