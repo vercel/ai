@@ -160,11 +160,12 @@ The following optional provider options are available for Anthropic models:
 
   Whether to enable tool streaming (and structured output streaming). Default to `true`.
 
-- `structuredOutputMode` _"outputFormat" | "jsonTool" | "auto"_
+- `structuredOutputMode` _"outputFormat" | "jsonTool" | "autoTool" | "auto"_
 
   Determines how structured outputs are generated. Optional.
-  - `"outputFormat"`: Use the `output_format` parameter to specify the structured output format.
+  - `"outputFormat"`: Use the `output_config.format` parameter to specify the structured output format.
   - `"jsonTool"`: Use a special `"json"` tool to specify the structured output format.
+  - `"autoTool"`: Use both `output_config.format` and a strict structured response tool with automatic tool choice. This lets the model either return native structured output directly or use the response tool after it finishes calling application tools.
   - `"auto"`: Use `"outputFormat"` when supported, otherwise fall back to `"jsonTool"` (default).
 
 - `metadata` _object_
@@ -233,6 +234,53 @@ request `"jsonTool"` anyway, the provider falls back to `"outputFormat"` and
 emits a warning. Likewise, a `required` or named `toolChoice` is downgraded to
 `auto` with a warning; instruct the model to use the tool in your prompt and
 verify that a tool call was made.
+
+For agent loops that combine tools with structured output, you can opt into
+`"autoTool"`. It keeps native structured output enabled and also adds a strict
+response tool with `tool_choice: auto`:
+
+```ts
+import {
+  anthropic,
+  type AnthropicLanguageModelOptions,
+} from '@ai-sdk/anthropic';
+import { generateText, Output, tool } from 'ai';
+import { z } from 'zod';
+
+const result = await generateText({
+  model: anthropic('claude-sonnet-5-5'),
+  tools: {
+    weather: tool({
+      description: 'Get the weather for a city',
+      inputSchema: z.object({ city: z.string() }),
+      execute: async ({ city }) => getWeather(city),
+    }),
+  },
+  output: Output.object({
+    schema: z.object({
+      city: z.string(),
+      forecast: z.string(),
+    }),
+  }),
+  prompt:
+    'Check the weather in Paris. When all tool work is complete, provide the final structured response.',
+  providerOptions: {
+    anthropic: {
+      structuredOutputMode: 'autoTool',
+    } satisfies AnthropicLanguageModelOptions,
+  },
+});
+```
+
+When the response tool is the only client tool call in a turn, the provider
+converts it to JSON text with a `stop` finish reason. If Claude emits it
+alongside application tool calls, the provider drops the response-tool call so
+the application tools can run and Claude can answer on a later step. The
+synthetic call is therefore never replayed as a tool call or tool result.
+Streaming response-tool input is buffered until the provider knows whether the
+turn also contains an application tool call. Direct native structured responses
+and any text that precedes a response-tool call are also held until the turn is
+complete, so `partialOutputStream` updates can arrive later in this mode.
 
 ### Effort
 

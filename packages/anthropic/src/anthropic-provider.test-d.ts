@@ -36,3 +36,11 @@ it('types on-demand compaction provider options', () => {
     | undefined
   >();
 });
+
+it('types auto tool structured output mode', () => {
+  expectTypeOf<
+    AnthropicLanguageModelOptions['structuredOutputMode']
+  >().toEqualTypeOf<
+    'outputFormat' | 'jsonTool' | 'autoTool' | 'auto' | undefined
+  >();
+});
