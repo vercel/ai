@@ -20,6 +20,7 @@ import type {
   OnToolExecutionEndCallback,
   OnToolExecutionStartCallback,
 } from '../generate-text/tool-execution-events';
+import type { SteeringSignal } from '../generate-text/steering-controller';
 import type { TimeoutConfiguration } from '../prompt/request-options';
 
 /**
@@ -156,6 +157,13 @@ export type AgentCallParameters<
      * The sandbox environment that is passed through to tool execution.
      */
     experimental_sandbox?: SandboxSession;
+
+    /**
+     * Optional steering signal to enable mid-turn steering.
+     *
+     * @experimental
+     */
+    experimental_steeringSignal?: SteeringSignal;
   };
 
 /**

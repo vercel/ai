@@ -120,6 +120,10 @@ import { convertToReasoningOutputs } from './reasoning-output';
 import type { ResponseMessage } from './response-message';
 import { createRestrictedTelemetryDispatcher } from './restricted-telemetry-dispatcher';
 import {
+  asInternalSteeringSignal,
+  type SteeringSignal,
+} from './steering-controller';
+import {
   DefaultStepResult,
   type StepResult,
   type StepResultPerformance,
@@ -429,6 +433,7 @@ export function streamText<
   experimental_telemetry,
   telemetry = experimental_telemetry,
   prepareStep,
+  experimental_steeringSignal,
   providerOptions,
   activeTools,
   toolOrder,
@@ -570,6 +575,13 @@ export function streamText<
      * If you return undefined (or for undefined settings), the settings from the outer level will be used.
      */
     prepareStep?: PrepareStepFunction<NoInfer<TOOLS>, RUNTIME_CONTEXT>;
+
+    /**
+     * Optional steering signal to enable mid-turn steering.
+     *
+     * @experimental
+     */
+    experimental_steeringSignal?: SteeringSignal | undefined;
 
     /**
      * A function that attempts to repair a tool call that failed to parse.
@@ -892,6 +904,7 @@ export function streamText<
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
+    experimental_steeringSignal,
     timeout,
     onChunk,
     onError,
@@ -1276,6 +1289,7 @@ class DefaultStreamTextResult<
     experimental_toolApprovalSecret,
     providerOptions,
     prepareStep,
+    experimental_steeringSignal,
     now,
     generateId,
     generateCallId,
@@ -1336,6 +1350,7 @@ class DefaultStreamTextResult<
     prepareStep:
       | PrepareStepFunction<NoInfer<TOOLS>, NoInfer<RUNTIME_CONTEXT>>
       | undefined;
+    experimental_steeringSignal: SteeringSignal | undefined;
     now: () => number;
     generateId: () => string;
     generateCallId: () => string;
@@ -1859,6 +1874,7 @@ class DefaultStreamTextResult<
         // abort handling:
         async function abort() {
           isAborted = true;
+          internalSteeringSignal?.abort(abortSignal?.reason);
 
           await notify({
             event: {
@@ -1957,6 +1973,11 @@ class DefaultStreamTextResult<
     const self = this;
 
     const callId = generateCallId();
+
+    const internalSteeringSignal = asInternalSteeringSignal(
+      experimental_steeringSignal,
+    );
+    internalSteeringSignal?.bind(callId, abortSignal);
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -3099,20 +3120,40 @@ class DefaultStreamTextResult<
                   // Clear this step's timeouts before the next step is started.
                   cleanupStepTimeouts();
 
-                  if (
-                    // Continue only after all client tool calls have been executed or denied,
-                    // and if there are client results or pending deferred provider results.
+                  const hasCompletedClientToolCalls =
                     clientToolCalls.length ===
-                      clientToolOutputs.length +
-                        deniedToolApprovalResponses.length &&
-                    (clientToolCalls.length > 0 ||
-                      pendingDeferredToolCalls.size > 0) &&
-                    // continue until a stop condition is met:
-                    !(await isStopConditionMet({
-                      stopConditions,
-                      steps: recordedSteps,
-                    }))
-                  ) {
+                    clientToolOutputs.length +
+                      deniedToolApprovalResponses.length;
+                  const hasPendingToolCalls =
+                    clientToolCalls.length > 0 ||
+                    pendingDeferredToolCalls.size > 0;
+
+                  const hasToolContinuation =
+                    hasCompletedClientToolCalls && hasPendingToolCalls;
+
+                  const isNaturalStopConditionMet = hasToolContinuation
+                    ? await isStopConditionMet({
+                        stopConditions,
+                        steps: recordedSteps,
+                      })
+                    : true;
+
+                  const canContinueNaturally =
+                    hasToolContinuation && !isNaturalStopConditionMet;
+
+                  const steeredItems = hasCompletedClientToolCalls
+                    ? (internalSteeringSignal?.drain() ?? [])
+                    : [];
+
+                  if (steeredItems.length > 0) {
+                    for (const item of steeredItems) {
+                      stepMessagesForNextStep = [
+                        ...(stepMessagesForNextStep ?? []),
+                        ...item.messages,
+                      ];
+                      item.resolve({ stepNumber: currentStep + 1 });
+                    }
+
                     try {
                       await runInStreamTextTracingChannelContext(() =>
                         streamStep({
@@ -3121,6 +3162,24 @@ class DefaultStreamTextResult<
                         }),
                       );
                     } catch (error) {
+                      internalSteeringSignal?.abort(error);
+                      enqueueStepPart(controller, {
+                        type: 'error',
+                        error,
+                      });
+
+                      self.closeStream();
+                    }
+                  } else if (canContinueNaturally) {
+                    try {
+                      await runInStreamTextTracingChannelContext(() =>
+                        streamStep({
+                          currentStep: currentStep + 1,
+                          usage: combinedUsage,
+                        }),
+                      );
+                    } catch (error) {
+                      internalSteeringSignal?.abort(error);
                       enqueueStepPart(controller, {
                         type: 'error',
                         error,
@@ -3129,6 +3188,8 @@ class DefaultStreamTextResult<
                       self.closeStream();
                     }
                   } else {
+                    internalSteeringSignal?.seal();
+
                     enqueueStepPart(controller, {
                       type: 'finish',
                       finishReason: stepFinishReason,
@@ -3137,6 +3198,7 @@ class DefaultStreamTextResult<
                     });
 
                     self.closeStream(); // close the stitchable stream
+                    internalSteeringSignal?.complete();
                   }
                 },
               }),
@@ -3162,6 +3224,7 @@ class DefaultStreamTextResult<
         }),
       );
     })().catch(async error => {
+      internalSteeringSignal?.abort(error);
       await telemetryDispatcher.onError?.({ callId, error });
       self._initialResponseMessages.reject(error);
       markPromiseAsHandled(self._initialResponseMessages.promise);
