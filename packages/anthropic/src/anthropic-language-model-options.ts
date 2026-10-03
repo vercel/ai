@@ -137,9 +137,12 @@ export const anthropicLanguageModelOptions = z.object({
    *
    * - `outputFormat`: Use the `output_config.format` parameter to specify the structured output format.
    * - `jsonTool`: Use a special 'json' tool to specify the structured output format.
+   * - `autoTool`: Use both `output_config.format` and a strict JSON tool with automatic tool choice.
    * - `auto`: Use 'outputFormat' when supported, otherwise use 'jsonTool' (default).
    */
-  structuredOutputMode: z.enum(['outputFormat', 'jsonTool', 'auto']).optional(),
+  structuredOutputMode: z
+    .enum(['outputFormat', 'jsonTool', 'autoTool', 'auto'])
+    .optional(),
 
   /**
    * Configuration for enabling Claude's extended thinking.
