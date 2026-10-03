@@ -19,6 +19,7 @@ import {
   generateId,
   type InferToolSetContext,
   isExecutableTool,
+  type ModelMessage,
   safeParseJSON,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
@@ -160,6 +161,14 @@ export function runPrompt<
 } {
   const callId = generateId();
   const toolsContext = input.toolsContext ?? ({} as InferToolSetContext<TOOLS>);
+  const approvalMessages: ModelMessage[] =
+    input.prompt == null
+      ? []
+      : [
+          typeof input.prompt === 'string'
+            ? { role: 'user', content: input.prompt }
+            : input.prompt,
+        ];
   const result = new HarnessStreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>({
     tools: input.tools,
     runtimeContext: input.runtimeContext,
@@ -506,12 +515,14 @@ export function runPrompt<
     const enqueueApprovalRequest = (approval: {
       approvalId: string;
       toolCall: ToolCallTextStreamPart;
+      reason?: string;
       isAutomatic?: boolean;
     }): void => {
       const part = {
         type: 'tool-approval-request',
         approvalId: approval.approvalId,
         toolCall: approval.toolCall,
+        ...(approval.reason !== undefined ? { reason: approval.reason } : {}),
         ...(approval.isAutomatic !== undefined
           ? { isAutomatic: approval.isAutomatic }
           : {}),
@@ -1276,11 +1287,18 @@ export function runPrompt<
             });
             continue;
           }
-          const customToolApprovalDecision = resolveCustomToolApproval({
-            toolName: toolCall.toolName,
+          const {
+            decision: customToolApprovalDecision,
+            source: customToolApprovalSource,
+          } = await resolveCustomToolApproval({
+            toolCall: parsedToolCall as TypedToolCall<ToolSet>,
+            tools: activeTools,
+            toolsContext,
+            messages: approvalMessages,
+            runtimeContext: input.runtimeContext,
             toolApproval: input.toolApproval,
           });
-          if (customToolApprovalDecision.type === 'deny') {
+          if (customToolApprovalDecision.type === 'denied') {
             const approvalId = generateId();
             enqueueApprovalRequest({
               approvalId,
@@ -1315,9 +1333,27 @@ export function runPrompt<
             }
             continue;
           }
+          if (
+            customToolApprovalSource === 'callback' &&
+            customToolApprovalDecision.type === 'approved'
+          ) {
+            const approvalId = generateId();
+            enqueueApprovalRequest({
+              approvalId,
+              toolCall: parsedToolCall,
+              isAutomatic: true,
+            });
+            enqueueAutomaticApprovalResponse({
+              approvalId,
+              toolCall: parsedToolCall,
+              approved: true,
+              reason: customToolApprovalDecision.reason,
+              providerExecuted: false,
+            });
+          }
           const pendingApproval =
             pendingApprovalsByToolCallId.get(toolCall.toolCallId) ??
-            (customToolApprovalDecision.type === 'request'
+            (customToolApprovalDecision.type === 'user-approval'
               ? ({
                   approvalId: generateId(),
                   toolCallId: toolCall.toolCallId,
@@ -1363,6 +1399,7 @@ export function runPrompt<
             enqueueApprovalRequest({
               approvalId: pendingApproval.approvalId,
               toolCall: pendingParsedToolCall,
+              reason: customToolApprovalDecision.reason,
             });
             if (
               expectedStepToolCallCount != null &&
