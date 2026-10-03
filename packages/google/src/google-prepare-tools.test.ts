@@ -492,6 +492,128 @@ it('should handle tool choice with mixed tools (provider-defined tools only)', (
   `);
 });
 
+it('should keep function tools when no provider-defined tool is supported', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-1.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toBeUndefined();
+
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "details": "Google Search requires Gemini 2.0 or newer.",
+        "feature": "provider-defined tool google.google_search",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
+it('should apply tool choice to function tools when no provider-defined tool is supported', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.google_search',
+        name: 'google_search',
+        args: {},
+      },
+    ],
+    toolChoice: { type: 'required' },
+    modelId: 'gemini-1.5-flash',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolConfig).toEqual({
+    functionCallingConfig: { mode: 'ANY' },
+  });
+});
+
+it('should keep function tools when a provider-defined tool is unknown', () => {
+  const result = prepareTools({
+    tools: [
+      {
+        type: 'function',
+        name: 'testFunction',
+        description: 'A test function',
+        inputSchema: { type: 'object', properties: {} },
+      },
+      {
+        type: 'provider',
+        id: 'google.unknown_tool',
+        name: 'unknown_tool',
+        args: {},
+      },
+    ],
+    modelId: 'gemini-3-pro-preview',
+  });
+
+  expect(result.tools).toEqual([
+    {
+      functionDeclarations: [
+        {
+          name: 'testFunction',
+          description: 'A test function',
+          parametersJsonSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ]);
+
+  expect(result.toolWarnings).toMatchInlineSnapshot(`
+    [
+      {
+        "feature": "provider-defined tool google.unknown_tool",
+        "type": "unsupported",
+      },
+    ]
+  `);
+});
+
 it('should combine function and provider-defined tools on Gemini 3 models', () => {
   const result = prepareTools({
     tools: [
