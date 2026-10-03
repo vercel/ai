@@ -162,6 +162,22 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
             return getCurrentStepParts().filter(isToolUIPart);
           }
 
+          function getStepIndex(targetPart?: object) {
+            let stepIndex = -1;
+
+            for (const part of state.message.parts) {
+              if (part.type === 'step-start') {
+                stepIndex++;
+              }
+
+              if (part === targetPart) {
+                break;
+              }
+            }
+
+            return Math.max(stepIndex, 0);
+          }
+
           function getToolInvocation(toolCallId: string) {
             const toolInvocations = getCurrentStepToolInvocations();
 
@@ -238,6 +254,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   providerExecuted?: boolean;
                   preliminary?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  resultStepIndex?: number;
                 }
               | {
                   state: 'output-error';
@@ -246,6 +263,7 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   errorText: string;
                   providerExecuted?: boolean;
                   providerMetadata?: ProviderMetadata;
+                  resultStepIndex?: number;
                 }
             ),
             existingPart?: ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
@@ -268,6 +286,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
+              if (anyOptions.resultStepIndex !== undefined) {
+                anyPart.resultStepIndex = anyOptions.resultStepIndex;
+              } else {
+                delete anyPart.resultStepIndex;
+              }
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
@@ -310,6 +333,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 errorText: anyOptions.errorText,
                 providerExecuted: anyOptions.providerExecuted,
                 preliminary: anyOptions.preliminary,
+                ...(anyOptions.resultStepIndex !== undefined
+                  ? { resultStepIndex: anyOptions.resultStepIndex }
+                  : {}),
                 ...(anyOptions.providerMetadata != null &&
                 (options.state === 'output-available' ||
                   options.state === 'output-error')
@@ -351,12 +377,14 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                   output: unknown;
                   preliminary: boolean | undefined;
                   providerMetadata?: ProviderMetadata;
+                  resultStepIndex?: number;
                 }
               | {
                   state: 'output-error';
                   input: unknown;
                   errorText: string;
                   providerMetadata?: ProviderMetadata;
+                  resultStepIndex?: number;
                 }
             ),
             existingPart?: DynamicToolUIPart,
@@ -380,6 +408,11 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
               anyPart.errorText = anyOptions.errorText;
               anyPart.rawInput = anyOptions.rawInput;
               anyPart.preliminary = anyOptions.preliminary;
+              if (anyOptions.resultStepIndex !== undefined) {
+                anyPart.resultStepIndex = anyOptions.resultStepIndex;
+              } else {
+                delete anyPart.resultStepIndex;
+              }
               if (options.title !== undefined) {
                 anyPart.title = options.title;
               }
@@ -417,6 +450,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                 output: anyOptions.output,
                 errorText: anyOptions.errorText,
                 preliminary: anyOptions.preliminary,
+                ...(anyOptions.resultStepIndex !== undefined
+                  ? { resultStepIndex: anyOptions.resultStepIndex }
+                  : {}),
                 providerExecuted: anyOptions.providerExecuted,
                 title: options.title,
                 ...(options.toolMetadata !== undefined
@@ -843,6 +879,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-available': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const resultStepIndex = getStepIndex();
+              const isDeferredProviderResult =
+                (chunk.providerExecuted ?? toolInvocation.providerExecuted) ===
+                  true && resultStepIndex > getStepIndex(toolInvocation);
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
@@ -858,6 +898,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     title: toolInvocation.title,
                     toolMetadata:
                       chunk.toolMetadata ?? toolInvocation.toolMetadata,
+                    resultStepIndex: isDeferredProviderResult
+                      ? resultStepIndex
+                      : undefined,
                   },
                   toolInvocation,
                 );
@@ -875,6 +918,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     title: toolInvocation.title,
                     toolMetadata:
                       chunk.toolMetadata ?? toolInvocation.toolMetadata,
+                    resultStepIndex: isDeferredProviderResult
+                      ? resultStepIndex
+                      : undefined,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
@@ -886,6 +932,10 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
 
             case 'tool-output-error': {
               const toolInvocation = getToolInvocation(chunk.toolCallId);
+              const resultStepIndex = getStepIndex();
+              const isDeferredProviderResult =
+                (chunk.providerExecuted ?? toolInvocation.providerExecuted) ===
+                  true && resultStepIndex > getStepIndex(toolInvocation);
 
               if (toolInvocation.type === 'dynamic-tool') {
                 updateDynamicToolPart(
@@ -900,6 +950,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     title: toolInvocation.title,
                     toolMetadata:
                       chunk.toolMetadata ?? toolInvocation.toolMetadata,
+                    resultStepIndex: isDeferredProviderResult
+                      ? resultStepIndex
+                      : undefined,
                   },
                   toolInvocation,
                 );
@@ -917,6 +970,9 @@ export function processUIMessageStream<UI_MESSAGE extends UIMessage>({
                     title: toolInvocation.title,
                     toolMetadata:
                       chunk.toolMetadata ?? toolInvocation.toolMetadata,
+                    resultStepIndex: isDeferredProviderResult
+                      ? resultStepIndex
+                      : undefined,
                   },
                   toolInvocation as ToolUIPart<InferUIMessageTools<UI_MESSAGE>>,
                 );
