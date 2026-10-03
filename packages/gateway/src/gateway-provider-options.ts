@@ -105,9 +105,10 @@ export type GatewayProviderOptions<QUESTION_ID extends string = string> = {
   /** Array of provider slugs specifying the provider attempt order. */
   order?: string[];
 
-  /** Per-provider timeouts for BYOK credentials in milliseconds. */
+  /** Per-provider timeouts for BYOK and system credentials in milliseconds. */
   providerTimeouts?: {
     byok?: Record<string, number>;
+    system?: Record<string, number>;
   };
 
   /** Entity identifier against which quota is tracked. */
