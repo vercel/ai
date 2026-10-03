@@ -15,6 +15,7 @@
     "@ai-sdk/code-mode": "workspace:*",
     "@ai-sdk/cohere": "workspace:*",
     "@ai-sdk/deepseek": "workspace:*",
+    "@ai-sdk/elevenlabs": "workspace:*",
     "@ai-sdk/fireworks": "workspace:*",
     "@ai-sdk/google": "workspace:*",
     "@ai-sdk/google-vertex": "workspace:*",
