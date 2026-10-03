@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "issueId": 9254,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-9254-openai-web-search-sources.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-9254-openai-web-search-sources.ts",
+    "packages/openai/src/responses/openai-responses-language-model.issue-9254.test.ts",
+    "packages/openai/src/responses/__fixtures__/openai-web-search-tool.1.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #9254: AI SDK omitted 9 of 16 OpenAI web-search sources from result.sources."
+  }
+}
