@@ -60,6 +60,7 @@ export function createPerplexity(
           environmentVariableName: 'PERPLEXITY_API_KEY',
           description: 'Perplexity',
         })}`,
+        'X-Pplx-Integration': 'vercel-ai-sdk',
         ...options.headers,
       },
       `ai-sdk/perplexity/${VERSION}`,
