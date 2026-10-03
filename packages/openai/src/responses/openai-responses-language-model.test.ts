@@ -4119,6 +4119,23 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should include web search tool call and result in content', async () => {
         expect(result.content).toMatchSnapshot();
       });
+
+      it('should expose searched URLs as sources without conflating inline citations', () => {
+        const webSearchResult = result.content.find(
+          part => part.type === 'tool-result' && part.toolName === 'webSearch',
+        );
+        const expectedSourceUrls = (
+          (webSearchResult as any)?.result?.sources ?? []
+        )
+          .filter((source: any) => source.type === 'url')
+          .map((source: any) => source.url);
+        const actualSourceUrls = result.content
+          .filter(part => part.type === 'source' && part.sourceType === 'url')
+          .map(part => part.url);
+
+        expect(actualSourceUrls).toHaveLength(expectedSourceUrls.length);
+        expect(new Set(actualSourceUrls)).toEqual(new Set(expectedSourceUrls));
+      });
     });
 
     it('should not include web search sources when disabled by provider options', async () => {
