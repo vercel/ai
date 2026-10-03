@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21829,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-21829-load-time-statistic.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-21829-load-time-statistic.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_21829: load-time check fails even though the exported median is within the threshold"
+  }
+}
