@@ -1,8 +1,0 @@
-{
-  "type": "error",
-  "error": {
-    "type": "invalid_request_error",
-    "message": "messages.1.content.0: Input tag 'fallback' found using 'type' does not match any of the expected tags: 'bash_code_execution_tool_result', 'code_execution_tool_result', 'connector_text', 'container_upload', 'document', 'image', 'mid_conv_system', 'redacted_thinking', 'search_result', 'server_tool_use', 'text', 'text_editor_code_execution_tool_result', 'thinking', 'tool_result', 'tool_search_tool_result', 'tool_use', 'web_fetch_tool_result', 'web_search_tool_result'"
-  },
-  "request_id": "req_011CffsirYGiLLcYcNXyb8wu"
-}
