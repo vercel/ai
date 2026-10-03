@@ -1,6 +1,6 @@
 ---
 title: Loop Control
-description: Control agent execution with built-in loop management using stopWhen and prepareStep
+description: Control agent execution with built-in loop management using stopWhen, continueWhen, and prepareStep
 ---
 
 # Loop Control
@@ -12,7 +12,7 @@ You can control both the execution flow and the settings at each step of the age
 - A tool call needs approval, or
 - A stop condition is met
 
-The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
+The AI SDK provides built-in loop control through `stopWhen` for defining stopping conditions, `continueWhen` for requesting another step after natural completion, and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
 
 ## Stop Conditions
 
@@ -145,6 +145,46 @@ const budgetExceeded: StopCondition<typeof tools> = ({ steps }) => {
   return costEstimate > 0.5; // Stop if cost exceeds $0.50
 };
 ```
+
+## Continue Conditions
+
+The `continueWhen` callback lets you request another model step when the loop
+would otherwise finish naturally, such as when the model returns a normal
+`stop` finish reason without calling a tool. Existing tool-call continuation
+behavior is unchanged, and `stopWhen` still takes precedence.
+
+This is useful when application state changes while an agent is running. For
+example, you can keep pending user input in an application-owned queue,
+request another step while that queue is non-empty, and append the queued input
+from `prepareStep`:
+
+```ts
+import { ToolLoopAgent, type ModelMessage } from 'ai';
+__PROVIDER_IMPORT__;
+
+const pendingMessages: ModelMessage[] = [];
+
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  tools: {
+    // your tools
+  },
+  continueWhen: () => pendingMessages.length > 0,
+  prepareStep: ({ messages }) => {
+    if (pendingMessages.length === 0) {
+      return;
+    }
+
+    return {
+      messages: [...messages, ...pendingMessages.splice(0)],
+    };
+  },
+});
+```
+
+For `generateText` and `streamText`, the default `stopWhen` is
+`isStepCount(1)`. Configure a larger step limit when using `continueWhen`
+with those functions. `ToolLoopAgent` defaults to `isStepCount(20)`.
 
 ## Prepare Step
 

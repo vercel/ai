@@ -1,8 +1,13 @@
-import type { LanguageModelV4CallOptions } from '@ai-sdk/provider';
+import type {
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import {
+  DelayedPromise,
   experimental_toolCaller,
   tool,
   type Experimental_SandboxSession as SandboxSession,
+  type ModelMessage,
 } from '@ai-sdk/provider-utils';
 import {
   convertArrayToReadableStream,
@@ -21,6 +26,7 @@ import type {
   ToolExecutionStartEvent,
 } from '../generate-text/tool-execution-events';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
+import { isStepCount } from '../generate-text/stop-condition';
 import { now } from '../util/now';
 import { ToolLoopAgent } from './tool-loop-agent';
 
@@ -4159,6 +4165,159 @@ describe('ToolLoopAgent', () => {
       });
     });
   });
+
+  describe.each(['generate', 'stream'] as const)(
+    '%s mid-run messages',
+    mode => {
+      it('steers during a tool and queues a followup until natural completion', async () => {
+        const toolStarted = new DelayedPromise<void>();
+        const releaseTool = new DelayedPromise<void>();
+        const steering: ModelMessage[] = [];
+        const followups: ModelMessage[] = [];
+        let readyFollowups: ModelMessage[] = [];
+        let modelCallCount = 0;
+        let continuationChecks = 0;
+
+        const usage = {
+          inputTokens: {
+            total: 1,
+            noCache: 1,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 1, text: 1, reasoning: undefined },
+        };
+
+        const model = new MockLanguageModelV4({
+          doGenerate: async () => {
+            const call = modelCallCount++;
+            const toolCall = call < 2;
+            return {
+              content: toolCall
+                ? [
+                    {
+                      type: 'tool-call' as const,
+                      toolCallId: `call-${call}`,
+                      toolName: 'work',
+                      input: '{}',
+                    },
+                  ]
+                : [{ type: 'text' as const, text: 'done' }],
+              finishReason: {
+                unified: toolCall ? ('tool-calls' as const) : ('stop' as const),
+                raw: toolCall ? 'tool_calls' : 'stop',
+              },
+              usage,
+              warnings: [],
+            };
+          },
+          doStream: async () => {
+            const call = modelCallCount++;
+            const toolCall = call < 2;
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start' as const, warnings: [] },
+                ...(toolCall
+                  ? [
+                      {
+                        type: 'tool-call' as const,
+                        toolCallId: `call-${call}`,
+                        toolName: 'work',
+                        input: '{}',
+                      },
+                    ]
+                  : [
+                      { type: 'text-start' as const, id: 'text' },
+                      {
+                        type: 'text-delta' as const,
+                        id: 'text',
+                        delta: 'done',
+                      },
+                      { type: 'text-end' as const, id: 'text' },
+                    ]),
+                {
+                  type: 'finish' as const,
+                  finishReason: {
+                    unified: toolCall
+                      ? ('tool-calls' as const)
+                      : ('stop' as const),
+                    raw: toolCall ? 'tool_calls' : 'stop',
+                  },
+                  usage,
+                },
+              ]),
+            };
+          },
+        });
+
+        const agent = new ToolLoopAgent({
+          model,
+          stopWhen: isStepCount(8),
+          tools: {
+            work: tool({
+              inputSchema: z.object({}),
+              execute: async () => {
+                if (modelCallCount === 1) {
+                  toolStarted.resolve(undefined);
+                  await releaseTool.promise;
+                }
+                return 'ok';
+              },
+            }),
+          },
+          continueWhen: () => {
+            continuationChecks++;
+            readyFollowups = followups.splice(0, 1);
+            return readyFollowups.length > 0;
+          },
+          prepareStep: ({ messages }) => {
+            const incoming = [
+              ...steering.splice(0),
+              ...readyFollowups.splice(0),
+            ];
+            return incoming.length > 0
+              ? { messages: [...messages, ...incoming] }
+              : undefined;
+          },
+        });
+
+        const running =
+          mode === 'generate'
+            ? agent.generate({ prompt: 'original task' })
+            : agent.stream({ prompt: 'original task' }).then(async result => {
+                await result.consumeStream();
+                return result;
+              });
+
+        await toolStarted.promise;
+        expect(modelCallCount).toBe(1);
+        steering.push({ role: 'user', content: 'steer now' });
+        followups.push({ role: 'user', content: 'follow up later' });
+        releaseTool.resolve(undefined);
+        await running;
+
+        const prompts =
+          mode === 'generate' ? model.doGenerateCalls : model.doStreamCalls;
+        const userMessages = (prompt: LanguageModelV4Prompt) =>
+          prompt
+            .filter(message => message.role === 'user')
+            .map(message =>
+              message.content
+                .filter(part => part.type === 'text')
+                .map(part => part.text)
+                .join(''),
+            );
+
+        expect(prompts.map(({ prompt }) => userMessages(prompt))).toEqual([
+          ['original task'],
+          ['original task', 'steer now'],
+          ['original task', 'steer now'],
+          ['original task', 'steer now', 'follow up later'],
+        ]);
+        expect(continuationChecks).toBe(2);
+      });
+    },
+  );
 
   describe('callOptionsSchema', () => {
     it('should reject options that fail callOptionsSchema validation before invoking the model', async () => {
