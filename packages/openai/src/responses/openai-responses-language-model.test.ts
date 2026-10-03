@@ -1866,7 +1866,7 @@ describe('OpenAIResponsesLanguageModel', () => {
       it('should throw an error', async () => {
         prepareJsonFixtureResponse('openai-error.1');
 
-        expect(
+        await expect(
           createModel('gpt-4o').doGenerate({
             prompt: TEST_PROMPT,
           }),
@@ -4461,56 +4461,72 @@ describe('OpenAIResponsesLanguageModel', () => {
     });
 
     describe('errors', () => {
-      it('should stream error parts', async () => {
+      it('should throw an api error when the stream errors before output starts', async () => {
         prepareChunksFixtureResponse('openai-error.1');
+
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: false,
+          }),
+        ).rejects.toMatchObject({
+          message:
+            'You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.',
+          statusCode: 429,
+          isRetryable: true,
+        });
+      });
+
+      it('should throw an api error for documented top-level error events before output starts', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_error_top_level","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"error","sequence_number":1,"code":"rate_limit_exceeded","message":"Rate limit reached","param":null}\n\n`,
+          ],
+        };
+
+        await expect(
+          createModel('gpt-4o-mini').doStream({
+            prompt: TEST_PROMPT,
+            includeRawChunks: true,
+          }),
+        ).rejects.toMatchObject({
+          message: 'Rate limit reached',
+          statusCode: 429,
+          isRetryable: true,
+        });
+      });
+
+      it('should forward error stream parts after output has started', async () => {
+        server.urls['https://api.openai.com/v1/responses'].response = {
+          type: 'stream-chunks',
+          chunks: [
+            `data:{"type":"response.created","sequence_number":0,"response":{"id":"resp_error_after_output","created_at":1741269019,"model":"gpt-4o-2024-07-18","service_tier":null}}\n\n`,
+            `data:{"type":"response.output_item.added","sequence_number":1,"output_index":0,"item":{"id":"msg_error_after_output","type":"message"}}\n\n`,
+            `data:{"type":"error","sequence_number":2,"error":{"type":"server_error","code":"server_error","message":"stream failed after output","param":null}}\n\n`,
+          ],
+        };
 
         const { stream } = await createModel('gpt-4o-mini').doStream({
           prompt: TEST_PROMPT,
           includeRawChunks: false,
         });
 
-        expect(await convertReadableStreamToArray(stream))
-          .toMatchInlineSnapshot(`
-            [
-              {
-                "type": "stream-start",
-                "warnings": [],
-              },
-              {
-                "id": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
-                "modelId": "gpt-5-nano-2025-08-07",
-                "timestamp": 2025-11-18T14:03:09.000Z,
-                "type": "response-metadata",
-              },
-              {
-                "error": {
-                  "error": {
-                    "code": "insufficient_quota",
-                    "message": "You exceeded your current quota, please check your plan and billing details. For more information on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors.",
-                    "param": null,
-                    "type": "insufficient_quota",
-                  },
-                  "sequence_number": 2,
-                  "type": "error",
-                },
-                "type": "error",
-              },
-              {
-                "finishReason": "unknown",
-                "providerMetadata": {
-                  "openai": {
-                    "responseId": "resp_05500b38c2cd9bfc00691c7c9d222481a3b595421266dab424",
-                  },
-                },
-                "type": "finish",
-                "usage": {
-                  "inputTokens": undefined,
-                  "outputTokens": undefined,
-                  "totalTokens": undefined,
-                },
-              },
-            ]
-          `);
+        const parts = await convertReadableStreamToArray(stream);
+
+        expect(parts.find(part => part.type === 'error')).toMatchObject({
+          type: 'error',
+          error: {
+            type: 'error',
+            sequence_number: 2,
+            error: { message: 'stream failed after output' },
+          },
+        });
+        expect(parts.at(-1)).toMatchObject({
+          type: 'finish',
+          finishReason: 'error',
+        });
       });
     });
 
