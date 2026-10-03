@@ -1,0 +1,8 @@
+{
+  "type": "error",
+  "error": {
+    "type": "invalid_request_error",
+    "message": "source tool `srvtoolu_01Issue12504Source` not found for tool use block `toolu_01Issue12504Lookup`"
+  },
+  "request_id": "req_011CfWCd1Y1RHapeWbHJBybY"
+}
