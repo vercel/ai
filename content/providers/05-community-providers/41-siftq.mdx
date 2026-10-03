@@ -1,0 +1,131 @@
+---
+title: SiftQ
+description: Learn how to use the SiftQ video provider for the AI SDK.
+---
+
+# SiftQ Provider
+
+[siftq-ai-provider](https://github.com/siftq/siftq-ai-provider) is a community
+provider that adds asynchronous SiftQ video generation to the AI SDK. It
+supports text, frame-image, and multimodal reference inputs for the fixed
+`MiniMax-H3` video model.
+
+## Setup
+
+The SiftQ provider is available via the `siftq-ai-provider` module. Install it
+with:
+
+<InstallPackages packages="siftq-ai-provider" />
+
+Set the API key in your server environment:
+
+```bash
+SIFTQ_API_KEY=your-api-key
+```
+
+## Provider Instance
+
+Import the default provider instance `siftq` from `siftq-ai-provider`:
+
+```ts
+import { siftq } from 'siftq-ai-provider';
+```
+
+SiftQ currently exposes one fixed video model, so the video factory does not
+require a model ID:
+
+```ts
+const model = siftq.video();
+```
+
+## Video Generation
+
+Use the SiftQ provider with `experimental_generateVideo`:
+
+```ts
+import { experimental_generateVideo as generateVideo } from 'ai';
+import { siftq, type SiftQVideoModelOptions } from 'siftq-ai-provider';
+
+const { videos, providerMetadata } = await generateVideo({
+  model: siftq.video(),
+  prompt: 'A paper boat crossing a moonlit ocean, cinematic lighting',
+  aspectRatio: '16:9',
+  duration: 6,
+  providerOptions: {
+    siftq: {
+      resolution: '2K',
+    } satisfies SiftQVideoModelOptions,
+  },
+  poll: {
+    intervalMs: 5_000,
+    timeoutMs: 900_000,
+  },
+});
+
+console.log(videos.length);
+console.log(providerMetadata?.siftq?.taskId);
+```
+
+The AI SDK manages task polling, timeouts, and result retrieval through the
+provider's asynchronous video model implementation.
+
+### Image-to-Video
+
+Use `prompt.image` to provide the first frame:
+
+```ts
+const { videos } = await generateVideo({
+  model: siftq.video(),
+  prompt: {
+    image: 'https://example.com/first-frame.png',
+    text: 'The camera slowly moves forward while the lanterns flicker',
+  },
+  duration: 6,
+});
+```
+
+The provider also supports first-and-last-frame generation through
+`frameImages`, and reference image, video, and audio inputs through
+`inputReferences` and SiftQ provider options.
+
+## Provider Options
+
+The following options are available under `providerOptions.siftq`:
+
+- **resolution** _'768P' | '2K'_
+
+  Sets the output resolution. The default is `2K`.
+
+- **ratio** _'adaptive' | '21:9' | '16:9' | '4:3' | '1:1' | '3:4' | '9:16'_
+
+  Overrides the output aspect ratio. The default depends on the input mode.
+
+- **referenceAudioUrls** _string[]_
+
+  Adds up to three audio references using HTTP(S), data URI, or `mm_file://`
+  locations.
+
+Video duration must be an integer from 4 through 15 seconds.
+
+## Custom Configuration
+
+Use `createSiftQ` to provide custom configuration:
+
+```ts
+import { createSiftQ } from 'siftq-ai-provider';
+
+const siftq = createSiftQ({
+  apiKey: process.env.SIFTQ_API_KEY,
+  baseURL: 'https://siftq.com/api/minimax/',
+  headers: {
+    'x-project-id': 'video-workflow',
+  },
+});
+```
+
+`createSiftQ` also accepts a custom `fetch` implementation.
+
+## Additional Resources
+
+- [SiftQ provider repository](https://github.com/siftq/siftq-ai-provider)
+- [SiftQ provider package](https://www.npmjs.com/package/siftq-ai-provider)
