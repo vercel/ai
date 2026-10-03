@@ -2407,6 +2407,7 @@ describe('runPrompt host tool generator results', () => {
     const submitted: SubmittedResult[] = [];
     const settled: string[] = [];
     const telemetryEvents: string[] = [];
+    const receivedApprovals: unknown[] = [];
     const integration = {
       onToolExecutionStart() {
         telemetryEvents.push('tool-start');
@@ -2424,10 +2425,13 @@ describe('runPrompt host tool generator results', () => {
     const weather = tool({
       description: 'Get weather',
       inputSchema: z.object({ city: z.string() }),
-      execute: async (args: { city: string }) => ({
-        city: args.city,
-        temperature: 72,
-      }),
+      execute: async (args: { city: string }, { approval }) => {
+        receivedApprovals.push(approval);
+        return {
+          city: args.city,
+          temperature: 72,
+        };
+      },
     });
 
     const { result, done } = runPrompt({
@@ -2489,6 +2493,7 @@ describe('runPrompt host tool generator results', () => {
           type: 'tool-approval-response',
           approvalId: 'approval-1',
           approved: true,
+          reason: 'use corrected city',
         },
       ],
       onToolApprovalSettled: approvalId => settled.push(approvalId),
@@ -2500,6 +2505,13 @@ describe('runPrompt host tool generator results', () => {
     await done;
 
     expect(settled).toEqual(['approval-1']);
+    expect(receivedApprovals).toEqual([
+      {
+        approvalId: 'approval-1',
+        approved: true,
+        reason: 'use corrected city',
+      },
+    ]);
     expect(submitted).toEqual([
       { toolCallId: 'c1', output: { city: 'SF', temperature: 72 } },
     ]);

@@ -4,6 +4,7 @@ import type { ModelMessage } from './model-message';
 import type { SandboxSession } from './sandbox';
 import type {
   ToolExecuteFunction,
+  ToolExecutionApproval,
   ToolExecutionOptions,
 } from './tool-execute-function';
 
@@ -15,6 +16,7 @@ describe('tool execute function types', () => {
       abortSignal?: AbortSignal;
       context: { requestId: string };
       experimental_sandbox?: SandboxSession;
+      approval?: ToolExecutionApproval;
     }>();
   });
 
