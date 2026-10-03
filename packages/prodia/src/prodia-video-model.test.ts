@@ -517,3 +517,264 @@ describe('ProdiaVideoModel', () => {
     });
   });
 });
+
+describe('ProdiaVideoModel - H3 fast', () => {
+  const downloadServer = createTestServer({
+    'https://cdn.example.com/reference': {
+      response: {
+        type: 'binary',
+        body: Buffer.from([7, 8, 9]),
+        headers: { 'content-type': 'application/octet-stream' },
+      },
+    },
+  });
+
+  const image = {
+    type: 'file' as const,
+    mediaType: 'image/png',
+    data: new Uint8Array([1, 2, 3]),
+  };
+  const defaults: Parameters<ProdiaVideoModel['doGenerate']>[0] = {
+    prompt,
+    n: 1,
+    aspectRatio: undefined,
+    resolution: undefined,
+    duration: undefined,
+    fps: undefined,
+    seed: undefined,
+    generateAudio: undefined,
+    image: undefined,
+    frameImages: undefined,
+    inputReferences: undefined,
+    providerOptions: {},
+  };
+
+  function setup(mode: 'txt2vid' | 'img2vid' | 'ref2vid') {
+    let requestBody: BodyInit | undefined | null;
+    const model = createBasicModel({
+      modelId: `inference.minimax.h3.fast.${mode}.v1`,
+      fetch: async (_url, init) => {
+        requestBody = init?.body;
+        const response = createVideoMultipartResponse(defaultJobResult);
+        return new Response(response.body, {
+          headers: { 'content-type': response.contentType },
+        });
+      },
+    });
+    return { model, body: () => requestBody };
+  }
+
+  it('sends text-to-video controls, including a zero seed, and returns the MP4', async () => {
+    const { model, body } = setup('txt2vid');
+    const result = await model.doGenerate({
+      ...defaults,
+      duration: 4,
+      aspectRatio: '9:16',
+      seed: 0,
+      providerOptions: { prodia: { resolution: '768P' } },
+    });
+    expect(JSON.parse(body() as string)).toStrictEqual({
+      type: 'inference.minimax.h3.fast.txt2vid.v1',
+      config: {
+        prompt,
+        duration: 4,
+        aspect_ratio: '9:16',
+        seed: 0,
+        resolution: '768P',
+      },
+    });
+    expect(result.videos[0]).toMatchObject({
+      type: 'binary',
+      mediaType: 'video/mp4',
+    });
+    expect(result.warnings).toEqual([]);
+  });
+
+  it('uploads named first and last frames in role order', async () => {
+    const { model, body } = setup('img2vid');
+    await model.doGenerate({
+      ...defaults,
+      duration: 8,
+      frameImages: [
+        {
+          frameType: 'last_frame',
+          image: { ...image, mediaType: 'image/jpeg', data: 'BAUG' },
+        },
+        { frameType: 'first_frame', image },
+      ],
+    });
+    const form = body() as FormData;
+    expect(JSON.parse(await (form.get('job') as Blob).text())).toStrictEqual({
+      type: 'inference.minimax.h3.fast.img2vid.v1',
+      config: {
+        prompt,
+        duration: 8,
+        first_frame: 'first_frame.png',
+        last_frame: 'last_frame.jpg',
+      },
+    });
+    const files = form.getAll('input') as File[];
+    expect(files.map(file => [file.name, file.type])).toEqual([
+      ['first_frame.png', 'image/png'],
+      ['last_frame.jpg', 'image/jpeg'],
+    ]);
+    expect(new Uint8Array(await files[1].arrayBuffer())).toEqual(
+      new Uint8Array([4, 5, 6]),
+    );
+  });
+
+  it('uses the prompt image as the first frame', async () => {
+    const { model, body } = setup('img2vid');
+    await model.doGenerate({ ...defaults, image });
+    expect(
+      JSON.parse(await ((body() as FormData).get('job') as Blob).text()).config
+        .first_frame,
+    ).toBe('first_frame.png');
+  });
+
+  it('uploads image, video, and audio references in their original order', async () => {
+    const { model, body } = setup('ref2vid');
+    await model.doGenerate({
+      ...defaults,
+      aspectRatio: '4:3',
+      inputReferences: [
+        image,
+        { ...image, mediaType: 'video/mp4' },
+        { ...image, mediaType: 'audio/wav' },
+      ],
+    });
+    const form = body() as FormData;
+    expect(JSON.parse(await (form.get('job') as Blob).text())).toStrictEqual({
+      type: 'inference.minimax.h3.fast.ref2vid.v1',
+      config: {
+        prompt,
+        aspect_ratio: '4:3',
+        references: ['reference_0.png', 'reference_1.mp4', 'reference_2.wav'],
+      },
+    });
+    expect((form.getAll('input') as File[]).map(file => file.type)).toEqual([
+      'image/png',
+      'video/mp4',
+      'audio/wav',
+    ]);
+  });
+
+  it('downloads URL references and preserves an explicit media type', async () => {
+    const { model, body } = setup('ref2vid');
+    await model.doGenerate({
+      ...defaults,
+      inputReferences: [
+        {
+          type: 'url',
+          url: 'https://cdn.example.com/reference',
+          mediaType: 'video/mp4',
+        },
+      ],
+    });
+    const file = (body() as FormData).get('input') as File;
+    expect(file.type).toBe('video/mp4');
+    expect(file.name).toBe('reference_0.mp4');
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(
+      new Uint8Array([7, 8, 9]),
+    );
+    expect(downloadServer.calls).toHaveLength(1);
+  });
+
+  it('blocks private reference URLs before submitting a job', async () => {
+    const { model, body } = setup('ref2vid');
+    await expect(
+      model.doGenerate({
+        ...defaults,
+        inputReferences: [
+          {
+            type: 'url',
+            url: 'http://169.254.169.254/latest/meta-data/',
+            mediaType: 'video/mp4',
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+    expect(body()).toBeUndefined();
+    expect(downloadServer.calls).toHaveLength(0);
+  });
+
+  it('accepts the maximum mixed reference count', async () => {
+    const { model, body } = setup('ref2vid');
+    await model.doGenerate({
+      ...defaults,
+      inputReferences: [
+        ...Array(9).fill(image),
+        ...Array(3).fill({ ...image, mediaType: 'audio/wav' }),
+      ],
+    });
+    expect((body() as FormData).getAll('input')).toHaveLength(12);
+  });
+
+  it.each([
+    ['img2vid', {}],
+    ['img2vid', { frameImages: [{ frameType: 'last_frame', image }] }],
+    ['img2vid', { image, inputReferences: [image] }],
+    ['img2vid', { image: { ...image, mediaType: 'video/mp4' } }],
+    ['txt2vid', { image }],
+    ['txt2vid', { inputReferences: [image] }],
+    ['ref2vid', {}],
+    ['ref2vid', { image, inputReferences: [image] }],
+    ['ref2vid', { inputReferences: [{ ...image, mediaType: 'audio/wav' }] }],
+    [
+      'ref2vid',
+      { inputReferences: [{ ...image, mediaType: 'application/pdf' }] },
+    ],
+    ['ref2vid', { inputReferences: Array(10).fill(image) }],
+    [
+      'ref2vid',
+      { inputReferences: Array(4).fill({ ...image, mediaType: 'video/mp4' }) },
+    ],
+    [
+      'ref2vid',
+      {
+        inputReferences: [
+          image,
+          ...Array(4).fill({ ...image, mediaType: 'audio/wav' }),
+        ],
+      },
+    ],
+    ['ref2vid', { inputReferences: Array(13).fill(image) }],
+  ] as const)(
+    'rejects invalid %s inputs before submitting a job: %j',
+    async (mode, options) => {
+      const { model, body } = setup(mode);
+      await expect(
+        model.doGenerate({ ...defaults, ...options } as Parameters<
+          ProdiaVideoModel['doGenerate']
+        >[0]),
+      ).rejects.toMatchObject({ name: 'AI_InvalidArgumentError' });
+      expect(body()).toBeUndefined();
+    },
+  );
+
+  it('warns about unsupported controls without sending them to Prodia', async () => {
+    const { model, body } = setup('img2vid');
+    const result = await model.doGenerate({
+      ...defaults,
+      image,
+      aspectRatio: '16:9',
+      resolution: '1920x1080',
+      fps: 30,
+      generateAudio: false,
+    });
+    expect(
+      result.warnings.map(warning => 'feature' in warning && warning.feature),
+    ).toEqual(['aspectRatio', 'resolution', 'fps', 'generateAudio']);
+    expect(
+      JSON.parse(await ((body() as FormData).get('job') as Blob).text()).config,
+    ).toEqual({ prompt, first_frame: 'first_frame.png' });
+  });
+
+  it('does not warn for the fixed frame rate and audio setting', async () => {
+    const { model } = setup('txt2vid');
+    expect(
+      (await model.doGenerate({ ...defaults, fps: 24, generateAudio: true }))
+        .warnings,
+    ).toEqual([]);
+  });
+});
