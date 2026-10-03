@@ -2077,7 +2077,7 @@ describe('AnthropicLanguageModel', () => {
         ).toBeUndefined();
       });
 
-      it('should make replayed fallback blocks valid without configuring a fallback chain', async () => {
+      it('should add the fallback beta when replaying a fallback block without a fallback chain', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
         await provider('claude-opus-4-8').doGenerate({
@@ -2112,21 +2112,15 @@ describe('AnthropicLanguageModel', () => {
         });
 
         const body = await server.calls[0].requestBodyJson;
-        const hasFallbackBlock = body.messages.some(
-          (message: { content: Array<{ type: string }> }) =>
-            message.content.some(part => part.type === 'fallback'),
+        expect(body.fallbacks).toBeUndefined();
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'fallback',
+          from: { model: 'claude-opus-5-5' },
+          to: { model: 'claude-opus-4-8' },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
         );
-        const betaHeader = server.calls[0].requestHeaders['anthropic-beta'];
-        const hasFallbackBeta = betaHeader
-          ?.split(',')
-          .some(beta =>
-            [
-              'server-side-fallback-2026-06-01',
-              'server-side-fallback-2026-07-01',
-            ].includes(beta.trim()),
-          );
-
-        expect(hasFallbackBlock && !hasFallbackBeta).toBe(false);
       });
 
       it('should preserve the fallback content block and surface the fallback iteration', async () => {
