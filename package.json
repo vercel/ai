@@ -71,5 +71,5 @@
   "keywords": [
     "ai"
   ],
-  "packageManager": "pnpm@11.23.0"
+  "packageManager": "pnpm@12.1.0"
 }
