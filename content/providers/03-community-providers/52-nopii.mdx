@@ -1,0 +1,122 @@
+---
+title: NoPII
+description: Learn how to use NoPII with the AI SDK.
+---
+
+# NoPII
+
+[NoPII](https://nopii.co) is a hosted privacy proxy that exposes OpenAI- and Anthropic-compatible endpoints. Personal data (names, emails, phone numbers, SSNs, credit cards, and more) in outbound prompts is replaced with deterministic vault tokens before requests reach the underlying LLM, and the original values are restored in the response. The LLM provider only ever sees tokenized placeholders, never raw PII.
+
+It is designed for workflows where you want to:
+
+- Route AI SDK calls through a privacy layer without changing how models are constructed
+- Protect personal data before requests reach OpenAI or Anthropic
+- Preserve deterministic tokenization across multi-turn conversations
+- Audit every entity detected and tokenized
+
+Learn more in the [NoPII documentation](https://docs.nopii.co/quickstart).
+
+## Setup
+
+NoPII works with the existing `@ai-sdk/openai` and `@ai-sdk/anthropic` providers by overriding the `baseURL`. Install the provider(s) you need:
+
+<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
+  <Tab>
+    <Snippet text="pnpm add @ai-sdk/openai @ai-sdk/anthropic" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @ai-sdk/openai @ai-sdk/anthropic" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @ai-sdk/openai @ai-sdk/anthropic" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @ai-sdk/openai @ai-sdk/anthropic" dark />
+  </Tab>
+</Tabs>
+
+NoPII identifies your tenant from the underlying provider key (via a one-way hash), so no separate NoPII credential is required. Set the API key for whichever provider(s) you use:
+
+```bash
+export OPENAI_API_KEY=sk-...
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Sign up and configure your detection settings at [app.nopii.co](https://app.nopii.co).
+
+## OpenAI
+
+Create a provider instance with `createOpenAI` and point `baseURL` at NoPII:
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://api.nopii.co',
+});
+```
+
+Use `openai.chat(...)` (not `openai(...)`) when generating text through NoPII. The default `openai(...)` factory targets OpenAI's Responses API (`/responses`), which NoPII does not proxy. `openai.chat(...)` targets the Chat Completions API (`/chat/completions`), which it does.
+
+```ts
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: 'https://api.nopii.co',
+});
+
+const { text } = await generateText({
+  model: openai.chat('gpt-4o'),
+  prompt:
+    'Summarize the customer record for John Smith. ' +
+    'His SSN is 234-56-7891 and his email is john.smith@acme.com.',
+});
+
+console.log(text);
+```
+
+## Anthropic
+
+Create a provider instance with `createAnthropic` and point `baseURL` at NoPII. Note the `/v1` suffix.
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic';
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: 'https://api.nopii.co/v1',
+});
+```
+
+The `/v1` suffix is required because `@ai-sdk/anthropic` bakes `/v1` into its default base URL (`https://api.anthropic.com/v1`) and does not re-add it when you override `baseURL`. Without `/v1`, the SDK posts to `/messages` and NoPII returns 404.
+
+```ts
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { generateText } from 'ai';
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  baseURL: 'https://api.nopii.co/v1',
+});
+
+const { text } = await generateText({
+  model: anthropic('claude-sonnet-4-20250514'),
+  prompt:
+    'Draft a follow-up note for patient Maria Garcia. ' +
+    'Her SSN is 321-54-9876 and her email is maria.garcia@gmail.com.',
+});
+
+console.log(text);
+```
+
+PII in prompts is tokenized inside NoPII before reaching the model provider, then restored in the response, so the model output may reference the original values.
+
+## Additional Resources
+
+- [NoPII website](https://nopii.co)
+- [NoPII documentation](https://docs.nopii.co/quickstart)
+- [NoPII OpenAI example](https://github.com/Enigma-Vault/NoPII/tree/main/examples/vercel-ai-sdk)
+- [NoPII Anthropic example](https://github.com/Enigma-Vault/NoPII/tree/main/examples/vercel-ai-sdk-anthropic)
