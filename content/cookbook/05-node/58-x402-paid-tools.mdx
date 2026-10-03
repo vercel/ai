@@ -1,0 +1,76 @@
+---
+title: x402 Paid Tools
+description: Let your agent pay for HTTP 402 endpoints autonomously via Voidly Pay.
+tags: ['agents', 'tools', 'mcp', 'x402', 'payments']
+---
+
+# x402 Paid Tools
+
+Some HTTP endpoints respond with `402 Payment Required` instead of returning data immediately. The
+[x402 protocol](https://www.x402.org) lets agents pay these on the fly: a signed quote header
+tells the agent the price and recipient, the agent transfers, and retries with `X-Payment`. One
+round-trip after the first 402.
+
+This recipe wires the AI SDK's `streamText` to a paid endpoint via `@voidly/pay-vercel-ai`,
+which auto-handles the 402 → quote → settle → retry loop. Settlement happens off-chain in
+Voidly Pay credits (Stage 1) or on-chain USDC on Base mainnet (Stage 2). The vault is at
+[`0xb592...1c12`](https://basescan.org/address/0xb592512932a7b354969bb48039c2dc7ad6ad1c12),
+Sourcify-verified, with public reserves at [voidly.ai/pay/proof](https://voidly.ai/pay/proof).
+
+## Install
+
+<Snippet text="pnpm add ai @voidly/pay-vercel-ai" />
+
+## Code
+
+```ts
+import { streamText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { voidlyPayTools } from '@voidly/pay-vercel-ai';
+
+const tools = await voidlyPayTools();
+// Returns 42 tools — marketplace browse, country-fetch, signed scrape,
+// PDF extract, HTML→markdown, hash, timestamp, random, QR, Wikipedia,
+// FX rates, plus wallet/escrow/x402 primitives.
+
+const { textStream } = streamText({
+  model: anthropic('claude-sonnet-4-5'),
+  tools,
+  prompt: 'Pay 1¢ to fetch the Wikipedia summary for "Alan Turing", then summarize it.',
+});
+
+for await (const chunk of textStream) process.stdout.write(chunk);
+```
+
+The agent calls `voidly_wiki` with `title: "Alan Turing"`, the SDK auto-pays the 1¢ from the
+wallet at `~/.voidly-pay-keypair.json` (provisioned with 10 free credits via
+[voidly.ai/pay/claim](https://voidly.ai/pay/claim)), and returns the signed receipt to the
+agent. Total round-trip: under 200ms.
+
+## How it works
+
+1. Agent calls a tool that hits an x402 endpoint
+2. Endpoint returns `HTTP 402` with a signed quote (price, recipient, expiry)
+3. SDK signs a transfer envelope with the agent's Ed25519 keypair
+4. Endpoint verifies and returns the actual response
+
+No accounts, no API keys, no Stripe customer object. The agent's identity is the keypair on disk.
+
+## Discover paid endpoints
+
+Browse the live marketplace at
+[api.voidly.ai/v1/pay/marketplace](https://api.voidly.ai/v1/pay/marketplace) — JSON list of
+every paid endpoint Voidly itself runs (17 today) plus self-served third-party listings. Or
+in code:
+
+```ts
+const tools = await voidlyPayTools();
+const marketplace = await tools.voidly_marketplace_browse();
+console.log(marketplace.items.map(i => `${i.name} @ $${i.pricing.amount_usdc}`));
+```
+
+## List your own paid endpoint
+
+Visit [voidly.ai/pay/list-your-service](https://voidly.ai/pay/list-your-service) — browser-only
+Ed25519 keypair, no install. Once listed, every Voidly-aware agent can find and call your URL.
+Voidly takes zero platform cut on Stage 1.
