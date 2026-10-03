@@ -724,6 +724,7 @@ function createLanguageModelV4StreamPartToLanguageModelStreamPartTransform<
               break;
             }
           } catch (error) {
+            abortSignal?.throwIfAborted();
             controller.enqueue({ type: 'error', error });
           }
 
