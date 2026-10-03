@@ -278,6 +278,20 @@ export const googleLanguageModelOptions = lazySchema(() =>
        * https://docs.cloud.google.com/vertex-ai/generative-ai/docs/priority-paygo
        */
       requestType: z.enum(['shared']).optional(),
+
+      /**
+       * Optional. Direct override for the function calling mode sent as
+       * `toolConfig.functionCallingConfig`. Without it the mode is derived
+       * from `toolChoice`.
+       *
+       * https://ai.google.dev/gemini-api/docs/function-calling?example=meeting#function_calling_modes
+       */
+      functionCallingConfig: z
+        .object({
+          mode: z.enum(['AUTO', 'ANY', 'NONE', 'VALIDATED']).optional(),
+          allowedFunctionNames: z.array(z.string()).optional(),
+        })
+        .optional(),
     }),
   ),
 );
