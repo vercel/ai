@@ -1,5 +1,12 @@
 # @ai-sdk/mcp
 
+## 2.0.67
+
+### Patch Changes
+
+- bba3927: feat(mcp): export MCPClientError for typed MCP failure handling
+- 9384b92: fix(mcp): reject SSE startup when the connection closes before an endpoint is received
+
 ## 2.0.66
 
 ### Patch Changes

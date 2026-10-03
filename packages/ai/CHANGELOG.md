@@ -1,5 +1,15 @@
 # ai
 
+## 7.0.128
+
+### Patch Changes
+
+- 0fe8c67: fix: preserve tool approval state when resuming streams
+- d6b42fd: feat(ai): support custom reasoning delimiters in extractReasoningMiddleware
+- 2136151: Throw `InvalidResponseDataError` instead of a generic `Error` when a generated audio file's format cannot be determined from its media type, so callers can identify the failure with `AISDKError.isInstance`.
+- Updated dependencies [131532b]
+  - @ai-sdk/gateway@4.0.104
+
 ## 7.0.127
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # @ai-sdk/harness
 
+## 1.0.139
+
+### Patch Changes
+
+- e7da240: fix(harness): settle turn telemetry for errors and aborts
+- Updated dependencies [0fe8c67]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+
 ## 1.0.138
 
 ### Patch Changes

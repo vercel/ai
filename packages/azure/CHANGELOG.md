@@ -1,5 +1,13 @@
 # @ai-sdk/azure
 
+## 4.0.91
+
+### Patch Changes
+
+- 9210b70: fix(azure): report the Azure Speech voice-reset 502 as a non-retryable 400. An unknown voice or unsupported style on MAI-Voice-2.1 makes Azure Speech reset the connection with an Envoy `protocol error` 502; since this is a client input error, the resulting `APICallError` now carries `statusCode: 400` so HTTP clients and gateways do not retry it as a server error.
+- Updated dependencies [5b8e63b]
+  - @ai-sdk/openai@4.0.84
+
 ## 4.0.90
 
 ### Patch Changes

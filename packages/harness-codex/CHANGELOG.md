@@ -1,5 +1,14 @@
 # @ai-sdk/harness-codex
 
+## 1.0.141
+
+### Patch Changes
+
+- 15e9b20: fix(harness-codex): only restart recovered Codex turns once
+- 6cfa30f: fix(harness-codex): preserve Codex threads when persisted tool keys are reordered
+- Updated dependencies [e7da240]
+  - @ai-sdk/harness@1.0.139
+
 ## 1.0.140
 
 ### Patch Changes

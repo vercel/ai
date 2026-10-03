@@ -1,5 +1,15 @@
 # @ai-sdk/otel
 
+## 1.0.128
+
+### Patch Changes
+
+- 51e1763: fix(otel): mark span status as `ERROR` when finish reason is `error`
+- Updated dependencies [0fe8c67]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+
 ## 1.0.127
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.143
+
+### Patch Changes
+
+- a470e0d: Fix over-reported `finish` metadata cost when Claude Code returns multiple results. `harnessMetadata['claude-code'].costUsd` now uses the latest cumulative `total_cost_usd` instead of adding running totals together, including costs carried forward by resumed sessions.
+- Updated dependencies [e7da240]
+  - @ai-sdk/harness@1.0.139
+
 ## 1.0.142
 
 ### Patch Changes
