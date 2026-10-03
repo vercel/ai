@@ -370,6 +370,52 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
 
     let toolCallTracker: StreamingToolCallTracker;
 
+    // Buffers tool-call deltas by `index` until `function.name` is known.
+    // Some OpenAI-compatible providers send the first delta without
+    // `function.name`, which the shared tracker rejects on first chunk.
+    const pendingToolCalls = new Map<
+      number,
+      { id: string | null; bufferedArguments: string }
+    >();
+    const forwardedToolCallIndices = new Set<number>();
+
+    const processToolCallDelta = (toolCallDelta: {
+      index?: number | null;
+      id?: string | null;
+      function: { name?: string | null; arguments?: string | null };
+    }) => {
+      const index = toolCallDelta.index;
+
+      if (index == null || forwardedToolCallIndices.has(index)) {
+        toolCallTracker.processDelta(toolCallDelta);
+        return;
+      }
+
+      let pending = pendingToolCalls.get(index);
+      if (pending == null) {
+        pending = { id: toolCallDelta.id ?? null, bufferedArguments: '' };
+        pendingToolCalls.set(index, pending);
+      } else if (pending.id == null && toolCallDelta.id != null) {
+        pending.id = toolCallDelta.id;
+      }
+
+      const argumentsDelta = toolCallDelta.function?.arguments;
+      if (argumentsDelta != null) {
+        pending.bufferedArguments += argumentsDelta;
+      }
+
+      const name = toolCallDelta.function?.name;
+      if (name != null) {
+        toolCallTracker.processDelta({
+          index,
+          id: pending.id,
+          function: { name, arguments: pending.bufferedArguments },
+        });
+        pendingToolCalls.delete(index);
+        forwardedToolCallIndices.add(index);
+      }
+    };
+
     let finishReason: LanguageModelV2FinishReason = 'unknown';
     const usage: {
       completionTokens: number | undefined;
@@ -535,7 +581,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
                 toolCallDelta,
               ] of delta.tool_calls.entries()) {
                 // Some providers omit indices and identify parallel calls by position.
-                toolCallTracker.processDelta({
+                processToolCallDelta({
                   ...toolCallDelta,
                   index: toolCallDelta.index ?? fallbackIndex,
                 });
@@ -551,6 +597,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV2 {
             if (isActiveText) {
               controller.enqueue({ type: 'text-end', id: 'txt-0' });
             }
+
+            // Forward any tool-call deltas that never received a
+            // `function.name`. The tracker will throw on the missing name,
+            // preserving the original invalid-response semantics.
+            for (const [index, pending] of pendingToolCalls) {
+              toolCallTracker.processDelta({
+                index,
+                id: pending.id,
+                function: { arguments: pending.bufferedArguments },
+              });
+            }
+            pendingToolCalls.clear();
 
             toolCallTracker.flush();
 
