@@ -1,0 +1,161 @@
+---
+title: TraceRoot
+description: Trace, evaluate, and debug AI SDK applications with TraceRoot.
+---
+
+# TraceRoot
+
+[TraceRoot](https://traceroot.ai?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=intro) ([GitHub](https://github.com/traceroot-ai/traceroot))
+is an open-source observability and self-improving layer for AI agents that helps
+teams detect failures, investigate their causes, and evaluate fixes. Its AI SDK
+integration captures model calls and tool executions, including inputs, outputs,
+token usage, and timing.
+
+Key features include:
+
+- [Model and tool-call tracing](https://traceroot.ai/docs/tracing/introduction?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=features)
+- [Detectors and alerts about your agent traces](https://traceroot.ai/docs/detectors/introduction?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=features)
+- [AI-assisted debugging](https://traceroot.ai/docs/ai-agent/overview?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=features)
+- [Datasets and evaluations](https://traceroot.ai/docs/evals/introduction?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=features)
+- [CLI access for coding agents](https://traceroot.ai/docs/cli/get-started?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=features)
+
+## Setup
+
+This guide uses AI SDK 7 and Node.js 22 or later.
+
+Install the TraceRoot SDK, the AI SDK's OpenTelemetry integration, and the packages
+used in the example:
+
+```bash
+npm install @traceroot-ai/traceroot@^0.4.0 ai@^7 @ai-sdk/otel@^1 @ai-sdk/openai@^4 zod@^4
+npm install --save-dev tsx
+```
+
+Create a project and an API key in [TraceRoot Cloud](https://app.traceroot.ai?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=setup).
+Add the key and your OpenAI API key to a `.env` file:
+
+```bash filename=".env"
+TRACEROOT_API_KEY=your-traceroot-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
+
+For a self-hosted TraceRoot instance, also set `TRACEROOT_HOST_URL` to your
+instance's URL. Keep these keys on the server.
+
+## Trace a Tool-Calling Agent
+
+Save the following as `example.ts`. The weather tool returns sample data, so the
+example does not need a separate weather API.
+
+`TraceRoot.initialize()` sets up trace export. Register the AI SDK's OpenTelemetry
+integration once, before making any model calls. The `usage: true` option includes
+token usage in the spans.
+
+```ts filename="example.ts"
+import { TraceRoot } from '@traceroot-ai/traceroot';
+import { generateText, isStepCount, registerTelemetry, tool } from 'ai';
+import { OpenTelemetry } from '@ai-sdk/otel';
+import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+
+TraceRoot.initialize();
+registerTelemetry(new OpenTelemetry({ usage: true }));
+
+async function main() {
+  try {
+    const result = await generateText({
+      model: openai('gpt-4o-mini'),
+      instructions: 'Use the weather tool to answer weather questions.',
+      prompt: 'What is the weather in Tokyo?',
+      stopWhen: isStepCount(3),
+      telemetry: { functionId: 'weather-agent' },
+      tools: {
+        getWeather: tool({
+          description: 'Get the weather for a city',
+          inputSchema: z.object({ city: z.string() }),
+          execute: async ({ city }) => ({
+            city,
+            temperatureCelsius: 22,
+            condition: 'sunny',
+          }),
+        }),
+      },
+    });
+
+    console.log(result.text);
+  } finally {
+    await TraceRoot.flush();
+  }
+}
+
+main().catch(console.error);
+```
+
+Run the example, loading the keys from `.env`:
+
+```bash
+npx tsx --env-file=.env example.ts
+```
+
+Open your project in [TraceRoot Cloud](https://app.traceroot.ai?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=view-trace) to inspect the
+trace. Expand the model and tool spans to see the request, the tool's input and
+output, and the final response. Each span includes timing information, and model
+spans include token usage.
+
+You do not need an `instrumentModules` configuration for this integration. The
+AI SDK emits the telemetry, and TraceRoot exports it. `TraceRoot.flush()` waits for
+pending spans to be sent before this short-lived script exits.
+
+## Control Input and Output Recording
+
+The AI SDK records model inputs and outputs by default. To omit them from the
+telemetry for a call, set `recordInputs` and `recordOutputs` to `false`:
+
+```ts
+const result = await generateText({
+  model: openai('gpt-4o-mini'),
+  prompt: 'Summarize this support request.',
+  telemetry: {
+    functionId: 'support-summary',
+    recordInputs: false,
+    recordOutputs: false,
+  },
+});
+```
+
+To disable telemetry for a call entirely, set `telemetry: { isEnabled: false }`.
+See the [AI SDK telemetry documentation](/docs/ai-sdk-core/telemetry) for more
+options.
+
+## Troubleshooting
+
+- If the model request fails, check that `OPENAI_API_KEY` is loaded and valid.
+- If the request succeeds but no trace appears, check `TRACEROOT_API_KEY` and make
+  sure `registerTelemetry(new OpenTelemetry({ usage: true }))` runs before the
+  request. Initializing TraceRoot alone does not enable AI SDK 7 telemetry.
+- Initialize tracing once per process. If your application already registers an
+  OpenTelemetry provider, avoid registering a second one.
+- In short-lived scripts, await `TraceRoot.flush()` after the model call finishes.
+
+## Learn More
+
+Once tracing is set up, explore these next steps:
+
+- [Trace context](https://traceroot.ai/docs/tracing/overview?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more): Add users, sessions,
+  tags, and metadata to connect related runs and make traces easier to find.
+- [Detectors](https://traceroot.ai/docs/detectors/introduction?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more): Define the problems
+  an LLM judge should look for in incoming traces, with optional root cause
+  analysis and [email or Slack alerts](https://traceroot.ai/docs/detectors/alerts?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more).
+- [Agentic debugging](https://traceroot.ai/docs/ai-agent/overview?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more): Connect your
+  GitHub repository so the AI agent can investigate failures using your traces
+  and code, then open [fix PRs](https://traceroot.ai/docs/ai-agent/pr-creation?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more)
+  for review.
+- [Datasets and evaluations](https://traceroot.ai/docs/evals/get-started?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more): Run your
+  agent on repeatable test cases, score its outputs, and compare changes to
+  prompts, models, or code.
+- [CLI](https://traceroot.ai/docs/cli/get-started?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more): Inspect and export traces from
+  your terminal, or let your coding agent read them alongside your source code.
+
+For SDK configuration, see the
+[TraceRoot TypeScript SDK reference](https://traceroot.ai/docs/tracing/typescript-sdk?utm_source=vercel-ai-sdk&utm_medium=referral&utm_campaign=2026-09-vercel-ai-sdk&utm_content=learn-more).
+For telemetry options, see the [AI SDK telemetry documentation](/docs/ai-sdk-core/telemetry).
