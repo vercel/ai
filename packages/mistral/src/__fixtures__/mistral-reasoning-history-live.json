@@ -1,0 +1,40 @@
+{
+  "id": "ccb4a0d2441643bdbdeabadeb12a4bc0",
+  "created": 1785159439,
+  "model": "mistral-small-latest",
+  "usage": {
+    "prompt_tokens": 31,
+    "total_tokens": 303,
+    "completion_tokens": 272,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    }
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": [
+              {
+                "type": "text",
+                "text": "Okay, I need to calculate 17 multiplied by 23. Let me break it down to make sure I get it right.\n\nFirst, I recall that multiplication can be done using the distributive property of multiplication over addition. So, I can break down 23 into 20 and 3, and then multiply 17 by each part separately, and then add the results together.\n\nSo, 17 * 23 = 17 * (20 + 3) = (17 * 20) + (17 * 3)\n\nNow, let's calculate each part:\n\n1. 17 * 20:\n   - 17 * 2 = 34\n   - Then add a zero at the end because it's actually 17 * 20, so 340.\n\n2. 17 * 3:\n   - 10 * 3 = 30\n   - 7 * 3 = 21\n   - Add them together: 30 + 21 = 51\n\nNow, add the two results together:\n340 + 51 = 391\n\nSo, 17 * 23 = 391."
+              }
+            ],
+            "closed": true
+          },
+          {
+            "type": "text",
+            "text": "391"
+          }
+        ]
+      }
+    }
+  ]
+}
