@@ -304,6 +304,8 @@ export async function generateText<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When an output is specified, the model gets one additional call without tools
+     * to generate the output after a stop condition is met.
      *
      * @default isStepCount(1)
      */
@@ -863,6 +865,34 @@ export async function generateText<
       // (e.g., code_execution in programmatic tool calling scenarios).
       // These tools may not return their results in the same turn as their call.
       const pendingDeferredToolCalls = new Map<string, { toolName: string }>();
+      let isFinalOutputStep = false;
+
+      const shouldContinueToNextStep = async () => {
+        // Continue only after all client tool calls have been executed or denied,
+        // and if there are client results or pending deferred provider results.
+        if (
+          clientToolOutputs.length + deniedToolApprovalResponses.length !==
+            clientToolCalls.length ||
+          (clientToolCalls.length === 0 &&
+            pendingDeferredToolCalls.size === 0) ||
+          isFinalOutputStep
+        ) {
+          return false;
+        }
+
+        if (!(await isStopConditionMet({ stopConditions, steps }))) {
+          return true;
+        }
+
+        // When an output is explicitly requested, generate it in one final step
+        // without tools after the tool loop reaches a stop condition.
+        if (output != null) {
+          isFinalOutputStep = true;
+          return true;
+        }
+
+        return false;
+      };
 
       do {
         if (steps.length > 0) {
@@ -918,9 +948,12 @@ export async function generateText<
                 prepareStepResult?.runtimeContext ?? runtimeContext;
               toolsContext = prepareStepResult?.toolsContext ?? toolsContext;
 
+              const stepActiveToolNames = isFinalOutputStep
+                ? []
+                : (prepareStepResult?.activeTools ?? activeTools);
               const stepActiveTools = filterActiveTools({
                 tools,
-                activeTools: prepareStepResult?.activeTools ?? activeTools,
+                activeTools: stepActiveToolNames,
               });
               const {
                 executionTools: stepExecutionTools,
@@ -950,8 +983,11 @@ export async function generateText<
                 experimental_sandbox: stepSandbox,
               });
 
+              const stepToolChoiceSetting = isFinalOutputStep
+                ? ('none' as const)
+                : (prepareStepResult?.toolChoice ?? toolChoice);
               const stepToolChoice = prepareToolChoice({
-                toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                toolChoice: stepToolChoiceSetting,
               });
 
               const stepMessages = appendToolCallerMessages({
@@ -989,8 +1025,8 @@ export async function generateText<
                   instructions: stepInstructions,
                   messages: stepMessages,
                   tools,
-                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                  activeTools: prepareStepResult?.activeTools ?? activeTools,
+                  toolChoice: stepToolChoiceSetting,
+                  activeTools: stepActiveToolNames,
                   toolOrder: stepToolOrder,
                   steps: [...steps],
                   providerOptions: stepProviderOptions,
@@ -1511,19 +1547,16 @@ export async function generateText<
             clearTimeout(stepTimeoutId);
           }
         }
-      } while (
-        // Continue only after all client tool calls have been executed or denied,
-        // and if there are client results or pending deferred provider results.
-        clientToolOutputs.length + deniedToolApprovalResponses.length ===
-          clientToolCalls.length &&
-        (clientToolCalls.length > 0 || pendingDeferredToolCalls.size > 0) &&
-        // continue until a stop condition is met:
-        !(await isStopConditionMet({ stopConditions, steps }))
-      );
+      } while (await shouldContinueToNextStep());
 
+      // The final output call completes the configured output after the tool
+      // loop has stopped. It is not part of the loop's exposed steps.
+      const finalOutputStep = isFinalOutputStep ? steps.pop() : undefined;
       const lastStep = steps[steps.length - 1];
+      const usageSteps =
+        finalOutputStep == null ? steps : [...steps, finalOutputStep];
 
-      const totalUsage = steps.reduce(
+      const totalUsage = usageSteps.reduce(
         (totalUsage, step) => {
           return addLanguageModelUsage(totalUsage, step.usage);
         },
@@ -1592,20 +1625,22 @@ export async function generateText<
         callbacks: [onEnd, telemetryDispatcher.onEnd],
       });
 
+      const outputStep = finalOutputStep ?? lastStep;
+
       // parse output for stop responses and non-empty responses that are not
       // tool calls:
       let resolvedOutput;
       if (
-        lastStep.finishReason === 'stop' ||
-        (lastStep.finishReason !== 'tool-calls' && lastStep.text.length > 0)
+        outputStep.finishReason === 'stop' ||
+        (outputStep.finishReason !== 'tool-calls' && outputStep.text.length > 0)
       ) {
         const outputSpecification = output ?? text();
         resolvedOutput = await outputSpecification.parseCompleteOutput(
-          { text: lastStep.text },
+          { text: outputStep.text },
           {
-            response: lastStep.response,
-            usage: lastStep.usage,
-            finishReason: lastStep.finishReason,
+            response: outputStep.response,
+            usage: outputStep.usage,
+            finishReason: outputStep.finishReason,
           },
         );
       }

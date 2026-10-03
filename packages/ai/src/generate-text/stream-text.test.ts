@@ -22135,6 +22135,67 @@ describe('streamText', () => {
     });
 
     describe('object output', () => {
+      it('should generate the output after the default stop condition is met on a tool-call step', async () => {
+        let callCount = 0;
+        const model = new MockLanguageModelV4({
+          doStream: async () => ({
+            stream:
+              callCount++ === 0
+                ? convertArrayToReadableStream([
+                    {
+                      type: 'tool-call',
+                      toolCallId: 'call-1',
+                      toolName: 'tool1',
+                      input: '{}',
+                    },
+                    {
+                      type: 'finish',
+                      finishReason: {
+                        unified: 'tool-calls',
+                        raw: 'tool-calls',
+                      },
+                      usage: testUsage,
+                    },
+                  ])
+                : convertArrayToReadableStream([
+                    { type: 'text-start', id: '1' },
+                    {
+                      type: 'text-delta',
+                      id: '1',
+                      delta: '{ "value": "final" }',
+                    },
+                    { type: 'text-end', id: '1' },
+                    {
+                      type: 'finish',
+                      finishReason: { unified: 'stop', raw: 'stop' },
+                      usage: testUsage,
+                    },
+                  ]),
+          }),
+        });
+
+        const result = streamText({
+          model,
+          tools: {
+            tool1: tool({
+              inputSchema: z.object({}),
+              execute: async () => 'tool result',
+            }),
+          },
+          toolChoice: 'required',
+          prompt: 'prompt',
+          output: Output.object({
+            schema: z.object({ value: z.string() }),
+          }),
+          onError: () => {},
+        });
+
+        expect(await result.output).toEqual({ value: 'final' });
+        expect(await result.steps).toHaveLength(2);
+        expect(model.doStreamCalls[1].tools).toBeUndefined();
+        expect(model.doStreamCalls[1].toolChoice).toEqual({ type: 'none' });
+      });
+
       it('should set responseFormat to json and send schema as part of the responseFormat', async () => {
         let callOptions!: LanguageModelV4CallOptions;
 

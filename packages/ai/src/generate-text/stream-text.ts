@@ -484,6 +484,8 @@ export function streamText<
     /**
      * Condition for stopping the generation when there are tool results in the last step.
      * When the condition is an array, any of the conditions can be met to stop the generation.
+     * When an output is specified, the model gets one additional call without tools
+     * to generate the output after a stop condition is met.
      *
      * @default isStepCount(1)
      */
@@ -2214,9 +2216,11 @@ class DefaultStreamTextResult<
       async function streamStep({
         currentStep,
         usage,
+        isFinalOutputStep = false,
       }: {
         currentStep: number;
         usage: LanguageModelUsage;
+        isFinalOutputStep?: boolean;
       }) {
         // Set up step timeout if configured
         const stepTimeoutId = setAbortTimeout({
@@ -2347,9 +2351,12 @@ class DefaultStreamTextResult<
           );
           currentStepModel = stepModel;
 
+          const stepActiveToolNames = isFinalOutputStep
+            ? []
+            : (prepareStepResult?.activeTools ?? activeTools);
           const stepActiveTools = filterActiveTools({
             tools,
-            activeTools: prepareStepResult?.activeTools ?? activeTools,
+            activeTools: stepActiveToolNames,
           });
           const {
             executionTools: stepExecutionTools,
@@ -2379,8 +2386,11 @@ class DefaultStreamTextResult<
             experimental_sandbox: stepSandbox,
           });
 
+          const stepToolChoiceSetting = isFinalOutputStep
+            ? ('none' as const)
+            : (prepareStepResult?.toolChoice ?? toolChoice);
           const stepToolChoice = prepareToolChoice({
-            toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+            toolChoice: stepToolChoiceSetting,
           });
 
           const stepMessages = appendToolCallerMessages({
@@ -2416,7 +2426,7 @@ class DefaultStreamTextResult<
                   model: prepareStepResult?.model ?? model,
                   tools: stepModelTools as TOOLS,
                   toolOrder: stepToolOrder,
-                  toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
+                  toolChoice: stepToolChoiceSetting,
                   instructions: stepInstructions,
                   messages: stepMessages,
                   allowSystemInMessages,
@@ -2460,9 +2470,8 @@ class DefaultStreamTextResult<
                         instructions: stepInstructions,
                         messages: stepMessages,
                         tools,
-                        toolChoice: prepareStepResult?.toolChoice ?? toolChoice,
-                        activeTools:
-                          prepareStepResult?.activeTools ?? activeTools,
+                        toolChoice: stepToolChoiceSetting,
+                        activeTools: stepActiveToolNames,
                         toolOrder: stepToolOrder,
                         steps: [...recordedSteps],
                         providerOptions: stepProviderOptions,
@@ -3099,25 +3108,30 @@ class DefaultStreamTextResult<
                   // Clear this step's timeouts before the next step is started.
                   cleanupStepTimeouts();
 
-                  if (
-                    // Continue only after all client tool calls have been executed or denied,
-                    // and if there are client results or pending deferred provider results.
+                  const canContinueAfterToolResults =
+                    !isFinalOutputStep &&
                     clientToolCalls.length ===
                       clientToolOutputs.length +
                         deniedToolApprovalResponses.length &&
                     (clientToolCalls.length > 0 ||
-                      pendingDeferredToolCalls.size > 0) &&
-                    // continue until a stop condition is met:
-                    !(await isStopConditionMet({
+                      pendingDeferredToolCalls.size > 0);
+                  const stopConditionMet =
+                    canContinueAfterToolResults &&
+                    (await isStopConditionMet({
                       stopConditions,
                       steps: recordedSteps,
-                    }))
+                    }));
+
+                  if (
+                    canContinueAfterToolResults &&
+                    (!stopConditionMet || output != null)
                   ) {
                     try {
                       await runInStreamTextTracingChannelContext(() =>
                         streamStep({
                           currentStep: currentStep + 1,
                           usage: combinedUsage,
+                          isFinalOutputStep: stopConditionMet,
                         }),
                       );
                     } catch (error) {

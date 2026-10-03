@@ -35,6 +35,9 @@ import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
  * - A tool that is invoked does not have an execute function, or
  * - A tool call needs approval via `toolApproval` or tool-level `needsApproval`, or
  * - A stop condition is met (default stop condition is isStepCount(20))
+ *
+ * When an output is configured and a stop condition is met after tool calls,
+ * the agent makes one final model call without tools to generate the output.
  */
 export class ToolLoopAgent<
   CALL_OPTIONS = never,

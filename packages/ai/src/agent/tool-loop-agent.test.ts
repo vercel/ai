@@ -16,6 +16,8 @@ import type {
   GenerateTextOnStartCallback,
   GenerateTextOnStepStartCallback,
 } from '../generate-text/generate-text-events';
+import * as Output from '../generate-text/output';
+import { isStepCount } from '../generate-text/stop-condition';
 import type {
   ToolExecutionEndEvent,
   ToolExecutionStartEvent,
@@ -74,6 +76,84 @@ describe('ToolLoopAgent', () => {
           };
         },
       });
+    });
+
+    it('should generate configured output after the step limit is reached on tool calls', async () => {
+      let callCount = 0;
+      const agent = new ToolLoopAgent({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => {
+            callCount++;
+
+            if (callCount <= 2) {
+              return {
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallType: 'function',
+                    toolCallId: `call-${callCount}`,
+                    toolName: 'lookup',
+                    input: '{}',
+                  },
+                ],
+                finishReason: {
+                  unified: 'tool-calls',
+                  raw: 'tool-calls',
+                },
+                usage: {
+                  inputTokens: {
+                    total: 1,
+                    noCache: 1,
+                    cacheRead: 0,
+                    cacheWrite: 0,
+                  },
+                  outputTokens: {
+                    total: 1,
+                    text: 1,
+                    reasoning: 0,
+                  },
+                },
+                warnings: [],
+              };
+            }
+
+            return {
+              content: [{ type: 'text', text: '{ "summary": "done" }' }],
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: {
+                inputTokens: {
+                  total: 1,
+                  noCache: 1,
+                  cacheRead: 0,
+                  cacheWrite: 0,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: 1,
+                  reasoning: 0,
+                },
+              },
+              warnings: [],
+            };
+          },
+        }),
+        tools: {
+          lookup: tool({
+            inputSchema: z.object({}),
+            execute: async () => 'result',
+          }),
+        },
+        stopWhen: isStepCount(2),
+        output: Output.object({
+          schema: z.object({ summary: z.string() }),
+        }),
+      });
+
+      const result = await agent.generate({ prompt: 'test' });
+
+      expect(result.output).toEqual({ summary: 'done' });
+      expect(result.steps).toHaveLength(2);
+      expect(result.finalStep.finishReason).toBe('tool-calls');
     });
 
     it('should use prepareCall', async () => {
