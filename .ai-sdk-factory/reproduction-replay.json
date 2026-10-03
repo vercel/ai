@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 21255,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/use-ai-sdk-pnpm-monorepo.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/use-ai-sdk-pnpm-monorepo.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Reproduced issue #21255: the documented fallback installed ai into the pnpm workspace root."
+  }
+}
