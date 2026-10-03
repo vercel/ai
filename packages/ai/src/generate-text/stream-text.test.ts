@@ -7116,6 +7116,54 @@ describe('streamText', () => {
   });
 
   describe('result.usage', () => {
+    it('should use finish usage and ignore provisional usage from response-metadata', async () => {
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'response-metadata',
+              id: 'id-0',
+              usage: {
+                inputTokens: {
+                  total: 3,
+                  noCache: 3,
+                  cacheRead: undefined,
+                  cacheWrite: undefined,
+                },
+                outputTokens: {
+                  total: 1,
+                  text: undefined,
+                  reasoning: undefined,
+                },
+              },
+            },
+            { type: 'text-start', id: '1' },
+            { type: 'text-delta', id: '1', delta: 'Hello' },
+            { type: 'text-end', id: '1' },
+            {
+              type: 'finish',
+              finishReason: { unified: 'stop', raw: 'stop' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        prompt: 'test-input',
+      });
+
+      await result.consumeStream();
+
+      expect(await result.usage).toMatchObject({
+        inputTokens: 3,
+        outputTokens: 10,
+        totalTokens: 13,
+      });
+      expect(await result.totalUsage).toMatchObject({
+        inputTokens: 3,
+        outputTokens: 10,
+        totalTokens: 13,
+      });
+    });
+
     it('should resolve with token usage', async () => {
       const result = streamText({
         model: createTestModel({

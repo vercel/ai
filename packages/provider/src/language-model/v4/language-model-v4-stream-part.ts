@@ -87,7 +87,16 @@ export type LanguageModelV4StreamPart =
 
   // metadata for the response.
   // separate stream part so it can be sent once it is available.
-  | ({ type: 'response-metadata' } & LanguageModelV4ResponseMetadata)
+  | ({
+      type: 'response-metadata';
+
+      /**
+       * Provisional usage known when the response starts (typically input and cache
+       * tokens). Counts may be partial or zero-filled, especially output counts.
+       * `finish` usage is authoritative; consumers must not add the two together.
+       */
+      usage?: LanguageModelV4Usage;
+    } & LanguageModelV4ResponseMetadata)
 
   // metadata that is available after the stream is finished:
   | {

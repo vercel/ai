@@ -508,6 +508,93 @@ describe('streamLanguageModelCall', () => {
     });
   });
 
+  describe('response-metadata parts', () => {
+    it('should forward provisional usage on model-call-response-metadata', async () => {
+      const result = await streamLanguageModelCallResult({
+        tools: undefined,
+        streamParts: [
+          {
+            type: 'response-metadata',
+            id: 'response-1',
+            modelId: 'response-model',
+            usage: {
+              inputTokens: {
+                total: 1217,
+                noCache: 17,
+                cacheRead: 1000,
+                cacheWrite: 200,
+              },
+              outputTokens: {
+                total: undefined,
+                text: undefined,
+                reasoning: undefined,
+              },
+            },
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+      });
+
+      expect(result.find(part => part.type === 'model-call-response-metadata'))
+        .toMatchInlineSnapshot(`
+        {
+          "id": "response-1",
+          "modelId": "response-model",
+          "timestamp": undefined,
+          "type": "model-call-response-metadata",
+          "usage": {
+            "inputTokenDetails": {
+              "cacheReadTokens": 1000,
+              "cacheWriteTokens": 200,
+              "noCacheTokens": 17,
+            },
+            "inputTokens": 1217,
+            "outputTokenDetails": {
+              "reasoningTokens": undefined,
+              "textTokens": undefined,
+            },
+            "outputTokens": undefined,
+            "raw": undefined,
+            "totalTokens": 1217,
+          },
+        }
+      `);
+    });
+
+    it('should omit usage on model-call-response-metadata when the provider does not send it', async () => {
+      const result = await streamLanguageModelCallResult({
+        tools: undefined,
+        streamParts: [
+          {
+            type: 'response-metadata',
+            id: 'response-1',
+            modelId: 'response-model',
+          },
+          {
+            type: 'finish',
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: testUsage,
+          },
+        ],
+      });
+
+      const responseMetadata = result.find(
+        part => part.type === 'model-call-response-metadata',
+      );
+      expect(responseMetadata).toEqual({
+        type: 'model-call-response-metadata',
+        id: 'response-1',
+        timestamp: undefined,
+        modelId: 'response-model',
+      });
+      expect(responseMetadata).not.toHaveProperty('usage');
+    });
+  });
+
   describe('text parts', () => {
     it('should convert text to delta', async () => {
       const result = await streamLanguageModelCallResult({
