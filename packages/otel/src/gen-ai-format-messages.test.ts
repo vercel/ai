@@ -78,6 +78,16 @@ describe('mapProviderName', () => {
     `);
   });
 
+  it('should map snowflake provider strings', () => {
+    expect({
+      snowflake: mapProviderName('snowflake'),
+      snowflakeChat: mapProviderName('snowflake.chat'),
+    }).toEqual({
+      snowflake: 'snowflake',
+      snowflakeChat: 'snowflake',
+    });
+  });
+
   it('should return the original string for unknown providers', () => {
     expect(mapProviderName('custom-provider.chat')).toMatchInlineSnapshot(
       `"custom-provider.chat"`,
