@@ -111,6 +111,8 @@
   "devDependencies": {
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
+    "ai5": "npm:ai@5.0.271",
+    "ai6": "npm:ai@6.0.300",
     "tsx": "4.23.12",
     "typescript": "5.8.3"
   }
