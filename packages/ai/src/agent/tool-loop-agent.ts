@@ -98,6 +98,7 @@ export class ToolLoopAgent<
       | 'onStepFinish'
       | 'onEnd'
       | 'onFinish'
+      | 'onAbort'
     > &
       Prompt
   > {
@@ -124,6 +125,7 @@ export class ToolLoopAgent<
       onStepFinish: _settingsOnStepFinish,
       onFinish: _settingsOnFinish,
       onEnd: _settingsOnEnd,
+      onAbort: _settingsOnAbort,
       ...settingsWithoutCallbacks
     } = this.settings;
 
@@ -273,6 +275,7 @@ export class ToolLoopAgent<
     onStepFinish,
     onFinish,
     onEnd = onFinish,
+    onAbort,
     ...options
   }: AgentStreamParameters<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT>): Promise<
     StreamTextResult<TOOLS, RUNTIME_CONTEXT, OUTPUT>
@@ -312,6 +315,7 @@ export class ToolLoopAgent<
         onStepEnd ?? onStepFinish,
       ),
       onEnd: mergeCallbacks(this.settings.onEnd, onEnd),
+      onAbort: mergeCallbacks(this.settings.onAbort, onAbort),
     };
 
     return await stream({

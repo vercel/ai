@@ -143,6 +143,18 @@ This is particularly useful for:
 - Cleaning up server-side resources or connections
 - Logging abort events for analytics
 
+`ToolLoopAgent` accepts the same callback, either on the agent for every stream
+or on an individual `stream()` call:
+
+```ts
+const agent = new ToolLoopAgent({
+  model: __MODEL__,
+  onAbort: async ({ steps }) => {
+    await savePartialResults(steps);
+  },
+});
+```
+
 You can also handle abort events directly in the stream using the `abort` stream part:
 
 ```tsx highlight="6-9"
