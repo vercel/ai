@@ -689,4 +689,35 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'doc-cheap',
+    name: 'doc.cheap',
+    description:
+      'Read passports, national ID cards and driving licences from a photo or scan. The printed fields and the machine-readable zone come back as structured JSON. Five tools: scan a document, read back, list and delete stored results, and check the balance. $0.01 per recognised document, nothing billed when no document is recognised, and a public sandbox key that works before sign-up.',
+    packageName: '@doc-cheap/ai-sdk',
+    tags: ['ocr', 'document-recognition', 'identity', 'mrz'],
+    apiKeyEnvName: 'DOC_CHEAP_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @doc-cheap/ai-sdk ai zod',
+      npm: 'npm install @doc-cheap/ai-sdk ai zod',
+      yarn: 'yarn add @doc-cheap/ai-sdk ai zod',
+      bun: 'bun add @doc-cheap/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { docCheapTools } from '@doc-cheap/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { ...docCheapTools() },
+  stopWhen: isStepCount(3),
+  prompt:
+    "Read the passport at https://example.com/passport.jpg and tell me the holder's name and when the passport expires.",
+});
+
+console.log(text);`,
+    docsUrl: 'https://doc.cheap/docs/guides/use-the-ai-sdk',
+    apiKeyUrl: 'https://doc.cheap/register',
+    websiteUrl: 'https://doc.cheap',
+    npmUrl: 'https://www.npmjs.com/package/@doc-cheap/ai-sdk',
+  },
 ];
