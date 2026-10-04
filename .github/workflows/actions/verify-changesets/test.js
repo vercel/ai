@@ -426,6 +426,44 @@ test('package code change but changeset missing that package', async () => {
   );
 });
 
+test('package script-only change does not require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES: 'packages/ai/scripts/check-bundle-size.ts',
+  };
+
+  const readFile = mockReadFile(() => {});
+  const lstat = mockLstat();
+
+  await verifyChangesets(event, env, readFile, lstat);
+  assert.strictEqual(readFile.mock.callCount(), 1);
+  assert.strictEqual(lstat.mock.callCount(), 0);
+});
+
+test('package script and source changes still require changeset', async () => {
+  const event = { pull_request: { labels: [] } };
+  const env = {
+    CHANGED_FILES: '',
+    CHANGED_PACKAGE_FILES:
+      'packages/ai/scripts/check-bundle-size.ts packages/ai/src/index.ts',
+  };
+
+  const readFile = mockReadFile(async path => {
+    if (path.endsWith('package.json')) {
+      return JSON.stringify({ name: 'ai' });
+    }
+  });
+  const lstat = mockLstat();
+
+  await assert.rejects(
+    () => verifyChangesets(event, env, readFile, lstat),
+    new Error(
+      `Missing changeset - packages were modified but no .changeset/*.md file was found. Run 'pnpm changeset' to create one.`,
+    ),
+  );
+});
+
 test('package test-only change does not require changeset', async () => {
   const event = { pull_request: { labels: [] } };
   const env = {

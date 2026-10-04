@@ -28,15 +28,18 @@ interface XaiImageModelConfig {
   };
 }
 
+const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
+  'grok-imagine-image',
+  'grok-imagine-image-2.0',
+  'grok-imagine-image-pro',
+]);
+
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 3;
 
   get supportsFileInputs(): boolean | undefined {
-    return this.modelId === 'grok-imagine-image' ||
-      this.modelId === 'grok-imagine-image-pro'
-      ? true
-      : undefined;
+    return fileInputModelIds.has(this.modelId) ? true : undefined;
   }
 
   get supportsMaskInputs(): boolean | undefined {

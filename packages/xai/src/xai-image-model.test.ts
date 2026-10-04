@@ -51,6 +51,11 @@ describe('XaiImageModel', () => {
         supportsMaskInputs: false,
       },
       {
+        modelId: 'grok-imagine-image-2.0',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
+      {
         modelId: 'custom-image-model',
         supportsFileInputs: undefined,
         supportsMaskInputs: undefined,

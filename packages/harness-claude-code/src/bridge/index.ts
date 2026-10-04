@@ -647,7 +647,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
-            totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
+            totalCostUsd = msg.total_cost_usd;
           }
           if (
             start.responseFormat?.type === 'json' &&

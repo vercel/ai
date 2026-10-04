@@ -360,6 +360,133 @@ describe('Claude Code bridge configuration', () => {
     expect(state.onStop?.()).toEqual({ claudeSessionId: 'claude-session-2' });
   });
 
+  test('reports the latest cumulative cost when one bridge turn receives multiple results', async () => {
+    state.steering = true;
+    state.createQuery = args =>
+      (async function* () {
+        const input = args.prompt[Symbol.asyncIterator]();
+        await input.next();
+        const steering = await input.next();
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'first',
+          total_cost_usd: 0.05,
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        };
+        yield {
+          type: 'result',
+          subtype: 'success',
+          result: 'second',
+          total_cost_usd: 0.06,
+          usage: {
+            input_tokens: 11,
+            cache_creation_input_tokens: 13,
+            cache_read_input_tokens: 17,
+            output_tokens: 19,
+          },
+        };
+        yield {
+          type: 'command_lifecycle',
+          command_uuid: Reflect.get(steering.value as object, 'uuid'),
+          state: 'completed',
+        };
+      })();
+
+    await import('./index');
+
+    const finish = state.emitted.find(message => message.type === 'finish');
+    expect(finish?.harnessMetadata).toMatchObject({
+      'claude-code': { costUsd: 0.06 },
+    });
+    expect(finish?.totalUsage).toMatchObject({
+      inputTokens: {
+        total: 51,
+        noCache: 13,
+        cacheRead: 22,
+        cacheWrite: 16,
+      },
+      outputTokens: { total: 26 },
+    });
+  });
+
+  test.each([
+    { name: 'a single result', costs: [0.0494524], expected: 0.0494524 },
+    { name: 'a zero-cost result', costs: [0], expected: 0 },
+    { name: 'no reported cost', costs: [undefined], expected: undefined },
+    {
+      name: 'a resumed query with repeated cumulative totals',
+      costs: [0.1573332, 0.1573332],
+      expected: 0.1573332,
+    },
+    {
+      name: 'a resumed query with an increased cumulative total',
+      costs: [0.0298164, 0.05730615],
+      expected: 0.05730615,
+    },
+    {
+      name: 'a later result without a cost',
+      costs: [0.0494524, undefined],
+      expected: 0.0494524,
+    },
+    {
+      name: 'a later result reporting zero cost',
+      costs: [0.0494524, 0],
+      expected: 0,
+    },
+  ])(
+    'reports the latest available cost for $name',
+    async ({ costs, expected }) => {
+      state.start = { ...state.start, resumeSessionId: 'claude-session-1' };
+      state.firstTurn = false;
+      state.steering = costs.length > 1;
+      state.createQuery = args =>
+        (async function* () {
+          const input = args.prompt[Symbol.asyncIterator]();
+          await input.next();
+          const steering = state.steering ? await input.next() : undefined;
+
+          for (const cost of costs) {
+            yield {
+              type: 'result',
+              subtype: 'success',
+              result: 'done',
+              session_id: 'claude-session-1',
+              total_cost_usd: cost,
+            };
+          }
+          if (steering != null) {
+            yield {
+              type: 'command_lifecycle',
+              command_uuid: Reflect.get(steering.value as object, 'uuid'),
+              state: 'completed',
+            };
+          }
+        })();
+
+      await import('./index');
+
+      expect(state.queryArgs[0]?.options).toMatchObject({
+        resume: 'claude-session-1',
+      });
+      const finishes = state.emitted.filter(
+        message => message.type === 'finish',
+      );
+      expect(finishes).toHaveLength(1);
+      expect(finishes[0]?.harnessMetadata).toEqual({
+        'claude-code': {
+          sessionId: 'claude-session-1',
+          ...(expected !== undefined ? { costUsd: expected } : {}),
+        },
+      });
+    },
+  );
+
   test('reports an empty stop payload when no session id was observed', async () => {
     await import('./index');
 
