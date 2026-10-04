@@ -1904,11 +1904,15 @@ export class WorkflowAgent<
         });
       }
 
-      // Strip approval parts that we resolved locally and inject tool results.
-      // Provider-executed approval parts are preserved so the next call to
-      // `convertToLanguageModelPrompt` forwards the approval response to the
-      // provider (it only forwards responses flagged `providerExecuted`).
+      // Strip approval parts that were resolved locally from the conversation
+      // retained by WorkflowAgent. Provider-executed approval parts are
+      // preserved because the provider owns their execution.
       const cleanedMessages: ModelMessage[] = [];
+      const toolResultsByToolCallId = new Map(
+        toolResultContent.map(result => [result.toolCallId, result]),
+      );
+      const insertedToolResultIds = new Set<string>();
+
       for (const msg of prompt.messages) {
         if (msg.role === 'assistant' && Array.isArray(msg.content)) {
           const filtered = (msg.content as any[]).filter(
@@ -1918,6 +1922,29 @@ export class WorkflowAgent<
           );
           if (filtered.length > 0) {
             cleanedMessages.push({ ...msg, content: filtered });
+          }
+
+          // Keep locally resolved results with the assistant tool round that
+          // created them. This settles the calls before any intervening user
+          // messages when the durable model step converts the history again.
+          const roundToolResults = filtered.flatMap((part: any) => {
+            if (part.type !== 'tool-call') {
+              return [];
+            }
+
+            const result = toolResultsByToolCallId.get(part.toolCallId);
+            if (result == null) {
+              return [];
+            }
+
+            insertedToolResultIds.add(result.toolCallId);
+            return [result];
+          });
+          if (roundToolResults.length > 0) {
+            cleanedMessages.push({
+              role: 'tool',
+              content: roundToolResults,
+            } as ModelMessage);
           }
         } else if (msg.role === 'tool') {
           const filtered = (msg.content as any[]).flatMap((p: any) => {
@@ -1939,11 +1966,13 @@ export class WorkflowAgent<
         }
       }
 
-      // Add tool results as a new tool message
-      if (toolResultContent.length > 0) {
+      const unmatchedToolResults = toolResultContent.filter(
+        result => !insertedToolResultIds.has(result.toolCallId),
+      );
+      if (unmatchedToolResults.length > 0) {
         cleanedMessages.push({
           role: 'tool',
-          content: toolResultContent,
+          content: unmatchedToolResults,
         } as ModelMessage);
       }
 
