@@ -57,12 +57,17 @@ export type UseChatOptions<UI_MESSAGE extends UIMessage> = (
   experimental_throttle?: number;
 
   /**
-   * Whether to resume an ongoing chat generation stream.
+   * Whether to automatically resume an ongoing chat generation stream.
    */
   resume?: boolean;
 };
 
-const automaticResumeRegistrations = new WeakMap<object, Set<object>>();
+type AutomaticResumeState = {
+  registrations: Set<object>;
+  cleanupVisibilityListener?: () => void;
+};
+
+const automaticResumeStates = new WeakMap<object, AutomaticResumeState>();
 
 function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat,
@@ -71,13 +76,32 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   chat: Chat<UI_MESSAGE>;
   registration: object;
 }) {
-  let registrations = automaticResumeRegistrations.get(chat);
+  let state = automaticResumeStates.get(chat);
 
-  if (registrations == null) {
-    registrations = new Set();
-    automaticResumeRegistrations.set(chat, registrations);
+  if (state == null) {
+    let cleanupVisibilityListener: (() => void) | undefined;
+
+    if (typeof document !== 'undefined') {
+      const onVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          void chat.resumeStream();
+        }
+      };
+
+      document.addEventListener('visibilitychange', onVisibilityChange);
+      cleanupVisibilityListener = () => {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      };
+    }
+
+    state = {
+      registrations: new Set(),
+      cleanupVisibilityListener,
+    };
+    automaticResumeStates.set(chat, state);
   }
 
+  const { registrations } = state;
   const shouldResume = registrations.size === 0;
   registrations.add(registration);
 
@@ -89,7 +113,8 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
     registrations.delete(registration);
 
     if (registrations.size === 0) {
-      automaticResumeRegistrations.delete(chat);
+      state.cleanupVisibilityListener?.();
+      automaticResumeStates.delete(chat);
     }
   };
 }

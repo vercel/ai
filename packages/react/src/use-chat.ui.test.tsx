@@ -2368,6 +2368,9 @@ describe('use-chat', () => {
 
   describe('automatic stream resumption with a shared Chat', () => {
     it('should only reconnect once for multiple useChat consumers', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
       let reconnectCount = 0;
       const chat = new Chat({
         id: 'shared',
@@ -2394,6 +2397,13 @@ describe('use-chat', () => {
       );
 
       await waitFor(() => expect(reconnectCount).toBe(1));
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await waitFor(() => expect(reconnectCount).toBe(2));
     });
 
     it('should abort the first reconnect when StrictMode starts another', async () => {
@@ -2450,6 +2460,9 @@ describe('use-chat', () => {
 
       firstRender.unmount();
       await act(async () => {});
+
+      fireEvent(document, new Event('visibilitychange'));
+      expect(reconnectCount).toBe(1);
 
       render(<Consumer />);
       await waitFor(() => expect(reconnectCount).toBe(2));
@@ -2587,7 +2600,7 @@ describe('use-chat', () => {
     });
   });
 
-  describe('resume after document becomes visible', () => {
+  describe('automatic resumption after document becomes visible', () => {
     const controller = new TestResponseController();
 
     setupTestComponent(
@@ -2682,7 +2695,7 @@ describe('use-chat', () => {
 
           expect(
             resumed,
-            'ISSUE_11865: stream did not automatically resume after the document became visible',
+            'stream did not automatically resume after the document became visible',
           ).toBe(true);
         },
         { timeout: 1000 },
