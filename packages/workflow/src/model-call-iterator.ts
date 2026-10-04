@@ -570,7 +570,8 @@ export async function* modelCallIterator({
       } else if (
         mode === 'generate' ||
         finishReason === 'stop' ||
-        finishReason === 'tool-calls'
+        finishReason === 'tool-calls' ||
+        finishReason === 'length'
       ) {
         // Add assistant response content to the conversation
         const { content: assistantContent } = getAssistantMessageContent(
@@ -593,9 +594,6 @@ export async function* modelCallIterator({
           );
         }
 
-        done = true;
-      } else if (finishReason === 'length') {
-        // Model hit max tokens - stop but don't throw
         done = true;
       } else if (finishReason === 'content-filter') {
         // Content filter triggered - stop but don't throw
