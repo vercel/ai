@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22012,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22012-workflow-agent-duplicate-denial.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22012-workflow-agent-duplicate-denial.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22012_REPRODUCED: WorkflowAgent sent 2 tool results for call-save; expected exactly 1"
+  }
+}
