@@ -23,6 +23,36 @@ export interface Tool {
 
 export const tools: Tool[] = [
   {
+    slug: 'serpkite',
+    name: 'SerpKite',
+    description:
+      'Google search and page extraction tools for AI agents. Search web results, news, maps and academic papers, or read public webpages as Markdown. Tools support Markdown, compact and structured JSON output.',
+    packageName: '@serpkite/ai-sdk',
+    tags: ['search', 'web', 'extraction'],
+    apiKeyEnvName: 'SERPKITE_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @serpkite/ai-sdk ai zod',
+      npm: 'npm install @serpkite/ai-sdk ai zod',
+      yarn: 'yarn add @serpkite/ai-sdk ai zod',
+      bun: 'bun add @serpkite/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, gateway, isStepCount } from 'ai';
+import { serpkiteTools } from '@serpkite/ai-sdk';
+
+const { text } = await generateText({
+  model: gateway('openai/gpt-5-mini'),
+  prompt: 'What changed in the latest Node.js LTS release? Cite your sources.',
+  tools: serpkiteTools({ only: ['search', 'webpage'] }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://serpkite.com/integrations/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.serpkite.com/keys',
+    websiteUrl: 'https://serpkite.com',
+    npmUrl: 'https://www.npmjs.com/package/@serpkite/ai-sdk',
+  },
+  {
     slug: 'code-execution',
     name: 'Code Execution',
     description:
