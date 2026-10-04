@@ -240,6 +240,7 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
+  readonly extensions?: boolean;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
@@ -284,6 +285,7 @@ function hasCompatibleReattachSettings(
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
     parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.extensions === current.settings.extensions &&
     parked.settings.providers === current.settings.providers &&
     parked.settings.extensionFactories === current.settings.extensionFactories
   );
@@ -547,6 +549,7 @@ export async function createPiSession(
   const extensionFactories: ExtensionFactory[] = [
     ...(input.settings.extensionFactories ?? []),
   ];
+  const filesystemExtensions = input.settings.extensions === true;
   if (hasMcpServers) {
     const { createMcpAdapter } = (await import(
       PI_MCP_ADAPTER_PACKAGE
@@ -564,7 +567,7 @@ export async function createPiSession(
       }),
     );
   }
-  const hasExtensionFactories = extensionFactories.length > 0;
+  const hasExtensions = extensionFactories.length > 0 || filesystemExtensions;
   let preserveExtensionsResult = false;
   let currentExtensionsResult:
     | ReturnType<DefaultResourceLoader['getExtensions']>
@@ -572,12 +575,12 @@ export async function createPiSession(
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: sessionWorkDir,
-    agentDir: hostAgentDir,
+    agentDir: filesystemExtensions ? agentDir : hostAgentDir,
     settingsManager,
     appendSystemPromptOverride: () =>
       sessionInstructions ? [sessionInstructions] : [],
     extensionFactories,
-    ...(hasExtensionFactories
+    ...(hasExtensions
       ? {
           // DefaultResourceLoader invokes inline factories on every reload.
           // Resource-only reloads retain the active extension runtime, while a
@@ -593,13 +596,13 @@ export async function createPiSession(
       : {}),
     // Pi runs in the host process, so its default resource discovery reaches
     // the host developer's personal config (`~/.pi/agent/*`, `~/.agents/*`).
-    // The harness exposes only explicitly supplied inline extension factories;
-    // disable filesystem extension discovery entirely to avoid loading and
-    // executing a host developer's personal or project Pi extensions inside
-    // the server process. Themes and prompt templates stay disabled. Skills
-    // are kept but filtered to workspace project skills plus harness-provided
-    // skills whose files live in sandbox HOME.
-    noExtensions: true,
+    // Filesystem discovery is opt-in because extensions execute inside the
+    // harness Node.js process. When enabled, Pi uses its normal discovery
+    // sources, including the configured agent directory, the workspace, and
+    // settings-based package sources. Themes and prompt templates stay
+    // disabled. Skills are kept but filtered to workspace project skills plus
+    // harness-provided skills whose files live in sandbox HOME.
+    noExtensions: !filesystemExtensions,
     noThemes: true,
     noPromptTemplates: true,
     skillsOverride: base => ({
@@ -615,7 +618,7 @@ export async function createPiSession(
   await resourceLoader.reload();
 
   async function reloadResourcesOnly(): Promise<void> {
-    if (!hasExtensionFactories) {
+    if (!hasExtensions) {
       await resourceLoader.reload();
       return;
     }
@@ -1102,9 +1105,10 @@ export async function createPiSession(
       // TODO(pi-0.77): verify the race still exists; original SDK had a
       // teardown microtask the host needed to wait on.
       await new Promise(resolve => setTimeout(resolve, 25));
-      if (hasExtensionFactories) {
+      if (hasExtensions) {
         // dispose() invalidates Pi's current extension runtime, so a replacement
-        // AgentSession needs factories to create a fresh runtime before build.
+        // AgentSession needs the resource loader to create a fresh runtime
+        // before build.
         await resourceLoader.reload();
         resourcesReloaded = true;
       }
@@ -1128,7 +1132,7 @@ export async function createPiSession(
       settingsManager,
       resourceLoader,
       customTools,
-      ...(hasExtensionFactories
+      ...(hasExtensions
         ? { noTools: 'builtin' as const }
         : { tools: toolNames }),
       ...(input.settings.thinkingLevel
