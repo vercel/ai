@@ -894,7 +894,7 @@ describe('modelCallIterator', () => {
       const prompt = [
         { role: 'user', content: [{ type: 'text', text: 'test' }] },
       ] satisfies LanguageModelV4Prompt;
-      const iterator = streamTextIterator({
+      const iterator = modelCallIterator({
         prompt,
         tools: {},
         model: vi.fn() as any,
@@ -903,7 +903,7 @@ describe('modelCallIterator', () => {
       const stepResult = await iterator.next();
       expect(stepResult.done).toBe(false);
       expect(
-        (stepResult.value as StreamTextIteratorYieldValue).step?.content,
+        (stepResult.value as ModelCallIteratorYieldValue).step?.content,
       ).toEqual([
         {
           type: 'text',
