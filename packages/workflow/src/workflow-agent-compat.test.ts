@@ -2616,6 +2616,119 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
           'onToolExecutionEnd:success',
         ]);
       });
+
+      it.each([
+        { decision: 'approved', approved: true, expectedExecutions: 1 },
+        { decision: 'denied', approved: false, expectedExecutions: 0 },
+      ])(
+        'should continue after intervening user media when a tool is $decision',
+        async ({ approved, expectedExecutions }) => {
+          const model = new MockLanguageModelV4({
+            doStream: async () => createSimpleStreamResponse(),
+          });
+          const execute = vi.fn().mockResolvedValue({ saved: true });
+          const agent = new WorkflowAgent({
+            model,
+            tools: {
+              save: tool({
+                inputSchema: z.object({ id: z.string() }),
+                needsApproval: true,
+                execute,
+              }),
+            },
+          });
+
+          const { writable } = createMockWritable();
+          await agent.stream({
+            messages: [
+              { role: 'user', content: 'Save the file.' },
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-save',
+                    toolName: 'save',
+                    input: { id: 'file' },
+                  },
+                  {
+                    type: 'tool-approval-request',
+                    approvalId: 'approval-save',
+                    toolCallId: 'call-save',
+                  },
+                  {
+                    type: 'tool-call',
+                    toolCallId: 'call-preview',
+                    toolName: 'view',
+                    input: {},
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: 'call-preview',
+                    toolName: 'view',
+                    output: { type: 'json', value: { viewed: true } },
+                  },
+                ],
+              },
+              {
+                role: 'user',
+                content: [
+                  {
+                    type: 'file',
+                    data: new Uint8Array([137, 80, 78, 71]),
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-approval-response',
+                    approvalId: 'approval-save',
+                    approved,
+                    reason: 'Keep the file.',
+                  },
+                ],
+              },
+            ] as any,
+            writable,
+          });
+
+          expect(model.doStreamCalls).toHaveLength(1);
+          expect(execute).toHaveBeenCalledTimes(expectedExecutions);
+
+          const modelPrompt = model.doStreamCalls[0]?.prompt;
+          expect(modelPrompt).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({
+                role: 'user',
+                content: [
+                  expect.objectContaining({
+                    type: 'file',
+                    mediaType: 'image/png',
+                  }),
+                ],
+              }),
+            ]),
+          );
+          expect(
+            modelPrompt?.flatMap(message =>
+              message.role === 'tool' ? message.content : [],
+            ),
+          ).toEqual(
+            expect.arrayContaining([
+              expect.objectContaining({ toolCallId: 'call-preview' }),
+              expect.objectContaining({ toolCallId: 'call-save' }),
+            ]),
+          );
+        },
+      );
     });
   });
 });
