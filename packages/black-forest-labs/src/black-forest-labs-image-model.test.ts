@@ -54,6 +54,12 @@ describe('BlackForestLabsImageModel', () => {
         },
       },
     },
+    'https://api.example.com/v1/flux-3-image': {
+      response: {
+        type: 'json-value',
+        body: { id: 'req-123', polling_url: 'https://api.example.com/poll' },
+      },
+    },
     'https://api.example.com/v1/flux-pro-1.0-fill': {
       response: {
         type: 'json-value',
@@ -125,6 +131,11 @@ describe('BlackForestLabsImageModel', () => {
 
   describe('capabilities', () => {
     it.each([
+      {
+        modelId: 'flux-3-image',
+        supportsFileInputs: true,
+        supportsMaskInputs: false,
+      },
       {
         modelId: 'flux-pro-1.0-fill',
         supportsFileInputs: true,
@@ -473,6 +484,33 @@ describe('BlackForestLabsImageModel', () => {
       expect(pollCall!.requestHeaders['x-key']).toBe('test-key');
     });
 
+    it('does not send credentials to signed image URLs on a BFL delivery host', async () => {
+      const model = new BlackForestLabsImageModel('test-model', {
+        provider: 'black-forest-labs.image',
+        baseURL: 'https://api.bfl.ai/v1',
+        headers: () => ({
+          'x-key': 'test-key',
+          authorization: 'Bearer test-token',
+        }),
+      });
+      await model.doGenerate({
+        prompt,
+        n: 1,
+        files: undefined,
+        mask: undefined,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+      const downloadCall = server.calls.find(
+        call => call.requestUrl === 'https://delivery-us1.bfl.ai/image.png',
+      );
+      expect(downloadCall).toBeDefined();
+      expect(downloadCall?.requestHeaders['x-key']).toBeUndefined();
+      expect(downloadCall?.requestHeaders.authorization).toBeUndefined();
+    });
+
     it('merges provider and request headers for submit call', async () => {
       const modelWithHeaders = createBasicModel({
         headers: () => ({
@@ -805,6 +843,268 @@ describe('BlackForestLabsImageModel', () => {
         timestamp: testDate,
         modelId: 'test-model',
         headers: expect.any(Object),
+      });
+    });
+  });
+
+  describe('FLUX 3', () => {
+    const callOptions: Parameters<BlackForestLabsImageModel['doGenerate']>[0] =
+      {
+        prompt,
+        n: 1,
+        files: undefined,
+        mask: undefined,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      };
+
+    it('leaves aspect ratio and resolution defaults to the endpoint', async () => {
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+      }).doGenerate(callOptions);
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toEqual([]);
+    });
+
+    it.each(['768sq', '1k', '1.5k', '2k', '4k'])(
+      'sends resolution %s and FLUX 3 provider options',
+      async resolution => {
+        await createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+          ...callOptions,
+          aspectRatio: '16:9',
+          providerOptions: {
+            blackForestLabs: {
+              resolution,
+              grounding: false,
+              safetyTolerance: 4,
+              version: 'latest',
+            },
+          },
+        });
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          aspect_ratio: '16:9',
+          resolution,
+          grounding: false,
+          safety_tolerance: 4,
+          version: 'latest',
+        });
+      },
+    );
+
+    it('sends URL and base64 reference images in the images array', async () => {
+      await createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+        ...callOptions,
+        files: [
+          { type: 'url', url: 'https://example.com/reference.png' },
+          {
+            type: 'file',
+            data: new Uint8Array([1, 2, 3]),
+            mediaType: 'image/png',
+          },
+          { type: 'file', data: 'dGVzdA==', mediaType: 'image/png' },
+        ],
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        images: ['https://example.com/reference.png', 'AQID', 'dGVzdA=='],
+      });
+    });
+
+    it('derives aspect ratio from size without sending dimensions or seed', async () => {
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+      }).doGenerate({
+        ...callOptions,
+        size: '1536x1024',
+        seed: 42,
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        aspect_ratio: '3:2',
+      });
+      expect(result.warnings).toEqual([
+        expect.objectContaining({ type: 'unsupported', feature: 'size' }),
+        { type: 'unsupported', feature: 'seed' },
+      ]);
+    });
+
+    it('prefers an explicit aspect ratio over size', async () => {
+      await createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+        ...callOptions,
+        size: '1024x1024',
+        aspectRatio: '16:9',
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        aspect_ratio: '16:9',
+      });
+    });
+
+    it('omits legacy endpoint fields and warns about unsupported options', async () => {
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+      }).doGenerate({
+        ...callOptions,
+        providerOptions: {
+          blackForestLabs: {
+            width: 1024,
+            height: 1024,
+            outputFormat: 'png',
+            steps: 20,
+            guidance: 4,
+            promptUpsampling: true,
+            raw: false,
+            imagePrompt: 'dGVzdA==',
+            imagePromptStrength: 0.5,
+            inputImage: 'dGVzdA==',
+            webhookUrl: 'https://example.com/webhook',
+            webhookSecret: 'secret',
+          },
+        },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toHaveLength(12);
+      expect(result.warnings).toEqual(
+        expect.arrayContaining([
+          { type: 'unsupported', feature: 'blackForestLabs.width' },
+          { type: 'unsupported', feature: 'blackForestLabs.raw' },
+          { type: 'unsupported', feature: 'blackForestLabs.inputImage' },
+        ]),
+      );
+    });
+
+    it.each([
+      { safetyTolerance: 5 },
+      { safetyTolerance: -1 },
+      { safetyTolerance: 1.5 },
+      { resolution: '8k' },
+      { version: 'unknown' },
+    ])(
+      'rejects invalid provider options %j before submission',
+      async blackForestLabs => {
+        await expect(
+          createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+            ...callOptions,
+            providerOptions: { blackForestLabs },
+          }),
+        ).rejects.toThrow();
+        expect(server.calls).toHaveLength(0);
+      },
+    );
+
+    it('preserves the legacy safety tolerance range', async () => {
+      await createBasicModel().doGenerate({
+        ...callOptions,
+        providerOptions: { blackForestLabs: { safetyTolerance: 6 } },
+      });
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        safety_tolerance: 6,
+      });
+    });
+
+    it('rejects masks before submission', async () => {
+      await expect(
+        createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+          ...callOptions,
+          mask: { type: 'url', url: 'https://example.com/mask.png' },
+        }),
+      ).rejects.toThrow('FLUX 3 image masks');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('rejects more than ten reference images before submission', async () => {
+      await expect(
+        createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+          ...callOptions,
+          files: Array.from({ length: 11 }, () => ({
+            type: 'url' as const,
+            url: 'https://example.com/image.png',
+          })),
+        }),
+      ).rejects.toThrow('Black Forest Labs supports up to 10 input images.');
+      expect(server.calls).toHaveLength(0);
+    });
+
+    it('polls through Pending, Reasoning, and Generating until Ready', async () => {
+      const statuses = ['Pending', 'Reasoning', 'Generating', 'Ready'];
+      let pollCount = 0;
+      server.urls['https://api.example.com/poll'].response = () => {
+        const status = statuses[pollCount++];
+        return {
+          type: 'json-value',
+          body: {
+            status,
+            ...(status === 'Ready'
+              ? {
+                  result: {
+                    sample: 'https://api.example.com/image.png',
+                    duration: 2,
+                  },
+                }
+              : {}),
+          },
+        };
+      };
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+        pollIntervalMillis: 1,
+      }).doGenerate(callOptions);
+      expect(pollCount).toBe(4);
+      expect(result.images).toHaveLength(1);
+      expect(result.providerMetadata?.blackForestLabs.images[0]).toMatchObject({
+        duration: 2,
+      });
+    });
+
+    it.each(['Request Moderated', 'Content Moderated', 'Task not found'])(
+      'stops polling on %s',
+      async status => {
+        server.urls['https://api.example.com/poll'].response = {
+          type: 'json-value',
+          body: { status },
+        };
+        await expect(
+          createBasicModel({ modelId: 'flux-3-image' }).doGenerate(callOptions),
+        ).rejects.toThrow(`Black Forest Labs generation failed: ${status}.`);
+        expect(server.calls).toHaveLength(2);
+      },
+    );
+
+    it.each(['status', 'state'])(
+      'treats HTTP 503 with a terminal %s as non-retryable',
+      async field => {
+        server.urls['https://api.example.com/poll'].response = {
+          type: 'error',
+          status: 503,
+          body: JSON.stringify({ [field]: 'Error' }),
+        };
+        await expect(
+          createBasicModel({ modelId: 'flux-3-image' }).doGenerate(callOptions),
+        ).rejects.toMatchObject({
+          statusCode: 503,
+          isRetryable: false,
+          message: 'Black Forest Labs generation failed: Error.',
+        });
+        expect(server.calls).toHaveLength(2);
+      },
+    );
+
+    it('keeps HTTP 503 without a terminal task status retryable', async () => {
+      server.urls['https://api.example.com/poll'].response = {
+        type: 'error',
+        status: 503,
+        body: JSON.stringify({ detail: 'Service unavailable' }),
+      };
+      await expect(
+        createBasicModel({ modelId: 'flux-3-image' }).doGenerate(callOptions),
+      ).rejects.toMatchObject({
+        statusCode: 503,
+        isRetryable: true,
+        message: 'Service unavailable',
       });
     });
   });

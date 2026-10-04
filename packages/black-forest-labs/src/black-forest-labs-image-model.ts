@@ -1,4 +1,8 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import {
+  UnsupportedFunctionalityError,
+  type ImageModelV4,
+  type SharedV4Warning,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -20,7 +24,10 @@ import {
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
-import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import {
+  blackForestLabsFlux3ImageModelOptionsSchema,
+  blackForestLabsImageModelOptionsSchema,
+} from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
@@ -53,9 +60,12 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
   get supportsFileInputs(): boolean | undefined {
     if (
-      ['flux-kontext-pro', 'flux-kontext-max', 'flux-pro-1.0-fill'].includes(
-        this.modelId,
-      )
+      [
+        'flux-3-image',
+        'flux-kontext-pro',
+        'flux-kontext-max',
+        'flux-pro-1.0-fill',
+      ].includes(this.modelId)
     ) {
       return true;
     }
@@ -117,21 +127,28 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         type: 'unsupported',
         feature: 'size',
         details:
-          'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
+          this.modelId === 'flux-3-image'
+            ? 'Deriving aspect_ratio from size. FLUX 3 uses the resolution provider option to select output resolution.'
+            : 'Deriving aspect_ratio from size. Use the width and height provider options to specify dimensions for models that support them.',
       });
     } else if (size && aspectRatio) {
       warnings.push({
         type: 'unsupported',
         feature: 'size',
         details:
-          'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
+          this.modelId === 'flux-3-image'
+            ? 'FLUX 3 ignores size when aspectRatio is provided. Use the resolution provider option to select output resolution.'
+            : 'Black Forest Labs ignores size when aspectRatio is provided. Use the width and height provider options to specify dimensions for models that support them',
       });
     }
 
     const bflOptions = await parseProviderOptions({
       provider: 'blackForestLabs',
       providerOptions,
-      schema: blackForestLabsImageModelOptionsSchema,
+      schema:
+        this.modelId === 'flux-3-image'
+          ? blackForestLabsFlux3ImageModelOptionsSchema
+          : blackForestLabsImageModelOptionsSchema,
     });
 
     const [widthStr, heightStr] = size?.split('x') ?? [];
@@ -151,6 +168,49 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
 
     if (inputImages.length > 10) {
       throw new Error('Black Forest Labs supports up to 10 input images.');
+    }
+
+    if (this.modelId === 'flux-3-image') {
+      if (mask != null) {
+        throw new UnsupportedFunctionalityError({
+          functionality: 'FLUX 3 image masks',
+        });
+      }
+      if (seed != null) {
+        warnings.push({ type: 'unsupported', feature: 'seed' });
+      }
+      for (const [key, value] of Object.entries(bflOptions ?? {})) {
+        if (
+          value != null &&
+          ![
+            'grounding',
+            'pollIntervalMillis',
+            'pollTimeoutMillis',
+            'resolution',
+            'safetyTolerance',
+            'version',
+          ].includes(key)
+        ) {
+          warnings.push({
+            type: 'unsupported',
+            feature: `blackForestLabs.${key}`,
+          });
+        }
+      }
+
+      return {
+        body: {
+          prompt,
+          aspect_ratio: finalAspectRatio,
+          images: inputImages.length > 0 ? inputImages : undefined,
+          resolution: bflOptions?.resolution,
+          grounding: bflOptions?.grounding,
+          safety_tolerance: bflOptions?.safetyTolerance,
+          version: bflOptions?.version,
+        },
+        warnings,
+        bflOptions,
+      };
     }
 
     const inputImageField =
@@ -265,12 +325,8 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       // imageUrl comes from the provider response body; validate it.
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
-      // Only send credentials if the response-supplied URL points back at the
-      // provider; the image is typically delivered from a CDN, so the API key
-      // must not travel to a foreign host.
-      headers: isTrustedUrl(imageUrl, this.config.baseURL)
-        ? combinedHeaders
-        : undefined,
+      // BFL signed image URLs authorize the download without the API key.
+      headers: { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),
@@ -389,6 +445,13 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
         if (status === 'Error' || status === 'Failed') {
           throw new Error('Black Forest Labs generation failed.');
         }
+        if (
+          status === 'Request Moderated' ||
+          status === 'Content Moderated' ||
+          status === 'Task not found'
+        ) {
+          throw new Error(`Black Forest Labs generation failed: ${status}.`);
+        }
 
         await delay(pollIntervalMillis, {
           abortSignal: pollingAbortSignal,
@@ -443,11 +506,15 @@ const bflSubmitSchema = z.object({
 });
 
 const bflStatus = z.union([
+  z.literal('Content Moderated'),
+  z.literal('Generating'),
   z.literal('Pending'),
+  z.literal('Reasoning'),
   z.literal('Ready'),
   z.literal('Error'),
   z.literal('Failed'),
   z.literal('Request Moderated'),
+  z.literal('Task not found'),
 ]);
 
 const bflPollSchema = z
