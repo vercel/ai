@@ -65,6 +65,7 @@
     "@ai-sdk/replicate": "workspace:*",
     "@ai-sdk/revai": "workspace:*",
     "@ai-sdk/sandbox-just-bash": "workspace:*",
+    "@ai-sdk/sandbox-modal": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
     "@ai-sdk/topaz": "workspace:*",
