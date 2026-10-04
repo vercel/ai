@@ -149,6 +149,26 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should pass the opus audio format through for batch requests', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('request captured'));
+    const customModel = createXai({
+      apiKey: 'test-api-key',
+      fetch: fetchMock as unknown as typeof fetch,
+    }).transcription();
+
+    await expect(
+      customModel.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/ogg',
+        providerOptions: { xai: { audioFormat: 'opus' } },
+      }),
+    ).rejects.toThrow();
+
+    const body = fetchMock.mock.calls[0][1].body as FormData;
+    expect(body.get('audio_format')).toBe('opus');
+    expect((body.get('file') as File).name).toBe('audio.ogg');
+  });
+
   it('should append file after all other multipart fields', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -552,9 +572,9 @@ describe('doStream', () => {
 
     const partsPromise = convertReadableStreamToArray(result.stream);
     const ws = MockWebSocket.instances[0];
-    expect(new URL(ws.url.toString()).searchParams.get('encoding')).toBe(
-      'opus',
-    );
+    const searchParams = new URL(ws.url.toString()).searchParams;
+    expect(searchParams.get('encoding')).toBe('opus');
+    expect(searchParams.get('sample_rate')).toBe('48000');
 
     ws.message({ type: 'transcript.created' });
     await flush();
@@ -571,15 +591,33 @@ describe('doStream', () => {
     const result = await model.doStream({
       audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
       inputAudioFormat: { type: 'audio/pcm', rate: 48000 },
-      providerOptions: { xai: { audioFormat: 'opus' } },
+      providerOptions: { xai: { audioFormat: 'opus', sampleRate: 16000 } },
     });
 
     void result.stream.cancel();
-    expect(
-      new URL(MockWebSocket.instances[0].url.toString()).searchParams.get(
-        'encoding',
-      ),
-    ).toBe('opus');
+    const searchParams = new URL(MockWebSocket.instances[0].url.toString())
+      .searchParams;
+    expect(searchParams.get('encoding')).toBe('opus');
+    expect(searchParams.get('sample_rate')).toBe('16000');
+  });
+
+  it('should forward multichannel opus options to xAI', async () => {
+    MockWebSocket.instances = [];
+    const model = createStreamingModel();
+
+    const result = await model.doStream({
+      audio: convertArrayToReadableStream([new Uint8Array([1, 2, 3])]),
+      inputAudioFormat: { type: 'audio/opus', rate: 48000 },
+      providerOptions: { xai: { multichannel: true, channels: 2 } },
+    });
+
+    void result.stream.cancel();
+    const searchParams = new URL(MockWebSocket.instances[0].url.toString())
+      .searchParams;
+    expect(searchParams.get('encoding')).toBe('opus');
+    expect(searchParams.get('multichannel')).toBe('true');
+    expect(searchParams.get('channels')).toBe('2');
+    expect(searchParams.get('sample_rate')).toBe('48000');
   });
 
   it('should strip undefined header values before the WebSocket constructor', async () => {
