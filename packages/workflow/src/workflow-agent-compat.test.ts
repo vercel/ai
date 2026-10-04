@@ -548,6 +548,55 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         }
       `);
     });
+
+    it('should retain partial assistant content when the output length limit is reached', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'A partial answer.',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'length' as const,
+                raw: 'length',
+              },
+            },
+          ]),
+        }),
+      });
+      const onFinish = vi.fn();
+      const agent = new WorkflowAgent({ model });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Write an answer.' }],
+        writable,
+        onFinish,
+      });
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'A partial answer.' }],
+      };
+      expect(result.finishReason).toBe('length');
+      expect(result.steps[0]?.text).toBe('A partial answer.');
+      expect(result.messages.at(-1)).toEqual(assistantMessage);
+      expect(result.steps[0]?.response.messages).toEqual([assistantMessage]);
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'length',
+          messages: result.messages,
+          text: 'A partial answer.',
+        }),
+      );
+    });
   });
 
   describe('experimental_onStart', () => {
