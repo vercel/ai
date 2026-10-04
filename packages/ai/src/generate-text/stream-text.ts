@@ -1862,6 +1862,13 @@ class DefaultStreamTextResult<
     this.addStream = stitchableStream.addStream;
     this.closeStream = stitchableStream.close;
 
+    const callId = generateCallId();
+
+    const internalSteeringSignal = asInternalSteeringSignal(
+      experimental_steeringSignal,
+    );
+    internalSteeringSignal?.bind(callId, abortSignal);
+
     // resilient stream that handles abort signals and errors:
     const reader = stitchableStream.stream.getReader();
     let stream = new ReadableStream<InternalTextStreamPart<TOOLS>>({
@@ -1923,6 +1930,9 @@ class DefaultStreamTextResult<
       },
 
       cancel(reason) {
+        const actualReason =
+          Array.isArray(reason) && reason.length > 0 ? reason[0] : reason;
+        internalSteeringSignal?.abort(actualReason);
         return stitchableStream.stream.cancel(reason);
       },
     });
@@ -1971,13 +1981,6 @@ class DefaultStreamTextResult<
     const callSettings = prepareLanguageModelCallOptions(settings);
 
     const self = this;
-
-    const callId = generateCallId();
-
-    const internalSteeringSignal = asInternalSteeringSignal(
-      experimental_steeringSignal,
-    );
-    internalSteeringSignal?.bind(callId, abortSignal);
 
     (async () => {
       const initialPrompt = await standardizePrompt({
@@ -3205,7 +3208,10 @@ class DefaultStreamTextResult<
             ),
             {
               onError: cleanupStepTimeouts,
-              onCancel: cleanupStepTimeouts,
+              onCancel: () => {
+                cleanupStepTimeouts();
+                internalSteeringSignal?.abort();
+              },
             },
           );
         } catch (error) {

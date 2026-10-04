@@ -481,4 +481,76 @@ describe('streamText with SteeringController', () => {
     expect(promptStr).toContain('Steer after tool resolved');
     expect(promptStr).toContain('action executed');
   });
+
+  it('should abort steering and reject pending and future steer() calls on stream cancellation', async () => {
+    const controller = new SteeringController();
+    let stopStreamFn: (() => void) | undefined;
+
+    let resolveSecondChunk: (() => void) | undefined;
+    const secondChunkPromise = new Promise<void>(resolve => {
+      resolveSecondChunk = resolve;
+    });
+
+    try {
+      const result = streamText({
+        model: new MockLanguageModelV4({
+          doStream: async () => ({
+            stream: new ReadableStream({
+              async start(c) {
+                c.enqueue({ type: 'text-start', id: '1' });
+                c.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'first chunk',
+                });
+                await secondChunkPromise;
+                c.enqueue({
+                  type: 'text-delta',
+                  id: '1',
+                  delta: 'second chunk',
+                });
+                c.enqueue({ type: 'text-end', id: '1' });
+                c.enqueue({
+                  type: 'finish',
+                  finishReason: { unified: 'stop', raw: 'stop' },
+                  usage: testUsage,
+                });
+                c.close();
+              },
+            }),
+          }),
+        }),
+        prompt: 'hello',
+        experimental_transform: [
+          ({ stopStream }) => {
+            stopStreamFn = stopStream;
+            return new TransformStream();
+          },
+        ],
+        experimental_steeringSignal: controller.signal,
+      });
+
+      const reader = result.textStream.getReader();
+      const firstChunk = await reader.read();
+      expect(firstChunk.value).toBe('first chunk');
+
+      expect(controller.signal.isSteerable).toBe(true);
+
+      const pendingSteerPromise = controller.steer('mid-stream message');
+
+      // Terminate the active stream execution via the public transform control:
+      stopStreamFn?.();
+
+      await expect(pendingSteerPromise).rejects.toThrow('Execution aborted');
+      expect(controller.signal.isSteerable).toBe(false);
+
+      await expect(controller.steer('future message')).rejects.toThrow(
+        'Execution aborted',
+      );
+
+      reader.releaseLock();
+    } finally {
+      resolveSecondChunk?.();
+    }
+  });
 });
