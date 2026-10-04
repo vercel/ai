@@ -1,4 +1,4 @@
-export { AnthropicFiles } from '../anthropic-files';
+export { AnthropicFiles } from '../files/anthropic-files';
 export {
   AnthropicLanguageModel,
   /** @deprecated Use `AnthropicLanguageModel` instead. */
