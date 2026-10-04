@@ -412,6 +412,30 @@ describe('doGenerate', () => {
     });
   });
 
+  it('omits AI SDK function tools when tool choice is none', async () => {
+    prepareJsonResponse();
+
+    const { warnings } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      tools: [
+        {
+          type: 'function',
+          name: 'weather',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+      toolChoice: { type: 'none' },
+      providerOptions: {
+        perplexity: { tools: [{ type: 'web_search' }] },
+      },
+    });
+
+    expect((await server.calls[0].requestBodyJson).tools).toEqual([
+      { type: 'web_search' },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
   it('rejects invalid provider options', async () => {
     await expect(
       model.doGenerate({
