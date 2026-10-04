@@ -1,4 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  SpeechModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -15,7 +20,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiSpeechModelOptionsSchema } from './xai-speech-model-options';
+import {
+  xaiSpeechModelOptionsSchema,
+  type XaiSpeechModelOptions,
+} from './xai-speech-model-options';
 
 interface XaiSpeechModelConfig {
   provider: string;
@@ -29,7 +37,11 @@ interface XaiSpeechModelConfig {
 
 type XaiSpeechCodec = 'mp3' | 'wav' | 'pcm' | 'mulaw' | 'alaw';
 
-export class XaiSpeechModel implements SpeechModelV4 {
+export type XaiSpeechModelV4ProviderOptions = {
+  xai?: XaiSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class XaiSpeechModel implements SpeechModelV4<XaiSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: XaiSpeechModel) {
@@ -63,7 +75,9 @@ export class XaiSpeechModel implements SpeechModelV4 {
     speed,
     language = 'auto',
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<XaiSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
@@ -137,8 +151,14 @@ export class XaiSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<XaiSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<SpeechModelV4<XaiSpeechModelV4ProviderOptions>['doGenerate']>
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings, withTimestamps } =
       await this.getArgs(options);

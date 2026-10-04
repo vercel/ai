@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 
 // https://docs.perplexity.ai/docs/embeddings/quickstart
 export type PerplexityEmbeddingModelId =
@@ -26,3 +27,7 @@ export const perplexityEmbeddingModelOptions = z.object({
 export type PerplexityEmbeddingModelOptions = z.infer<
   typeof perplexityEmbeddingModelOptions
 >;
+
+export type PerplexityEmbeddingModelV4ProviderOptions = {
+  perplexity?: PerplexityEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

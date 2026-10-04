@@ -9,7 +9,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { resolveKlingAIAuthToken } from './klingai-auth';
-import { KlingAIVideoModel } from './klingai-video-model';
+import {
+  KlingAIVideoModel,
+  type KlingAIVideoModelV4ProviderOptions,
+} from './klingai-video-model';
 import type { KlingAIVideoModelId } from './klingai-video-settings';
 import { VERSION } from './version';
 
@@ -57,12 +60,16 @@ export interface KlingAIProvider extends ProviderV4 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: KlingAIVideoModelId): VideoModelV4;
+  video(
+    modelId: KlingAIVideoModelId,
+  ): VideoModelV4<KlingAIVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: KlingAIVideoModelId): VideoModelV4;
+  videoModel(
+    modelId: KlingAIVideoModelId,
+  ): VideoModelV4<KlingAIVideoModelV4ProviderOptions>;
 }
 
 const defaultBaseURL = 'https://api-singapore.klingai.com';

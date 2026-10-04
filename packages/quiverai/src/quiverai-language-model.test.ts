@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { streamText, StreamProviderError } from 'ai';
 import { createQuiverAI } from './quiverai-provider';
 import { QuiverAILanguageModel } from './quiverai-language-model';
+import type { QuiverAIImageModelV4ProviderOptions } from './quiverai-image-model-options';
 
 const URL = 'https://api.quiver.ai/v1/responses';
 const CUSTOM_URL = 'https://example.com/quiverai/responses';
@@ -450,7 +451,8 @@ describe('QuiverAI language model', () => {
       createQuiverAI({ apiKey: 'test-api-key' })('arrow-2').doGenerate({
         prompt,
         providerOptions: {
-          quiverai: { reasoningEffort: 'max' },
+          // 'max' is not a valid reasoningEffort value.
+          quiverai: { reasoningEffort: 'max' as any },
         },
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
@@ -503,7 +505,12 @@ describe('QuiverAI language model', () => {
         { reasoningSummary: 'detailed' },
       ]) {
         await expect(
-          model[method]({ prompt, providerOptions: { quiverai } }),
+          model[method]({
+            prompt,
+            providerOptions: {
+              quiverai,
+            } as QuiverAIImageModelV4ProviderOptions,
+          }),
         ).rejects.toBeInstanceOf(InvalidArgumentError);
       }
       server.urls[URL].response =

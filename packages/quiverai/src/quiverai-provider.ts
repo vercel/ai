@@ -20,8 +20,10 @@ import {
   quiveraiFailedResponseHandler,
 } from './quiverai-error';
 import { QuiverAILanguageModel } from './quiverai-language-model';
+import type { QuiverAILanguageModelV4ProviderOptions } from './quiverai-language-model-options';
 import { QuiverAIImageModel } from './quiverai-image-model';
 import type { QuiverAIImageModelId } from './quiverai-image-settings';
+import type { QuiverAIImageModelV4ProviderOptions } from './quiverai-image-model-options';
 import type { QuiverAILanguageModelId } from './quiverai-language-model-settings';
 import { VERSION } from './version';
 
@@ -54,22 +56,22 @@ export interface QuiverAIProvider extends ProviderV4 {
   /**
    * Creates a language model for the QuiverAI Responses API.
    */
-  (modelId: QuiverAILanguageModelId): LanguageModelV4;
+  (modelId: QuiverAILanguageModelId): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a language model for the QuiverAI Responses API.
    */
-  languageModel(modelId: QuiverAILanguageModelId): LanguageModelV4;
+  languageModel(modelId: QuiverAILanguageModelId): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: QuiverAIImageModelId): ImageModelV4;
+  image(modelId: QuiverAIImageModelId): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: QuiverAIImageModelId): ImageModelV4;
+  imageModel(modelId: QuiverAIImageModelId): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

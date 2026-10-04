@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -16,6 +18,7 @@ import { z } from 'zod/v4';
 import {
   voyageEmbeddingModelOptions,
   type VoyageEmbeddingModelId,
+  type VoyageEmbeddingModelOptions,
 } from './voyage-embedding-model-options';
 import { voyageFailedResponseHandler } from './voyage-error';
 
@@ -26,7 +29,11 @@ type VoyageEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class VoyageEmbeddingModel implements EmbeddingModelV4 {
+export type VoyageEmbeddingModelV4ProviderOptions = {
+  voyage?: VoyageEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class VoyageEmbeddingModel implements EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: VoyageEmbeddingModelId;
 
@@ -63,8 +70,14 @@ export class VoyageEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     const embeddingOptions = await parseProviderOptions({
       provider: 'voyage',

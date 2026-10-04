@@ -10,9 +10,15 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { TopazImageModel } from './topaz-image-model';
+import {
+  TopazImageModel,
+  type TopazImageModelV4ProviderOptions,
+} from './topaz-image-model';
 import type { TopazImageModelId } from './topaz-image-settings';
-import { TopazVideoModel } from './topaz-video-model';
+import {
+  TopazVideoModel,
+  type TopazVideoModelV4ProviderOptions,
+} from './topaz-video-model';
 import type { TopazVideoModelId } from './topaz-video-settings';
 import { VERSION } from './version';
 
@@ -46,22 +52,30 @@ export interface TopazProvider extends ProviderV4 {
   /**
    * Creates a model for image enhancement.
    */
-  image(modelId: TopazImageModelId): ImageModelV4;
+  image(
+    modelId: TopazImageModelId,
+  ): ImageModelV4<TopazImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image enhancement.
    */
-  imageModel(modelId: TopazImageModelId): ImageModelV4;
+  imageModel(
+    modelId: TopazImageModelId,
+  ): ImageModelV4<TopazImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for video enhancement.
    */
-  video(modelId: TopazVideoModelId): VideoModelV4;
+  video(
+    modelId: TopazVideoModelId,
+  ): VideoModelV4<TopazVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video enhancement.
    */
-  videoModel(modelId: TopazVideoModelId): VideoModelV4;
+  videoModel(
+    modelId: TopazVideoModelId,
+  ): VideoModelV4<TopazVideoModelV4ProviderOptions>;
 }
 
 const defaultBaseURL = 'https://api.topazlabs.com';

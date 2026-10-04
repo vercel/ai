@@ -3,6 +3,7 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export const prodiaVideoModelOptionsSchema = lazySchema(() =>
@@ -19,3 +20,7 @@ export const prodiaVideoModelOptionsSchema = lazySchema(() =>
 export type ProdiaVideoModelOptions = InferSchema<
   typeof prodiaVideoModelOptionsSchema
 >;
+
+export type ProdiaVideoModelV4ProviderOptions = {
+  prodia?: ProdiaVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

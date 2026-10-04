@@ -13,10 +13,13 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ProdiaImageModel } from './prodia-image-model';
 import type { ProdiaImageModelId } from './prodia-image-settings';
+import type { ProdiaImageModelV4ProviderOptions } from './prodia-image-model-options';
 import { ProdiaLanguageModel } from './prodia-language-model';
 import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
+import type { ProdiaLanguageModelV4ProviderOptions } from './prodia-language-model-options';
 import { ProdiaVideoModel } from './prodia-video-model';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
+import type { ProdiaVideoModelV4ProviderOptions } from './prodia-video-model-options';
 import { VERSION } from './version';
 
 export interface ProdiaProviderSettings {
@@ -46,27 +49,27 @@ export interface ProdiaProvider extends ProviderV4 {
   /**
    * Creates a language model for multimodal generation (img2img with text+image output).
    */
-  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4;
+  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4<ProdiaLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ProdiaImageModelId): ImageModelV4;
+  image(modelId: ProdiaImageModelId): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV4;
+  imageModel(modelId: ProdiaImageModelId): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
+  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4;
+  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

@@ -12,7 +12,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { ReplicateImageModel } from './replicate-image-model';
 import type { ReplicateImageModelId } from './replicate-image-settings';
-import { ReplicateVideoModel } from './replicate-video-model';
+import {
+  ReplicateVideoModel,
+  type ReplicateVideoModelV4ProviderOptions,
+} from './replicate-video-model';
 import type { ReplicateVideoModelId } from './replicate-video-settings';
 import { VERSION } from './version';
 
@@ -60,12 +63,16 @@ export interface ReplicateProvider extends ProviderV4 {
   /**
    * Creates a Replicate video generation model.
    */
-  video(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: ReplicateVideoModelId,
+  ): Experimental_VideoModelV4<ReplicateVideoModelV4ProviderOptions>;
 
   /**
    * Creates a Replicate video generation model.
    */
-  videoModel(modelId: ReplicateVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: ReplicateVideoModelId,
+  ): Experimental_VideoModelV4<ReplicateVideoModelV4ProviderOptions>;
 }
 
 /**

@@ -8,7 +8,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { RevaiTranscriptionModel } from './revai-transcription-model';
+import {
+  RevaiTranscriptionModel,
+  type RevaiTranscriptionModelV4ProviderOptions,
+} from './revai-transcription-model';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import { VERSION } from './version';
 
@@ -23,7 +26,9 @@ export interface RevaiProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: RevaiTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: RevaiTranscriptionModelId,
+  ): TranscriptionModelV4<RevaiTranscriptionModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

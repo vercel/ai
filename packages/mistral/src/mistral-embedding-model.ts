@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -16,6 +18,7 @@ import { z } from 'zod/v4';
 import {
   mistralEmbeddingModelOptions,
   type MistralEmbeddingModelId,
+  type MistralEmbeddingModelOptions,
 } from './mistral-embedding-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 
@@ -26,7 +29,11 @@ type MistralEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class MistralEmbeddingModel implements EmbeddingModelV4 {
+export type MistralEmbeddingModelV4ProviderOptions = {
+  mistral?: MistralEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MistralEmbeddingModel implements EmbeddingModelV4<MistralEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: MistralEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 32;

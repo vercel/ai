@@ -10,7 +10,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { VERSION } from './version';
-import { ZaiChatLanguageModel } from './zai-chat-language-model';
+import {
+  ZaiChatLanguageModel,
+  type ZaiChatLanguageModelV4ProviderOptions,
+} from './zai-chat-language-model';
 import type { ZaiChatModelId } from './zai-chat-options';
 
 export interface ZaiProviderSettings {
@@ -40,17 +43,23 @@ export interface ZaiProvider extends ProviderV4 {
   /**
    * Creates a Z.AI chat model for text generation.
    */
-  (modelId: ZaiChatModelId): LanguageModelV4;
+  (
+    modelId: ZaiChatModelId,
+  ): LanguageModelV4<ZaiChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Z.AI language model.
    */
-  languageModel(modelId: ZaiChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: ZaiChatModelId,
+  ): LanguageModelV4<ZaiChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Z.AI chat model.
    */
-  chat(modelId: ZaiChatModelId): LanguageModelV4;
+  chat(
+    modelId: ZaiChatModelId,
+  ): LanguageModelV4<ZaiChatLanguageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

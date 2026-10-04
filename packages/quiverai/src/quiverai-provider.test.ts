@@ -15,6 +15,7 @@ import {
 } from './__fixtures__/quiverai-fixtures';
 import { prepareQuiverAIImageReference } from './prepare-quiverai-image-reference';
 import { createQuiverAI } from './quiverai-provider';
+import type { QuiverAIImageModelV4ProviderOptions } from './quiverai-image-model-options';
 
 const decoder = new TextDecoder();
 const encoder = new TextEncoder();
@@ -519,7 +520,7 @@ describe('createQuiverAI', () => {
           files: [{ type: 'url', url: 'https://example.com/source.svg' }],
           providerOptions: {
             quiverai: { operation: 'animate', ...quiverai },
-          },
+          } as QuiverAIImageModelV4ProviderOptions,
         }),
       ).rejects.toBeInstanceOf(InvalidArgumentError);
       expect(server.calls).toHaveLength(0);
@@ -873,7 +874,7 @@ describe('createQuiverAI', () => {
             operation: 'edit',
             ...quiveraiOptions,
           },
-        },
+        } as QuiverAIImageModelV4ProviderOptions,
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(server.calls).toHaveLength(0);
@@ -947,7 +948,7 @@ describe('createQuiverAI', () => {
               operation: 'edit',
               ...unsupportedOption,
             },
-          },
+          } as QuiverAIImageModelV4ProviderOptions,
         }),
       ).rejects.toBeInstanceOf(InvalidArgumentError);
       expect(server.calls).toHaveLength(0);
@@ -1232,7 +1233,7 @@ describe('createQuiverAI', () => {
     await expect(
       provider.image('arrow-2').doGenerate({
         ...generateOptions,
-        providerOptions: { quiverai },
+        providerOptions: { quiverai } as QuiverAIImageModelV4ProviderOptions,
       }),
     ).rejects.toThrow();
     expect(server.calls).toHaveLength(0);

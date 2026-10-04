@@ -19,9 +19,11 @@ import {
   getQuiverAIResponseErrorMetadata,
   quiveraiFailedResponseHandler,
 } from './quiverai-error';
+import type { QuiverAILanguageModelV4ProviderOptions } from './quiverai-language-model-options';
 
 /** Applies QuiverAI's request policy while reusing the Open Responses transport. */
-export class QuiverAILanguageModel implements LanguageModelV4 {
+export class QuiverAILanguageModel
+  implements LanguageModelV4<QuiverAILanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: QuiverAILanguageModel) {

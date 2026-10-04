@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 
 const userLocationSchema = z.looseObject({
   latitude: z.number().optional(),
@@ -122,3 +123,7 @@ export const perplexityLanguageModelOptions = z.looseObject({
 export type PerplexityLanguageModelOptions = z.infer<
   typeof perplexityLanguageModelOptions
 >;
+
+export type PerplexityLanguageModelV4ProviderOptions = {
+  perplexity?: PerplexityLanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

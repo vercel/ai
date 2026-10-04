@@ -3,6 +3,7 @@ import { generateImage, wrapImageModel } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { editSvgResponseFixture } from './__fixtures__/quiverai-fixtures';
 import { createQuiverAI } from './quiverai-provider';
+import type { QuiverAIImageModelV4ProviderOptions } from './quiverai-image-model-options';
 
 const encoder = new TextEncoder();
 
@@ -74,7 +75,9 @@ describe('QuiverAI generateImage integration', () => {
       );
       const provider = createQuiverAI({ apiKey: 'test-api-key', fetch });
       const model = provider.image(modelId);
-      const providerOptions = { quiverai: { operation: 'edit' } };
+      const providerOptions = {
+        quiverai: { operation: 'edit' },
+      } as QuiverAIImageModelV4ProviderOptions;
       const sourceSvg = '<svg><rect width="10" height="10"/></svg>';
 
       const editingModel = useMiddleware

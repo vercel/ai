@@ -9,3 +9,9 @@ export type QuiverAILanguageModelOptions = {
    */
   reasoningSummary?: 'auto';
 };
+
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
+
+export type QuiverAILanguageModelV4ProviderOptions = {
+  quiverai?: QuiverAILanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

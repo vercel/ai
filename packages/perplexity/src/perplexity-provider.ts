@@ -12,36 +12,40 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { PerplexityEmbeddingModel } from './perplexity-embedding-model';
-import type { PerplexityEmbeddingModelId } from './perplexity-embedding-model-options';
+import type {
+  PerplexityEmbeddingModelId,
+  PerplexityEmbeddingModelV4ProviderOptions,
+} from './perplexity-embedding-model-options';
 import { PerplexityLanguageModel } from './perplexity-language-model';
 import type { PerplexityLanguageModelId } from './perplexity-options';
+import type { PerplexityLanguageModelV4ProviderOptions } from './perplexity-language-model-options';
 import { VERSION } from './version';
 
 export interface PerplexityProvider extends ProviderV4 {
   /**
    * Creates a Perplexity Agent API model or preset for text generation.
    */
-  (modelId: PerplexityLanguageModelId): LanguageModelV4;
+  (modelId: PerplexityLanguageModelId): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity Agent API model or preset for text generation.
    */
-  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4;
+  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 }
 
 export interface PerplexityProviderSettings {

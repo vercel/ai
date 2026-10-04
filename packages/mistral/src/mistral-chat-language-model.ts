@@ -7,6 +7,8 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -38,6 +40,7 @@ import { mapMistralFinishReason } from './map-mistral-finish-reason';
 import {
   mistralLanguageModelChatOptions,
   type MistralChatModelId,
+  type MistralLanguageModelChatOptions,
 } from './mistral-chat-language-model-options';
 import { mistralFailedResponseHandler } from './mistral-error';
 import { prepareTools } from './mistral-prepare-tools';
@@ -71,7 +74,11 @@ const reasoningEffortModelIds = new Set<MistralChatModelId>([
   'zai-glm-5-2',
 ]);
 
-export class MistralChatLanguageModel implements LanguageModelV4 {
+export type MistralLanguageModelV4ProviderOptions = {
+  mistral?: MistralLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MistralChatLanguageModel implements LanguageModelV4<MistralLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: MistralChatModelId;

@@ -8,7 +8,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { HumeSpeechModel } from './hume-speech-model';
+import {
+  HumeSpeechModel,
+  type HumeSpeechModelV4ProviderOptions,
+} from './hume-speech-model';
 import { VERSION } from './version';
 
 export interface HumeProvider extends ProviderV4 {
@@ -19,7 +22,7 @@ export interface HumeProvider extends ProviderV4 {
   /**
    * Creates a model for speech synthesis.
    */
-  speech(): SpeechModelV4;
+  speech(): SpeechModelV4<HumeSpeechModelV4ProviderOptions>;
 }
 
 export interface HumeProviderSettings {

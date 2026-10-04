@@ -10,10 +10,16 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { GroqChatLanguageModel } from './groq-chat-language-model';
+import {
+  GroqChatLanguageModel,
+  type GroqChatLanguageModelV4ProviderOptions,
+} from './groq-chat-language-model';
 import type { GroqChatModelId } from './groq-chat-language-model-options';
 import type { GroqTranscriptionModelId } from './groq-transcription-model-options';
-import { GroqTranscriptionModel } from './groq-transcription-model';
+import {
+  GroqTranscriptionModel,
+  type GroqTranscriptionModelV4ProviderOptions,
+} from './groq-transcription-model';
 
 import { groqTools } from './groq-tools';
 import { VERSION } from './version';
@@ -21,17 +27,23 @@ export interface GroqProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GroqChatModelId): LanguageModelV4;
+  (
+    modelId: GroqChatModelId,
+  ): LanguageModelV4<GroqChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates an Groq chat model for text generation.
    */
-  languageModel(modelId: GroqChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: GroqChatModelId,
+  ): LanguageModelV4<GroqChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: GroqTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: GroqTranscriptionModelId,
+  ): TranscriptionModelV4<GroqTranscriptionModelV4ProviderOptions>;
 
   /**
    * Tools provided by Groq.

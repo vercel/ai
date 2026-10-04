@@ -10,6 +10,8 @@ import {
   type FilesV4UploadFileCallOptions,
   type FilesV4UploadFileResult,
   type SharedV4ProviderReference,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -55,7 +57,11 @@ function encodePathSegment(value: string): string {
       : encodedValue;
 }
 
-export class XaiFiles implements FilesV4 {
+export type XaiFilesV4ProviderOptions = {
+  xai?: XaiFilesOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class XaiFiles implements FilesV4<XaiFilesV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -88,7 +94,7 @@ export class XaiFiles implements FilesV4 {
     abortSignal,
     headers,
     providerOptions,
-  }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
+  }: FilesV4UploadFileCallOptions<XaiFilesV4ProviderOptions>): Promise<FilesV4UploadFileResult> {
     let xaiOptions: XaiFilesOptions | undefined;
     try {
       xaiOptions = (await parseProviderOptions({
@@ -210,7 +216,7 @@ export class XaiFiles implements FilesV4 {
     file,
     abortSignal,
     headers,
-  }: FilesV4GetFileMetadataCallOptions): Promise<FilesV4GetFileMetadataResult> {
+  }: FilesV4GetFileMetadataCallOptions<XaiFilesV4ProviderOptions>): Promise<FilesV4GetFileMetadataResult> {
     const fileId = this.getFileId(file);
 
     const { value: response } = await getFromApi({
@@ -246,7 +252,7 @@ export class XaiFiles implements FilesV4 {
     file,
     abortSignal,
     headers,
-  }: FilesV4DownloadFileCallOptions): Promise<FilesV4DownloadFileResult> {
+  }: FilesV4DownloadFileCallOptions<XaiFilesV4ProviderOptions>): Promise<FilesV4DownloadFileResult> {
     const fileId = this.getFileId(file);
 
     const { value: content, responseHeaders } = await getFromApi({
@@ -273,7 +279,7 @@ export class XaiFiles implements FilesV4 {
     file,
     abortSignal,
     headers,
-  }: FilesV4DeleteFileCallOptions): Promise<FilesV4DeleteFileResult> {
+  }: FilesV4DeleteFileCallOptions<XaiFilesV4ProviderOptions>): Promise<FilesV4DeleteFileResult> {
     const fileId = this.getFileId(file);
 
     const { value: response } = await deleteFromApi({

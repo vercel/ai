@@ -31,10 +31,11 @@ import {
   type ProdiaJobResult,
   type ProdiaModelConfig,
 } from './prodia-api';
-import { prodiaLanguageModelOptionsSchema } from './prodia-language-model-options';
+import { prodiaLanguageModelOptionsSchema, type ProdiaLanguageModelV4ProviderOptions } from './prodia-language-model-options';
 import type { ProdiaLanguageModelId } from './prodia-language-model-settings';
 
-export class ProdiaLanguageModel implements LanguageModelV4 {
+export class ProdiaLanguageModel
+  implements LanguageModelV4<ProdiaLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly supportedUrls = {};
 

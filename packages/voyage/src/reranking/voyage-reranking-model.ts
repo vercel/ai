@@ -1,4 +1,9 @@
-import type { RerankingModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  RerankingModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -13,6 +18,7 @@ import { voyageFailedResponseHandler } from '../voyage-error';
 import {
   voyageRerankingModelOptionsSchema,
   type VoyageRerankingModelId,
+  type VoyageRerankingModelOptions,
 } from './voyage-reranking-model-options';
 type VoyageRerankingConfig = {
   provider: string;
@@ -21,7 +27,11 @@ type VoyageRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class VoyageRerankingModel implements RerankingModelV4 {
+export type VoyageRerankingModelV4ProviderOptions = {
+  voyage?: VoyageRerankingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class VoyageRerankingModel implements RerankingModelV4<VoyageRerankingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: VoyageRerankingModelId;
 
@@ -43,8 +53,14 @@ export class VoyageRerankingModel implements RerankingModelV4 {
     topN,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV4['doRerank']>>
+  }: Parameters<
+    RerankingModelV4<VoyageRerankingModelV4ProviderOptions>['doRerank']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        RerankingModelV4<VoyageRerankingModelV4ProviderOptions>['doRerank']
+      >
+    >
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'voyage',

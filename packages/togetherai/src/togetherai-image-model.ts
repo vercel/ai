@@ -1,4 +1,9 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  ImageModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -11,7 +16,10 @@ import {
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { togetheraiImageModelOptionsSchema } from './togetherai-image-model-options';
+import {
+  togetheraiImageModelOptionsSchema,
+  type TogetherAIImageModelOptions,
+} from './togetherai-image-model-options';
 import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { z } from 'zod/v4';
 
@@ -27,7 +35,11 @@ interface TogetherAIImageModelConfig {
 
 const nonDiffusionImageModels = new Set<string>(['google/gemini-3-pro-image']);
 
-export class TogetherAIImageModel implements ImageModelV4 {
+export type TogetherAIImageModelV4ProviderOptions = {
+  togetherai?: TogetherAIImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class TogetherAIImageModel implements ImageModelV4<TogetherAIImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
@@ -101,8 +113,14 @@ export class TogetherAIImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<TogetherAIImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<TogetherAIImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
 

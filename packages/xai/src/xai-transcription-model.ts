@@ -3,6 +3,8 @@ import {
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -53,7 +55,11 @@ type XaiStreamingTranscriptionEvent = {
   message?: string;
 };
 
-export class XaiTranscriptionModel implements TranscriptionModelV4 {
+export type XaiTranscriptionModelV4ProviderOptions = {
+  xai?: XaiTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class XaiTranscriptionModel implements TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: XaiTranscriptionModel) {
@@ -83,7 +89,9 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
     const xaiOptions = await parseProviderOptions({
       provider: 'xai',
@@ -136,8 +144,16 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 
@@ -178,9 +194,15 @@ export class XaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doStream(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<XaiTranscriptionModelV4ProviderOptions>,
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];

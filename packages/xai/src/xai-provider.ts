@@ -19,32 +19,53 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { XaiImageModel } from './xai-image-model';
+import {
+  XaiImageModel,
+  type XaiImageModelV4ProviderOptions,
+} from './xai-image-model';
 import type { XaiImageModelId } from './xai-image-settings';
 import { XaiBatch } from './xai-batch';
-import { XaiResponsesLanguageModel } from './responses/xai-responses-language-model';
+import {
+  XaiResponsesLanguageModel,
+  type XaiResponsesLanguageModelV4ProviderOptions,
+} from './responses/xai-responses-language-model';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import { XaiRealtimeModel } from './realtime/xai-realtime-model';
 import { xaiTools } from './tool';
 import { VERSION } from './version';
-import { XaiFiles } from './files/xai-files';
-import { XaiVideoModel } from './xai-video-model';
+import { XaiFiles, type XaiFilesV4ProviderOptions } from './files/xai-files';
+import {
+  XaiVideoModel,
+  type XaiVideoModelV4ProviderOptions,
+} from './xai-video-model';
 import type { XaiVideoModelId } from './xai-video-settings';
-import { XaiSpeechModel } from './xai-speech-model';
-import { XaiTranscriptionModel } from './xai-transcription-model';
+import {
+  XaiSpeechModel,
+  type XaiSpeechModelV4ProviderOptions,
+} from './xai-speech-model';
+import {
+  XaiTranscriptionModel,
+  type XaiTranscriptionModelV4ProviderOptions,
+} from './xai-transcription-model';
 
 export interface XaiProvider extends ProviderV4 {
-  (modelId: XaiResponsesModelId): LanguageModelV4;
+  (
+    modelId: XaiResponsesModelId,
+  ): LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>;
 
   /**
    * Creates an Xai language model for text generation.
    */
-  languageModel(modelId: XaiResponsesModelId): LanguageModelV4;
+  languageModel(
+    modelId: XaiResponsesModelId,
+  ): LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>;
 
   /**
    * Creates an Xai responses model for text generation.
    */
-  responses: (modelId: XaiResponsesModelId) => LanguageModelV4;
+  responses: (
+    modelId: XaiResponsesModelId,
+  ) => LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>;
 
   /**
    * Returns a BatchV4 interface for processing batches with xAI.
@@ -57,49 +78,55 @@ export interface XaiProvider extends ProviderV4 {
   /**
    * Creates an Xai image model for image generation.
    */
-  image(modelId: XaiImageModelId): ImageModelV4;
+  image(modelId: XaiImageModelId): ImageModelV4<XaiImageModelV4ProviderOptions>;
 
   /**
    * Creates an Xai image model for image generation.
    */
-  imageModel(modelId: XaiImageModelId): ImageModelV4;
+  imageModel(
+    modelId: XaiImageModelId,
+  ): ImageModelV4<XaiImageModelV4ProviderOptions>;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  video(modelId: XaiVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: XaiVideoModelId,
+  ): Experimental_VideoModelV4<XaiVideoModelV4ProviderOptions>;
 
   /**
    * Creates an Xai video model for video generation.
    */
-  videoModel(modelId: XaiVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: XaiVideoModelId,
+  ): Experimental_VideoModelV4<XaiVideoModelV4ProviderOptions>;
 
   experimental_realtime: RealtimeFactoryV4;
 
   /**
    * Creates an xAI model for speech generation (text-to-speech).
    */
-  speech(): SpeechModelV4;
+  speech(): SpeechModelV4<XaiSpeechModelV4ProviderOptions>;
 
   /**
    * Creates an xAI model for speech generation (text-to-speech).
    */
-  speechModel(): SpeechModelV4;
+  speechModel(): SpeechModelV4<XaiSpeechModelV4ProviderOptions>;
 
   /**
    * Creates an xAI model for speech-to-text transcription.
    */
-  transcription(): TranscriptionModelV4;
+  transcription(): TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates an xAI model for speech-to-text transcription.
    */
-  transcriptionModel(): TranscriptionModelV4;
+  transcriptionModel(): TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>;
 
   /**
    * Returns the xAI files interface for uploading files.
    */
-  files(): FilesV4;
+  files(): FilesV4<XaiFilesV4ProviderOptions>;
 
   /**
    * Server-side agentic tools for use with the responses API.

@@ -3,6 +3,7 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 export const prodiaLanguageModelOptionsSchema = lazySchema(() =>
@@ -33,3 +34,7 @@ export const prodiaLanguageModelOptionsSchema = lazySchema(() =>
 export type ProdiaLanguageModelOptions = InferSchema<
   typeof prodiaLanguageModelOptionsSchema
 >;
+
+export type ProdiaLanguageModelV4ProviderOptions = {
+  prodia?: ProdiaLanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

@@ -11,9 +11,15 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AnthropicLanguageModel } from '@ai-sdk/anthropic/internal';
+import {
+  AnthropicLanguageModel,
+  type AnthropicLanguageModelV4ProviderOptions,
+} from '@ai-sdk/anthropic/internal';
 import type { MiniMaxChatModelId } from './minimax-chat-options';
-import { MiniMaxVideoModel } from './minimax-video-model';
+import {
+  MiniMaxVideoModel,
+  type MiniMaxVideoModelV4ProviderOptions,
+} from './minimax-video-model';
 import type { MiniMaxVideoModelId } from './minimax-video-settings';
 import { VERSION } from './version';
 
@@ -48,27 +54,37 @@ export interface MiniMaxProvider extends ProviderV4 {
   /**
    * Creates a MiniMax model for text generation.
    */
-  (modelId: MiniMaxChatModelId): LanguageModelV4;
+  (
+    modelId: MiniMaxChatModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a MiniMax language model for text generation.
    */
-  languageModel(modelId: MiniMaxChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: MiniMaxChatModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a MiniMax chat model for text generation.
    */
-  chat(modelId: MiniMaxChatModelId): LanguageModelV4;
+  chat(
+    modelId: MiniMaxChatModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a MiniMax video model for video generation.
    */
-  video(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: MiniMaxVideoModelId,
+  ): Experimental_VideoModelV4<MiniMaxVideoModelV4ProviderOptions>;
 
   /**
    * Creates a MiniMax video model for video generation.
    */
-  videoModel(modelId: MiniMaxVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: MiniMaxVideoModelId,
+  ): Experimental_VideoModelV4<MiniMaxVideoModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

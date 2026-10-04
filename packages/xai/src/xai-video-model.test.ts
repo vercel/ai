@@ -1,7 +1,11 @@
 import { InvalidArgumentError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import { describe, expect, it } from 'vitest';
-import { XaiVideoModel } from './xai-video-model';
+import {
+  XaiVideoModel,
+  type XaiVideoModelV4ProviderOptions,
+} from './xai-video-model';
+import type { XaiVideoProviderOptions } from '.';
 
 const prompt = 'A chicken flying into the sunset';
 
@@ -1067,7 +1071,7 @@ describe('XaiVideoModel', () => {
           xai: {
             mode: 'reference-to-video',
           },
-        },
+        } as XaiVideoModelV4ProviderOptions,
       });
 
       const body = await server.calls[0].requestBodyJson;
@@ -1087,7 +1091,7 @@ describe('XaiVideoModel', () => {
           xai: {
             mode: 'reference-to-video',
           },
-        },
+        } as XaiVideoModelV4ProviderOptions,
       });
 
       const body = await server.calls[0].requestBodyJson;

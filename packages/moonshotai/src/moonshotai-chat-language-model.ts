@@ -8,6 +8,8 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -45,6 +47,7 @@ import {
   isMoonshotAIKimiModel,
   moonshotaiLanguageModelOptions,
   type MoonshotAIChatModelId,
+  type MoonshotAILanguageModelOptions,
 } from './moonshotai-chat-options';
 import { normalizeJsonSchemaForMFJS } from './normalize-json-schema-for-mfjs';
 import { prepareTools } from './moonshotai-prepare-tools';
@@ -106,7 +109,11 @@ function getMoonshotAIStreamErrorMetadata(type?: string | null): {
   }
 }
 
-export class MoonshotAIChatLanguageModel implements LanguageModelV4 {
+export type MoonshotAILanguageModelV4ProviderOptions = {
+  moonshotai?: MoonshotAILanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MoonshotAIChatLanguageModel implements LanguageModelV4<MoonshotAILanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: MoonshotAIChatModelId;

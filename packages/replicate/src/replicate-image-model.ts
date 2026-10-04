@@ -2,6 +2,8 @@ import {
   InvalidResponseDataError,
   type ImageModelV4,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { replicateFailedResponseHandler } from './replicate-error';
-import { replicateImageModelOptionsSchema } from './replicate-image-model-options';
+import {
+  replicateImageModelOptionsSchema,
+  type ReplicateImageModelOptions,
+} from './replicate-image-model-options';
 import type { ReplicateImageModelId } from './replicate-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -41,7 +46,11 @@ interface ReplicateImageModelConfig {
 const FLUX_2_MODEL_PATTERN = /^black-forest-labs\/flux-2-/;
 const MAX_FLUX_2_INPUT_IMAGES = 8;
 
-export class ReplicateImageModel implements ImageModelV4 {
+export type ReplicateImageModelV4ProviderOptions = {
+  replicate?: ReplicateImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ReplicateImageModel implements ImageModelV4<ReplicateImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get maxImagesPerCall(): number {
@@ -111,8 +120,14 @@ export class ReplicateImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<ReplicateImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<ReplicateImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
 

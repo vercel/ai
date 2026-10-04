@@ -16,12 +16,18 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { TogetherAIRerankingModel } from './reranking/togetherai-reranking-model';
+import {
+  TogetherAIRerankingModel,
+  type TogetherAIRerankingModelV4ProviderOptions,
+} from './reranking/togetherai-reranking-model';
 import type { TogetherAIRerankingModelId } from './reranking/togetherai-reranking-model-options';
 import type { TogetherAIChatModelId } from './togetherai-chat-options';
 import type { TogetherAICompletionModelId } from './togetherai-completion-options';
 import type { TogetherAIEmbeddingModelId } from './togetherai-embedding-options';
-import { TogetherAIImageModel } from './togetherai-image-model';
+import {
+  TogetherAIImageModel,
+  type TogetherAIImageModelV4ProviderOptions,
+} from './togetherai-image-model';
 import type { TogetherAIImageModelId } from './togetherai-image-settings';
 import { VERSION } from './version';
 
@@ -79,22 +85,30 @@ export interface TogetherAIProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: TogetherAIImageModelId): ImageModelV4;
+  image(
+    modelId: TogetherAIImageModelId,
+  ): ImageModelV4<TogetherAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: TogetherAIImageModelId): ImageModelV4;
+  imageModel(
+    modelId: TogetherAIImageModelId,
+  ): ImageModelV4<TogetherAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking.
    */
-  reranking(modelId: TogetherAIRerankingModelId): RerankingModelV4;
+  reranking(
+    modelId: TogetherAIRerankingModelId,
+  ): RerankingModelV4<TogetherAIRerankingModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking.
    */
-  rerankingModel(modelId: TogetherAIRerankingModelId): RerankingModelV4;
+  rerankingModel(
+    modelId: TogetherAIRerankingModelId,
+  ): RerankingModelV4<TogetherAIRerankingModelV4ProviderOptions>;
 }
 
 function loadDeprecatedApiKey(): string | undefined {

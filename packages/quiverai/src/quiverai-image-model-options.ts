@@ -3,6 +3,7 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 /**
@@ -127,3 +128,7 @@ export const quiveraiImageModelOptionsSchema = lazySchema(() =>
 export type QuiverAIImageModelOptions = InferSchema<
   typeof quiveraiImageModelOptionsSchema
 >;
+
+export type QuiverAIImageModelV4ProviderOptions = {
+  quiverai?: QuiverAIImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

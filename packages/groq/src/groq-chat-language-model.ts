@@ -8,6 +8,8 @@ import {
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   StreamingToolCallTracker,
@@ -33,6 +35,7 @@ import { getResponseMetadata } from './get-response-metadata';
 import {
   groqLanguageModelChatOptions,
   type GroqChatModelId,
+  type GroqLanguageModelChatOptions,
 } from './groq-chat-language-model-options';
 import { groqErrorDataSchema, groqFailedResponseHandler } from './groq-error';
 import { prepareTools } from './groq-prepare-tools';
@@ -91,7 +94,11 @@ function getGroqStreamErrorMetadata(type: string): {
   }
 }
 
-export class GroqChatLanguageModel implements LanguageModelV4 {
+export type GroqChatLanguageModelV4ProviderOptions = {
+  groq?: GroqLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GroqChatLanguageModel implements LanguageModelV4<GroqChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: GroqChatModelId;
@@ -140,7 +147,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
     tools,
     toolChoice,
     providerOptions,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<GroqChatLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     const groqOptions = await parseProviderOptions({
@@ -253,7 +260,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GroqChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
@@ -333,7 +340,7 @@ export class GroqChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GroqChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 
