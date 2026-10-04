@@ -115,7 +115,9 @@ export type RealtimeModelV4<
    * payload from a normalized session config. Used to construct the
    * session.update event sent after WebSocket connection.
    */
-  buildSessionConfig(config: RealtimeModelV4SessionConfig<ProviderOptions>): unknown;
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig<ProviderOptions>,
+  ): unknown;
 
   /**
    * Browser-side: Returns a message to auto-send back over the WebSocket

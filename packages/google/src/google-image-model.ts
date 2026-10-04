@@ -20,7 +20,10 @@ import type {
   GoogleImageModelId,
   GoogleImageSettings,
 } from './google-image-settings';
-import { GoogleLanguageModel } from './google-language-model';
+import {
+  GoogleLanguageModel,
+  type GoogleLanguageModelV4ProviderOptions,
+} from './google-language-model';
 import type { GoogleLanguageModelOptions } from './google-language-model-options';
 
 interface GoogleImageModelConfig {
@@ -226,7 +229,7 @@ export class GoogleImageModel implements ImageModelV4<GoogleImageModelV4Provider
                     : {}),
                 }
               : undefined,
-        } satisfies GoogleLanguageModelOptions,
+        } as NonNullable<GoogleLanguageModelV4ProviderOptions['google']>,
       },
       tools:
         googleImageOptions?.googleSearch != null

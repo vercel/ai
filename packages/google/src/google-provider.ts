@@ -110,7 +110,9 @@ export interface GoogleProvider extends ProviderV4 {
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleModelId): LanguageModelV4;
+  generativeAI(
+    modelId: GoogleModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.

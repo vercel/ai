@@ -2,6 +2,8 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { createCohere } from './cohere-provider';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
+import type { CohereEmbeddingModelOptions } from './cohere-embedding-model-options';
+import type { CohereChatLanguageModelV4ProviderOptions } from './cohere-chat-language-model';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -234,7 +236,9 @@ describe('doEmbed', () => {
         await expect(
           model.doEmbed({
             values: testValues,
-            providerOptions: { cohere: { embeddingType } },
+            providerOptions: {
+              cohere: { embeddingType },
+            } as CohereChatLanguageModelV4ProviderOptions,
           }),
         ).rejects.toThrow('Invalid JSON response');
       },
@@ -263,7 +267,11 @@ describe('doEmbed', () => {
         await expect(
           model.doEmbed({
             values: testValues,
-            providerOptions: { cohere: { embeddingType } },
+            providerOptions: {
+              cohere: {
+                embeddingType,
+              },
+            } as CohereChatLanguageModelV4ProviderOptions,
           }),
         ).rejects.toThrow('invalid cohere provider options');
         expect(server.calls).toHaveLength(0);

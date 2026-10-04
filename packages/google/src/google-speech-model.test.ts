@@ -3,6 +3,7 @@ import { createGoogle } from './google-provider';
 import { GoogleSpeechModel } from './google-speech-model';
 import { describe, it, expect, vi } from 'vitest';
 import { convertBase64ToUint8Array } from '@ai-sdk/provider-utils';
+import type { GoogleSpeechModelOptions } from './google-speech-model-options';
 
 vi.mock('./version', () => ({
   VERSION: '0.0.0-test',
@@ -590,7 +591,12 @@ describe.each(modernModels)('%s', modelId => {
             google: {
               turns: [{ text: 'Hello', speechMetadata: { speaker: 'Joe' } }],
               multiSpeakerVoiceConfig: {
-                speakerVoiceConfigs: [{ speaker: 'Joe', voiceConfig }],
+                speakerVoiceConfigs: [
+                  {
+                    speaker: 'Joe',
+                    voiceConfig: voiceConfig as any,
+                  },
+                ],
               },
             },
           },

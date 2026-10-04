@@ -9,7 +9,10 @@ import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import fs from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDeepSeek } from '../deepseek-provider';
-import { DeepSeekChatLanguageModel } from './deepseek-chat-language-model';
+import {
+  DeepSeekChatLanguageModel,
+  type DeepSeekChatLanguageModelV4ProviderOptions,
+} from './deepseek-chat-language-model';
 import type {
   DeepSeekAssistantMessageProviderOptions,
   DeepSeekLanguageModelChatOptions,
@@ -740,7 +743,7 @@ describe('DeepSeekChatLanguageModel', () => {
               deepseek: {
                 reasoningEffort: input,
               },
-            },
+            } as DeepSeekChatLanguageModelV4ProviderOptions,
           });
 
           expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
@@ -765,7 +768,8 @@ describe('DeepSeekChatLanguageModel', () => {
           prompt: TEST_PROMPT,
           providerOptions: {
             deepseek: {
-              thinking: { type: 'adaptive' },
+              // 'adaptive' is a legacy value
+              thinking: { type: 'adaptive' as any },
             },
           },
         });
@@ -1748,7 +1752,11 @@ describe('DeepSeekChatLanguageModel', () => {
           reasoning: 'medium',
           providerOptions: {
             deepseek: {
-              thinking: { type: 'adaptive' },
+              thinking: {
+                type: 'adaptive' as NonNullable<
+                  DeepSeekLanguageModelChatOptions['thinking']
+                >['type'],
+              },
             },
           },
         });

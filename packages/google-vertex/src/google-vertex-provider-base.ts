@@ -5,6 +5,8 @@ import {
   type GoogleInteractionsAgentName,
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
+  type GoogleLanguageModelV4ProviderOptions,
+  type GoogleInteractionsModelV4ProviderOptions,
 } from '@ai-sdk/google/internal';
 import {
   InvalidArgumentError,
@@ -32,15 +34,30 @@ import { VERSION } from './version';
 import type { GoogleVertexConfig } from './google-vertex-config';
 import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
 import type { GoogleVertexEmbeddingModelId } from './google-vertex-embedding-model-options';
-import { GoogleVertexImageModel } from './google-vertex-image-model';
+import {
+  GoogleVertexImageModel,
+  type GoogleVertexImageModelV4ProviderOptions,
+} from './google-vertex-image-model';
 import type { GoogleVertexImageModelId } from './google-vertex-image-settings';
 import type { GoogleVertexModelId } from './google-vertex-options';
-import { GoogleVertexCloudTTSSpeechModel } from './google-vertex-cloud-tts-speech-model';
+import {
+  GoogleVertexCloudTTSSpeechModel,
+  type GoogleVertexCloudTTSSpeechModelV4ProviderOptions,
+} from './google-vertex-cloud-tts-speech-model';
 import { googleVertexTools } from './google-vertex-tools';
-import { GoogleVertexTranscriptionModel } from './google-vertex-transcription-model';
+import {
+  GoogleVertexTranscriptionModel,
+  type GoogleVertexTranscriptionModelV4ProviderOptions,
+} from './google-vertex-transcription-model';
 import type { GoogleVertexTranscriptionModelId } from './google-vertex-transcription-model-options';
-import { GoogleVertexGeminiTranscriptionModel } from './gemini-transcription/google-vertex-gemini-transcription-model';
-import { GoogleVertexVideoModel } from './google-vertex-video-model';
+import {
+  GoogleVertexGeminiTranscriptionModel,
+  type GoogleVertexGeminiTranscriptionModelV4ProviderOptions,
+} from './gemini-transcription/google-vertex-gemini-transcription-model';
+import {
+  GoogleVertexVideoModel,
+  type GoogleVertexVideoModelV4ProviderOptions,
+} from './google-vertex-video-model';
 import type { GoogleVertexVideoModelId } from './google-vertex-video-settings';
 import type { GoogleVertexSpeechModelId } from './google-vertex-speech-model-options';
 
@@ -77,9 +94,13 @@ export interface GoogleVertexProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: GoogleVertexModelId): LanguageModelV4;
+  (
+    modelId: GoogleVertexModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
-  languageModel: (modelId: GoogleVertexModelId) => LanguageModelV4;
+  languageModel: (
+    modelId: GoogleVertexModelId,
+  ) => LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a language model targeting the Gemini Interactions API
@@ -92,17 +113,21 @@ export interface GoogleVertexProvider extends ProviderV4 {
       | GoogleInteractionsModelId
       | { agent: GoogleInteractionsAgentName }
       | { managedAgent: string },
-  ): LanguageModelV4;
+  ): LanguageModelV4<GoogleInteractionsModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: GoogleVertexImageModelId): ImageModelV4;
+  image(
+    modelId: GoogleVertexImageModelId,
+  ): ImageModelV4<GoogleVertexImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: GoogleVertexImageModelId): ImageModelV4;
+  imageModel(
+    modelId: GoogleVertexImageModelId,
+  ): ImageModelV4<GoogleVertexImageModelV4ProviderOptions>;
 
   tools: typeof googleVertexTools;
 
@@ -116,29 +141,40 @@ export interface GoogleVertexProvider extends ProviderV4 {
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: GoogleVertexVideoModelId,
+  ): Experimental_VideoModelV4<GoogleVertexVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: GoogleVertexVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: GoogleVertexVideoModelId,
+  ): Experimental_VideoModelV4<GoogleVertexVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speech(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: GoogleVertexSpeechModelId,
+  ): SpeechModelV4<GoogleVertexCloudTTSSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speechModel(modelId: GoogleVertexSpeechModelId): SpeechModelV4;
+  speechModel(
+    modelId: GoogleVertexSpeechModelId,
+  ): SpeechModelV4<GoogleVertexCloudTTSSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription (speech-to-text).
    */
   transcription(
     modelId: GoogleVertexTranscriptionModelId,
-  ): TranscriptionModelV4;
+  ): TranscriptionModelV4<
+    | GoogleVertexTranscriptionModelV4ProviderOptions
+    | GoogleVertexGeminiTranscriptionModelV4ProviderOptions
+  >;
 
   /**
    * Creates a model for transcription (speech-to-text).

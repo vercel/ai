@@ -134,7 +134,7 @@ describe('API routing', () => {
     await expect(
       provider.speech('mai-voice-2').doGenerate({
         text: 'Hello',
-        providerOptions: { azure },
+        providerOptions: { azure: azure as AzureSpeechModelOptions },
       }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(fetch).not.toHaveBeenCalled();
