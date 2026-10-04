@@ -32,8 +32,7 @@ type PerplexityEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityEmbeddingModel
-  implements EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions> {
+export class PerplexityEmbeddingModel implements EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: PerplexityEmbeddingModelId;
   // https://docs.perplexity.ai/docs/embeddings/standard-embeddings

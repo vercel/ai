@@ -49,27 +49,37 @@ export interface ProdiaProvider extends ProviderV4 {
   /**
    * Creates a language model for multimodal generation (img2img with text+image output).
    */
-  languageModel(modelId: ProdiaLanguageModelId): LanguageModelV4<ProdiaLanguageModelV4ProviderOptions>;
+  languageModel(
+    modelId: ProdiaLanguageModelId,
+  ): LanguageModelV4<ProdiaLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: ProdiaImageModelId): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
+  image(
+    modelId: ProdiaImageModelId,
+  ): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: ProdiaImageModelId): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
+  imageModel(
+    modelId: ProdiaImageModelId,
+  ): ImageModelV4<ProdiaImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: ProdiaVideoModelId): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
+  video(
+    modelId: ProdiaVideoModelId,
+  ): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: ProdiaVideoModelId): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
+  videoModel(
+    modelId: ProdiaVideoModelId,
+  ): Experimental_VideoModelV4<ProdiaVideoModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

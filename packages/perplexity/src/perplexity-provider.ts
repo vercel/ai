@@ -25,27 +25,37 @@ export interface PerplexityProvider extends ProviderV4 {
   /**
    * Creates a Perplexity Agent API model or preset for text generation.
    */
-  (modelId: PerplexityLanguageModelId): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
+  (
+    modelId: PerplexityLanguageModelId,
+  ): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity Agent API model or preset for text generation.
    */
-  languageModel(modelId: PerplexityLanguageModelId): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
+  languageModel(
+    modelId: PerplexityLanguageModelId,
+  ): LanguageModelV4<PerplexityLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embedding(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
+  embedding(
+    modelId: PerplexityEmbeddingModelId,
+  ): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a Perplexity model for text embeddings.
    */
-  embeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
+  embeddingModel(
+    modelId: PerplexityEmbeddingModelId,
+  ): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: PerplexityEmbeddingModelId): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
+  textEmbeddingModel(
+    modelId: PerplexityEmbeddingModelId,
+  ): EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions>;
 }
 
 export interface PerplexityProviderSettings {

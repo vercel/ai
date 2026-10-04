@@ -21,11 +21,13 @@ import {
   type ProdiaJobResult,
   type ProdiaModelConfig,
 } from './prodia-api';
-import { prodiaVideoModelOptionsSchema, type ProdiaVideoModelV4ProviderOptions } from './prodia-video-model-options';
+import {
+  prodiaVideoModelOptionsSchema,
+  type ProdiaVideoModelV4ProviderOptions,
+} from './prodia-video-model-options';
 import type { ProdiaVideoModelId } from './prodia-video-model-settings';
 
-export class ProdiaVideoModel
-  implements VideoModelV4<ProdiaVideoModelV4ProviderOptions> {
+export class ProdiaVideoModel implements VideoModelV4<ProdiaVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 

@@ -56,22 +56,30 @@ export interface QuiverAIProvider extends ProviderV4 {
   /**
    * Creates a language model for the QuiverAI Responses API.
    */
-  (modelId: QuiverAILanguageModelId): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
+  (
+    modelId: QuiverAILanguageModelId,
+  ): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a language model for the QuiverAI Responses API.
    */
-  languageModel(modelId: QuiverAILanguageModelId): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
+  languageModel(
+    modelId: QuiverAILanguageModelId,
+  ): LanguageModelV4<QuiverAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: QuiverAIImageModelId): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
+  image(
+    modelId: QuiverAIImageModelId,
+  ): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: QuiverAIImageModelId): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
+  imageModel(
+    modelId: QuiverAIImageModelId,
+  ): ImageModelV4<QuiverAIImageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

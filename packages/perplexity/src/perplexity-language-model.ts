@@ -39,7 +39,10 @@ import {
   type perplexitySearchResultSchema,
   type perplexityUsageSchema,
 } from './perplexity-agent-api';
-import { perplexityLanguageModelOptions, type PerplexityLanguageModelV4ProviderOptions } from './perplexity-language-model-options';
+import {
+  perplexityLanguageModelOptions,
+  type PerplexityLanguageModelV4ProviderOptions,
+} from './perplexity-language-model-options';
 import type {
   PerplexityAgentPreset,
   PerplexityLanguageModelId,
@@ -171,8 +174,7 @@ function getFetchedSources(item: PerplexityOutputItem) {
   return item.type === 'fetch_url_results' ? (item.contents ?? []) : [];
 }
 
-export class PerplexityLanguageModel
-  implements LanguageModelV4<PerplexityLanguageModelV4ProviderOptions> {
+export class PerplexityLanguageModel implements LanguageModelV4<PerplexityLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'perplexity';
 

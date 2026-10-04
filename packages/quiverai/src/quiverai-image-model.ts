@@ -43,8 +43,7 @@ interface QuiverAIImageModelConfig {
   };
 }
 
-export class QuiverAIImageModel
-  implements ImageModelV4<QuiverAIImageModelV4ProviderOptions> {
+export class QuiverAIImageModel implements ImageModelV4<QuiverAIImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
 
