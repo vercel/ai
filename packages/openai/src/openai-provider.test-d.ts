@@ -4,6 +4,7 @@ import type {
   ImageModelV4,
   LanguageModelV4,
   TranscriptionModelV4,
+  Experimental_SpeechTranslationModelV4 as SpeechTranslationModelV4,
 } from '@ai-sdk/provider';
 import { expectTypeOf, it } from 'vitest';
 import { openai, type OpenAILanguageModelResponsesOptions } from './index';
@@ -17,7 +18,6 @@ import type {
   OpenAITranscriptionModelV4ProviderOptions,
 } from './internal';
 import type { OpenAISpeechTranslationModelV4ProviderOptions } from './speech-translation/openai-speech-translation-model';
-import type { SpeechTranslationModelV4 } from '../../provider/src/speech-translation-model/v4/speech-translation-model-v4';
 
 it('types batch support on the OpenAI provider', () => {
   expectTypeOf(openai.experimental_batch()).toMatchTypeOf<
