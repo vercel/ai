@@ -47,6 +47,7 @@ import {
   XaiTranscriptionModel,
   type XaiTranscriptionModelV4ProviderOptions,
 } from './xai-transcription-model';
+import type { XaiTranscriptionModelId } from './xai-transcription-model-options';
 
 export interface XaiProvider extends ProviderV4 {
   (
@@ -115,11 +116,13 @@ export interface XaiProvider extends ProviderV4 {
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
   transcription(): TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates an xAI model for speech-to-text transcription.
+   * When `modelId` is omitted, xAI's default transcription model is used.
    */
   transcriptionModel(): TranscriptionModelV4<XaiTranscriptionModelV4ProviderOptions>;
 
@@ -231,8 +234,8 @@ export function createXai(options: XaiProviderSettings = {}): XaiProvider {
     });
   };
 
-  const createTranscriptionModel = () => {
-    return new XaiTranscriptionModel('', {
+  const createTranscriptionModel = (modelId: XaiTranscriptionModelId = '') => {
+    return new XaiTranscriptionModel(modelId, {
       provider: 'xai.transcription',
       baseURL,
       headers: getHeaders,
