@@ -872,6 +872,63 @@ describe('modelCallIterator', () => {
   });
 
   describe('providerMetadata to providerOptions mapping', () => {
+    it('preserves text provider metadata in assistant continuation messages', async () => {
+      const providerMetadata = {
+        openai: { itemId: 'message-1', phase: 'final_answer' },
+      };
+
+      vi.mocked(doStreamStep).mockResolvedValue(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            content: [
+              {
+                type: 'text',
+                text: 'An answer.',
+                providerMetadata,
+              },
+            ],
+          },
+        }),
+      );
+
+      const prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ] satisfies LanguageModelV4Prompt;
+      const iterator = streamTextIterator({
+        prompt,
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const stepResult = await iterator.next();
+      expect(stepResult.done).toBe(false);
+      expect(
+        (stepResult.value as StreamTextIteratorYieldValue).step?.content,
+      ).toEqual([
+        {
+          type: 'text',
+          text: 'An answer.',
+          providerMetadata,
+        },
+      ]);
+
+      const finalResult = await iterator.next();
+      expect(finalResult.done).toBe(true);
+      expect(finalResult.value).toEqual([
+        ...prompt,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'An answer.',
+              providerOptions: providerMetadata,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('replays reasoning and provider metadata with tool calls in emission order', async () => {
       const providerMetadata = {
         anthropic: { signature: 'reasoning-signature' },
