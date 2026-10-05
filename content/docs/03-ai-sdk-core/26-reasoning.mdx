@@ -56,7 +56,7 @@ for await (const part of result.stream) {
 
 ## Precedence Rules
 
-Explicit reasoning effort or token budget settings in `providerOptions` take precedence over the top-level `reasoning` parameter. Other reasoning options, such as summary or display settings, can be used alongside portable reasoning. For Amazon Bedrock, a partial `reasoningConfig` containing only an enabled/adaptive `type` or `display` retains the portable effort or budget mapping; an explicit `maxReasoningEffort`, `budgetTokens`, or disabled `type` overrides it.
+Provider-specific settings take precedence over the corresponding fields derived from `reasoning`. Partial configurations may still use portable reasoning to fill missing fields; summary and display settings can be used alongside it.
 
 ```ts
 import { generateText } from 'ai';
@@ -195,4 +195,4 @@ const { text } = await generateText({
 });
 ```
 
-Note that `providerOptions` can still be used alongside `reasoning` for provider-specific features unrelated to reasoning effort. However, if `providerOptions` includes reasoning effort/budget settings (e.g. `reasoningEffort`, `thinking`, `thinkingConfig.thinkingBudget`), those take full precedence and the top-level `reasoning` parameter is ignored.
+You can combine `providerOptions` with `reasoning` for provider-specific features such as reasoning summaries or display settings. Explicit effort or budget values override the corresponding mapped fields; partial configurations may still use portable reasoning to fill missing fields, as in the Bedrock budget example above. See [Precedence Rules](#precedence-rules) for details.
