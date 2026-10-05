@@ -857,6 +857,42 @@ describe('doStream', () => {
     },
   );
 
+  it.each([
+    ['high', 'amazonBedrock'],
+    ['high', 'bedrock'],
+    ['max', 'amazonBedrock'],
+    ['max', 'bedrock'],
+  ] as const)(
+    'should preserve a budget-only configuration with portable %s reasoning in %s streams',
+    async (reasoning, providerKey) => {
+      setupMockEventStreamHandler();
+      server.urls[streamUrl].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({ messageStop: { stopReason: 'end_turn' } }) + '\n',
+        ],
+      };
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        reasoning,
+        maxOutputTokens: 1024,
+        providerOptions: {
+          [providerKey]: { reasoningConfig: { budgetTokens: 5000 } },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.additionalModelRequestFields?.thinking).toEqual({
+        type: 'enabled',
+        budget_tokens: 5000,
+      });
+      expect(body.inferenceConfig?.maxTokens).toBe(6024);
+      expect(parts[0]).toEqual({ type: 'stream-start', warnings: [] });
+    },
+  );
+
   describe('text', () => {
     beforeEach(() => {
       setupMockEventStreamHandler();
@@ -8783,22 +8819,111 @@ describe('doGenerate', () => {
       });
     });
 
-    it('should not derive thinking type from an explicit budget-only reasoningConfig', async () => {
-      prepareJsonFixtureResponse('amazon-bedrock-text');
+    it.each([
+      ['minimal', 'amazonBedrock'],
+      ['high', 'amazonBedrock'],
+      ['high', 'bedrock'],
+      ['max', 'amazonBedrock'],
+      ['max', 'bedrock'],
+    ] as const)(
+      'should preserve an explicit budget and derive enabled thinking with portable %s reasoning under %s',
+      async (reasoning, providerKey) => {
+        prepareJsonFixtureResponse('amazon-bedrock-text');
 
-      const result = await model.doGenerate({
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          maxOutputTokens: 1024,
+          providerOptions: {
+            [providerKey]: { reasoningConfig: { budgetTokens: 5000 } },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.additionalModelRequestFields?.thinking).toEqual({
+          type: 'enabled',
+          budget_tokens: 5000,
+        });
+        expect(body.inferenceConfig?.maxTokens).toBe(6024);
+        expect(
+          body.additionalModelRequestFields?.output_config,
+        ).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it.each(['minimal', 'max'] as const)(
+      'should fill adaptive thinking type without mapping overridden %s effort',
+      async reasoning => {
+        server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+        const result = await newerAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          providerOptions: {
+            amazonBedrock: { reasoningConfig: { maxReasoningEffort: 'low' } },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.additionalModelRequestFields?.thinking).toEqual({
+          type: 'adaptive',
+        });
+        expect(body.additionalModelRequestFields?.output_config?.effort).toBe(
+          'low',
+        );
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('should fill enabled Nova thinking without mapping an explicit effort-only override', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
         prompt: TEST_PROMPT,
         reasoning: 'max',
         providerOptions: {
-          amazonBedrock: { reasoningConfig: { budgetTokens: 5000 } },
+          amazonBedrock: { reasoningConfig: { maxReasoningEffort: 'low' } },
         },
       });
 
       const body = await server.calls[0].requestBodyJson;
-      expect(body.additionalModelRequestFields?.thinking).toBeUndefined();
-      expect(body.additionalModelRequestFields?.output_config).toBeUndefined();
+      expect(body.additionalModelRequestFields?.reasoningConfig).toEqual({
+        type: 'enabled',
+        maxReasoningEffort: 'low',
+      });
       expect(result.warnings).toEqual([]);
     });
+
+    it.each(['none', 'high', 'max'] as const)(
+      'should preserve disabled thinking with portable %s and explicit budget/effort',
+      async reasoning => {
+        server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+        const reasoningConfig = {
+          type: 'disabled',
+          budgetTokens: 5000,
+          maxReasoningEffort: 'low',
+        } as const;
+
+        const result = await newerAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning,
+          providerOptions: { amazonBedrock: { reasoningConfig } },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.additionalModelRequestFields?.thinking).toBeUndefined();
+        expect(
+          body.additionalModelRequestFields?.output_config,
+        ).toBeUndefined();
+        expect(result.warnings).toEqual([]);
+        expect(reasoningConfig).toEqual({
+          type: 'disabled',
+          budgetTokens: 5000,
+          maxReasoningEffort: 'low',
+        });
+      },
+    );
 
     it.each(['amazonBedrock', 'bedrock'] as const)(
       'should derive a portable budget with type-only %s reasoningConfig for older Anthropic models',
@@ -8894,7 +9019,7 @@ describe('doGenerate', () => {
       expect(result.warnings).toEqual([]);
     });
 
-    it('should not derive effort when explicit thinking type and budget are provided', async () => {
+    it('should preserve an explicit thinking budget alongside portable effort for adaptive-capable models', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
       await newerAnthropicModel.doGenerate({
@@ -8914,7 +9039,7 @@ describe('doGenerate', () => {
       });
       expect(
         requestBody.additionalModelRequestFields?.output_config?.effort,
-      ).toBeUndefined();
+      ).toBe('high');
     });
 
     it.each(['amazonBedrock', 'bedrock'] as const)(

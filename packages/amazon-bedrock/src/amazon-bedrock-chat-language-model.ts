@@ -1659,18 +1659,21 @@ function resolveAmazonBedrockReasoningConfig({
 }): AmazonBedrockLanguageModelChatOptions {
   const reasoningConfig = amazonBedrockOptions.reasoningConfig;
 
-  // Explicit effort, budget, or disabled thinking overrides portable reasoning.
-  // Type/display-only configuration can still use the portable effort or budget.
-  if (
-    reasoningConfig?.maxReasoningEffort != null ||
-    reasoningConfig?.budgetTokens != null ||
-    reasoningConfig?.type === 'disabled' ||
-    !isCustomReasoning(reasoning)
-  ) {
+  if (!isCustomReasoning(reasoning)) {
     return amazonBedrockOptions;
   }
 
   const result = { ...amazonBedrockOptions };
+
+  // Preserve disabled thinking without deriving settings or warnings that will
+  // not be sent. Clone the configuration before removing effort and budget.
+  if (reasoningConfig?.type === 'disabled') {
+    result.reasoningConfig = { ...reasoningConfig };
+    delete result.reasoningConfig.maxReasoningEffort;
+    delete result.reasoningConfig.budgetTokens;
+    return result;
+  }
+
   const hasPortableReasoning = reasoning !== 'none';
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
   const supportsPortableReasoning =
@@ -1682,23 +1685,27 @@ function resolveAmazonBedrockReasoningConfig({
     if (reasoning === 'none') {
       result.reasoningConfig = { type: 'disabled' };
     } else if (capabilities.supportsAdaptiveThinking) {
-      const effort = mapReasoningToProviderEffort({
-        reasoning,
-        effortMap: amazonBedrockReasoningEffortMap,
-        warnings,
-      });
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: amazonBedrockReasoningEffortMap,
+          warnings,
+        });
       result.reasoningConfig = {
         ...reasoningConfig,
         type: reasoningConfig?.type ?? 'adaptive',
         maxReasoningEffort: effort,
       };
     } else {
-      const budgetTokens = mapReasoningToProviderBudget({
-        reasoning,
-        maxOutputTokens: capabilities.maxOutputTokens,
-        maxReasoningBudget: capabilities.maxOutputTokens,
-        warnings,
-      });
+      const budgetTokens =
+        reasoningConfig?.budgetTokens ??
+        mapReasoningToProviderBudget({
+          reasoning,
+          maxOutputTokens: capabilities.maxOutputTokens,
+          maxReasoningBudget: capabilities.maxOutputTokens,
+          warnings,
+        });
       if (budgetTokens != null) {
         result.reasoningConfig = {
           ...reasoningConfig,
@@ -1709,13 +1716,15 @@ function resolveAmazonBedrockReasoningConfig({
     }
   } else if (hasPortableReasoning) {
     if (supportsPortableReasoning) {
-      const effort = mapReasoningToProviderEffort({
-        reasoning,
-        effortMap: isNovaReasoningModel
-          ? amazonNovaReasoningEffortMap
-          : amazonBedrockReasoningEffortMap,
-        warnings,
-      });
+      const effort =
+        reasoningConfig?.maxReasoningEffort ??
+        mapReasoningToProviderEffort({
+          reasoning,
+          effortMap: isNovaReasoningModel
+            ? amazonNovaReasoningEffortMap
+            : amazonBedrockReasoningEffortMap,
+          warnings,
+        });
       result.reasoningConfig = {
         ...reasoningConfig,
         ...(isNovaReasoningModel && {

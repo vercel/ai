@@ -98,6 +98,11 @@ You can use the following optional settings to customize the provider instance:
   This is useful for proxy providers that may require a different request format
   than the official OpenAI API.
 
+  The optional second argument is the call's warning collection. Append
+  `SharedV4Warning` entries to report compatibility coercions or other transformations.
+  These warnings are returned by `doGenerate` and included in the `stream-start`
+  event for `doStream`. Existing callbacks that accept only the body continue to work.
+
 - **metadataExtractor** _MetadataExtractor_
 
   Optional metadata extractor to capture provider-specific metadata from API responses.

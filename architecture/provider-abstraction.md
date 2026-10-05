@@ -66,6 +66,8 @@ Use `isCustomReasoning(reasoning)` from `@ai-sdk/provider-utils` to check whethe
 
 Providers that do **not** support reasoning configuration at the API level should emit an unsupported warning when `isCustomReasoning` returns `true`.
 
+Resolve explicit provider values before mapping the corresponding portable fields so warnings describe values actually sent. Preserve each adapter's existing handling of partial configuration: Bedrock fills missing thinking type, effort, or budget fields while preserving explicit values. An explicit budget on a budget-based model must not prevent deriving a missing enabled type. See the [reasoning precedence guide](../content/docs/03-ai-sdk-core/26-reasoning.mdx).
+
 ### Embedding Model (`EmbeddingModelV4`)
 
 Embedding models are used to convert text into numeric vectors for similarity and retrieval use cases.

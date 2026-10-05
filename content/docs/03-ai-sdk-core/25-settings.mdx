@@ -104,7 +104,7 @@ Controls how much reasoning the model performs before generating a response.
 | `'xhigh'`            | Extra-high reasoning                                                 |
 | `'max'`              | Maximum reasoning                                                    |
 
-If you also set reasoning-related options in `providerOptions` (e.g. `openai.reasoningEffort` or `anthropic.thinking`), the provider-specific options take precedence and the top-level `reasoning` parameter is ignored.
+Provider-specific settings take precedence over the corresponding fields derived from `reasoning`. Partial configurations can still use portable reasoning to fill missing fields; summary and display options can be used alongside it. For example, Bedrock preserves an explicit thinking budget while deriving a missing enabled type from portable reasoning.
 
 See the [reasoning guide](/docs/ai-sdk-core/reasoning) for details on per-provider mapping and migration from `providerOptions`.
 
