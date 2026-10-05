@@ -1,0 +1,37 @@
+{
+  "text": "Galileo was an American robotic",
+  "language": "en",
+  "duration": 2.04,
+  "words": [
+    {
+      "text": "Galileo",
+      "start": 0.162,
+      "end": 0.667,
+      "speaker": 0
+    },
+    {
+      "text": "was",
+      "start": 0.788,
+      "end": 0.909,
+      "speaker": 0
+    },
+    {
+      "text": "an",
+      "start": 0.949,
+      "end": 1.03,
+      "speaker": 0
+    },
+    {
+      "text": "American",
+      "start": 1.07,
+      "end": 1.535,
+      "speaker": 0
+    },
+    {
+      "text": "robotic",
+      "start": 1.596,
+      "end": 2.04,
+      "speaker": 0
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import {
   convertReadableStreamToArray,
 } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import fs from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { createXai } from './xai-provider';
 import { XaiTranscriptionModel } from './xai-transcription-model';
@@ -23,6 +24,13 @@ const url = 'https://api.x.ai/v1/stt';
 const server = createTestServer({
   [url]: {},
 });
+
+const diarizationResponse = JSON.parse(
+  fs.readFileSync(
+    'src/__fixtures__/xai-transcription-diarization.json',
+    'utf8',
+  ),
+);
 
 class MockWebSocket {
   static instances: MockWebSocket[] = [];
@@ -355,6 +363,32 @@ describe('doGenerate', () => {
         },
       ],
       warnings: [],
+    });
+  });
+
+  it('should expose diarization speaker labels in provider metadata', async () => {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: diarizationResponse,
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/mpeg',
+      providerOptions: { xai: { diarize: true } },
+    });
+
+    expect(result.providerMetadata).toMatchObject({
+      xai: {
+        words: expect.arrayContaining([
+          {
+            text: 'Galileo',
+            start: 0.162,
+            end: 0.667,
+            speaker: 0,
+          },
+        ]),
+      },
     });
   });
 
