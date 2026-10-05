@@ -422,6 +422,14 @@ export type DynamicToolUIPart = {
   type: 'dynamic-tool';
 
   /**
+   * `false` when a static tool part was normalized to a dynamic tool part
+   * because its current tool schema was unavailable or incompatible.
+   *
+   * This preserves its static origin across persistence boundaries.
+   */
+  dynamic?: false;
+
+  /**
    * Name of the tool that is being called.
    */
   toolName: string;

@@ -825,44 +825,60 @@ describe('convertToModelMessages', () => {
         tools: {},
       });
 
-      expect(validatedWithoutTool[0].parts[0].type).toBe('dynamic-tool');
-      await expect(
-        convertToModelMessages(validatedWithoutTool, { tools: {} }),
-      ).resolves.toEqual([
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool-call',
-              toolCallId: 'call-1',
-              toolName: 'search',
-              input: { query: 'weather' },
-              providerExecuted: undefined,
-            },
-          ],
-        },
-        {
-          role: 'tool',
-          content: [
-            {
-              type: 'tool-result',
-              toolCallId: 'call-1',
-              toolName: 'search',
-              output: {
-                type: 'text',
-                value:
-                  'Tool output omitted because the tool is no longer available.',
-              },
-            },
-          ],
-        },
-      ]);
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
 
-      await expect(
-        convertToModelMessages(validatedWithoutTool, {
-          tools: { search: historicalTool },
-        }),
-      ).resolves.toEqual(before);
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages({
+          messages,
+          tools: {},
+        });
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).resolves.toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).resolves.toEqual(before);
+      }
     });
 
     describe('tool output error', () => {

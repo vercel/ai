@@ -149,6 +149,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -164,6 +165,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -178,6 +180,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -192,6 +195,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -206,6 +210,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -222,6 +227,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -238,6 +244,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),

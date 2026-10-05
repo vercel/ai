@@ -1,15 +1,11 @@
 import type { DynamicToolUIPart, ToolUIPart } from './ui-messages';
 
-const unavailableToolSymbol = Symbol.for('vercel.ai.ui.unavailableTool');
-
 export function markToolPartAsUnavailable(
   part: DynamicToolUIPart,
 ): DynamicToolUIPart {
-  // Preserve the static tool's provenance for model-message conversion
-  // without changing the serialized UI message shape.
-  Object.defineProperty(part, unavailableToolSymbol, {
-    value: true,
-  });
+  // Preserve the static tool's provenance across persistence boundaries so
+  // model-message conversion never falls back to its unfiltered raw output.
+  part.dynamic = false;
 
   return part;
 }
@@ -17,7 +13,5 @@ export function markToolPartAsUnavailable(
 export function isToolPartFromUnavailableTool(
   part: ToolUIPart | DynamicToolUIPart,
 ): boolean {
-  return (
-    (part as unknown as Record<symbol, unknown>)[unavailableToolSymbol] === true
-  );
+  return part.type === 'dynamic-tool' && part.dynamic === false;
 }
