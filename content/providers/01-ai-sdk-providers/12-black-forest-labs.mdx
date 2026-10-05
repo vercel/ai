@@ -109,13 +109,75 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 
 | Model                | Description                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `flux-3-image`       | FLUX 3 for text-to-image and editing with up to ten reference images and optional web grounding                            |
 | `flux-kontext-pro`   | FLUX.1 Kontext [pro] handles both text and reference images as inputs, enabling targeted edits and complex transformations |
 | `flux-kontext-max`   | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                              |
 | `flux-pro-1.1-ultra` | Ultra-fast, ultra high-resolution image creation                                                                           |
 | `flux-pro-1.1`       | Fast, high-quality image generation from text.                                                                             |
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
-Black Forest Labs models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+FLUX.1 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+FLUX 3 accepts only `21:9`, `2:1`, `16:9`, `3:2`, `7:5`, `4:3`, `5:4`,
+`1:1`, `4:5`, `3:4`, `5:7`, `2:3`, `9:16`, `1:2`, and `9:21`.
+Omit `aspectRatio` to use the endpoint's `auto` default. Unsupported ratios
+are omitted with a warning.
+
+### FLUX 3 Image Generation and Editing
+
+The `flux-3-image` model generates images from text and edits reference images
+through the same endpoint. Pass reference images through `prompt.images` and
+select the output resolution with `providerOptions.blackForestLabs.resolution`:
+
+```ts
+import {
+  blackForestLabs,
+  type BlackForestLabsImageModelOptions,
+} from '@ai-sdk/black-forest-labs';
+import { generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-3-image'),
+  prompt: 'A watercolor illustration of a coastal village at dawn',
+  aspectRatio: '16:9',
+  providerOptions: {
+    blackForestLabs: {
+      resolution: '2k',
+      grounding: false,
+      version: 'latest',
+      pollTimeoutMillis: 240000,
+    } satisfies BlackForestLabsImageModelOptions,
+  },
+});
+```
+
+For editing, use a prompt such as:
+
+```ts
+const { image } = await generateImage({
+  model: blackForestLabs.image('flux-3-image'),
+  prompt: {
+    text: 'Change the sky to sunset while preserving the buildings',
+    images: ['https://example.com/village.png'],
+  },
+});
+```
+
+FLUX 3 accepts up to ten reference images as URLs or base64-encoded data. Each
+reference image must be at least 256 × 256 pixels and no larger than 16 megapixels.
+Omitting `aspectRatio` lets the endpoint choose the ratio from the prompt or the
+first reference image. The default resolution is `1k`, and grounding is enabled
+by default.
+
+FLUX 3 does not accept `seed`, masks, explicit `width`/`height`, or the legacy
+image options such as `outputFormat`, `steps`, and `promptUpsampling`. A `size`
+is used only to derive a supported aspect ratio; ratios outside the list above
+are omitted with a warning. Use `resolution` to select the pixel-area
+tier. Unsupported options are omitted with warnings; masks are rejected.
+
+The provider polls through `Pending`, `Reasoning`, and `Generating` until the
+image is ready. Increase `pollTimeoutMillis` for requests that exceed the default
+60 second polling timeout. It stops on moderation or task failures and downloads the signed
+image URL without sending API credentials.
 
 ### Image Editing
 
@@ -198,6 +260,9 @@ The mask image should be a grayscale image where white areas indicate regions to
 
 Black Forest Labs image models support flexible provider options through the `providerOptions.blackForestLabs` object. The supported parameters depend on the used model ID:
 
+- **resolution** _"768sq" | "1k" | "1.5k" | "2k" | "4k"_ - FLUX 3 output resolution class. Defaults to `"1k"`; exact dimensions vary with aspect ratio.
+- **grounding** _boolean_ - FLUX 3 web and image search grounding. Defaults to `true`.
+- **version** _"latest"_ - FLUX 3 endpoint version. Only `"latest"` is currently available.
 - **width** _number_ - Output width in pixels (256–1920). When set, this overrides any width derived from `size`.
 - **height** _number_ - Output height in pixels (256–1920). When set, this overrides any height derived from `size`.
 - **outputFormat** _string_ - Desired format of the output image (`"jpeg"` or `"png"`).
@@ -207,7 +272,7 @@ Black Forest Labs image models support flexible provider options through the `pr
 - **imagePromptStrength** _number_ - Strength of the image prompt influence on generation (0.0 to 1.0).
 - **promptUpsampling** _boolean_ - If true, performs upsampling on the prompt.
 - **raw** _boolean_ - Enable raw mode for more natural, authentic aesthetics.
-- **safetyTolerance** _number_ - Moderation level for inputs and outputs (0 = most strict, 6 = more permissive).
+- **safetyTolerance** _number_ - Moderation level for inputs and outputs (0 = most strict, 6 = more permissive). FLUX 3 accepts only 0–4 and defaults to 2.
 - **pollIntervalMillis** _number_ - Interval in milliseconds between polling attempts (default 500ms).
 - **pollTimeoutMillis** _number_ - Overall timeout in milliseconds for polling before timing out (default 60s).
 - **webhookUrl** _string_ - URL for asynchronous completion notification. Must be a valid HTTP/HTTPS URL.
