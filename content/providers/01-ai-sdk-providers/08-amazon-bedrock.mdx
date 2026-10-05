@@ -637,6 +637,12 @@ Amazon Bedrock supports model creator-specific reasoning features:
 
 You can also use the top-level `reasoning` parameter. For Amazon Nova 2, `'xhigh'` and `'max'` are mapped to `'high'` with a compatibility warning. Anthropic and OpenAI effort mappings preserve `'max'`.
 
+If `providerOptions.amazonBedrock.reasoningConfig` is provided, the top-level
+`reasoning` parameter is ignored. This also applies to partial configurations:
+the SDK does not fill in missing fields from the portable setting or emit
+compatibility warnings for that ignored setting. The legacy `bedrock` provider
+options key follows the same precedence rule.
+
 ```ts
 import {
   amazonBedrock,

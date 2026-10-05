@@ -1657,14 +1657,17 @@ function resolveAmazonBedrockReasoningConfig({
   isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
-  if (!isCustomReasoning(reasoning)) {
+  // Explicit provider reasoning configuration takes full precedence, including
+  // partial configuration. Do not derive values or warnings from ignored reasoning.
+  if (
+    amazonBedrockOptions.reasoningConfig != null ||
+    !isCustomReasoning(reasoning)
+  ) {
     return amazonBedrockOptions;
   }
 
   const result = { ...amazonBedrockOptions };
   const hasPortableReasoning = reasoning !== 'none';
-  const hasExplicitReasoningConfig =
-    amazonBedrockOptions.reasoningConfig != null;
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
   const supportsPortableReasoning = isOpenAIModel || isNovaReasoningModel;
 
@@ -1682,7 +1685,6 @@ function resolveAmazonBedrockReasoningConfig({
       result.reasoningConfig = {
         type: 'adaptive',
         maxReasoningEffort: effort,
-        ...amazonBedrockOptions.reasoningConfig,
       };
     } else {
       const budgetTokens = mapReasoningToProviderBudget({
@@ -1695,12 +1697,11 @@ function resolveAmazonBedrockReasoningConfig({
         result.reasoningConfig = {
           type: 'enabled',
           budgetTokens,
-          ...amazonBedrockOptions.reasoningConfig,
         };
       }
     }
   } else if (hasPortableReasoning) {
-    if (supportsPortableReasoning || hasExplicitReasoningConfig) {
+    if (supportsPortableReasoning) {
       const effort = mapReasoningToProviderEffort({
         reasoning,
         effortMap: isNovaReasoningModel
@@ -1711,7 +1712,6 @@ function resolveAmazonBedrockReasoningConfig({
       result.reasoningConfig = {
         ...(isNovaReasoningModel && { type: 'enabled' }),
         maxReasoningEffort: effort,
-        ...amazonBedrockOptions.reasoningConfig,
       };
     } else {
       warnings.push({
@@ -1721,17 +1721,6 @@ function resolveAmazonBedrockReasoningConfig({
           'Portable reasoning is not supported for this model and will be ignored. If the model supports a provider-specific reasoning configuration, use providerOptions.amazonBedrock.reasoningConfig.',
       });
     }
-  }
-
-  /*
-   * Mirror anthropic-messages-language-model.ts: when the merged type ends up
-   * 'disabled' (user override combined with a non-none reasoning), strip
-   * derived effort/budget so downstream does not emit output_config.effort
-   * alongside disabled thinking.
-   */
-  if (result.reasoningConfig?.type === 'disabled') {
-    delete result.reasoningConfig.maxReasoningEffort;
-    delete result.reasoningConfig.budgetTokens;
   }
 
   return result;
