@@ -20,6 +20,7 @@ import {
   InvalidClientError,
   InvalidGrantError,
   UnauthorizedClientError,
+  AuthorizationServerMismatchError,
 } from '../error/oauth-error';
 import {
   resourceUrlFromServerUrl,
@@ -81,9 +82,15 @@ export interface OAuthClientProvider {
    * If implemented, provides a way for the client to invalidate (e.g. delete) the specified
    * credentials, in the case where the server has indicated that they are no longer valid.
    * This avoids requiring the user to intervene manually.
+   *
+   * For token invalidation, context identifies the token generation being invalidated
+   * when available. Providers sharing storage must atomically compare and delete
+   * that generation so a concurrent refresh's tokens are preserved. Omitting or
+   * ignoring context retains unconditional invalidation.
    */
   invalidateCredentials?(
     scope: 'all' | 'client' | 'tokens' | 'verifier',
+    context?: { tokens: OAuthTokens },
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
@@ -354,7 +361,7 @@ function assertAuthorizationServerInformationMatches({
     storedAuthorizationServerInformation.tokenEndpoint !==
       currentAuthorizationServerInformation.tokenEndpoint
   ) {
-    throw new MCPClientOAuthError({
+    throw new AuthorizationServerMismatchError({
       message:
         'OAuth authorization server metadata does not match the metadata that issued the stored credentials',
     });
@@ -1261,8 +1268,9 @@ export async function auth(
     fetchFn?: FetchFunction;
   },
 ): Promise<AuthResult> {
+  const refreshAttempt: { tokens?: OAuthTokens } = {};
   try {
-    return await authInternal(provider, options);
+    return await authInternal(provider, options, refreshAttempt);
   } catch (error) {
     if (
       error instanceof InvalidClientError ||
@@ -1278,7 +1286,13 @@ export async function auth(
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
     } else if (error instanceof InvalidGrantError) {
-      await provider.invalidateCredentials?.('tokens');
+      if (refreshAttempt.tokens) {
+        await provider.invalidateCredentials?.('tokens', {
+          tokens: refreshAttempt.tokens,
+        });
+      } else {
+        await provider.invalidateCredentials?.('tokens');
+      }
       return await authInternal(provider, options);
     }
 
@@ -1336,6 +1350,7 @@ async function authInternal(
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
   },
+  refreshAttempt?: { tokens?: OAuthTokens },
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
@@ -1554,11 +1569,16 @@ async function authInternal(
         currentAuthorizationServerInformation,
       });
     } else {
-      await provider.invalidateCredentials?.('tokens');
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: { ...tokens },
+      });
     }
 
     try {
       if (storedAuthorizationServerInformation) {
+        if (refreshAttempt) {
+          refreshAttempt.tokens = { ...tokens };
+        }
         // Attempt to refresh the token
         const newTokens = await refreshAuthorization(authorizationServerUrl, {
           metadata,

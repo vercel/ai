@@ -3,6 +3,7 @@ import type {
   ToolCallUpdate,
 } from '@agentclientprotocol/sdk';
 import type { ACPToolCall } from '../../acp-tool-call';
+import { canonicalFingerprint } from './canonical-json-fingerprint';
 
 type SessionUpdateMessage = Extract<
   ActiveSessionMessage,
@@ -449,23 +450,11 @@ function containsCombinedIdentity({
   serverName: string;
   toolName: string;
 }): boolean {
-  const seen = new Set<object>();
-  const visit = (candidate: unknown): boolean => {
-    if (typeof candidate === 'string') {
-      return hasDelimitedPair({ value: candidate, serverName, toolName });
-    }
-    if (candidate == null || typeof candidate !== 'object') return false;
-    if (seen.has(candidate)) return false;
-    seen.add(candidate);
-    const values = Array.isArray(candidate)
-      ? candidate
-      : Object.values(candidate);
-    for (const item of values) {
-      if (visit(item)) return true;
-    }
-    return false;
-  };
-  return visit(value);
+  return containsString({
+    value,
+    matches: candidate =>
+      hasDelimitedPair({ value: candidate, serverName, toolName }),
+  });
 }
 
 function hasDelimitedPair({
@@ -571,9 +560,19 @@ function containsExactValue({
   value: unknown;
   target: string;
 }): boolean {
+  return containsString({ value, matches: candidate => candidate === target });
+}
+
+function containsString({
+  value,
+  matches,
+}: {
+  value: unknown;
+  matches: (candidate: string) => boolean;
+}): boolean {
   const seen = new Set<object>();
   const visit = (candidate: unknown): boolean => {
-    if (candidate === target) return true;
+    if (typeof candidate === 'string') return matches(candidate);
     if (candidate == null || typeof candidate !== 'object') return false;
     if (seen.has(candidate)) return false;
     seen.add(candidate);
@@ -611,28 +610,6 @@ function containsFingerprint({
     return false;
   };
   return visit(value);
-}
-
-function canonicalFingerprint({ value }: { value: unknown }): string {
-  return JSON.stringify(canonicalizeJSON({ value }));
-}
-
-function canonicalizeJSON({ value }: { value: unknown }): unknown {
-  if (Array.isArray(value)) {
-    return value.map(item => canonicalizeJSON({ value: item }));
-  }
-  if (value == null || typeof value !== 'object') return value;
-  return Object.fromEntries(
-    Object.keys(value as Record<string, unknown>)
-      .sort()
-      .filter(key => (value as Record<string, unknown>)[key] !== undefined)
-      .map(key => [
-        key,
-        canonicalizeJSON({
-          value: (value as Record<string, unknown>)[key],
-        }),
-      ]),
-  );
 }
 
 function getProperty({

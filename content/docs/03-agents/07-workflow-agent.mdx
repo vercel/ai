@@ -20,16 +20,16 @@ A standard `ToolLoopAgent` runs entirely in memory — if the process crashes, a
 
 ## When to Use WorkflowAgent vs ToolLoopAgent
 
-|                         | ToolLoopAgent             | WorkflowAgent                                   |
-| ----------------------- | ------------------------- | ----------------------------------------------- |
-| **Package**             | `ai`                      | `@ai-sdk/workflow`                              |
-| **Runtime**             | In-memory                 | Workflow                                        |
-| **Durability**          | Lost on crash             | Survives restarts                               |
-| **Tool retries**        | Manual                    | Automatic (via workflow steps)                  |
-| **Human approval**      | Built-in                  | Built-in + survives suspension                  |
-| **`generate()` method** | Available                 | Not available                                   |
-| **`stream()` method**   | Available                 | Primary API                                     |
-| **Stream output**       | `streamText` return value | `writable` parameter with `ModelCallStreamPart` |
+|                         | ToolLoopAgent             | WorkflowAgent                                    |
+| ----------------------- | ------------------------- | ------------------------------------------------ |
+| **Package**             | `ai`                      | `@ai-sdk/workflow`                               |
+| **Runtime**             | In-memory                 | Workflow                                         |
+| **Durability**          | Lost on crash             | Survives restarts                                |
+| **Tool retries**        | Manual                    | Automatic (via workflow steps)                   |
+| **Human approval**      | Built-in                  | Built-in + survives suspension                   |
+| **`generate()` method** | Available                 | Available with durable non-streaming model calls |
+| **`stream()` method**   | Available                 | Primary API                                      |
+| **Stream output**       | `streamText` return value | `writable` parameter with `ModelCallStreamPart`  |
 
 For simpler use cases that don't need durability, use [`ToolLoopAgent`](/docs/agents/building-agents) from the `ai` package.
 
@@ -785,9 +785,28 @@ For persistence, store `UIMessage[]` as your source of truth and call [`convertT
 + return { messages: result.messages };
 ```
 
-### No `generate()` method
+### Non-streaming generation
 
-`WorkflowAgent` only exposes `stream()`. If you were calling `agent.generate()`, switch to `stream()` and read `result.messages` / `result.output` once the promise resolves.
+Use `agent.generate()` when you need the completed result without streaming:
+
+```ts
+export async function summarize(modelId: string, text: string) {
+  'use workflow';
+
+  const agent = new WorkflowAgent({
+    model: modelId,
+    instructions: 'Summarize the text briefly.',
+  });
+  const result = await agent.generate({ prompt: text });
+  return { text: result.text, usage: result.usage };
+}
+```
+
+Generation uses the provider's `doGenerate()` method and the same durable tool loop as streaming. It defaults to a maximum of 20 steps, while `stream()` remains unbounded unless you set `stopWhen`. Generation failures reject; stream model errors retain their existing `result.error` behavior.
+
+The generated result uses core's final-step text and all-step content, tool results, warnings, and usage semantics. `responseMessages` contains generated messages only. `output` defaults to text and supports constructor or per-call output specifications. End callbacks run before complete-output parsing.
+
+Use result getters inside the workflow, then return selected serializable fields through `run.returnValue`. Returning the whole result class is not supported. For now, use `stream()` for approval round trips; transport-independent generation approvals are separate follow-up work. See the [generate reference](/docs/reference/ai-sdk-workflow/workflow-agent#generate) for options and remaining differences.
 
 ### Replace `experimental_context` with `runtimeContext` and `toolsContext`
 

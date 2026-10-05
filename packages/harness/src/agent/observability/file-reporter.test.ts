@@ -59,6 +59,91 @@ const endEvent = {
 } as never;
 
 describe('createFileReporter', () => {
+  test('records error details and flushes the failed turn without onEnd', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir, failOnly: true });
+    reporter.onStart!(startEvent);
+    reporter.onError!({ callId: 'call-1', error: new Error('bridge failed') });
+
+    expect(readLines(dir)).toEqual([
+      expect.objectContaining({ kind: 'turn-start', callId: 'call-1' }),
+      expect.objectContaining({
+        kind: 'error',
+        callId: 'call-1',
+        error: { name: 'Error', message: 'bridge failed' },
+      }),
+    ]);
+  });
+
+  test.each([null, undefined, 'failed', 0, false])(
+    'preserves non-Error thrown values: %s',
+    error => {
+      const dir = tmp();
+      const reporter = createFileReporter({ dir });
+      reporter.onStart!(startEvent);
+      reporter.onError!({ callId: 'call-1', error });
+      expect(readLines(dir).find(line => line.kind === 'error')!.error).toEqual(
+        error,
+      );
+    },
+  );
+
+  test('settles errors by callId when turns overlap', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir, failOnly: true });
+    reporter.onStart!(startEvent);
+    reporter.onStart!({ callId: 'call-2' } as never);
+    reporter.onError!({ callId: 'call-1', error: new Error('first failed') });
+    reporter.onEnd!({ callId: 'call-2' } as never);
+
+    expect(readLines(dir).map(line => line.callId)).toEqual([
+      'call-1',
+      'call-1',
+    ]);
+  });
+
+  test.each([
+    { reason: 'user stopped', expectedReason: 'user stopped' },
+    {
+      reason: new Error('user stopped'),
+      expectedReason: { name: 'Error', message: 'user stopped' },
+    },
+  ])(
+    'records an abort and flushes the turn without onEnd: $reason',
+    ({ reason, expectedReason }) => {
+      const dir = tmp();
+      const reporter = createFileReporter({ dir });
+      reporter.onStart!(startEvent);
+      reporter.onAbort!({ callId: 'call-1', steps: [], reason });
+
+      expect(readLines(dir)).toEqual([
+        expect.objectContaining({ kind: 'turn-start', callId: 'call-1' }),
+        expect.objectContaining({
+          kind: 'turn-abort',
+          callId: 'call-1',
+          reason: expectedReason,
+        }),
+      ]);
+    },
+  );
+
+  test('failOnly skips a clean aborted turn and flushes an errored aborted turn', () => {
+    const dir = tmp();
+    const reporter = createFileReporter({ dir, failOnly: true });
+    reporter.onStart!(startEvent);
+    reporter.onAbort!({ callId: 'call-1', steps: [] });
+    expect(existsSync(join(dir, 'events.jsonl'))).toBe(false);
+
+    reporter.onStart!({ callId: 'call-2' } as never);
+    reporter.ingestDiagnostic!(diag({ level: 'error', message: 'boom' }));
+    reporter.onAbort!({ callId: 'call-2', steps: [] });
+    expect(readLines(dir).map(line => line.kind)).toEqual([
+      'turn-start',
+      'diagnostic',
+      'turn-abort',
+    ]);
+  });
+
   test('writes a unified, non-lossy events.jsonl with spans AND diagnostics', () => {
     const dir = tmp();
     const reporter = createFileReporter({ dir });

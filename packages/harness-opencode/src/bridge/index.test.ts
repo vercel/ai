@@ -786,63 +786,126 @@ describe('OpenCode bridge turn settlement', () => {
     ).toBe(true);
   });
 
-  it('settles a host-aborted turn once the next event arrives', async () => {
-    // The shared bridge runtime serializes turns: a replacement `start`
-    // waits (bounded) for the aborted turn's `onStart` to settle. OpenCode
-    // observes its abort signal at the top of the event loop, so any event
-    // after the abort — a heartbeat is enough — must settle the turn; it
-    // must not keep waiting for the turn's own completion events.
-    const emitted: Array<Record<string, unknown>> = [];
-    const emitError = vi.fn();
-    const userMessages = createUserMessages();
+  it('aborts OpenCode before allowing the next turn to stream', async () => {
     const abort = new AbortController();
-    bridgeMock.start = {
-      type: 'start',
-      operation: 'prompt',
-      prompt: 'Start.',
-    };
-    bridgeMock.turn = {
-      emit: (event: Record<string, unknown>) => emitted.push(event),
+    const firstTurn = {
+      emit: vi.fn(),
       requestToolResult: vi.fn(),
       requestToolApproval: vi.fn(),
-      experimental_userMessages: userMessages,
+      experimental_userMessages: createUserMessages(),
       abortSignal: abort.signal,
       firstTurn: true,
       bridgeLog: vi.fn(),
       emitWarning: vi.fn(),
-      emitError,
+      emitError: vi.fn(),
     };
+    bridgeMock.start = {
+      type: 'start',
+      operation: 'prompt',
+      prompt: 'Write a long response.',
+    };
+    bridgeMock.turn = firstTurn;
+    const sessionAbort = vi.fn(async () => ({ data: true }));
+    let subscriptionCount = 0;
     sdkMock.client = {
       mcp: { status: vi.fn(async () => ({ data: {} })) },
       session: {
+        abort: sessionAbort,
         create: vi.fn(async () => ({ data: { id: 'session-1' } })),
         get: vi.fn(async () => ({ data: {} })),
         messages: vi.fn(async () => ({ data: [] })),
-        // The turn is in flight when the host aborts.
         promptAsync: vi.fn(async () => {
-          queueMicrotask(() => abort.abort());
+          if (subscriptionCount === 1) queueMicrotask(() => abort.abort());
           return { data: {} };
         }),
       },
       event: {
-        subscribe: vi.fn(async () => ({
-          stream: {
-            async *[Symbol.asyncIterator]() {
-              // No completion events — the model is mid-work. Deliver one
-              // heartbeat after the abort; nothing else, ever.
-              await new Promise<void>(resolve => {
-                if (abort.signal.aborted) return resolve();
-                abort.signal.addEventListener('abort', () => resolve(), {
-                  once: true,
-                });
-              });
-              yield {
-                type: 'session.updated',
-                properties: { sessionID: 'session-1' },
+        subscribe: vi.fn(
+          async (_input: unknown, options: { signal: AbortSignal }) => {
+            subscriptionCount++;
+            if (subscriptionCount === 1) {
+              return {
+                stream: {
+                  [Symbol.asyncIterator]() {
+                    return {
+                      next: async () => {
+                        await new Promise<void>(resolve => {
+                          if (options.signal.aborted) return resolve();
+                          options.signal.addEventListener(
+                            'abort',
+                            () => resolve(),
+                            {
+                              once: true,
+                            },
+                          );
+                        });
+                        return { done: true as const, value: undefined };
+                      },
+                    };
+                  },
+                },
               };
-            },
+            }
+            return {
+              stream: {
+                async *[Symbol.asyncIterator]() {
+                  yield {
+                    type: 'message.updated',
+                    properties: {
+                      info: {
+                        id: 'second-assistant',
+                        sessionID: 'session-1',
+                        role: 'assistant',
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'message.part.delta',
+                    properties: {
+                      partID: 'second-text',
+                      messageID: 'second-assistant',
+                      field: 'text',
+                      delta: 'banana',
+                      sessionID: 'session-1',
+                    },
+                  };
+                  yield {
+                    type: 'message.part.updated',
+                    properties: {
+                      part: {
+                        id: 'second-step',
+                        messageID: 'second-assistant',
+                        sessionID: 'session-1',
+                        type: 'step-finish',
+                        reason: 'stop',
+                        tokens: {
+                          input: 1,
+                          output: 1,
+                          reasoning: 0,
+                          cache: { read: 0, write: 0 },
+                        },
+                      },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'busy' },
+                    },
+                  };
+                  yield {
+                    type: 'session.status',
+                    properties: {
+                      sessionID: 'session-1',
+                      status: { type: 'idle' },
+                    },
+                  };
+                },
+              },
+            };
           },
-        })),
+        ),
       },
       v2: {
         session: {
@@ -853,14 +916,41 @@ describe('OpenCode bridge turn settlement', () => {
     };
     setBridgeArgv();
 
-    // Resolves only once `onStart` settles — the very promise the shared
-    // runtime's turn fence waits on before starting a replacement turn.
     await import('./index');
 
-    expect(emitError).toHaveBeenCalledWith(
-      expect.objectContaining({ message: 'OpenCode turn failed' }),
+    expect(sessionAbort).toHaveBeenCalledOnce();
+    expect(sessionAbort).toHaveBeenCalledWith({ sessionID: 'session-1' });
+    expect(firstTurn.emitError).not.toHaveBeenCalled();
+
+    const emitted: Array<Record<string, unknown>> = [];
+    const secondTurn = {
+      emit: (event: Record<string, unknown>) => emitted.push(event),
+      requestToolResult: vi.fn(),
+      requestToolApproval: vi.fn(),
+      experimental_userMessages: createUserMessages(),
+      abortSignal: new AbortController().signal,
+      firstTurn: false,
+      bridgeLog: vi.fn(),
+      emitWarning: vi.fn(),
+      emitError: vi.fn(),
+    };
+
+    await bridgeMock.onStart!(
+      {
+        type: 'start',
+        operation: 'prompt',
+        prompt: 'Reply with banana.',
+      },
+      secondTurn,
     );
-    expect(emitted.at(-1)).toMatchObject({ type: 'finish' });
+
+    expect(secondTurn.emitError).not.toHaveBeenCalled();
+    expect(
+      emitted
+        .filter(event => event.type === 'text-delta')
+        .map(event => event.delta)
+        .join(''),
+    ).toBe('banana');
   });
 
   it('authorizes host tools for task-linked subagents only', async () => {

@@ -142,7 +142,7 @@ export function createTelemetryDispatcher({
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Callback<TelemetryEvent<KEY>> => {
+  ): Callback<TelemetryEvent<KEY>> | undefined => {
     const integrationCallbacks = (
       integrations
         .map(integration => integration[key]?.bind(integration))
@@ -157,12 +157,19 @@ export function createTelemetryDispatcher({
         >,
     );
 
+    if (integrationCallbacks.length === 0) {
+      return undefined;
+    }
+
     const mergedIntegrationCallback = mergeCallbacks(...integrationCallbacks);
 
     return async (event: TelemetryEvent<KEY>) => {
       await mergedIntegrationCallback(event);
     };
   };
+
+  const onStepEnd = mergeTelemetryCallback('onStepEnd');
+  const onStepFinish = mergeTelemetryCallback('onStepFinish');
 
   const executeLanguageModelCallWrappers = integrations
     .map(integration => integration.executeLanguageModelCall?.bind(integration))
@@ -205,10 +212,10 @@ export function createTelemetryDispatcher({
     // deprecated `onStepFinish` callback so integrations that still implement
     // only `onStepFinish` keep receiving step-end events during the deprecation
     // window.
-    onStepEnd: mergeCallbacks(
-      mergeTelemetryCallback('onStepEnd'),
-      mergeTelemetryCallback('onStepFinish'),
-    ),
+    onStepEnd:
+      onStepEnd == null && onStepFinish == null
+        ? undefined
+        : mergeCallbacks(onStepEnd, onStepFinish),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
@@ -226,6 +233,12 @@ export function createTelemetryDispatcher({
     ),
     experimental_onEvaluateEnd: mergeTelemetryCallback(
       'experimental_onEvaluateEnd',
+    ),
+    experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionStart',
+    ),
+    experimental_onStreamTranscriptionEnd: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionEnd',
     ),
     onEnd: mergeTelemetryCallback('onEnd'),
     onAbort: mergeTelemetryCallback('onAbort'),
