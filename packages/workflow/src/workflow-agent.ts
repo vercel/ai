@@ -1950,6 +1950,7 @@ export class WorkflowAgent<
         input: collected.toolCall.input,
         reason: collected.approvalResponse.reason,
         providerExecuted: collected.toolCall.providerExecuted === true,
+        existingToolResult: collected.existingToolResult,
       }),
     );
 
@@ -2092,7 +2093,10 @@ export class WorkflowAgent<
       for (const denial of deniedToolApprovals) {
         // Provider-executed denials are forwarded to the provider via the
         // preserved approval response below, not turned into a local result.
-        if (denial.providerExecuted) {
+        if (
+          denial.providerExecuted ||
+          denial.existingToolResult !== undefined
+        ) {
           continue;
         }
         toolResultContent.push({
@@ -2161,10 +2165,13 @@ export class WorkflowAgent<
       // Write tool results and step boundaries to the stream so the UI
       // can transition approved/denied tool parts to the correct state
       // and properly separate them from the subsequent model step.
-      if (options.writable && toolResultContent.length > 0) {
-        const deniedResults = toolResultContent
-          .filter(r => r.output.type === 'execution-denied')
-          .map(r => ({ toolCallId: r.toolCallId }));
+      const deniedResults = deniedToolApprovals
+        .filter(denial => !denial.providerExecuted)
+        .map(denial => ({ toolCallId: denial.toolCallId }));
+      if (
+        options.writable &&
+        (toolResultContent.length > 0 || deniedResults.length > 0)
+      ) {
         await writeApprovalToolResults(
           options.writable,
           approvedRawResults,
