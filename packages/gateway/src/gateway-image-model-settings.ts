@@ -33,4 +33,5 @@ export type GatewayImageModelId =
   | 'recraft/recraft-v4.1-utility-pro'
   | 'spacexai/grok-imagine-image'
   | 'spacexai/grok-imagine-image-2.0'
+  | 'minimax/image-01'
   | (string & {});
