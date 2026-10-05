@@ -319,27 +319,27 @@ export const conventions = defineConventions([
     },
   },
   {
-    name: 'provider-evaluation-model-file-must-export-model-class',
+    name: 'provider-decision-model-file-must-export-model-class',
     description:
-      "Every provider's evaluation model must implement the experimental spec and use the Evaluation class prefix.",
+      "Every provider's decision model must implement the experimental spec and use the Decision class prefix.",
     for: {
       files: [
-        '${providerId}-evaluation-model.ts',
-        '*/${providerId}-evaluation-model.ts',
+        '${providerId}-decision-model.ts',
+        '*/${providerId}-decision-model.ts',
       ],
     },
     must: {
       importTypes: [
         {
-          name: 'Experimental_EvaluationModelV4',
+          name: 'Experimental_DecisionModelV4',
           from: '@ai-sdk/provider',
-          alias: 'EvaluationModelV4',
+          alias: 'DecisionModelV4',
         },
       ],
       exportClasses: [
         {
-          name: 'Evaluation${providerId.toPascalCase()}Model',
-          implement: ['EvaluationModelV4'],
+          name: 'Decision${providerId.toPascalCase()}Model',
+          implement: ['DecisionModelV4'],
         },
       ],
     },

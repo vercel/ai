@@ -2,7 +2,7 @@ import { NoSuchModelError } from '@ai-sdk/provider';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createTypeSafeAi, typeSafeAi } from './typesafe-ai-provider';
 
-const evaluationOptions = {
+const decisionOptions = {
   state: 'The request used the configured endpoint.',
   questions: {
     configured: {
@@ -31,17 +31,24 @@ describe('TypeSafe provider', () => {
     vi.unstubAllEnvs();
   });
 
-  it('provides the experimental evaluation capability', () => {
-    const model = typeSafeAi.evaluationModel('jev-latest');
+  it('provides the experimental decision capability', () => {
+    const model = typeSafeAi.decisionModel('jev-latest');
     expect(typeSafeAi.specificationVersion).toBe('v4');
     expect(model.specificationVersion).toBe('v4');
-    expect(model.provider).toBe('typesafe.evaluation');
+    expect(model.provider).toBe('typesafe.decision');
     expect(model.modelId).toBe('jev-latest');
     expect(model.supportedQuestionTypes).toEqual([
       'choice',
       'score',
       'boolean',
     ]);
+  });
+
+  it('retains the deprecated factory alias', () => {
+    expect(typeSafeAi.evaluationModel).toBe(typeSafeAi.decisionModel);
+    expect(typeSafeAi.evaluationModel('jev-latest').provider).toBe(
+      'typesafe.decision',
+    );
   });
 
   it.each(['languageModel', 'embeddingModel', 'imageModel'] as const)(
@@ -58,8 +65,8 @@ describe('TypeSafe provider', () => {
     const fetch = createFetchMock();
 
     await createTypeSafeAi({ apiKey: 'test-api-key', fetch })
-      .evaluationModel('jev-latest')
-      .doEvaluate(evaluationOptions);
+      .decisionModel('jev-latest')
+      .doDecide(decisionOptions);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toBe('https://api.typesafe.ai/v1/systemone');
@@ -70,8 +77,8 @@ describe('TypeSafe provider', () => {
     const fetch = createFetchMock();
 
     await createTypeSafeAi({ apiKey: 'test-api-key', fetch })
-      .evaluationModel('jev-latest')
-      .doEvaluate(evaluationOptions);
+      .decisionModel('jev-latest')
+      .doDecide(decisionOptions);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toBe('https://proxy.example/v1/systemone');
@@ -86,8 +93,8 @@ describe('TypeSafe provider', () => {
       baseURL: 'https://option.example/v1/',
       fetch,
     })
-      .evaluationModel('jev-latest')
-      .doEvaluate(evaluationOptions);
+      .decisionModel('jev-latest')
+      .doDecide(decisionOptions);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toBe('https://option.example/v1/systemone');
@@ -104,8 +111,8 @@ describe('TypeSafe provider', () => {
     const { typeSafeAi: environmentTypeSafeAi } =
       await import('./typesafe-ai-provider');
     await environmentTypeSafeAi
-      .evaluationModel('jev-latest')
-      .doEvaluate(evaluationOptions);
+      .decisionModel('jev-latest')
+      .doDecide(decisionOptions);
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch.mock.calls[0][0]).toBe(
