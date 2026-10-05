@@ -1,5 +1,11 @@
 # @ai-sdk/cohere
 
+## 3.0.68
+
+### Patch Changes
+
+- e71f47a: Allow 768 and 2048 in the Cohere embedding `outputDimension` option for Embed 5 models.
+
 ## 3.0.67
 
 ### Patch Changes
