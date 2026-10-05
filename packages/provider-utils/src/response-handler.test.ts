@@ -151,6 +151,123 @@ describe('createEventSourceResponseHandler', () => {
 });
 
 describe('createJsonLinesResponseHandler', () => {
+  const maxLineBytes = 64 * 1024 * 1024;
+
+  it.each(['ASCII', 'UTF-8'])(
+    'rejects an oversized %s line across chunks and cancels the body',
+    async encoding => {
+      const chunk = new Uint8Array(1024 * 1024);
+      if (encoding === 'ASCII') {
+        chunk.fill(65);
+      } else {
+        // Each character uses two UTF-8 bytes, so the character count stays below the limit.
+        for (let i = 0; i < chunk.length; i += 2) {
+          chunk[i] = 0xc3;
+          chunk[i + 1] = 0xb1;
+        }
+      }
+      let sent = 0;
+      let cancelled = false;
+      const response = new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (sent === 66) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(chunk);
+            sent++;
+          },
+          cancel() {
+            cancelled = true;
+            throw new Error('Cancellation failed');
+          },
+        }),
+      );
+      const { value } = await createJsonLinesResponseHandler(z.unknown())({
+        url: 'test-url',
+        requestBodyValues: { test: true },
+        response,
+      });
+
+      await expect(value.next()).rejects.toMatchObject({
+        name: 'AI_DownloadError',
+        message: `JSON Lines response exceeded maximum line size of ${maxLineBytes} bytes.`,
+        url: 'test-url',
+      });
+      expect(cancelled).toBe(true);
+      expect(response.body!.locked).toBe(false);
+    },
+  );
+
+  it.each([true, false])(
+    'rejects an oversized line in one chunk (trailing newline: %s)',
+    async trailingNewline => {
+      const bytes = new Uint8Array(
+        maxLineBytes + 1 + Number(trailingNewline),
+      ).fill(32);
+      bytes.set(new TextEncoder().encode('{}'), maxLineBytes - 1);
+      if (trailingNewline) bytes[bytes.length - 1] = 10;
+      const { value } = await createJsonLinesResponseHandler(z.unknown())({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller) {
+              controller.enqueue(bytes);
+              controller.close();
+            },
+          }),
+        ),
+      });
+
+      await expect(value.next()).rejects.toMatchObject({
+        name: 'AI_DownloadError',
+      });
+    },
+  );
+
+  it.each([true, false])(
+    'accepts a line at the byte limit (trailing newline: %s)',
+    async trailingNewline => {
+      const bytes = new Uint8Array(maxLineBytes + Number(trailingNewline)).fill(
+        32,
+      );
+      bytes.set(new TextEncoder().encode('{}'), maxLineBytes - 2);
+      if (trailingNewline) bytes[bytes.length - 1] = 10;
+      const { value } = await createJsonLinesResponseHandler(z.object({}))({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response(bytes),
+      });
+
+      await expect(value.next()).resolves.toEqual({ value: {}, done: false });
+      await expect(value.next()).resolves.toEqual({
+        value: undefined,
+        done: true,
+      });
+    },
+  );
+
+  it('accepts a chunk larger than the limit when each line is below the limit', async () => {
+    const lineBytes = 8 * 1024 * 1024;
+    const bytes = new Uint8Array(9 * lineBytes).fill(32);
+    for (let i = 1; i <= 9; i++) {
+      bytes.set(new TextEncoder().encode('{}\n'), i * lineBytes - 3);
+    }
+    const { value } = await createJsonLinesResponseHandler(z.object({}))({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response(bytes),
+    });
+    let count = 0;
+    for await (const line of value) {
+      expect(line).toEqual({});
+      count++;
+    }
+    expect(count).toBe(9);
+  });
+
   it('parses JSON lines across byte boundaries', async () => {
     const bytes = new TextEncoder().encode(
       '{"id":"first","text":"café"}\r\n\n{"id":"second","text":"done"}',
