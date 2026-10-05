@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22051,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22051-elevenlabs-word-metadata.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22051-elevenlabs-word-metadata.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22051 reproduced: result.providerMetadata.elevenlabs.words is missing"
+  }
+}
