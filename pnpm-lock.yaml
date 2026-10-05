@@ -284,10 +284,16 @@ importers:
       valibot:
         specifier: 1.1.0
         version: 1.1.0(typescript@5.8.3)
+      ws:
+        specifier: ^8.21.0
+        version: 8.21.0
       zod:
         specifier: 3.25.76
         version: 3.25.76
     devDependencies:
+      '@playwright/test':
+        specifier: ^1.61.1
+        version: 1.61.1
       '@types/node':
         specifier: 22.19.19
         version: 22.19.19
@@ -297,6 +303,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.28)
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       autoprefixer:
         specifier: ^10.5.0
         version: 10.5.0(postcss@8.5.15)
@@ -306,6 +315,9 @@ importers:
       tailwindcss:
         specifier: ^3.4.19
         version: 3.4.19(tsx@4.23.12)(yaml@2.9.1)
+      tsx:
+        specifier: 4.23.12
+        version: 4.23.12
       typescript:
         specifier: 5.8.3
         version: 5.8.3

@@ -319,6 +319,7 @@ server.on('connection', (socket, request) => {
 
       for await (const chunk of toUIMessageStream({
         stream: result.stream,
+        originalMessages: messages,
         generateMessageId: generateId,
       })) {
         const stored = { sequence: stream.chunks.length, chunk };
