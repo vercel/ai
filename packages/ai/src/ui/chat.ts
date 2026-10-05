@@ -263,6 +263,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
   private pendingApprovalMessageId: string | undefined;
   private activeResponse: ActiveResponse<UI_MESSAGE> | undefined = undefined;
   private activeResumeRequest: ActiveResumeRequest | undefined = undefined;
+  private resumableStreamState:
+    | StreamingUIMessageState<UI_MESSAGE>
+    | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
 
   constructor({
@@ -606,7 +609,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     });
 
   addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
-    state = 'output-available',
+    state,
     toolCallId,
     output,
     errorText,
@@ -618,10 +621,41 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
-      ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) && part.toolCallId === toolCallId
-          ? ({ ...part, state, output, errorText } as typeof part)
-          : part;
+      ): UIMessagePart<UIDataTypes, UITools> => {
+        if (!isToolUIPart(part) || part.toolCallId !== toolCallId) {
+          return part;
+        }
+
+        // Output states can only retain approvals that were granted.
+        const { approval: existingApproval, ...toolPart } = part;
+        const approval =
+          existingApproval?.approved === true
+            ? {
+                approval: {
+                  ...existingApproval,
+                  approved: existingApproval.approved,
+                },
+              }
+            : {};
+
+        return state === 'output-error'
+          ? {
+              ...toolPart,
+              ...approval,
+              state,
+              input: part.input,
+              output: undefined,
+              errorText,
+            }
+          : {
+              ...toolPart,
+              ...approval,
+              state: 'output-available',
+              input: part.input,
+              output,
+              errorText: undefined,
+            };
+      };
 
       // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
@@ -731,6 +765,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     trigger: 'submit-message' | 'resume-stream' | 'regenerate-message';
     messageId?: string;
   } & ChatRequestOptions) {
+    if (trigger !== 'resume-stream') {
+      this.resumableStreamState = undefined;
+    }
+
     const abortController = new AbortController();
     const activeResumeRequest =
       trigger === 'resume-stream' ? { abortController } : undefined;
@@ -768,6 +806,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           await reconnect?.cancel().catch(() => {});
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           clearActiveResumeRequest();
           return;
@@ -775,6 +814,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
         if (reconnect == null) {
           this.setStatus({ status: 'ready' });
+          this.resumableStreamState = undefined;
           clearActiveResumeRequest();
           return; // no active stream found, so we do not resume
         }
@@ -787,6 +827,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         ) {
           if (isCurrentRequest()) {
             this.setStatus({ status: 'ready' });
+            this.resumableStreamState = undefined;
           }
           clearActiveResumeRequest();
           return;
@@ -816,6 +857,21 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    // the continued stream can start with either
+    // 1) input deltas
+    // 2) or the result of an answered tool approval request
+    // Keep the tool part so in case 2, those chunks can find their tool call
+    const resumableResponseMessage =
+      trigger === 'resume-stream' &&
+      responseMessage?.role === 'assistant' &&
+      responseMessage.parts.some(
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'input-streaming' ||
+            part.state === 'approval-responded'),
+      )
+        ? this.state.snapshot(responseMessage)
+        : undefined;
     const usesEarlierAssistantMessage =
       responseMessageIndex !== -1 &&
       responseMessageIndex < this.state.messages.length - 1 &&
@@ -828,13 +884,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     try {
       const response = {
-        state: createStreamingUIMessageState({
-          lastMessage:
-            trigger === 'resume-stream' || trigger === 'regenerate-message'
-              ? undefined
-              : this.state.snapshot(responseMessage),
-          messageId: this.generateId(),
-        }),
+        state:
+          trigger === 'resume-stream' && this.resumableStreamState != null
+            ? this.resumableStreamState
+            : createStreamingUIMessageState({
+                lastMessage:
+                  trigger === 'resume-stream'
+                    ? resumableResponseMessage
+                    : trigger === 'regenerate-message'
+                      ? undefined
+                      : this.state.snapshot(responseMessage),
+                messageId: this.generateId(),
+              }),
         abortController,
       } as ActiveResponse<UI_MESSAGE>;
 
@@ -906,6 +967,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
+          resetStateOnMessageIdChange: trigger === 'resume-stream',
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
@@ -924,12 +986,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (isAbort) {
         if (isCurrentRequest()) {
           this.setStatus({ status: 'ready' });
+          if (this.resumableStreamState === response.state) {
+            this.resumableStreamState = undefined;
+          }
         }
         return null;
       }
 
       if (isCurrentRequest()) {
         this.setStatus({ status: 'ready' });
+        if (this.resumableStreamState === response.state) {
+          this.resumableStreamState = undefined;
+        }
       }
     } catch (err) {
       // Ignore abort errors as they are expected.
@@ -937,6 +1005,9 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         isAbort = true;
         if (isCurrentRequest()) {
           this.setStatus({ status: 'ready' });
+          if (this.resumableStreamState === activeResponse?.state) {
+            this.resumableStreamState = undefined;
+          }
         }
         return null;
       }
@@ -954,6 +1025,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
           err.message.toLowerCase().includes('network'))
       ) {
         isDisconnect = true;
+      }
+
+      if (isDisconnect) {
+        this.resumableStreamState = activeResponse?.state;
+      } else if (this.resumableStreamState === activeResponse?.state) {
+        this.resumableStreamState = undefined;
       }
 
       if (this.onError && err instanceof Error) {

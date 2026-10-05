@@ -26,16 +26,15 @@ export class JustBashNetworkSandboxSession
   implements HarnessV1NetworkSandboxSession
 {
   /**
-   * Minted at construct time. just-bash has no native identifier and no
-   * cross-process reattach surface; the value exists only to satisfy the
-   * `HarnessV1NetworkSandboxSession.id` contract.
+   * Caller-supplied label or a UUID minted at construct time. just-bash has
+   * no native identifier and cannot reattach across processes.
    */
   readonly id: string;
   readonly defaultWorkingDirectory: string;
 
-  constructor(input: { sandbox: Sandbox }) {
+  constructor(input: { sandbox: Sandbox; sandboxId?: string }) {
     super(input.sandbox);
-    this.id = randomUUID();
+    this.id = input.sandboxId ?? randomUUID();
     this.defaultWorkingDirectory = input.sandbox.bashEnvInstance.getCwd();
   }
 
@@ -70,6 +69,7 @@ export class JustBashNetworkSandboxSession
   stop = async (): Promise<void> => {
     // just-bash has no explicit shutdown; the sandbox is garbage-collected
     // along with its in-memory filesystem once references drop.
+    await this.sandbox.stop();
   };
 
   destroy = async (): Promise<void> => {

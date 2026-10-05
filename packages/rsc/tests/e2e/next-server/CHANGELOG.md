@@ -4,6 +4,133 @@
 
 ### Patch Changes
 
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+  - @ai-sdk/rsc@3.0.127
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+  - @ai-sdk/rsc@3.0.126
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+  - @ai-sdk/rsc@3.0.125
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+  - ai@7.0.124
+  - @ai-sdk/rsc@3.0.124
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/rsc@3.0.123
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+  - @ai-sdk/rsc@3.0.122
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+  - @ai-sdk/rsc@3.0.121
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+  - @ai-sdk/rsc@3.0.120
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/rsc@3.0.119
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.118
+- @ai-sdk/rsc@3.0.118
+
+## 0.0.1
+
+### Patch Changes
+
+- ai@7.0.117
+- @ai-sdk/rsc@3.0.117
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+  - @ai-sdk/rsc@3.0.116
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - ai@7.0.115
+  - @ai-sdk/rsc@3.0.115
+
+## 0.0.1
+
+### Patch Changes
+
+- Updated dependencies [b5679a7]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+  - @ai-sdk/rsc@3.0.114
+
+## 0.0.1
+
+### Patch Changes
+
 - Updated dependencies [dcdb011]
 - Updated dependencies [8f72832]
 - Updated dependencies [fe07867]

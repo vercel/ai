@@ -426,8 +426,8 @@ describe('registerPiProviders', () => {
         authHeader: true,
         headers: {
           'x-tenant': 'acme',
-          'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-          'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+          'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+          'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
         },
       },
     );
@@ -464,8 +464,8 @@ describe('registerPiProviders', () => {
       call => call[0] === 'vercel-ai-gateway',
     );
     expect(gatewayCall?.[1].headers).toEqual({
-      'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-      'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+      'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+      'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
     });
   });
 

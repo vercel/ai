@@ -136,6 +136,10 @@ describe('doGenerate', () => {
         },
       },
     });
+    expect(result.usage).toEqual({
+      promptTokenCount: 10,
+      candidatesTokenCount: 4,
+    });
   });
 
   it('accepts options under the google namespace as a fallback', async () => {
@@ -319,6 +323,7 @@ describe('doStream', () => {
         segments: [],
         language: undefined,
         durationInSeconds: undefined,
+        usage: { promptTokenCount: 7 },
         providerMetadata: {
           google: { usageMetadata: { promptTokenCount: 7 } },
         },

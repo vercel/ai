@@ -1,6 +1,6 @@
 import { HarnessAgent } from '@ai-sdk/harness/agent';
 import { createClaudeCode } from './_create';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { tool } from 'ai';
 import { z } from 'zod';
 import { printFullStream } from '../../lib/print-full-stream';
@@ -9,22 +9,22 @@ import { run } from '../../lib/run';
 const claudeCode = createClaudeCode();
 
 run(async () => {
-  const sandbox = createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-    timeout: 10 * 60 * 1000,
-  });
   const getUserName = tool({
     description: 'Ask the user to enter their name in the client.',
     inputSchema: z.object({}),
   });
   const agent = new HarnessAgent({
     harness: claudeCode,
-    sandbox,
     tools: { getUserName },
   });
 
-  let session = await agent.createSession();
+  const sandboxSession = await createVercelNetworkSandboxSession({
+    runtime: 'node24',
+    ports: [4000],
+    timeout: 10 * 60 * 1000,
+    template: await agent.getSandboxTemplate(),
+  });
+  let session = await agent.createSession({ sandboxSession });
   try {
     const first = await agent.stream({
       session,
@@ -55,7 +55,11 @@ run(async () => {
       throw new Error('Expected serialized pending tool result state.');
     }
 
-    session = await agent.createSession({ sessionId, continueFrom });
+    session = await agent.createSession({
+      sandboxSession,
+      sessionId,
+      continueFrom,
+    });
     const continued = await agent.continueStream({
       session,
       toolResultContinuations: [
@@ -78,5 +82,6 @@ run(async () => {
     }
   } finally {
     await session.destroy();
+    await sandboxSession.destroy();
   }
 });

@@ -1,5 +1,125 @@
 # @ai-sdk/harness-cline
 
+## 1.0.65
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.64
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.63
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.62
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.61
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.60
+
+### Patch Changes
+
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.59
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.58
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.57
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.56
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+  - @ai-sdk/provider@4.0.19
+
+## 1.0.55
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.54
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.53
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.52
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.51
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
 ## 1.0.50
 
 ### Patch Changes

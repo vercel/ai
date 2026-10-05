@@ -138,6 +138,8 @@ You can use the following optional settings to customize the provider instance:
 - **toolResultDownloads** _object_
 
   Settings for downloading remote files in tool results before sending them to Vertex as inline data.
+  Supported Google Cloud Storage URLs are forwarded directly for Gemini 3 and later models.
+  See [Tool Result Files](#tool-result-files) for the supported MIME types.
   - **maxBytes** _number_
 
     Maximum size in bytes for each downloaded file. Defaults to 7 MiB.
@@ -486,7 +488,7 @@ The response will contain `tool-call` and `tool-result` parts for the executed c
 
 #### URL Context
 
-URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.5 Flash-Lite, 2.5 Pro, 2.5 Flash, 2.0 Flash.
+URL Context allows Gemini models to retrieve and analyze content from URLs. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -501,7 +503,7 @@ const result = await generateText({
 
 #### Google Search
 
-Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro.
+Google Search enables Gemini models to access real-time web information. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -533,7 +535,7 @@ const result = await generateText({
 
 #### Google Maps
 
-Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.5 Flash-Lite, 2.5 Flash, 2.0 Flash, 2.5 Pro, 3.0 Pro.
+Google Maps grounding enables Gemini models to access Google Maps data for location-aware responses. Supported models: Gemini 2.0 and newer.
 
 ```ts
 import { googleVertex } from '@ai-sdk/google-vertex';
@@ -710,6 +712,42 @@ const { text } = await generateText({
 </Note>
 
 See [File Parts](/docs/foundations/prompts#file-parts) for details on how to use files in prompts.
+
+### Tool Result Files
+
+For Gemini 3 and later models, tool results can include Google Cloud Storage
+(`gs://`) file URLs. Vertex receives these references directly as
+`functionResponse.parts[].fileData`, without downloading the files into the SDK
+process. The supported MIME types are `image/png`, `image/jpeg`, `image/webp`,
+`application/pdf`, and `text/plain`. Specify the full MIME type; a top-level type
+such as `image` is not sufficient for GCS tool results.
+
+Use a file part in the tool's `toModelOutput` result:
+
+```ts
+toModelOutput: ({ output }) => ({
+  type: 'content',
+  value: [
+    {
+      type: 'file',
+      mediaType: 'image/png',
+      data: {
+        type: 'url',
+        url: new URL(output.gcsUri),
+        originalUrl: output.gcsUri,
+      },
+    },
+  ],
+}),
+```
+
+Include `originalUrl` when URL parsing changes an opaque GCS URI, such as a path
+containing spaces, so Vertex receives the exact object reference. The Vertex
+caller must have access to the referenced object.
+
+HTTP(S) tool-result files are downloaded and sent as inline data, subject to
+`toolResultDownloads.maxBytes`. Direct GCS tool-result forwarding is not supported
+for older Gemini models or MIME types outside the list above.
 
 ### Cached Content
 
@@ -1511,11 +1549,11 @@ You can use the following optional settings to customize the provider instance:
 ### Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `claude-sonnet-5`.
+The first argument is the model id, e.g. `claude-sonnet-5-5`.
 Some models have multi-modal capabilities.
 
 ```ts
-const model = vertexAnthropic('claude-sonnet-5');
+const model = vertexAnthropic('claude-sonnet-5-5');
 ```
 
 You can use Anthropic language models to generate text with the `generateText` function:
@@ -1525,7 +1563,7 @@ import { vertexAnthropic } from '@ai-sdk/google-vertex/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1610,7 +1648,7 @@ import { generateText } from 'ai';
 const errorMessage = '... long error message ...';
 
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'user',
@@ -1644,7 +1682,7 @@ You can also use cache control on system messages by providing multiple system m
 
 ```ts highlight="3,7-9"
 const result = await generateText({
-  model: vertexAnthropic('claude-sonnet-5'),
+  model: vertexAnthropic('claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',

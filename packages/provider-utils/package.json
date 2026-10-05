@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.47",
+  "version": "5.0.53",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -19,9 +19,9 @@
     "test.d.ts"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "build:watch": "pnpm clean && tsup --watch",
-    "clean": "del-cli dist *.tsbuildinfo",
+    "build": "pnpm clean && tsdown",
+    "build:watch": "pnpm clean && tsdown --watch",
+    "clean": "del-cli *.tsbuildinfo",
     "type-check": "tsc --build",
     "test": "pnpm test:node && pnpm test:edge",
     "test:update": "pnpm test:node -u",
@@ -58,7 +58,7 @@
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.7.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "typescript": "5.8.3",
     "zod": "3.25.76"
   },

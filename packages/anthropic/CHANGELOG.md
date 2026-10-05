@@ -1,5 +1,82 @@
 # @ai-sdk/anthropic
 
+## 4.0.71
+
+### Patch Changes
+
+- c35458e: fix(anthropic): preserve invalid toolset calls
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.69
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- a587f55: fix(anthropic): preserve server-side fallback boundaries when replaying assistant messages
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.68
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.67
+
+### Patch Changes
+
+- e361d39: feat(anthropic): add Claude Sonnet 5.5 support
+
+  - add the `claude-sonnet-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-sonnet-5-5` and `us.anthropic.claude-sonnet-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-sonnet-5.5` to `@ai-sdk/gateway`
+  - add the `between_tools` thinking type (`thinking: { type: 'between_tools' }`), the lowest thinking setting on `claude-sonnet-5-5`; `xhigh` and `max` effort are lowered to `high` with a warning because the API rejects them with `between_tools`
+  - `claude-sonnet-5-5` rejects disabled thinking: `thinking: { type: 'disabled' }` is replaced with `between_tools` thinking (with a warning), `reasoning: 'none'` maps to `between_tools` thinking, and budget-based thinking is converted to adaptive thinking
+  - `claude-sonnet-5-5` rejects forced tool use: `required` and named tool choices fall back to `auto`, and `structuredOutputMode: 'jsonTool'` falls back to native structured outputs, each with a warning
+
+- 8373a22: Normalize dangling programmatic tool caller references in conversation history after pruning. Before a subsequent user message, omit caller metadata whose source code execution call is missing and emit a warning, preserving the retained tool calls and results. Keep caller metadata unchanged for active tool continuations.
+
+## 4.0.66
+
+### Patch Changes
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.65
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.64
+
+### Patch Changes
+
+- 67f8000: Preserve effort updates on empty system messages at the beginning of a conversation, including consecutive updates.
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.63
+
+### Patch Changes
+
+- 154221f: feat(anthropic): support on-demand compaction and preserve signed compaction blocks
+
 ## 4.0.62
 
 ### Patch Changes

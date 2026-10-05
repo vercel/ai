@@ -1,0 +1,259 @@
+---
+title: Topaz Labs
+description: Learn how to use the Topaz Labs provider for the AI SDK.
+---
+
+# Topaz Labs Provider
+
+The [Topaz Labs](https://www.topazlabs.com/) provider contains support for Topaz Labs' image and video enhancement models.
+
+Topaz models **enhance media you supply**. They upscale, denoise, sharpen and restore an existing image or video. They do not generate media from a text prompt, so the input file is the required part of the request and a text prompt is ignored.
+
+## Setup
+
+The Topaz Labs provider is available in the `@ai-sdk/topaz` module. You can install it with
+
+<InstallPackages packages="@ai-sdk/topaz" />
+
+## Provider Instance
+
+You can import the default provider instance `topaz` from `@ai-sdk/topaz`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+```
+
+If you need a customized setup, you can import `createTopaz` and create a provider instance with your settings:
+
+```ts
+import { createTopaz } from '@ai-sdk/topaz';
+
+const topaz = createTopaz({
+  apiKey: process.env.TOPAZ_API_KEY,
+});
+```
+
+You can use the following optional settings to customize the Topaz Labs provider instance:
+
+- **apiKey** _string_
+
+  API key that is being sent as the `X-API-Key` header.
+  It defaults to the `TOPAZ_API_KEY` environment variable.
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.topazlabs.com`.
+
+- **headers** _Record&lt;string, string&gt;_
+
+  Custom headers to include in the requests.
+
+- **fetch** _(input: RequestInfo, init?: RequestInit) => Promise&lt;Response&gt;_
+
+  Custom [fetch](https://developer.mozilla.org/en-US/docs/Web/API/fetch) implementation.
+
+## Image Models
+
+You can create Topaz image models using `topaz.image()`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: topaz.image('wonder-3.5'),
+  prompt: {
+    images: ['https://example.com/photo.jpg'],
+  },
+});
+```
+
+The image to enhance (JPEG, PNG or TIFF) is passed through the prompt's `images`. The Topaz image API is asynchronous: the provider submits the job, polls until it finishes, and downloads the result, so `generateImage` resolves with the enhanced image.
+
+### Model Capabilities
+
+| Model        | Topaz model  | Description                              |
+| ------------ | ------------ | ---------------------------------------- |
+| `wonder-3.5` | `Wonder 3.5` | Generative upscaling and detail recovery |
+
+Passing a raw Topaz model name (for example `Wonder 3.5`) also works, and unknown ids are forwarded to the API unchanged.
+
+### Image Provider Options
+
+```ts
+import { topaz, type TopazImageModelOptions } from '@ai-sdk/topaz';
+import { generateImage } from 'ai';
+
+const { images } = await generateImage({
+  model: topaz.image('wonder-3.5'),
+  prompt: {
+    images: ['https://example.com/photo.jpg'],
+  },
+  size: '4096x4096',
+  providerOptions: {
+    topaz: {
+      enhancementStrength: 'high',
+      grain: true,
+      grainDensity: 0.3,
+      outputFormat: 'png',
+    } satisfies TopazImageModelOptions,
+  },
+});
+```
+
+- **enhancementStrength** _'low' | 'medium' | 'high'_: how aggressively to enhance. Defaults to `high`.
+- **grain** _boolean_: add grain to the output. Defaults to `false`.
+- **grainDensity** _number_: grain intensity, 0 to 1. Defaults to 0.5.
+- **grainModel** _'silver' | 'gaussian' | 'grey'_: grain model. Defaults to `silver`.
+- **grainSize** _number_: grain particle size, 1 to 5. Defaults to 1.
+- **grainStrength** _number_: grain effect strength, 0 to 1. Defaults to 0.5.
+- **inputWidth** / **inputHeight** _number_: input dimensions in pixels. Topaz infers these from the upload when omitted.
+- **outputWidth** / **outputHeight** _number_: output dimensions in pixels, 1 to 32000. These take precedence over the dimensions derived from `size`.
+- **outputFormat** _'jpeg' | 'jpg' | 'png' | 'tiff' | 'tif'_: output format. Topaz defaults to `jpeg`.
+- **cropToFill** _boolean_: crop the output to fill the requested dimensions. Defaults to `false`.
+- **webhookUrl** _string_: URL to receive job-status webhooks.
+- **pollIntervalMillis** _number_: status poll interval. Defaults to 2000.
+- **pollTimeoutMillis** _number_: maximum time to wait for the job. Defaults to 600000. The provider cancels the Topaz job when this runs out or the call is aborted, since Topaz charges on completion.
+
+`aspectRatio`, `seed`, `mask` and `n` greater than 1 are not supported and produce warnings.
+
+### Image Provider Metadata
+
+`providerMetadata.topaz.images[]` on the result contains, for each image:
+
+- **processId** _string_: the Topaz job id.
+- **credits** _number_: the credits Topaz charged for the job.
+- **width** / **height** _number_: the output dimensions.
+- **format** _string_: the output format.
+
+## Video Models
+
+You can create Topaz video models using `topaz.video()`:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { experimental_generateVideo as generateVideo } from 'ai';
+
+const { videos } = await generateVideo({
+  model: topaz.video('proteus'),
+  prompt: '',
+  inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '3840x2160',
+});
+```
+
+The video to enhance is passed through `inputReferences`, and `resolution` sets the output resolution. Starlight models also need [source metadata](#source-metadata). `generateVideo` requires a `prompt`, so pass an empty string: Topaz ignores text, and a non-empty prompt produces a warning.
+
+### Model Capabilities
+
+| Model                   | Topaz model | Description                                   |
+| ----------------------- | ----------- | --------------------------------------------- |
+| `proteus`               | `prob-4`    | Detail-preserving upscaling with fine control |
+| `starlight-precise-2.6` | `slp-2.6`   | Generative upscaling with high fidelity       |
+
+Passing a raw Topaz filter model name (for example `slp-2.5`) also works, and unknown ids are forwarded to the API unchanged.
+
+### Input Video
+
+A URL input is handed to Topaz, which fetches it itself. A file input is uploaded to Topaz. Either way processing starts once Topaz has the video, and the only required setting is the output resolution (from `resolution` or `output.width` / `output.height`).
+
+### Source Metadata
+
+The `source` provider option describes the input video. The AI SDK does not inspect media files, so the values come from your side:
+
+- **Starlight models require it.** Topaz rejects Starlight requests without it and prices them from these values, so they must describe the real video.
+- **For other models it is optional.** When it is set, Topaz returns a cost estimate as soon as the request is created.
+
+Setting any of `width`, `height`, `duration` or `frameRate` requires all four. The output resolution and frame rate default to the source values.
+
+| Field        | Where it comes from                                                |
+| ------------ | ------------------------------------------------------------------ |
+| `resolution` | `source.width` and `source.height`.                                |
+| `duration`   | `source.duration`.                                                 |
+| `frameRate`  | `source.frameRate`.                                                |
+| `frameCount` | `source.frameCount`, or `duration * frameRate` when it is omitted. |
+| `container`  | `source.container`, or the input's media type or URL extension.    |
+| `size`       | The input bytes (file inputs only).                                |
+
+```ts
+const { videos } = await generateVideo({
+  model: topaz.video('starlight-precise-2.6'),
+  prompt: '',
+  inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '3840x2160',
+  providerOptions: {
+    topaz: {
+      source: {
+        width: 1920,
+        height: 1080,
+        duration: 10,
+        frameRate: 30,
+        frameCount: 300,
+      },
+    },
+  },
+});
+```
+
+<Note>
+  Set `source.frameCount` explicitly for variable-frame-rate input, where
+  `duration * frameRate` is not exact.
+</Note>
+
+### Video Provider Options
+
+Structural options:
+
+- **source** _object_: input video metadata, `width`, `height`, `duration`, `frameRate`, `frameCount` and `container`. See [Source Metadata](#source-metadata).
+- **output** _object_: output settings.
+  - `width` / `height`: output dimensions. These take precedence over `resolution`.
+  - `frameRate`: output frame rate, taking precedence over `fps`. Topaz only changes the frame rate when a frame-interpolation filter is present.
+  - `audioTransfer` (`'Copy' | 'Convert' | 'None'`, default `Copy`), `audioCodec` (`'AAC' | 'AC3' | 'PCM'`, default `AAC`), `audioBitrate`.
+  - `videoEncoder` (`'AV1' | 'H264' | 'H265' | 'ProRes' | 'VP9'`, Topaz defaults to `H265`), `videoProfile`, `videoBitrate`, `dynamicCompressionLevel` (`'Low' | 'Mid' | 'High'`).
+  - `container` (`'mp4' | 'mov' | 'mkv' | 'avi' | 'webm'`): defaults to the input container when it is `mov` or `mkv`, otherwise `mp4`. `ProRes` always produces `mov`, `AV1` and `VP9` always produce `mp4`.
+  - `cropToFit`: center-crop to the output dimensions.
+- **additionalFilters** _Array&lt;Record&lt;string, unknown&gt;&gt;_: extra `filters[]` entries, e.g. a frame-interpolation filter. Each entry must include a `model` key.
+- **filter** _Record&lt;string, unknown&gt;_: escape hatch merged into the model's filter entry, overriding the typed options below.
+
+Proteus filter settings: `videoType`, `auto`, `fieldOrder`, `focusFixLevel`, `compression`, `details`, `prenoise`, `noise`, `halo`, `preblur`, `blur`, `grain`, `grainSigma`, `grainSize`, `grainType`, `recoverOriginalDetailValue`.
+
+Starlight Precise filter settings: `sharpness`, `videoBitDepth`, `videoCodec`, `videoProfile`, `watermark`.
+
+See the [Proteus](https://developer.topazlabs.com/video-models/proteus/proteus-1) and [Starlight Precise 2.6](https://developer.topazlabs.com/video-models/starlight/starlight-precise-2.6) references for the accepted ranges, and [Create Video Request](https://developer.topazlabs.com/reference/video/create-request/create-video-request) for the accepted encoder and profile combinations.
+
+A non-empty `prompt`, `aspectRatio`, `seed`, `duration`, `generateAudio`, `frameImages` and `n` greater than 1 are not supported and produce warnings.
+
+### Long-Running Operations
+
+Video enhancement takes minutes, so Topaz video models implement the AI SDK's async operation protocol. `generateVideo` polls to completion, and long clips can exceed its default 10 minute timeout, so raise `poll.timeoutMs` when needed. Use `experimental_startVideo` when you would rather persist the operation and check its status later:
+
+```ts
+import { topaz } from '@ai-sdk/topaz';
+import { experimental_startVideo as startVideo } from 'ai';
+
+const operation = await startVideo({
+  model: topaz.video('proteus'),
+  prompt: '',
+  inputReferences: ['https://example.com/clip.mp4'],
+  resolution: '3840x2160',
+});
+```
+
+If the upload fails after the request is created, the provider cancels the Topaz request so any reserved credits are refunded.
+
+### Video Provider Metadata
+
+Topaz estimates the cost of a video request in credits as a `[lowerBound, upperBound]` range and bills the lower bound.
+
+The start result's `providerMetadata.topaz` contains the `requestId` and, when Topaz could estimate the cost at request time, `estimatedCredits`. Topaz can do that when source metadata is set. It is informational only: the completed status carries the billed value.
+
+The completed status's `providerMetadata.topaz` contains:
+
+- **requestId** _string_: the Topaz request id.
+- **credits** _number_: the credits Topaz bills for the request (the lower bound of its final estimate).
+- **estimatedCredits** _[number, number]_: the final cost range.
+- **outputSize** _string_: the size of the enhanced video.
+- **expiresAt** _number_: when the download URL expires, in milliseconds since the Unix epoch.
+
+A failed request reports Topaz's `errorCode` (for example `CREDIT_DIFFERENCE` when Topaz's estimate after reading the video diverged from the first one, in which case it refunds the credits) in both the error message and `providerMetadata.topaz.errorCode`.

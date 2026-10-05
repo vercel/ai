@@ -58,6 +58,7 @@ export const openaiResponsesReasoningModelIds = [
   'gpt-5.6-sol',
   'gpt-5.6-terra',
   'gpt-6-astra',
+  'gpt-6.1-sol',
   'gpt-6-luna',
   'gpt-6-sol',
 ] as const;
@@ -133,6 +134,7 @@ export type OpenAIResponsesModelId =
   | 'gpt-5.6-sol'
   | 'gpt-5.6-terra'
   | 'gpt-6-astra'
+  | 'gpt-6.1-sol'
   | 'gpt-6-luna'
   | 'gpt-6-sol'
   | 'gpt-5-2025-08-07'
@@ -284,9 +286,10 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
        *
        * Only supported by GPT-6 and later models in standard, single-agent mode. Cannot be
        * combined with automatic compaction or automatic truncation.
+       * Supported efforts vary by model; 'none' is supported by GPT-6 Sol and Luna.
        */
       reasoningEffortUpdate: z
-        .enum(['low', 'medium', 'high', 'xhigh', 'max'])
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
         .optional(),
 
       /**
@@ -431,4 +434,26 @@ export const openaiLanguageModelResponsesOptionsSchema = lazySchema(() =>
 
 export type OpenAILanguageModelResponsesOptions = InferSchema<
   typeof openaiLanguageModelResponsesOptionsSchema
+>;
+
+export const openaiResponsesSystemMessageOptionsSchema = lazySchema(() =>
+  zodSchema(
+    z.object({
+      /**
+       * Emit a configuration update at this position in Responses history.
+       * Requires empty system message content and the same supported
+       * configuration as the request-level reasoningEffortUpdate option.
+       * Unsupported historical updates throw instead of being omitted.
+       *
+       * @see https://developers.openai.com/api/docs/guides/reasoning#change-reasoning-mid-conversation
+       */
+      reasoningEffortUpdate: z
+        .enum(['none', 'low', 'medium', 'high', 'xhigh', 'max'])
+        .optional(),
+    }),
+  ),
+);
+
+export type OpenAIResponsesSystemMessageOptions = InferSchema<
+  typeof openaiResponsesSystemMessageOptionsSchema
 >;

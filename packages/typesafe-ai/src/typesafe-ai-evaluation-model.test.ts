@@ -102,7 +102,7 @@ it('passes custom fetch, headers, base URL, and future model IDs', async () => {
   expect(new Headers(init?.headers).get('custom')).toBe('provider');
   expect(new Headers(init?.headers).get('shared')).toBe('call');
   expect(new Headers(init?.headers).get('user-agent')).toContain(
-    `ai-sdk/typesafe-ai/${VERSION}`,
+    `ai-sdk-typesafe-ai/${VERSION}`,
   );
   expect(JSON.parse(init?.body as string).model).toBe('jev-future');
   expect(result.response?.headers?.['x-request-id']).toBe('test-id');

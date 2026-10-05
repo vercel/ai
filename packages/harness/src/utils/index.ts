@@ -28,7 +28,7 @@ export {
 export { isLinux, isMacOS, isWindows } from './os';
 export {
   applyCredentialForwarding,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
 } from './credential-forwarding';
 export {
   createCredentialRequestTransformation,

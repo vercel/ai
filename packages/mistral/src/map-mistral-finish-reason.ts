@@ -11,6 +11,8 @@ export function mapMistralFinishReason(
       return 'length';
     case 'tool_calls':
       return 'tool-calls';
+    case 'error':
+      return 'error';
     default:
       return 'other';
   }

@@ -178,7 +178,7 @@ describe('MiniMaxProvider', () => {
 
       expect(headers).toMatchObject({
         authorization: 'Bearer mock-api-key',
-        'user-agent': expect.stringMatching(/^ai-sdk\/minimax\//),
+        'user-agent': expect.stringMatching(/^ai-sdk-minimax\//),
       });
       expect(headers).not.toHaveProperty('x-api-key');
       expect(headers).not.toHaveProperty('anthropic-version');

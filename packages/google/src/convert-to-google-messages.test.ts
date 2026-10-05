@@ -694,6 +694,52 @@ describe('tool messages', () => {
     });
   });
 
+  it('should serialize JSON Schema references in function response content', async () => {
+    const toolResult = {
+      tools: [
+        {
+          name: 'find_records',
+          inputSchema: {
+            $defs: {
+              Node: {
+                type: 'object',
+                properties: {
+                  child: { $ref: '#/$defs/Node' },
+                },
+              },
+            },
+            $ref: '#/$defs/Node',
+          },
+        },
+      ],
+    };
+
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'get_schema',
+            toolCallId: 'testCallId',
+            output: { type: 'json', value: toolResult },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'get_schema',
+        response: {
+          name: 'get_schema',
+          content: JSON.stringify(toolResult),
+        },
+      },
+    });
+  });
+
   it('should convert tool result content with image-data into functionResponse parts', async () => {
     const result = convertToGoogleMessages([
       {
@@ -844,6 +890,164 @@ describe('tool messages', () => {
     });
   });
 
+  it('should derive the full media type from a tool result data URL', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('data:image/png;base64,base64pngdata'),
+                  },
+                  mediaType: 'image',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            inlineData: {
+              mimeType: 'image/png',
+              data: 'base64pngdata',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should convert supported tool result URLs into functionResponse file data', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/hero.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it('should preserve the original supported GCS tool result URL', async () => {
+    const result = convertToGoogleMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolName: 'imageGenerator',
+              toolCallId: 'testCallId',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(
+                        'gs://example-bucket/renditions/My Hero.png',
+                      ),
+                      originalUrl: 'gs://example-bucket/renditions/My Hero.png',
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      {
+        supportedFunctionResponseUrls: {
+          '*': [/^gs:\/\/.*$/],
+        },
+      },
+    );
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: 'Tool executed successfully.',
+        },
+        parts: [
+          {
+            fileData: {
+              mimeType: 'image/png',
+              fileUri: 'gs://example-bucket/renditions/My Hero.png',
+            },
+          },
+        ],
+      },
+    });
+  });
+
   it('should forward non-data image-url tool result parts as text content', async () => {
     const result = convertToGoogleMessages([
       {
@@ -878,6 +1082,45 @@ describe('tool messages', () => {
         response: {
           name: 'imageGenerator',
           content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image/png"}`,
+        },
+      },
+    });
+  });
+
+  it('should forward unsupported non-data URLs with top-level media types as text content', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'imageGenerator',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'content',
+              value: [
+                {
+                  type: 'file',
+                  data: {
+                    type: 'url',
+                    url: new URL('https://example.com/image.png'),
+                  },
+                  mediaType: 'image',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'imageGenerator',
+        response: {
+          name: 'imageGenerator',
+          content: `{"type":"file","data":{"type":"url","url":"https://example.com/image.png"},"mediaType":"image"}`,
         },
       },
     });

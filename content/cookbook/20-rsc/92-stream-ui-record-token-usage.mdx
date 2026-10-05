@@ -130,10 +130,10 @@ export async function continueConversation(
       },
     },
     onFinish: ({ usage }) => {
-      const { promptTokens, completionTokens, totalTokens } = usage;
+      const { inputTokens, outputTokens, totalTokens } = usage;
       // your own logic, e.g. for saving the chat history or recording usage
-      console.log('Prompt tokens:', promptTokens);
-      console.log('Completion tokens:', completionTokens);
+      console.log('Input tokens:', inputTokens);
+      console.log('Output tokens:', outputTokens);
       console.log('Total tokens:', totalTokens);
     },
   });

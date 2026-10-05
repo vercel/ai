@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-sonnet-5'),
+    model: anthropic('claude-sonnet-5-5'),
     prompt:
       'What are the latest news about climate change and renewable energy? Please provide current information and cite your sources.',
     tools: {
