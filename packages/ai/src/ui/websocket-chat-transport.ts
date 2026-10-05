@@ -319,6 +319,8 @@ export async function safeValidateWebSocketChatTransportRequest<
 export class WebSocketChatTransport<
   UI_MESSAGE extends UIMessage,
 > implements ChatTransport<UI_MESSAGE> {
+  readonly resumeStreamIsReplay = true;
+
   private readonly url: string;
   private readonly protocols?: string | string[];
   private readonly params?: Resolvable<Record<string, string>>;

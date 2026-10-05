@@ -968,6 +968,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         stream: processUIMessageStream({
           stream,
           resetStateOnMessageIdChange: trigger === 'resume-stream',
+          resetStateOnFirstMessageStart:
+            trigger === 'resume-stream' && this.transport.resumeStreamIsReplay,
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
