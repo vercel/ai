@@ -2,6 +2,8 @@ import type {
   TranscriptionModelV4,
   SharedV4Warning,
   SharedV4ProviderMetadata,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,7 +19,10 @@ import {
 import { z } from 'zod/v4';
 import type { AssemblyAIConfig } from './assemblyai-config';
 import { assemblyaiFailedResponseHandler } from './assemblyai-error';
-import { assemblyaiTranscriptionModelOptionsSchema } from './assemblyai-transcription-model-options';
+import {
+  assemblyaiTranscriptionModelOptionsSchema,
+  type AssemblyAITranscriptionModelOptions,
+} from './assemblyai-transcription-model-options';
 import type { AssemblyAITranscriptionModelId } from './assemblyai-transcription-settings';
 import type { AssemblyAITranscriptionAPITypes } from './assemblyai-api-types';
 
@@ -31,7 +36,11 @@ interface AssemblyAITranscriptionModelConfig extends AssemblyAIConfig {
   pollingInterval?: number;
 }
 
-export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
+export type AssemblyAITranscriptionModelV4ProviderOptions = {
+  assemblyai?: AssemblyAITranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AssemblyAITranscriptionModel implements TranscriptionModelV4<AssemblyAITranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   private readonly POLLING_INTERVAL_MS = 3000;
 
@@ -60,7 +69,9 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<AssemblyAITranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -335,8 +346,16 @@ export class AssemblyAITranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<AssemblyAITranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<AssemblyAITranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
 
     const { value: uploadResponse } = await postToApi({

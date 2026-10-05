@@ -18,6 +18,7 @@ import { z } from 'zod/v4';
 import {
   perplexityEmbeddingModelOptions,
   type PerplexityEmbeddingModelId,
+  type PerplexityEmbeddingModelV4ProviderOptions,
 } from './perplexity-embedding-model-options';
 import {
   perplexityErrorSchema,
@@ -31,7 +32,7 @@ type PerplexityEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class PerplexityEmbeddingModel implements EmbeddingModelV4 {
+export class PerplexityEmbeddingModel implements EmbeddingModelV4<PerplexityEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: PerplexityEmbeddingModelId;
   // https://docs.perplexity.ai/docs/embeddings/standard-embeddings

@@ -8,6 +8,8 @@ import {
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -30,12 +32,20 @@ import {
   type HuggingFaceResponsesUsage,
 } from './convert-huggingface-responses-usage';
 import { convertToHuggingFaceResponsesMessages } from './convert-to-huggingface-responses-messages';
-import { huggingfaceLanguageModelResponsesOptions } from './huggingface-responses-language-model-options';
+import {
+  huggingfaceLanguageModelResponsesOptions,
+  type HuggingFaceLanguageModelResponsesOptions,
+} from './huggingface-responses-language-model-options';
 import { prepareResponsesTools } from './huggingface-responses-prepare-tools';
 import type { HuggingFaceResponsesModelId } from './huggingface-responses-settings';
 import { mapHuggingFaceResponsesFinishReason } from './map-huggingface-responses-finish-reason';
 
-export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
+export type HuggingFaceLanguageModelV4ProviderOptions = {
+  huggingface?: HuggingFaceLanguageModelResponsesOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class HuggingFaceResponsesLanguageModel implements LanguageModelV4<HuggingFaceLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: HuggingFaceResponsesModelId;
@@ -86,7 +96,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
     tools,
     toolChoice,
     responseFormat,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<HuggingFaceLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     if (topK != null) {
@@ -172,7 +182,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<HuggingFaceLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs(options);
 
@@ -353,7 +363,7 @@ export class HuggingFaceResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<HuggingFaceLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 

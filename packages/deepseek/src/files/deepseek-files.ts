@@ -3,6 +3,8 @@ import {
   type FilesV4,
   type FilesV4UploadFileCallOptions,
   type FilesV4UploadFileResult,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -63,7 +65,11 @@ const supportedFilenameExtensions = new Set([
   'webp',
 ]);
 
-export class DeepSeekFiles implements FilesV4 {
+export type DeepSeekFilesV4ProviderOptions = {
+  deepseek?: DeepSeekFilesOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class DeepSeekFiles implements FilesV4<DeepSeekFilesV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -79,7 +85,7 @@ export class DeepSeekFiles implements FilesV4 {
     abortSignal,
     headers,
     providerOptions,
-  }: FilesV4UploadFileCallOptions): Promise<FilesV4UploadFileResult> {
+  }: FilesV4UploadFileCallOptions<DeepSeekFilesV4ProviderOptions>): Promise<FilesV4UploadFileResult> {
     const deepSeekOptions = (await parseProviderOptions({
       provider: 'deepseek',
       providerOptions,

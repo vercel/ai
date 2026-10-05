@@ -1,4 +1,9 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  ImageModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -18,7 +23,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import type { FalImageModelId, FalImageSize } from './fal-image-settings';
-import { falImageModelOptionsSchema } from './fal-image-model-options';
+import {
+  falImageModelOptionsSchema,
+  type FalImageModelOptions,
+} from './fal-image-model-options';
 
 interface FalImageModelConfig {
   provider: string;
@@ -30,7 +38,11 @@ interface FalImageModelConfig {
   };
 }
 
-export class FalImageModel implements ImageModelV4 {
+export type FalImageModelV4ProviderOptions = {
+  fal?: FalImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FalImageModel implements ImageModelV4<FalImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
@@ -110,7 +122,9 @@ export class FalImageModel implements ImageModelV4 {
     providerOptions,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    ImageModelV4<FalImageModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: Array<SharedV4Warning> = [];
 
     let imageSize: FalImageSize | undefined;
@@ -210,8 +224,14 @@ export class FalImageModel implements ImageModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<ImageModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
+    options: Parameters<
+      ImageModelV4<FalImageModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<ImageModelV4<FalImageModelV4ProviderOptions>['doGenerate']>
+    >
+  > {
     const { requestBody, warnings } = await this.getArgs(options);
 
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();

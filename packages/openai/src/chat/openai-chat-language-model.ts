@@ -9,6 +9,8 @@ import {
   type LanguageModelV4StreamResult,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
+  type JSONValue,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   StreamingToolCallTracker,
@@ -46,6 +48,7 @@ import {
 import {
   openaiLanguageModelChatOptions,
   type OpenAIChatModelId,
+  type OpenAILanguageModelChatOptions,
 } from './openai-chat-language-model-options';
 import { prepareChatTools } from './openai-chat-prepare-tools';
 import { normalizeOpenAIJsonSchema } from '../normalize-openai-json-schema';
@@ -57,7 +60,11 @@ type OpenAIChatConfig = {
   fetch?: FetchFunction;
 };
 
-export class OpenAIChatLanguageModel implements LanguageModelV4 {
+export type OpenAIChatLanguageModelV4ProviderOptions = {
+  openai?: OpenAILanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAIChatLanguageModel implements LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIChatModelId;
@@ -106,7 +113,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
     toolChoice,
     reasoning,
     providerOptions,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<OpenAIChatLanguageModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -393,7 +400,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAIChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args: body, warnings } = await this.getArgs(options);
 
@@ -490,7 +497,7 @@ export class OpenAIChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAIChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs(options);
 

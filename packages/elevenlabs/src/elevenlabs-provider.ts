@@ -10,9 +10,15 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { ElevenLabsTranscriptionModel } from './elevenlabs-transcription-model';
+import {
+  ElevenLabsTranscriptionModel,
+  type ElevenLabsTranscriptionModelV4ProviderOptions,
+} from './elevenlabs-transcription-model';
 import type { ElevenLabsTranscriptionModelId } from './elevenlabs-transcription-options';
-import { ElevenLabsSpeechModel } from './elevenlabs-speech-model';
+import {
+  ElevenLabsSpeechModel,
+  type ElevenLabsSpeechModelV4ProviderOptions,
+} from './elevenlabs-speech-model';
 import type { ElevenLabsSpeechModelId } from './elevenlabs-speech-options';
 import { VERSION } from './version';
 
@@ -27,12 +33,16 @@ export interface ElevenLabsProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: ElevenLabsTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: ElevenLabsTranscriptionModelId,
+  ): TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: ElevenLabsSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: ElevenLabsSpeechModelId,
+  ): SpeechModelV4<ElevenLabsSpeechModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,10 +19,15 @@ import { googleVertexFailedResponseHandler } from './google-vertex-error';
 import {
   googleVertexEmbeddingModelOptions,
   type GoogleVertexEmbeddingModelId,
+  type GoogleVertexEmbeddingModelOptions,
 } from './google-vertex-embedding-model-options';
 import type { GoogleVertexConfig } from './google-vertex-config';
 
-export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
+export type GoogleVertexEmbeddingModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleVertexEmbeddingModel implements EmbeddingModelV4<GoogleVertexEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleVertexEmbeddingModelId;
   readonly supportsParallelCalls = true;
@@ -64,8 +71,14 @@ export class GoogleVertexEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<GoogleVertexEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<GoogleVertexEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     let googleOptions = await parseProviderOptions({
       provider: 'googleVertex',

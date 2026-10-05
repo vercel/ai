@@ -1,4 +1,8 @@
-import type { TranscriptionModelV4 } from '@ai-sdk/provider';
+import type {
+  TranscriptionModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -11,9 +15,16 @@ import {
 import { z } from 'zod/v4';
 import type { AzureTranscriptionProviderMetadata } from './azure-transcription-provider-metadata';
 import type { AzureTranscriptionModelSpeechOptions } from './azure-speech-transcription-model-options';
-import { getMAITranscribeModel } from './azure-transcription-model-options';
+import {
+  getMAITranscribeModel,
+  type AzureTranscriptionModelOptions,
+} from './azure-transcription-model-options';
 
-export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
+export type AzureSpeechTranscriptionModelV4ProviderOptions = {
+  azure?: AzureTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AzureSpeechTranscriptionModel implements TranscriptionModelV4<AzureSpeechTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.transcription';
 
@@ -27,9 +38,17 @@ export class AzureSpeechTranscriptionModel implements TranscriptionModelV4 {
   ) {}
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
+    options: Parameters<
+      TranscriptionModelV4<AzureSpeechTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
     azureOptions: AzureTranscriptionModelSpeechOptions = {},
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<AzureSpeechTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const timestamp = new Date();
     const maiModel = getMAITranscribeModel(this.modelId);
     const formData = new FormData();

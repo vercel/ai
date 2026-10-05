@@ -6,13 +6,13 @@ import {
   type ImageModelV4ProviderMetadata,
   type ImageModelV4Result,
   type JSONObject,
+  type InferSharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   convertBase64ToUint8Array,
   detectMediaType,
   withUserAgentSuffix,
   type DataContent,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoImageGeneratedError } from '../error/no-image-generated-error';
 import {
@@ -84,7 +84,9 @@ export type GenerateImagePrompt =
  *
  * @returns A result object that contains the generated images.
  */
-export async function generateImage({
+export async function generateImage<
+  IMAGE_MODEL extends ImageModel = ImageModel,
+>({
   model: modelArg,
   prompt: promptArg,
   n = 1,
@@ -100,7 +102,7 @@ export async function generateImage({
   /**
    * The image model to use.
    */
-  model: ImageModel;
+  model: IMAGE_MODEL;
 
   /**
    * The prompt that should be used to generate the image.
@@ -146,7 +148,7 @@ export async function generateImage({
    * }
    * ```
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<IMAGE_MODEL>;
 
   /**
    * Maximum number of retries per image model call, including retries after

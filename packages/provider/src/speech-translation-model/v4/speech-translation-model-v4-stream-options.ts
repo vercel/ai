@@ -1,12 +1,14 @@
-import type { JSONObject } from '../../json-value/json-value';
-import type { SharedV4AudioFormat } from '../../shared';
-
-type SpeechTranslationModelV4ProviderOptions = Record<string, JSONObject>;
+import type {
+  SharedV4AudioFormat,
+  SharedV4ProviderOptions,
+} from '../../shared';
 
 /**
  * Options for a speech translation model stream call.
  */
-export type SpeechTranslationModelV4StreamOptions = {
+export type SpeechTranslationModelV4StreamOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Source audio chunks to transform.
    *
@@ -45,7 +47,7 @@ export type SpeechTranslationModelV4StreamOptions = {
    * The outer record is keyed by the provider name, and the inner record is keyed
    * by provider-specific option names.
    */
-  providerOptions?: SpeechTranslationModelV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

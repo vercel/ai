@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -10,7 +15,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { ElevenLabsConfig } from './elevenlabs-config';
 import { elevenlabsFailedResponseHandler } from './elevenlabs-error';
-import { elevenLabsSpeechModelOptionsSchema } from './elevenlabs-speech-model-options';
+import {
+  elevenLabsSpeechModelOptionsSchema,
+  type ElevenLabsSpeechModelOptions,
+} from './elevenlabs-speech-model-options';
 import type { ElevenLabsSpeechAPITypes } from './elevenlabs-speech-api-types';
 import type {
   ElevenLabsSpeechModelId,
@@ -23,7 +31,11 @@ interface ElevenLabsSpeechModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsSpeechModel implements SpeechModelV4 {
+export type ElevenLabsSpeechModelV4ProviderOptions = {
+  elevenLabs?: ElevenLabsSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ElevenLabsSpeechModel implements SpeechModelV4<ElevenLabsSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -57,7 +69,9 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<ElevenLabsSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -197,8 +211,16 @@ export class ElevenLabsSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<ElevenLabsSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<ElevenLabsSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings, voiceId } =
       await this.getArgs(options);

@@ -1,4 +1,9 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  ImageModelV4,
+  SharedV4Warning,
+  JSONValue,
+  SharedV4ProviderOptions,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -20,7 +25,10 @@ import {
   bflFailedResponseHandler,
   isTrustedUrl,
 } from './black-forest-labs-api';
-import { blackForestLabsImageModelOptionsSchema } from './black-forest-labs-image-model-options';
+import {
+  blackForestLabsImageModelOptionsSchema,
+  type BlackForestLabsImageModelOptions,
+} from './black-forest-labs-image-model-options';
 import type {
   BlackForestLabsAspectRatio,
   BlackForestLabsImageModelId,
@@ -47,7 +55,12 @@ interface BlackForestLabsImageModelConfig {
   };
 }
 
-export class BlackForestLabsImageModel implements ImageModelV4 {
+export type BlackForestLabsImageModelV4ProviderOptions = {
+  blackForestLabs?: BlackForestLabsImageModelOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class BlackForestLabsImageModel implements ImageModelV4<BlackForestLabsImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
 
@@ -106,7 +119,9 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     aspectRatio,
     seed,
     providerOptions,
-  }: Parameters<ImageModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    ImageModelV4<BlackForestLabsImageModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: Array<SharedV4Warning> = [];
 
     const finalAspectRatio =
@@ -208,8 +223,14 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     providerOptions,
     headers,
     abortSignal,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<BlackForestLabsImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<BlackForestLabsImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     const { body, warnings, bflOptions } = await this.getArgs({
       prompt,

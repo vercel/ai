@@ -14,6 +14,7 @@ import {
 import {
   anthropicTools,
   AnthropicLanguageModel,
+  type AnthropicLanguageModelV4ProviderOptions,
 } from '@ai-sdk/anthropic/internal';
 import {
   createApiKeyFetchFunction,
@@ -61,12 +62,16 @@ export interface AmazonBedrockAnthropicProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AmazonBedrockAnthropicModelId): LanguageModelV4;
+  (
+    modelId: AmazonBedrockAnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AmazonBedrockAnthropicModelId): LanguageModelV4;
+  languageModel(
+    modelId: AmazonBedrockAnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Anthropic-specific computer use tool.

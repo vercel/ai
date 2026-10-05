@@ -6,12 +6,19 @@ import { expectTypeOf, it } from 'vitest';
 import { xai } from './index';
 import type { XaiResponsesModelId } from './responses/xai-responses-language-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
+import type { XaiResponsesLanguageModelV4ProviderOptions } from './responses/xai-responses-language-model';
 
 it('types batch support on the provider', () => {
   expectTypeOf(xai.experimental_batch()).toEqualTypeOf<
     BatchV4<{ text: XaiResponsesModelId; image: XaiImageModelId }>
   >();
-  expectTypeOf(xai('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(xai.languageModel('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(xai.responses('grok-4.6')).toEqualTypeOf<LanguageModelV4>();
+  expectTypeOf(xai('grok-4.6')).toEqualTypeOf<
+    LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>
+  >();
+  expectTypeOf(xai.languageModel('grok-4.6')).toEqualTypeOf<
+    LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>
+  >();
+  expectTypeOf(xai.responses('grok-4.6')).toEqualTypeOf<
+    LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions>
+  >();
 });

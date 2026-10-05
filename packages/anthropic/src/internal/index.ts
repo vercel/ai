@@ -4,6 +4,7 @@ export {
   /** @deprecated Use `AnthropicLanguageModel` instead. */
   AnthropicLanguageModel as AnthropicMessagesLanguageModel,
   getModelCapabilities,
+  type AnthropicLanguageModelV4ProviderOptions,
 } from '../anthropic-language-model';
 export { anthropicTools } from '../anthropic-tools';
 export type {

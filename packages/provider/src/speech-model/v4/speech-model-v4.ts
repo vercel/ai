@@ -1,10 +1,13 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { SpeechModelV4CallOptions } from './speech-model-v4-call-options';
 import type { SpeechModelV4Result } from './speech-model-v4-result';
 
 /**
  * Speech model specification version 4.
  */
-export type SpeechModelV4 = {
+export type SpeechModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The speech model must specify which speech model interface
    * version it implements. This will allow us to evolve the speech
@@ -28,6 +31,6 @@ export type SpeechModelV4 = {
    * Generates speech audio from text.
    */
   doGenerate(
-    options: SpeechModelV4CallOptions,
+    options: SpeechModelV4CallOptions<ProviderOptions>,
   ): PromiseLike<SpeechModelV4Result>;
 };

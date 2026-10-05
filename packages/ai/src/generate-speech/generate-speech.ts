@@ -1,9 +1,11 @@
-import type { JSONObject } from '@ai-sdk/provider';
+import type {
+  InferSharedV4ProviderOptions,
+  JSONObject,
+} from '@ai-sdk/provider';
 import {
   createIdGenerator,
   detectMediaType,
   withUserAgentSuffix,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { NoSpeechGeneratedError } from '../error/no-speech-generated-error';
 import { logWarnings } from '../logger/log-warnings';
@@ -49,7 +51,9 @@ const originalGenerateCallId = createIdGenerator({
  *
  * @returns A result object that contains the generated audio data.
  */
-export async function generateSpeech({
+export async function generateSpeech<
+  SPEECH_MODEL extends SpeechModel = SpeechModel,
+>({
   model,
   text,
   voice,
@@ -57,7 +61,7 @@ export async function generateSpeech({
   instructions,
   speed,
   language,
-  providerOptions = {},
+  providerOptions = {} as InferSharedV4ProviderOptions<SPEECH_MODEL>,
   maxRetries: maxRetriesArg,
   abortSignal,
   headers,
@@ -67,7 +71,7 @@ export async function generateSpeech({
   /**
    * The speech model to use.
    */
-  model: SpeechModel;
+  model: SPEECH_MODEL;
 
   /**
    * The text to convert to speech.
@@ -112,7 +116,7 @@ export async function generateSpeech({
    * }
    * ```
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<SPEECH_MODEL>;
 
   /**
    * Maximum number of retries per speech model call. Set to 0 to disable retries.

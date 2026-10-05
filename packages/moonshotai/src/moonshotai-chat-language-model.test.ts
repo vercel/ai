@@ -14,6 +14,7 @@ import type {
   MoonshotAIMessageProviderOptions,
 } from './moonshotai-chat-options';
 import { createMoonshotAI } from './moonshotai-provider';
+import type { MoonshotAILanguageModelV4ProviderOptions } from './moonshotai-chat-language-model';
 
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
@@ -1274,7 +1275,7 @@ describe('doGenerate', () => {
             prompt: TEST_PROMPT,
             providerOptions: {
               moonshotai: { prediction },
-            },
+            } as MoonshotAILanguageModelV4ProviderOptions,
           }),
         ).rejects.toMatchObject({
           name: 'AI_InvalidArgumentError',

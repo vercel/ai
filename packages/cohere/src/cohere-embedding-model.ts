@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -27,7 +29,11 @@ type CohereEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class CohereEmbeddingModel implements EmbeddingModelV4 {
+export type CohereEmbeddingModelV4ProviderOptions = {
+  cohere?: CohereEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class CohereEmbeddingModel implements EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: CohereEmbeddingModelId;
 
@@ -64,8 +70,14 @@ export class CohereEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<CohereEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     const embeddingOptions = await parseProviderOptions({
       provider: 'cohere',

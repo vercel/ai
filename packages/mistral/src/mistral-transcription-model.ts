@@ -3,6 +3,8 @@ import {
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,6 +23,7 @@ import { mistralFailedResponseHandler } from './mistral-error';
 import {
   mistralTranscriptionModelOptions,
   type MistralTranscriptionModelId,
+  type MistralTranscriptionModelOptions,
 } from './mistral-transcription-model-options';
 
 type MistralTranscriptionModelConfig = {
@@ -33,7 +36,11 @@ type MistralTranscriptionModelConfig = {
   };
 };
 
-export class MistralTranscriptionModel implements TranscriptionModelV4 {
+export type MistralTranscriptionModelV4ProviderOptions = {
+  mistral?: MistralTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MistralTranscriptionModel implements TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: MistralTranscriptionModel) {

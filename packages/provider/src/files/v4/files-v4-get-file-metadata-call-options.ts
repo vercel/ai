@@ -4,7 +4,9 @@ import type { SharedV4ProviderReference } from '../../shared/v4/shared-v4-provid
 /**
  * Options for retrieving file metadata via the files interface.
  */
-export type FilesV4GetFileMetadataCallOptions = {
+export type FilesV4GetFileMetadataCallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The provider reference of the file, as returned by `uploadFile`.
    */
@@ -26,5 +28,5 @@ export type FilesV4GetFileMetadataCallOptions = {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 };

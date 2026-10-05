@@ -10,9 +10,15 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { BlackForestLabsImageModel } from './black-forest-labs-image-model';
+import {
+  BlackForestLabsImageModel,
+  type BlackForestLabsImageModelV4ProviderOptions,
+} from './black-forest-labs-image-model';
 import type { BlackForestLabsImageModelId } from './black-forest-labs-image-settings';
-import { BlackForestLabsVideoModel } from './black-forest-labs-video-model';
+import {
+  BlackForestLabsVideoModel,
+  type BlackForestLabsVideoModelV4ProviderOptions,
+} from './black-forest-labs-video-model';
 import type { BlackForestLabsVideoModelId } from './black-forest-labs-video-settings';
 import { VERSION } from './version';
 
@@ -55,22 +61,30 @@ export interface BlackForestLabsProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: BlackForestLabsImageModelId): ImageModelV4;
+  image(
+    modelId: BlackForestLabsImageModelId,
+  ): ImageModelV4<BlackForestLabsImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: BlackForestLabsImageModelId): ImageModelV4;
+  imageModel(
+    modelId: BlackForestLabsImageModelId,
+  ): ImageModelV4<BlackForestLabsImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: BlackForestLabsVideoModelId,
+  ): Experimental_VideoModelV4<BlackForestLabsVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: BlackForestLabsVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: BlackForestLabsVideoModelId,
+  ): Experimental_VideoModelV4<BlackForestLabsVideoModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -18,6 +20,7 @@ import {
   amazonBedrockEmbeddingModelOptionsSchema,
   type AmazonBedrockEmbeddingModelId,
   type AmazonBedrockEmbeddingModelSettings,
+  type AmazonBedrockEmbeddingModelOptions,
 } from './amazon-bedrock-embedding-model-options';
 import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
@@ -29,9 +32,18 @@ type AmazonBedrockEmbeddingConfig = {
   modelFamily?: AmazonBedrockEmbeddingModelSettings['modelFamily'];
 };
 
-type DoEmbedResponse = Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>;
+type DoEmbedResponse = Awaited<
+  ReturnType<
+    EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>['doEmbed']
+  >
+>;
 
-export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
+export type AmazonBedrockEmbeddingModelV4ProviderOptions = {
+  amazonBedrock?: AmazonBedrockEmbeddingModelOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
   readonly supportsParallelCalls = true;
@@ -73,7 +85,9 @@ export class AmazonBedrockEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<DoEmbedResponse> {
+  }: Parameters<
+    EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<DoEmbedResponse> {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({
         provider: this.provider,

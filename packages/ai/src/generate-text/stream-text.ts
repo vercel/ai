@@ -3,6 +3,7 @@ import {
   UnsupportedFunctionalityError,
   type LanguageModelV4,
   type SharedV4Warning,
+  type InferSharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   asArray,
@@ -406,6 +407,7 @@ export function streamText<
   TOOLS extends ToolSet,
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = Output<string, string, never>,
+  LANGUAGE_MODEL extends LanguageModel = LanguageModel,
 >({
   model,
   tools,
@@ -474,7 +476,7 @@ export function streamText<
     /**
      * The language model to use.
      */
-    model: LanguageModel;
+    model: LANGUAGE_MODEL;
 
     /**
      * The tool choice strategy. Default: 'auto'.
@@ -506,7 +508,7 @@ export function streamText<
      * to the provider from the AI SDK and enable provider-specific
      * functionality that can be fully encapsulated in the provider.
      */
-    providerOptions?: ProviderOptions;
+    providerOptions?: InferSharedV4ProviderOptions<LANGUAGE_MODEL>;
 
     /**
      * The sandbox environment that is passed through to tool execution.

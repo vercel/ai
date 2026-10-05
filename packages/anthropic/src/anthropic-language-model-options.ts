@@ -1,3 +1,8 @@
+import {
+  lazySchema,
+  zodSchema,
+  type InferSchema,
+} from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
 // https://docs.claude.com/en/docs/about-claude/models/overview
@@ -124,7 +129,7 @@ export type AnthropicSystemMessageProviderOptions = z.infer<
   typeof anthropicSystemMessageProviderOptions
 >;
 
-export const anthropicLanguageModelOptions = z.object({
+export const anthropicLanguageModelOptionsSchema = z.object({
   /**
    * Whether to send reasoning to the model.
    *
@@ -472,6 +477,10 @@ export const anthropicLanguageModelOptions = z.object({
     .optional(),
 });
 
-export type AnthropicLanguageModelOptions = z.infer<
+export const anthropicLanguageModelOptions = lazySchema(() =>
+  zodSchema(anthropicLanguageModelOptionsSchema),
+);
+
+export type AnthropicLanguageModelOptions = InferSchema<
   typeof anthropicLanguageModelOptions
 >;

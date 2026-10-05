@@ -5,7 +5,9 @@ import type { LanguageModelV4Prompt } from './language-model-v4-prompt';
 import type { LanguageModelV4ProviderTool } from './language-model-v4-provider-tool';
 import type { LanguageModelV4ToolChoice } from './language-model-v4-tool-choice';
 
-export type LanguageModelV4CallOptions = {
+export type LanguageModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * A language mode prompt is a standardized prompt type.
    *
@@ -134,5 +136,5 @@ export type LanguageModelV4CallOptions = {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 };

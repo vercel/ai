@@ -3,6 +3,7 @@ import {
   zodSchema,
   type InferSchema,
 } from '@ai-sdk/provider-utils';
+import { type JSONValue, type SharedV4ProviderOptions } from '@ai-sdk/provider';
 import { z } from 'zod/v4';
 
 const stylePresets = [
@@ -59,3 +60,7 @@ export const prodiaImageModelOptionsSchema = lazySchema(() =>
 export type ProdiaImageModelOptions = InferSchema<
   typeof prodiaImageModelOptionsSchema
 >;
+
+export type ProdiaImageModelV4ProviderOptions = {
+  prodia?: ProdiaImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

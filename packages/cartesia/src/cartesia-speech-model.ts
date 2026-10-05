@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -10,7 +15,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { CartesiaConfig } from './cartesia-config';
 import { cartesiaFailedResponseHandler } from './cartesia-error';
-import { cartesiaSpeechModelOptionsSchema } from './cartesia-speech-model-options';
+import {
+  cartesiaSpeechModelOptionsSchema,
+  type CartesiaSpeechModelOptions,
+} from './cartesia-speech-model-options';
 import type {
   CartesiaSpeechAPITypes,
   CartesiaSpeechBitRate,
@@ -140,7 +148,11 @@ function resolveOutputFormat({
   };
 }
 
-export class CartesiaSpeechModel implements SpeechModelV4 {
+export type CartesiaSpeechModelV4ProviderOptions = {
+  cartesia?: CartesiaSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class CartesiaSpeechModel implements SpeechModelV4<CartesiaSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -174,7 +186,9 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<CartesiaSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -246,8 +260,16 @@ export class CartesiaSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<CartesiaSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<CartesiaSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

@@ -1,4 +1,8 @@
-import type { RerankingModelV4 } from '@ai-sdk/provider';
+import type {
+  RerankingModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonErrorResponseHandler,
@@ -15,6 +19,7 @@ import {
 import {
   togetheraiRerankingModelOptionsSchema,
   type TogetherAIRerankingModelId,
+  type TogetherAIRerankingModelOptions,
 } from './togetherai-reranking-model-options';
 type TogetherAIRerankingConfig = {
   provider: string;
@@ -23,7 +28,11 @@ type TogetherAIRerankingConfig = {
   fetch?: FetchFunction;
 };
 
-export class TogetherAIRerankingModel implements RerankingModelV4 {
+export type TogetherAIRerankingModelV4ProviderOptions = {
+  togetherai?: TogetherAIRerankingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class TogetherAIRerankingModel implements RerankingModelV4<TogetherAIRerankingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: TogetherAIRerankingModelId;
 
@@ -49,8 +58,14 @@ export class TogetherAIRerankingModel implements RerankingModelV4 {
     topN,
     abortSignal,
     providerOptions,
-  }: Parameters<RerankingModelV4['doRerank']>[0]): Promise<
-    Awaited<ReturnType<RerankingModelV4['doRerank']>>
+  }: Parameters<
+    RerankingModelV4<TogetherAIRerankingModelV4ProviderOptions>['doRerank']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        RerankingModelV4<TogetherAIRerankingModelV4ProviderOptions>['doRerank']
+      >
+    >
   > {
     const rerankingOptions = await parseProviderOptions({
       provider: 'togetherai',

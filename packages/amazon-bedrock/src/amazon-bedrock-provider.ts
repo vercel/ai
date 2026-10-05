@@ -13,24 +13,36 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AmazonBedrockChatLanguageModel } from './amazon-bedrock-chat-language-model';
+import {
+  AmazonBedrockChatLanguageModel,
+  type AmazonBedrockChatLanguageModelV4ProviderOptions,
+} from './amazon-bedrock-chat-language-model';
 import type {
   AmazonBedrockChatModelId,
   AmazonBedrockChatModelSettings,
 } from './amazon-bedrock-chat-language-model-options';
-import { AmazonBedrockEmbeddingModel } from './amazon-bedrock-embedding-model';
+import {
+  AmazonBedrockEmbeddingModel,
+  type AmazonBedrockEmbeddingModelV4ProviderOptions,
+} from './amazon-bedrock-embedding-model';
 import type {
   AmazonBedrockEmbeddingModelId,
   AmazonBedrockEmbeddingModelSettings,
 } from './amazon-bedrock-embedding-model-options';
-import { AmazonBedrockImageModel } from './amazon-bedrock-image-model';
+import {
+  AmazonBedrockImageModel,
+  type AmazonBedrockImageModelV4ProviderOptions,
+} from './amazon-bedrock-image-model';
 import type { AmazonBedrockImageModelId } from './amazon-bedrock-image-settings';
 import {
   createApiKeyFetchFunction,
   createSigV4FetchFunction,
   type AmazonBedrockCredentials,
 } from './amazon-bedrock-sigv4-fetch';
-import { AmazonBedrockRerankingModel } from './reranking/amazon-bedrock-reranking-model';
+import {
+  AmazonBedrockRerankingModel,
+  type AmazonBedrockRerankingModelV4ProviderOptions,
+} from './reranking/amazon-bedrock-reranking-model';
 import type { AmazonBedrockRerankingModelId } from './reranking/amazon-bedrock-reranking-model-options';
 import { resolveAmazonBedrockBaseURL } from './resolve-amazon-bedrock-base-url';
 import { VERSION } from './version';
@@ -126,7 +138,7 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   languageModel(
     modelId: AmazonBedrockChatModelId,
     settings?: AmazonBedrockChatModelSettings,
-  ): LanguageModelV4;
+  ): LanguageModelV4<AmazonBedrockChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
@@ -134,7 +146,7 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   embedding(
     modelId: AmazonBedrockEmbeddingModelId,
     settings?: AmazonBedrockEmbeddingModelSettings,
-  ): EmbeddingModelV4;
+  ): EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
@@ -142,7 +154,7 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   embeddingModel(
     modelId: AmazonBedrockEmbeddingModelId,
     settings?: AmazonBedrockEmbeddingModelSettings,
-  ): EmbeddingModelV4;
+  ): EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
@@ -150,7 +162,7 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   textEmbedding(
     modelId: AmazonBedrockEmbeddingModelId,
     settings?: AmazonBedrockEmbeddingModelSettings,
-  ): EmbeddingModelV4;
+  ): EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
@@ -158,27 +170,35 @@ export interface AmazonBedrockProvider extends ProviderV4 {
   textEmbeddingModel(
     modelId: AmazonBedrockEmbeddingModelId,
     settings?: AmazonBedrockEmbeddingModelSettings,
-  ): EmbeddingModelV4;
+  ): EmbeddingModelV4<AmazonBedrockEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  image(modelId: AmazonBedrockImageModelId): ImageModelV4;
+  image(
+    modelId: AmazonBedrockImageModelId,
+  ): ImageModelV4<AmazonBedrockImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: AmazonBedrockImageModelId): ImageModelV4;
+  imageModel(
+    modelId: AmazonBedrockImageModelId,
+  ): ImageModelV4<AmazonBedrockImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking documents.
    */
-  reranking(modelId: AmazonBedrockRerankingModelId): RerankingModelV4;
+  reranking(
+    modelId: AmazonBedrockRerankingModelId,
+  ): RerankingModelV4<AmazonBedrockRerankingModelV4ProviderOptions>;
 
   /**
    * Creates a model for reranking documents.
    */
-  rerankingModel(modelId: AmazonBedrockRerankingModelId): RerankingModelV4;
+  rerankingModel(
+    modelId: AmazonBedrockRerankingModelId,
+  ): RerankingModelV4<AmazonBedrockRerankingModelV4ProviderOptions>;
 
   /**
    * Anthropic-specific tools that can be used with Anthropic models on Bedrock.

@@ -7,6 +7,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -203,7 +205,11 @@ interface KlingAIVideoModelConfig {
   };
 }
 
-export class KlingAIVideoModel implements VideoModelV4 {
+export type KlingAIVideoModelV4ProviderOptions = {
+  klingai?: KlingAIVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class KlingAIVideoModel implements VideoModelV4<KlingAIVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -217,7 +223,9 @@ export class KlingAIVideoModel implements VideoModelV4 {
   ) {}
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: VideoModelV4CallOptions<KlingAIVideoModelV4ProviderOptions> & {
+      webhookUrl?: string;
+    },
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];

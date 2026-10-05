@@ -9,7 +9,10 @@ import {
   withoutTrailingSlash,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { HuggingFaceResponsesLanguageModel } from './responses/huggingface-responses-language-model';
+import {
+  HuggingFaceResponsesLanguageModel,
+  type HuggingFaceLanguageModelV4ProviderOptions,
+} from './responses/huggingface-responses-language-model';
 import type { HuggingFaceResponsesModelId } from './responses/huggingface-responses-settings';
 
 export interface HuggingFaceProviderSettings {
@@ -38,17 +41,23 @@ export interface HuggingFaceProvider extends ProviderV4 {
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  (modelId: HuggingFaceResponsesModelId): LanguageModelV4;
+  (
+    modelId: HuggingFaceResponsesModelId,
+  ): LanguageModelV4<HuggingFaceLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  languageModel(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
+  languageModel(
+    modelId: HuggingFaceResponsesModelId,
+  ): LanguageModelV4<HuggingFaceLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Hugging Face responses model for text generation.
    */
-  responses(modelId: HuggingFaceResponsesModelId): LanguageModelV4;
+  responses(
+    modelId: HuggingFaceResponsesModelId,
+  ): LanguageModelV4<HuggingFaceLanguageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

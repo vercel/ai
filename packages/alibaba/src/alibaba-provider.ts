@@ -11,11 +11,20 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { AlibabaChatLanguageModel } from './alibaba-chat-language-model';
+import {
+  AlibabaChatLanguageModel,
+  type AlibabaChatLanguageModelV4ProviderOptions,
+} from './alibaba-chat-language-model';
 import type { AlibabaChatModelId } from './alibaba-chat-language-model-options';
-import { AlibabaEmbeddingModel } from './alibaba-embedding-model';
+import {
+  AlibabaEmbeddingModel,
+  type AlibabaEmbeddingModelV4ProviderOptions,
+} from './alibaba-embedding-model';
 import type { AlibabaEmbeddingModelId } from './alibaba-embedding-model-options';
-import { AlibabaVideoModel } from './alibaba-video-model';
+import {
+  AlibabaVideoModel,
+  type AlibabaVideoModelV4ProviderOptions,
+} from './alibaba-video-model';
 import type { AlibabaVideoModelId } from './alibaba-video-settings';
 import { VERSION } from './version';
 
@@ -28,32 +37,44 @@ export interface AlibabaProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AlibabaChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: AlibabaChatModelId,
+  ): LanguageModelV4<AlibabaChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: AlibabaChatModelId): LanguageModelV4;
+  chatModel(
+    modelId: AlibabaChatModelId,
+  ): LanguageModelV4<AlibabaChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: AlibabaEmbeddingModelId,
+  ): EmbeddingModelV4<AlibabaEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: AlibabaEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: AlibabaEmbeddingModelId,
+  ): EmbeddingModelV4<AlibabaEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: AlibabaVideoModelId,
+  ): Experimental_VideoModelV4<AlibabaVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: AlibabaVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: AlibabaVideoModelId,
+  ): Experimental_VideoModelV4<AlibabaVideoModelV4ProviderOptions>;
 }
 
 export interface AlibabaProviderSettings {

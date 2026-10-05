@@ -10,19 +10,37 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { VoyageEmbeddingModel } from './voyage-embedding-model';
+import {
+  VoyageEmbeddingModel,
+  type VoyageEmbeddingModelV4ProviderOptions,
+} from './voyage-embedding-model';
 import type { VoyageEmbeddingModelId } from './voyage-embedding-model-options';
 import type { VoyageRerankingModelId } from './reranking/voyage-reranking-model-options';
-import { VoyageRerankingModel } from './reranking/voyage-reranking-model';
+import {
+  VoyageRerankingModel,
+  type VoyageRerankingModelV4ProviderOptions,
+} from './reranking/voyage-reranking-model';
 import { VERSION } from './version';
 
 export interface VoyageProvider extends ProviderV4 {
-  embedding(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  embeddingModel(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  textEmbedding(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  textEmbeddingModel(modelId: VoyageEmbeddingModelId): EmbeddingModelV4;
-  reranking(modelId: VoyageRerankingModelId): RerankingModelV4;
-  rerankingModel(modelId: VoyageRerankingModelId): RerankingModelV4;
+  embedding(
+    modelId: VoyageEmbeddingModelId,
+  ): EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>;
+  embeddingModel(
+    modelId: VoyageEmbeddingModelId,
+  ): EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>;
+  textEmbedding(
+    modelId: VoyageEmbeddingModelId,
+  ): EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>;
+  textEmbeddingModel(
+    modelId: VoyageEmbeddingModelId,
+  ): EmbeddingModelV4<VoyageEmbeddingModelV4ProviderOptions>;
+  reranking(
+    modelId: VoyageRerankingModelId,
+  ): RerankingModelV4<VoyageRerankingModelV4ProviderOptions>;
+  rerankingModel(
+    modelId: VoyageRerankingModelId,
+  ): RerankingModelV4<VoyageRerankingModelV4ProviderOptions>;
 }
 
 export interface VoyageProviderSettings {

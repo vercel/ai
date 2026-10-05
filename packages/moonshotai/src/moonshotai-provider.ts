@@ -9,7 +9,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { MoonshotAIChatLanguageModel } from './moonshotai-chat-language-model';
+import {
+  MoonshotAIChatLanguageModel,
+  type MoonshotAILanguageModelV4ProviderOptions,
+} from './moonshotai-chat-language-model';
 import type { MoonshotAIChatModelId } from './moonshotai-chat-options';
 import { VERSION } from './version';
 
@@ -40,17 +43,23 @@ export interface MoonshotAIProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: MoonshotAIChatModelId): LanguageModelV4;
+  (
+    modelId: MoonshotAIChatModelId,
+  ): LanguageModelV4<MoonshotAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a chat model for text generation.
    */
-  chatModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
+  chatModel(
+    modelId: MoonshotAIChatModelId,
+  ): LanguageModelV4<MoonshotAILanguageModelV4ProviderOptions>;
 
   /**
    * Creates a language model for text generation.
    */
-  languageModel(modelId: MoonshotAIChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: MoonshotAIChatModelId,
+  ): LanguageModelV4<MoonshotAILanguageModelV4ProviderOptions>;
 }
 
 const defaultBaseURL = 'https://api.moonshot.ai/v1';

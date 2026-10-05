@@ -19,6 +19,7 @@ import {
   AnthropicSkills,
   anthropicTools,
   type AnthropicModelId,
+  type AnthropicLanguageModelV4ProviderOptions,
 } from '@ai-sdk/anthropic/internal';
 import {
   createApiKeyFetchFunction,
@@ -30,12 +31,16 @@ export interface AnthropicAwsProvider extends ProviderV4 {
   /**
    * Creates a model for text generation.
    */
-  (modelId: AnthropicModelId): LanguageModelV4;
+  (
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: AnthropicModelId): LanguageModelV4;
+  languageModel(
+    modelId: AnthropicModelId,
+  ): LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

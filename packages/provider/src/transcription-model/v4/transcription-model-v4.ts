@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { TranscriptionModelV4CallOptions } from './transcription-model-v4-call-options';
 import type { TranscriptionModelV4Result } from './transcription-model-v4-result';
 import type { TranscriptionModelV4StreamOptions } from './transcription-model-v4-stream-options';
@@ -6,7 +7,9 @@ import type { TranscriptionModelV4StreamResult } from './transcription-model-v4-
 /**
  * Transcription model specification version 4.
  */
-export type TranscriptionModelV4 = {
+export type TranscriptionModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The transcription model must specify which transcription model interface
    * version it implements. This will allow us to evolve the transcription
@@ -30,7 +33,7 @@ export type TranscriptionModelV4 = {
    * Generates a transcript.
    */
   doGenerate(
-    options: TranscriptionModelV4CallOptions,
+    options: TranscriptionModelV4CallOptions<ProviderOptions>,
   ): PromiseLike<TranscriptionModelV4Result>;
 
   /**
@@ -42,6 +45,6 @@ export type TranscriptionModelV4 = {
    * prefixes for this reason.
    */
   doStream?(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<ProviderOptions>,
   ): PromiseLike<TranscriptionModelV4StreamResult>;
 };

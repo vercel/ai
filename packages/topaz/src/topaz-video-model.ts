@@ -7,6 +7,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -82,13 +84,17 @@ const containerMediaTypes: Record<string, string> = {
   mxf: 'application/mxf',
 };
 
+export type TopazVideoModelV4ProviderOptions = {
+  topaz?: TopazVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Topaz video models enhance a video the caller supplies, passed through
  * `inputReferences`. `doStart` creates an express request: Topaz fetches URL
  * inputs itself, and file inputs are uploaded to the returned URL. Processing
  * starts once Topaz has the video, and `doStatus` polls.
  */
-export class TopazVideoModel implements VideoModelV4 {
+export class TopazVideoModel implements VideoModelV4<TopazVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -116,7 +122,9 @@ export class TopazVideoModel implements VideoModelV4 {
   ) {}
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<TopazVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -226,7 +234,9 @@ export class TopazVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<TopazVideoModelV4ProviderOptions>['doStatus']>
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestId, outputContainer } = options.operation as {
@@ -327,7 +337,9 @@ export class TopazVideoModel implements VideoModelV4 {
   }
 
   private addUnsupportedWarnings(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<TopazVideoModelV4ProviderOptions>['doStart']>
+    >[0],
     warnings: SharedV4Warning[],
   ): void {
     // `generateVideo` requires a prompt, so an empty one is the expected way
@@ -401,7 +413,9 @@ export class TopazVideoModel implements VideoModelV4 {
   }
 
   private selectInputVideo(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<TopazVideoModelV4ProviderOptions>['doStart']>
+    >[0],
     warnings: SharedV4Warning[],
   ): VideoModelV4File {
     const references = options.inputReferences ?? [];

@@ -16,7 +16,9 @@ export interface FilesV4UploadFileStreamData {
 /**
  * Options for uploading a file via the files interface.
  */
-export type FilesV4UploadFileCallOptions = {
+export type FilesV4UploadFileCallOptions<
+  Options extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The file data.
    *
@@ -56,5 +58,5 @@ export type FilesV4UploadFileCallOptions = {
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: Options;
 };

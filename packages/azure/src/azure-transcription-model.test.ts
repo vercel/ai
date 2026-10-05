@@ -4,6 +4,7 @@ import {
   InvalidArgumentError,
   UnsupportedFunctionalityError,
   type TranscriptionModelV4,
+  type Experimental_TranscriptionModelV4StreamOptions,
 } from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
@@ -168,9 +169,10 @@ describe('API routing', () => {
   ])('rejects invalid options %j before fetching', async azure => {
     const { provider, fetch } = setup();
     await expect(
-      provider
-        .transcription('mai-transcribe-2')
-        .doGenerate({ ...input, providerOptions: { azure } }),
+      provider.transcription('mai-transcribe-2').doGenerate({
+        ...input,
+        providerOptions: { azure: azure as AzureTranscriptionModelOptions },
+      }),
     ).rejects.toBeInstanceOf(InvalidArgumentError);
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -479,7 +481,9 @@ describe('streaming and serialization', () => {
       providerOptions: { azure: { api: 'openai' }, openai: { language: 'en' } },
     };
     expect(
-      await provider.transcription('mai-transcribe-2').doStream!(options),
+      await provider.transcription('mai-transcribe-2').doStream!(
+        options as Experimental_TranscriptionModelV4StreamOptions,
+      ),
     ).toBe(result);
     expect(stream).toHaveBeenCalledWith(options);
   });

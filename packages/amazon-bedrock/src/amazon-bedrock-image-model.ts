@@ -2,6 +2,8 @@ import type {
   ImageModelV4,
   ImageModelV4File,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -20,7 +22,10 @@ import {
   modelMaxImagesPerCall,
   type AmazonBedrockImageModelId,
 } from './amazon-bedrock-image-settings';
-import { amazonBedrockImageModelOptionsSchema } from './amazon-bedrock-image-model-options';
+import {
+  amazonBedrockImageModelOptionsSchema,
+  type AmazonBedrockImageModelOptions,
+} from './amazon-bedrock-image-model-options';
 import { amazonBedrockFailedResponseHandler } from './amazon-bedrock-error';
 import { z } from 'zod/v4';
 
@@ -33,7 +38,11 @@ type AmazonBedrockImageModelConfig = {
   };
 };
 
-export class AmazonBedrockImageModel implements ImageModelV4 {
+export type AmazonBedrockImageModelV4ProviderOptions = {
+  amazonBedrock?: AmazonBedrockImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AmazonBedrockImageModel implements ImageModelV4<AmazonBedrockImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'amazon-bedrock';
 
@@ -84,8 +93,14 @@ export class AmazonBedrockImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<AmazonBedrockImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<AmazonBedrockImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
     const [width, height] = size ? size.split('x').map(Number) : [];

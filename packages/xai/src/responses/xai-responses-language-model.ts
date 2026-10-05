@@ -8,6 +8,8 @@ import type {
   LanguageModelV4StreamResult,
   LanguageModelV4Usage,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -43,6 +45,7 @@ import {
 import {
   xaiLanguageModelResponsesOptions,
   type XaiResponsesModelId,
+  type XaiLanguageModelResponsesOptions,
 } from './xai-responses-language-model-options';
 import { prepareResponsesTools } from './xai-responses-prepare-tools';
 
@@ -148,7 +151,11 @@ export const xaiResponsesSupportedUrls: Record<string, RegExp[]> = {
   'text/*': [/^https?:\/\/.*$/],
 };
 
-export class XaiResponsesLanguageModel implements LanguageModelV4 {
+export type XaiResponsesLanguageModelV4ProviderOptions = {
+  xai?: XaiLanguageModelResponsesOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class XaiResponsesLanguageModel implements LanguageModelV4<XaiResponsesLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: XaiResponsesModelId;
@@ -385,7 +392,9 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
     };
   }
 
-  private getArgs(options: LanguageModelV4CallOptions) {
+  private getArgs(
+    options: LanguageModelV4CallOptions<XaiResponsesLanguageModelV4ProviderOptions>,
+  ) {
     return XaiResponsesLanguageModel.prepareRequest({
       modelId: this.modelId,
       options,
@@ -393,7 +402,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<XaiResponsesLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const {
       args: body,
@@ -682,7 +691,7 @@ export class XaiResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<XaiResponsesLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const {
       args,

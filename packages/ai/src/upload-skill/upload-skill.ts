@@ -1,4 +1,5 @@
 import type {
+  InferSharedV4ProviderOptions,
   ProviderV4,
   SkillsV4,
   SkillsV4File,
@@ -14,14 +15,17 @@ type UploadSkillFile = Omit<SkillsV4File, 'data'> & {
   data: SkillsV4File['data'] | Uint8Array | string;
 };
 
-export async function uploadSkill({
+export async function uploadSkill<SKILL_MODEL extends SkillsV4 = SkillsV4>({
   api,
   files,
   displayTitle,
   providerOptions,
 }: {
-  api: SkillsV4 | ProviderV4;
-} & Omit<SkillsV4UploadSkillCallOptions, 'files'> & {
+  api: SKILL_MODEL | ProviderV4;
+} & Omit<
+  SkillsV4UploadSkillCallOptions<InferSharedV4ProviderOptions<SKILL_MODEL>>,
+  'files'
+> & {
     files: UploadSkillFile[];
   }): Promise<UploadSkillResult> {
   const skillsApi: SkillsV4 =

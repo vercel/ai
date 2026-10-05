@@ -2,6 +2,8 @@ import {
   AISDKError,
   type TranscriptionModelV4,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,7 +21,10 @@ import {
 import { z } from 'zod/v4';
 import type { RevaiConfig } from './revai-config';
 import { revaiFailedResponseHandler } from './revai-error';
-import { revaiTranscriptionModelOptionsSchema } from './revai-transcription-model-options';
+import {
+  revaiTranscriptionModelOptionsSchema,
+  type RevaiTranscriptionModelOptions,
+} from './revai-transcription-model-options';
 import type { RevaiTranscriptionModelId } from './revai-transcription-options';
 import type { RevaiTranscriptionAPITypes } from './revai-api-types';
 
@@ -29,7 +34,11 @@ interface RevaiTranscriptionModelConfig extends RevaiConfig {
   };
 }
 
-export class RevaiTranscriptionModel implements TranscriptionModelV4 {
+export type RevaiTranscriptionModelV4ProviderOptions = {
+  revai?: RevaiTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class RevaiTranscriptionModel implements TranscriptionModelV4<RevaiTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -59,7 +68,9 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<RevaiTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -137,8 +148,16 @@ export class RevaiTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<RevaiTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<RevaiTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

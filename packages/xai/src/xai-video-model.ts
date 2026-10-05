@@ -7,6 +7,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -26,6 +28,7 @@ import { xaiFailedResponseHandler } from './xai-error';
 import {
   xaiVideoModelOptionsSchema,
   type XaiParsedVideoModelOptions,
+  type XaiVideoModelOptions,
 } from './xai-video-model-options';
 import type { XaiVideoModelId } from './xai-video-settings';
 
@@ -193,7 +196,11 @@ function resolveVideoMode(
   }
 }
 
-export class XaiVideoModel implements VideoModelV4 {
+export type XaiVideoModelV4ProviderOptions = {
+  xai?: XaiVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class XaiVideoModel implements VideoModelV4<XaiVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -206,7 +213,9 @@ export class XaiVideoModel implements VideoModelV4 {
     private config: XaiVideoModelConfig,
   ) {}
 
-  private async buildRequestBody(options: VideoModelV4CallOptions): Promise<{
+  private async buildRequestBody(
+    options: VideoModelV4CallOptions<XaiVideoModelV4ProviderOptions>,
+  ): Promise<{
     body: Record<string, unknown>;
     warnings: SharedV4Warning[];
     xaiOptions: XaiParsedVideoModelOptions | undefined;
@@ -574,7 +583,9 @@ export class XaiVideoModel implements VideoModelV4 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<XaiVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings, isEdit, isExtension } =
@@ -624,7 +635,9 @@ export class XaiVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<XaiVideoModelV4ProviderOptions>['doStatus']>
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestId } = options.operation as { requestId: string };

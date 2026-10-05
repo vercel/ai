@@ -1,4 +1,10 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SpeechModelV4CallOptions,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -10,7 +16,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { HumeConfig } from './hume-config';
 import { humeFailedResponseHandler } from './hume-error';
-import { humeSpeechModelOptionsSchema } from './hume-speech-model-options';
+import {
+  humeSpeechModelOptionsSchema,
+  type HumeSpeechModelOptions,
+} from './hume-speech-model-options';
 import type { HumeSpeechAPITypes } from './hume-api-types';
 
 interface HumeSpeechModelConfig extends HumeConfig {
@@ -19,7 +28,11 @@ interface HumeSpeechModelConfig extends HumeConfig {
   };
 }
 
-export class HumeSpeechModel implements SpeechModelV4 {
+export type HumeSpeechModelV4ProviderOptions = {
+  hume?: HumeSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class HumeSpeechModel implements SpeechModelV4<HumeSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -53,7 +66,7 @@ export class HumeSpeechModel implements SpeechModelV4 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: SpeechModelV4CallOptions<HumeSpeechModelV4ProviderOptions>) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -142,7 +155,7 @@ export class HumeSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
+    options: SpeechModelV4CallOptions<HumeSpeechModelV4ProviderOptions>,
   ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);

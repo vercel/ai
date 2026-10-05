@@ -3,12 +3,9 @@ import {
   type JSONObject,
   type RerankingModelV4CallOptions,
   type RerankingModelV4Result,
+  type InferSharedV4ProviderOptions,
 } from '@ai-sdk/provider';
-import {
-  createIdGenerator,
-  type Context,
-  type ProviderOptions,
-} from '@ai-sdk/provider-utils';
+import { createIdGenerator, type Context } from '@ai-sdk/provider-utils';
 import { prepareRetries } from '../../src/util/prepare-retries';
 import { logWarnings } from '../logger/log-warnings';
 import { resolveRerankingModel } from '../model/resolve-model';
@@ -45,6 +42,7 @@ const originalGenerateCallId = createIdGenerator({
 export async function rerank<
   VALUE extends JSONObject | string,
   RUNTIME_CONTEXT extends Context = Context,
+  RERANKING_MODEL extends RerankingModel = RerankingModel,
 >({
   model: modelArg,
   documents,
@@ -66,7 +64,7 @@ export async function rerank<
   /**
    * The reranking model to use.
    */
-  model: RerankingModel;
+  model: RERANKING_MODEL;
 
   /**
    * The documents that should be reranked.
@@ -123,7 +121,7 @@ export async function rerank<
    * to the provider from the AI SDK and enable provider-specific
    * functionality that can be fully encapsulated in the provider.
    */
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<RERANKING_MODEL>;
 
   /**
    * Callback that is called when the rerank operation begins,

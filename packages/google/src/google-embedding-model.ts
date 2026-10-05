@@ -1,6 +1,8 @@
 import {
   TooManyEmbeddingValuesForCallError,
   type EmbeddingModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -22,6 +24,7 @@ import { googleFailedResponseHandler } from './google-error';
 import {
   googleEmbeddingModelOptions,
   type GoogleEmbeddingModelId,
+  type GoogleEmbeddingModelOptions,
 } from './google-embedding-model-options';
 type GoogleEmbeddingConfig = {
   provider: string;
@@ -30,7 +33,11 @@ type GoogleEmbeddingConfig = {
   fetch?: FetchFunction;
 };
 
-export class GoogleEmbeddingModel implements EmbeddingModelV4 {
+export type GoogleEmbeddingModelV4ProviderOptions = {
+  google?: GoogleEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleEmbeddingModel implements EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: GoogleEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 100;
@@ -87,8 +94,14 @@ export class GoogleEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     // Parse provider options
     const googleOptions = await parseProviderOptions({

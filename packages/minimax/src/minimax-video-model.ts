@@ -5,6 +5,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -133,7 +135,11 @@ function nonImageFrameMediaType(file: VideoModelV4File): string | undefined {
   return topLevelMediaType === 'image' ? undefined : topLevelMediaType;
 }
 
-export class MiniMaxVideoModel implements VideoModelV4 {
+export type MiniMaxVideoModelV4ProviderOptions = {
+  minimax?: MiniMaxVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MiniMaxVideoModel implements VideoModelV4<MiniMaxVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 

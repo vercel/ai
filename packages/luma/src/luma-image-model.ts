@@ -1,8 +1,11 @@
 import {
   InvalidResponseDataError,
   type ImageModelV4,
+  type ImageModelV4CallOptions,
   type ImageModelV4File,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -21,7 +24,10 @@ import {
   WORKFLOW_DESERIALIZE,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { lumaImageModelOptionsSchema } from './luma-image-model-options';
+import {
+  lumaImageModelOptionsSchema,
+  type LumaImageModelOptions,
+} from './luma-image-model-options';
 import type { LumaReferenceType } from './luma-image-settings';
 import { z } from 'zod/v4';
 
@@ -38,7 +44,11 @@ interface LumaImageModelConfig {
   };
 }
 
-export class LumaImageModel implements ImageModelV4 {
+export type LumaImageModelV4ProviderOptions = {
+  luma?: LumaImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class LumaImageModel implements ImageModelV4<LumaImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
   readonly pollIntervalMillis = DEFAULT_POLL_INTERVAL_MILLIS;
@@ -87,7 +97,7 @@ export class LumaImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
+  }: ImageModelV4CallOptions<LumaImageModelV4ProviderOptions>): Promise<
     Awaited<ReturnType<ImageModelV4['doGenerate']>>
   > {
     const warnings: Array<SharedV4Warning> = [];

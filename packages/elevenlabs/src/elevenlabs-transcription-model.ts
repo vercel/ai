@@ -4,6 +4,8 @@ import {
   type Experimental_TranscriptionModelV4StreamOptions as TranscriptionModelV4StreamOptions,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -81,7 +83,11 @@ interface ElevenLabsTranscriptionModelConfig extends ElevenLabsConfig {
   };
 }
 
-export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
+export type ElevenLabsTranscriptionModelV4ProviderOptions = {
+  elevenLabs?: ElevenLabsTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ElevenLabsTranscriptionModel implements TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -111,7 +117,9 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -179,8 +187,16 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (isRealtimeTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `non-streaming transcription with ${this.modelId}`,
@@ -230,9 +246,15 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doStream(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<ElevenLabsTranscriptionModelV4ProviderOptions>,
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<ElevenLabsTranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     if (!isRealtimeTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({

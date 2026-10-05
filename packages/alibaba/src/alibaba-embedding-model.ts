@@ -2,6 +2,8 @@ import {
   TooManyEmbeddingValuesForCallError,
   UnsupportedFunctionalityError,
   type EmbeddingModelV4,
+  type JSONValue,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -17,6 +19,7 @@ import { z } from 'zod/v4';
 import {
   alibabaEmbeddingModelOptions,
   type AlibabaEmbeddingModelId,
+  type AlibabaEmbeddingModelOptions,
 } from './alibaba-embedding-model-options';
 import type { AlibabaConfig } from './alibaba-config';
 
@@ -30,7 +33,11 @@ const alibabaEmbeddingFailedResponseHandler = createJsonErrorResponseHandler({
   errorToMessage: data => data.message,
 });
 
-export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
+export type AlibabaEmbeddingModelV4ProviderOptions = {
+  alibaba?: AlibabaEmbeddingModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AlibabaEmbeddingModel implements EmbeddingModelV4<AlibabaEmbeddingModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly modelId: AlibabaEmbeddingModelId;
   readonly maxEmbeddingsPerCall = 10;
@@ -66,8 +73,14 @@ export class AlibabaEmbeddingModel implements EmbeddingModelV4 {
     headers,
     abortSignal,
     providerOptions,
-  }: Parameters<EmbeddingModelV4['doEmbed']>[0]): Promise<
-    Awaited<ReturnType<EmbeddingModelV4['doEmbed']>>
+  }: Parameters<
+    EmbeddingModelV4<AlibabaEmbeddingModelV4ProviderOptions>['doEmbed']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<
+        EmbeddingModelV4<AlibabaEmbeddingModelV4ProviderOptions>['doEmbed']
+      >
+    >
   > {
     if (values.length > this.maxEmbeddingsPerCall) {
       throw new TooManyEmbeddingValuesForCallError({

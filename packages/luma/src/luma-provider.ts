@@ -9,7 +9,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { LumaImageModel } from './luma-image-model';
+import {
+  LumaImageModel,
+  type LumaImageModelV4ProviderOptions,
+} from './luma-image-model';
 import type { LumaImageModelId } from './luma-image-settings';
 import { VERSION } from './version';
 
@@ -38,12 +41,16 @@ export interface LumaProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: LumaImageModelId): ImageModelV4;
+  image(
+    modelId: LumaImageModelId,
+  ): ImageModelV4<LumaImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: LumaImageModelId): ImageModelV4;
+  imageModel(
+    modelId: LumaImageModelId,
+  ): ImageModelV4<LumaImageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

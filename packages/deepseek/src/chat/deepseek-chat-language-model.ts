@@ -9,6 +9,8 @@ import {
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -42,6 +44,7 @@ import {
 import {
   deepseekLanguageModelChatOptions,
   type DeepSeekChatModelId,
+  type DeepSeekLanguageModelChatOptions,
 } from './deepseek-chat-language-model-options';
 import { prepareTools } from './deepseek-prepare-tools';
 import { getResponseMetadata } from './get-response-metadata';
@@ -180,7 +183,11 @@ function mapDeepSeekProviderReasoningEffort({
   return mapped;
 }
 
-export class DeepSeekChatLanguageModel implements LanguageModelV4 {
+export type DeepSeekChatLanguageModelV4ProviderOptions = {
+  deepseek?: DeepSeekLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class DeepSeekChatLanguageModel implements LanguageModelV4<DeepSeekChatLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: DeepSeekChatModelId;
@@ -240,7 +247,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
     seed,
     toolChoice,
     tools,
-  }: LanguageModelV4CallOptions) {
+  }: LanguageModelV4CallOptions<DeepSeekChatLanguageModelV4ProviderOptions>) {
     const deepseekOptions =
       (await parseProviderOptions({
         provider: this.providerOptionsName,
@@ -411,7 +418,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<DeepSeekChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 
@@ -511,7 +518,7 @@ export class DeepSeekChatLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<DeepSeekChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { args, warnings } = await this.getArgs({ ...options });
 

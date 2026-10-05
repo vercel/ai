@@ -8,23 +8,24 @@ import type {
   AnthropicModelId,
 } from './anthropic-language-model-options';
 import { anthropic } from './anthropic-provider';
+import type { AnthropicLanguageModelV4ProviderOptions } from './anthropic-language-model';
 
 it('types batch support on the provider', () => {
   expectTypeOf(anthropic.experimental_batch()).toEqualTypeOf<
     BatchV4<{ text: AnthropicModelId }>
   >();
-  expectTypeOf(
-    anthropic('claude-3-haiku-20240307'),
-  ).toEqualTypeOf<LanguageModelV4>();
+  expectTypeOf(anthropic('claude-3-haiku-20240307')).toEqualTypeOf<
+    LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>
+  >();
   expectTypeOf(
     anthropic.languageModel('claude-3-haiku-20240307'),
-  ).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(
-    anthropic.chat('claude-3-haiku-20240307'),
-  ).toEqualTypeOf<LanguageModelV4>();
-  expectTypeOf(
-    anthropic.messages('claude-3-haiku-20240307'),
-  ).toEqualTypeOf<LanguageModelV4>();
+  ).toEqualTypeOf<LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>>();
+  expectTypeOf(anthropic.chat('claude-3-haiku-20240307')).toEqualTypeOf<
+    LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>
+  >();
+  expectTypeOf(anthropic.messages('claude-3-haiku-20240307')).toEqualTypeOf<
+    LanguageModelV4<AnthropicLanguageModelV4ProviderOptions>
+  >();
 });
 
 it('types on-demand compaction provider options', () => {

@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SharedV4Warning,
+  JSONValue,
+  SharedV4ProviderOptions,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -14,6 +19,7 @@ import type { OpenAISpeechAPITypes } from './openai-speech-api';
 import {
   openaiSpeechModelOptionsSchema,
   type OpenAISpeechModelId,
+  type OpenAISpeechModelOptions,
 } from './openai-speech-model-options';
 interface OpenAISpeechModelConfig extends OpenAIConfig {
   _internal?: {
@@ -21,7 +27,11 @@ interface OpenAISpeechModelConfig extends OpenAIConfig {
   };
 }
 
-export class OpenAISpeechModel implements SpeechModelV4 {
+export type OpenAISpeechModelV4ProviderOptions = {
+  openai?: OpenAISpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAISpeechModel implements SpeechModelV4<OpenAISpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: OpenAISpeechModel) {
@@ -55,7 +65,9 @@ export class OpenAISpeechModel implements SpeechModelV4 {
     instructions,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<OpenAISpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -117,8 +129,16 @@ export class OpenAISpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<OpenAISpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<OpenAISpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

@@ -2,6 +2,8 @@ import {
   InvalidArgumentError,
   type SpeechModelV4,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -39,7 +41,11 @@ const DEFAULT_VOICE = 'Kore';
 // Gemini TTS returns raw PCM at 24kHz when the response does not specify a rate.
 const DEFAULT_SAMPLE_RATE = 24000;
 
-export class GoogleSpeechModel implements SpeechModelV4 {
+export type GoogleSpeechModelV4ProviderOptions = {
+  google?: GoogleSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleSpeechModel implements SpeechModelV4<GoogleSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleSpeechModel) {
@@ -73,7 +79,9 @@ export class GoogleSpeechModel implements SpeechModelV4 {
     speed,
     language,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<GoogleSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Names to look up in providerOptions. The Vertex provider exposes these
@@ -277,8 +285,16 @@ export class GoogleSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<GoogleSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<GoogleSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings, outputFormat, usesStructuredSpeech } =
       await this.getArgs(options);

@@ -23,10 +23,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
 import { VERSION } from './version';
-import { GoogleEmbeddingModel } from './google-embedding-model';
+import {
+  GoogleEmbeddingModel,
+  type GoogleEmbeddingModelV4ProviderOptions,
+} from './google-embedding-model';
 import type { GoogleEmbeddingModelId } from './google-embedding-model-options';
 import { GoogleBatch } from './google-batch';
-import { GoogleLanguageModel } from './google-language-model';
+import {
+  GoogleLanguageModel,
+  type GoogleLanguageModelV4ProviderOptions,
+} from './google-language-model';
 import type { GoogleModelId } from './google-language-model-options';
 import { googleTools } from './google-tools';
 
@@ -34,22 +40,38 @@ import type {
   GoogleImageSettings,
   GoogleImageModelId,
 } from './google-image-settings';
-import { GoogleImageModel } from './google-image-model';
+import {
+  GoogleImageModel,
+  type GoogleImageModelV4ProviderOptions,
+} from './google-image-model';
 import { GoogleFiles } from './google-files';
-import { GoogleVideoModel } from './google-video-model';
+import {
+  GoogleVideoModel,
+  type GoogleVideoModelV4ProviderOptions,
+} from './google-video-model';
 import type { GoogleVideoModelId } from './google-video-settings';
-import { GoogleSpeechModel } from './google-speech-model';
+import {
+  GoogleSpeechModel,
+  type GoogleSpeechModelV4ProviderOptions,
+} from './google-speech-model';
 import type { GoogleSpeechModelId } from './google-speech-model-options';
 import {
   GoogleInteractionsLanguageModel,
   type GoogleInteractionsModelInput,
+  type GoogleInteractionsModelV4ProviderOptions,
 } from './interactions/google-interactions-language-model';
 import type { GoogleInteractionsModelId } from './interactions/google-interactions-language-model-options';
 import type { GoogleInteractionsAgentName } from './interactions/google-interactions-agent';
 import { GoogleRealtimeModel } from './realtime/google-realtime-model';
-import { GoogleTranscriptionModel } from './transcription/google-transcription-model';
+import {
+  GoogleTranscriptionModel,
+  type GoogleTranscriptionModelV4ProviderOptions,
+} from './transcription/google-transcription-model';
 import type { GoogleTranscriptionModelId } from './transcription/google-transcription-model-options';
-import { GoogleSpeechTranslationModel } from './speech-translation/google-speech-translation-model';
+import {
+  GoogleSpeechTranslationModel,
+  type GoogleSpeechTranslationModelV4ProviderOptions,
+} from './speech-translation/google-speech-translation-model';
 import type { GoogleSpeechTranslationModelId } from './speech-translation/google-speech-translation-model-options';
 
 const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
@@ -57,11 +79,17 @@ const googleFilesUrlPattern =
   /^https:\/\/generativelanguage\.googleapis\.com\/v1beta\/files\/.*$/;
 
 export interface GoogleProvider extends ProviderV4 {
-  (modelId: GoogleModelId): LanguageModelV4;
+  (
+    modelId: GoogleModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
-  languageModel(modelId: GoogleModelId): LanguageModelV4;
+  languageModel(
+    modelId: GoogleModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
-  chat(modelId: GoogleModelId): LanguageModelV4;
+  chat(
+    modelId: GoogleModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
   /** Creates an experimental Choice/Score/Boolean evaluation model using Gemini. */
   evaluationModel(modelId: GoogleModelId): EvaluationModelV4;
@@ -77,66 +105,84 @@ export interface GoogleProvider extends ProviderV4 {
   image(
     modelId: GoogleImageModelId,
     settings?: GoogleImageSettings,
-  ): ImageModelV4;
+  ): ImageModelV4<GoogleImageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `chat()` instead.
    */
-  generativeAI(modelId: GoogleModelId): LanguageModelV4;
+  generativeAI(
+    modelId: GoogleModelId,
+  ): LanguageModelV4<GoogleLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: GoogleEmbeddingModelId,
+  ): EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
+  embeddingModel(
+    modelId: GoogleEmbeddingModelId,
+  ): EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: GoogleEmbeddingModelId,
+  ): EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: GoogleEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: GoogleEmbeddingModelId,
+  ): EmbeddingModelV4<GoogleEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: GoogleVideoModelId,
+  ): Experimental_VideoModelV4<GoogleVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: GoogleVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: GoogleVideoModelId,
+  ): Experimental_VideoModelV4<GoogleVideoModelV4ProviderOptions>;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   translation(
     modelId: GoogleSpeechTranslationModelId,
-  ): SpeechTranslationModelV4;
+  ): SpeechTranslationModelV4<GoogleSpeechTranslationModelV4ProviderOptions>;
 
   /**
    * Creates an experimental model for streaming speech translation.
    */
   speechTranslationModel(
     modelId: GoogleSpeechTranslationModelId,
-  ): SpeechTranslationModelV4;
+  ): SpeechTranslationModelV4<GoogleSpeechTranslationModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speech(modelId: GoogleSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: GoogleSpeechModelId,
+  ): SpeechModelV4<GoogleSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speechModel(modelId: GoogleSpeechModelId): SpeechModelV4;
+  speechModel(
+    modelId: GoogleSpeechModelId,
+  ): SpeechModelV4<GoogleSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription (speech-to-text). Unary models
@@ -144,12 +190,16 @@ export interface GoogleProvider extends ProviderV4 {
    * (e.g. `gemini-3.5-transcribe-live`) stream transcription over the
    * Gemini Live API WebSocket via `experimental_streamTranscribe`.
    */
-  transcription(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: GoogleTranscriptionModelId,
+  ): TranscriptionModelV4<GoogleTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription (speech-to-text).
    */
-  transcriptionModel(modelId: GoogleTranscriptionModelId): TranscriptionModelV4;
+  transcriptionModel(
+    modelId: GoogleTranscriptionModelId,
+  ): TranscriptionModelV4<GoogleTranscriptionModelV4ProviderOptions>;
 
   files(): FilesV4;
 
@@ -166,7 +216,7 @@ export interface GoogleProvider extends ProviderV4 {
       | GoogleInteractionsModelId
       | { agent: GoogleInteractionsAgentName }
       | { managedAgent: string },
-  ): LanguageModelV4;
+  ): LanguageModelV4<GoogleInteractionsModelV4ProviderOptions>;
 
   experimental_realtime: RealtimeFactoryV4;
 

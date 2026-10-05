@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { LanguageModelV4CallOptions } from './language-model-v4-call-options';
 import type { LanguageModelV4GenerateResult } from './language-model-v4-generate-result';
 import type { LanguageModelV4StreamResult } from './language-model-v4-stream-result';
@@ -5,7 +6,9 @@ import type { LanguageModelV4StreamResult } from './language-model-v4-stream-res
 /**
  * Specification for a language model that implements the language model interface version 4.
  */
-export type LanguageModelV4 = {
+export type LanguageModelV4<
+  Options extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The language model must specify which language model interface version it implements.
    */
@@ -44,7 +47,7 @@ export type LanguageModelV4 = {
    * by the user.
    */
   doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<Options>,
   ): PromiseLike<LanguageModelV4GenerateResult>;
 
   /**
@@ -56,6 +59,6 @@ export type LanguageModelV4 = {
    * @return A stream of higher-level language model output parts.
    */
   doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<Options>,
   ): PromiseLike<LanguageModelV4StreamResult>;
 };

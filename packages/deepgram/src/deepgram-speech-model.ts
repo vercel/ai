@@ -1,4 +1,9 @@
-import type { SpeechModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  SpeechModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -10,7 +15,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { DeepgramConfig } from './deepgram-config';
 import { deepgramFailedResponseHandler } from './deepgram-error';
-import { deepgramSpeechModelOptionsSchema } from './deepgram-speech-model-options';
+import {
+  deepgramSpeechModelOptionsSchema,
+  type DeepgramSpeechModelOptions,
+} from './deepgram-speech-model-options';
 import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 
 interface DeepgramSpeechModelConfig extends DeepgramConfig {
@@ -24,7 +32,11 @@ interface DeepgramSpeechModelConfig extends DeepgramConfig {
 // compose the upstream model ID from the voice and language call options.
 const VOICE_FAMILY_IDS = new Set<string>(['aura', 'aura-2']);
 
-export class DeepgramSpeechModel implements SpeechModelV4 {
+export type DeepgramSpeechModelV4ProviderOptions = {
+  deepgram?: DeepgramSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class DeepgramSpeechModel implements SpeechModelV4<DeepgramSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -58,7 +70,9 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
     language,
     instructions,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<DeepgramSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -471,8 +485,16 @@ export class DeepgramSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<DeepgramSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<DeepgramSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, queryParams, warnings } = await this.getArgs(options);
 

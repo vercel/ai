@@ -1,10 +1,12 @@
-import type { SharedV4ProviderMetadata } from '../../shared';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 /**
  * A video or image file that can be used for video editing or image-to-video generation.
  * Supports both image inputs (for image-to-video) and video inputs (for editing).
  */
-export type VideoModelV4File =
+export type VideoModelV4File<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> =
   | {
       type: 'file';
 
@@ -23,7 +25,7 @@ export type VideoModelV4File =
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerOptions?: SharedV4ProviderMetadata;
+      providerOptions?: ProviderOptions;
     }
   | {
       type: 'url';
@@ -43,5 +45,5 @@ export type VideoModelV4File =
       /**
        * Optional provider-specific metadata for the file part.
        */
-      providerOptions?: SharedV4ProviderMetadata;
+      providerOptions?: ProviderOptions;
     };

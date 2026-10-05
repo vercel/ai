@@ -1,3 +1,5 @@
+import type { JSONValue, SharedV4ProviderOptions } from '@ai-sdk/provider';
+
 export type QuiverAILanguageModelOptions = {
   /**
    * Controls the amount of reasoning used by the model.
@@ -9,3 +11,7 @@ export type QuiverAILanguageModelOptions = {
    */
   reasoningSummary?: 'auto';
 };
+
+export type QuiverAILanguageModelV4ProviderOptions = {
+  quiverai?: QuiverAILanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;

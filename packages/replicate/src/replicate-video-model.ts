@@ -4,6 +4,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -34,7 +36,11 @@ interface ReplicateVideoModelConfig {
   };
 }
 
-export class ReplicateVideoModel implements VideoModelV4 {
+export type ReplicateVideoModelV4ProviderOptions = {
+  replicate?: ReplicateVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ReplicateVideoModel implements VideoModelV4<ReplicateVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1; // Replicate video models support 1 video at a time
 
@@ -173,14 +179,20 @@ export class ReplicateVideoModel implements VideoModelV4 {
   }
 
   async handleWebhookOption(
-    options: Parameters<NonNullable<VideoModelV4['handleWebhookOption']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<ReplicateVideoModelV4ProviderOptions>['handleWebhookOption']
+      >
+    >[0],
   ) {
     const { url, received } = await options.webhook();
     return { webhookUrl: url, received };
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<ReplicateVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { input, warnings } = await this.buildInput(options);
@@ -228,7 +240,11 @@ export class ReplicateVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<ReplicateVideoModelV4ProviderOptions>['doStatus']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { getUrl } = options.operation as { getUrl: string };

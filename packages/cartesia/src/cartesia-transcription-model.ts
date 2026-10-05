@@ -5,6 +5,8 @@ import {
   type Experimental_TranscriptionModelV4StreamPart as TranscriptionModelV4StreamPart,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -51,7 +53,11 @@ type CartesiaStreamingTranscriptionEvent = {
   error_code?: string;
 };
 
-export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
+export type CartesiaTranscriptionModelV4ProviderOptions = {
+  cartesia?: CartesiaTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class CartesiaTranscriptionModel implements TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -81,7 +87,9 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -134,8 +142,16 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (isStreamingTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({
         functionality: `non-streaming transcription with ${this.modelId}`,
@@ -185,9 +201,15 @@ export class CartesiaTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doStream(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<CartesiaTranscriptionModelV4ProviderOptions>,
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<CartesiaTranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     if (!isStreamingTranscriptionModelId(this.modelId)) {
       throw new UnsupportedFunctionalityError({

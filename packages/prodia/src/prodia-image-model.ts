@@ -18,10 +18,13 @@ import {
   type ProdiaJobResult,
   type ProdiaModelConfig,
 } from './prodia-api';
-import { prodiaImageModelOptionsSchema } from './prodia-image-model-options';
+import {
+  prodiaImageModelOptionsSchema,
+  type ProdiaImageModelV4ProviderOptions,
+} from './prodia-image-model-options';
 import type { ProdiaImageModelId } from './prodia-image-settings';
 
-export class ProdiaImageModel implements ImageModelV4 {
+export class ProdiaImageModel implements ImageModelV4<ProdiaImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
   readonly supportsFileInputs = false;

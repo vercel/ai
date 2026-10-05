@@ -21,6 +21,7 @@ import { z } from 'zod/v4';
 import {
   quiveraiImageModelOptionsSchema,
   type QuiverAIImageModelOptions,
+  type QuiverAIImageModelV4ProviderOptions,
 } from './quiverai-image-model-options';
 import { quiveraiFailedResponseHandler } from './quiverai-error';
 import {
@@ -42,7 +43,7 @@ interface QuiverAIImageModelConfig {
   };
 }
 
-export class QuiverAIImageModel implements ImageModelV4 {
+export class QuiverAIImageModel implements ImageModelV4<QuiverAIImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 16;
 

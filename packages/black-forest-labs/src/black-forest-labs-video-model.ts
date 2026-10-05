@@ -8,6 +8,8 @@ import {
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type Experimental_VideoModelV4Result as VideoModelV4Result,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -224,7 +226,12 @@ function toBlackForestLabsFile(file: VideoModelV4File): string {
   return Buffer.from(file.data).toString('base64');
 }
 
-export class BlackForestLabsVideoModel implements VideoModelV4 {
+export type BlackForestLabsVideoModelV4ProviderOptions = {
+  blackForestLabs?: BlackForestLabsVideoModelOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class BlackForestLabsVideoModel implements VideoModelV4<BlackForestLabsVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -546,7 +553,11 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<BlackForestLabsVideoModelV4ProviderOptions>['doStart']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const { body, warnings } = await this.getArgs(options);
 
@@ -589,7 +600,11 @@ export class BlackForestLabsVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<BlackForestLabsVideoModelV4ProviderOptions>['doStatus']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const operation = options.operation as BlackForestLabsVideoOperation;

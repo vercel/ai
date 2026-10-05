@@ -1,8 +1,8 @@
-import type { JSONObject } from '../../json-value/json-value';
+import type { SharedV4ProviderOptions } from '../../shared';
 
-type TranscriptionModelV4ProviderOptions = Record<string, JSONObject>;
-
-export type TranscriptionModelV4CallOptions = {
+export type TranscriptionModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Audio data to transcribe.
    * Accepts a `Uint8Array` or `string`, where `string` is a base64 encoded audio file.
@@ -30,7 +30,7 @@ export type TranscriptionModelV4CallOptions = {
    * }
    * ```
    */
-  providerOptions?: TranscriptionModelV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

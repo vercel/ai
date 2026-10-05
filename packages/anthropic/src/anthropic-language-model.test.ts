@@ -1,11 +1,11 @@
 import {
   APICallError,
   NoSuchProviderReferenceError,
-  LanguageModelV4,
   type LanguageModelV4GenerateResult,
   type LanguageModelV4Prompt,
   type LanguageModelV4StreamPart,
   type LanguageModelV4StreamResult,
+  type LanguageModelV4CallOptions,
 } from '@ai-sdk/provider';
 import {
   convertReadableStreamToArray,
@@ -92,11 +92,15 @@ describe('AnthropicLanguageModel', () => {
 
         if (method === 'generate') {
           prepareJsonFixtureResponse('anthropic-text');
-          const result = await provider('claude-fable-5-1').doGenerate(options);
+          const result = await provider('claude-fable-5-1').doGenerate(
+            options as LanguageModelV4CallOptions,
+          );
           expect(result.warnings).toEqual([]);
         } else {
           prepareChunksFixtureResponse('anthropic-message-delta-input-tokens');
-          const result = await provider('claude-fable-5-1').doStream(options);
+          const result = await provider('claude-fable-5-1').doStream(
+            options as LanguageModelV4CallOptions,
+          );
           const chunks = await convertReadableStreamToArray(result.stream);
           expect(chunks[0]).toEqual({ type: 'stream-start', warnings: [] });
           expect(chunks.some(chunk => chunk.type === 'error')).toBe(false);

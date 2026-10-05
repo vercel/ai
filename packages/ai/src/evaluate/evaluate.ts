@@ -1,12 +1,12 @@
 import {
   Experimental_EvaluationUnsupportedQuestionTypeError as EvaluationUnsupportedQuestionTypeError,
   type Experimental_EvaluationModelV4CallOptions as EvaluationModelV4CallOptions,
+  type InferSharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   createIdGenerator,
   withUserAgentSuffix,
   type Context,
-  type ProviderOptions,
 } from '@ai-sdk/provider-utils';
 import { resolveEvaluationModel } from '../model/resolve-model';
 import { logWarnings } from '../logger/log-warnings';
@@ -36,6 +36,7 @@ const originalGenerateCallId = createIdGenerator({
 export async function evaluate<
   const QUESTIONS extends Record<string, EvaluationQuestion>,
   RUNTIME_CONTEXT extends Context = Context,
+  EVALUATION_MODEL extends EvaluationModel = EvaluationModel,
 >({
   model: modelArg,
   state,
@@ -43,7 +44,7 @@ export async function evaluate<
   maxRetries,
   abortSignal,
   headers,
-  providerOptions = {},
+  providerOptions = {} as InferSharedV4ProviderOptions<EVALUATION_MODEL>,
   telemetry,
   runtimeContext = {} as RUNTIME_CONTEXT,
   onStart,
@@ -51,14 +52,14 @@ export async function evaluate<
   _internal: { generateCallId = originalGenerateCallId } = {},
 }: {
   /** An evaluation model instance or an ID resolved by the configured default provider. */
-  model: EvaluationModel;
+  model: EVALUATION_MODEL;
   state: EvaluationModelV4CallOptions['state'];
   questions: QUESTIONS;
   /** Maximum retries for transient provider failures. Defaults to 2. */
   maxRetries?: number;
   abortSignal?: AbortSignal;
   headers?: Record<string, string>;
-  providerOptions?: ProviderOptions;
+  providerOptions?: InferSharedV4ProviderOptions<EVALUATION_MODEL>;
   /** Optional telemetry configuration. */
   telemetry?: TelemetryOptions<RUNTIME_CONTEXT>;
   /** User-defined runtime context. Treat runtime context as immutable. */

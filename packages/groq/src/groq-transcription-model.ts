@@ -1,4 +1,9 @@
-import type { TranscriptionModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  TranscriptionModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -18,6 +23,7 @@ import { groqFailedResponseHandler } from './groq-error';
 import {
   groqTranscriptionModelOptions,
   type GroqTranscriptionModelId,
+  type GroqTranscriptionModelOptions,
 } from './groq-transcription-model-options';
 import type { GroqTranscriptionAPITypes } from './groq-api-types';
 
@@ -27,7 +33,11 @@ interface GroqTranscriptionModelConfig extends GroqConfig {
   };
 }
 
-export class GroqTranscriptionModel implements TranscriptionModelV4 {
+export type GroqTranscriptionModelV4ProviderOptions = {
+  groq?: GroqTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GroqTranscriptionModel implements TranscriptionModelV4<GroqTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -57,7 +67,9 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<GroqTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -121,8 +133,16 @@ export class GroqTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<GroqTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<GroqTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, responseFormat, warnings } = await this.getArgs(options);
 

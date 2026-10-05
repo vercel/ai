@@ -5,6 +5,8 @@ import {
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -101,13 +103,18 @@ interface GoogleVertexGeminiTranscriptionModelConfig {
   };
 }
 
+export type GoogleVertexGeminiTranscriptionModelV4ProviderOptions = {
+  googleVertex?: GoogleVertexTranscriptionModelGeminiOptions &
+    Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Gemini transcription on Vertex AI. Unary variants transcribe via
  * `generateContent`; live variants stream over the Vertex Live API WebSocket
  * (`LlmBidiService/BidiGenerateContent`) with OAuth Bearer authentication
  * from the provider's resolved headers.
  */
-export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV4 {
+export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV4<GoogleVertexGeminiTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleVertexGeminiTranscriptionModel) {
@@ -152,8 +159,16 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<GoogleVertexGeminiTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<GoogleVertexGeminiTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (isLiveTranscriptionModelId(this.modelId)) {
       throw new InvalidArgumentError({
         argument: 'modelId',
@@ -258,9 +273,15 @@ export class GoogleVertexGeminiTranscriptionModel implements TranscriptionModelV
   }
 
   async doStream(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<GoogleVertexGeminiTranscriptionModelV4ProviderOptions>,
   ): Promise<
-    Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
+    Awaited<
+      ReturnType<
+        NonNullable<
+          TranscriptionModelV4<GoogleVertexGeminiTranscriptionModelV4ProviderOptions>['doStream']
+        >
+      >
+    >
   > {
     if (!isLiveTranscriptionModelId(this.modelId)) {
       throw new InvalidArgumentError({

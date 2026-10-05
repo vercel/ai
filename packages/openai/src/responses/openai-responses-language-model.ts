@@ -15,6 +15,7 @@ import {
   type LanguageModelV4ToolApprovalRequest,
   type SharedV4ProviderMetadata,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -239,7 +240,11 @@ function getConfigurationUpdateUnsupportedReason({
   return undefined;
 }
 
-export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
+export type OpenAIResponsesLanguageV4ProviderOptions = {
+  openai?: OpenAILanguageModelResponsesOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class OpenAIResponsesLanguageModel implements LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: OpenAIResponsesModelId;
@@ -830,7 +835,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAIResponsesLanguageV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const {
       args: body,
@@ -1517,7 +1522,7 @@ export class OpenAIResponsesLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<OpenAIResponsesLanguageV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const {
       args: body,

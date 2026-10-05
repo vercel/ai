@@ -6,6 +6,11 @@ import {
   OpenAIResponsesLanguageModel,
   OpenAISpeechModel,
   OpenAITranscriptionModel,
+  type OpenAIResponsesLanguageV4ProviderOptions,
+  type OpenAIChatLanguageModelV4ProviderOptions,
+  type OpenAICompletionLanguageModelV4ProviderOptions,
+  type OpenAIEmbeddingModelV4ProviderOptions,
+  type OpenAIImageModelV4ProviderOptions,
 } from '@ai-sdk/openai/internal';
 import { DeepSeekChatLanguageModel } from '@ai-sdk/deepseek/internal';
 import {
@@ -18,6 +23,8 @@ import {
   type SharedV4Warning,
   type SpeechModelV4,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   isValidHostnamePart,
@@ -38,6 +45,7 @@ import { azureOpenaiTools } from './azure-openai-tools';
 import {
   azureSpeechModelOptions,
   getMAIVoiceModel,
+  type AzureSpeechModelOptions,
 } from './azure-speech-model-options';
 import { AzureSpeechSpeechModel } from './azure-speech-speech-model';
 import { AzureSpeechTranscriptionModel } from './azure-speech-transcription-model';
@@ -45,21 +53,28 @@ import {
   azureTranscriptionModelOptions,
   getMAITranscribeModel,
   isMAITranscribeStreaming,
+  type AzureTranscriptionModelOptions,
 } from './azure-transcription-model-options';
 import { VERSION } from './version';
 
 export interface AzureOpenAIProvider extends ProviderV4 {
-  (deploymentId: string): LanguageModelV4;
+  (
+    deploymentId: string,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  languageModel(deploymentId: string): LanguageModelV4;
+  languageModel(
+    deploymentId: string,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI chat model for text generation.
    */
-  chat(deploymentId: string): LanguageModelV4;
+  chat(
+    deploymentId: string,
+  ): LanguageModelV4<OpenAIChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates an Azure-hosted DeepSeek chat model for text generation.
@@ -69,65 +84,87 @@ export interface AzureOpenAIProvider extends ProviderV4 {
   /**
    * Creates an Azure OpenAI responses API model for text generation.
    */
-  responses(deploymentId: string): LanguageModelV4;
+  responses(
+    deploymentId: string,
+  ): LanguageModelV4<OpenAIResponsesLanguageV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI completion model for text generation.
    */
-  completion(deploymentId: string): LanguageModelV4;
+  completion(
+    deploymentId: string,
+  ): LanguageModelV4<OpenAICompletionLanguageModelV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embedding(deploymentId: string): EmbeddingModelV4;
+  embedding(
+    deploymentId: string,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI model for text embeddings.
    */
-  embeddingModel(deploymentId: string): EmbeddingModelV4;
+  embeddingModel(
+    deploymentId: string,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(deploymentId: string): EmbeddingModelV4;
+  textEmbedding(
+    deploymentId: string,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(deploymentId: string): EmbeddingModelV4;
+  textEmbeddingModel(
+    deploymentId: string,
+  ): EmbeddingModelV4<OpenAIEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  image(deploymentId: string): ImageModelV4;
+  image(deploymentId: string): ImageModelV4<OpenAIImageModelV4ProviderOptions>;
 
   /**
    * Creates an Azure OpenAI DALL-E model for image generation.
    */
-  imageModel(deploymentId: string): ImageModelV4;
+  imageModel(
+    deploymentId: string,
+  ): ImageModelV4<OpenAIImageModelV4ProviderOptions>;
 
   /**
    * Creates an Azure transcription model. MAI-Transcribe models use the Speech
    * API and MAI-Transcribe-2-Streaming the MAI realtime API by default; other
    * IDs use OpenAI. Override with providerOptions.azure.api.
    */
-  transcription(deploymentId: string): TranscriptionModelV4;
+  transcription(
+    deploymentId: string,
+  ): TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates an Azure transcription model. Alias of `transcription`.
    */
-  transcriptionModel(deploymentId: string): TranscriptionModelV4;
+  transcriptionModel(
+    deploymentId: string,
+  ): TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates an Azure speech generation model. MAI-Voice models use the Speech
    * API by default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
-  speech(deploymentId: string): SpeechModelV4;
+  speech(
+    deploymentId: string,
+  ): SpeechModelV4<AzureSpeechModelV4ProviderOptions>;
 
   /**
    * Creates an Azure speech generation model. Alias of `speech`.
    */
-  speechModel(deploymentId: string): SpeechModelV4;
+  speechModel(
+    deploymentId: string,
+  ): SpeechModelV4<AzureSpeechModelV4ProviderOptions>;
 
   /**
    * AzureOpenAI-specific tools.
@@ -503,8 +540,12 @@ export function createAzure(
  */
 export const azure = createAzure();
 
+export type AzureTranscriptionModelV4ProviderOptions = {
+  azure?: AzureTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 // Resolves the API per request: providerOptions also reach this model via Gateway.
-class AzureTranscriptionModel implements TranscriptionModelV4 {
+class AzureTranscriptionModel implements TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.transcription';
 
@@ -530,7 +571,11 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
     return createAzure(options.config).transcription(options.modelId);
   }
 
-  async doGenerate(options: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  async doGenerate(
+    options: Parameters<
+      TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ) {
     const { api, speechOptions, maiOptions } = await this.getOptions(
       options.providerOptions,
     );
@@ -557,7 +602,11 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doStream(
-    options: Parameters<NonNullable<TranscriptionModelV4['doStream']>>[0],
+    options: Parameters<
+      NonNullable<
+        TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions>['doStream']
+      >
+    >[0],
   ) {
     const { api, speechOptions, maiOptions } = await this.getOptions(
       options.providerOptions,
@@ -579,7 +628,7 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
 
   private async getOptions(
     providerOptions: Parameters<
-      TranscriptionModelV4['doGenerate']
+      TranscriptionModelV4<AzureTranscriptionModelV4ProviderOptions>['doGenerate']
     >[0]['providerOptions'],
   ) {
     const { api, language, ...speechOptions } =
@@ -602,8 +651,12 @@ class AzureTranscriptionModel implements TranscriptionModelV4 {
   }
 }
 
+export type AzureSpeechModelV4ProviderOptions = {
+  azure?: AzureSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 // Resolves the API per request: providerOptions also reach this model via Gateway.
-class AzureSpeechModel implements SpeechModelV4 {
+class AzureSpeechModel implements SpeechModelV4<AzureSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly provider = 'azure.speech';
 
@@ -628,7 +681,11 @@ class AzureSpeechModel implements SpeechModelV4 {
     return createAzure(options.config).speech(options.modelId);
   }
 
-  async doGenerate(options: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  async doGenerate(
+    options: Parameters<
+      SpeechModelV4<AzureSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ) {
     const { api, ...speechOptions } =
       (await parseProviderOptions({
         provider: 'azure',

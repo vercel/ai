@@ -3,6 +3,7 @@ import {
   InvalidArgumentError,
   InvalidResponseDataError,
   type JSONObject,
+  type JSONValue,
   type LanguageModelV4,
   type LanguageModelV4CallOptions,
   type LanguageModelV4Content,
@@ -15,6 +16,7 @@ import {
   type LanguageModelV4StreamResult,
   type LanguageModelV4ToolCall,
   type SharedV4ProviderMetadata,
+  type SharedV4ProviderOptions,
   type SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -259,7 +261,11 @@ export type AnthropicLanguageModelConfig = {
   supportsStrictTools?: boolean;
 };
 
-export class AnthropicLanguageModel implements LanguageModelV4 {
+export type AnthropicLanguageModelV4ProviderOptions = {
+  anthropic?: AnthropicLanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class AnthropicLanguageModel implements LanguageModelV4<AnthropicLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: AnthropicModelId;
@@ -1197,7 +1203,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AnthropicLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const {
       args,
@@ -1824,7 +1830,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<AnthropicLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     'use step';
 

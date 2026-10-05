@@ -11,13 +11,25 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { FalImageModel } from './fal-image-model';
+import {
+  FalImageModel,
+  type FalImageModelV4ProviderOptions,
+} from './fal-image-model';
 import type { FalImageModelId } from './fal-image-settings';
 import type { FalTranscriptionModelId } from './fal-transcription-options';
-import { FalTranscriptionModel } from './fal-transcription-model';
+import {
+  FalTranscriptionModel,
+  type FalTranscriptionModelV4ProviderOptions,
+} from './fal-transcription-model';
 import type { FalSpeechModelId } from './fal-speech-settings';
-import { FalSpeechModel } from './fal-speech-model';
-import { FalVideoModel } from './fal-video-model';
+import {
+  FalSpeechModel,
+  type FalSpeechModelV4ProviderOptions,
+} from './fal-speech-model';
+import {
+  FalVideoModel,
+  type FalVideoModelV4ProviderOptions,
+} from './fal-video-model';
 import type { FalVideoModelId } from './fal-video-settings';
 import { VERSION } from './version';
 
@@ -50,32 +62,42 @@ export interface FalProvider extends ProviderV4 {
   /**
    * Creates a model for image generation.
    */
-  image(modelId: FalImageModelId): ImageModelV4;
+  image(modelId: FalImageModelId): ImageModelV4<FalImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for image generation.
    */
-  imageModel(modelId: FalImageModelId): ImageModelV4;
+  imageModel(
+    modelId: FalImageModelId,
+  ): ImageModelV4<FalImageModelV4ProviderOptions>;
 
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: FalTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: FalTranscriptionModelId,
+  ): TranscriptionModelV4<FalTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  video(modelId: FalVideoModelId): Experimental_VideoModelV4;
+  video(
+    modelId: FalVideoModelId,
+  ): Experimental_VideoModelV4<FalVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for video generation.
    */
-  videoModel(modelId: FalVideoModelId): Experimental_VideoModelV4;
+  videoModel(
+    modelId: FalVideoModelId,
+  ): Experimental_VideoModelV4<FalVideoModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: FalSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: FalSpeechModelId,
+  ): SpeechModelV4<FalSpeechModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

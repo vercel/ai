@@ -1,7 +1,10 @@
 import { TooManyEmbeddingValuesForCallError } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
 import * as fs from 'node:fs';
-import { GoogleVertexEmbeddingModel } from './google-vertex-embedding-model';
+import {
+  GoogleVertexEmbeddingModel,
+  type GoogleVertexEmbeddingModelV4ProviderOptions,
+} from './google-vertex-embedding-model';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createGoogleVertex } from './google-vertex-provider-base';
 
@@ -143,7 +146,9 @@ describe('GoogleVertexEmbeddingModel', () => {
     it('should accept googleVertex as provider options key', async () => {
       await model.doEmbed({
         values: testValues,
-        providerOptions: { googleVertex: mockProviderOptions },
+        providerOptions: {
+          googleVertex: mockProviderOptions,
+        } as GoogleVertexEmbeddingModelV4ProviderOptions,
       });
 
       expect(await server.calls[0].requestBodyJson).toMatchInlineSnapshot(`

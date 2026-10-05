@@ -12,70 +12,102 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { MistralChatLanguageModel } from './mistral-chat-language-model';
+import {
+  MistralChatLanguageModel,
+  type MistralLanguageModelV4ProviderOptions,
+} from './mistral-chat-language-model';
 import type { MistralChatModelId } from './mistral-chat-language-model-options';
-import { MistralEmbeddingModel } from './mistral-embedding-model';
+import {
+  MistralEmbeddingModel,
+  type MistralEmbeddingModelV4ProviderOptions,
+} from './mistral-embedding-model';
 import type { MistralEmbeddingModelId } from './mistral-embedding-model-options';
-import { MistralSpeechModel } from './mistral-speech-model';
+import {
+  MistralSpeechModel,
+  type MistralSpeechModelV4ProviderOptions,
+} from './mistral-speech-model';
 import type { MistralSpeechModelId } from './mistral-speech-model-options';
-import { MistralTranscriptionModel } from './mistral-transcription-model';
+import {
+  MistralTranscriptionModel,
+  type MistralTranscriptionModelV4ProviderOptions,
+} from './mistral-transcription-model';
 import type { MistralTranscriptionModelId } from './mistral-transcription-model-options';
 import { VERSION } from './version';
 
 export interface MistralProvider extends ProviderV4 {
-  (modelId: MistralChatModelId): LanguageModelV4;
+  (
+    modelId: MistralChatModelId,
+  ): LanguageModelV4<MistralLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  languageModel(modelId: MistralChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: MistralChatModelId,
+  ): LanguageModelV4<MistralLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text generation.
    */
-  chat(modelId: MistralChatModelId): LanguageModelV4;
+  chat(
+    modelId: MistralChatModelId,
+  ): LanguageModelV4<MistralLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+  embedding(
+    modelId: MistralEmbeddingModelId,
+  ): EmbeddingModelV4<MistralEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for text embeddings.
    */
-  embeddingModel: (modelId: MistralEmbeddingModelId) => EmbeddingModelV4;
+  embeddingModel: (
+    modelId: MistralEmbeddingModelId,
+  ) => EmbeddingModelV4<MistralEmbeddingModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speech(modelId: MistralSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: MistralSpeechModelId,
+  ): SpeechModelV4<MistralSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation (text-to-speech).
    */
-  speechModel(modelId: MistralSpeechModelId): SpeechModelV4;
+  speechModel(
+    modelId: MistralSpeechModelId,
+  ): SpeechModelV4<MistralSpeechModelV4ProviderOptions>;
 
   /**
    * Creates a model for audio transcription.
    */
-  transcription(modelId: MistralTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: MistralTranscriptionModelId,
+  ): TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for audio transcription.
    */
   transcriptionModel(
     modelId: MistralTranscriptionModelId,
-  ): TranscriptionModelV4;
+  ): TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embedding` instead.
    */
-  textEmbedding(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+  textEmbedding(
+    modelId: MistralEmbeddingModelId,
+  ): EmbeddingModelV4<MistralEmbeddingModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.
    */
-  textEmbeddingModel(modelId: MistralEmbeddingModelId): EmbeddingModelV4;
+  textEmbeddingModel(
+    modelId: MistralEmbeddingModelId,
+  ): EmbeddingModelV4<MistralEmbeddingModelV4ProviderOptions>;
 }
 
 export interface MistralProviderSettings {

@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { FilesV4DeleteFileCallOptions } from './files-v4-delete-file-call-options';
 import type { FilesV4DeleteFileResult } from './files-v4-delete-file-result';
 import type { FilesV4DownloadFileCallOptions } from './files-v4-download-file-call-options';
@@ -14,7 +15,9 @@ import type { FilesV4UploadFileResult } from './files-v4-upload-file-result';
  * capabilities: their presence signals that the provider supports them
  * (mirroring the optional-method pattern of `VideoModelV4`).
  */
-export type FilesV4 = {
+export type FilesV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The files interface must specify which files interface version it implements.
    */
@@ -30,7 +33,7 @@ export type FilesV4 = {
    * that can be used in subsequent API calls.
    */
   uploadFile(
-    options: FilesV4UploadFileCallOptions,
+    options: FilesV4UploadFileCallOptions<ProviderOptions>,
   ): PromiseLike<FilesV4UploadFileResult>;
 
   /**
@@ -38,7 +41,7 @@ export type FilesV4 = {
    * Optional: presence signals that the provider supports metadata reads.
    */
   getFileMetadata?(
-    options: FilesV4GetFileMetadataCallOptions,
+    options: FilesV4GetFileMetadataCallOptions<ProviderOptions>,
   ): PromiseLike<FilesV4GetFileMetadataResult>;
 
   /**
@@ -46,7 +49,7 @@ export type FilesV4 = {
    * Optional: presence signals that the provider supports content download.
    */
   downloadFile?(
-    options: FilesV4DownloadFileCallOptions,
+    options: FilesV4DownloadFileCallOptions<ProviderOptions>,
   ): PromiseLike<FilesV4DownloadFileResult>;
 
   /**
@@ -54,6 +57,6 @@ export type FilesV4 = {
    * Optional: presence signals that the provider supports deletion.
    */
   deleteFile?(
-    options: FilesV4DeleteFileCallOptions,
+    options: FilesV4DeleteFileCallOptions<ProviderOptions>,
   ): PromiseLike<FilesV4DeleteFileResult>;
 };

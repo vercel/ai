@@ -5,6 +5,7 @@ import type {
 import type { RealtimeModelV4ClientEvent } from './realtime-model-v4-client-event';
 import type { RealtimeModelV4ServerEvent } from './realtime-model-v4-server-event';
 import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-config';
+import type { SharedV4ProviderOptions } from '../../shared';
 
 /**
  * Specification for a realtime model that supports bidirectional
@@ -13,7 +14,9 @@ import type { RealtimeModelV4SessionConfig } from './realtime-model-v4-session-c
  * Providers implement this interface to enable realtime voice
  * conversations through the AI SDK.
  */
-export type RealtimeModelV4 = {
+export type RealtimeModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The realtime model must specify which interface version it implements.
    */
@@ -56,7 +59,7 @@ export type RealtimeModelV4 = {
   /** Server-side SDP exchange. Return only the answer and session ID to the client. */
   doCreateWebRTCSession?(options: {
     sdp: string;
-    sessionConfig?: RealtimeModelV4SessionConfig;
+    sessionConfig?: RealtimeModelV4SessionConfig<ProviderOptions>;
     abortSignal?: AbortSignal;
   }): PromiseLike<{ sessionId: string; sdp: string }>;
 
@@ -112,7 +115,9 @@ export type RealtimeModelV4 = {
    * payload from a normalized session config. Used to construct the
    * session.update event sent after WebSocket connection.
    */
-  buildSessionConfig(config: RealtimeModelV4SessionConfig): unknown;
+  buildSessionConfig(
+    config: RealtimeModelV4SessionConfig<ProviderOptions>,
+  ): unknown;
 
   /**
    * Browser-side: Returns a message to auto-send back over the WebSocket

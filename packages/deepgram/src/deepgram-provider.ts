@@ -9,9 +9,15 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { DeepgramTranscriptionModel } from './deepgram-transcription-model';
+import {
+  DeepgramTranscriptionModel,
+  type DeepgramTranscriptionModelV4ProviderOptions,
+} from './deepgram-transcription-model';
 import type { DeepgramTranscriptionModelId } from './deepgram-transcription-options';
-import { DeepgramSpeechModel } from './deepgram-speech-model';
+import {
+  DeepgramSpeechModel,
+  type DeepgramSpeechModelV4ProviderOptions,
+} from './deepgram-speech-model';
 import type { DeepgramSpeechModelId } from './deepgram-speech-options';
 import { VERSION } from './version';
 
@@ -26,12 +32,16 @@ export interface DeepgramProvider extends ProviderV4 {
   /**
    * Creates a model for transcription.
    */
-  transcription(modelId: DeepgramTranscriptionModelId): TranscriptionModelV4;
+  transcription(
+    modelId: DeepgramTranscriptionModelId,
+  ): TranscriptionModelV4<DeepgramTranscriptionModelV4ProviderOptions>;
 
   /**
    * Creates a model for speech generation.
    */
-  speech(modelId: DeepgramSpeechModelId): SpeechModelV4;
+  speech(
+    modelId: DeepgramSpeechModelId,
+  ): SpeechModelV4<DeepgramSpeechModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

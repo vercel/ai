@@ -197,7 +197,7 @@ describe('doGenerate', () => {
         seed: undefined,
         providerOptions: {
           amazonBedrock: {
-            quality: 'ultra',
+            quality: 'ultra' as any,
           },
         },
       }),

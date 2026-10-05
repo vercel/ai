@@ -12,5 +12,6 @@ export type {
   HuggingFaceResponsesModelId,
   HuggingFaceResponsesSettings,
 } from './responses/huggingface-responses-settings';
+export type { HuggingFaceLanguageModelResponsesOptions } from './responses/huggingface-responses-language-model-options';
 export type { OpenAICompatibleErrorData as HuggingFaceErrorData } from '@ai-sdk/openai-compatible';
 export { VERSION } from './version';

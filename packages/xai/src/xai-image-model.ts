@@ -1,4 +1,9 @@
-import type { ImageModelV4, SharedV4Warning } from '@ai-sdk/provider';
+import type {
+  ImageModelV4,
+  SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertImageModelFileToDataUri,
@@ -15,7 +20,10 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { xaiFailedResponseHandler } from './xai-error';
-import { xaiImageModelOptions } from './xai-image-model-options';
+import {
+  xaiImageModelOptions,
+  type XaiImageModelOptions,
+} from './xai-image-model-options';
 import type { XaiImageModelId } from './xai-image-settings';
 
 interface XaiImageModelConfig {
@@ -33,6 +41,10 @@ const fileInputModelIds: ReadonlySet<string> = new Set<XaiImageModelId>([
   'grok-imagine-image-2.0',
   'grok-imagine-image-pro',
 ]);
+
+export type XaiImageModelV4ProviderOptions = {
+  xai?: XaiImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
 
 export class XaiImageModel implements ImageModelV4 {
   readonly specificationVersion = 'v4';
@@ -80,8 +92,12 @@ export class XaiImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: Parameters<ImageModelV4['doGenerate']>[0]): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: Parameters<
+    ImageModelV4<XaiImageModelV4ProviderOptions>['doGenerate']
+  >[0]): Promise<
+    Awaited<
+      ReturnType<ImageModelV4<XaiImageModelV4ProviderOptions>['doGenerate']>
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
 

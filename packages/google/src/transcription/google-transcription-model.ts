@@ -5,6 +5,8 @@ import {
   type JSONObject,
   type SharedV4Warning,
   type TranscriptionModelV4,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -97,7 +99,11 @@ interface GoogleTranscriptionModelConfig {
   };
 }
 
-export class GoogleTranscriptionModel implements TranscriptionModelV4 {
+export type GoogleTranscriptionModelV4ProviderOptions = {
+  google?: GoogleTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleTranscriptionModel implements TranscriptionModelV4<GoogleTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: GoogleTranscriptionModel) {
@@ -134,8 +140,16 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<GoogleTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<GoogleTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     if (isLiveTranscriptionModelId(this.modelId)) {
       throw new InvalidArgumentError({
         argument: 'modelId',
@@ -235,7 +249,7 @@ export class GoogleTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doStream(
-    options: TranscriptionModelV4StreamOptions,
+    options: TranscriptionModelV4StreamOptions<GoogleTranscriptionModelV4ProviderOptions>,
   ): Promise<
     Awaited<ReturnType<NonNullable<TranscriptionModelV4['doStream']>>>
   > {

@@ -8,7 +8,9 @@ import type { JSONObject } from '../../json-value';
  * Note: this is **not** the user-facing tool definition. The AI SDK methods will
  * map the user-facing tool definitions to this format.
  */
-export type LanguageModelV4FunctionTool = {
+export type LanguageModelV4FunctionTool<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The type of the tool (always 'function').
    */
@@ -49,5 +51,5 @@ export type LanguageModelV4FunctionTool = {
   /**
    * The provider-specific options for the tool.
    */
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 };

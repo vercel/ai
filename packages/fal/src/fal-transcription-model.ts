@@ -2,6 +2,8 @@ import {
   AISDKError,
   type TranscriptionModelV4,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -19,7 +21,10 @@ import {
 import { z } from 'zod/v4';
 import type { FalConfig } from './fal-config';
 import { falErrorDataSchema, falFailedResponseHandler } from './fal-error';
-import { falTranscriptionModelOptionsSchema } from './fal-transcription-model-options';
+import {
+  falTranscriptionModelOptionsSchema,
+  type FalTranscriptionModelOptions,
+} from './fal-transcription-model-options';
 import type { FalTranscriptionModelId } from './fal-transcription-options';
 import type { FalTranscriptionAPITypes } from './fal-api-types';
 
@@ -29,7 +34,11 @@ interface FalTranscriptionModelConfig extends FalConfig {
   };
 }
 
-export class FalTranscriptionModel implements TranscriptionModelV4 {
+export type FalTranscriptionModelV4ProviderOptions = {
+  fal?: FalTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FalTranscriptionModel implements TranscriptionModelV4<FalTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -57,7 +66,9 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
 
   private async getArgs({
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<FalTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     // Parse provider options
@@ -97,8 +108,16 @@ export class FalTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<FalTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<FalTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.getArgs(options);
 

@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { SpeechTranslationModelV4StreamOptions } from './speech-translation-model-v4-stream-options';
 import type { SpeechTranslationModelV4StreamResult } from './speech-translation-model-v4-stream-result';
 
@@ -11,7 +12,9 @@ import type { SpeechTranslationModelV4StreamResult } from './speech-translation-
  * releases while the functions built on it are experimental. All types of
  * this modality are exported with `Experimental_` prefixes for this reason.
  */
-export type SpeechTranslationModelV4 = {
+export type SpeechTranslationModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The speech translation model must specify which speech translation model
    * interface version it implements. This will allow us to evolve the
@@ -35,6 +38,6 @@ export type SpeechTranslationModelV4 = {
    * Streams a speech translation for live audio.
    */
   doStream(
-    options: SpeechTranslationModelV4StreamOptions,
+    options: SpeechTranslationModelV4StreamOptions<ProviderOptions>,
   ): PromiseLike<SpeechTranslationModelV4StreamResult>;
 };

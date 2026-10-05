@@ -2,6 +2,8 @@ import type { Context } from '@ai-sdk/provider-utils';
 import { describe, it, expectTypeOf } from 'vitest';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { embed } from './embed';
+import type { EmbeddingModel } from '../types/embedding-model';
+import type { SharedV4ProviderOptions } from '@ai-sdk/provider';
 
 describe('runtimeContext', () => {
   it('defaults to Context when omitted', async () => {
@@ -76,5 +78,16 @@ describe('runtimeContext', () => {
         },
       },
     });
+  });
+});
+
+describe('providerOptions', () => {
+  it('infer default provider options type', () => {
+    expectTypeOf<
+      Pick<Parameters<typeof embed>[0], 'model' | 'providerOptions'>
+    >().toEqualTypeOf<{
+      model: EmbeddingModel;
+      providerOptions?: SharedV4ProviderOptions | undefined;
+    }>();
   });
 });

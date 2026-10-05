@@ -4,11 +4,13 @@ import type {
   EvaluationModelV4Question,
 } from './evaluation-model-v4-question';
 
-export type EvaluationModelV4CallOptions = {
+export type EvaluationModelV4CallOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /** One shared state, even when the value is an array. */
   state: EvaluationModelV4Input;
   questions: Readonly<Record<string, EvaluationModelV4Question>>;
   abortSignal?: AbortSignal;
   headers?: SharedV4Headers;
-  providerOptions?: SharedV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 };

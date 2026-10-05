@@ -6,6 +6,8 @@ import {
   type Experimental_VideoModelV4OperationStartResult as VideoModelV4OperationStartResult,
   type Experimental_VideoModelV4OperationStatusResult as VideoModelV4OperationStatusResult,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -173,7 +175,11 @@ function resolveLastFrameImage(
   return byteDanceOptions?.lastFrameImage ?? undefined;
 }
 
-export class ByteDanceVideoModel implements VideoModelV4 {
+export type ByteDanceVideoModelV4ProviderOptions = {
+  byteDance?: ByteDanceVideoModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ByteDanceVideoModel implements VideoModelV4<ByteDanceVideoModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxVideosPerCall = 1;
 
@@ -348,7 +354,9 @@ export class ByteDanceVideoModel implements VideoModelV4 {
   }
 
   async doStart(
-    options: Parameters<NonNullable<VideoModelV4['doStart']>>[0],
+    options: Parameters<
+      NonNullable<VideoModelV4<ByteDanceVideoModelV4ProviderOptions>['doStart']>
+    >[0],
   ): Promise<VideoModelV4OperationStartResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { body, warnings } = await this.buildRequestBody(options);
@@ -395,7 +403,11 @@ export class ByteDanceVideoModel implements VideoModelV4 {
   }
 
   async doStatus(
-    options: Parameters<NonNullable<VideoModelV4['doStatus']>>[0],
+    options: Parameters<
+      NonNullable<
+        VideoModelV4<ByteDanceVideoModelV4ProviderOptions>['doStatus']
+      >
+    >[0],
   ): Promise<VideoModelV4OperationStatusResult> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { taskId } = options.operation as { taskId: string };

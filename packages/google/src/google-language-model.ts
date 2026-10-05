@@ -10,6 +10,8 @@ import type {
   JSONObject,
   SharedV4ProviderMetadata,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -95,7 +97,11 @@ export type GoogleLanguageModelConfig = {
   };
 };
 
-export class GoogleLanguageModel implements LanguageModelV4 {
+export type GoogleLanguageModelV4ProviderOptions = {
+  google?: GoogleLanguageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class GoogleLanguageModel implements LanguageModelV4<GoogleLanguageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   readonly modelId: GoogleModelId;
@@ -449,7 +455,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 
   private getArgs(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GoogleLanguageModelV4ProviderOptions>,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
     return GoogleLanguageModel.prepareRequest({
@@ -658,7 +664,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GoogleLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const {
       args,
@@ -710,7 +716,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<GoogleLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const {
       args,

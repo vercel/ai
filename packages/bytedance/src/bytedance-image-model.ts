@@ -3,6 +3,8 @@ import type {
   ImageModelV4CallOptions,
   ImageModelV4Usage,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -36,7 +38,11 @@ interface ByteDanceImageModelConfig extends ByteDanceConfig {
   };
 }
 
-export class ByteDanceImageModel implements ImageModelV4 {
+export type ByteDanceImageModelV4ProviderOptions = {
+  byteDance?: ByteDanceImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class ByteDanceImageModel implements ImageModelV4<ByteDanceImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   // The API has no output-count parameter, so a single call returns one image;
   // `generateImage` fans `n` out into `n` calls. Batches of related images are
@@ -78,8 +84,12 @@ export class ByteDanceImageModel implements ImageModelV4 {
     abortSignal,
     files,
     mask,
-  }: ImageModelV4CallOptions): Promise<
-    Awaited<ReturnType<ImageModelV4['doGenerate']>>
+  }: ImageModelV4CallOptions<ByteDanceImageModelV4ProviderOptions>): Promise<
+    Awaited<
+      ReturnType<
+        ImageModelV4<ByteDanceImageModelV4ProviderOptions>['doGenerate']
+      >
+    >
   > {
     const warnings: Array<SharedV4Warning> = [];
 

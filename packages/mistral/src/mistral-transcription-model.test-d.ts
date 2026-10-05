@@ -5,19 +5,20 @@ import {
   type MistralTranscriptionModelId,
   type MistralTranscriptionModelOptions,
 } from '.';
+import type { MistralTranscriptionModelV4ProviderOptions } from './mistral-transcription-model';
 
-expectTypeOf(
-  mistral.transcription('voxtral-mini-latest'),
-).toEqualTypeOf<TranscriptionModelV4>();
-expectTypeOf(
-  mistral.transcriptionModel('voxtral-mini-latest'),
-).toEqualTypeOf<TranscriptionModelV4>();
+expectTypeOf(mistral.transcription('voxtral-mini-latest')).toEqualTypeOf<
+  TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions>
+>();
+expectTypeOf(mistral.transcriptionModel('voxtral-mini-latest')).toEqualTypeOf<
+  TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions>
+>();
 
 const customModelId =
   'custom-voxtral-model' satisfies MistralTranscriptionModelId;
-expectTypeOf(
-  mistral.transcription(customModelId),
-).toEqualTypeOf<TranscriptionModelV4>();
+expectTypeOf(mistral.transcription(customModelId)).toEqualTypeOf<
+  TranscriptionModelV4<MistralTranscriptionModelV4ProviderOptions>
+>();
 
 const options = {
   language: 'en',

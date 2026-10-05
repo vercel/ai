@@ -1,4 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  SpeechModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -15,7 +20,10 @@ import type {
   FishAudioSpeechFormat,
   FishAudioProsodyControl,
 } from './fish-audio-speech-api-types';
-import { fishAudioSpeechModelOptionsSchema } from './fish-audio-speech-model-options';
+import {
+  fishAudioSpeechModelOptionsSchema,
+  type FishAudioSpeechModelOptions,
+} from './fish-audio-speech-model-options';
 import type { FishAudioSpeechModelId } from './fish-audio-speech-options';
 
 interface FishAudioSpeechModelConfig extends FishAudioConfig {
@@ -63,7 +71,11 @@ function resolveFormat({
   return matched;
 }
 
-export class FishAudioSpeechModel implements SpeechModelV4 {
+export type FishAudioSpeechModelV4ProviderOptions = {
+  fishAudio?: FishAudioSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FishAudioSpeechModel implements SpeechModelV4<FishAudioSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -97,7 +109,9 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
     language,
     speed,
     providerOptions,
-  }: Parameters<SpeechModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    SpeechModelV4<FishAudioSpeechModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     const fishAudioOptions = await parseProviderOptions({
@@ -255,8 +269,16 @@ export class FishAudioSpeechModel implements SpeechModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<SpeechModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<SpeechModelV4['doGenerate']>>> {
+    options: Parameters<
+      SpeechModelV4<FishAudioSpeechModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        SpeechModelV4<FishAudioSpeechModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { requestBody, warnings } = await this.getArgs(options);
 

@@ -1,9 +1,11 @@
-import type { JSONObject } from '../../json-value/json-value';
-import type { SharedV4AudioFormat } from '../../shared';
+import type {
+  SharedV4AudioFormat,
+  SharedV4ProviderOptions,
+} from '../../shared';
 
-type TranscriptionModelV4ProviderOptions = Record<string, JSONObject>;
-
-export type TranscriptionModelV4StreamOptions = {
+export type TranscriptionModelV4StreamOptions<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * Audio chunks to transcribe.
    *
@@ -23,7 +25,7 @@ export type TranscriptionModelV4StreamOptions = {
    * The outer record is keyed by the provider name, and the inner record is keyed
    * by provider-specific option names.
    */
-  providerOptions?: TranscriptionModelV4ProviderOptions;
+  providerOptions?: ProviderOptions;
 
   /**
    * Abort signal for cancelling the operation.

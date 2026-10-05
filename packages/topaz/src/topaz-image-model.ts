@@ -6,6 +6,8 @@ import {
   type ImageModelV4CallOptions,
   type ImageModelV4Result,
   type SharedV4Warning,
+  type SharedV4ProviderOptions,
+  type JSONValue,
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
@@ -38,11 +40,15 @@ import {
 const DEFAULT_POLL_INTERVAL_MILLIS = 2000;
 const DEFAULT_POLL_TIMEOUT_MILLIS = 600_000;
 
+export type TopazImageModelV4ProviderOptions = {
+  topaz?: TopazImageModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 /**
  * Topaz enhances an image that the caller supplies, so `files` is required and
  * exactly one image is processed per call.
  */
-export class TopazImageModel implements ImageModelV4 {
+export class TopazImageModel implements ImageModelV4<TopazImageModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
   readonly maxImagesPerCall = 1;
   readonly supportsFileInputs = true;
@@ -72,7 +78,7 @@ export class TopazImageModel implements ImageModelV4 {
   ) {}
 
   async doGenerate(
-    options: ImageModelV4CallOptions,
+    options: ImageModelV4CallOptions<TopazImageModelV4ProviderOptions>,
   ): Promise<ImageModelV4Result> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
@@ -169,7 +175,7 @@ export class TopazImageModel implements ImageModelV4 {
   }
 
   private addUnsupportedWarnings(
-    options: ImageModelV4CallOptions,
+    options: ImageModelV4CallOptions<TopazImageModelV4ProviderOptions>,
     warnings: SharedV4Warning[],
   ): void {
     if (options.prompt != null) {
@@ -220,7 +226,7 @@ export class TopazImageModel implements ImageModelV4 {
   }
 
   private async buildFormData(
-    options: ImageModelV4CallOptions,
+    options: ImageModelV4CallOptions<TopazImageModelV4ProviderOptions>,
     topazOptions: TopazImageModelOptions | undefined,
     warnings: SharedV4Warning[],
   ): Promise<FormData> {

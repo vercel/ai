@@ -1,3 +1,4 @@
+import type { SharedV4ProviderOptions } from '../../shared';
 import type { EmbeddingModelV4CallOptions } from './embedding-model-v4-call-options';
 import type { EmbeddingModelV4Result } from './embedding-model-v4-result';
 
@@ -7,7 +8,9 @@ import type { EmbeddingModelV4Result } from './embedding-model-v4-result';
  *
  * It is specific to text embeddings.
  */
-export type EmbeddingModelV4 = {
+export type EmbeddingModelV4<
+  ProviderOptions extends SharedV4ProviderOptions = SharedV4ProviderOptions,
+> = {
   /**
    * The embedding model must specify which embedding model interface
    * version it implements. This will allow us to evolve the embedding
@@ -49,6 +52,6 @@ export type EmbeddingModelV4 = {
    * by the user.
    */
   doEmbed(
-    options: EmbeddingModelV4CallOptions,
+    options: EmbeddingModelV4CallOptions<ProviderOptions>,
   ): PromiseLike<EmbeddingModelV4Result>;
 };

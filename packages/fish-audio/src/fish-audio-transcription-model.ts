@@ -1,4 +1,9 @@
-import type { SharedV4Warning, TranscriptionModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  TranscriptionModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   convertBase64ToUint8Array,
@@ -13,7 +18,10 @@ import {
 import { z } from 'zod/v4';
 import type { FishAudioConfig } from './fish-audio-config';
 import { fishAudioFailedResponseHandler } from './fish-audio-error';
-import { fishAudioTranscriptionModelOptionsSchema } from './fish-audio-transcription-model-options';
+import {
+  fishAudioTranscriptionModelOptionsSchema,
+  type FishAudioTranscriptionModelOptions,
+} from './fish-audio-transcription-model-options';
 import type { FishAudioTranscriptionModelId } from './fish-audio-transcription-options';
 
 interface FishAudioTranscriptionModelConfig extends FishAudioConfig {
@@ -22,7 +30,11 @@ interface FishAudioTranscriptionModelConfig extends FishAudioConfig {
   };
 }
 
-export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
+export type FishAudioTranscriptionModelV4ProviderOptions = {
+  fishAudio?: FishAudioTranscriptionModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class FishAudioTranscriptionModel implements TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   get provider(): string {
@@ -52,7 +64,9 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
     audio,
     mediaType,
     providerOptions,
-  }: Parameters<TranscriptionModelV4['doGenerate']>[0]) {
+  }: Parameters<
+    TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions>['doGenerate']
+  >[0]) {
     const warnings: SharedV4Warning[] = [];
 
     const fishAudioOptions = await parseProviderOptions({
@@ -89,8 +103,16 @@ export class FishAudioTranscriptionModel implements TranscriptionModelV4 {
   }
 
   async doGenerate(
-    options: Parameters<TranscriptionModelV4['doGenerate']>[0],
-  ): Promise<Awaited<ReturnType<TranscriptionModelV4['doGenerate']>>> {
+    options: Parameters<
+      TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions>['doGenerate']
+    >[0],
+  ): Promise<
+    Awaited<
+      ReturnType<
+        TranscriptionModelV4<FishAudioTranscriptionModelV4ProviderOptions>['doGenerate']
+      >
+    >
+  > {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const { formData, warnings } = await this.getArgs(options);
 

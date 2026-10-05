@@ -24,6 +24,7 @@ import type {
   AgentStreamParameters,
 } from './agent';
 import type { ToolLoopAgentSettings } from './tool-loop-agent-settings';
+import type { LanguageModel } from '../types';
 
 /**
  * A tool loop agent is an agent that runs tools in a loop. In each step,
@@ -41,6 +42,7 @@ export class ToolLoopAgent<
   TOOLS extends ToolSet = {},
   RUNTIME_CONTEXT extends Context = Context,
   OUTPUT extends Output = never,
+  LANGUAGE_MODEL extends LanguageModel = LanguageModel,
 > implements Agent<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT> {
   readonly version = 'agent-v1';
 
@@ -56,7 +58,8 @@ export class ToolLoopAgent<
       CALL_OPTIONS,
       TOOLS,
       RUNTIME_CONTEXT,
-      OUTPUT
+      OUTPUT,
+      LANGUAGE_MODEL
     >,
   ) {
     const { onFinish, onEnd = onFinish } = settings;

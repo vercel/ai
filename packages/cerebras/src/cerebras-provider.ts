@@ -10,7 +10,10 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { CerebrasChatLanguageModel } from './cerebras-chat-language-model';
+import {
+  CerebrasChatLanguageModel,
+  type CerebrasChatLanguageModelV4ProviderOptions,
+} from './cerebras-chat-language-model';
 import type { CerebrasChatModelId } from './cerebras-chat-options';
 import { z } from 'zod/v4';
 import { VERSION } from './version';
@@ -113,17 +116,23 @@ export interface CerebrasProvider extends ProviderV4 {
   /**
    * Creates a Cerebras model for text generation.
    */
-  (modelId: CerebrasChatModelId): LanguageModelV4;
+  (
+    modelId: CerebrasChatModelId,
+  ): LanguageModelV4<CerebrasChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Cerebras model for text generation.
    */
-  languageModel(modelId: CerebrasChatModelId): LanguageModelV4;
+  languageModel(
+    modelId: CerebrasChatModelId,
+  ): LanguageModelV4<CerebrasChatLanguageModelV4ProviderOptions>;
 
   /**
    * Creates a Cerebras chat model for text generation.
    */
-  chat(modelId: CerebrasChatModelId): LanguageModelV4;
+  chat(
+    modelId: CerebrasChatModelId,
+  ): LanguageModelV4<CerebrasChatLanguageModelV4ProviderOptions>;
 
   /**
    * @deprecated Use `embeddingModel` instead.

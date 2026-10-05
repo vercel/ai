@@ -7,6 +7,8 @@ import type {
   LanguageModelV4StreamPart,
   LanguageModelV4StreamResult,
   SharedV4Warning,
+  SharedV4ProviderOptions,
+  JSONValue,
 } from '@ai-sdk/provider';
 import {
   parseProviderOptions,
@@ -16,7 +18,10 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import type { ZaiChatModelId } from './zai-chat-options';
-import { zaiLanguageModelChatOptions } from './zai-chat-language-model-options';
+import {
+  zaiLanguageModelChatOptions,
+  type ZaiLanguageModelChatOptions,
+} from './zai-chat-language-model-options';
 import { zaiErrorStructure } from './zai-error';
 
 type OpenAICompatibleChatConfig = ConstructorParameters<
@@ -81,9 +86,13 @@ function mapZaiFinishReason(
   }
 }
 
+export type ZaiChatLanguageModelV4ProviderOptions = {
+  zai?: ZaiLanguageModelChatOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
 export class ZaiChatLanguageModel
   extends OpenAICompatibleChatLanguageModel
-  implements LanguageModelV4
+  implements LanguageModelV4<ZaiChatLanguageModelV4ProviderOptions>
 {
   private readonly zaiConfig: ZaiChatConfig;
 
@@ -180,7 +189,7 @@ export class ZaiChatLanguageModel
   }
 
   async doGenerate(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<ZaiChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4GenerateResult> {
     const { normalizedOptions, warnings } =
       await this.prepareCallOptions(options);
@@ -194,7 +203,7 @@ export class ZaiChatLanguageModel
   }
 
   async doStream(
-    options: LanguageModelV4CallOptions,
+    options: LanguageModelV4CallOptions<ZaiChatLanguageModelV4ProviderOptions>,
   ): Promise<LanguageModelV4StreamResult> {
     const { normalizedOptions, warnings } =
       await this.prepareCallOptions(options);

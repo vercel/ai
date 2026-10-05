@@ -1,4 +1,9 @@
-import type { SharedV4Warning, SpeechModelV4 } from '@ai-sdk/provider';
+import type {
+  SharedV4Warning,
+  SpeechModelV4,
+  SharedV4ProviderOptions,
+  JSONValue,
+} from '@ai-sdk/provider';
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -14,6 +19,7 @@ import { mistralFailedResponseHandler } from './mistral-error';
 import {
   mistralSpeechModelOptions,
   type MistralSpeechModelId,
+  type MistralSpeechModelOptions,
 } from './mistral-speech-model-options';
 
 interface MistralSpeechModelConfig {
@@ -28,7 +34,11 @@ interface MistralSpeechModelConfig {
 
 type MistralSpeechOutputFormat = 'pcm' | 'wav' | 'mp3' | 'flac' | 'opus';
 
-export class MistralSpeechModel implements SpeechModelV4 {
+export type MistralSpeechModelV4ProviderOptions = {
+  mistral?: MistralSpeechModelOptions & Record<string, JSONValue>;
+} & SharedV4ProviderOptions;
+
+export class MistralSpeechModel implements SpeechModelV4<MistralSpeechModelV4ProviderOptions> {
   readonly specificationVersion = 'v4';
 
   static [WORKFLOW_SERIALIZE](model: MistralSpeechModel) {
