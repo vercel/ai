@@ -1,0 +1,24 @@
+{
+  "id": "1f476b96-75b3-4223-a19b-cccf591d161c",
+  "message": {
+    "role": "assistant",
+    "content": [
+      {
+        "type": "text",
+        "text": "OK."
+      }
+    ]
+  },
+  "finish_reason": "MAX_TOKENS",
+  "usage": {
+    "billed_units": {
+      "input_tokens": 5,
+      "output_tokens": 2
+    },
+    "tokens": {
+      "input_tokens": 500,
+      "output_tokens": 5
+    },
+    "cached_tokens": 448
+  }
+}

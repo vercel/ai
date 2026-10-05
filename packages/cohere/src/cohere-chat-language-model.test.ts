@@ -740,6 +740,21 @@ describe('doGenerate', () => {
       `);
     });
 
+    it('should map cached token usage', async () => {
+      prepareJsonFixtureResponse('issue-22070-cached-usage');
+
+      const { usage } = await model.doGenerate({
+        prompt: TEST_PROMPT,
+      });
+
+      expect(usage.inputTokens).toStrictEqual({
+        total: 500,
+        noCache: 52,
+        cacheRead: 448,
+        cacheWrite: undefined,
+      });
+    });
+
     it('should preserve extra top-level and nested fields in raw usage', async () => {
       server.urls['https://api.cohere.com/v2/chat'].response = {
         type: 'json-value',
@@ -886,6 +901,30 @@ describe('doStream', () => {
       const chunks = await convertReadableStreamToArray(stream);
 
       expect(chunks.filter(chunk => chunk.type === 'raw')).toHaveLength(0);
+    });
+
+    it('should map cached token usage', async () => {
+      prepareChunksFixtureResponse('issue-22070-cached-usage');
+
+      const { stream } = await model.doStream({
+        prompt: TEST_PROMPT,
+        includeRawChunks: false,
+      });
+
+      const chunks = await convertReadableStreamToArray(stream);
+      const finish = chunks.at(-1);
+
+      expect(finish).toMatchObject({
+        type: 'finish',
+        usage: {
+          inputTokens: {
+            total: 500,
+            noCache: 52,
+            cacheRead: 448,
+            cacheWrite: undefined,
+          },
+        },
+      });
     });
 
     it('should preserve extra top-level and nested fields in raw usage', async () => {
