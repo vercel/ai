@@ -27,6 +27,11 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
+import {
+  azureImageModelOptions,
+  isMAIImageModel,
+} from './azure-image-model-options';
+import { AzureMaiImageModel } from './azure-mai-image-model';
 import { azureOpenaiTools } from './azure-openai-tools';
 import {
   azureSpeechModelOptions,
@@ -89,12 +94,13 @@ export interface AzureOpenAIProvider extends ProviderV3 {
   textEmbeddingModel(deploymentId: string): EmbeddingModelV3;
 
   /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
+   * Creates an Azure image model. MAI-Image models use the MAI image API by
+   * default; other IDs use OpenAI. Override with providerOptions.azure.api.
    */
   image(deploymentId: string): ImageModelV3;
 
   /**
-   * Creates an Azure OpenAI DALL-E model for image generation.
+   * Creates an Azure image model. Alias of `image`.
    */
   imageModel(deploymentId: string): ImageModelV3;
 
@@ -189,6 +195,12 @@ export interface AzureOpenAIProviderSettings {
    * Speech requests do not use `baseURL` or `apiVersion`.
    */
   speechBaseURL?: string;
+
+  /**
+   * URL prefix for MAI image requests (MAI-Image generations and edits).
+   * Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+   */
+  maiBaseURL?: string;
 }
 
 function getAzureOpenAIBaseURLInfo(baseURL: string | undefined) {
@@ -233,7 +245,7 @@ export function createAzure(
     });
   }
 
-  const getHeaders = (api: 'openai' | 'speech' = 'openai') => {
+  const getHeaders = (api: 'mai' | 'openai' | 'speech' = 'openai') => {
     const authHeaders = tokenProvider
       ? {}
       : {
@@ -241,7 +253,12 @@ export function createAzure(
             loadApiKey({
               apiKey: options.apiKey,
               environmentVariableName: 'AZURE_API_KEY',
-              description: api === 'speech' ? 'Azure Speech' : 'Azure OpenAI',
+              description:
+                api === 'speech'
+                  ? 'Azure Speech'
+                  : api === 'mai'
+                    ? 'Azure MAI'
+                    : 'Azure OpenAI',
             }),
         };
 
@@ -371,13 +388,25 @@ export function createAzure(
       fileIdPrefixes: ['assistant-'],
     });
 
+  const maiBaseURL = () =>
+    withoutTrailingSlash(options.maiBaseURL) ??
+    `https://${getResourceName()}.services.ai.azure.com/mai/v1`;
+
   const createImageModel = (modelId: string) =>
-    new OpenAIImageModel(modelId, {
-      provider: 'azure.image',
-      url,
-      headers: getHeaders,
-      fetch,
-    });
+    new AzureImageModel(
+      modelId,
+      new OpenAIImageModel(modelId, {
+        provider: 'azure.image',
+        url,
+        headers: getHeaders,
+        fetch,
+      }),
+      new AzureMaiImageModel(modelId, {
+        url: path => `${maiBaseURL()}${path}`,
+        headers: () => getHeaders('mai'),
+        fetch,
+      }),
+    );
 
   const speechBaseURL = () =>
     withoutTrailingSlash(options.speechBaseURL) ??
@@ -542,6 +571,54 @@ class AzureSpeechModel implements SpeechModelV3 {
               type: 'unsupported',
               feature: `providerOptions.azure.${key}`,
               details: 'This option requires the Azure Speech API.',
+            }),
+          ),
+      ],
+    };
+  }
+}
+
+// Resolves the API per request: providerOptions also reach this model via Gateway.
+class AzureImageModel implements ImageModelV3 {
+  readonly specificationVersion = 'v3';
+  readonly provider = 'azure.image';
+
+  constructor(
+    readonly modelId: string,
+    private readonly openai: OpenAIImageModel,
+    private readonly mai: AzureMaiImageModel,
+  ) {}
+
+  // The limit follows the default route; an `api` override is per request.
+  get maxImagesPerCall() {
+    return isMAIImageModel(this.modelId)
+      ? this.mai.maxImagesPerCall
+      : this.openai.maxImagesPerCall;
+  }
+
+  async doGenerate(options: Parameters<ImageModelV3['doGenerate']>[0]) {
+    const { api, ...maiOptions } =
+      (await parseProviderOptions({
+        provider: 'azure',
+        providerOptions: options.providerOptions,
+        schema: azureImageModelOptions,
+      })) ?? {};
+    if ((api ?? (isMAIImageModel(this.modelId) ? 'mai' : 'openai')) === 'mai') {
+      return this.mai.doGenerate(options, maiOptions);
+    }
+
+    const result = await this.openai.doGenerate(options);
+    return {
+      ...result,
+      warnings: [
+        ...result.warnings,
+        ...Object.entries(maiOptions)
+          .filter(([, value]) => value !== undefined)
+          .map(
+            ([key]): SharedV3Warning => ({
+              type: 'unsupported',
+              feature: `providerOptions.azure.${key}`,
+              details: 'This option requires the MAI image API.',
             }),
           ),
       ],
