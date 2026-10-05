@@ -1,5 +1,11 @@
 # @ai-sdk/azure
 
+## 3.0.135
+
+### Patch Changes
+
+- ba91e05: feat(azure): support MAI-Image models through the MAI image API
+
 ## 3.0.134
 
 ### Patch Changes
