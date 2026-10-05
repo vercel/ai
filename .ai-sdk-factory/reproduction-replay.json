@@ -1,0 +1,16 @@
+{
+  "version": 2,
+  "issueId": 22052,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22052.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22052.ts",
+    "packages/elevenlabs/src/elevenlabs-transcription-diarization.test.ts",
+    "packages/elevenlabs/src/__fixtures__/issue-22052-diarized.json",
+    "packages/elevenlabs/src/__fixtures__/issue-22052-not-diarized.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "Issue #22052 reproduced: default diarization lost speaker labels when ElevenLabs provider options were supplied."
+  }
+}
