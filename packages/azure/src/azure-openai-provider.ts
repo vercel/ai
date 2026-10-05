@@ -206,9 +206,8 @@ export interface AzureOpenAIProviderSettings {
   speechBaseURL?: string;
 
   /**
-   * URL prefix for MAI APIs (MAI-Image generations and edits,
-   * MAI-Transcribe-2-Streaming).
-   * Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
+   * URL prefix for MAI APIs (MAI-Image, MAI-Transcribe-2-Streaming). Defaults
+   * to `https://{resourceName}.services.ai.azure.com/mai/v1`.
    */
   maiBaseURL?: string;
 
@@ -678,20 +677,21 @@ class AzureImageModel implements ImageModelV4 {
     private readonly mai: AzureMaiImageModel,
   ) {}
 
+  // Capabilities follow the default route; an `api` override is per request.
+  private get defaultModel() {
+    return isMAIImageModel(this.modelId) ? this.mai : this.openai;
+  }
+
   get maxImagesPerCall() {
-    return isMAIImageModel(this.modelId) ? 1 : this.openai.maxImagesPerCall;
+    return this.defaultModel.maxImagesPerCall;
   }
 
   get supportsFileInputs() {
-    return isMAIImageModel(this.modelId)
-      ? true
-      : this.openai.supportsFileInputs;
+    return this.defaultModel.supportsFileInputs;
   }
 
   get supportsMaskInputs() {
-    return isMAIImageModel(this.modelId)
-      ? false
-      : this.openai.supportsMaskInputs;
+    return this.defaultModel.supportsMaskInputs;
   }
 
   static [WORKFLOW_SERIALIZE](model: AzureImageModel) {

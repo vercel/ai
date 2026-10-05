@@ -1,6 +1,7 @@
 import type {
   ImageModelV4,
   ImageModelV4File,
+  ImageModelV4Usage,
   SharedV4Warning,
 } from '@ai-sdk/provider';
 import {
@@ -14,20 +15,22 @@ import {
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
-import type { AzureImageModelOptions } from './azure-image-model-options';
+import type { AzureImageModelMaiOptions } from './azure-mai-image-model-options';
 
 // MAI rejects either side below 768px; 1024x1024 is its default output.
 const MIN_SIDE = 768;
 const DEFAULT_PIXELS = 1024 * 1024;
 
-type MaiImageOptions = Omit<AzureImageModelOptions, 'api'>;
-
 /**
  * MAI image generations and edits (`/mai/v1/images/*`) on Azure AI Foundry.
  * The API returns one PNG per request and takes `width`/`height`, not `size`.
  */
-export class AzureMaiImageModel {
+export class AzureMaiImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4';
   readonly provider = 'azure.image';
+  readonly maxImagesPerCall = 1;
+  readonly supportsFileInputs = true;
+  readonly supportsMaskInputs = false;
 
   constructor(
     readonly modelId: string,
@@ -51,18 +54,11 @@ export class AzureMaiImageModel {
       headers,
       abortSignal,
     }: Parameters<ImageModelV4['doGenerate']>[0],
-    { autoAspectRatio, webGrounding }: MaiImageOptions = {},
+    { autoAspectRatio, webGrounding }: AzureImageModelMaiOptions = {},
   ): Promise<Awaited<ReturnType<ImageModelV4['doGenerate']>>> {
     const currentDate = this.config._internal?.currentDate?.() ?? new Date();
     const warnings: SharedV4Warning[] = [];
 
-    if (n > 1) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'n',
-        details: 'MAI image models return one image per request.',
-      });
-    }
     if (seed != null) {
       warnings.push({ type: 'unsupported', feature: 'seed' });
     }
@@ -109,59 +105,74 @@ export class AzureMaiImageModel {
       abortSignal,
       fetch: this.config.fetch,
     };
-
-    const { value: response, responseHeaders } =
+    const images =
       files != null && files.length > 0
-        ? await postFormDataToApi({
-            ...requestOptions,
-            url: this.config.url('/images/edits'),
-            formData: await toFormData(fields, files),
-          })
-        : await postJsonToApi({
-            ...requestOptions,
-            url: this.config.url('/images/generations'),
-            body: fields,
-          });
+        ? await Promise.all(files.map(file => fileToBlob(file, abortSignal)))
+        : undefined;
 
-    const textTokens = response.usage?.num_input_text_tokens ?? undefined;
-    const imageTokens = response.usage?.num_input_image_tokens ?? undefined;
-    const inputTokens =
-      textTokens == null && imageTokens == null
-        ? undefined
-        : (textTokens ?? 0) + (imageTokens ?? 0);
-    const outputTokens = response.usage?.num_output_tokens ?? undefined;
+    // The API ignores `n`, so a call reached with n > 1 (e.g. through an
+    // `api: 'mai'` override) sends one request per image.
+    const responses = await Promise.all(
+      Array.from({ length: Math.max(1, n) }, () =>
+        images != null
+          ? postFormDataToApi({
+              ...requestOptions,
+              url: this.config.url('/images/edits'),
+              formData: toFormData(fields, images),
+            })
+          : postJsonToApi({
+              ...requestOptions,
+              url: this.config.url('/images/generations'),
+              body: fields,
+            }),
+      ),
+    );
+
+    let usage: ImageModelV4Usage | undefined;
+    const metadata: Array<Record<string, number | string>> = [];
+    for (const { value: response } of responses) {
+      const textTokens = response.usage?.num_input_text_tokens ?? undefined;
+      const imageTokens = response.usage?.num_input_image_tokens ?? undefined;
+      if (response.usage != null) {
+        const inputTokens = addTokens(textTokens, imageTokens);
+        const outputTokens = response.usage.num_output_tokens ?? undefined;
+        usage = {
+          inputTokens: addTokens(usage?.inputTokens, inputTokens),
+          outputTokens: addTokens(usage?.outputTokens, outputTokens),
+          totalTokens: addTokens(
+            usage?.totalTokens,
+            addTokens(inputTokens, outputTokens),
+          ),
+        };
+      }
+      metadata.push(
+        ...response.data.map(() => ({
+          ...(response.created != null ? { created: response.created } : {}),
+          ...(response.size != null ? { size: response.size } : {}),
+          ...(textTokens != null ? { textTokens } : {}),
+          ...(imageTokens != null ? { imageTokens } : {}),
+        })),
+      );
+    }
 
     return {
-      images: response.data.map(item => item.b64_json),
+      images: responses.flatMap(({ value }) =>
+        value.data.map(item => item.b64_json),
+      ),
       warnings,
       response: {
         timestamp: currentDate,
         modelId: this.modelId,
-        headers: responseHeaders,
+        headers: responses[0]?.responseHeaders,
       },
-      usage:
-        response.usage != null
-          ? {
-              inputTokens,
-              outputTokens,
-              totalTokens:
-                inputTokens == null && outputTokens == null
-                  ? undefined
-                  : (inputTokens ?? 0) + (outputTokens ?? 0),
-            }
-          : undefined,
-      providerMetadata: {
-        azure: {
-          images: response.data.map(() => ({
-            ...(response.created != null ? { created: response.created } : {}),
-            ...(response.size != null ? { size: response.size } : {}),
-            ...(textTokens != null ? { textTokens } : {}),
-            ...(imageTokens != null ? { imageTokens } : {}),
-          })),
-        },
-      },
+      usage,
+      providerMetadata: { azure: { images: metadata } },
     };
   }
+}
+
+function addTokens(a: number | undefined, b: number | undefined) {
+  return a == null && b == null ? undefined : (a ?? 0) + (b ?? 0);
 }
 
 function parseSize(size: `${number}x${number}` | undefined) {
@@ -192,26 +203,28 @@ export function dimensionsForAspectRatio(aspectRatio: string) {
   };
 }
 
-async function toFormData(
+function toFormData(
   fields: Record<string, string | number | boolean | undefined>,
-  files: ImageModelV4File[],
+  images: Blob[],
 ) {
   const formData = new FormData();
   for (const [key, value] of Object.entries(fields)) {
     if (value != null) formData.append(key, String(value));
   }
 
-  const blobs = await Promise.all(files.map(fileToBlob));
-  blobs.forEach((blob, index) => {
+  images.forEach((blob, index) => {
     const extension = blob.type === 'image/jpeg' ? 'jpg' : 'png';
     formData.append('image', blob, `image-${index + 1}.${extension}`);
   });
   return formData;
 }
 
-async function fileToBlob(file: ImageModelV4File): Promise<Blob> {
+async function fileToBlob(
+  file: ImageModelV4File,
+  abortSignal: AbortSignal | undefined,
+): Promise<Blob> {
   if (file.type === 'url') {
-    return downloadBlob(file.url);
+    return downloadBlob(file.url, { abortSignal });
   }
 
   const data =

@@ -4,6 +4,7 @@ import {
   type InferSchema,
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
+import { azureMaiImageModelOptionsShape } from './azure-mai-image-model-options';
 
 export const azureImageModelOptions = lazySchema(() =>
   zodSchema(
@@ -12,17 +13,7 @@ export const azureImageModelOptions = lazySchema(() =>
        * API to use. Defaults to MAI for MAI-Image models, OpenAI otherwise.
        */
       api: z.enum(['openai', 'mai']).optional(),
-
-      /**
-       * Let the model pick the output aspect ratio from the prompt and any
-       * reference images. MAI-Image-2.6 models only.
-       */
-      autoAspectRatio: z.boolean().optional(),
-
-      /**
-       * Ground generation in Bing web search results. MAI-Image-2.6 models only.
-       */
-      webGrounding: z.boolean().optional(),
+      ...azureMaiImageModelOptionsShape(),
     }),
   ),
 );

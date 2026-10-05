@@ -1,4 +1,4 @@
-import { createAzure } from '@ai-sdk/azure';
+import { createAzure, type AzureImageModelOptions } from '@ai-sdk/azure';
 import { generateImage } from 'ai';
 import fs from 'node:fs';
 import { presentImages } from '../../lib/present-image';
@@ -16,6 +16,10 @@ run(async () => {
     prompt: {
       text: 'Turn the cat into a watercolor painting',
       images: [fs.readFileSync('data/comic-cat.png')],
+    },
+    providerOptions: {
+      // `api: 'mai'` keeps custom deployment names on the MAI image API.
+      azure: { api: 'mai' } satisfies AzureImageModelOptions,
     },
   });
 
