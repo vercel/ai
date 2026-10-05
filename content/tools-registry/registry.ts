@@ -689,4 +689,35 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'upload-post',
+    name: 'Upload-Post',
+    description:
+      'Publish videos, photos and text to TikTok, Instagram, YouTube, LinkedIn, Facebook, X, Threads, Pinterest, Bluesky, Discord and Telegram from your agent. Schedule or queue posts, track upload status, cancel scheduled posts, and read upload history and account analytics.',
+    packageName: '@upload-post/ai-sdk',
+    tags: ['social-media', 'publishing', 'scheduling', 'video', 'marketing'],
+    apiKeyEnvName: 'UPLOAD_POST_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @upload-post/ai-sdk',
+      npm: 'npm install @upload-post/ai-sdk',
+      yarn: 'yarn add @upload-post/ai-sdk',
+      bun: 'bun add @upload-post/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { uploadPostTools } from '@upload-post/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: uploadPostTools({ profile: 'my-brand' }),
+  stopWhen: isStepCount(5),
+  prompt:
+    'Publish https://example.com/launch.mp4 to TikTok and Instagram with a short, catchy caption, then check its upload status.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://docs.upload-post.com/guides/vercel-ai-sdk',
+    apiKeyUrl: 'https://app.upload-post.com/api-keys',
+    websiteUrl: 'https://www.upload-post.com',
+    npmUrl: 'https://www.npmjs.com/package/@upload-post/ai-sdk',
+  },
 ];
