@@ -1,5 +1,11 @@
 # @ai-sdk/workflow
 
+## 2.0.60
+
+### Patch Changes
+
+- d9e04cb: fix(workflow): reuse persisted tool denial results during approval resumption
+
 ## 2.0.59
 
 ### Patch Changes
