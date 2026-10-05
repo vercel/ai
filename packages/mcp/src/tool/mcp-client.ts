@@ -977,21 +977,18 @@ class DefaultMCPClient implements MCPClient {
     options?: RequestOptions;
   }): Promise<SubscribeEventResult> {
     const validated = SubscribeEventParamsSchema.parse(params);
-    const result = await this.request({
+    return this.request({
       request: {
         method: 'events/subscribe',
-        params: { ...validated, arguments: validated.arguments ?? {} },
+        params: {
+          ...validated,
+          arguments: validated.arguments ?? {},
+          delivery: { mode: 'webhook', ...validated.delivery },
+        },
       },
       resultSchema: SubscribeEventResultSchema,
       options,
     });
-    if (result.refreshBefore === null && validated.ttlMs !== null) {
-      throw new MCPClientError({
-        message:
-          'Server granted a non-expiring subscription without an explicit ttlMs: null request',
-      });
-    }
-    return result;
   }
 
   async experimental_unsubscribeEvent({

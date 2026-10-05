@@ -69,6 +69,10 @@ storage/receiver implementation, not AI SDK functions. The callback must use HTT
 32 random bytes using Web Crypto. Never expose the secret or callback configuration
 as model-controlled subscription arguments.
 
+The client supplies `delivery.mode: 'webhook'` on the wire automatically because
+`events/subscribe` supports only webhook delivery. Unsubscribe sends only the
+callback URL in `delivery`.
+
 The application or a managed subscription service is responsible for:
 
 - Verifying Standard Webhooks signatures and timestamps on the raw body, responding
@@ -89,6 +93,10 @@ Closing the MCP client does not unsubscribe webhook watches.
 - `ttlMs: null` explicitly requests no expiry. The server may still grant a finite
   lifetime. `refreshBefore: null` means no expiry was granted; periodic health and
   catalog checks are still recommended by the draft.
+- The draft forbids granting no expiry unless requested. If a server violates that
+  rule, the client still returns the accepted grant and its ID so the application
+  can inspect and explicitly unsubscribe it. Validate the grant against application
+  policy; rejecting a response does not undo an already-created watch.
 - `cursor` is an opaque replay position. Omitted and null cursors both mean start
   now. Missing response cursors are normalized to null; string cursors are preserved.
   Persist the watermark from both subscribe responses and verified deliveries.

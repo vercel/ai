@@ -136,6 +136,7 @@ describe.each([false, true])('MCP events (modern protocol: %s)', modern => {
         method: 'events/subscribe',
         params: {
           ...subscription,
+          delivery: { mode: 'webhook', ...subscription.delivery },
           cursor: 'saved',
           maxAgeMs: 300_000,
           ttlMs: 60_000,
@@ -225,13 +226,24 @@ it('rejects malformed response fields', async () => {
   ).rejects.toThrow('Failed to parse server response');
 });
 
-it('does not silently accept an unsolicited indefinite grant', async () => {
+it('preserves an unexpected indefinite grant so the caller can stop the accepted watch', async () => {
   const transport = new EventTransport();
   transport.result = { id: 'sub_123', refreshBefore: null };
   const client = await connect(transport);
-  await expect(
-    client.experimental_subscribeEvent(subscription),
-  ).rejects.toThrow('without an explicit ttlMs: null');
+  expect(await client.experimental_subscribeEvent(subscription)).toMatchObject({
+    id: 'sub_123',
+    refreshBefore: null,
+  });
+  transport.result = {};
+  await client.experimental_unsubscribeEvent(subscription);
+  expect(transport.sent.at(-1)).toMatchObject({
+    method: 'events/unsubscribe',
+    params: {
+      name: subscription.name,
+      arguments: subscription.arguments,
+      delivery: { url: subscription.delivery.url },
+    },
+  });
 });
 
 it.each([
