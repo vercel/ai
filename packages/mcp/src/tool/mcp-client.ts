@@ -14,6 +14,16 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { MCPClientError } from '../error/mcp-client-error';
+import {
+  ListEventsResultSchema,
+  SubscribeEventParamsSchema,
+  SubscribeEventResultSchema,
+  UnsubscribeEventParamsSchema,
+  type ListEventsResult,
+  type SubscribeEventParams,
+  type SubscribeEventResult,
+  type UnsubscribeEventParams,
+} from './mcp-events';
 import type {
   JSONRPCError,
   JSONRPCMessage,
@@ -41,6 +51,7 @@ import {
   ElicitationRequestSchema,
   ElicitResultSchema,
   InitializeResultSchema,
+  ResultSchema,
   LATEST_LEGACY_PROTOCOL_VERSION,
   LATEST_PROTOCOL_VERSION,
   ListResourceTemplatesResultSchema,
@@ -328,6 +339,22 @@ export interface MCPClient {
     params?: PaginatedRequest['params'];
     options?: RequestOptions;
   }): Promise<ListToolsResult>;
+
+  /** Lists one page of the authenticated server's draft MCP event catalog. */
+  experimental_listEvents(options?: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  }): Promise<ListEventsResult>;
+
+  /** Registers or refreshes a webhook subscription. The application owns its receiver and renewal scheduling. */
+  experimental_subscribeEvent(
+    args: SubscribeEventParams & { options?: RequestOptions },
+  ): Promise<SubscribeEventResult>;
+
+  /** Stops a webhook subscription using its original event, arguments and callback URL. */
+  experimental_unsubscribeEvent(
+    args: UnsubscribeEventParams & { options?: RequestOptions },
+  ): Promise<void>;
 
   /**
    * Calls a tool on the MCP server.
@@ -722,6 +749,19 @@ class DefaultMCPClient implements MCPClient {
           });
         }
         break;
+      case 'events/list':
+      case 'events/subscribe':
+      case 'events/unsubscribe':
+        if (
+          this.serverCapabilities.events == null ||
+          typeof this.serverCapabilities.events !== 'object' ||
+          Array.isArray(this.serverCapabilities.events)
+        ) {
+          throw new MCPClientError({
+            message: 'Server does not support events',
+          });
+        }
+        break;
       case 'resources/list':
       case 'resources/read':
       case 'resources/templates/list':
@@ -914,6 +954,61 @@ class DefaultMCPClient implements MCPClient {
       options,
     });
     return this.prepareToolDefinitions(result, params?.cursor == null);
+  }
+
+  experimental_listEvents({
+    params,
+    options,
+  }: {
+    params?: PaginatedRequest['params'];
+    options?: RequestOptions;
+  } = {}): Promise<ListEventsResult> {
+    return this.request({
+      request: { method: 'events/list', params },
+      resultSchema: ListEventsResultSchema,
+      options,
+    });
+  }
+
+  async experimental_subscribeEvent({
+    options,
+    ...params
+  }: SubscribeEventParams & {
+    options?: RequestOptions;
+  }): Promise<SubscribeEventResult> {
+    const validated = SubscribeEventParamsSchema.parse(params);
+    const result = await this.request({
+      request: {
+        method: 'events/subscribe',
+        params: { ...validated, arguments: validated.arguments ?? {} },
+      },
+      resultSchema: SubscribeEventResultSchema,
+      options,
+    });
+    if (result.refreshBefore === null && validated.ttlMs !== null) {
+      throw new MCPClientError({
+        message:
+          'Server granted a non-expiring subscription without an explicit ttlMs: null request',
+      });
+    }
+    return result;
+  }
+
+  async experimental_unsubscribeEvent({
+    options,
+    ...params
+  }: UnsubscribeEventParams & {
+    options?: RequestOptions;
+  }): Promise<void> {
+    const validated = UnsubscribeEventParamsSchema.parse(params);
+    await this.request({
+      request: {
+        method: 'events/unsubscribe',
+        params: { ...validated, arguments: validated.arguments ?? {} },
+      },
+      resultSchema: ResultSchema,
+      options,
+    });
   }
 
   private prepareToolDefinitions(

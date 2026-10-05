@@ -15,6 +15,20 @@ Creates a lightweight Model Context Protocol (MCP) client that connects to an MC
 
 It currently does not support accepting notifications from an MCP server.
 
+The client also exposes experimental MCP Events methods:
+
+- `experimental_listEvents({ params?, options? })`: returns one page of event
+  definitions and an optional `nextCursor`.
+- `experimental_subscribeEvent({ name, arguments?, delivery: { url, secret }, cursor?, maxAgeMs?, ttlMs?, options? })`:
+  registers or refreshes a webhook and returns `id`, `refreshBefore`, `cursor`,
+  optional `truncated`, and optional `deliveryStatus`.
+- `experimental_unsubscribeEvent({ name, arguments?, delivery: { url }, options? })`:
+  stops a webhook subscription by its original tuple and resolves to `void`.
+
+`options` accepts `signal`, `timeout`, and `maxTotalTimeout`. The application owns
+the receiver and durable renewal scheduling. See [MCP Events](/docs/ai-sdk-core/mcp-events)
+for lifetime, authentication, verification and replay requirements.
+
 ## Import
 
 <Snippet

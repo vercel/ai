@@ -1,0 +1,125 @@
+---
+title: MCP Events (Experimental)
+description: Discover MCP event types and manage webhook subscriptions with the AI SDK MCP client.
+---
+
+# MCP Events (Experimental)
+
+The MCP client supports catalog discovery and webhook subscription requests from the
+[draft MCP Events extension](https://github.com/modelcontextprotocol/experimental-ext-triggers-events/blob/28ec35e905daa241f019981e2836b4a02f1c0368/docs/design-sketch-proposal.md).
+These APIs are experimental and may change alongside the draft.
+
+Event protocol methods are separate from `tools/list` and `tools/call`. Calling
+`experimental_listEvents()` discovers event definitions; it does not subscribe or
+automatically add tools to the model.
+
+## Discover event types
+
+Use the same authenticated client as your other MCP requests. The server must
+advertise an `events` capability. Each call returns one catalog page:
+
+```ts
+const page = await client.experimental_listEvents();
+const webhookEvents = page.events.filter(event =>
+  event.delivery.includes('webhook'),
+);
+
+if (page.nextCursor != null) {
+  const nextPage = await client.experimental_listEvents({
+    params: { cursor: page.nextCursor },
+  });
+}
+```
+
+Definitions include `name`, `description`, `delivery`, `inputSchema` (subscription
+arguments), `payloadSchema` (delivered event data), and optional `_meta`. The client
+does not cache the catalog. Keep application caches scoped to the authenticated
+account/grant. Re-fetch to pick up catalog changes; server notifications are not
+handled by this client.
+
+## Register or refresh a webhook
+
+Prepare a durable receiver **before** subscribing. The server may send a signed
+verification challenge before returning the subscription response. Generate and
+store its signing secret before making the request; the response's subscription ID
+is not available during that challenge.
+
+```ts
+import { experimental_generateMCPWebhookSecret as generateMCPWebhookSecret } from '@ai-sdk/mcp';
+
+const secret = generateMCPWebhookSecret();
+
+// Application code: persist the secret and enable verification at this URL.
+await registerReceiver({ url: callbackUrl, secret });
+
+const params = {
+  name: 'issue.created',
+  arguments: { project_id: 'ABC' },
+  delivery: { url: callbackUrl, secret },
+  ttlMs: 3_600_000,
+};
+
+const subscription = await client.experimental_subscribeEvent(params);
+await saveSubscription({ params, subscription });
+```
+
+`registerReceiver` and `saveSubscription` represent your application's durable
+storage/receiver implementation, not AI SDK functions. The callback must use HTTPS;
+`secret` must be a `whsec_` value encoding 24–64 random bytes. The helper generates
+32 random bytes using Web Crypto. Never expose the secret or callback configuration
+as model-controlled subscription arguments.
+
+The application or a managed subscription service is responsible for:
+
+- Verifying Standard Webhooks signatures and timestamps on the raw body, responding
+  to verification challenges, and deduplicating accepted deliveries.
+- Persisting the subscription and scheduling refreshes before the server's granted
+  `refreshBefore`. Re-call `experimental_subscribeEvent()` with the same name,
+  arguments, callback and latest persisted cursor.
+- Handling verification, gap and terminated control envelopes at its receiver.
+- Routing authenticated events into its own queue, workflow or conversation.
+
+The AI SDK does not mount a receiver, start a renewal timer or keep a process alive.
+Closing the MCP client does not unsubscribe webhook watches.
+
+### Lifetime and replay
+
+- Omit `ttlMs` for the server's default grant. A finite value suggests a lifetime;
+  always schedule against the returned `refreshBefore`.
+- `ttlMs: null` explicitly requests no expiry. The server may still grant a finite
+  lifetime. `refreshBefore: null` means no expiry was granted; periodic health and
+  catalog checks are still recommended by the draft.
+- `cursor` is an opaque replay position. Omitted and null cursors both mean start
+  now. Missing response cursors are normalized to null; string cursors are preserved.
+  Persist the watermark from both subscribe responses and verified deliveries.
+- `maxAgeMs` bounds requested replay. `truncated: true` reports a possible gap;
+  it is returned to the application rather than rejected as a failed subscription.
+- Optional `deliveryStatus` reports delivery health and throttling information.
+
+Subscription setup errors can be ambiguous: a server may create a watch before
+the response is lost. Retain the original request tuple and secret so your durable
+service can retry or clean up the same watch. These methods do not automatically
+retry subscriptions; `maxRetries` remains specific to ordinary tool calls.
+
+## Unsubscribe
+
+The draft identifies a subscription by the authenticated principal, callback URL,
+event name and arguments. The returned `id` is a delivery-routing handle, not an
+unsubscribe credential:
+
+```ts
+await client.experimental_unsubscribeEvent({
+  name: params.name,
+  arguments: params.arguments,
+  delivery: { url: params.delivery.url },
+});
+```
+
+Use the same authorized account and original request tuple. The secret is not
+sent on unsubscribe. No-expiry subscriptions must be explicitly stopped when the
+application no longer needs them.
+
+All three methods accept `options: { signal, timeout, maxTotalTimeout }`, matching
+the other MCP client methods. This implementation supports catalog discovery and
+webhook control requests only; it does not implement `events/poll`, `events/stream`,
+automatic replay recovery or webhook delivery verification.
