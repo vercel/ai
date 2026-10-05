@@ -253,7 +253,7 @@ it.each([
   '{"q0":"c1","q1":1.25}',
   '{"q0":"c1","q1":1.25,"q2":0.5,"extra":0.5}',
 ])(
-  'rejects missing or extra answers for mixed Boolean decide: %s',
+  'rejects missing or extra answers for mixed Boolean decisions: %s',
   async text => {
     const { model } = setup({ content: [{ type: 'text', text }] });
     await expect(

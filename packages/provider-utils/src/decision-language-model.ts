@@ -12,7 +12,7 @@ import {
 import { WORKFLOW_DESERIALIZE, WORKFLOW_SERIALIZE } from '@workflow/serde';
 import { safeParseJSON } from './parse-json';
 
-/** Adapts structured language-model output to Choice, Score, and Boolean decide. */
+/** Adapts structured language-model output to Choice, Score, and Boolean decisions. */
 export class DecisionLanguageModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
