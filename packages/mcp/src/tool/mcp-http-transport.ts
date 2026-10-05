@@ -38,6 +38,7 @@ function isMessageEvent(event: string | undefined): boolean {
  */
 export class HttpMCPTransport implements MCPTransport {
   readonly supportsProtocolVersionDiscovery = true;
+  readonly waitsForProtocolVersionDiscovery = true;
   readonly supportsMcpToolParameterHeaders = true;
   private url: URL;
   private abortController?: AbortController;

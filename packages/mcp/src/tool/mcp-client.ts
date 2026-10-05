@@ -615,7 +615,9 @@ class DefaultMCPClient implements MCPClient {
         resultSchema: DiscoverResultSchema,
         options: {
           signal,
-          timeout: DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT,
+          timeout: this.transport.waitsForProtocolVersionDiscovery
+            ? undefined
+            : DEFAULT_PROTOCOL_DISCOVERY_TIMEOUT,
         },
       });
 
