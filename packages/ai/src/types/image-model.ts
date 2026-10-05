@@ -1,3 +1,4 @@
+import type { GatewayImageModelId } from '@ai-sdk/gateway';
 import type {
   ImageModelV2,
   ImageModelV3,
@@ -9,7 +10,11 @@ import type {
 /**
  * Image model that is used by the AI SDK.
  */
-export type ImageModel = string | ImageModelV4 | ImageModelV3 | ImageModelV2;
+export type ImageModel =
+  | GatewayImageModelId
+  | ImageModelV4
+  | ImageModelV3
+  | ImageModelV2;
 
 /**
  * Metadata from the model provider for this call.

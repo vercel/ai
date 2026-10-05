@@ -1,3 +1,4 @@
+import type { GatewayEmbeddingModelId } from '@ai-sdk/gateway';
 import type {
   EmbeddingModelV2,
   EmbeddingModelV3,
@@ -9,7 +10,7 @@ import type {
  * Embedding model that is used by the AI SDK.
  */
 export type EmbeddingModel =
-  | string
+  | GatewayEmbeddingModelId
   | EmbeddingModelV4
   | EmbeddingModelV3
   | EmbeddingModelV2<string>;

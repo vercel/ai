@@ -8,6 +8,7 @@ import type {
   Experimental_RealtimeModelV4SessionConfig as RealtimeModelV4SessionConfig,
   Experimental_RealtimeModelV4ToolDefinition as RealtimeModelV4ToolDefinition,
 } from '@ai-sdk/provider';
+import type { GatewayRealtimeModelId } from '@ai-sdk/gateway';
 
 export type RealtimeFactory = RealtimeFactoryV4;
 
@@ -15,7 +16,7 @@ export type RealtimeFactoryGetTokenOptions = RealtimeFactoryV4GetTokenOptions;
 
 export type RealtimeFactoryGetTokenResult = RealtimeFactoryV4GetTokenResult;
 
-export type RealtimeModel = RealtimeModelV4;
+export type RealtimeModel = GatewayRealtimeModelId | RealtimeModelV4;
 
 export type RealtimeClientEvent = RealtimeModelV4ClientEvent;
 
