@@ -88,6 +88,9 @@
       "path": "packages/google"
     },
     {
+      "path": "packages/gradium"
+    },
+    {
       "path": "packages/groq"
     },
     {

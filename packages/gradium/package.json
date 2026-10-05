@@ -1,0 +1,79 @@
+{
+  "name": "@gradium/ai-sdk",
+  "version": "2.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "docs/**/*",
+    "src",
+    "!src/**/*.test.ts",
+    "!src/**/*.test-d.ts",
+    "!src/**/__snapshots__",
+    "!src/**/__fixtures__",
+    "CHANGELOG.md",
+    "README.md"
+  ],
+  "directories": {
+    "doc": "./docs"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "build:watch": "tsdown --watch",
+    "clean": "del-cli docs && del-cli internal/",
+    "prepack": "mkdir -p docs && cp ../../content/providers/05-community-providers/56-gradium.mdx ./docs/",
+    "postpack": "del-cli docs",
+    "type-check": "tsc --noEmit",
+    "test": "pnpm test:node",
+    "test:update": "pnpm test:node -u",
+    "test:watch": "vitest --config vitest.node.config.js",
+    "test:node": "vitest --config vitest.node.config.js --run"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "workspace:*",
+    "@ai-sdk/provider-utils": "workspace:*",
+    "@gradium/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.19",
+    "@vercel/ai-tsconfig": "workspace:*",
+    "tsdown": "^0.23.0",
+    "typescript": "5.6.3",
+    "zod": "3.25.76",
+    "ai": "workspace:*"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.76 || ^4.1.8"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "homepage": "https://ai-sdk.dev/docs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chroussel/gradium-ai-sdk",
+    "directory": "packages/gradium"
+  },
+  "bugs": {
+    "url": "https://github.com/chroussel/gradium-ai-sdk/issues"
+  },
+  "keywords": [
+    "ai"
+  ],
+  "description": "Gradium speech and transcription provider for the Vercel AI SDK"
+}
