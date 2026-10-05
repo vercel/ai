@@ -84,7 +84,7 @@ Tool: bookFlight("BA123", "12th December", ["John Doe", "Jane Doe"])
 Model: Your flight has been booked!
 ```
 
-Before the last tool call, the passenger details needed by the `bookFlight` tool are not available in the application context. As a result, the model asks the user to provide the passenger details before proceeding with the booking.
+After `lookupFlight` returns, the passenger details needed by the `bookFlight` tool are not yet available in the application context. The model asks the user for those details; once the user supplies the names, the model can call `bookFlight`.
 
 Looking up passenger information could've been another tool that the model could've called before calling the `bookFlight` tool assuming that the user is logged into the application. This way, the model does not have to ask the user for the passenger details and can proceed with the booking.
 
