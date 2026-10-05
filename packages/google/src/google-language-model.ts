@@ -1370,6 +1370,7 @@ function resolveGemini3ThinkingConfig({
       medium: 'medium',
       high: 'high',
       xhigh: 'high',
+      max: 'high',
     },
     warnings,
   });

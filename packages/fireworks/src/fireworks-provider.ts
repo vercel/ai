@@ -167,11 +167,11 @@ export function createFireworks(
         return {
           ...rest,
           ...(reasoning_effort != null && {
-            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
+            // Fireworks supports low, medium, and high reasoning levels.
             reasoning_effort:
               reasoning_effort === 'minimal'
                 ? 'low'
-                : reasoning_effort === 'xhigh'
+                : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
                   ? 'high'
                   : reasoning_effort,
           }),

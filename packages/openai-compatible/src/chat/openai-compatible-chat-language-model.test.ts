@@ -1461,6 +1461,19 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should pass top-level max reasoning as reasoning_effort', async () => {
+      prepareJsonResponse({ content: 'test' });
+
+      await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
+    });
+
     it('should pass top-level reasoning none as reasoning_effort', async () => {
       prepareJsonResponse({ content: 'test' });
 

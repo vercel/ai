@@ -1624,6 +1624,7 @@ const amazonBedrockReasoningEffortMap: Partial<
   medium: 'medium',
   high: 'high',
   xhigh: 'max',
+  max: 'max',
 };
 
 function isNova2ReasoningModel(modelId: string): boolean {

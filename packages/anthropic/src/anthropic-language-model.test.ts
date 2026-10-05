@@ -539,6 +539,22 @@ describe('AnthropicLanguageModel', () => {
         });
       });
 
+      it('should map reasoning "max" directly to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive', display: 'summarized' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
       it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 

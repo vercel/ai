@@ -8365,6 +8365,21 @@ describe('doGenerate', () => {
       ).toBe('max');
     });
 
+    it('should map reasoning "max" directly for newer Anthropic models', async () => {
+      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+      const result = await newerAnthropicModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(
+        requestBody.additionalModelRequestFields?.output_config?.effort,
+      ).toBe('max');
+      expect(result.warnings).toEqual([]);
+    });
+
     it('should warn when reasoning "minimal" is mapped for newer Anthropic models', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
@@ -8450,6 +8465,24 @@ describe('doGenerate', () => {
           maxReasoningEffort: 'high',
         },
       );
+    });
+
+    it('should map portable max reasoning directly for Nova 2', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
+
+      const result = await novaModel.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.additionalModelRequestFields?.reasoningConfig).toEqual(
+        {
+          type: 'enabled',
+          maxReasoningEffort: 'max',
+        },
+      );
+      expect(result.warnings).toEqual([]);
     });
 
     it('should omit maxOutputTokens for Nova 2 high reasoning', async () => {
