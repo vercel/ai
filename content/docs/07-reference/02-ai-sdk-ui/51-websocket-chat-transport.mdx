@@ -334,6 +334,9 @@ server.on('connection', (socket, request) => {
         subscriber.send(JSON.stringify({ type: 'end', requestId }));
       }
     } catch (error) {
+      // Failed responses cannot resume. Remove the retained entry so a retry
+      // can start a new response and resume requests receive no-active.
+      streams.delete(frame.id);
       // Log the internal error server-side, but do not expose it to the client.
       console.error(error);
       for (const [subscriber, requestId] of stream.subscribers) {
@@ -360,7 +363,10 @@ server.on('connection', (socket, request) => {
 
 This outline keeps completed chunks in memory to make the replay behavior
 clear. Production servers should expire completed streams and store resumable
-state durably when reconnects can reach another process.
+state durably when reconnects can reach another process. If response setup or
+streaming throws, the outline removes that response from retained state before
+reporting the error. A later resume returns `no-active`, and a new send can retry
+the chat.
 
 ## Authentication and Deployment
 
