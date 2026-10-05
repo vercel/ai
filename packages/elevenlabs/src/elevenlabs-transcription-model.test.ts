@@ -197,6 +197,43 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it.each([
+      ['without provider options', undefined, ['true']],
+      ['with empty provider options', {}, ['true']],
+      ['with an unrelated provider option', { languageCode: 'en' }, ['true']],
+      ['when explicitly disabled', { diarize: false }, ['false']],
+    ])(
+      'should send diarize once %s',
+      async (_name, elevenlabsOptions, expectedDiarizeValues) => {
+        let diarizeValues: FormDataEntryValue[] | undefined;
+        const provider = createElevenLabs({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            diarizeValues = (init!.body as FormData).getAll('diarize');
+            return Response.json(
+              JSON.parse(
+                fs.readFileSync(
+                  'src/__fixtures__/elevenlabs-transcription.json',
+                  'utf8',
+                ),
+              ),
+            );
+          },
+        });
+
+        await provider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions:
+            elevenlabsOptions == null
+              ? undefined
+              : { elevenlabs: elevenlabsOptions },
+        });
+
+        expect(diarizeValues).toEqual(expectedDiarizeValues);
+      },
+    );
   });
 
   describe('response headers', () => {
