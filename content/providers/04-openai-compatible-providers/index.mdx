@@ -92,7 +92,7 @@ You can use the following optional settings to customize the provider instance:
   Matching URLs are passed to the provider instead of being downloaded by the
   AI SDK.
 
-- **transformRequestBody** _(args: Record&lt;string, any&gt;) =&gt; Record&lt;string, any&gt;_
+- **transformRequestBody** _(args: Record&lt;string, any&gt;, warnings?: SharedV4Warning[]) =&gt; Record&lt;string, any&gt;_
 
   Optional function to transform the request body before sending it to the API.
   This is useful for proxy providers that may require a different request format

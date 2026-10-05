@@ -4494,6 +4494,7 @@ describe('transformRequestBody', () => {
         model: 'grok-3',
         messages: [{ role: 'user', content: 'Hello' }],
       }),
+      [],
     );
 
     // Verify transformed body was sent
@@ -4532,6 +4533,7 @@ describe('transformRequestBody', () => {
         messages: [{ role: 'user', content: 'Hello' }],
         stream: true,
       }),
+      [],
     );
 
     // Verify transformed body was sent
