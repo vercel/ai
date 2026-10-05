@@ -618,6 +618,42 @@ describe('runPrompt telemetry lifecycle', () => {
 });
 
 describe('runPrompt step accounting', () => {
+  test('preserves adapter warnings on the step and aggregate result', async () => {
+    const warnings = [
+      {
+        type: 'unsupported-setting' as const,
+        setting: 'temperature',
+        details: 'The adapter does not support temperature.',
+      },
+    ];
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start', warnings },
+        { type: 'text-delta', id: 't1', delta: 'done' },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts.find(part => part.type === 'start-step')).toMatchObject({
+      warnings,
+    });
+    await expect(result.steps).resolves.toMatchObject([{ warnings }]);
+    await expect(result.warnings).resolves.toEqual(warnings);
+  });
+
   test('records one step per finish-step without counting terminal finish', async () => {
     const { result, done } = runPrompt({
       harness,
