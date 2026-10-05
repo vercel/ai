@@ -83,8 +83,3 @@ Sub-agent messages and task/background notifications are surfaced as `raw`
 stream parts. `agentProgressSummaries` adds periodic summaries to raw
 `task_progress` messages, while `forwardSubagentText` includes sub-agent text
 and thinking messages in the raw stream.
-
-Background-task notification results do not end the host turn unless they also
-answer the host prompt or a steering message. The bridge waits for a result
-associated with a host message, so a resumed session can process its prompt after
-reporting a task from the previous turn.
