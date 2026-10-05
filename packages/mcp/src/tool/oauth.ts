@@ -1285,14 +1285,11 @@ export async function auth(
 
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
-    } else if (error instanceof InvalidGrantError) {
-      if (refreshAttempt.tokens) {
-        await provider.invalidateCredentials?.('tokens', {
-          tokens: refreshAttempt.tokens,
-        });
-      } else {
-        await provider.invalidateCredentials?.('tokens');
-      }
+    } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Only invalidate the tokens used by a failed refresh.
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: refreshAttempt.tokens,
+      });
       return await authInternal(provider, options);
     }
 
