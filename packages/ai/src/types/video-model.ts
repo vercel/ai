@@ -1,3 +1,4 @@
+import type { GatewayVideoModelId } from '@ai-sdk/gateway';
 import type {
   Experimental_VideoModelV3,
   Experimental_VideoModelV4,
@@ -8,7 +9,7 @@ import type {
  * A video model can be a string (model ID) or a video model object.
  */
 export type VideoModel =
-  | string
+  | GatewayVideoModelId
   | Experimental_VideoModelV4
   | Experimental_VideoModelV3;
 

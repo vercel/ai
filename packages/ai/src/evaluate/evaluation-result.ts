@@ -3,8 +3,9 @@ import type {
   Experimental_EvaluationModelV4Question as EvaluationModelV4Question,
   Experimental_EvaluationModelV4Result as EvaluationModelV4Result,
 } from '@ai-sdk/provider';
+import type { GatewayEvaluationModelId } from '@ai-sdk/gateway';
 
-export type EvaluationModel = string | EvaluationModelV4;
+export type EvaluationModel = GatewayEvaluationModelId | EvaluationModelV4;
 export type EvaluationQuestion = EvaluationModelV4Question;
 
 export type EvaluationAnswer<QUESTION extends EvaluationQuestion> =
