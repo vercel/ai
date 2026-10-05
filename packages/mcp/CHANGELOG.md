@@ -1,5 +1,13 @@
 # @ai-sdk/mcp
 
+## 1.0.91
+
+### Patch Changes
+
+- 5267a7a: Preserve stored OAuth credentials when an authorization-code exchange returns `invalid_grant`, without retrying the rejected code.
+
+  Add optional token context to `OAuthClientProvider.invalidateCredentials` so providers sharing storage can atomically delete only the rejected token generation and preserve tokens saved by a concurrent refresh.
+
 ## 1.0.90
 
 ### Patch Changes
