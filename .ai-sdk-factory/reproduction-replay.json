@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22085,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22085-workflow-length-provider-tool-result.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22085-workflow-length-provider-tool-result.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22085_REPRODUCED: WorkflowAgent returned or continued with provider-executed tool call ws_1 without its result"
+  }
+}
