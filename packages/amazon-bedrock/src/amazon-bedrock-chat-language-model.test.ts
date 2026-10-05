@@ -815,6 +815,48 @@ describe('doStream', () => {
     },
   );
 
+  it.each(['high', 'max'] as const)(
+    'should derive portable %s effort with type-only Nova 2 reasoningConfig in streams',
+    async reasoning => {
+      setupMockEventStreamHandler();
+      server.urls[novaStreamUrl].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({ messageStop: { stopReason: 'end_turn' } }) + '\n',
+        ],
+      };
+
+      const { stream } = await novaModel.doStream({
+        prompt: TEST_PROMPT,
+        reasoning,
+        providerOptions: {
+          amazonBedrock: { reasoningConfig: { type: 'enabled' } },
+        },
+      });
+
+      const parts = await convertReadableStreamToArray(stream);
+      const body = await server.calls[0].requestBodyJson;
+      expect(body.additionalModelRequestFields?.reasoningConfig).toEqual({
+        type: 'enabled',
+        maxReasoningEffort: 'high',
+      });
+      expect(parts[0]).toEqual({
+        type: 'stream-start',
+        warnings:
+          reasoning === 'max'
+            ? [
+                {
+                  type: 'compatibility',
+                  feature: 'reasoning',
+                  details:
+                    'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+                },
+              ]
+            : [],
+      });
+    },
+  );
+
   describe('text', () => {
     beforeEach(() => {
       setupMockEventStreamHandler();
@@ -8633,14 +8675,21 @@ describe('doGenerate', () => {
       );
     });
 
-    it.each([{ type: 'enabled' }, {}] as const)(
-      'should ignore portable reasoning with partial Nova 2 reasoningConfig %j',
-      async reasoningConfig => {
+    it.each([
+      ['high', { type: 'enabled' }],
+      ['high', {}],
+      ['max', { type: 'enabled' }],
+      ['max', {}],
+      ['high', { type: undefined, maxReasoningEffort: undefined }],
+      ['max', { type: 'enabled', maxReasoningEffort: undefined }],
+    ] as const)(
+      'should derive portable %s effort with partial Nova 2 reasoningConfig %j',
+      async (reasoning, reasoningConfig) => {
         server.urls[novaGenerateUrl].response = simpleResponse;
 
         const result = await novaModel.doGenerate({
           prompt: TEST_PROMPT,
-          reasoning: 'max',
+          reasoning,
           providerOptions: {
             amazonBedrock: {
               reasoningConfig,
@@ -8651,8 +8700,19 @@ describe('doGenerate', () => {
         const requestBody = await server.calls[0].requestBodyJson;
         expect(
           requestBody.additionalModelRequestFields?.reasoningConfig,
-        ).toBeUndefined();
-        expect(result.warnings).toEqual([]);
+        ).toEqual({ type: 'enabled', maxReasoningEffort: 'high' });
+        expect(result.warnings).toEqual(
+          reasoning === 'max'
+            ? [
+                {
+                  type: 'compatibility',
+                  feature: 'reasoning',
+                  details:
+                    'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+                },
+              ]
+            : [],
+        );
       },
     );
 
@@ -8740,12 +8800,63 @@ describe('doGenerate', () => {
       expect(result.warnings).toEqual([]);
     });
 
-    it('should ignore portable reasoning with display-only reasoningConfig for newer Anthropic models', async () => {
+    it.each(['amazonBedrock', 'bedrock'] as const)(
+      'should derive a portable budget with type-only %s reasoningConfig for older Anthropic models',
+      async providerKey => {
+        prepareJsonFixtureResponse('amazon-bedrock-text');
+
+        const result = await model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            [providerKey]: {
+              reasoningConfig: { type: 'enabled', budgetTokens: undefined },
+            },
+          },
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.additionalModelRequestFields?.thinking).toEqual({
+          type: 'enabled',
+          budget_tokens: Math.round(4096 * 0.6),
+        });
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it.each(['amazonBedrock', 'bedrock'] as const)(
+      'should derive portable effort with display-only %s reasoningConfig for newer Anthropic models',
+      async providerKey => {
+        server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+
+        const result = await newerAnthropicModel.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'high',
+          providerOptions: {
+            [providerKey]: {
+              reasoningConfig: { display: 'summarized', type: undefined },
+            },
+          },
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
+          type: 'adaptive',
+          display: 'summarized',
+        });
+        expect(
+          requestBody.additionalModelRequestFields?.output_config?.effort,
+        ).toBe('high');
+        expect(result.warnings).toEqual([]);
+      },
+    );
+
+    it('should honor reasoning "none" with display-only reasoningConfig', async () => {
       server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
 
       const result = await newerAnthropicModel.doGenerate({
         prompt: TEST_PROMPT,
-        reasoning: 'high',
+        reasoning: 'none',
         providerOptions: {
           bedrock: {
             reasoningConfig: { display: 'summarized' },
@@ -8758,32 +8869,28 @@ describe('doGenerate', () => {
         requestBody.additionalModelRequestFields?.thinking,
       ).toBeUndefined();
       expect(
-        requestBody.additionalModelRequestFields?.output_config?.effort,
+        requestBody.additionalModelRequestFields?.output_config,
       ).toBeUndefined();
       expect(result.warnings).toEqual([]);
     });
 
-    it('should ignore reasoning "none" when explicit thinking is enabled', async () => {
-      server.urls[newerAnthropicGenerateUrl].response = simpleResponse;
+    it('should not map or warn about portable max when reasoningConfig disables thinking', async () => {
+      server.urls[novaGenerateUrl].response = simpleResponse;
 
-      const result = await newerAnthropicModel.doGenerate({
+      const result = await novaModel.doGenerate({
         prompt: TEST_PROMPT,
-        reasoning: 'none',
+        reasoning: 'max',
+        maxOutputTokens: 1024,
         providerOptions: {
-          bedrock: {
-            reasoningConfig: { type: 'adaptive', display: 'summarized' },
-          },
+          amazonBedrock: { reasoningConfig: { type: 'disabled' } },
         },
       });
 
-      const requestBody = await server.calls[0].requestBodyJson;
-      expect(requestBody.additionalModelRequestFields?.thinking).toEqual({
-        type: 'adaptive',
-        display: 'summarized',
-      });
+      const body = await server.calls[0].requestBodyJson;
       expect(
-        requestBody.additionalModelRequestFields?.output_config,
+        body.additionalModelRequestFields?.reasoningConfig,
       ).toBeUndefined();
+      expect(body.inferenceConfig?.maxTokens).toBe(1024);
       expect(result.warnings).toEqual([]);
     });
 

@@ -1657,10 +1657,14 @@ function resolveAmazonBedrockReasoningConfig({
   isOpenAIModel: boolean;
   modelId: string;
 }): AmazonBedrockLanguageModelChatOptions {
-  // Explicit provider reasoning configuration takes full precedence, including
-  // partial configuration. Do not derive values or warnings from ignored reasoning.
+  const reasoningConfig = amazonBedrockOptions.reasoningConfig;
+
+  // Explicit effort, budget, or disabled thinking overrides portable reasoning.
+  // Type/display-only configuration can still use the portable effort or budget.
   if (
-    amazonBedrockOptions.reasoningConfig != null ||
+    reasoningConfig?.maxReasoningEffort != null ||
+    reasoningConfig?.budgetTokens != null ||
+    reasoningConfig?.type === 'disabled' ||
     !isCustomReasoning(reasoning)
   ) {
     return amazonBedrockOptions;
@@ -1669,7 +1673,8 @@ function resolveAmazonBedrockReasoningConfig({
   const result = { ...amazonBedrockOptions };
   const hasPortableReasoning = reasoning !== 'none';
   const isNovaReasoningModel = isNova2ReasoningModel(modelId);
-  const supportsPortableReasoning = isOpenAIModel || isNovaReasoningModel;
+  const supportsPortableReasoning =
+    isOpenAIModel || isNovaReasoningModel || reasoningConfig != null;
 
   if (isAnthropicModel) {
     const capabilities = getModelCapabilities(modelId);
@@ -1683,7 +1688,8 @@ function resolveAmazonBedrockReasoningConfig({
         warnings,
       });
       result.reasoningConfig = {
-        type: 'adaptive',
+        ...reasoningConfig,
+        type: reasoningConfig?.type ?? 'adaptive',
         maxReasoningEffort: effort,
       };
     } else {
@@ -1695,7 +1701,8 @@ function resolveAmazonBedrockReasoningConfig({
       });
       if (budgetTokens != null) {
         result.reasoningConfig = {
-          type: 'enabled',
+          ...reasoningConfig,
+          type: reasoningConfig?.type ?? 'enabled',
           budgetTokens,
         };
       }
@@ -1710,7 +1717,10 @@ function resolveAmazonBedrockReasoningConfig({
         warnings,
       });
       result.reasoningConfig = {
-        ...(isNovaReasoningModel && { type: 'enabled' }),
+        ...reasoningConfig,
+        ...(isNovaReasoningModel && {
+          type: reasoningConfig?.type ?? 'enabled',
+        }),
         maxReasoningEffort: effort,
       };
     } else {

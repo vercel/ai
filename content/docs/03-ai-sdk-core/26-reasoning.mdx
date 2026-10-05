@@ -56,7 +56,7 @@ for await (const part of result.stream) {
 
 ## Precedence Rules
 
-The top-level `reasoning` parameter and provider-specific `providerOptions` are **never merged**. If you set reasoning-related options in `providerOptions`, they take full precedence and the top-level `reasoning` parameter is ignored.
+Explicit reasoning effort or token budget settings in `providerOptions` take precedence over the top-level `reasoning` parameter. Other reasoning options, such as summary or display settings, can be used alongside portable reasoning. For Amazon Bedrock, a partial `reasoningConfig` containing only an enabled/adaptive `type` or `display` retains the portable effort or budget mapping; an explicit `maxReasoningEffort`, `budgetTokens`, or disabled `type` overrides it.
 
 ```ts
 import { generateText } from 'ai';
