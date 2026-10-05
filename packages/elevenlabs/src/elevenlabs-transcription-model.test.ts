@@ -271,6 +271,43 @@ describe('doGenerate', () => {
       expect(result).toMatchSnapshot();
     });
   });
+
+  describe('provider metadata', () => {
+    it('should preserve ElevenLabs word types and speaker ids', async () => {
+      prepareJsonFixtureResponse('elevenlabs-transcription-word-metadata-live');
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          elevenlabs: {
+            diarize: true,
+          },
+        },
+      });
+
+      const words = (
+        result.providerMetadata?.elevenlabs as
+          | { words?: Array<Record<string, unknown>> }
+          | undefined
+      )?.words;
+
+      expect(words).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            text: 'Hello',
+            type: 'word',
+            speaker_id: 'speaker_0',
+          }),
+          expect.objectContaining({
+            text: ' ',
+            type: 'spacing',
+            speaker_id: 'speaker_0',
+          }),
+        ]),
+      );
+    });
+  });
 });
 
 describe('doStream', () => {
