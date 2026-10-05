@@ -42,9 +42,11 @@ Evaluation is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`
 ## Configuration
 
 `createTypeSafeAi({ apiKey, baseURL, headers, fetch })` supports an explicit key,
-custom headers, a custom fetch implementation, and a base URL (default:
-`https://api.typesafe.ai/v1`). The default key comes from `TYPESAFE_AI_API_KEY`.
-Language, embedding, and image model factories are unsupported.
+custom headers, a custom fetch implementation, and a base URL. The base URL
+defaults to `TYPESAFE_AI_BASE_URL`, then `https://api.typesafe.ai/v1`. An
+explicit `baseURL` takes precedence over the environment variable. The default
+key comes from `TYPESAFE_AI_API_KEY`. Language, embedding, and image model
+factories are unsupported.
 
 All questions are sent in one request against shared state. Choice supports up to
 255 options; Score supports 2–10 ordered levels; Boolean maps to TypeSafe's Noul
