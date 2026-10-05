@@ -10,6 +10,7 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
+  isSameOrigin,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -171,6 +172,40 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
     }
 
     if (this.modelId === 'flux-3-image') {
+      // The endpoint uses 21:9 and 9:21 instead of their reduced forms.
+      let flux3AspectRatio =
+        finalAspectRatio === '7:3'
+          ? '21:9'
+          : finalAspectRatio === '3:7'
+            ? '9:21'
+            : finalAspectRatio;
+      if (
+        flux3AspectRatio != null &&
+        ![
+          '21:9',
+          '2:1',
+          '16:9',
+          '3:2',
+          '7:5',
+          '4:3',
+          '5:4',
+          '1:1',
+          '4:5',
+          '3:4',
+          '5:7',
+          '2:3',
+          '9:16',
+          '1:2',
+          '9:21',
+        ].includes(flux3AspectRatio)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+          details: `FLUX 3 does not support aspect ratio ${finalAspectRatio}. Using the endpoint's default auto aspect ratio.`,
+        });
+        flux3AspectRatio = undefined;
+      }
       if (mask != null) {
         throw new UnsupportedFunctionalityError({
           functionality: 'FLUX 3 image masks',
@@ -201,7 +236,7 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       return {
         body: {
           prompt,
-          aspect_ratio: finalAspectRatio,
+          aspect_ratio: flux3AspectRatio,
           images: inputImages.length > 0 ? inputImages : undefined,
           resolution: bflOptions?.resolution,
           grounding: bflOptions?.grounding,
@@ -320,13 +355,23 @@ export class BlackForestLabsImageModel implements ImageModelV4 {
       },
     });
 
+    const baseHostname = new URL(this.config.baseURL).hostname;
+    const useCustomDownloadHeaders =
+      isSameOrigin(imageUrl, this.config.baseURL) &&
+      baseHostname !== 'bfl.ai' &&
+      !baseHostname.endsWith('.bfl.ai');
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
       // imageUrl comes from the provider response body; validate it.
       validateUrl: true,
       trustedOrigin: this.config.baseURL,
-      // BFL signed image URLs authorize the download without the API key.
-      headers: { 'user-agent': combinedHeaders['user-agent'] },
+      credentialedOrigin: useCustomDownloadHeaders
+        ? this.config.baseURL
+        : undefined,
+      // Signed BFL downloads need no credentials; custom proxies may need them.
+      headers: useCustomDownloadHeaders
+        ? combinedHeaders
+        : { 'user-agent': combinedHeaders['user-agent'] },
       abortSignal,
       failedResponseHandler: createStatusCodeErrorResponseHandler(),
       successfulResponseHandler: createBinaryResponseHandler(),

@@ -108,7 +108,10 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
 FLUX.1 and FLUX.2 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
-FLUX 3 supports aspect ratios from 9:21 to 21:9.
+FLUX 3 accepts only `21:9`, `2:1`, `16:9`, `3:2`, `7:5`, `4:3`, `5:4`,
+`1:1`, `4:5`, `3:4`, `5:7`, `2:3`, `9:16`, `1:2`, and `9:21`.
+Omit `aspectRatio` to use the endpoint's `auto` default. Unsupported ratios
+are omitted with a warning.
 
 FLUX.2 models take reference images on the same `prompt.images` field as the
 Kontext models, so a single model ID covers both text-to-image and editing. See
@@ -168,7 +171,8 @@ by default.
 
 FLUX 3 does not accept `seed`, masks, explicit `width`/`height`, or the legacy
 image options such as `outputFormat`, `steps`, and `promptUpsampling`. A `size`
-is used only to derive an aspect ratio; use `resolution` to select the pixel-area
+is used only to derive a supported aspect ratio; ratios outside the list above
+are omitted with a warning. Use `resolution` to select the pixel-area
 tier. Unsupported options are omitted with warnings; masks are rejected.
 
 The provider polls through `Pending`, `Reasoning`, and `Generating` until the

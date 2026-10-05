@@ -127,6 +127,12 @@ describe('BlackForestLabsImageModel', () => {
         body: Buffer.from('test-binary-content'),
       },
     },
+    'https://api.bfl.ai/image.png': {
+      response: {
+        type: 'binary',
+        body: Buffer.from('test-binary-content'),
+      },
+    },
   });
 
   describe('capabilities', () => {
@@ -509,6 +515,67 @@ describe('BlackForestLabsImageModel', () => {
       expect(downloadCall).toBeDefined();
       expect(downloadCall?.requestHeaders['x-key']).toBeUndefined();
       expect(downloadCall?.requestHeaders.authorization).toBeUndefined();
+    });
+
+    it.each(['test-model', 'flux-3-image'])(
+      'preserves headers for same-origin custom proxy downloads with %s',
+      async modelId => {
+        await createBasicModel({
+          modelId,
+          headers: () => ({
+            'x-key': 'test-key',
+            authorization: 'Bearer test-token',
+            'custom-provider-header': 'provider-value',
+          }),
+        }).doGenerate({
+          prompt,
+          n: 1,
+          files: undefined,
+          mask: undefined,
+          size: undefined,
+          aspectRatio: undefined,
+          seed: undefined,
+          providerOptions: {},
+          headers: { 'custom-request-header': 'request-value' },
+        });
+
+        expect(server.calls[2].requestHeaders).toEqual({
+          'x-key': 'test-key',
+          authorization: 'Bearer test-token',
+          'custom-provider-header': 'provider-value',
+          'custom-request-header': 'request-value',
+        });
+      },
+    );
+
+    it('does not send credentials to signed image URLs on the configured BFL origin', async () => {
+      server.urls['https://api.us1.bfl.ai/v1/get_result'].response = {
+        type: 'json-value',
+        body: {
+          status: 'Ready',
+          result: { sample: 'https://api.bfl.ai/image.png' },
+        },
+      };
+      await new BlackForestLabsImageModel('test-model', {
+        provider: 'black-forest-labs.image',
+        baseURL: 'https://api.bfl.ai/v1',
+        headers: () => ({
+          'x-key': 'test-key',
+          authorization: 'Bearer test-token',
+        }),
+      }).doGenerate({
+        prompt,
+        n: 1,
+        files: undefined,
+        mask: undefined,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        providerOptions: {},
+      });
+
+      expect(server.calls[2].requestHeaders['x-key']).toBeUndefined();
+      expect(server.calls[2].requestHeaders.authorization).toBeUndefined();
     });
 
     it('merges provider and request headers for submit call', async () => {
@@ -941,6 +1008,89 @@ describe('BlackForestLabsImageModel', () => {
         prompt,
         aspect_ratio: '16:9',
       });
+    });
+
+    it.each([
+      { size: '1792x1024', ratio: '7:4' },
+      { size: '1536x640', ratio: '12:5' },
+    ] as const)(
+      'omits unsupported aspect ratio $ratio derived from $size',
+      async ({ size, ratio }) => {
+        const result = await createBasicModel({
+          modelId: 'flux-3-image',
+        }).doGenerate({ ...callOptions, size });
+
+        expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+        expect(result.warnings).toContainEqual({
+          type: 'unsupported',
+          feature: 'aspectRatio',
+          details: `FLUX 3 does not support aspect ratio ${ratio}. Using the endpoint's default auto aspect ratio.`,
+        });
+      },
+    );
+
+    it('omits unsupported explicit aspect ratios even when size has a supported ratio', async () => {
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+      }).doGenerate({
+        ...callOptions,
+        size: '1536x1024',
+        aspectRatio: '3:1',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toEqual({ prompt });
+      expect(result.warnings).toContainEqual({
+        type: 'unsupported',
+        feature: 'aspectRatio',
+        details:
+          "FLUX 3 does not support aspect ratio 3:1. Using the endpoint's default auto aspect ratio.",
+      });
+    });
+
+    it.each([
+      { size: '2520x1080', ratio: '21:9' },
+      { size: '1080x2520', ratio: '9:21' },
+    ] as const)(
+      'uses the accepted aspect ratio $ratio for $size',
+      async ({ size, ratio }) => {
+        await createBasicModel({ modelId: 'flux-3-image' }).doGenerate({
+          ...callOptions,
+          size,
+        });
+
+        expect(await server.calls[0].requestBodyJson).toEqual({
+          prompt,
+          aspect_ratio: ratio,
+        });
+      },
+    );
+
+    it.each([
+      '21:9',
+      '2:1',
+      '16:9',
+      '3:2',
+      '7:5',
+      '4:3',
+      '5:4',
+      '1:1',
+      '4:5',
+      '3:4',
+      '5:7',
+      '2:3',
+      '9:16',
+      '1:2',
+      '9:21',
+    ] as const)('passes the supported aspect ratio %s', async aspectRatio => {
+      const result = await createBasicModel({
+        modelId: 'flux-3-image',
+      }).doGenerate({ ...callOptions, aspectRatio });
+
+      expect(await server.calls[0].requestBodyJson).toEqual({
+        prompt,
+        aspect_ratio: aspectRatio,
+      });
+      expect(result.warnings).toEqual([]);
     });
 
     it('omits legacy endpoint fields and warns about unsupported options', async () => {
