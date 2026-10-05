@@ -5,6 +5,7 @@ import {
 } from '@ai-sdk/provider';
 import {
   loadApiKey,
+  loadOptionalSetting,
   withoutTrailingSlash,
   withUserAgentSuffix,
   type FetchFunction,
@@ -27,7 +28,10 @@ export interface TypeSafeAiProvider extends ProviderV4 {
 export interface TypeSafeAiProviderSettings {
   /** API key. Defaults to the TYPESAFE_AI_API_KEY environment variable. */
   apiKey?: string;
-  /** API base URL. Defaults to https://api.typesafe.ai/v1. */
+  /**
+   * API base URL. Defaults to the TYPESAFE_AI_BASE_URL environment variable,
+   * then https://api.typesafe.ai/v1.
+   */
   baseURL?: string;
   headers?: Record<string, string>;
   fetch?: FetchFunction;
@@ -37,7 +41,12 @@ export function createTypeSafeAi(
   options: TypeSafeAiProviderSettings = {},
 ): TypeSafeAiProvider {
   const baseURL =
-    withoutTrailingSlash(options.baseURL) ?? 'https://api.typesafe.ai/v1';
+    withoutTrailingSlash(
+      loadOptionalSetting({
+        settingValue: options.baseURL,
+        environmentVariableName: 'TYPESAFE_AI_BASE_URL',
+      }),
+    ) ?? 'https://api.typesafe.ai/v1';
   const headers = () =>
     withUserAgentSuffix(
       {

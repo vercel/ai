@@ -203,6 +203,11 @@ authorization and reads the stored tokens again.
 The SDK also provides this context when invalidating stored tokens that lack an
 authorization server pin. Other invalidations can omit the context.
 
+If an authorization-code exchange returns `invalid_grant`, the SDK propagates
+the error without invalidating stored credentials or retrying the rejected code.
+A rejected authorization code does not indicate that existing access or refresh
+tokens are invalid.
+
 ### OAuth Authorization Server Validation
 
 When using MCP OAuth in server-side applications, the MCP server can advertise

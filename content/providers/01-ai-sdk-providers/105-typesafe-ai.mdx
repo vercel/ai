@@ -30,12 +30,23 @@ const customTypeSafe = createTypeSafeAi({
 
 `createTypeSafeAi` accepts:
 
-| Setting   | Description                                 |
-| --------- | ------------------------------------------- |
-| `apiKey`  | API key; defaults to `TYPESAFE_AI_API_KEY`. |
-| `baseURL` | Defaults to `https://api.typesafe.ai/v1`.   |
-| `headers` | Additional request headers.                 |
-| `fetch`   | Custom fetch implementation.                |
+| Setting   | Description                                                            |
+| --------- | ---------------------------------------------------------------------- |
+| `apiKey`  | API key; defaults to `TYPESAFE_AI_API_KEY`.                            |
+| `baseURL` | Defaults to `TYPESAFE_AI_BASE_URL`, then `https://api.typesafe.ai/v1`. |
+| `headers` | Additional request headers.                                            |
+| `fetch`   | Custom fetch implementation.                                           |
+
+Use `TYPESAFE_AI_BASE_URL` to route the default `typeSafeAi` instance through a
+trusted proxy or self-hosted TypeSafe-compatible server:
+
+```sh
+TYPESAFE_AI_BASE_URL=http://127.0.0.1:8766/v1
+```
+
+An explicit `baseURL` passed to `createTypeSafeAi` takes precedence over the
+environment variable. The configured server receives the API key and decision
+state and must implement the TypeSafe `POST /systemone` API.
 
 ## Decision
 
