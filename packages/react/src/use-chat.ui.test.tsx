@@ -37,6 +37,265 @@ const server = createTestServer({
 });
 
 describe('use-chat', () => {
+  describe('updates during suspended navigation', () => {
+    afterEach(cleanup);
+
+    it.each(['streamed text', 'local edit'] as const)(
+      'renders %s while a sibling transition is suspended',
+      async update => {
+        let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+        let resolvePending!: () => void;
+        let isPending = true;
+        const pending = new Promise<void>(resolve => {
+          resolvePending = resolve;
+        });
+        const chat = new Chat({
+          id: 'chat-id',
+          transport: {
+            async sendMessages() {
+              return new ReadableStream<UIMessageChunk>({
+                start(streamController) {
+                  controller = streamController;
+                },
+              });
+            },
+            async reconnectToStream() {
+              return null;
+            },
+          },
+        });
+
+        function ChatView() {
+          const { messages, setMessages } = useChat({ chat });
+          return (
+            <>
+              <div data-testid="chat-text">{JSON.stringify(messages)}</div>
+              <button
+                data-testid="edit-message"
+                onClick={() =>
+                  setMessages([
+                    {
+                      id: 'edited',
+                      role: 'assistant',
+                      parts: [{ type: 'text', text: 'Edited' }],
+                    },
+                  ])
+                }
+              />
+            </>
+          );
+        }
+
+        function Navigation() {
+          const [destination, setDestination] = useState(false);
+          if (destination && isPending) {
+            throw pending;
+          }
+          return (
+            <>
+              <div data-testid="destination">{destination ? 'new' : 'old'}</div>
+              <button
+                data-testid="navigate"
+                onClick={() =>
+                  React.startTransition(() => setDestination(true))
+                }
+              />
+            </>
+          );
+        }
+
+        render(
+          <>
+            <ChatView />
+            <React.Suspense fallback={<div>Loading</div>}>
+              <Navigation />
+            </React.Suspense>
+          </>,
+        );
+
+        let request!: Promise<void>;
+        await act(async () => {
+          request = chat.sendMessage({ text: 'hi' });
+        });
+
+        try {
+          await act(async () => {
+            controller.enqueue({ type: 'text-start', id: '0' });
+            controller.enqueue({ type: 'text-delta', id: '0', delta: 'Hello' });
+          });
+          await waitFor(() => {
+            expect(screen.getByTestId('chat-text')).toHaveTextContent('Hello');
+          });
+          await userEvent.click(screen.getByTestId('navigate'));
+
+          if (update === 'streamed text') {
+            await act(async () => {
+              controller.enqueue({
+                type: 'text-delta',
+                id: '0',
+                delta: ' world',
+              });
+            });
+          } else {
+            await userEvent.click(screen.getByTestId('edit-message'));
+          }
+
+          await waitFor(() => {
+            expect(screen.getByTestId('chat-text')).toHaveTextContent(
+              update === 'streamed text' ? 'Hello world' : 'Edited',
+            );
+          });
+          expect(screen.getByTestId('destination')).toHaveTextContent('old');
+          expect(chat.status).toBe('streaming');
+        } finally {
+          await act(async () => {
+            isPending = false;
+            resolvePending();
+            controller.close();
+            await request;
+          });
+        }
+      },
+    );
+  });
+
+  describe('terminal message snapshot consistency', () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      cleanup();
+      vi.clearAllTimers();
+      vi.useRealTimers();
+    });
+
+    it('keeps ready message updates throttled during unrelated renders', async () => {
+      const chat = new Chat({ id: 'local-edits' });
+      function TestComponent() {
+        const { messages } = useChat({ chat, throttle: 50 });
+        return <div data-testid="local-message">{messages[0]?.id}</div>;
+      }
+      const { rerender } = render(<TestComponent />);
+
+      act(() => {
+        chat.messages = [{ id: 'first', role: 'assistant', parts: [] }];
+      });
+      expect(screen.getByTestId('local-message')).toHaveTextContent('first');
+
+      act(() => {
+        chat.messages = [{ id: 'second', role: 'assistant', parts: [] }];
+      });
+      rerender(<TestComponent />);
+      expect(screen.getByTestId('local-message')).toHaveTextContent('first');
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+      });
+      expect(screen.getByTestId('local-message')).toHaveTextContent('second');
+    });
+
+    it.each(['ready', 'error', 'abort'] as const)(
+      'never commits %s beside an outdated message snapshot',
+      async terminal => {
+        let controller!: ReadableStreamDefaultController<UIMessageChunk>;
+        const chat = new Chat({
+          id: terminal,
+          transport: {
+            async sendMessages() {
+              return new ReadableStream<UIMessageChunk>({
+                start(streamController) {
+                  controller = streamController;
+                },
+              });
+            },
+            async reconnectToStream() {
+              return null;
+            },
+          },
+        });
+        const commits: Array<{
+          throttle: number;
+          status: string;
+          text: string;
+          error: string | undefined;
+        }> = [];
+
+        function TestComponent({ throttle }: { throttle: number }) {
+          const { messages, status, error } = useChat({ chat, throttle });
+          const text = messages
+            .flatMap(message => message.parts)
+            .filter(part => part.type === 'text')
+            .map(part => part.text)
+            .join('');
+
+          React.useLayoutEffect(() => {
+            commits.push({ throttle, status, text, error: error?.message });
+          });
+
+          return <div>{text}</div>;
+        }
+
+        render(
+          <>
+            <TestComponent throttle={50} />
+            <TestComponent throttle={100} />
+          </>,
+        );
+
+        try {
+          await act(async () => {
+            void chat.sendMessage({ text: 'user' });
+          });
+          await act(async () => {
+            controller.enqueue({ type: 'text-start', id: 'text' });
+            controller.enqueue({
+              type: 'text-delta',
+              id: 'text',
+              delta: 'complete',
+            });
+          });
+          expect(chat.status).toBe('streaming');
+          commits.length = 0;
+
+          await act(async () => {
+            if (terminal === 'abort') {
+              await chat.stop();
+            } else {
+              controller.enqueue(
+                terminal === 'error'
+                  ? { type: 'error', errorText: 'failed' }
+                  : { type: 'text-end', id: 'text' },
+              );
+              controller.close();
+            }
+          });
+
+          const terminalStatus = terminal === 'abort' ? 'ready' : terminal;
+          const terminalCommits = commits.filter(
+            commit => commit.status === terminalStatus,
+          );
+          for (const throttle of [50, 100]) {
+            expect(
+              terminalCommits.some(commit => commit.throttle === throttle),
+            ).toBe(true);
+          }
+          for (const commit of terminalCommits) {
+            expect(commit.text).toBe('usercomplete');
+            expect(commit.error).toBe(
+              terminal === 'error' ? 'failed' : undefined,
+            );
+          }
+        } finally {
+          await act(async () => {
+            await chat.stop();
+          });
+        }
+      },
+    );
+  });
+
   describe('initial messages', () => {
     setupTestComponent(
       ({ id: idParam }: { id: string }) => {
@@ -542,20 +801,24 @@ describe('use-chat', () => {
 
       await userEvent.click(screen.getByTestId('do-send'));
 
+      // The assistant message can render before its text arrives.
+      const content = await screen.findByTestId('message-1-content');
+      expect(content).toBeEmptyDOMElement();
+      const id = screen.getByTestId('message-1-id').textContent;
+
       controller.write('He');
 
-      await screen.findByTestId('message-1-content');
-      expect(screen.getByTestId('message-1-content')).toHaveTextContent('He');
-
-      const id = screen.getByTestId('message-1-id').textContent;
+      await waitFor(() => {
+        expect(content).toHaveTextContent('He');
+      });
+      expect(screen.getByTestId('message-1-id').textContent).toBe(id);
 
       controller.write('llo');
       controller.close();
 
-      await screen.findByTestId('message-1-content');
-      expect(screen.getByTestId('message-1-content')).toHaveTextContent(
-        'Hello',
-      );
+      await waitFor(() => {
+        expect(content).toHaveTextContent('Hello');
+      });
       expect(screen.getByTestId('message-1-id').textContent).toBe(id);
     });
 
@@ -2899,7 +3162,7 @@ describe('use-chat', () => {
       },
     );
 
-    it('should keep the active stream connected before an id change commits', async () => {
+    it('should keep rendering the active stream before an id change commits', async () => {
       await userEvent.click(screen.getByTestId('suspended-chat-send'));
       await waitFor(() => {
         expect(requestSignal).toBeDefined();
@@ -2928,6 +3191,7 @@ describe('use-chat', () => {
             screen.getByTestId('suspended-chat-messages'),
           ).toHaveTextContent('Hello');
         });
+        expect(requestSignal?.aborted).toBe(false);
       } finally {
         responseController!.close();
       }

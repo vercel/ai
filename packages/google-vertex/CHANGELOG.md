@@ -1,5 +1,42 @@
 # @ai-sdk/google-vertex
 
+## 5.0.101
+
+### Patch Changes
+
+- Updated dependencies [04be48f]
+- Updated dependencies [c35458e]
+  - @ai-sdk/openai-compatible@3.0.62
+  - @ai-sdk/anthropic@4.0.71
+
+## 5.0.100
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/google@4.0.87
+  - @ai-sdk/anthropic@4.0.70
+  - @ai-sdk/openai-compatible@3.0.61
+
+## 5.0.99
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+- Updated dependencies [a587f55]
+  - @ai-sdk/anthropic@4.0.69
+  - @ai-sdk/google@4.0.86
+  - @ai-sdk/openai-compatible@3.0.60
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 5.0.98
 
 ### Patch Changes
