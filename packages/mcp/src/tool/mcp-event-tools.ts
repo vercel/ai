@@ -49,7 +49,7 @@ export function eventToolsFromDefinitions(
         message: `Invalid generated event tool name: ${name}. Supply a toolName mapping using 1–64 letters, digits, underscores or hyphens.`,
       });
     }
-    if (Object.hasOwn(tools, name)) {
+    if (Object.prototype.hasOwnProperty.call(tools, name)) {
       throw new MCPClientError({
         message: `Duplicate event tool name: ${name}. Supply a unique toolName mapping.`,
       });
