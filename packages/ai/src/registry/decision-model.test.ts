@@ -12,6 +12,7 @@ import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockProviderV2 } from '../test/mock-provider-v2';
 import { MockProviderV3 } from '../test/mock-provider-v3';
 import { MockProviderV4 } from '../test/mock-provider-v4';
+import { MockVideoModelV4 } from '../test/mock-video-model-v4';
 import { customProvider } from './custom-provider';
 import { createProviderRegistry } from './provider-registry';
 import { NoSuchProviderError } from './no-such-provider-error';
@@ -134,6 +135,40 @@ describe('decision registry', () => {
     });
     const registry = createProviderRegistry({ provider }, { separator: '::' });
     expect(registry.decisionModel('provider::model::version')).toBe(model);
+  });
+
+  it('preserves deprecated factories when adapting a v3 provider', () => {
+    const provider = Object.assign(new MockProviderV3(), {
+      model,
+      evaluationModel(modelId: string) {
+        expect(modelId).toBe('model::version');
+        return this.model;
+      },
+    });
+    const registry = createProviderRegistry({ provider }, { separator: '::' });
+    expect(registry.decisionModel('provider::model::version')).toBe(model);
+    expect(registry.evaluationModel('provider::model::version')).toBe(model);
+  });
+
+  it('preserves deprecated factory receivers when adapting video models', () => {
+    const videoModel = new MockVideoModelV4();
+    class LegacyProvider extends MockProviderV4 {
+      #model = model;
+      #videoModel = videoModel;
+
+      evaluationModel(modelId: string) {
+        expect(modelId).toBe('model');
+        return this.#model;
+      }
+
+      videoModel() {
+        return this.#videoModel;
+      }
+    }
+    const registry = createProviderRegistry({ provider: new LegacyProvider() });
+    expect(registry.decisionModel('provider:model')).toBe(model);
+    expect(registry.evaluationModel('provider:model')).toBe(model);
+    expect(registry.videoModel('provider:video')).toBe(videoModel);
   });
 
   it('identifies unknown providers with the existing marker-based error', () => {

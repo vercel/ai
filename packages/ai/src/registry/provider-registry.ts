@@ -264,9 +264,10 @@ class DefaultProviderRegistry<
       provider as ProviderWithOptionalVideoModel
     ).videoModel?.bind(provider);
 
-    const decisionModel = (provider as DecisionProvider).decisionModel?.bind(
-      provider,
-    );
+    const decisionProvider = provider as DecisionProvider;
+    const decisionModel = (
+      decisionProvider.decisionModel ?? decisionProvider.evaluationModel
+    )?.bind(provider);
 
     const registeredProvider =
       videoModel == null
