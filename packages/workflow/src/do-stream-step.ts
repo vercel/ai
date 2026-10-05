@@ -12,7 +12,7 @@ import {
   type ModelMessage,
   type ToolSet,
 } from 'ai';
-import { prepareRetries } from 'ai/internal';
+import { mergeAbortSignals, prepareRetries } from 'ai/internal';
 import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
@@ -69,6 +69,67 @@ export async function doStreamStep(
       : options?.abortSignal == null
         ? AbortSignal.timeout(timeout)
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
+  const stepAbortController =
+    options?.stepTimeoutMs == null ? undefined : new AbortController();
+  const firstChunkAbortController =
+    options?.firstChunkTimeoutMs == null ? undefined : new AbortController();
+  const chunkAbortController =
+    options?.chunkTimeoutMs == null ? undefined : new AbortController();
+  const modelAbortSignal = mergeAbortSignals(
+    abortSignal,
+    stepAbortController?.signal,
+    firstChunkAbortController?.signal,
+    chunkAbortController?.signal,
+  );
+  let stepTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let firstChunkTimeoutId: ReturnType<typeof setTimeout> | undefined;
+  let chunkTimeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  function startStepTimeout() {
+    stepTimeoutId = setAbortTimeout({
+      abortController: stepAbortController,
+      label: 'Step',
+      timeoutMs: options?.stepTimeoutMs,
+    });
+  }
+
+  function startFirstChunkTimeout() {
+    firstChunkTimeoutId = setAbortTimeout({
+      abortController: firstChunkAbortController,
+      label: 'First chunk',
+      timeoutMs: options?.firstChunkTimeoutMs,
+    });
+  }
+
+  function clearFirstChunkTimeout() {
+    if (firstChunkTimeoutId != null) {
+      clearTimeout(firstChunkTimeoutId);
+      firstChunkTimeoutId = undefined;
+    }
+  }
+
+  function resetChunkTimeout() {
+    if (chunkTimeoutId != null) {
+      clearTimeout(chunkTimeoutId);
+    }
+    chunkTimeoutId = setAbortTimeout({
+      abortController: chunkAbortController,
+      label: 'Chunk',
+      timeoutMs: options?.chunkTimeoutMs,
+    });
+  }
+
+  function clearStepTimeouts() {
+    if (stepTimeoutId != null) {
+      clearTimeout(stepTimeoutId);
+      stepTimeoutId = undefined;
+    }
+    clearFirstChunkTimeout();
+    if (chunkTimeoutId != null) {
+      clearTimeout(chunkTimeoutId);
+      chunkTimeoutId = undefined;
+    }
+  }
 
   // Resolve model inside step (must happen here for serialization boundary)
   const model =
@@ -132,8 +193,9 @@ export async function doStreamStep(
   // around the model dispatch because streamModelCall itself does not retry.
   const { retry } = prepareRetries({
     maxRetries: options?.maxRetries,
-    abortSignal,
+    abortSignal: modelAbortSignal,
   });
+  startStepTimeout();
   const modelStream = await (async () => {
     try {
       const { stream } = await retry(() =>
@@ -162,7 +224,7 @@ export async function doStreamStep(
           toolChoice: options?.toolChoice,
           includeRawChunks: options?.includeRawChunks,
           providerOptions: options?.providerOptions,
-          abortSignal,
+          abortSignal: modelAbortSignal,
           headers: options?.headers,
           reasoning: options?.reasoning,
           output,
@@ -180,17 +242,21 @@ export async function doStreamStep(
 
       return stream;
     } catch (error) {
-      if (abortSignal?.aborted && isAbortError(error)) {
+      if (modelAbortSignal?.aborted && isAbortError(error)) {
         return undefined;
       }
 
+      clearStepTimeouts();
       throw error;
     }
   })();
 
   if (modelStream == null) {
+    clearStepTimeouts();
     return { aborted: true };
   }
+
+  startFirstChunkTimeout();
 
   // Consume the stream: capture data and write to writable in real-time
   const toolCalls: ParsedToolCall[] = [];
@@ -217,15 +283,24 @@ export async function doStreamStep(
   const ongoingToolCallToolNames = new Map<string, string>();
 
   // Acquire writer once before the loop to avoid per-chunk lock overhead
-  const writer = writable?.getWriter();
+  let writer:
+    | WritableStreamDefaultWriter<ModelCallStreamPart<ToolSet>>
+    | undefined;
 
   try {
+    writer = writable?.getWriter();
+
     // A workflow step can be retried after already writing partial output.
     // Reset the current UI step before every attempt so a retry invalidates
     // chunks left behind by an earlier execution.
     await writer?.write({ type: 'reset-step' });
 
     for await (const part of modelStream) {
+      if (isOutputChunk(part)) {
+        clearFirstChunkTimeout();
+        resetChunkTimeout();
+      }
+
       switch (part.type) {
         case 'tool-input-start':
           ongoingToolCallToolNames.set(part.id, part.toolName);
@@ -433,17 +508,18 @@ export async function doStreamStep(
       }
     }
   } catch (error) {
-    if (abortSignal?.aborted && isAbortError(error)) {
+    if (modelAbortSignal?.aborted && isAbortError(error)) {
       return { aborted: true };
     }
 
     throw error;
   } finally {
+    clearStepTimeouts();
     writer?.releaseLock();
   }
 
   if (
-    abortSignal?.aborted ||
+    modelAbortSignal?.aborted ||
     (options?.timeoutAt != null && options.timeoutAt <= Date.now())
   ) {
     return { aborted: true };
@@ -467,6 +543,44 @@ export async function doStreamStep(
 // Model-call retries are handled above so the workflow runtime must not add
 // another retry layer around the durable step.
 doStreamStep.maxRetries = 0;
+
+function setAbortTimeout({
+  abortController,
+  label,
+  timeoutMs,
+}: {
+  abortController: AbortController | undefined;
+  label: string;
+  timeoutMs: number | undefined;
+}): ReturnType<typeof setTimeout> | undefined {
+  if (abortController == null || timeoutMs == null) {
+    return undefined;
+  }
+
+  return setTimeout(
+    () =>
+      abortController.abort(
+        new DOMException(
+          `${label} timeout of ${timeoutMs}ms exceeded`,
+          'TimeoutError',
+        ),
+      ),
+    timeoutMs,
+  );
+}
+
+function isOutputChunk(
+  part: Exclude<ModelCallStreamPart<ToolSet>, { type: 'reset-step' }>,
+): boolean {
+  return (
+    (part.type === 'text-delta' && part.text.length > 0) ||
+    (part.type === 'reasoning-delta' && part.text.length > 0) ||
+    (part.type === 'tool-input-delta' && part.delta.length > 0) ||
+    part.type === 'file' ||
+    part.type === 'reasoning-file' ||
+    part.type === 'tool-call'
+  );
+}
 
 function applyStreamTransforms({
   stream,

@@ -322,6 +322,38 @@ describe('WorkflowAgent', () => {
       expect(cooperativelyCancelled).toBe(true);
     });
 
+    it('should split streaming timeout configuration into total and step settings', async () => {
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
+        next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
+      } as unknown as MockIterator);
+      const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(1000);
+      const agent = new WorkflowAgent({ model: createMockModel() });
+
+      try {
+        await agent.stream({
+          messages: [{ role: 'user', content: 'test' }],
+          timeout: {
+            totalMs: 5000,
+            stepMs: 4000,
+            firstChunkMs: 3000,
+            chunkMs: 2000,
+          },
+        });
+
+        expect(modelCallIterator).toHaveBeenCalledWith(
+          expect.objectContaining({
+            timeoutAt: 6000,
+            stepTimeoutMs: 4000,
+            firstChunkTimeoutMs: 3000,
+            chunkTimeoutMs: 2000,
+          }),
+        );
+      } finally {
+        nowSpy.mockRestore();
+      }
+    });
+
     it('should convert FatalError to tool error result', async () => {
       const errorMessage = 'This is a fatal error';
       const tools: ToolSet = {
@@ -4650,8 +4682,8 @@ describe('WorkflowAgent', () => {
         },
       };
       const write = vi.fn();
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -4703,7 +4735,7 @@ describe('WorkflowAgent', () => {
 
       expect(executeFn).not.toHaveBeenCalled();
       const initialMessages = vi
-        .mocked(streamTextIterator)
+        .mocked(modelCallIterator)
         .mock.calls.at(-1)?.[0].initialMessages;
       expect(
         initialMessages?.flatMap(message =>

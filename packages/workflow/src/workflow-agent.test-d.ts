@@ -7,6 +7,7 @@ import {
   type InferUITools,
   type Instructions,
   type ModelMessage,
+  type TimeoutConfiguration,
   type ToolSet,
   type UIMessage,
 } from 'ai';
@@ -99,6 +100,32 @@ describe('WorkflowAgent types', () => {
     });
 
     expectTypeOf(result.output).toEqualTypeOf<{ score: number }>();
+  });
+
+  it('accepts streaming timeout configuration', () => {
+    const agent = new WorkflowAgent({ model });
+
+    agent.stream({ prompt: 'test', timeout: 1000 });
+    agent.stream({
+      prompt: 'test',
+      timeout: {
+        totalMs: 5000,
+        stepMs: 4000,
+        firstChunkMs: 3000,
+        chunkMs: 2000,
+      },
+    });
+    const coreTimeout: TimeoutConfiguration<ToolSet> = {
+      stepMs: 4000,
+      firstChunkMs: 3000,
+      chunkMs: 2000,
+    };
+    agent.stream({ prompt: 'test', timeout: coreTimeout });
+
+    // @ts-expect-error tool timeouts are not supported by WorkflowAgent
+    agent.stream({ prompt: 'test', timeout: { toolMs: 1000 } });
+    // @ts-expect-error streaming timeout objects are not supported by generate
+    agent.generate({ prompt: 'test', timeout: { stepMs: 1000 } });
   });
 
   it('accepts constructor output with the original public generic arguments', async () => {

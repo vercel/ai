@@ -835,7 +835,38 @@ Local tools execute only after approval validation; denied tools produce an exec
 
 #### Deadlines, cancellation, and replay
 
-Inside a workflow, `timeout` sets an absolute deadline for model calls. Each model step checks it before dispatch, before SDK retry attempts, and after the provider returns. The same deadline remains in effect after a tool suspends and resumes. SDK `maxRetries` governs model retries; the durable model step does not add another retry layer. Expiration before dispatch rejects with `TimeoutError`; expiration during SDK retry backoff rejects with `AbortError`. Neither starts a new retry.
+For `stream()`, `timeout` accepts either a number or an object:
+
+```ts
+const result = await agent.stream({
+  messages,
+  timeout: {
+    totalMs: 5 * 60_000,
+    stepMs: 60_000,
+    firstChunkMs: 15_000,
+    chunkMs: 10_000,
+  },
+});
+```
+
+A number has the same meaning as `totalMs`: it sets an absolute deadline for
+the agent's model calls. The same total deadline remains in effect after a tool
+suspends and resumes. `stepMs` starts fresh for each model call and covers
+dispatch, SDK retries, and stream consumption. `firstChunkMs` limits how long
+each model call can wait for its first generated output, while `chunkMs` limits
+the gap between later output chunks.
+
+The chunk timers follow generated output, not protocol activity. Stream starts,
+response metadata, raw events, structural start/end events, and empty text,
+reasoning, or tool-input deltas do not satisfy or reset them. Generated files,
+tool calls, and non-empty text, reasoning, or tool-input deltas do.
+
+Each model step checks the total deadline before dispatch, before SDK retry
+attempts, and after the provider returns. SDK `maxRetries` governs model
+retries; the durable model step does not add another retry layer. Timeout
+expiration aborts the current model call with a `TimeoutError` and does not
+start a new durable-step retry. `generate()` continues to accept a numeric
+total timeout.
 
 A model deadline does not cancel a tool waiting on a Workflow hook. The run can remain suspended after that deadline. Once the hook resumes, any subsequent model call fails before dispatch if the deadline has expired. To stop the suspended run, use the Workflow runtime's `run.cancel()` API. Cancellation does not undo external side effects that already happened.
 

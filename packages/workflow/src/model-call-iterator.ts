@@ -141,6 +141,9 @@ export async function* modelCallIterator({
   telemetry,
   includeRawChunks = false,
   timeoutAt,
+  stepTimeoutMs,
+  firstChunkTimeoutMs,
+  chunkTimeoutMs,
   repairToolCall,
   responseFormat,
   experimental_transform,
@@ -168,6 +171,9 @@ export async function* modelCallIterator({
   telemetry?: TelemetryOptions<Context, ToolSet>;
   includeRawChunks?: boolean;
   timeoutAt?: number;
+  stepTimeoutMs?: number;
+  firstChunkTimeoutMs?: number;
+  chunkTimeoutMs?: number;
   repairToolCall?: ToolCallRepairFunction<ToolSet>;
   responseFormat?: LanguageModelV4CallOptions['responseFormat'];
   experimental_transform?:
@@ -376,6 +382,9 @@ export async function* modelCallIterator({
         toolChoice: currentToolChoice,
         includeRawChunks,
         timeoutAt,
+        stepTimeoutMs,
+        firstChunkTimeoutMs,
+        chunkTimeoutMs,
         repairToolCall,
         responseFormat,
         include,

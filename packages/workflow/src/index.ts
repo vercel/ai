@@ -5,6 +5,7 @@ export {
   type DownloadFunction,
   type WorkflowAgentOptions,
   type WorkflowAgentStreamOptions,
+  type WorkflowAgentStreamTimeoutConfiguration,
   type WorkflowAgentCallOptions,
   type WorkflowAgentGenerateOptions,
   type WorkflowAgentGenerateResult,
