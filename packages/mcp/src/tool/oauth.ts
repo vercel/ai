@@ -1230,8 +1230,16 @@ export async function auth(
 
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
+<<<<<<< HEAD
     } else if (error instanceof InvalidGrantError) {
       await provider.invalidateCredentials?.('tokens');
+=======
+    } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Only invalidate the tokens used by a failed refresh.
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: refreshAttempt.tokens,
+      });
+>>>>>>> 575383e937 (fix(mcp): preserve OAuth credentials when callback codes are rejected (#22055))
       return await authInternal(provider, options);
     }
 
