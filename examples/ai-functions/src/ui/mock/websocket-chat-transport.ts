@@ -3,6 +3,7 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import {
+  readUIMessageStream,
   safeValidateWebSocketChatTransportRequest,
   WebSocketChatTransport,
   type UIMessage,
@@ -140,6 +141,7 @@ server.on('connection', (socket, request) => {
     };
     sessionStreams.set(frame.id, stream);
 
+    publish(stream, { type: 'start', messageId: crypto.randomUUID() });
     publish(stream, { type: 'text-start', id: textId });
 
     const complete = () => {
@@ -190,21 +192,19 @@ async function startMessage(chatId: string, text: string) {
 async function readText(
   stream: ReadableStream<UIMessageChunk>,
 ): Promise<string> {
-  let response = '';
-  const reader = stream.getReader();
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
-        return response;
-      }
-      if (value.type === 'text-delta') {
-        response += value.delta;
-      }
-    }
-  } finally {
-    reader.releaseLock();
+  let response: UIMessage | undefined;
+  for await (const message of readUIMessageStream({
+    stream,
+    terminateOnError: true,
+  })) {
+    response = message;
   }
+  return (
+    response?.parts
+      .filter(part => part.type === 'text')
+      .map(part => part.text)
+      .join('') ?? ''
+  );
 }
 
 try {
@@ -215,6 +215,9 @@ try {
   const interrupted = (
     await startMessage('resumable-chat', 'resumable turn')
   ).getReader();
+  // Interrupt after the message and text part have started. A resumed stream
+  // must replay those chunks before its deltas can be parsed as a UI message.
+  await interrupted.read();
   await interrupted.read();
   latestServerSocket?.terminate();
   await interrupted.read().catch(() => undefined);

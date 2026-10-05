@@ -38,6 +38,7 @@ export type WebSocketChatTransportResumeRequest = {
   type: 'resume';
   requestId: string;
   id: string;
+  /** Omitted by this transport to request a complete UI message replay. */
   lastSequence: number | undefined;
   headers: Record<string, string>;
   body: object;
@@ -182,7 +183,6 @@ type ConnectionState = {
 
 type ActiveRequest = {
   requestId: string;
-  chatId: string;
   kind: 'send' | 'resume';
   lastSequence: number;
   stream: ReadableStream<UIMessageChunk>;
@@ -330,7 +330,6 @@ export class WebSocketChatTransport<
 
   private connection?: ConnectionState;
   private readonly activeRequests = new Map<string, ActiveRequest>();
-  private readonly lastSequenceByChatId = new Map<string, number>();
   private sendQueue: Promise<void> = Promise.resolve();
 
   constructor(options: WebSocketChatTransportInitOptions<UI_MESSAGE>) {
@@ -378,10 +377,8 @@ export class WebSocketChatTransport<
 
     const socket = await this.getSocket(abortSignal);
     const requestId = generateId();
-    this.lastSequenceByChatId.delete(options.chatId);
     const request = this.createActiveRequest({
       requestId,
-      chatId: options.chatId,
       kind: 'send',
       lastSequence: -1,
       abortSignal,
@@ -457,9 +454,11 @@ export class WebSocketChatTransport<
 
     const request = this.createActiveRequest({
       requestId,
-      chatId: options.chatId,
       kind: 'resume',
-      lastSequence: this.lastSequenceByChatId.get(options.chatId) ?? -1,
+      // Chat reconstructs a resumed message with a fresh stream parser. Replay
+      // from the beginning so text, reasoning, and tool deltas have their
+      // prerequisite chunks, even when this transport received them before.
+      lastSequence: -1,
       abortSignal: options.abortSignal,
       resolveResponse,
       rejectResponse,
@@ -469,8 +468,7 @@ export class WebSocketChatTransport<
       type: 'resume',
       requestId,
       id: options.chatId,
-      lastSequence:
-        request.lastSequence === -1 ? undefined : request.lastSequence,
+      lastSequence: undefined,
       headers:
         preparedRequest?.headers == null
           ? headers
@@ -731,7 +729,6 @@ export class WebSocketChatTransport<
 
   private createActiveRequest({
     requestId,
-    chatId,
     kind,
     lastSequence,
     abortSignal,
@@ -739,7 +736,6 @@ export class WebSocketChatTransport<
     rejectResponse,
   }: {
     requestId: string;
-    chatId: string;
     kind: ActiveRequest['kind'];
     lastSequence: number;
     abortSignal: AbortSignal | undefined;
@@ -758,7 +754,6 @@ export class WebSocketChatTransport<
 
     const request: ActiveRequest = {
       requestId,
-      chatId,
       kind,
       lastSequence,
       stream,
@@ -924,14 +919,12 @@ export class WebSocketChatTransport<
           return;
         }
         request.lastSequence = parsed.value.sequence;
-        this.lastSequenceByChatId.set(request.chatId, parsed.value.sequence);
         return;
       }
 
       case 'end': {
         this.resolveResumeStream(request);
         this.cleanupRequest(request);
-        this.clearLastSequence(request);
         request.controller.close();
         return;
       }
@@ -942,7 +935,6 @@ export class WebSocketChatTransport<
           request.resolveResponse?.(null);
         }
         this.cleanupRequest(request);
-        this.clearLastSequence(request);
         request.controller.close();
         return;
       }
@@ -961,7 +953,6 @@ export class WebSocketChatTransport<
               'WebSocket chat server returned an error.',
           ),
         );
-        this.clearLastSequence(request);
         return;
       }
 
@@ -990,13 +981,5 @@ export class WebSocketChatTransport<
     });
     this.sendQueue = send.catch(() => {});
     return send;
-  }
-
-  private clearLastSequence(request: ActiveRequest): void {
-    if (
-      this.lastSequenceByChatId.get(request.chatId) === request.lastSequence
-    ) {
-      this.lastSequenceByChatId.delete(request.chatId);
-    }
   }
 }
