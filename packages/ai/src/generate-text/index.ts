@@ -49,6 +49,11 @@ export type {
   StepResultPerformance,
 } from './step-result';
 export {
+  SteeringController,
+  type SteeringReceipt,
+  type SteeringSignal,
+} from './steering-controller';
+export {
   hasToolCall,
   isLoopFinished,
   isStepCount,
