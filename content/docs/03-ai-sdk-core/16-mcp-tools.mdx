@@ -124,6 +124,36 @@ transports by providing an `authProvider`.
 
 </Note>
 
+### Shared OAuth Credential Storage
+
+When multiple MCP clients or replicas share OAuth credentials, a rotating refresh
+token can be used concurrently. One refresh may save new tokens while another
+receives `invalid_grant` for the old refresh token.
+
+The optional `OAuthClientProvider.invalidateCredentials` method receives a
+second argument identifying the tokens used by a failed refresh:
+
+```typescript
+invalidateCredentials(
+  scope: 'all' | 'client' | 'tokens' | 'verifier',
+  context?: { tokens: OAuthTokens },
+): void | Promise<void>;
+```
+
+For `scope === 'tokens'` with a context, delete the credential only if the stored
+access and refresh tokens still match `context.tokens`. The comparison and
+deletion must be atomic, using a conditional database operation or a transaction.
+If they no longer match, leave the newer tokens in storage. The SDK retries
+authorization and reads the stored tokens again.
+
+The SDK also provides this context when invalidating stored tokens that lack an
+authorization server pin. Other invalidations can omit the context.
+
+If an authorization-code exchange returns `invalid_grant`, the SDK propagates
+the error without invalidating stored credentials or retrying the rejected code.
+A rejected authorization code does not indicate that existing access or refresh
+tokens are invalid.
+
 ### OAuth Authorization Server Validation
 
 When using MCP OAuth in server-side applications, the MCP server can advertise
