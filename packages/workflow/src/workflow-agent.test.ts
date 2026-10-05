@@ -4650,8 +4650,8 @@ describe('WorkflowAgent', () => {
         },
       };
       const write = vi.fn();
-      const { streamTextIterator } = await import('./stream-text-iterator.js');
-      vi.mocked(streamTextIterator).mockReturnValue({
+      const { modelCallIterator } = await import('./model-call-iterator.js');
+      vi.mocked(modelCallIterator).mockReturnValue({
         next: vi.fn().mockResolvedValueOnce({ done: true, value: [] }),
       } as unknown as MockIterator);
 
@@ -4703,7 +4703,7 @@ describe('WorkflowAgent', () => {
 
       expect(executeFn).not.toHaveBeenCalled();
       const initialMessages = vi
-        .mocked(streamTextIterator)
+        .mocked(modelCallIterator)
         .mock.calls.at(-1)?.[0].initialMessages;
       expect(
         initialMessages?.flatMap(message =>
