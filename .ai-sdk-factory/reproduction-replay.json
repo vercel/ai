@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "issueId": 22053,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22053-silent-transcription.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22053-silent-transcription.ts",
+    "packages/elevenlabs/src/__fixtures__/elevenlabs-transcription-silent.json"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22053: successful silent transcription was rejected with AI_NoTranscriptGeneratedError"
+  }
+}

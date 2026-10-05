@@ -166,6 +166,21 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should extract an empty transcription from successful silent audio response', async () => {
+      prepareJsonFixtureResponse('elevenlabs-transcription-silent');
+
+      const result = await provider.transcription('scribe_v2').doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+      });
+
+      expect(result).toMatchObject({
+        text: '',
+        segments: [],
+        language: 'en',
+      });
+    });
+
     it('should pass provider options correctly', async () => {
       await model.doGenerate({
         audio: audioData,
