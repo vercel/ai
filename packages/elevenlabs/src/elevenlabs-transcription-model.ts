@@ -222,6 +222,13 @@ export class ElevenLabsTranscriptionModel implements TranscriptionModelV4 {
         headers: responseHeaders,
         body: rawResponse,
       },
+      ...(response.words != null && {
+        providerMetadata: {
+          elevenlabs: {
+            words: response.words,
+          },
+        },
+      }),
     };
   }
 

@@ -166,6 +166,76 @@ describe('doGenerate', () => {
       );
     });
 
+    it('should preserve word metadata in provider metadata', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'json-value',
+        body: {
+          language_code: 'eng',
+          language_probability: 1,
+          text: 'hi (laughter)',
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          elevenlabs: {
+            diarize: true,
+          },
+        },
+      });
+
+      expect(result.providerMetadata).toEqual({
+        elevenlabs: {
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      });
+    });
+
     it('should pass provider options correctly', async () => {
       await model.doGenerate({
         audio: audioData,
@@ -305,7 +375,9 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
     });
   });
 });
