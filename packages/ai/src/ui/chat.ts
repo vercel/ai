@@ -717,6 +717,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       activeResumeRequest?.completionPromise,
       activeResponse?.completionPromise,
     ]);
+
+    // Stream cancellation can complete while a processing job is still
+    // blocked in onToolCall. Drain that job and any message update it queued.
+    await this.jobExecutor.waitForIdle();
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
