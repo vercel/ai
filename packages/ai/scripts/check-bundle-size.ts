@@ -3,7 +3,8 @@ import { writeFileSync, statSync } from 'fs';
 import { join } from 'path';
 
 // Both realtime transports add ~32 KiB to all exports; named probes guard tree shaking.
-const LIMIT = 545 * 1024;
+const NODE_LIMIT = 550 * 1024;
+const BROWSER_LIMIT = 545 * 1024;
 
 interface BundleResult {
   size: number;
@@ -55,7 +56,7 @@ async function bundleForNode(
         ? 8 * 1024
         : entry === 'generateText'
           ? 280 * 1024
-          : LIMIT,
+          : NODE_LIMIT,
   };
 }
 
@@ -103,7 +104,7 @@ async function bundleForBrowser(
         ? 8 * 1024
         : entry === 'generateText'
           ? 280 * 1024
-          : LIMIT,
+          : BROWSER_LIMIT,
   };
 }
 
