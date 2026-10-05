@@ -1,5 +1,6 @@
 import type { ImageModelV3CallOptions } from '@ai-sdk/provider';
 import type { FetchFunction } from '@ai-sdk/provider-utils';
+import type * as ProviderUtils from '@ai-sdk/provider-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { dimensionsForAspectRatio } from './azure-mai-image-model';
 import {
@@ -8,6 +9,12 @@ import {
 } from './azure-openai-provider';
 
 vi.mock('./version', () => ({ VERSION: '0.0.0-test' }));
+
+const { downloadBlobMock } = vi.hoisted(() => ({ downloadBlobMock: vi.fn() }));
+vi.mock('@ai-sdk/provider-utils', async importOriginal => ({
+  ...(await importOriginal<typeof ProviderUtils>()),
+  downloadBlob: downloadBlobMock,
+}));
 
 const maiResponse = {
   created: 1791229019,
@@ -74,6 +81,7 @@ const editsUrl =
 
 afterEach(() => {
   vi.restoreAllMocks();
+  downloadBlobMock.mockReset();
 });
 
 describe('API routing', () => {
@@ -127,6 +135,25 @@ describe('API routing', () => {
       details: 'This option requires the MAI image API.',
     });
   });
+
+  it.each(['MAI-Image-2.6', 'gpt-image-1'])(
+    'accepts unrelated azure provider options for %s',
+    async id => {
+      const { provider } = setup({}, () =>
+        jsonResponse(
+          id.startsWith('MAI') ? maiResponse : { data: [{ b64_json: 'aGk=' }] },
+        ),
+      );
+
+      const result = await provider.image(id).doGenerate(
+        callOptions({
+          providerOptions: { azure: { someFutureOption: 'value' } },
+        }),
+      );
+
+      expect(result.images).toHaveLength(1);
+    },
+  );
 });
 
 describe('generations', () => {
@@ -197,16 +224,27 @@ describe('generations', () => {
 
     const result = await provider
       .image('MAI-Image-2.6')
-      .doGenerate(callOptions({ n: 2, seed: 42 }));
+      .doGenerate(callOptions({ seed: 42 }));
 
-    expect(result.warnings).toEqual([
-      {
-        type: 'unsupported',
-        feature: 'n',
-        details: 'MAI image models return one image per request.',
-      },
-      { type: 'unsupported', feature: 'seed' },
-    ]);
+    expect(result.warnings).toEqual([{ type: 'unsupported', feature: 'seed' }]);
+  });
+
+  it('sends one request per image when called with n > 1', async () => {
+    const { provider, fetch } = setup();
+
+    const result = await provider
+      .image('MAI-Image-2.6')
+      .doGenerate(callOptions({ n: 2 }));
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(result.images).toEqual(['iVBORw0KGgo=', 'iVBORw0KGgo=']);
+    expect(result.usage).toEqual({
+      inputTokens: 20,
+      outputTokens: 1152,
+      totalTokens: 1172,
+    });
+    expect(result.providerMetadata?.azure?.images).toHaveLength(2);
+    expect(result.warnings).toEqual([]);
   });
 
   it('returns images, usage, and provider metadata', async () => {
@@ -274,6 +312,27 @@ describe('generations', () => {
         "Model does not support request parameter value supplied: 'width' must be at least 768 pixels.",
     });
   });
+
+  it.each([
+    ['an HTML', '<html><body>Bad Gateway</body></html>', 'text/html', 502],
+    ['an empty', '', 'text/plain', 500],
+  ])(
+    'keeps the status and raw body for %s error body',
+    async (_, body, contentType, status) => {
+      const { provider } = setup(
+        {},
+        () =>
+          new Response(body, {
+            status,
+            headers: { 'content-type': contentType },
+          }),
+      );
+
+      await expect(
+        provider.image('MAI-Image-2.6').doGenerate(callOptions()),
+      ).rejects.toMatchObject({ statusCode: status, responseBody: body });
+    },
+  );
 
   it('uses maiBaseURL when set', async () => {
     const { provider, request } = setup({
@@ -345,6 +404,93 @@ describe('edits', () => {
       feature: 'mask',
       details: 'MAI image edits do not support masks.',
     });
+  });
+
+  it('sums text and image input tokens for edits', async () => {
+    const { provider } = setup({}, () =>
+      jsonResponse({
+        ...maiResponse,
+        size: '1024x1024',
+        usage: {
+          num_output_tokens: 1024,
+          num_input_text_tokens: 252,
+          num_input_image_tokens: 1600,
+        },
+      }),
+    );
+
+    const result = await provider.image('MAI-Image-2.6-Flash').doGenerate(
+      callOptions({
+        files: [
+          { type: 'file', data: new Uint8Array([1]), mediaType: 'image/png' },
+          { type: 'file', data: new Uint8Array([2]), mediaType: 'image/png' },
+        ],
+      }),
+    );
+
+    expect(result.usage).toEqual({
+      inputTokens: 1852,
+      outputTokens: 1024,
+      totalTokens: 2876,
+    });
+    expect(result.providerMetadata).toEqual({
+      azure: {
+        images: [
+          {
+            created: 1791229019,
+            size: '1024x1024',
+            textTokens: 252,
+            imageTokens: 1600,
+          },
+        ],
+      },
+    });
+  });
+
+  it('downloads URL reference images with the abort signal', async () => {
+    downloadBlobMock.mockResolvedValue(
+      new Blob([new Uint8Array([1])], { type: 'image/png' }),
+    );
+    const { provider, request } = setup();
+    const abortSignal = new AbortController().signal;
+
+    await provider.image('MAI-Image-2.6').doGenerate(
+      callOptions({
+        files: [{ type: 'url', url: 'https://example.com/apple.png' }],
+        abortSignal,
+      }),
+    );
+
+    expect(downloadBlobMock).toHaveBeenCalledWith(
+      'https://example.com/apple.png',
+      { abortSignal },
+    );
+    expect((request().body as FormData).getAll('image')).toHaveLength(1);
+  });
+
+  it('stops before the MAI request when a download is aborted', async () => {
+    const controller = new AbortController();
+    downloadBlobMock.mockImplementation(
+      (_url: string, options?: { abortSignal?: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          options?.abortSignal?.addEventListener('abort', () =>
+            reject(options.abortSignal?.reason),
+          );
+        }),
+    );
+    const { provider, fetch } = setup();
+
+    const result = provider.image('MAI-Image-2.6').doGenerate(
+      callOptions({
+        files: [{ type: 'url', url: 'https://example.com/apple.png' }],
+        abortSignal: controller.signal,
+      }),
+    );
+    await vi.waitFor(() => expect(downloadBlobMock).toHaveBeenCalled());
+    controller.abort(new Error('aborted'));
+
+    await expect(result).rejects.toThrow('aborted');
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
 

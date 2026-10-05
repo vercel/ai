@@ -589,8 +589,11 @@ class AzureImageModel implements ImageModelV3 {
     private readonly mai: AzureMaiImageModel,
   ) {}
 
+  // The limit follows the default route; an `api` override is per request.
   get maxImagesPerCall() {
-    return isMAIImageModel(this.modelId) ? 1 : this.openai.maxImagesPerCall;
+    return isMAIImageModel(this.modelId)
+      ? this.mai.maxImagesPerCall
+      : this.openai.maxImagesPerCall;
   }
 
   async doGenerate(options: Parameters<ImageModelV3['doGenerate']>[0]) {

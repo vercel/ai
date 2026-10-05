@@ -15,7 +15,11 @@ run(async () => {
     prompt: 'A watercolor of three flowers on a blue background',
     aspectRatio: '16:9',
     providerOptions: {
-      azure: { webGrounding: false } satisfies AzureImageModelOptions,
+      // `api: 'mai'` keeps custom deployment names on the MAI image API.
+      azure: {
+        api: 'mai',
+        webGrounding: false,
+      } satisfies AzureImageModelOptions,
     },
   });
 
