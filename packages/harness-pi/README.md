@@ -93,3 +93,7 @@ const harness = createPi({
 ```
 
 Routine resource refreshes between turns do not reinitialize extension factories. If the underlying Pi session is rebuilt, factories initialize for the new Pi runtime. Extension factories execute in the host Node.js process, so only pass factories you trust. This option does not enable filesystem extension discovery: user, project, personal, and settings-based Pi extensions remain disabled. Themes and prompt templates also remain disabled.
+
+Pi packages configured in global or project `settings.json` files are not resolved or installed by the harness, including when `agentDir` points to an existing Pi CLI configuration. Authentication, model settings, workspace skills, and explicitly supplied inline extensions remain available. Host settings files are not rewritten to disable packages.
+
+Configured `mcpServers` use a bundled JavaScript adapter and work under Node without a TypeScript loader or module load hooks.

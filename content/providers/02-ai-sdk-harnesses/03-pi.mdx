@@ -85,12 +85,17 @@ Settings:
 
 - `auth`: authentication mode (`auto`, `openai`, `anthropic`, `custom`, or
   `ai-gateway`) or an isolated authentication environment.
+- `agentDir`: Pi configuration directory for authentication, model definitions,
+  and settings. Packages listed in global or project settings are ignored by
+  the harness and are not installed. Host settings files are not rewritten.
 - `credentials`: application-owned Pi credential storage. This replaces the
   file-backed `auth.json` store and supports persistent database-backed
   credentials.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
 - `mcpServers`: MCP server definitions keyed by server name.
+  The adapter is bundled as JavaScript, so Node hosts do not need a TypeScript
+  loader or module load hooks.
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
