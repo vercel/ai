@@ -159,8 +159,11 @@ model generation.
 If the socket closes during a response, the active stream errors. A later send
 opens a new connection. The transport does not automatically replay requests,
 because replaying a generation can duplicate model output or tool effects.
-`reconnectToStream` sends the last accepted chunk sequence so a server can
-replay retained chunks without duplicating client output.
+`reconnectToStream` requests a complete replay of the retained response from
+sequence zero. Chat rebuilds the message with a fresh parser, so the replay must
+include all earlier chunks and the original `start` chunk's `messageId`. That
+stable message ID lets Chat replace the partial assistant message. Duplicate
+sequence numbers are ignored within each response stream.
 
 For complete options, protocol details, cancellation behavior, and a server
 example, see the

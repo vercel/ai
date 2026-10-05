@@ -116,9 +116,13 @@ Sends a `resume` frame. The promise resolves as follows:
   stream has been returned yet.
 
 Servers should send `start` as soon as they confirm that a resumable stream is
-active, then replay only chunks whose `sequence` is greater than
-`lastSequence`. The transport rejects gaps and ignores duplicate sequence
-numbers.
+active, then replay the retained response from sequence zero. The transport
+omits `lastSequence` because Chat starts a fresh message parser when resuming:
+text, reasoning, and tool deltas need their preceding chunks. Retain and replay
+the original UI `start` chunk with a stable `messageId` so Chat replaces the
+partial assistant message instead of appending another one. The transport
+rejects gaps and ignores duplicate sequence numbers within each response
+stream, including the replay.
 
 ### `close()`
 
@@ -147,11 +151,11 @@ Each frame is a JSON object with a `type` and a correlated `requestId`.
 
 ### Client-to-server frames
 
-| Type     | Purpose                                                                                                                              |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `send`   | Starts a new or regenerated turn and includes `id`, `messages`, `trigger`, `messageId`, request `headers`, `body`, and `metadata`.   |
-| `resume` | Requests the active stream for a chat `id` and includes the last accepted `lastSequence`, request `headers`, `body`, and `metadata`. |
-| `abort`  | Cancels the operation identified by `requestId`.                                                                                     |
+| Type     | Purpose                                                                                                                                                 |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `send`   | Starts a new or regenerated turn and includes `id`, `messages`, `trigger`, `messageId`, request `headers`, `body`, and `metadata`.                      |
+| `resume` | Requests the retained response for a chat `id`, with request `headers`, `body`, and `metadata`. `lastSequence` is omitted to request a complete replay. |
+| `abort`  | Cancels the operation identified by `requestId`.                                                                                                        |
 
 Use `WebSocketChatTransportRequest<UI_MESSAGE>`,
 `WebSocketChatTransportSendRequest`, `WebSocketChatTransportResumeRequest`,
@@ -206,7 +210,7 @@ import {
   type UIMessageChunk,
   type WebSocketChatTransportResponse,
 } from 'ai';
-import { safeParseJSON } from '@ai-sdk/provider-utils';
+import { generateId, safeParseJSON } from '@ai-sdk/provider-utils';
 __PROVIDER_IMPORT__;
 
 const server = new WebSocketServer({ port: 8080 });
@@ -313,7 +317,10 @@ server.on('connection', (socket, request) => {
         abortSignal: abortController.signal,
       });
 
-      for await (const chunk of toUIMessageStream({ stream: result.stream })) {
+      for await (const chunk of toUIMessageStream({
+        stream: result.stream,
+        generateMessageId: generateId,
+      })) {
         const stored = { sequence: stream.chunks.length, chunk };
         stream.chunks.push(stored);
         for (const [subscriber, requestId] of stream.subscribers) {

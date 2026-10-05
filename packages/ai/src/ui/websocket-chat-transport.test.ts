@@ -4,6 +4,7 @@ import type {
 } from '@ai-sdk/provider-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UIMessageChunk } from '../ui-message-stream/ui-message-chunks';
+import { AbstractChat, type ChatInit, type ChatState } from './chat';
 import {
   safeValidateWebSocketChatTransportRequest,
   WebSocketChatTransport,
@@ -85,6 +86,27 @@ async function openPendingConnection(): Promise<MockWebSocket> {
 
 function readFrame(socket: MockWebSocket, index = 0) {
   return JSON.parse(socket.sent[index]) as WebSocketChatTransportRequest;
+}
+
+class TestChat extends AbstractChat<UIMessage> {
+  constructor(init: ChatInit<UIMessage>) {
+    const state: ChatState<UIMessage> = {
+      status: 'ready',
+      error: undefined,
+      messages: init.messages ?? [],
+      pushMessage: message => {
+        state.messages.push(message);
+      },
+      popMessage: () => {
+        state.messages.pop();
+      },
+      replaceMessage: (index, message) => {
+        state.messages[index] = message;
+      },
+      snapshot: value => structuredClone(value),
+    };
+    super({ ...init, state });
+  }
 }
 
 describe('WebSocketChatTransport', () => {
@@ -443,7 +465,7 @@ describe('WebSocketChatTransport', () => {
     expect(stream).toBeInstanceOf(ReadableStream);
   });
 
-  it('resumes after the last received sequence and ignores replayed chunks', async () => {
+  it('replays from sequence zero and ignores duplicates within the resumed stream', async () => {
     const transport = new WebSocketChatTransport<UIMessage>({
       url: 'wss://example.com/chat',
       webSocket,
@@ -484,10 +506,8 @@ describe('WebSocketChatTransport', () => {
       expect(secondSocket.sent).toHaveLength(1);
     });
     const resumeFrame = readFrame(secondSocket);
-    expect(resumeFrame).toMatchObject({
-      type: 'resume',
-      lastSequence: 0,
-    });
+    expect(resumeFrame.type).toBe('resume');
+    expect(resumeFrame).not.toHaveProperty('lastSequence');
 
     secondSocket.receive({
       type: 'start',
@@ -503,14 +523,156 @@ describe('WebSocketChatTransport', () => {
     secondSocket.receive({
       type: 'chunk',
       requestId: resumeFrame.requestId,
+      sequence: 0,
+      chunk: { type: 'text-start', id: 'text-1' },
+    });
+    secondSocket.receive({
+      type: 'chunk',
+      requestId: resumeFrame.requestId,
       sequence: 1,
       chunk: { type: 'text-delta', id: 'text-1', delta: 'hello' },
     });
 
     await expect(resumeReader.read()).resolves.toMatchObject({
+      value: { type: 'text-start', id: 'text-1' },
+    });
+    await expect(resumeReader.read()).resolves.toMatchObject({
       value: { type: 'text-delta', id: 'text-1', delta: 'hello' },
     });
   });
+
+  it.each([
+    {
+      name: 'text',
+      lastSequence: 2,
+      partialPart: { type: 'text', text: 'Hello' },
+    },
+    {
+      name: 'reasoning',
+      lastSequence: 6,
+      partialPart: { type: 'reasoning', text: 'Let me' },
+    },
+    {
+      name: 'tool input',
+      lastSequence: 10,
+      partialPart: { type: 'tool-weather', input: { city: 'Pa' } },
+    },
+    {
+      name: 'data',
+      lastSequence: 14,
+      partialPart: { type: 'data-progress', id: 'progress', data: 1 },
+    },
+  ])(
+    'resumes Chat after an interruption during $name',
+    async ({ lastSequence, partialPart }) => {
+      const transport = new WebSocketChatTransport<UIMessage>({
+        url: 'wss://example.com/chat',
+        webSocket,
+      });
+      const chat = new TestChat({ id: 'chat-1', transport });
+      const chunks: UIMessageChunk[] = [
+        { type: 'start', messageId: 'assistant-1' },
+        { type: 'text-start', id: 'text-1' },
+        { type: 'text-delta', id: 'text-1', delta: 'Hello' },
+        { type: 'text-delta', id: 'text-1', delta: ' world' },
+        { type: 'text-end', id: 'text-1' },
+        { type: 'reasoning-start', id: 'reasoning-1' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: 'Let me' },
+        { type: 'reasoning-delta', id: 'reasoning-1', delta: ' think' },
+        { type: 'reasoning-end', id: 'reasoning-1' },
+        { type: 'tool-input-start', toolCallId: 'call-1', toolName: 'weather' },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call-1',
+          inputTextDelta: '{"city":"Pa',
+        },
+        {
+          type: 'tool-input-delta',
+          toolCallId: 'call-1',
+          inputTextDelta: 'ris"}',
+        },
+        {
+          type: 'tool-input-available',
+          toolCallId: 'call-1',
+          toolName: 'weather',
+          input: { city: 'Paris' },
+        },
+        {
+          type: 'tool-output-available',
+          toolCallId: 'call-1',
+          output: 'sunny',
+        },
+        { type: 'data-progress', id: 'progress', data: 1 },
+        { type: 'data-progress', id: 'progress', data: 2 },
+        { type: 'finish', finishReason: 'stop' },
+      ];
+
+      const sending = chat.sendMessage({ text: 'hello' });
+      const socket = await openPendingConnection();
+      await vi.waitFor(() => expect(socket.sent).toHaveLength(1));
+      const frame = readFrame(socket);
+      chunks.slice(0, lastSequence + 1).forEach((chunk, sequence) => {
+        socket.receive({
+          type: 'chunk',
+          requestId: frame.requestId,
+          sequence,
+          chunk,
+        });
+      });
+      await vi.waitFor(() => {
+        expect(chat.lastMessage?.parts).toContainEqual(
+          expect.objectContaining(partialPart),
+        );
+      });
+      socket.finishClose();
+      await sending;
+      expect(chat.status).toBe('error');
+
+      const resuming = chat.resumeStream();
+      await vi.waitFor(() => expect(MockWebSocket.instances).toHaveLength(2));
+      const secondSocket = MockWebSocket.instances[1];
+      secondSocket.open();
+      await vi.waitFor(() => expect(secondSocket.sent).toHaveLength(1));
+      const resumeFrame = readFrame(secondSocket);
+      if (resumeFrame.type !== 'resume') {
+        throw new Error('Expected a resume request.');
+      }
+      secondSocket.receive({ type: 'start', requestId: resumeFrame.requestId });
+      // Follow the documented server protocol, including its optional cursor.
+      chunks.forEach((chunk, sequence) => {
+        if (sequence > (resumeFrame.lastSequence ?? -1)) {
+          secondSocket.receive({
+            type: 'chunk',
+            requestId: resumeFrame.requestId,
+            sequence,
+            chunk,
+          });
+        }
+      });
+      secondSocket.receive({ type: 'end', requestId: resumeFrame.requestId });
+      await resuming;
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.lastMessage).toMatchObject({
+        id: 'assistant-1',
+        parts: [
+          { type: 'text', text: 'Hello world', state: 'done' },
+          { type: 'reasoning', text: 'Let me think', state: 'done' },
+          {
+            type: 'tool-weather',
+            toolCallId: 'call-1',
+            input: { city: 'Paris' },
+            output: 'sunny',
+            state: 'output-available',
+          },
+          { type: 'data-progress', id: 'progress', data: 2 },
+        ],
+      });
+      transport.close();
+    },
+  );
 
   it('serializes concurrent writes before checking backpressure', async () => {
     const transport = new WebSocketChatTransport<UIMessage>({
