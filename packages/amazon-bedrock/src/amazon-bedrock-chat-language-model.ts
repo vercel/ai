@@ -1627,6 +1627,17 @@ const amazonBedrockReasoningEffortMap: Partial<
   max: 'max',
 };
 
+const amazonNovaReasoningEffortMap: Partial<
+  Record<string, 'low' | 'medium' | 'high'>
+> = {
+  minimal: 'low',
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  xhigh: 'high',
+  max: 'high',
+};
+
 function isNova2ReasoningModel(modelId: string): boolean {
   return modelId.includes('amazon.nova-2-lite-v1:0');
 }
@@ -1692,7 +1703,9 @@ function resolveAmazonBedrockReasoningConfig({
     if (supportsPortableReasoning || hasExplicitReasoningConfig) {
       const effort = mapReasoningToProviderEffort({
         reasoning,
-        effortMap: amazonBedrockReasoningEffortMap,
+        effortMap: isNovaReasoningModel
+          ? amazonNovaReasoningEffortMap
+          : amazonBedrockReasoningEffortMap,
         warnings,
       });
       result.reasoningConfig = {

@@ -80,7 +80,7 @@ This design lets you use the portable `reasoning` parameter by default and fall 
 
 The `reasoning` parameter is supported by providers including OpenAI, Anthropic, Google, xAI, Groq, DeepSeek, Moonshot AI, Fireworks, Amazon Bedrock, Mistral, Cohere, Alibaba, Open Responses, OpenAI Compatible, and Perplexity. Each provider translates the value to its native reasoning API.
 
-Providers with a distinct native maximum tier, such as supported OpenAI, Anthropic, DeepSeek, Moonshot AI, and Amazon Bedrock models, receive `'max'` directly. Providers whose highest native tier is lower coerce `'max'` to their closest supported tier and emit a compatibility warning when their adapter supports warning propagation. OpenAI-compatible and Open Responses endpoints receive `'max'` directly so compatible servers can interpret it.
+Providers with a distinct native maximum tier, such as supported OpenAI, Anthropic, DeepSeek, and Moonshot AI models, receive `'max'` directly. Amazon Bedrock preserves `'max'` for its Anthropic and OpenAI effort mappings, while Amazon Nova 2 maps `'xhigh'` and `'max'` to `'high'` with a compatibility warning. Providers whose highest native tier is lower coerce `'max'` to their closest supported tier and emit a compatibility warning when their adapter supports warning propagation. OpenAI-compatible and Open Responses endpoints receive `'max'` directly so compatible servers can interpret it.
 
 Some providers use a numeric token budget instead of an enum for reasoning control. In those cases, `'max'` maps to 95% of the model's maximum output tokens by default, subject to the provider's minimum and maximum reasoning budget limits.
 

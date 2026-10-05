@@ -635,6 +635,8 @@ Amazon Bedrock supports model creator-specific reasoning features:
 - Anthropic (e.g. `claude-sonnet-4-5-20250929`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
+You can also use the top-level `reasoning` parameter. For Amazon Nova 2, `'xhigh'` and `'max'` are mapped to `'high'` with a compatibility warning. Anthropic and OpenAI effort mappings preserve `'max'`.
+
 ```ts
 import {
   amazonBedrock,
