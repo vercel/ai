@@ -159,6 +159,37 @@ retry/deadline, repair and required tool-choice behavior. Real-runtime tests cov
 generation with durable tools, repair step references and undefined failures.
 
 The matrix above records the original baseline and overall target. Approval
-request creation without a writable remains Phase 4 work. Broader cancellation,
-suspension/replay and result serialization guarantees remain Phase 5 work. Generate
+request creation without a writable is implemented in Phase 4. Broader cancellation
+and result serialization coverage remains Phase 5 work. Generate
 currently reports model response timing; complete tool/step timing is not measured.
+
+## Phase 4 implementation
+
+The shared loop creates local approval data and signs requests independently of
+stream output. Both adapters retain provider approvals; the stream adapter restores
+the provider-executed marker when converting an already prepared provider prompt.
+Pending provider approvals do not create synthetic tool results.
+
+`workflow-agent-approval.test.ts` runs matched generate/stream scenarios for signed
+approval and denial, tampering, changed schemas/policies, removed tools, mixed
+client/executable/approval batches, deferred provider results and tool errors.
+Removed tools reject continuation rather than execute an unavailable tool.
+`workflow-agent-approval.integration.test.ts` checks signed round trips through the
+real runtime, persisted environment-variable references instead of secrets, and
+hook suspension/resumption retaining completed model/tool step records. Replay
+retention is not an exactly-once guarantee for external side effects.
+
+## Phase 5 boundary coverage
+
+`workflow-agent-boundaries.integration.test.ts` exercises generation deadlines,
+SDK retries within a single durable attempt, provider aborts, expiration across
+hook suspension, cancellation of a suspended run, and selected rich result fields
+across replay. Dispatch traces distinguish SDK attempts from Workflow attempts;
+persisted deadline inputs and dispatch traces prove that expired adapters do not
+initiate another model call. The existing Phase 2–4 suites continue to cover payload compatibility,
+repair references, signed approval continuation and completed-tool replay.
+
+The supported serialization contract is the result API inside workflow code and
+selected data returned through `run.returnValue`. Whole result class instances,
+exactly-once external effects, hook cancellation through a model timeout, complete
+tool/step timing, and ToolLoopAgent's call-options schema are not promised.

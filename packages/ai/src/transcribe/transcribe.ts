@@ -256,7 +256,7 @@ export async function transcribe({
           model: resolvedModel.modelId,
         });
 
-        if (!result.text) {
+        if (result.text == null) {
           throw new NoTranscriptGeneratedError({
             responses: [result.response],
           });

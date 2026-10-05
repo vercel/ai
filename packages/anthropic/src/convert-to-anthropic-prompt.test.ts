@@ -2076,6 +2076,7 @@ describe('assistant messages', () => {
         ],
       },
     ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
   });
 
   it('should warn and omit fallback boundaries with invalid metadata', async () => {

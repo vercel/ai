@@ -1,5 +1,16 @@
 # @ai-sdk/openai
 
+## 4.0.84
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 5b8e63b: feat(openai): warn when reasoningSummary is used with chat models
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 4.0.83
 
 ### Patch Changes

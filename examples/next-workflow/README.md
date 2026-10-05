@@ -25,7 +25,11 @@ const run = await start(generateSummary, [modelId, text]);
 const { summary, usage } = await run.returnValue;
 ```
 
-Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures.
+Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures. Its `timeout` is a model-call deadline that persists across tool suspension; it does not cancel a waiting hook. Use `run.cancel()` to cancel the workflow run. Keep external effects inside durable steps and use idempotency keys when the external service supports them.
+
+### Non-streaming approvals
+
+`workflow/generate-approved-action.ts` demonstrates signed approvals without a writable. Set `WORKFLOW_TOOL_APPROVAL_SECRET` in the runtime environment. Start the workflow with a model ID and conversation; save the returned `responseMessages` alongside the original history. Show the requested tool/input to the user. In a second invocation, pass the saved history plus a tool message containing `{ type: 'tool-approval-response', approvalId, approved }`, using the returned request ID and the user's decision. Keep the original signature and tool input unchanged. The example action returns a record without writing to an external service.
 
 ## Testing `toModelOutput`
 

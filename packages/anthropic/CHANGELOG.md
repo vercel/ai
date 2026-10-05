@@ -1,5 +1,17 @@
 # @ai-sdk/anthropic
 
+## 4.0.72
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- b5dfea1: feat(anthropic): expose message-start usage through custom stream parts
+- 686cca9: fix(anthropic): add the required beta when replaying server-side fallback blocks
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 4.0.71
 
 ### Patch Changes
