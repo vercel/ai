@@ -779,7 +779,7 @@ function getAssistantMessageContent(
           content.push({
             type: 'text',
             text: part.text,
-            ...(mode === 'generate' && part.providerMetadata != null
+            ...(part.providerMetadata != null
               ? { providerOptions: part.providerMetadata }
               : {}),
           });
