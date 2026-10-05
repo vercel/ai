@@ -1,12 +1,8 @@
-<<<<<<< HEAD
-import type { ImageModelV3, SharedV3Warning } from '@ai-sdk/provider';
-=======
 import {
   UnsupportedFunctionalityError,
-  type ImageModelV4,
-  type SharedV4Warning,
+  type ImageModelV3,
+  type SharedV3Warning,
 } from '@ai-sdk/provider';
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
 import {
   combineHeaders,
   createBinaryResponseHandler,
@@ -14,11 +10,8 @@ import {
   createStatusCodeErrorResponseHandler,
   delay,
   getFromApi,
-<<<<<<< HEAD
-  lazySchema,
-=======
   isSameOrigin,
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
+  lazySchema,
   parseProviderOptions,
   postJsonToApi,
   resolve,
@@ -33,17 +26,8 @@ import {
   isTrustedUrl,
 } from './black-forest-labs-api';
 import {
-<<<<<<< HEAD
   type BlackForestLabsAspectRatio,
   type BlackForestLabsImageModelId,
-=======
-  blackForestLabsFlux3ImageModelOptionsSchema,
-  blackForestLabsImageModelOptionsSchema,
-} from './black-forest-labs-image-model-options';
-import type {
-  BlackForestLabsAspectRatio,
-  BlackForestLabsImageModelId,
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
 } from './black-forest-labs-image-settings';
 
 const DEFAULT_POLL_INTERVAL_MILLIS = 500;
@@ -71,36 +55,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   readonly specificationVersion = 'v3';
   readonly maxImagesPerCall = 1;
 
-<<<<<<< HEAD
-=======
-  get supportsFileInputs(): boolean | undefined {
-    if (
-      [
-        'flux-3-image',
-        'flux-kontext-pro',
-        'flux-kontext-max',
-        'flux-pro-1.0-fill',
-      ].includes(this.modelId)
-    ) {
-      return true;
-    }
-
-    if (['flux-pro-1.1-ultra', 'flux-pro-1.1'].includes(this.modelId)) {
-      return false;
-    }
-
-    return undefined;
-  }
-
-  get supportsMaskInputs(): boolean | undefined {
-    if (this.modelId === 'flux-pro-1.0-fill') {
-      return true;
-    }
-
-    return this.supportsFileInputs == null ? undefined : false;
-  }
-
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
   get provider(): string {
     return this.config.provider;
   }
@@ -363,20 +317,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       !baseHostname.endsWith('.bfl.ai');
     const { value: imageBytes, responseHeaders } = await getFromApi({
       url: imageUrl,
-<<<<<<< HEAD
-      // Only send credentials if the response-supplied URL points back at the
-      // provider; the image is typically delivered from a CDN, so the API key
-      // must not travel to a foreign host.
-      headers: isTrustedUrl(imageUrl, this.config.baseURL)
-        ? combinedHeaders
-=======
-      // imageUrl comes from the provider response body; validate it.
-      validateUrl: true,
-      trustedOrigin: this.config.baseURL,
-      credentialedOrigin: useCustomDownloadHeaders
-        ? this.config.baseURL
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
-        : undefined,
       // Signed BFL downloads need no credentials; custom proxies may need them.
       headers: useCustomDownloadHeaders
         ? combinedHeaders
@@ -481,7 +421,6 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
             duration: value.result.duration ?? undefined,
           };
         }
-<<<<<<< HEAD
         throw new Error(
           'Black Forest Labs poll response is Ready but missing result.sample',
         );
@@ -489,15 +428,13 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
       if (status === 'Error' || status === 'Failed') {
         throw new Error('Black Forest Labs generation failed.');
       }
-=======
-        if (
-          status === 'Request Moderated' ||
-          status === 'Content Moderated' ||
-          status === 'Task not found'
-        ) {
-          throw new Error(`Black Forest Labs generation failed: ${status}.`);
-        }
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
+      if (
+        status === 'Request Moderated' ||
+        status === 'Content Moderated' ||
+        status === 'Task not found'
+      ) {
+        throw new Error(`Black Forest Labs generation failed: ${status}.`);
+      }
 
       await delay(pollIntervalMillis);
     }
@@ -506,43 +443,54 @@ export class BlackForestLabsImageModel implements ImageModelV3 {
   }
 }
 
+const blackForestLabsImageProviderOptions = z.object({
+  resolution: z.enum(['768sq', '1k', '1.5k', '2k', '4k']).optional(),
+  grounding: z.boolean().optional(),
+  version: z.literal('latest').optional(),
+  imagePrompt: z.string().optional(),
+  imagePromptStrength: z.number().min(0).max(1).optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage2: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage3: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage4: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage5: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage6: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage7: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage8: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage9: z.string().optional(),
+  /** @deprecated use prompt.images instead */
+  inputImage10: z.string().optional(),
+  steps: z.number().int().positive().optional(),
+  guidance: z.number().min(0).optional(),
+  width: z.number().int().min(256).max(1920).optional(),
+  height: z.number().int().min(256).max(1920).optional(),
+  outputFormat: z.enum(['jpeg', 'png']).optional(),
+  promptUpsampling: z.boolean().optional(),
+  raw: z.boolean().optional(),
+  safetyTolerance: z.number().int().min(0).max(6).optional(),
+  webhookSecret: z.string().optional(),
+  webhookUrl: z.url().optional(),
+  pollIntervalMillis: z.number().int().positive().optional(),
+  pollTimeoutMillis: z.number().int().positive().optional(),
+});
+
 export const blackForestLabsImageModelOptionsSchema = lazySchema(() =>
+  zodSchema(blackForestLabsImageProviderOptions),
+);
+
+export const blackForestLabsFlux3ImageModelOptionsSchema = lazySchema(() =>
   zodSchema(
-    z.object({
-      imagePrompt: z.string().optional(),
-      imagePromptStrength: z.number().min(0).max(1).optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage2: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage3: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage4: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage5: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage6: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage7: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage8: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage9: z.string().optional(),
-      /** @deprecated use prompt.images instead */
-      inputImage10: z.string().optional(),
-      steps: z.number().int().positive().optional(),
-      guidance: z.number().min(0).optional(),
-      width: z.number().int().min(256).max(1920).optional(),
-      height: z.number().int().min(256).max(1920).optional(),
-      outputFormat: z.enum(['jpeg', 'png']).optional(),
-      promptUpsampling: z.boolean().optional(),
-      raw: z.boolean().optional(),
-      safetyTolerance: z.number().int().min(0).max(6).optional(),
-      webhookSecret: z.string().optional(),
-      webhookUrl: z.url().optional(),
-      pollIntervalMillis: z.number().int().positive().optional(),
-      pollTimeoutMillis: z.number().int().positive().optional(),
+    blackForestLabsImageProviderOptions.extend({
+      safetyTolerance: z.number().int().min(0).max(4).optional(),
     }),
   ),
 );

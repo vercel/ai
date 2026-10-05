@@ -109,38 +109,18 @@ Black Forest Labs offers many models optimized for different use cases. Here are
 
 | Model                | Description                                                                                                                |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-<<<<<<< HEAD
-=======
 | `flux-3-image`       | FLUX 3 for text-to-image and editing with up to ten reference images and optional web grounding                            |
-| `flux-2-pro`         | FLUX.2 [pro] for text-to-image and reference-based editing in one endpoint                                                 |
-| `flux-2-max`         | FLUX.2 [max] for the highest prompt adherence and detail in the FLUX.2 family                                              |
-| `flux-2-flex`        | FLUX.2 [flex] exposes `steps` and `guidance` so you can trade speed against quality                                        |
-| `flux-2-klein-9b`    | FLUX.2 [klein] 9B, an open-weight distilled model                                                                          |
-| `flux-2-klein-4b`    | FLUX.2 [klein] 4B, the smallest and cheapest open-weight FLUX.2 model                                                      |
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
 | `flux-kontext-pro`   | FLUX.1 Kontext [pro] handles both text and reference images as inputs, enabling targeted edits and complex transformations |
 | `flux-kontext-max`   | FLUX.1 Kontext [max] with improved prompt adherence and typography generation                                              |
 | `flux-pro-1.1-ultra` | Ultra-fast, ultra high-resolution image creation                                                                           |
 | `flux-pro-1.1`       | Fast, high-quality image generation from text.                                                                             |
 | `flux-pro-1.0-fill`  | Inpainting model for filling masked regions of images with new content                                                     |
 
-FLUX.1 and FLUX.2 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
+FLUX.1 models support aspect ratios from 3:7 (portrait) to 7:3 (landscape).
 FLUX 3 accepts only `21:9`, `2:1`, `16:9`, `3:2`, `7:5`, `4:3`, `5:4`,
 `1:1`, `4:5`, `3:4`, `5:7`, `2:3`, `9:16`, `1:2`, and `9:21`.
 Omit `aspectRatio` to use the endpoint's `auto` default. Unsupported ratios
 are omitted with a warning.
-
-<<<<<<< HEAD
-=======
-FLUX.2 models take reference images on the same `prompt.images` field as the
-Kontext models, so a single model ID covers both text-to-image and editing. See
-[Image Editing](#image-editing) below.
-
-<Note>
-  FLUX.2 generations can take longer than the 60 second default polling timeout,
-  especially with reference images. Raise `pollTimeoutMillis` when a request
-  reports `Black Forest Labs generation timed out.`
-</Note>
 
 ### FLUX 3 Image Generation and Editing
 
@@ -199,7 +179,6 @@ image is ready. Increase `pollTimeoutMillis` for requests that exceed the defaul
 60 second polling timeout. It stops on moderation or task failures and downloads the signed
 image URL without sending API credentials.
 
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
 ### Image Editing
 
 Black Forest Labs Kontext models support powerful image editing capabilities using reference images. Pass input images via `prompt.images` to transform, combine, or edit existing images.

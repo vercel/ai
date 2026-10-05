@@ -126,57 +126,6 @@ describe('BlackForestLabsImageModel', () => {
     },
   });
 
-<<<<<<< HEAD
-=======
-  describe('capabilities', () => {
-    it.each([
-      {
-        modelId: 'flux-3-image',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.0-fill',
-        supportsFileInputs: true,
-        supportsMaskInputs: true,
-      },
-      {
-        modelId: 'flux-kontext-pro',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-kontext-max',
-        supportsFileInputs: true,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.1',
-        supportsFileInputs: false,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'flux-pro-1.1-ultra',
-        supportsFileInputs: false,
-        supportsMaskInputs: false,
-      },
-      {
-        modelId: 'custom-image-model',
-        supportsFileInputs: undefined,
-        supportsMaskInputs: undefined,
-      },
-    ] as const)(
-      'advertises file=$supportsFileInputs and mask=$supportsMaskInputs for $modelId',
-      ({ modelId, supportsFileInputs, supportsMaskInputs }) => {
-        const model = createBasicModel({ modelId });
-
-        expect(model.supportsFileInputs).toBe(supportsFileInputs);
-        expect(model.supportsMaskInputs).toBe(supportsMaskInputs);
-      },
-    );
-  });
-
->>>>>>> 612cb534aa (feat(black-forest-labs): support FLUX 3 image generation and editing (#22034))
   beforeEach(() => {
     vi.mocked(providerUtils.parseProviderOptions).mockClear();
   });
