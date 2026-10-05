@@ -1,5 +1,13 @@
 # @ai-sdk/react
 
+## 2.0.275
+
+### Patch Changes
+
+- 3494142: Treat nullish `useChat` IDs the same as omitted IDs so the chat instance is not recreated on every render.
+- Updated dependencies [8db50f1]
+  - ai@5.0.272
+
 ## 2.0.274
 
 ### Patch Changes
