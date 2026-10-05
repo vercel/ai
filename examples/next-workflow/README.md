@@ -25,7 +25,7 @@ const run = await start(generateSummary, [modelId, text]);
 const { summary, usage } = await run.returnValue;
 ```
 
-Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures.
+Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures. Its `timeout` is a model-call deadline that persists across tool suspension; it does not cancel a waiting hook. Use `run.cancel()` to cancel the workflow run. Keep external effects inside durable steps and use idempotency keys when the external service supports them.
 
 ### Non-streaming approvals
 
