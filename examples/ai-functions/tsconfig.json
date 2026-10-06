@@ -103,6 +103,9 @@
       "path": "../../packages/google-vertex"
     },
     {
+      "path": "../../packages/gradium"
+    },
+    {
       "path": "../../packages/groq"
     },
     {

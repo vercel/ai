@@ -531,6 +531,9 @@ importers:
       '@google/generative-ai':
         specifier: 0.21.0
         version: 0.21.0
+      '@gradium/ai-sdk':
+        specifier: workspace:*
+        version: link:../../packages/gradium
       '@langchain/core':
         specifier: ^1.1.46
         version: 1.1.46(@opentelemetry/api@1.9.1)(@opentelemetry/exporter-trace-otlp-proto@0.219.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.11.0(@opentelemetry/api@1.9.1))(openai@6.40.0(ws@8.21.3)(zod@3.25.76))(ws@8.21.3)
@@ -2814,6 +2817,37 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
+
+  packages/gradium:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+      '@gradium/sdk':
+        specifier: ^0.1.0
+        version: 0.1.0
+    devDependencies:
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      ai:
+        specifier: workspace:*
+        version: link:../ai
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.6.3)
+      typescript:
+        specifier: 5.6.3
+        version: 5.6.3
       zod:
         specifier: 3.25.76
         version: 3.25.76
@@ -7909,6 +7943,10 @@ packages:
 
   '@google/generative-ai@0.21.0':
     resolution: {integrity: sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==}
+    engines: {node: '>=18.0.0'}
+
+  '@gradium/sdk@0.1.0':
+    resolution: {integrity: sha512-n9zRTElaxw15HC6VQfxgGLvwSD1KWRRZ5IJBKZpbkzMkbnyGl1OrOqIiGaDzbS29JPZFRoXClcCBtMHArYAoEA==}
     engines: {node: '>=18.0.0'}
 
   '@grpc/grpc-js@1.14.4':
@@ -31234,6 +31272,13 @@ snapshots:
       - utf-8-validate
 
   '@google/generative-ai@0.21.0': {}
+
+  '@gradium/sdk@0.1.0':
+    dependencies:
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   '@grpc/grpc-js@1.14.4':
     dependencies:
