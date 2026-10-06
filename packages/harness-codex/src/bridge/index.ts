@@ -14,6 +14,7 @@ import type { StartMessage } from '../codex-bridge-protocol';
 import { createCodexAppServerRuntime } from './codex-app-server-driver';
 import { createCodexStepTracker, defaultUsage } from './codex-step-tracker';
 import { createEmitStreamEvent } from './create-emit-stream-event';
+import { randomUUID } from 'node:crypto';
 import { argv, env as procEnv, stdout } from 'node:process';
 
 const args = parseArgs(argv.slice(2));
@@ -42,7 +43,12 @@ await runBridge<StartMessage>({
 type Emit = (msg: Record<string, unknown>) => void;
 
 async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
-  const emit: Emit = msg => turn.emit(msg as BridgeEvent);
+  // The host stops listening on abort. Events the aborted turn still produces
+  // (e.g. the flush when Codex reports the interrupt) must not leak into the
+  // next turn's stream, so drop them.
+  const emit: Emit = msg => {
+    if (!turn.abortSignal.aborted) turn.emit(msg as BridgeEvent);
+  };
 
   if (start.restartThread) {
     threadState.id = undefined;
@@ -55,9 +61,15 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const runtime = resolveCodexRuntime({ start });
   let turnUsage: Record<string, unknown> = defaultUsage();
-  const stepTracker = createCodexStepTracker({ send: emit });
+  const stepTracker = createCodexStepTracker({
+    send: emit,
+    getTurnUsage: () => turnUsage,
+  });
   const emitStreamEvent = createEmitStreamEvent({
     send: emit,
+    // Lets a consumer attribute a late event of this turn that reaches the
+    // host during the next one.
+    turnId: randomUUID(),
     stepTracker,
     setTurnUsage: usage => (turnUsage = usage),
     setThreadId: threadId => (threadState.id = threadId),
@@ -79,6 +91,8 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     });
   } catch (error) {
     if (!turn.abortSignal.aborted) {
+      // Flush the open step first so its usage is not lost with the error.
+      stepTracker.finishTurn();
       turn.emitError({ error, message: 'codex turn failed' });
     }
     return;

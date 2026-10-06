@@ -798,6 +798,159 @@ describe('Codex app-server runtime lifecycle', () => {
   });
 });
 
+describe('Codex app-server usage accounting', () => {
+  beforeEach(() => {
+    server.clients = [];
+    server.nextThread = 0;
+    server.nextTurn = 0;
+    server.autoComplete = true;
+    server.hookResponse = undefined;
+    server.steerResponse = undefined;
+  });
+
+  const usageNotification = (
+    threadId: string,
+    turnId: string,
+    input: number,
+  ) => ({
+    method: 'thread/tokenUsage/updated',
+    params: {
+      threadId,
+      turnId,
+      tokenUsage: {
+        total: { inputTokens: input, outputTokens: 1 },
+        last: { inputTokens: input, outputTokens: 1 },
+      },
+    },
+  });
+
+  function createOptions({
+    threadId,
+    codexConfig = {},
+    abortSignal = new AbortController().signal,
+  }: {
+    threadId?: string;
+    codexConfig?: Record<string, unknown>;
+    abortSignal?: AbortSignal;
+  } = {}) {
+    const send = vi.fn();
+    return {
+      start: {
+        type: 'start',
+        prompt: 'Hello',
+        tools: [],
+      } as unknown as StartMessage,
+      turn: {
+        abortSignal,
+        emitWarning: vi.fn(),
+        emitError: vi.fn(),
+        bridgeLog: vi.fn(),
+        requestToolResult: vi.fn(async () => ({ output: 'done' })),
+        experimental_userMessages: {
+          pendingCount: 0,
+          close: () => {},
+          [Symbol.asyncIterator]: async function* () {},
+        },
+      } as unknown as BridgeTurn,
+      emit: () => {},
+      workdir: '/workspace',
+      threadId,
+      codexModel: 'gpt-5.3-codex',
+      codexConfig,
+      stepTracker: createCodexStepTracker({ send }),
+      emitStreamEvent: vi.fn(),
+    };
+  }
+
+  const reportedInput = (emitStreamEvent: ReturnType<typeof vi.fn>) =>
+    emitStreamEvent.mock.calls
+      .map(
+        ([event]) =>
+          event as { type: string; usage?: { input_tokens: number } },
+      )
+      .filter(event => event.type === 'usage.updated')
+      .map(event => event.usage?.input_tokens);
+
+  it('bills usage reported between turns to the next turn', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(createOptions());
+    // No turn is running: Codex reports a model call that finished late.
+    server.clients[0]!.onNotification(
+      usageNotification('thread-1', 'turn-1', 100),
+    );
+
+    const next = createOptions({ threadId: 'thread-1' });
+    await runtime.runTurn(next);
+
+    expect(reportedInput(next.emitStreamEvent)).toEqual([100]);
+    await runtime.close();
+  });
+
+  it('keeps that usage when the process is replaced before the next turn', async () => {
+    const runtime = createCodexAppServerRuntime();
+    await runtime.runTurn(createOptions());
+    server.clients[0]!.onNotification(
+      usageNotification('thread-1', 'turn-1', 100),
+    );
+
+    // A config change closes the app-server and cold-resumes in a new process.
+    const next = createOptions({
+      threadId: 'thread-1',
+      codexConfig: { model_reasoning_summary: 'none' },
+    });
+    await runtime.runTurn(next);
+
+    expect(server.clients).toHaveLength(2);
+    expect(reportedInput(next.emitStreamEvent)).toEqual([100]);
+    await runtime.close();
+  });
+
+  it('holds usage and errors reported after an abort instead of emitting them', async () => {
+    server.autoComplete = false;
+    const runtime = createCodexAppServerRuntime();
+    const controller = new AbortController();
+    const first = createOptions({ abortSignal: controller.signal });
+    const pending = runtime.runTurn(first);
+    await vi.waitFor(() =>
+      expect(
+        server.clients[0]?.calls.some(call => call.method === 'turn/start'),
+      ).toBe(true),
+    );
+
+    controller.abort();
+    const client = server.clients[0]!;
+    client.onNotification(usageNotification('thread-1', 'turn-1', 100));
+    client.onNotification({
+      method: 'error',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        willRetry: false,
+        error: { message: 'boom' },
+      },
+    });
+    client.onNotification({
+      method: 'turn/completed',
+      params: {
+        threadId: 'thread-1',
+        turn: { id: 'turn-1', status: 'interrupted' },
+      },
+    });
+    await expect(pending).rejects.toThrow();
+
+    // Nothing reached the aborted turn's stream ...
+    expect(reportedInput(first.emitStreamEvent)).toEqual([]);
+    expect(first.turn.emitError).not.toHaveBeenCalled();
+
+    // ... and the usage is billed to the next turn instead of being lost.
+    server.autoComplete = true;
+    const next = createOptions({ threadId: 'thread-1' });
+    await runtime.runTurn(next);
+    expect(reportedInput(next.emitStreamEvent)).toEqual([100]);
+    await runtime.close();
+  });
+});
+
 describe('Codex app-server sandbox configuration', () => {
   const start = {
     type: 'start',

@@ -172,4 +172,41 @@ describe('createCodexStepTracker', () => {
       'finish-step',
     ]);
   });
+
+  it('reports each step as the usage consumed since the previous step', () => {
+    const events: BridgeEvent[] = [];
+    const usage = (input: number, output: number) => ({
+      inputTokens: {
+        total: input,
+        noCache: input,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: output, text: output },
+    });
+    let turnUsage: Record<string, unknown> = usage(0, 0);
+    const tracker = createCodexStepTracker({
+      send: event => events.push(event),
+      getTurnUsage: () => turnUsage,
+    });
+    const runToolStep = (id: string) => {
+      tracker.observeEvent({
+        event: { type: 'item.started', item: { type: 'command_execution' } },
+        itemId: id,
+      });
+      tracker.observeEvent({
+        event: { type: 'item.completed', item: { type: 'command_execution' } },
+        itemId: id,
+      });
+    };
+
+    turnUsage = usage(10, 3);
+    runToolStep('a');
+    turnUsage = usage(25, 9);
+    runToolStep('b');
+
+    expect(
+      events.map(event => (event.type === 'finish-step' ? event.usage : null)),
+    ).toEqual([usage(10, 3), usage(15, 6)]);
+  });
 });

@@ -1,0 +1,566 @@
+{
+ "description": "Codex 0.155 app-server notifications recorded from a real run in which the main agent spawned two sub-agents and waited for them (trimmed to usage, spawn announcements and turn lifecycle). Parent thread usage: 50808 in / 503 out; children: 30482/530 and 46810/784.",
+ "activeThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+ "notifications": [
+  {
+   "method": "turn/started",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turn": {
+     "id": "01a1106f-f949-7743-8abe-6563087d366a",
+     "status": "inProgress"
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 7543,
+      "inputTokens": 7430,
+      "cachedInputTokens": 0,
+      "cacheWriteInputTokens": 7427,
+      "outputTokens": 113,
+      "reasoningOutputTokens": 38
+     },
+     "last": {
+      "totalTokens": 7543,
+      "inputTokens": 7430,
+      "cachedInputTokens": 0,
+      "cacheWriteInputTokens": 7427,
+      "outputTokens": 113,
+      "reasoningOutputTokens": 38
+     }
+    }
+   }
+  },
+  {
+   "method": "item/started",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-8ca12355-d362-4434-8eac-fad749fde5bd",
+     "tool": "spawnAgent",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": []
+    }
+   }
+  },
+  {
+   "method": "item/completed",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-8ca12355-d362-4434-8eac-fad749fde5bd",
+     "tool": "spawnAgent",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-1990-76c1-9f79-eab0be49f489"
+     ]
+    }
+   }
+  },
+  {
+   "method": "turn/started",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turn": {
+     "id": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+     "status": "inProgress"
+    }
+   }
+  },
+  {
+   "method": "item/started",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-34b979ae-a8bf-4587-8862-8a4f1c393577",
+     "tool": "spawnAgent",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": []
+    }
+   }
+  },
+  {
+   "method": "item/completed",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-34b979ae-a8bf-4587-8862-8a4f1c393577",
+     "tool": "spawnAgent",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-19b8-79c3-b0a8-cac0dc32f5e9"
+     ]
+    }
+   }
+  },
+  {
+   "method": "turn/started",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turn": {
+     "id": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+     "status": "inProgress"
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 18144,
+      "inputTokens": 17874,
+      "cachedInputTokens": 7427,
+      "cacheWriteInputTokens": 10441,
+      "outputTokens": 270,
+      "reasoningOutputTokens": 50
+     },
+     "last": {
+      "totalTokens": 10601,
+      "inputTokens": 10444,
+      "cachedInputTokens": 7427,
+      "cacheWriteInputTokens": 3014,
+      "outputTokens": 157,
+      "reasoningOutputTokens": 12
+     }
+    }
+   }
+  },
+  {
+   "method": "item/started",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-244ea013-2c9d-4f4e-9b02-f55fba7a6957",
+     "tool": "wait",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-1990-76c1-9f79-eab0be49f489",
+      "01a11070-19b8-79c3-b0a8-cac0dc32f5e9"
+     ]
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 7453,
+      "inputTokens": 7298,
+      "cachedInputTokens": 0,
+      "cacheWriteInputTokens": 7295,
+      "outputTokens": 155,
+      "reasoningOutputTokens": 42
+     },
+     "last": {
+      "totalTokens": 7453,
+      "inputTokens": 7298,
+      "cachedInputTokens": 0,
+      "cacheWriteInputTokens": 7295,
+      "outputTokens": 155,
+      "reasoningOutputTokens": 42
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turnId": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 7497,
+      "inputTokens": 7299,
+      "cachedInputTokens": 7135,
+      "cacheWriteInputTokens": 161,
+      "outputTokens": 198,
+      "reasoningOutputTokens": 74
+     },
+     "last": {
+      "totalTokens": 7497,
+      "inputTokens": 7299,
+      "cachedInputTokens": 7135,
+      "cacheWriteInputTokens": 161,
+      "outputTokens": 198,
+      "reasoningOutputTokens": 74
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 15089,
+      "inputTokens": 14778,
+      "cachedInputTokens": 7295,
+      "cacheWriteInputTokens": 7477,
+      "outputTokens": 311,
+      "reasoningOutputTokens": 80
+     },
+     "last": {
+      "totalTokens": 7636,
+      "inputTokens": 7480,
+      "cachedInputTokens": 7295,
+      "cacheWriteInputTokens": 182,
+      "outputTokens": 156,
+      "reasoningOutputTokens": 38
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turnId": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 15184,
+      "inputTokens": 14834,
+      "cachedInputTokens": 14431,
+      "cacheWriteInputTokens": 397,
+      "outputTokens": 350,
+      "reasoningOutputTokens": 84
+     },
+     "last": {
+      "totalTokens": 7687,
+      "inputTokens": 7535,
+      "cachedInputTokens": 7296,
+      "cacheWriteInputTokens": 236,
+      "outputTokens": 152,
+      "reasoningOutputTokens": 10
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turnId": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 23031,
+      "inputTokens": 22545,
+      "cachedInputTokens": 21963,
+      "cacheWriteInputTokens": 573,
+      "outputTokens": 486,
+      "reasoningOutputTokens": 113
+     },
+     "last": {
+      "totalTokens": 7847,
+      "inputTokens": 7711,
+      "cachedInputTokens": 7532,
+      "cacheWriteInputTokens": 176,
+      "outputTokens": 136,
+      "reasoningOutputTokens": 29
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turnId": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 31012,
+      "inputTokens": 30482,
+      "cachedInputTokens": 29671,
+      "cacheWriteInputTokens": 799,
+      "outputTokens": 530,
+      "reasoningOutputTokens": 113
+     },
+     "last": {
+      "totalTokens": 7981,
+      "inputTokens": 7937,
+      "cachedInputTokens": 7708,
+      "cacheWriteInputTokens": 226,
+      "outputTokens": 44,
+      "reasoningOutputTokens": 0
+     }
+    }
+   }
+  },
+  {
+   "method": "turn/completed",
+   "params": {
+    "threadId": "01a11070-1990-76c1-9f79-eab0be49f489",
+    "turn": {
+     "id": "01a11070-19aa-7380-a1e5-f58d3d17917c",
+     "status": "completed"
+    }
+   }
+  },
+  {
+   "method": "item/completed",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-244ea013-2c9d-4f4e-9b02-f55fba7a6957",
+     "tool": "wait",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-1990-76c1-9f79-eab0be49f489"
+     ]
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 28929,
+      "inputTokens": 28565,
+      "cachedInputTokens": 17868,
+      "cacheWriteInputTokens": 10688,
+      "outputTokens": 364,
+      "reasoningOutputTokens": 58
+     },
+     "last": {
+      "totalTokens": 10785,
+      "inputTokens": 10691,
+      "cachedInputTokens": 10441,
+      "cacheWriteInputTokens": 247,
+      "outputTokens": 94,
+      "reasoningOutputTokens": 8
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 22946,
+      "inputTokens": 22438,
+      "cachedInputTokens": 14772,
+      "cacheWriteInputTokens": 7657,
+      "outputTokens": 508,
+      "reasoningOutputTokens": 214
+     },
+     "last": {
+      "totalTokens": 7857,
+      "inputTokens": 7660,
+      "cachedInputTokens": 7477,
+      "cacheWriteInputTokens": 180,
+      "outputTokens": 197,
+      "reasoningOutputTokens": 134
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 31058,
+      "inputTokens": 30413,
+      "cachedInputTokens": 22429,
+      "cacheWriteInputTokens": 7972,
+      "outputTokens": 645,
+      "reasoningOutputTokens": 246
+     },
+     "last": {
+      "totalTokens": 8112,
+      "inputTokens": 7975,
+      "cachedInputTokens": 7657,
+      "cacheWriteInputTokens": 315,
+      "outputTokens": 137,
+      "reasoningOutputTokens": 32
+     }
+    }
+   }
+  },
+  {
+   "method": "item/started",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-277625f1-5e2f-47af-9147-0cc292b155fa",
+     "tool": "wait",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-19b8-79c3-b0a8-cac0dc32f5e9"
+     ]
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 39288,
+      "inputTokens": 38549,
+      "cachedInputTokens": 30401,
+      "cacheWriteInputTokens": 8133,
+      "outputTokens": 739,
+      "reasoningOutputTokens": 266
+     },
+     "last": {
+      "totalTokens": 8230,
+      "inputTokens": 8136,
+      "cachedInputTokens": 7972,
+      "cacheWriteInputTokens": 161,
+      "outputTokens": 94,
+      "reasoningOutputTokens": 20
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turnId": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 47594,
+      "inputTokens": 46810,
+      "cachedInputTokens": 38534,
+      "cacheWriteInputTokens": 8258,
+      "outputTokens": 784,
+      "reasoningOutputTokens": 266
+     },
+     "last": {
+      "totalTokens": 8306,
+      "inputTokens": 8261,
+      "cachedInputTokens": 8133,
+      "cacheWriteInputTokens": 125,
+      "outputTokens": 45,
+      "reasoningOutputTokens": 0
+     }
+    }
+   }
+  },
+  {
+   "method": "turn/completed",
+   "params": {
+    "threadId": "01a11070-19b8-79c3-b0a8-cac0dc32f5e9",
+    "turn": {
+     "id": "01a11070-19d1-7073-8afc-9f4c59f3e002",
+     "status": "completed"
+    }
+   }
+  },
+  {
+   "method": "item/completed",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "item": {
+     "type": "collabAgentToolCall",
+     "id": "exec-277625f1-5e2f-47af-9147-0cc292b155fa",
+     "tool": "wait",
+     "senderThreadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+     "receiverThreadIds": [
+      "01a11070-19b8-79c3-b0a8-cac0dc32f5e9"
+     ]
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 39999,
+      "inputTokens": 39540,
+      "cachedInputTokens": 28556,
+      "cacheWriteInputTokens": 10972,
+      "outputTokens": 459,
+      "reasoningOutputTokens": 90
+     },
+     "last": {
+      "totalTokens": 11070,
+      "inputTokens": 10975,
+      "cachedInputTokens": 10688,
+      "cacheWriteInputTokens": 284,
+      "outputTokens": 95,
+      "reasoningOutputTokens": 32
+     }
+    }
+   }
+  },
+  {
+   "method": "thread/tokenUsage/updated",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turnId": "01a1106f-f949-7743-8abe-6563087d366a",
+    "tokenUsage": {
+     "total": {
+      "totalTokens": 51311,
+      "inputTokens": 50808,
+      "cachedInputTokens": 39528,
+      "cacheWriteInputTokens": 11265,
+      "outputTokens": 503,
+      "reasoningOutputTokens": 119
+     },
+     "last": {
+      "totalTokens": 11312,
+      "inputTokens": 11268,
+      "cachedInputTokens": 10972,
+      "cacheWriteInputTokens": 293,
+      "outputTokens": 44,
+      "reasoningOutputTokens": 29
+     }
+    }
+   }
+  },
+  {
+   "method": "turn/completed",
+   "params": {
+    "threadId": "01a1106f-f939-78e1-b59d-d688830b36fc",
+    "turn": {
+     "id": "01a1106f-f949-7743-8abe-6563087d366a",
+     "status": "completed"
+    }
+   }
+  }
+ ]
+}
