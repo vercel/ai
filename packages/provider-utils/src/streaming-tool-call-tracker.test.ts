@@ -245,6 +245,104 @@ describe('StreamingToolCallTracker', () => {
       ]);
     });
 
+    it.each([
+      {
+        description: 'repeat their ids',
+        firstContinuationId: 'call_1',
+        secondContinuationId: 'call_2',
+      },
+      {
+        description: 'omit their ids',
+        firstContinuationId: undefined,
+        secondContinuationId: undefined,
+      },
+    ])(
+      'should keep same-name calls with empty opening arguments distinct when continuations $description',
+      ({ firstContinuationId, secondContinuationId }) => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id: firstContinuationId,
+          function: { arguments: '{"city":"Berlin"}' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id: 'call_2',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id: secondContinuationId,
+          function: { arguments: '{"city":"Paris"}' },
+        });
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'get_weather',
+            input: '{"city":"Berlin"}',
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'call_2',
+            toolName: 'get_weather',
+            input: '{"city":"Paris"}',
+          },
+        ]);
+      },
+    );
+
+    it('should use an unlabeled continuation for the only call without complete structured arguments', () => {
+      const { parts, controller } = createCollector();
+      const tracker = new StreamingToolCallTracker(controller);
+
+      tracker.processDelta({
+        index: 0,
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'get_weather', arguments: '' },
+      });
+      tracker.processDelta({
+        function: { arguments: '{"city":"Berlin"}' },
+      });
+      tracker.processDelta({
+        index: 1,
+        id: 'call_2',
+        type: 'function',
+        function: { name: 'get_weather', arguments: '' },
+      });
+      tracker.processDelta({
+        function: { arguments: '{"city":"Paris"}' },
+      });
+      tracker.flush();
+
+      expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+        {
+          type: 'tool-call',
+          toolCallId: 'call_1',
+          toolName: 'get_weather',
+          input: '{"city":"Berlin"}',
+        },
+        {
+          type: 'tool-call',
+          toolCallId: 'call_2',
+          toolName: 'get_weather',
+          input: '{"city":"Paris"}',
+        },
+      ]);
+    });
+
     it.each([undefined, 7])(
       'should continue the latest tool call when an index is omitted after starting at %s',
       index => {
