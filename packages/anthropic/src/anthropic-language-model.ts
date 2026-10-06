@@ -3496,6 +3496,7 @@ function resolveAnthropicReasoningConfig({
         medium: 'medium' as const,
         high: 'high' as const,
         xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        max: 'max' as const,
       },
       warnings,
     });

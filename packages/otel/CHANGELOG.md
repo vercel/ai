@@ -1,5 +1,20 @@
 # @ai-sdk/otel
 
+## 1.0.128
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 51e1763: fix(otel): mark span status as `ERROR` when finish reason is `error`
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+
 ## 1.0.127
 
 ### Patch Changes

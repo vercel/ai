@@ -1,5 +1,24 @@
 # @ai-sdk/azure
 
+## 4.0.92
+
+### Patch Changes
+
+- 35347c3: feat(azure): support MAI-Image models through the MAI image API
+
+## 4.0.91
+
+### Patch Changes
+
+- 9210b70: fix(azure): report the Azure Speech voice-reset 502 as a non-retryable 400. An unknown voice or unsupported style on MAI-Voice-2.1 makes Azure Speech reset the connection with an Envoy `protocol error` 502; since this is a client input error, the resulting `APICallError` now carries `statusCode: 400` so HTTP clients and gateways do not retry it as a server error.
+- Updated dependencies [2959d35]
+- Updated dependencies [5b8e63b]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/openai@4.0.84
+  - @ai-sdk/deepseek@3.0.59
+
 ## 4.0.90
 
 ### Patch Changes

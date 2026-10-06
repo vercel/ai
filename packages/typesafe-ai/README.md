@@ -1,7 +1,7 @@
 # AI SDK TypeSafe Provider
 
 The **[TypeSafe provider](https://ai-sdk.dev/providers/ai-sdk-providers/typesafe-ai)**
-for the [AI SDK](https://ai-sdk.dev/docs) evaluates Choice, Score, and Boolean
+for the [AI SDK](https://ai-sdk.dev/docs) decides answers to Choice, Score, and Boolean
 questions using TypeSafe's System One models.
 
 ## Setup
@@ -10,14 +10,14 @@ questions using TypeSafe's System One models.
 pnpm add @ai-sdk/typesafe-ai ai
 ```
 
-Set `TYPESAFE_AI_API_KEY`, then pass an evaluation model instance:
+Set `TYPESAFE_AI_API_KEY`, then pass a decision model instance:
 
 ```ts
 import { typeSafeAi } from '@ai-sdk/typesafe-ai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const result = await experimental_evaluate({
-  model: typeSafeAi.evaluationModel('jev-latest'),
+const result = await experimental_decide({
+  model: typeSafeAi.decisionModel('jev-latest'),
   state: 'I was charged twice. Please refund the duplicate.',
   questions: {
     department: {
@@ -35,16 +35,18 @@ const result = await experimental_evaluate({
 console.log(result.answers);
 ```
 
-Evaluation is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
+Decision is experimental. The package exports `typeSafeAi`, `createTypeSafeAi`,
 `TypeSafeAiProviderSettings`, `TypeSafeAiProvider`,
-`Experimental_TypeSafeAiEvaluationModelId`, and `VERSION`.
+`Experimental_TypeSafeAiDecisionModelId`, and `VERSION`.
 
 ## Configuration
 
 `createTypeSafeAi({ apiKey, baseURL, headers, fetch })` supports an explicit key,
-custom headers, a custom fetch implementation, and a base URL (default:
-`https://api.typesafe.ai/v1`). The default key comes from `TYPESAFE_AI_API_KEY`.
-Language, embedding, and image model factories are unsupported.
+custom headers, a custom fetch implementation, and a base URL. The base URL
+defaults to `TYPESAFE_AI_BASE_URL`, then `https://api.typesafe.ai/v1`. An
+explicit `baseURL` takes precedence over the environment variable. The default
+key comes from `TYPESAFE_AI_API_KEY`. Language, embedding, and image model
+factories are unsupported.
 
 All questions are sent in one request against shared state. Choice supports up to
 255 options; Score supports 2–10 ordered levels; Boolean maps to TypeSafe's Noul

@@ -1,7 +1,7 @@
 import { gateway } from '@ai-sdk/gateway';
 import {
   NoSuchModelError,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type EmbeddingModelV4,
   type Experimental_SpeechTranslationModelV4,
   type Experimental_VideoModelV4,
@@ -12,8 +12,8 @@ import {
   type SpeechModelV4,
   type TranscriptionModelV4,
 } from '@ai-sdk/provider';
-import type { EvaluationModel } from '../evaluate/evaluation-result';
-import type { EvaluationProvider } from '../evaluate/evaluation-provider';
+import type { DecisionModel } from '../decide/decision-result';
+import type { DecisionProvider } from '../decide/decision-provider';
 import { UnsupportedModelVersionError } from '../error';
 import type { EmbeddingModel } from '../types/embedding-model';
 import type { LanguageModel } from '../types/language-model';
@@ -217,29 +217,30 @@ export function resolveRerankingModel(model: RerankingModel): RerankingModelV4 {
   return asRerankingModelV4(model);
 }
 
-export function resolveEvaluationModel(
-  model: EvaluationModel,
-): EvaluationModelV4 {
+export function resolveDecisionModel(model: DecisionModel): DecisionModelV4 {
   if (typeof model === 'string') {
     // Use the original provider so experimental methods and their receiver survive.
     const provider = (globalThis.AI_SDK_DEFAULT_PROVIDER ??
-      gateway) as EvaluationProvider;
+      gateway) as DecisionProvider;
 
-    if (typeof provider?.evaluationModel !== 'function') {
+    const factory:
+      | ((modelId: string) => Exclude<DecisionModel, string>)
+      | undefined = provider.decisionModel ?? provider.evaluationModel;
+    if (typeof factory !== 'function') {
       throw new NoSuchModelError({
         modelId: model,
-        modelType: 'evaluationModel',
+        modelType: 'decisionModel',
         message:
-          'The default provider does not support evaluation models. ' +
-          'Pass an evaluation model instance or configure AI_SDK_DEFAULT_PROVIDER with an evaluationModel method.',
+          'The default provider does not support decision models. ' +
+          'Pass a decision model instance or configure AI_SDK_DEFAULT_PROVIDER with a decisionModel method.',
       });
     }
 
-    const resolvedModel = provider.evaluationModel(model);
+    const resolvedModel = factory.call(provider, model);
     if (resolvedModel == null) {
       throw new NoSuchModelError({
         modelId: model,
-        modelType: 'evaluationModel',
+        modelType: 'decisionModel',
       });
     }
     model = resolvedModel;
@@ -253,10 +254,40 @@ export function resolveEvaluationModel(
     });
   }
 
-  return model;
+  if ('doDecide' in model) {
+    return model;
+  }
+
+  const legacyModel = model;
+  return {
+    specificationVersion: legacyModel.specificationVersion,
+    provider: legacyModel.provider,
+    modelId: legacyModel.modelId,
+    supportedQuestionTypes: legacyModel.supportedQuestionTypes,
+    doDecide: options => legacyModel.doEvaluate(options),
+  };
 }
 
 function getGlobalProvider(): ProviderV4 {
   const provider = globalThis.AI_SDK_DEFAULT_PROVIDER ?? gateway;
   return asProviderV4(provider);
+}
+
+/** Internal adapter for deprecated provider factories. */
+export function asEvaluationModel(model: DecisionModelV4): DecisionModelV4 & {
+  doEvaluate: DecisionModelV4['doDecide'];
+} {
+  if ('doEvaluate' in model && typeof model.doEvaluate === 'function') {
+    return model as DecisionModelV4 & {
+      doEvaluate: DecisionModelV4['doDecide'];
+    };
+  }
+  return {
+    specificationVersion: model.specificationVersion,
+    provider: model.provider,
+    modelId: model.modelId,
+    supportedQuestionTypes: model.supportedQuestionTypes,
+    doDecide: options => model.doDecide(options),
+    doEvaluate: options => model.doDecide(options),
+  };
 }

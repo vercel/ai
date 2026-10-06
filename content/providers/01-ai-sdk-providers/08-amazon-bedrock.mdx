@@ -635,6 +635,24 @@ Amazon Bedrock supports model creator-specific reasoning features:
 - Anthropic (e.g. `claude-sonnet-4-5-20250929`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
 
+You can also use the top-level `reasoning` parameter. For Amazon Nova 2, `'xhigh'` and `'max'` are mapped to `'high'` with a compatibility warning. Anthropic and OpenAI effort mappings preserve `'max'`.
+
+Bedrock combines partial `providerOptions.amazonBedrock.reasoningConfig` with
+portable reasoning, preserving explicit values and deriving missing fields for
+the model's reasoning API. An explicit `maxReasoningEffort` replaces the effort
+mapping without emitting a coercion warning for the overridden value. For
+budget-based Anthropic models, `{ budgetTokens: 5000 }` preserves that budget and
+uses portable reasoning to fill a missing `type: 'enabled'`. Type-only,
+display-only, and empty configurations also retain portable reasoning.
+
+Effort-based Anthropic models can combine portable effort with an explicit
+thinking configuration. A disabled type prevents effort/budget derivation;
+portable `reasoning: 'none'` disables thinking on Anthropic models even when an
+enabled type or budget is supplied. Omitting portable reasoning or using
+`'provider-default'` leaves the provider configuration unchanged. The legacy
+`bedrock` provider options key follows the same rules. See the
+[reasoning guide](/docs/ai-sdk-core/reasoning#precedence-rules) for precedence details.
+
 ```ts
 import {
   amazonBedrock,
