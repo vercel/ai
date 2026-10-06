@@ -20,7 +20,10 @@ import {
   type FetchFunction,
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
-import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
+import {
+  OpenAIDecisionModel,
+  type OpenAIDecisionModelId,
+} from './openai-decision-model';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
 import type { OpenAIChatModelId } from './chat/openai-chat-language-model-options';
 import { OpenAICompletionLanguageModel } from './completion/openai-completion-language-model';
@@ -50,10 +53,10 @@ import { VERSION } from './version';
 export interface OpenAIProvider extends ProviderV4 {
   (modelId: OpenAIResponsesModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean decision model using the Responses API. */
-  decisionModel(modelId: OpenAIResponsesModelId): DecisionModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using the Decisions API. */
+  decisionModel(modelId: OpenAIDecisionModelId): DecisionModelV4;
   /** @deprecated Use `decisionModel` instead. */
-  evaluationModel(modelId: OpenAIResponsesModelId): DecisionModelV4 & {
+  evaluationModel(modelId: OpenAIDecisionModelId): DecisionModelV4 & {
     doEvaluate: DecisionModelV4['doDecide'];
   };
 
@@ -356,9 +359,12 @@ export function createOpenAI(
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
-  provider.decisionModel = (modelId: OpenAIResponsesModelId) =>
-    new DecisionLanguageModel({
-      model: createResponsesModel(modelId),
+  provider.decisionModel = (modelId: OpenAIDecisionModelId) =>
+    new OpenAIDecisionModel(modelId, {
+      baseURL,
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
       provider: `${providerName}.decision`,
     });
   provider.evaluationModel =

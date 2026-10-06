@@ -3472,8 +3472,8 @@ const result = await generateSpeech({
 ## Decision Models
 
 Create an experimental decision model with `openai.decisionModel(modelId)`.
-It uses the Responses API with structured output to answer Choice, Score, and
-Boolean questions. Choose a model that supports structured output, such as `gpt-6-luna`.
+It uses the native Decisions API to answer Choice, Score, and Boolean questions.
+The alpha requires an enabled OpenAI organization and uses `gpt-6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -3496,17 +3496,25 @@ const { answers } = await experimental_decide({
 });
 ```
 
-Scores are finite fractional positions on the ordered rubric. Choice labels are
-returned exactly as supplied. These are model judgments: no probability
-distributions are returned for Choice or Score. Boolean answers contain a prompted
-estimate of P(true), validated to be finite and in `[0, 1]`. These estimates are
-not guaranteed to be calibrated. Apply thresholds in application code, for example
+Scores are probability-weighted fractional positions on the ordered rubric, starting
+at zero. Choice labels are returned exactly as supplied. Choice and Score answers
+include probability distributions. Boolean questions use the API's predicate
+primitive and return P(true). Apply thresholds in application code, for example
 `answers.requestsRefund.probability >= 0.5`.
 
+Structured state, instructions, and criterion descriptions are serialized as JSON
+text. Score levels receive zero-based index labels. Non-null Boolean criteria are
+appended to predicate instructions under `Criteria for true:` and `Criteria for false:`.
+String criteria are passed through; structured criteria are serialized as JSON text.
+
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
-Pass Responses options through `providerOptions.openai`. Usage, warnings,
-response information, and provider metadata are preserved. Refusals, truncated
-output, or invalid answers fail the entire call. See [Decisions](/docs/ai-sdk-core/decisions).
+Responses API options are unsupported and produce warnings. Native confidence
+values are available in `providerMetadata.openai.confidence`, keyed by question ID.
+Input and output token counts are available in `usage`. The full native token usage
+(including cache, reasoning, and total counts) is preserved in
+`providerMetadata.openai.usage`. Response headers, the returned model ID, and the
+raw response body are preserved. Invalid answers fail the entire decision.
+See [Decisions](/docs/ai-sdk-core/decisions).
 
 Decision models can also be accessed through `customProvider` aliases or
 `createProviderRegistry().decisionModel('provider:model')`. Direct string IDs

@@ -60,3 +60,4 @@ export type {
   OpenaiResponsesSourceDocumentProviderMetadata,
 } from './responses/openai-responses-provider-metadata';
 export { VERSION } from './version';
+export type { OpenAIDecisionModelId } from './openai-decision-model';
