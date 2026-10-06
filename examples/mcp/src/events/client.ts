@@ -29,6 +29,12 @@ async function main() {
     });
 
     try {
+      const { events } = await client.events.experimental_list();
+      console.log(
+        'Available events:',
+        events.map(event => event.name),
+      );
+
       const subscription = await client.events.experimental_subscribe({
         name: 'comment.created',
         arguments: { document_id: 'doc_123' },

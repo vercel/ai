@@ -16,7 +16,7 @@ Start with `client.ts`; it shows the complete application flow.
 
 | File                | Purpose                                                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `client.ts`         | Create the webhook and client, subscribe, publish one comment, and log the event.                                         |
+| `client.ts`         | Create the webhook and client, list events, subscribe, publish one comment, and log the event.                            |
 | `server.ts`         | Run an `@modelcontextprotocol/server` MCP server and emit `comment.created` when `publish_comment` is called.             |
 | `event-store.ts`    | Provide the persistent `eventStore` used by both SDK helpers.                                                             |
 | `webhook-server.ts` | Mount the webhook on Express at `http://127.0.0.1:3003/mcp-events`. In Next.js, export the SDK handler as `POST` instead. |
@@ -47,9 +47,21 @@ pnpm client:events
 Expected client output:
 
 ```text
+Available events: [ 'comment.created' ]
 Subscribed (callback verified): sub_...
 Received comment: { document_id: 'doc_123', text: 'Hello from MCP events!' }
 ```
+
+Expected server output after running the client:
+
+```text
+MCP events server: http://127.0.0.1:3002/mcp
+Verified callback and registered subscription: sub_...
+Event acknowledged: 204
+```
+
+The client calls `client.events.experimental_list()` to discover available
+events before subscribing to `comment.created`.
 
 The app starts its webhook route before subscribing. The SDK saves a generated
 secret as `delivery.secret` before contacting the MCP server. The server sends
@@ -68,3 +80,9 @@ The demo server keeps subscriptions in memory for up to 60 seconds and has no
 replay. For long-lived subscriptions, call `client.events.experimental_refresh`
 before `refreshBefore`. Real deliveries can be duplicated; production handlers
 should deduplicate by subscription ID and event ID.
+
+## API Reference
+
+- [Event discovery, subscribe, refresh, and unsubscribe](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events)
+- [Webhook handler](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events#webhook-handler)
+- [Event types and store interface](https://ai-sdk.dev/docs/reference/ai-sdk-core/mcp-events#event-types)
