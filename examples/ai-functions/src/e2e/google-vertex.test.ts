@@ -112,6 +112,7 @@ const createModelsForRuntime = (
   imageModels: [
     createImageModel(vertex, 'imagen-3.0-fast-generate-001', [imageTest]),
     createImageModel(vertex, 'imagen-3.0-generate-002', [imageTest]),
+    createImageModelWithCapabilities(vertex.image('gemini-nano-banana-2.1')),
   ],
 });
 

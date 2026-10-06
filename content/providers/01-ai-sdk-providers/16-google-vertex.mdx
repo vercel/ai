@@ -931,6 +931,7 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-nano-banana-2.1` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gemini-3.8-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.7-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.6-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -1274,6 +1275,7 @@ const { image } = await generateImage({
 
 | Model                            | Image Generation    | Image Editing       | Aspect Ratios                                       |
 | -------------------------------- | ------------------- | ------------------- | --------------------------------------------------- |
+| `gemini-nano-banana-2.1` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, 4:1 |
 | `gemini-3.1-flash-image-preview` | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 | `gemini-3-pro-image-preview`     | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
 | `gemini-2.5-flash-image`         | <Check size={18} /> | <Check size={18} /> | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
