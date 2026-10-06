@@ -14281,4 +14281,39 @@ describe('generateText', () => {
       expect(events).toEqual(['first', 'second']);
     });
   });
+
+  describe('provider-specific usage metadata', () => {
+    // `usage.raw` is the provider's own usage payload. The aggregate dropped it,
+    // so the total usage of a call came back without the field the step itself
+    // carried, and the reference docs list `raw` on `usage`.
+    const usageWithRaw: LanguageModelV4Usage = {
+      inputTokens: {
+        total: 3,
+        noCache: 3,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: { total: 10, text: 10, reasoning: undefined },
+      raw: { providerSpecific: 'keep-me' },
+    };
+
+    it('should keep the provider usage payload on the total usage', async () => {
+      const result = await generateText({
+        model: new MockLanguageModelV4({
+          doGenerate: async () => ({
+            content: [{ type: 'text', text: 'Hello' }],
+            finishReason: { unified: 'stop', raw: 'stop' },
+            usage: usageWithRaw,
+            warnings: [],
+          }),
+        }),
+        prompt: 'test-input',
+      });
+
+      expect(result.steps[0]!.usage.raw).toEqual({
+        providerSpecific: 'keep-me',
+      });
+      expect(result.usage.raw).toEqual({ providerSpecific: 'keep-me' });
+    });
+  });
 });
