@@ -315,7 +315,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     status: ChatStatus;
     error?: Error;
   }) {
-    if (this.status === status) return;
+    if (this.status === status) {
+      if (this.error !== error) {
+        this.state.error = error;
+      }
+      return;
+    }
 
     this.state.status = status;
     this.state.error = error;
