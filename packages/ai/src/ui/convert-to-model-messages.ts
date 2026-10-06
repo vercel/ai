@@ -27,12 +27,8 @@ import {
   type ToolUIPart,
   type UIMessage,
 } from './ui-messages';
-<<<<<<< HEAD
-
-=======
 import { isToolPartFromUnavailableTool } from './unavailable-tool';
-import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
+
 /**
  * Converts an array of UI messages from useChat into an array of ModelMessages that can be used
  * with the AI functions (e.g. `streamText`, `generateText`).
@@ -81,7 +77,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     output: unknown;
     errorMode: 'none' | 'text' | 'json';
   }) {
-    const tool = getOwn(options?.tools, toolName);
+    const tool = options?.tools?.[toolName];
 
     if (
       errorMode === 'none' &&
@@ -276,10 +272,6 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-<<<<<<< HEAD
-                        tool: options?.tools?.[toolName],
-=======
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -379,10 +371,6 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                             toolPart.state === 'output-error'
                               ? toolPart.errorText
                               : toolPart.output,
-<<<<<<< HEAD
-                          tool: options?.tools?.[toolName],
-=======
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                           errorMode:
                             toolPart.state === 'output-error' ? 'text' : 'none',
                         }),

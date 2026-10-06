@@ -9,7 +9,7 @@ import {
   createStreamingUIMessageState,
   processUIMessageStream,
 } from './process-ui-message-stream';
-import type { UIMessage } from './ui-messages';
+import type { InferUITool, UIMessage } from './ui-messages';
 import { validateUIMessages } from './validate-ui-messages';
 
 async function recordAssistantMessageFromChunks<
@@ -603,7 +603,13 @@ describe('convertToModelMessages', () => {
         }),
       });
 
-      const history: UIMessage[] = [
+      type SearchMessage = UIMessage<
+        never,
+        never,
+        { search: InferUITool<typeof historicalTool> }
+      >;
+
+      const history: SearchMessage[] = [
         {
           id: 'assistant-1',
           role: 'assistant',
@@ -623,7 +629,7 @@ describe('convertToModelMessages', () => {
       ];
 
       const before = await convertToModelMessages(
-        await validateUIMessages({
+        await validateUIMessages<SearchMessage>({
           messages: history,
           tools: { search: historicalTool },
         }),

@@ -25,11 +25,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
-<<<<<<< HEAD
-=======
 import { markToolPartAsUnavailable } from './unavailable-tool';
-import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
 
 const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   z.string(),
