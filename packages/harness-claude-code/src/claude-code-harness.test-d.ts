@@ -78,6 +78,14 @@ describe('claudeCode ↔ HarnessAgent harness setting', () => {
     ).toExtend<HarnessAgentAdapter<any>>();
   });
 
+  test('createClaudeCode accepts a fallback model', () => {
+    expectTypeOf(
+      createClaudeCode({ fallbackModel: 'claude-haiku-4-5' }),
+    ).toExtend<HarnessAgentAdapter<any>>();
+    // @ts-expect-error fallbackModel must be a string
+    createClaudeCode({ fallbackModel: 123 });
+  });
+
   test('createClaudeCode accepts asynchronous credential forwarding', () => {
     expectTypeOf(
       createClaudeCode({

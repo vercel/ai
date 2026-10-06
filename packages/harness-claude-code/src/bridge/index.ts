@@ -484,6 +484,9 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.fallbackModel !== undefined
+        ? { fallbackModel: start.fallbackModel }
+        : {}),
       ...(start.agentProgressSummaries !== undefined
         ? { agentProgressSummaries: start.agentProgressSummaries }
         : {}),
