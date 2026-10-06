@@ -1,0 +1,43 @@
+{
+  "id": "ef8044c3360843bdb1f55527e6c004fd",
+  "created": 1791319070,
+  "model": "mistral-large-4",
+  "usage": {
+    "prompt_tokens": 26,
+    "total_tokens": 138,
+    "completion_tokens": 112,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "service_tier": "standard"
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": [
+              {
+                "type": "text",
+                "text": "The user is asking \"How many r are in strawberry? Be brief.\"\n\n Let me count the letter 'r' in the word \"strawberry\":\n\n s-t-r-a-w-b-e-r-r-y\n\n 1. Position 3: r\n 2. Position 8: r\n 3. Position 9: r\n\n So there are 3 r's in \"strawberry\".\n\n The user wants me to be brief, so I should just give the number or a very short answer.\n\n Answer: 3"
+              }
+            ],
+            "closed": true
+          },
+          {
+            "type": "text",
+            "text": "3"
+          }
+        ]
+      },
+      "logprobs": null,
+      "prompt_logprobs": null
+    }
+  ]
+}

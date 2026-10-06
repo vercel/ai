@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22183,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22183-mistral-large-4-reasoning.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22183-mistral-large-4-reasoning.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE #22183 REPRODUCED: reasoning configuration produced no reasoning-delta text for mistral-large-4/provider-option, mistral-large-4/top-level, mistral-large-4-0/provider-option, mistral-large-4-0/top-level"
+  }
+}

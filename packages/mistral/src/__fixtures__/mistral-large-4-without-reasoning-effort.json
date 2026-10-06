@@ -1,0 +1,28 @@
+{
+  "id": "e5ffd6f149884b47a22fd428e4399404",
+  "created": 1791319073,
+  "model": "mistral-large-4",
+  "usage": {
+    "prompt_tokens": 26,
+    "total_tokens": 50,
+    "completion_tokens": 24,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "service_tier": "standard"
+  },
+  "object": "chat.completion",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "stop",
+      "message": {
+        "role": "assistant",
+        "tool_calls": null,
+        "content": "There are **3** r's in \"strawberry\": st**r**awbe**rr**y"
+      },
+      "logprobs": null,
+      "prompt_logprobs": null
+    }
+  ]
+}
