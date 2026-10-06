@@ -162,6 +162,12 @@ export interface OpenAIProvider extends ProviderV4 {
 }
 
 export interface OpenAIProviderSettings {
+  /** Settings for downloading JSON Lines batch results. */
+  batchResultDownloads?: {
+    /** Maximum UTF-8 bytes per row, excluding LF. Defaults to 64 MiB. */
+    maxLineBytes?: number;
+  };
+
   /**
    * Base URL for the OpenAI API calls.
    */
@@ -339,6 +345,7 @@ export function createOpenAI(
   const createBatch = () =>
     new OpenAIBatch({
       provider: `${providerName}.batch`,
+      maxLineBytes: options.batchResultDownloads?.maxLineBytes,
       config: {
         provider: `${providerName}.responses`,
         baseURL,

@@ -3,12 +3,15 @@ import { hashCanonical, toBase64url } from '../util/canonical-hash';
 
 const encoder = new TextEncoder();
 
-function fromBase64url(str: string): Uint8Array {
+function fromBase64url(str: string) {
   return convertBase64ToUint8Array(str);
 }
 
 async function importKey(secret: string | Uint8Array): Promise<CryptoKey> {
-  const keyData = typeof secret === 'string' ? encoder.encode(secret) : secret;
+  const keyData =
+    typeof secret === 'string'
+      ? encoder.encode(secret)
+      : (secret as Uint8Array<ArrayBuffer>);
   return crypto.subtle.importKey(
     'raw',
     keyData,
@@ -26,7 +29,7 @@ function buildPayload(
   toolCallId: string,
   toolName: string,
   inputDigest: string,
-): Uint8Array {
+) {
   return encoder.encode(
     JSON.stringify([
       'ai-sdk-tool-approval-v1',
@@ -49,7 +52,7 @@ function buildLegacyPayload(
   toolCallId: string,
   toolName: string,
   inputDigest: string,
-): Uint8Array {
+) {
   return encoder.encode(
     `${approvalId}\n${toolCallId}\n${toolName}\n${inputDigest}`,
   );

@@ -51,7 +51,7 @@
     "@types/ws": "^8.5.13",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "engines": {
