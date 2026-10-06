@@ -13,6 +13,10 @@ export default defineConfig(
       },
     },
     {
+      entry: ['src/experimental-decision/index.ts'],
+      outDir: 'dist/experimental-decision',
+    },
+    {
       entry: ['src/experimental-evaluation/index.ts'],
       outDir: 'dist/experimental-evaluation',
     },
