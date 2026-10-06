@@ -135,6 +135,12 @@ export function addLanguageModelUsage(
   usage1: LanguageModelUsage,
   usage2: LanguageModelUsage,
 ): LanguageModelUsage {
+  const raw = isNullLanguageModelUsage(usage1)
+    ? usage2.raw
+    : isNullLanguageModelUsage(usage2)
+      ? usage1.raw
+      : undefined;
+
   return {
     inputTokens: addTokenCounts(usage1.inputTokens, usage2.inputTokens),
     inputTokenDetails: {
@@ -163,6 +169,7 @@ export function addLanguageModelUsage(
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
+<<<<<<< HEAD
     reasoningTokens: addTokenCounts(
       usage1.reasoningTokens,
       usage2.reasoningTokens,
@@ -171,7 +178,24 @@ export function addLanguageModelUsage(
       usage1.cachedInputTokens,
       usage2.cachedInputTokens,
     ),
+=======
+    ...(raw == null ? {} : { raw }),
+>>>>>>> 73d83432ac (fix: preserve provider-reported V2 total token usage in generated results (#22114))
   };
+}
+
+function isNullLanguageModelUsage(usage: LanguageModelUsage): boolean {
+  return (
+    usage.inputTokens == null &&
+    usage.inputTokenDetails?.noCacheTokens == null &&
+    usage.inputTokenDetails?.cacheReadTokens == null &&
+    usage.inputTokenDetails?.cacheWriteTokens == null &&
+    usage.outputTokens == null &&
+    usage.outputTokenDetails?.textTokens == null &&
+    usage.outputTokenDetails?.reasoningTokens == null &&
+    usage.totalTokens == null &&
+    usage.raw == null
+  );
 }
 
 function addTokenCounts(
