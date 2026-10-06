@@ -232,6 +232,66 @@ describe('createJsonLinesResponseHandler', () => {
     expect(cancelled).toBe(true);
   });
 
+  it('throws APICallError when a line exceeds the maximum buffer size', async () => {
+    let cancelled = false;
+    const chunk = new Uint8Array(1024 * 1024).fill(65); // 1 MiB of 'A'
+    const handler = createJsonLinesResponseHandler(z.any());
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            controller.enqueue(chunk);
+          },
+          cancel() {
+            cancelled = true;
+          },
+        }),
+      ),
+    });
+
+    const error = await result.value.next().catch(error => error);
+
+    expect(APICallError.isInstance(error)).toBe(true);
+    expect(error.message).toContain('exceeded maximum line size');
+    expect(error.url).toBe('test-url');
+    expect(cancelled).toBe(true);
+  });
+
+  it('parses many lines whose total size exceeds the maximum buffer size', async () => {
+    const line = `${JSON.stringify({ text: 'a'.repeat(1024 * 1024) })}\n`;
+    const encodedLine = new TextEncoder().encode(line);
+    const lineCount = 12;
+    let sent = 0;
+    const handler = createJsonLinesResponseHandler(
+      z.object({ text: z.string() }),
+    );
+    const result = await handler({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response(
+        new ReadableStream<Uint8Array>({
+          pull(controller) {
+            if (sent === lineCount) {
+              controller.close();
+              return;
+            }
+            controller.enqueue(encodedLine);
+            sent++;
+          },
+        }),
+      ),
+    });
+
+    let count = 0;
+    for await (const _value of result.value) {
+      count++;
+    }
+
+    expect(count).toBe(lineCount);
+  });
+
   it('throws EmptyResponseBodyError when the response body is null', async () => {
     const handler = createJsonLinesResponseHandler(z.object({}));
 

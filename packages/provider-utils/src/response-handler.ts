@@ -19,6 +19,8 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 
 const textDecoder = new TextDecoder();
 
+const MAX_JSON_LINE_BUFFER_SIZE = 10 * 1024 * 1024; // 10 MiB
+
 function wrapResponseBodyStream({
   stream,
   url,
@@ -227,7 +229,7 @@ export const createJsonResponseHandler =
 
 export const createJsonLinesResponseHandler =
   <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<AsyncGenerator<T>> =>
-  async ({ response }) => {
+  async ({ response, url, requestBodyValues }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -239,6 +241,8 @@ export const createJsonLinesResponseHandler =
       value: parseJsonLines({
         stream: response.body,
         schema: responseSchema,
+        url,
+        requestBodyValues,
       }),
     };
   };
@@ -246,9 +250,13 @@ export const createJsonLinesResponseHandler =
 async function* parseJsonLines<T>({
   stream,
   schema,
+  url,
+  requestBodyValues,
 }: {
   stream: ReadableStream<Uint8Array>;
   schema: FlexibleSchema<T>;
+  url: string;
+  requestBodyValues: unknown;
 }): AsyncGenerator<T> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -277,6 +285,15 @@ async function* parseJsonLines<T>({
         }
 
         lineEnd = buffer.indexOf('\n');
+      }
+
+      if (buffer.length > MAX_JSON_LINE_BUFFER_SIZE) {
+        throw new APICallError({
+          message: `JSON Lines response exceeded maximum line size of ${MAX_JSON_LINE_BUFFER_SIZE} characters without a newline`,
+          url,
+          requestBodyValues,
+          isRetryable: false,
+        });
       }
     }
 
