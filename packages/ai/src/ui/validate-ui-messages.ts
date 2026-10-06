@@ -21,6 +21,7 @@ import type {
   InferUIMessageTools,
   UIMessage,
 } from './ui-messages';
+import { markToolPartAsUnavailable } from './unavailable-tool';
 
 type ValidatedToolPart = {
   type: `tool-${string}`;
@@ -82,7 +83,7 @@ function asDynamicToolPart(
   };
 
   if (toolPart.state === 'output-available') {
-    return {
+    return markToolPartAsUnavailable({
       ...common,
       state: 'output-available',
       input: toolPart.input,
@@ -90,15 +91,15 @@ function asDynamicToolPart(
       ...(toolPart.preliminary === undefined
         ? {}
         : { preliminary: toolPart.preliminary }),
-    };
+    });
   }
 
-  return {
+  return markToolPartAsUnavailable({
     ...common,
     state: 'output-error',
     input: toolPart.input,
     errorText: toolPart.errorText,
-  };
+  });
 }
 
 const uiMessagesSchema = lazyValidator(() =>
@@ -157,6 +158,7 @@ const uiMessagesSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('input-streaming'),
@@ -168,6 +170,7 @@ const uiMessagesSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('input-available'),
@@ -179,6 +182,7 @@ const uiMessagesSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('output-available'),
@@ -191,6 +195,7 @@ const uiMessagesSchema = lazyValidator(() =>
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   state: z.literal('output-error'),

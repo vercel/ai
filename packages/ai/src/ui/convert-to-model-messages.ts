@@ -28,6 +28,7 @@ import {
   isToolOrDynamicToolUIPart,
   isToolUIPart,
 } from './ui-messages';
+import { isToolPartFromUnavailableTool } from './unavailable-tool';
 
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
@@ -63,6 +64,37 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
             (part.state !== 'output-available' || part.preliminary !== true)),
       ),
     }));
+  }
+
+  function createModelOutput({
+    toolPart,
+    toolName,
+    output,
+    errorMode,
+  }: {
+    toolPart: ToolUIPart<InferUIMessageTools<UI_MESSAGE>> | DynamicToolUIPart;
+    toolName: string;
+    output: unknown;
+    errorMode: 'none' | 'text' | 'json';
+  }) {
+    const tool = options?.tools?.[toolName];
+
+    if (
+      errorMode === 'none' &&
+      tool == null &&
+      isToolPartFromUnavailableTool(toolPart)
+    ) {
+      return {
+        type: 'text' as const,
+        value: 'Tool output omitted because the tool is no longer available.',
+      };
+    }
+
+    return createToolModelOutput({
+      output,
+      tool,
+      errorMode,
+    });
   }
 
   for (const message of messages) {
@@ -212,12 +244,13 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
                       toolName: toolName as string,
-                      output: createToolModelOutput({
+                      output: createModelOutput({
+                        toolPart: part,
+                        toolName: toolName as string,
                         output:
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-                        tool: options?.tools?.[toolName],
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -271,12 +304,13 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
                           toolName,
-                          output: createToolModelOutput({
+                          output: createModelOutput({
+                            toolPart,
+                            toolName,
                             output:
                               toolPart.state === 'output-error'
                                 ? toolPart.errorText
                                 : toolPart.output,
-                            tool: options?.tools?.[toolName],
                             errorMode:
                               toolPart.state === 'output-error'
                                 ? 'text'

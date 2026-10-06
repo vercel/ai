@@ -2,7 +2,8 @@ import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import z from 'zod/v4';
 import { convertToModelMessages } from './convert-to-model-messages';
-import type { UIMessage } from './ui-messages';
+import type { InferUITool, UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -726,6 +727,111 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+    });
+
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: output => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+      type SearchMessage = UIMessage<
+        never,
+        never,
+        { search: InferUITool<typeof historicalTool> }
+      >;
+
+      const history: SearchMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+              },
+            },
+          ],
+        },
+      ];
+
+      const before = convertToModelMessages(
+        await validateUIMessages<SearchMessage>({
+          messages: history,
+          tools: { search: historicalTool },
+        }),
+        { tools: { search: historicalTool } },
+      );
+
+      const validatedWithoutTool = await validateUIMessages<SearchMessage>({
+        messages: history,
+        tools: {},
+      });
+
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
+
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as SearchMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages<SearchMessage>({
+          messages,
+          tools: {},
+        });
+
+        expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).toEqual(before);
+      }
     });
 
     describe('tool output error', () => {
