@@ -654,6 +654,24 @@ describe('ToolLoopAgent', () => {
         >().toEqualTypeOf<never>();
       });
 
+      it('should expose runtimeContext and toolsContext in options', () => {
+        type Settings = ToolLoopAgentSettings<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >;
+        type PrepareCallOptions = Parameters<
+          NonNullable<Settings['prepareCall']>
+        >[0];
+
+        expectTypeOf<PrepareCallOptions['runtimeContext']>().toEqualTypeOf<
+          { requestId: string } | undefined
+        >();
+        expectTypeOf<PrepareCallOptions['toolsContext']>().toEqualTypeOf<{
+          weather: { weatherApiKey: string };
+        }>();
+      });
+
       it('should type reasoning in input and return values', () => {
         type PrepareCallResult = Awaited<
           ReturnType<NonNullable<ToolLoopAgentSettings['prepareCall']>>
@@ -731,8 +749,7 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('two tools with contextSchema', () => {
-      it('should reject no toolsContext', async () => {
-        // @ts-expect-error toolsContext is required when tools have contextSchema
+      it('should accept no toolsContext (can be supplied per call)', async () => {
         new ToolLoopAgent({
           model: new MockLanguageModelV4(),
           tools: twoToolsWithContext,
@@ -770,8 +787,7 @@ describe('ToolLoopAgent', () => {
     });
 
     describe('mixed tools', () => {
-      it('should reject no toolsContext', async () => {
-        // @ts-expect-error toolsContext is required when at least one tool has contextSchema
+      it('should accept no toolsContext (can be supplied per call)', async () => {
         new ToolLoopAgent({
           model: new MockLanguageModelV4(),
           tools: mixedTools,
@@ -887,6 +903,179 @@ describe('ToolLoopAgent', () => {
 
             return {};
           },
+        });
+      });
+    });
+    describe('call-level toolsContext', () => {
+      it('should accept toolsContext on generate()', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: {
+            weather: { weatherApiKey: 'key' },
+            db: { dbUrl: 'url' },
+          },
+        });
+      });
+
+      it('should accept toolsContext on stream()', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: twoToolsWithContext,
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          toolsContext: {
+            weather: { weatherApiKey: 'key' },
+            db: { dbUrl: 'url' },
+          },
+        });
+      });
+
+      it('should accept toolsContext on generate() when the constructor also has one', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+      });
+
+      it('should reject unknown tool keys', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error unknown tool key
+          toolsContext: { unknown: { weatherApiKey: 'key' } },
+        });
+      });
+
+      it('should reject wrong value shape for a known tool key', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error missing required weather.weatherApiKey
+          toolsContext: { weather: { wrong: 'value' } },
+        });
+      });
+
+      it('should reject toolsContext when no tool declares a context', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: toolWithoutContext,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error toolsContext is not accepted when no tools require it
+          toolsContext: {},
+        });
+      });
+
+      it('should reject toolsContext when there are no tools', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          // @ts-expect-error toolsContext is not accepted when no tools are provided
+          toolsContext: {},
+        });
+      });
+
+      it('should type toolsContext in prepareCall when only the call supplies it', async () => {
+        const agent = new ToolLoopAgent({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+          prepareCall: options => {
+            expectTypeOf(options.toolsContext).toEqualTypeOf<{
+              weather: { weatherApiKey: string };
+            }>();
+
+            return options;
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          toolsContext: { weather: { weatherApiKey: 'key' } },
+        });
+      });
+    });
+
+    describe('call-level runtimeContext', () => {
+      it('should accept runtimeContext on generate() and stream()', async () => {
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4(),
+          prepareStep: ({ runtimeContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{
+              requestId: string;
+            }>();
+
+            return {};
+          },
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+          onEnd: ({ runtimeContext }) => {
+            expectTypeOf(runtimeContext).toEqualTypeOf<{
+              requestId: string;
+            }>();
+          },
+        });
+
+        await agent.stream({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+        });
+      });
+
+      it('should accept runtimeContext and toolsContext together on generate()', async () => {
+        const agent = new ToolLoopAgent<
+          never,
+          typeof mixedTools,
+          { requestId: string }
+        >({
+          model: new MockLanguageModelV4(),
+          tools: mixedTools,
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          runtimeContext: { requestId: 'req_1' },
+          toolsContext: { weather: { weatherApiKey: 'key' } },
+        });
+      });
+
+      it('should reject wrong runtimeContext shape', async () => {
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4(),
+        });
+
+        await agent.generate({
+          prompt: 'Hello',
+          // @ts-expect-error requestId must be a string
+          runtimeContext: { requestId: 123 },
         });
       });
     });

@@ -34,7 +34,7 @@ import type {
 } from '../generate-text/tool-execution-events';
 import type { ToolInputRefinement } from '../generate-text/tool-input-refinement';
 import type { ToolOrder } from '../generate-text/tool-order';
-import type { ToolsContextParameter } from '../generate-text/tools-context-parameter';
+import type { OptionalToolsContextSettings } from '../generate-text/tools-context-parameter';
 import type { LanguageModelCallOptions } from '../prompt/language-model-call-options';
 import type { Instructions, Prompt } from '../prompt/prompt';
 import type { RequestOptions } from '../prompt/request-options';
@@ -53,11 +53,16 @@ export type ToolLoopAgentSettings<
   OUTPUT extends Output = never,
 > = LanguageModelCallOptions &
   Omit<RequestOptions<TOOLS>, 'abortSignal'> &
-  ToolsContextParameter<TOOLS> & {
+  OptionalToolsContextSettings<TOOLS> & {
     /**
      * The id of the agent.
      */
     id?: string;
+
+    /**
+     * The tools that the model can call.
+     */
+    tools?: TOOLS;
 
     /**
      * The instructions for the agent.
@@ -129,6 +134,9 @@ export type ToolLoopAgentSettings<
     /**
      * Runtime context. Treat runtime context as immutable.
      * If you need to mutate runtime context, update it in `prepareStep`.
+     *
+     * Can also be supplied per call to `generate()` or `stream()`, which
+     * overrides this value.
      */
     runtimeContext?: RUNTIME_CONTEXT;
 
@@ -341,6 +349,8 @@ export type ToolLoopAgentSettings<
         | 'onStepFinish'
         | 'onEnd'
         | 'onFinish'
+        | 'runtimeContext'
+        | 'toolsContext'
       > &
         Pick<
           ToolLoopAgentSettings<

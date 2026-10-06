@@ -4242,4 +4242,410 @@ describe('ToolLoopAgent', () => {
       expect(result.text).toBe('reply');
     });
   });
+  describe('runtimeContext and toolsContext', () => {
+    const dummyResponseValues = {
+      usage: {
+        cachedInputTokens: undefined,
+        inputTokens: {
+          total: 3,
+          noCache: 3,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+      },
+      warnings: [],
+    };
+
+    const dummyStreamFinish = {
+      type: 'finish' as const,
+      finishReason: { unified: 'stop' as const, raw: 'stop' },
+      usage: {
+        inputTokens: {
+          total: 3,
+          noCache: 3,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: 10,
+          text: 10,
+          reasoning: undefined,
+        },
+      },
+      providerMetadata: {},
+    };
+
+    function createWeatherToolCallMockModel() {
+      let callCount = 0;
+      return new MockLanguageModelV4({
+        doGenerate: async () => {
+          if (callCount++ === 0) {
+            return {
+              ...dummyResponseValues,
+              content: [
+                {
+                  type: 'tool-call' as const,
+                  toolCallType: 'function' as const,
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{ "location": "Berlin" }',
+                },
+              ],
+              finishReason: {
+                unified: 'tool-calls' as const,
+                raw: undefined,
+              },
+            };
+          }
+          return {
+            ...dummyResponseValues,
+            content: [{ type: 'text' as const, text: 'done' }],
+            finishReason: { unified: 'stop' as const, raw: 'stop' },
+          };
+        },
+      });
+    }
+
+    function createWeatherToolCallStreamMockModel() {
+      let callCount = 0;
+      return new MockLanguageModelV4({
+        doStream: async () => {
+          if (callCount++ === 0) {
+            return {
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName: 'weather',
+                  input: '{ "location": "Berlin" }',
+                },
+                {
+                  ...dummyStreamFinish,
+                  finishReason: {
+                    unified: 'tool-calls' as const,
+                    raw: undefined,
+                  },
+                },
+              ]),
+            };
+          }
+          return {
+            stream: convertArrayToReadableStream([
+              { type: 'stream-start', warnings: [] },
+              {
+                type: 'response-metadata',
+                id: 'id-1',
+                modelId: 'mock-model-id',
+                timestamp: new Date(0),
+              },
+              { type: 'text-start', id: '1' },
+              { type: 'text-delta', id: '1', delta: 'done' },
+              { type: 'text-end', id: '1' },
+              dummyStreamFinish,
+            ]),
+          };
+        },
+      });
+    }
+
+    function createWeatherTools(receivedContexts: unknown[]) {
+      return {
+        weather: tool({
+          inputSchema: z.object({ location: z.string() }),
+          contextSchema: z.object({ weatherApiKey: z.string() }),
+          execute: async ({ location }, { context }) => {
+            receivedContexts.push(context);
+            return { location, weatherApiKey: context.weatherApiKey };
+          },
+        }),
+      };
+    }
+
+    describe('generate', () => {
+      it('should pass call-level toolsContext to tool execution', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallMockModel(),
+          tools: createWeatherTools(receivedContexts),
+        });
+
+        const result = await agent.generate({
+          prompt: 'test',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+
+        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
+        expect(result.finalStep.toolsContext).toStrictEqual({
+          weather: { weatherApiKey: 'call-key' },
+        });
+      });
+
+      it('should prefer call-level toolsContext over constructor-level toolsContext', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallMockModel(),
+          tools: createWeatherTools(receivedContexts),
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        const result = await agent.generate({
+          prompt: 'test',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+
+        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
+        expect(result.finalStep.toolsContext).toStrictEqual({
+          weather: { weatherApiKey: 'call-key' },
+        });
+      });
+
+      it('should use constructor-level toolsContext when the call omits it', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallMockModel(),
+          tools: createWeatherTools(receivedContexts),
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        const result = await agent.generate({ prompt: 'test' });
+
+        expect(receivedContexts).toStrictEqual([
+          { weatherApiKey: 'constructor-key' },
+        ]);
+        expect(result.finalStep.toolsContext).toStrictEqual({
+          weather: { weatherApiKey: 'constructor-key' },
+        });
+      });
+
+      it('should keep constructor-level toolsContext when the call passes undefined', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallMockModel(),
+          tools: createWeatherTools(receivedContexts),
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        await agent.generate({ prompt: 'test', toolsContext: undefined });
+
+        expect(receivedContexts).toStrictEqual([
+          { weatherApiKey: 'constructor-key' },
+        ]);
+      });
+
+      it('should pass the merged toolsContext and runtimeContext to prepareCall', async () => {
+        const prepareCallArgs: unknown[] = [];
+
+        const agent = new ToolLoopAgent<
+          never,
+          ReturnType<typeof createWeatherTools>,
+          { requestId: string }
+        >({
+          model: createWeatherToolCallMockModel(),
+          tools: createWeatherTools([]),
+          runtimeContext: { requestId: 'constructor-request' },
+          prepareCall: options => {
+            prepareCallArgs.push({
+              runtimeContext: options.runtimeContext,
+              toolsContext: options.toolsContext,
+            });
+            return options;
+          },
+        });
+
+        await agent.generate({
+          prompt: 'test',
+          runtimeContext: { requestId: 'call-request' },
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+
+        expect(prepareCallArgs).toStrictEqual([
+          {
+            runtimeContext: { requestId: 'call-request' },
+            toolsContext: { weather: { weatherApiKey: 'call-key' } },
+          },
+        ]);
+      });
+
+      it('should pass call-level runtimeContext to prepareStep and the result', async () => {
+        const prepareStepContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          prepareStep: ({ runtimeContext }) => {
+            prepareStepContexts.push(runtimeContext);
+            return {};
+          },
+        });
+
+        const result = await agent.generate({
+          prompt: 'test',
+          runtimeContext: { requestId: 'call-request' },
+        });
+
+        expect(prepareStepContexts).toStrictEqual([
+          { requestId: 'call-request' },
+        ]);
+        expect(result.finalStep.runtimeContext).toStrictEqual({
+          requestId: 'call-request',
+        });
+      });
+
+      it('should prefer call-level runtimeContext over constructor-level runtimeContext', async () => {
+        const prepareStepContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          runtimeContext: { requestId: 'constructor-request' },
+          prepareStep: ({ runtimeContext }) => {
+            prepareStepContexts.push(runtimeContext);
+            return {};
+          },
+        });
+
+        const result = await agent.generate({
+          prompt: 'test',
+          runtimeContext: { requestId: 'call-request' },
+        });
+
+        expect(prepareStepContexts).toStrictEqual([
+          { requestId: 'call-request' },
+        ]);
+        expect(result.finalStep.runtimeContext).toStrictEqual({
+          requestId: 'call-request',
+        });
+      });
+
+      it('should keep constructor-level runtimeContext when the call passes undefined', async () => {
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4({
+            doGenerate: async () => ({
+              ...dummyResponseValues,
+              content: [{ type: 'text' as const, text: 'done' }],
+              finishReason: { unified: 'stop' as const, raw: 'stop' },
+            }),
+          }),
+          runtimeContext: { requestId: 'constructor-request' },
+        });
+
+        const result = await agent.generate({
+          prompt: 'test',
+          runtimeContext: undefined,
+        });
+
+        expect(result.finalStep.runtimeContext).toStrictEqual({
+          requestId: 'constructor-request',
+        });
+      });
+    });
+
+    describe('stream', () => {
+      it('should pass call-level toolsContext to tool execution', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallStreamMockModel(),
+          tools: createWeatherTools(receivedContexts),
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+        await result.consumeStream();
+
+        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
+        expect((await result.finalStep).toolsContext).toStrictEqual({
+          weather: { weatherApiKey: 'call-key' },
+        });
+      });
+
+      it('should prefer call-level toolsContext over constructor-level toolsContext', async () => {
+        const receivedContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent({
+          model: createWeatherToolCallStreamMockModel(),
+          tools: createWeatherTools(receivedContexts),
+          toolsContext: { weather: { weatherApiKey: 'constructor-key' } },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          toolsContext: { weather: { weatherApiKey: 'call-key' } },
+        });
+        await result.consumeStream();
+
+        expect(receivedContexts).toStrictEqual([{ weatherApiKey: 'call-key' }]);
+      });
+
+      it('should prefer call-level runtimeContext over constructor-level runtimeContext', async () => {
+        const prepareStepContexts: unknown[] = [];
+
+        const agent = new ToolLoopAgent<never, {}, { requestId: string }>({
+          model: new MockLanguageModelV4({
+            doStream: async () => ({
+              stream: convertArrayToReadableStream([
+                { type: 'stream-start', warnings: [] },
+                {
+                  type: 'response-metadata',
+                  id: 'id-0',
+                  modelId: 'mock-model-id',
+                  timestamp: new Date(0),
+                },
+                { type: 'text-start', id: '1' },
+                { type: 'text-delta', id: '1', delta: 'done' },
+                { type: 'text-end', id: '1' },
+                dummyStreamFinish,
+              ]),
+            }),
+          }),
+          runtimeContext: { requestId: 'constructor-request' },
+          prepareStep: ({ runtimeContext }) => {
+            prepareStepContexts.push(runtimeContext);
+            return {};
+          },
+        });
+
+        const result = await agent.stream({
+          prompt: 'test',
+          runtimeContext: { requestId: 'call-request' },
+        });
+        await result.consumeStream();
+
+        expect(prepareStepContexts).toStrictEqual([
+          { requestId: 'call-request' },
+        ]);
+        expect((await result.finalStep).runtimeContext).toStrictEqual({
+          requestId: 'call-request',
+        });
+      });
+    });
+  });
 });
