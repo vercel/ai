@@ -672,8 +672,13 @@ The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets G
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
+<<<<<<< HEAD:content/providers/01-ai-sdk-providers/15-google-generative-ai.mdx
 const { text, sources } = await generateText({
   model: google('gemini-2.5-pro'),
+=======
+const { text, sources, providerMetadata } = await generateText({
+  model: google('gemini-3.8-flash'),
+>>>>>>> 8c0e6990b1 (feat(google): preserve file search custom metadata in retrieved context grounding chunks (#22175)):content/providers/01-ai-sdk-providers/15-google.mdx
   tools: {
     file_search: google.tools.fileSearch({
       fileSearchStoreNames: [
@@ -688,6 +693,9 @@ const { text, sources } = await generateText({
 ```
 
 File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
+Custom metadata attached to the indexed documents is available in
+`groundingMetadata.groundingChunks[].retrievedContext.customMetadata`.
 
 ### URL Context
 
