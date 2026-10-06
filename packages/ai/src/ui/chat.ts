@@ -275,6 +275,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     | StreamingUIMessageState<UI_MESSAGE>
     | undefined = undefined;
   private jobExecutor = new SerialJobExecutor();
+  private activeStopCount = 0;
+  private stopGeneration = 0;
 
   constructor({
     generateId = generateIdFunc,
@@ -603,20 +605,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            const messageId =
-              messageIndex === -1
-                ? this.lastMessage?.id
-                : messages[messageIndex].id;
+        // no await to avoid deadlocking
+        void this.runAutomaticRequest(() => {
+          const messageId =
+            messageIndex === -1
+              ? this.lastMessage?.id
+              : messages[messageIndex].id;
 
-            this.makeRequestForToolApproval({
-              messageId,
-              messageIndex,
-              ...options,
-            });
-          }
+          return this.makeRequestForToolApproval({
+            messageId,
+            messageIndex,
+            ...options,
+          });
         });
       }
     });
@@ -688,15 +688,13 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
         this.status !== 'submitted' &&
         this.sendAutomaticallyWhen
       ) {
-        this.shouldSendAutomatically().then(shouldSend => {
-          if (shouldSend) {
-            // no await to avoid deadlocking
-            this.makeRequest({
-              trigger: 'submit-message',
-              messageId: this.lastMessage?.id,
-              ...options,
-            });
-          }
+        // no await to avoid deadlocking
+        void this.runAutomaticRequest(() => {
+          return this.makeRequest({
+            trigger: 'submit-message',
+            messageId: this.lastMessage?.id,
+            ...options,
+          });
         });
       }
     });
@@ -709,23 +707,30 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
    * the request pipeline to finish.
    */
   stop = async () => {
-    const activeResumeRequest = this.activeResumeRequest;
-    const activeResponse = this.activeResponse;
+    this.activeStopCount++;
+    this.stopGeneration++;
 
-    for (const controller of this.pendingMessagePreparations) {
-      controller.abort();
+    try {
+      const activeResumeRequest = this.activeResumeRequest;
+      const activeResponse = this.activeResponse;
+
+      for (const controller of this.pendingMessagePreparations) {
+        controller.abort();
+      }
+      activeResumeRequest?.abortController.abort();
+      activeResponse?.abortController.abort();
+
+      await Promise.all([
+        activeResumeRequest?.completionPromise,
+        activeResponse?.completionPromise,
+      ]);
+
+      // Stream cancellation can complete while a processing job is still
+      // blocked in onToolCall. Drain that job and any message update it queued.
+      await this.jobExecutor.waitForIdle();
+    } finally {
+      this.activeStopCount--;
     }
-    activeResumeRequest?.abortController.abort();
-    activeResponse?.abortController.abort();
-
-    await Promise.all([
-      activeResumeRequest?.completionPromise,
-      activeResponse?.completionPromise,
-    ]);
-
-    // Stream cancellation can complete while a processing job is still
-    // blocked in onToolCall. Drain that job and any message update it queued.
-    await this.jobExecutor.waitForIdle();
   };
 
   private async shouldSendAutomatically(): Promise<boolean> {
@@ -741,6 +746,29 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     return result as boolean;
+  }
+
+  private async runAutomaticRequest(
+    request: () => Promise<void>,
+  ): Promise<void> {
+    const stopGeneration = this.stopGeneration;
+    const startedWhileStopping = this.activeStopCount > 0;
+
+    if (!(await this.shouldSendAutomatically())) {
+      return;
+    }
+
+    // A stop invalidates automatic requests that were pending when it started,
+    // including requests queued by callback-driven tool updates.
+    if (
+      startedWhileStopping ||
+      stopGeneration !== this.stopGeneration ||
+      this.activeStopCount > 0
+    ) {
+      return;
+    }
+
+    await request();
   }
 
   private async makeRequestForToolApproval({
@@ -1097,14 +1125,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     }
 
     // automatically send the message if the sendAutomaticallyWhen function returns true
-    if (!isAbort && !isError && (await this.shouldSendAutomatically())) {
-      await this.makeRequest({
-        trigger: 'submit-message',
-        messageId: this.lastMessage?.id,
-        metadata,
-        headers,
-        body,
-      });
+    if (!isAbort && !isError) {
+      await this.runAutomaticRequest(() =>
+        this.makeRequest({
+          trigger: 'submit-message',
+          messageId: this.lastMessage?.id,
+          metadata,
+          headers,
+          body,
+        }),
+      );
     }
   }
 }

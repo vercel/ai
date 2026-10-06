@@ -1287,6 +1287,90 @@ describe('Chat', () => {
     expect(chat.messages).toEqual([]);
   });
 
+  it('should not restart the chat from a tool output queued while stopping', async () => {
+    const callbackStarted = createResolvablePromise<void>();
+    const callbackCanFinish = createResolvablePromise<void>();
+    let sendCount = 0;
+    let secondResponseController:
+      | ReadableStreamDefaultController<UIMessageChunk>
+      | undefined;
+    let chat: TestChat;
+
+    const responseStream = new ReadableStream<UIMessageChunk>({
+      start(controller) {
+        controller.enqueue({ type: 'start' });
+        controller.enqueue({ type: 'start-step' });
+        controller.enqueue({
+          type: 'tool-input-available',
+          toolCallId: 'tool-call-0',
+          toolName: 'test-tool',
+          input: { testArg: 'test-value' },
+        });
+      },
+    });
+
+    chat = new TestChat({
+      id: '123',
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          sendCount++;
+
+          if (sendCount === 1) {
+            return responseStream;
+          }
+
+          return new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              secondResponseController = controller;
+            },
+          });
+        },
+        reconnectToStream: () => {
+          throw new Error('not implemented');
+        },
+      },
+      onToolCall: async () => {
+        callbackStarted.resolve();
+        await callbackCanFinish.promise;
+
+        void chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          output: 'test-output',
+        });
+      },
+      sendAutomaticallyWhen: () => true,
+    });
+
+    const sendPromise = chat.sendMessage({ text: 'Hello, world!' });
+    await callbackStarted.promise;
+
+    const stopPromise = chat.stop();
+    callbackCanFinish.resolve();
+    await stopPromise;
+
+    chat.messages = [];
+
+    secondResponseController?.enqueue({ type: 'start' });
+    secondResponseController?.enqueue({ type: 'start-step' });
+    secondResponseController?.enqueue({ type: 'text-start', id: 'text-1' });
+    secondResponseController?.enqueue({
+      type: 'text-delta',
+      id: 'text-1',
+      delta: 'after stop',
+    });
+    secondResponseController?.close();
+
+    await sendPromise;
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(sendCount).toBe(1);
+    expect((chat as any).activeResponse).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toEqual([]);
+  });
+
   it('should not send a message when stopped during message preparation', async () => {
     const sendMessages = vi.fn(async () => new ReadableStream());
     const chat = new TestChat({
