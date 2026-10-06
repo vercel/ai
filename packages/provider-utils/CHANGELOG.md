@@ -1,5 +1,14 @@
 # @ai-sdk/provider-utils
 
+## 5.0.54
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+  - @ai-sdk/provider@4.0.22
+
 ## 5.0.53
 
 ### Patch Changes

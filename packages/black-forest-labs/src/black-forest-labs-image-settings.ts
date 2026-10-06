@@ -1,4 +1,5 @@
 export type BlackForestLabsImageModelId =
+  | 'flux-3-image'
   | 'flux-kontext-pro'
   | 'flux-kontext-max'
   | 'flux-pro-1.1-ultra'

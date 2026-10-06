@@ -3469,18 +3469,18 @@ const result = await generateSpeech({
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
+Create an experimental decision model with `openai.decisionModel(modelId)`.
 It uses the Responses API with structured output to answer Choice, Score, and
 Boolean questions. Choose a model that supports structured output, such as `gpt-6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: openai.evaluationModel('gpt-6-luna'),
+const { answers } = await experimental_decide({
+  model: openai.decisionModel('gpt-6-luna'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -3506,10 +3506,10 @@ not guaranteed to be calibrated. Apply thresholds in application code, for examp
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Pass Responses options through `providerOptions.openai`. Usage, warnings,
 response information, and provider metadata are preserved. Refusals, truncated
-output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+output, or invalid answers fail the entire call. See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

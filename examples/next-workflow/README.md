@@ -13,6 +13,24 @@ This example demonstrates using the AI SDK's `WorkflowAgent` with the Workflow D
 - **Sandbox E2E Harness**: Visit `/sandbox` to run a deterministic WorkflowAgent sandbox tool execution scenario
 - **Async Video Workflow**: Visit `/async-apis` to find recent repository maintainers and turn their GitHub avatars into short FAL videos while workflow progress streams to the browser
 
+## Non-streaming generation
+
+`workflow/generate-summary.ts` demonstrates durable generation without a writable stream:
+
+```ts
+import { start } from 'workflow/api';
+import { generateSummary } from './workflow/generate-summary';
+
+const run = await start(generateSummary, [modelId, text]);
+const { summary, usage } = await run.returnValue;
+```
+
+Pass a configured AI Gateway model ID as `modelId`. The workflow returns selected serializable result fields. `agent.generate()` defaults to a 20-step limit and rejects model/output failures. Its `timeout` is a model-call deadline that persists across tool suspension; it does not cancel a waiting hook. Use `run.cancel()` to cancel the workflow run. Keep external effects inside durable steps and use idempotency keys when the external service supports them.
+
+### Non-streaming approvals
+
+`workflow/generate-approved-action.ts` demonstrates signed approvals without a writable. Set `WORKFLOW_TOOL_APPROVAL_SECRET` in the runtime environment. Start the workflow with a model ID and conversation; save the returned `responseMessages` alongside the original history. Show the requested tool/input to the user. In a second invocation, pass the saved history plus a tool message containing `{ type: 'tool-approval-response', approvalId, approved }`, using the returned request ID and the user's decision. Keep the original signature and tool input unchanged. The example action returns a record without writing to an external service.
+
 ## Testing `toModelOutput`
 
 `WorkflowAgent` honors a tool's optional `toModelOutput` hook, just like `generateText`, `streamText`, and `ToolLoopAgent`. The hook controls what the model sees for a tool result, independent of what the app/UI receives.

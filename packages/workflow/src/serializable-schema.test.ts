@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import type { JSONSchema7 } from '@ai-sdk/provider';
+import { asSchema, jsonSchema } from '@ai-sdk/provider-utils';
 import { dynamicTool, tool } from 'ai';
-import { jsonSchema } from '@ai-sdk/provider-utils';
+import { describe, expect, it, vi } from 'vitest';
+import { z } from 'zod/v4';
 import {
   serializeToolSet,
   resolveSerializableTools,
@@ -178,6 +180,55 @@ describe('resolveSerializableTools', () => {
 
     expect(tools.getWeather).toBeDefined();
     expect(tools.getWeather.description).toBe('Get weather for a city');
+  });
+
+  it('accepts tool schemas with formats, annotations, unions, and JSON Schema 2020-12 without warnings', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const tools = resolveSerializableTools(
+      serializeToolSet({
+        formatted: tool({
+          inputSchema: z.object({
+            email: z.email(),
+            url: z.url(),
+            id: z.uuid(),
+          }),
+        }),
+        annotated: tool({
+          inputSchema: jsonSchema({
+            type: 'object',
+            properties: {
+              value: {
+                type: ['string', 'number'],
+                example: 'example',
+                'x-order': 1,
+              },
+            },
+          } as JSONSchema7),
+        }),
+        modern: tool({
+          inputSchema: jsonSchema({
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            type: 'object',
+            properties: {
+              creditCard: { type: 'number' },
+              billingAddress: { type: 'string' },
+            },
+            dependentRequired: {
+              creditCard: ['billingAddress'],
+            },
+          } as JSONSchema7),
+        }),
+      }),
+    );
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+
+    const validation = await asSchema(tools.modern.inputSchema).validate?.({
+      creditCard: 1234,
+    });
+    expect(validation).toMatchObject({ success: false });
   });
 
   it('reconstructs provider tools preserving type, id, and args', () => {
