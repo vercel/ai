@@ -18,7 +18,7 @@ export function jsonSchemaToZodObject(input: unknown) {
 
 function toZodShape(schema: JsonSchemaObject): Record<string, z.ZodTypeAny> {
   if (!schema.properties) return {};
-  const required = new Set(schema.required ?? []);
+  const required = new Set(schema.required);
   const shape: Record<string, z.ZodTypeAny> = {};
   for (const [key, propSchema] of Object.entries(schema.properties)) {
     const propType = toZodType(propSchema);

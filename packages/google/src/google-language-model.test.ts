@@ -4,6 +4,10 @@ import {
   type LanguageModelV4Prompt,
 } from '@ai-sdk/provider';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
+import {
+  WORKFLOW_DESERIALIZE,
+  WORKFLOW_SERIALIZE,
+} from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import {
   GoogleLanguageModel,
@@ -78,7 +82,72 @@ const model = provider.chat('gemini-pro');
 const groundingMetadataSchema = getGroundingMetadataSchema();
 const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
+const FILE_SEARCH_GROUNDING_METADATA = {
+  groundingChunks: [
+    {
+      retrievedContext: {
+        title: 'I, Claudius',
+        text: 'A historical novel about the Roman emperor Claudius.',
+        fileSearchStore: 'fileSearchStores/test-store',
+        customMetadata: [
+          { key: 'author', stringValue: 'Robert Graves' },
+          { key: 'year', numericValue: 1934 },
+          {
+            key: 'genres',
+            stringListValue: { values: ['historical fiction', 'novel'] },
+          },
+          { key: 'page', numericValue: 0 },
+          { key: 'description', stringValue: '' },
+          { key: 'tags', stringListValue: { values: [] } },
+        ],
+      },
+    },
+  ],
+};
+
 describe('groundingMetadataSchema', () => {
+  it('preserves custom metadata on retrieved context chunks', () => {
+    expect(
+      groundingMetadataSchema.parse(FILE_SEARCH_GROUNDING_METADATA),
+    ).toEqual(FILE_SEARCH_GROUNDING_METADATA);
+  });
+
+  it.each([
+    { name: 'missing', customMetadata: undefined },
+    { name: 'null', customMetadata: null },
+    { name: 'empty', customMetadata: [] },
+  ])('accepts $name custom metadata', ({ customMetadata }) => {
+    const metadata = {
+      groundingChunks: [{ retrievedContext: { customMetadata } }],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
+  it('accepts nullish custom metadata values', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            customMetadata: [
+              { key: 'missing' },
+              {
+                key: 'null',
+                stringValue: null,
+                numericValue: null,
+                stringListValue: null,
+              },
+              { key: 'missing-list', stringListValue: {} },
+              { key: 'null-list', stringListValue: { values: null } },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
   it('validates complete grounding metadata with web search results', () => {
     const metadata = {
       webSearchQueries: ["What's the weather in Chicago this weekend?"],
@@ -551,6 +620,8 @@ describe('doGenerate', () => {
   const TEST_URL_GEMINI_2_5_FLASH_LITE =
     'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent';
 
+  const TEST_TOOL_RESULT_FILE_URL = 'https://example.com/tool-result-image.jpg';
+
   const server = createTestServer({
     [TEST_URL_GEMINI_PRO]: {},
     [TEST_URL_GEMINI_2_0_PRO]: {},
@@ -564,6 +635,7 @@ describe('doGenerate', () => {
     [TEST_URL_GEMINI_2_5_PRO]: {},
     [TEST_URL_GEMINI_2_5_FLASH_LITE]: {},
     [TEST_URL_GEMINI_2_5_FLASH]: {},
+    [TEST_TOOL_RESULT_FILE_URL]: {},
   });
 
   function prepareJsonFixtureResponse(
@@ -696,6 +768,327 @@ describe('doGenerate', () => {
         name: 'lookup',
         content: { answer: 'known' },
       },
+    });
+  });
+
+  it('should forward supported Vertex tool result URLs as function response file data', async () => {
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    await vertexModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'hero.png activated' },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/renditions/hero.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect((await server.calls[0].requestBodyJson).contents[0]).toEqual({
+      role: 'user',
+      parts: [
+        {
+          functionResponse: {
+            name: 'viewFiles',
+            response: {
+              name: 'viewFiles',
+              content: 'hero.png activated',
+            },
+            parts: [
+              {
+                fileData: {
+                  mimeType: 'image/png',
+                  fileUri: 'gs://example-bucket/renditions/hero.png',
+                },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it.each([
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'application/pdf',
+    'text/plain',
+  ])(
+    'should forward supported Vertex %s tool result URLs as function response file data',
+    async mediaType => {
+      server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+        type: 'json-value',
+        body: {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'done' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+        },
+      };
+
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await vertexModel.doGenerate({
+        prompt: [
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'testCallId',
+                toolName: 'viewFiles',
+                output: {
+                  type: 'content',
+                  value: [
+                    {
+                      type: 'file',
+                      data: {
+                        type: 'url',
+                        url: new URL('gs://example-bucket/result'),
+                      },
+                      mediaType,
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      const requestBody = await server.calls[0].requestBodyJson;
+      expect(requestBody.contents[0].parts[0].functionResponse.parts).toEqual([
+        {
+          fileData: {
+            mimeType: mediaType,
+            fileUri: 'gs://example-bucket/result',
+          },
+        },
+      ]);
+    },
+  );
+
+  it.each([
+    'video/mp4',
+    'image/png-not-supported',
+    'application/pdf-not-supported',
+  ])(
+    'should not forward unsupported Vertex %s tool result URLs',
+    async mediaType => {
+      const vertexModel = new GoogleLanguageModel('gemini-3.7-flash', {
+        provider: 'google.vertex.chat',
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+        headers: { 'x-goog-api-key': 'test-api-key' },
+        generateId: () => 'test-id',
+        downloadToolResultFiles: {
+          maxBytes: 7 * 1024 * 1024,
+          supportsGoogleCloudStorageUrls: true,
+        },
+      });
+
+      await expect(
+        vertexModel.doGenerate({
+          prompt: [
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'testCallId',
+                  toolName: 'viewFiles',
+                  output: {
+                    type: 'content',
+                    value: [
+                      {
+                        type: 'file',
+                        data: {
+                          type: 'url',
+                          url: new URL('gs://example-bucket/result'),
+                        },
+                        mediaType,
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      ).rejects.toThrow('URL scheme must be http, https, or data, got gs:');
+
+      expect(server.calls).toHaveLength(0);
+    },
+  );
+
+  it('should preserve Vertex tool result URL handling across workflow serialization', async () => {
+    server.urls[TEST_TOOL_RESULT_FILE_URL].response = {
+      type: 'binary',
+      headers: { 'content-type': 'image/jpeg' },
+      body: Buffer.from([0xff, 0xd8, 0xff]),
+    };
+    server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
+      type: 'json-value',
+      body: {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'done' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+          },
+        ],
+      },
+    };
+
+    const originalModel = new GoogleLanguageModel('gemini-3.7-flash', {
+      provider: 'google.vertex.chat',
+      baseURL: 'https://generativelanguage.googleapis.com/v1beta',
+      headers: { 'x-goog-api-key': 'test-api-key' },
+      generateId: () => 'test-id',
+      downloadToolResultFiles: {
+        maxBytes: 7 * 1024 * 1024,
+        supportsGoogleCloudStorageUrls: true,
+      },
+    });
+
+    const serialized = GoogleLanguageModel[WORKFLOW_SERIALIZE](originalModel);
+
+    expect(serialized.config.downloadToolResultFiles).toEqual({
+      maxBytes: 7 * 1024 * 1024,
+      supportsGoogleCloudStorageUrls: true,
+    });
+
+    const restoredModel = GoogleLanguageModel[WORKFLOW_DESERIALIZE](
+      serialized as never,
+    );
+
+    await restoredModel.doGenerate({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'testCallId',
+              toolName: 'viewFiles',
+              output: {
+                type: 'content',
+                value: [
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('gs://example-bucket/result.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL(TEST_TOOL_RESULT_FILE_URL),
+                    },
+                    mediaType: 'image/jpeg',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(server.calls.map(call => call.requestUrl)).toEqual([
+      TEST_TOOL_RESULT_FILE_URL,
+      TEST_URL_GEMINI_3_7_FLASH,
+    ]);
+    expect(await server.calls[1].requestBodyJson).toMatchObject({
+      contents: [
+        {
+          parts: [
+            {
+              functionResponse: {
+                parts: [
+                  {
+                    fileData: {
+                      mimeType: 'image/png',
+                      fileUri: 'gs://example-bucket/result.png',
+                    },
+                  },
+                  {
+                    inlineData: {
+                      mimeType: 'image/jpeg',
+                      data: '/9j/',
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -2123,7 +2516,7 @@ describe('doGenerate', () => {
       }
     `);
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/google/0.0.0-test`,
+      `ai-sdk-google/0.0.0-test`,
     );
   });
 
@@ -2864,6 +3257,21 @@ describe('doGenerate', () => {
       });
     },
   );
+
+  it('should preserve File Search custom metadata in provider metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
+  });
 
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
@@ -4530,6 +4938,30 @@ describe('doGenerate', () => {
         });
       });
 
+      it('should coerce reasoning "max" to "high" with compatibility warning', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
       it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
         server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
           type: 'json-value',
@@ -5578,6 +6010,21 @@ describe('doStream', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
     });
+  });
+
+  it('should preserve File Search custom metadata in provider metadata on finish', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
   });
 
   it('should expose grounding metadata in provider metadata on finish', async () => {

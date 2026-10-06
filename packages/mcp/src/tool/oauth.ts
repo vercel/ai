@@ -20,6 +20,7 @@ import {
   InvalidClientError,
   InvalidGrantError,
   UnauthorizedClientError,
+  AuthorizationServerMismatchError,
 } from '../error/oauth-error';
 import {
   resourceUrlFromServerUrl,
@@ -29,7 +30,7 @@ import {
 import { LATEST_PROTOCOL_VERSION } from './types';
 import {
   fetchWithValidatedEndpoint,
-  fetchWithValidatedRedirects,
+  fetchUntrustedUrl,
   parseJSON,
   validateDownloadUrl,
   type FetchFunction,
@@ -81,9 +82,15 @@ export interface OAuthClientProvider {
    * If implemented, provides a way for the client to invalidate (e.g. delete) the specified
    * credentials, in the case where the server has indicated that they are no longer valid.
    * This avoids requiring the user to intervene manually.
+   *
+   * For token invalidation, context identifies the token generation being invalidated
+   * when available. Providers sharing storage must atomically compare and delete
+   * that generation so a concurrent refresh's tokens are preserved. Omitting or
+   * ignoring context retains unconditional invalidation.
    */
   invalidateCredentials?(
     scope: 'all' | 'client' | 'tokens' | 'verifier',
+    context?: { tokens: OAuthTokens },
   ): void | Promise<void>;
   get redirectUrl(): string | URL;
   get clientMetadata(): OAuthClientMetadata;
@@ -91,6 +98,16 @@ export interface OAuthClientProvider {
     | OAuthClientInformation
     | undefined
     | Promise<OAuthClientInformation | undefined>;
+  /**
+   * Returns whether the current client information was obtained through
+   * dynamic client registration.
+   *
+   * Return `true` only when the current client information was saved after a
+   * dynamic registration response. When this method is omitted or returns
+   * `false`, the client information is treated as pre-registered and is not
+   * automatically invalidated after client authentication errors.
+   */
+  isClientInformationDynamicallyRegistered?(): boolean | Promise<boolean>;
   saveClientInformation?(
     clientInformation: OAuthClientInformation,
   ): void | Promise<void>;
@@ -344,7 +361,7 @@ function assertAuthorizationServerInformationMatches({
     storedAuthorizationServerInformation.tokenEndpoint !==
       currentAuthorizationServerInformation.tokenEndpoint
   ) {
-    throw new MCPClientOAuthError({
+    throw new AuthorizationServerMismatchError({
       message:
         'OAuth authorization server metadata does not match the metadata that issued the stored credentials',
     });
@@ -439,7 +456,7 @@ async function fetchWithCorsRetry(
   trustedOrigin?: string,
 ): Promise<Response | undefined> {
   try {
-    return await fetchWithValidatedRedirects({
+    return await fetchUntrustedUrl({
       url: url.href,
       fetch: async (input, init) =>
         fetchWithValidatedEndpoint({
@@ -456,6 +473,7 @@ async function fetchWithCorsRetry(
         }),
       headers,
       trustedOrigin,
+      untrustedFirstHopHeaders: ['mcp-protocol-version'],
     });
   } catch (error) {
     if (error instanceof TypeError) {
@@ -727,8 +745,6 @@ export async function discoverAuthorizationServerMetadata(
       return metadata;
     }
   }
-
-  return undefined;
 }
 
 export async function startAuthorization(
@@ -1252,17 +1268,28 @@ export async function auth(
     fetchFn?: FetchFunction;
   },
 ): Promise<AuthResult> {
+  const refreshAttempt: { tokens?: OAuthTokens } = {};
   try {
-    return await authInternal(provider, options);
+    return await authInternal(provider, options, refreshAttempt);
   } catch (error) {
     if (
       error instanceof InvalidClientError ||
       error instanceof UnauthorizedClientError
     ) {
+      if (
+        options.authorizationCode !== undefined ||
+        !(await provider.isClientInformationDynamicallyRegistered?.())
+      ) {
+        throw error;
+      }
+
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
-    } else if (error instanceof InvalidGrantError) {
-      await provider.invalidateCredentials?.('tokens');
+    } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Only invalidate the tokens used by a failed refresh.
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: refreshAttempt.tokens,
+      });
       return await authInternal(provider, options);
     }
 
@@ -1320,6 +1347,7 @@ async function authInternal(
     resourceMetadataUrl?: URL;
     fetchFn?: FetchFunction;
   },
+  refreshAttempt?: { tokens?: OAuthTokens },
 ): Promise<AuthResult> {
   let resourceMetadata: OAuthProtectedResourceMetadata | undefined;
   let authorizationServerUrl: string | URL | undefined;
@@ -1538,11 +1566,16 @@ async function authInternal(
         currentAuthorizationServerInformation,
       });
     } else {
-      await provider.invalidateCredentials?.('tokens');
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: { ...tokens },
+      });
     }
 
     try {
       if (storedAuthorizationServerInformation) {
+        if (refreshAttempt) {
+          refreshAttempt.tokens = { ...tokens };
+        }
         // Attempt to refresh the token
         const newTokens = await refreshAuthorization(authorizationServerUrl, {
           metadata,

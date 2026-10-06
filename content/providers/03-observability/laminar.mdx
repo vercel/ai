@@ -93,7 +93,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'What is Laminar flow?',
 });
 ```
@@ -204,7 +204,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: 'What is Laminar flow?',
 });
 ```
@@ -252,14 +252,16 @@ The two libraries allow for additional advanced configuration, but the default s
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  laminarOptions: {
-    projectApiKey: process.env.LMNR_PROJECT_API_KEY,
-    baseUrl: "http://localhost",
-    httpPort: 8000,
-    grpcPort: 8001,
-  },
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    laminarOptions: {
+      projectApiKey: process.env.LMNR_PROJECT_API_KEY,
+      baseUrl: 'http://localhost',
+      httpPort: 8000,
+      grpcPort: 8001,
+    },
+  }),
+);
 ```
 
 ### Do not record inputs or outputs
@@ -270,10 +272,12 @@ By default, Laminar integration records all inputs and outputs, but you can disa
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  recordInputs: false, // default true
-  recordOutputs: false, // default true
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    recordInputs: false, // default true
+    recordOutputs: false, // default true
+  }),
+);
 ```
 
 ### Adding a span for every agent step
@@ -285,9 +289,11 @@ configure this in the constructor options.
 import { registerTelemetry } from 'ai';
 import { LaminarAiSdkTelemetry } from '@lmnr-ai/lmnr';
 
-registerTelemetry(new LaminarAiSdkTelemetry({
-  createStepSpan: true, // default false
-})));
+registerTelemetry(
+  new LaminarAiSdkTelemetry({
+    createStepSpan: true, // default false
+  }),
+);
 ```
 
 ### Span name
@@ -296,7 +302,7 @@ If you want to override the default span name, you can set the `functionId` insi
 
 ```javascript
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: `Write a poem about Laminar flow.`,
   telemetry: {
     functionId: 'poem-writer',
@@ -329,7 +335,7 @@ const result = await observe(
   { name: 'poem writer' },
   async (topic: string, mood: string) => {
     const { text } = await generateText({
-      model: openai('gpt-5.4-mini'),
+      model: openai('gpt-6-luna'),
       prompt: `Write a poem about ${topic} in ${mood} mood.`,
     });
     return text;
@@ -345,7 +351,7 @@ In Laminar, metadata is set on the trace level. Metadata contains key-value pair
 
 ```javascript
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: `Write a poem about Laminar flow.`,
   telemetry: {
     metadata: {
@@ -366,7 +372,7 @@ Tags can subsequently be used to filter traces in Laminar.
 
 ```javascript
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: `Write a poem about Laminar flow.`,
   telemetry: {
     metadata: {
@@ -383,7 +389,7 @@ reserved metadata keys.
 
 ```javascript
 const { text } = await generateText({
-  model: openai('gpt-5.4-mini'),
+  model: openai('gpt-6-luna'),
   prompt: `Write a poem about Laminar flow.`,
   telemetry: {
     metadata: {

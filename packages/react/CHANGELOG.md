@@ -1,5 +1,280 @@
 # @ai-sdk/react
 
+## 4.0.131
+
+### Patch Changes
+
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [bba3927]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [9384b92]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+- Updated dependencies [575383e]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/mcp@2.0.67
+
+## 4.0.130
+
+### Patch Changes
+
+- 8f05086: fix(react): prevent streamed chat updates from starving navigation transitions
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [3ff0f54]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+  - @ai-sdk/mcp@2.0.66
+
+## 4.0.129
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 4.0.128
+
+### Patch Changes
+
+- Updated dependencies [ff3dcef]
+- Updated dependencies [4d0500e]
+  - ai@7.0.125
+  - @ai-sdk/mcp@2.0.65
+
+## 4.0.127
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/mcp@2.0.64
+
+## 4.0.126
+
+### Patch Changes
+
+- 193d284: fix(react): deduplicate automatic stream resumption for shared Chat instances
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/mcp@2.0.63
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.125
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+
+## 4.0.124
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [c2511c1]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/mcp@2.0.62
+
+## 4.0.123
+
+### Patch Changes
+
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
+## 4.0.122
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [e3605f6]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+  - @ai-sdk/mcp@2.0.61
+
+## 4.0.121
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 4.0.120
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 4.0.119
+
+### Patch Changes
+
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+  - @ai-sdk/provider-utils@5.0.49
+  - @ai-sdk/mcp@2.0.60
+
+## 4.0.118
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+- Updated dependencies [be877ff]
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/mcp@2.0.59
+  - ai@7.0.115
+
+## 4.0.117
+
+### Patch Changes
+
+- Updated dependencies [b5679a7]
+- Updated dependencies [1ffd453]
+- Updated dependencies [ca31b89]
+  - ai@7.0.114
+  - @ai-sdk/mcp@2.0.58
+
+## 4.0.116
+
+### Patch Changes
+
+- Updated dependencies [dcdb011]
+- Updated dependencies [8f72832]
+- Updated dependencies [fe07867]
+- Updated dependencies [b74c0cb]
+- Updated dependencies [a4b0940]
+- Updated dependencies [2693319]
+- Updated dependencies [c93ee90]
+- Updated dependencies [771e74b]
+  - ai@7.0.113
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/mcp@2.0.57
+
+## 4.0.115
+
+### Patch Changes
+
+- Updated dependencies [9a98fd9]
+- Updated dependencies [a0553d6]
+- Updated dependencies [ffb0e76]
+- Updated dependencies [fde0d66]
+  - ai@7.0.112
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/mcp@2.0.56
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.114
+
+### Patch Changes
+
+- Updated dependencies [31d24ce]
+- Updated dependencies [a65bfd9]
+  - ai@7.0.111
+
+## 4.0.113
+
+### Patch Changes
+
+- ai@7.0.110
+
+## 4.0.112
+
+### Patch Changes
+
+- 7976437: fix(react): prevent stale throttled completion updates from overwriting a newer request
+- 0343bb1: fix(ai): keep replacement completion requests loading and cancellable when an earlier request settles
+- Updated dependencies [0343bb1]
+- Updated dependencies [2b105fa]
+- Updated dependencies [125f493]
+  - ai@7.0.109
+
+## 4.0.111
+
+### Patch Changes
+
+- Updated dependencies [7fc2bc1]
+- Updated dependencies [3f6852a]
+- Updated dependencies [6317504]
+- Updated dependencies [3cb2dcd]
+- Updated dependencies [ccf98e7]
+  - @ai-sdk/mcp@2.0.55
+  - ai@7.0.108
+
+## 4.0.110
+
+### Patch Changes
+
+- 00da674: fix(react): preserve Headers instances in useCompletion requests
+- e43032f: fix(react): handle rejected asynchronous useObject onFinish callbacks
+- f42a247: fix(react): keep useObject cleared when an initial value is configured
+- 21d4b7d: fix(react): preserve active useObject cancellation state during overlapping requests
+- Updated dependencies [79681c4]
+- Updated dependencies [98c7275]
+- Updated dependencies [2973485]
+- Updated dependencies [a105059]
+- Updated dependencies [31532f3]
+- Updated dependencies [e61cbd8]
+- Updated dependencies [8ade040]
+- Updated dependencies [970a01e]
+- Updated dependencies [85539c5]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+- Updated dependencies [611d301]
+- Updated dependencies [c415657]
+  - ai@7.0.107
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/mcp@2.0.54
+
+## 4.0.109
+
+### Patch Changes
+
+- Updated dependencies [4775577]
+- Updated dependencies [6696728]
+- Updated dependencies [09516a1]
+- Updated dependencies [1aef01e]
+- Updated dependencies [9c1ea74]
+- Updated dependencies [107343a]
+- Updated dependencies [03c3e33]
+- Updated dependencies [4b5cb49]
+- Updated dependencies [5d42ebd]
+- Updated dependencies [4a67783]
+- Updated dependencies [1058ed5]
+- Updated dependencies [84f5d1b]
+- Updated dependencies [2d53a5d]
+- Updated dependencies [2a5ed55]
+- Updated dependencies [0455398]
+  - ai@7.0.106
+  - @ai-sdk/mcp@2.0.53
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.108
 
 ### Patch Changes

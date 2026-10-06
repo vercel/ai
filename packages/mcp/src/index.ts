@@ -41,6 +41,11 @@ export type {
   ClientCapabilities as MCPClientCapabilities,
 } from './tool/types';
 export { auth, UnauthorizedError } from './tool/oauth';
+export {
+  MCPClientOAuthError,
+  AuthorizationServerMismatchError,
+} from './error/oauth-error';
+export { MCPClientError } from './error/mcp-client-error';
 export type {
   OAuthAuthorizationServerInformation,
   OAuthClientProvider,

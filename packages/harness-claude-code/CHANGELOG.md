@@ -1,5 +1,218 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.143
+
+### Patch Changes
+
+- a470e0d: Fix over-reported `finish` metadata cost when Claude Code returns multiple results. `harnessMetadata['claude-code'].costUsd` now uses the latest cumulative `total_cost_usd` instead of adding running totals together, including costs carried forward by resumed sessions.
+- 12d249f: fix(harness-claude-code): fix resumed turns ending with empty text when background-task notification result gets emitted before the host prompt is processed
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.138
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 91345da: fix(harness-claude-code): forward subagent and task activity as raw stream parts
+
+  Expose `agentProgressSummaries` and `forwardSubagentText` through `createClaudeCode`.
+
+- 0116f28: fix(harness-claude-code): forward tool progress and response boundaries as raw parts
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 1.0.137
+
+### Patch Changes
+
+- b2049fa: fix(harness): expose `resolveSandboxCredentialEnvironment()` helper in favor of `createSandboxCredentialEnvironment()` and use it across bridge backed adapters
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.136
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.135
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+  - @ai-sdk/harness@1.0.131
+
+## 1.0.134
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.133
+
+### Patch Changes
+
+- 34c989a: chore(harness-claude-code): update bundled Claude Code CLI to 2.1.281 and Claude Agent SDK to 0.3.281, adding support for Claude Opus 5.5
+- Updated dependencies [e3605f6]
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.130
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/harness@1.0.126
+  - @ai-sdk/provider-utils@5.0.49
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - @ai-sdk/harness@1.0.125
+
+## 1.0.128
+
+### Patch Changes
+
+- Updated dependencies [40231b6]
+  - @ai-sdk/harness@1.0.124
+
+## 1.0.127
+
+### Patch Changes
+
+- 9c8c0c1: feat (harness): keep harness-generated state out of the sandbox workspace. The framework and every bridge adapter now resolve their generated state — bootstrap recipes and their dependencies (`.harness-bootstrap/…`) and per-session run state (`.agent-runs/…`) — through the new `harnessV1StateDirectory()` helper, which always resolves to a fixed directory (`~/.ai-sdk-harness`) under the sandbox's own HOME, never the sandbox's working directory. This is not configurable: every sandbox provider gets the same layout, so harness infrastructure never lands in a user-owned workspace. This changes the on-disk layout for every provider (a breaking change, acceptable given the experimental nature of this API) — sandboxes bootstrapped under the previous layout re-bootstrap once under the new path.
+- 771e74b: chore: enable dead code lint rules
+- 7115a3f: fix(harness): preserve buffered SandboxChannel event order without blocking selective listeners and forward Claude Code compaction events
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [9c8c0c1]
+- Updated dependencies [771e74b]
+- Updated dependencies [7115a3f]
+  - @ai-sdk/provider-utils@5.0.47
+  - @ai-sdk/harness@1.0.123
+
+## 1.0.126
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.122
+- @ai-sdk/provider-utils@5.0.46
+
+## 1.0.125
+
+### Patch Changes
+
+- 3ea56bc: fix(harness): make bridge asset resolution compatible with Turbopack (and thus Next.js 16)
+- Updated dependencies [3ea56bc]
+  - @ai-sdk/harness@1.0.121
+
+## 1.0.124
+
+### Patch Changes
+
+- 7d81368: fix(harness-claude-code): avoid unnecessary warning about `canUseTool()` in combination with `bypassPermissions` flag
+  - @ai-sdk/harness@1.0.120
+
+## 1.0.123
+
+### Patch Changes
+
+- 2adbb77: feat(harness): update underlying harness SDKs to their latest versions
+- Updated dependencies [125f493]
+  - @ai-sdk/harness@1.0.119
+
+## 1.0.122
+
+### Patch Changes
+
+- d975097: feat(harness): add `AbortSignal` to `SandboxChannel.connect`, plus a `sleep()` helper function
+- 44f860b: fix(harness-claude-code): preserve open-object tool parameters
+- e3ff272: fix(harness-claude-code): ignore non-array user messages when converting tool results
+- c0e5d1d: feat(harness): allow consumers of bridge backed harnesses to configure `reconnect` timeout
+- Updated dependencies [d975097]
+- Updated dependencies [b2baeba]
+  - @ai-sdk/harness@1.0.118
+
+## 1.0.121
+
+### Patch Changes
+
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+  - @ai-sdk/harness@1.0.117
+
+## 1.0.120
+
+### Patch Changes
+
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+  - @ai-sdk/harness@1.0.116
+
 ## 1.0.119
 
 ### Patch Changes

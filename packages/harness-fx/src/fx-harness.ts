@@ -9,6 +9,7 @@ import {
 import {
   createCredentialRequestTransformation,
   isHarnessAuthenticationEnvironment,
+  type SandboxChannelReconnectOptions,
 } from '@ai-sdk/harness/utils';
 import { createACP, type ACPAuthenticationMode } from '@ai-sdk/harness-acp';
 import { tool } from '@ai-sdk/provider-utils';
@@ -21,7 +22,7 @@ import {
   resolveFxSubscriptionEnvironment,
 } from './fx-subscription';
 
-const FX_CLIENT_APP = `ai-sdk/harness-fx/${VERSION}`;
+const FX_CLIENT_APP = `ai-sdk-harness-fx/${VERSION}`;
 const DEFAULT_AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh';
 
 export type FxAuthenticationMode = ACPAuthenticationMode;
@@ -69,6 +70,13 @@ export type FxHarnessSettings = {
    * Maximum milliseconds to wait for the ACP bridge to start.
    */
   readonly startupTimeoutMs?: number;
+  /**
+   * Configures reconnection attempts after an established bridge connection
+   * drops. The reconnect window includes connection establishment and
+   * backoff delays. Defaults to 30 seconds with exponential backoff from 50
+   * milliseconds up to 2 seconds.
+   */
+  readonly reconnect?: SandboxChannelReconnectOptions;
   /**
    * MCP server definitions keyed by server name. Each definition uses fx's
    * native ACP MCP server configuration format.
@@ -231,6 +239,48 @@ const terminalRequestSchema = z.looseObject({
   close_policy: z.enum(['graceful', 'force']).nullable().optional(),
 });
 
+const shellExecutableSchema = z.looseObject({
+  kind: z.literal('executable'),
+  path: z.string(),
+  clean_start: z.boolean().nullish(),
+});
+
+const shellRunWithProfileSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  profile: z.enum(['clean', 'user']).nullish(),
+  tty: z.boolean().nullish(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellRunWithExecutableSchema = z.looseObject({
+  action: z.literal('run'),
+  command: z.string(),
+  cwd: z.string().nullish(),
+  shell: shellExecutableSchema,
+  tty: z.boolean(),
+  yield_time_ms: z.number().int().nonnegative().nullish(),
+  timeout_ms: z.number().int().positive().nullish(),
+});
+
+const shellInputSchema = z.union([
+  shellRunWithProfileSchema,
+  shellRunWithExecutableSchema,
+  z.looseObject({
+    action: z.literal('interact'),
+    session_id: z.string(),
+    chars: z.string().nullish(),
+    yield_time_ms: z.number().int().nonnegative().nullish(),
+  }),
+  z.looseObject({
+    action: z.literal('stop'),
+    session_id: z.string(),
+    force: z.boolean().nullish(),
+  }),
+]);
+
 const subagentNotificationsSchema = z.looseObject({
   terminal: z
     .looseObject({
@@ -374,6 +424,10 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'bash',
   },
+  shell: {
+    ...tool({ inputSchema: shellInputSchema }),
+    toolUseKind: 'bash',
+  },
   skill: {
     ...tool({
       inputSchema: z.looseObject({
@@ -483,6 +537,15 @@ const FX_BUILTIN_TOOLS = {
     }),
     toolUseKind: 'readonly',
   },
+  capability_search: {
+    ...tool({
+      inputSchema: z.looseObject({
+        query: z.string().min(1),
+        server: z.string().min(1).optional(),
+      }),
+    }),
+    toolUseKind: 'readonly',
+  },
   mcp_select_tool: {
     ...tool({ inputSchema: z.looseObject({ name: z.string() }) }),
     toolUseKind: 'readonly',
@@ -573,6 +636,7 @@ export function createFx(
     port: settings.port,
     portEndpoint: settings.portEndpoint,
     startupTimeoutMs: settings.startupTimeoutMs,
+    reconnect: settings.reconnect,
     mcpServers: settings.mcpServers,
     isMcpToolCall: toolCall =>
       mcpToolTitlePrefixes.some(prefix => toolCall.title.startsWith(prefix)),

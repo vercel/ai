@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-3.5-turbo'),
+    model: openai('gpt-6-luna'),
     onChunk({ chunk }) {
       console.log('onChunk', chunk);
     },

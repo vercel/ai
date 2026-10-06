@@ -41,7 +41,7 @@ async function main() {
       approvals = [];
 
       const result = await generateText({
-        model: openai('gpt-4o-mini'),
+        model: openai('gpt-6-luna'),
         tools,
         toolApproval: ({ toolCall }) => {
           const annotations = (

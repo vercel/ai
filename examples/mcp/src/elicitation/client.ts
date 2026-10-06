@@ -57,7 +57,7 @@ async function getInputFromUser(
         properties: Record<string, any>;
         required?: string[];
       };
-      const requiredFields = new Set(objectSchema.required ?? []);
+      const requiredFields = new Set(objectSchema.required);
 
       for (const [key, propertySchema] of Object.entries(
         objectSchema.properties,
@@ -149,7 +149,7 @@ async function main() {
     }
 
     const { text: response } = await generateText({
-      model: openai('gpt-4o-mini'),
+      model: openai('gpt-6-luna'),
       tools,
       stopWhen: isStepCount(10),
       onStepFinish: async ({ toolResults }) => {

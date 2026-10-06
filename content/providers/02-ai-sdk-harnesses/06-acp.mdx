@@ -31,18 +31,19 @@ pass it to `HarnessAgent`:
 
 ```ts
 import { HarnessAgent } from '@ai-sdk/harness/agent';
-import { createVercelSandbox } from '@ai-sdk/sandbox-vercel';
+import { createVercelNetworkSandboxSession } from '@ai-sdk/sandbox-vercel';
 import { codexACPHarness } from './codex-acp-harness';
 
 const agent = new HarnessAgent({
   harness: codexACPHarness,
-  sandbox: createVercelSandbox({
-    runtime: 'node24',
-    ports: [4000],
-  }),
 });
 
-const session = await agent.createSession();
+const sandboxSession = await createVercelNetworkSandboxSession({
+  runtime: 'node24',
+  ports: [4000],
+  template: await agent.getSandboxTemplate(),
+});
+const session = await agent.createSession({ sandboxSession });
 try {
   const result = await agent.generate({
     session,
@@ -51,6 +52,7 @@ try {
   console.log(result.text);
 } finally {
   await session.destroy();
+  await sandboxSession.destroy();
 }
 ```
 
@@ -135,12 +137,19 @@ try {
   creation and restoration.
 - `port`: exposed bridge port override.
 - `startupTimeoutMs`: bridge startup timeout. The default is 120 seconds.
+- `reconnect`: reconnect timing after an established bridge WebSocket
+  connection drops. `maxElapsedMs` controls the total retry window, including
+  connection establishment and backoff delays, and defaults to 30 seconds.
+  `initialDelayMs` defaults to 50 milliseconds, and `maxDelayMs` defaults to
+  2 seconds. These retries use exponential backoff and are separate from
+  `startupTimeoutMs`. They cannot recover when the sandbox, bridge process, or
+  bridge endpoint is permanently unavailable.
 - `mintBridgeToken`: synchronous function that receives the sandbox id and
   returns the bridge authentication token. By default, the adapter generates a
   random 32-byte token. Custom implementations must return a suitably secret
   token.
 - `clientApp`: optional client attribution with `name` and `version`. It
-  defaults to the installed `ai-sdk/harness-acp/<version>` identity and is
+  defaults to the installed `ai-sdk-harness-acp/<version>` identity and is
   available to Gateway environment placeholders.
 
 Runtime-specific package names, environment variables, modes, and session
@@ -305,9 +314,10 @@ Every ACP harness requires a network sandbox with at least one exposed port,
 e.g. `@ai-sdk/sandbox-vercel`:
 
 ```ts
-const sandbox = createVercelSandbox({
+const sandboxSession = await createVercelNetworkSandboxSession({
   runtime: 'node24',
   ports: [4000],
+  template: await agent.getSandboxTemplate(),
 });
 ```
 
@@ -538,7 +548,7 @@ modes enable Codex's internal sandbox, which must not run inside the sandbox
 already provided to `HarnessAgent`.
 
 The `client-app` placeholder resolves to the versioned
-`ai-sdk/harness-acp/<version>` identifier and sends it as both `User-Agent` and
+`ai-sdk-harness-acp/<version>` identifier and sends it as both `User-Agent` and
 `x-client-app`.
 Without Gateway credentials, this profile uses direct `CODEX_API_KEY` or
 `OPENAI_API_KEY` authentication. Gateway `env` values are added to the

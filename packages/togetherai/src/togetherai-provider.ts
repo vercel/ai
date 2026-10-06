@@ -136,7 +136,7 @@ export function createTogetherAI(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/togetherai/${VERSION}`,
+      `ai-sdk-togetherai/${VERSION}`,
     );
 
   interface CommonModelConfig {

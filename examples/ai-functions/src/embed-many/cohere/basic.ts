@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const { embeddings, usage, warnings } = await embedMany({
-    model: cohere.embedding('embed-multilingual-v3.0'),
+    model: cohere.embedding('embed-v4.0'),
     values: [
       'sunny day at the beach',
       'rainy afternoon in the city',

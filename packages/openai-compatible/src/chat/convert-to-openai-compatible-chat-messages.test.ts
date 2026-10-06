@@ -699,6 +699,96 @@ describe('tool calls', () => {
       },
     ]);
   });
+
+  it('should stringify multi-part tool content by default', () => {
+    const value = [
+      { type: 'text' as const, text: 'image result' },
+      {
+        type: 'file' as const,
+        data: { type: 'data' as const, data: 'iVBORw0KGgo=' },
+        mediaType: 'image/png',
+      },
+    ];
+
+    const result = convertToOpenAICompatibleChatMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'call-1',
+            toolName: 'useImage',
+            output: { type: 'content', value },
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: JSON.stringify(value),
+      },
+    ]);
+  });
+
+  it('should convert multi-part tool content when supported', () => {
+    const result = convertToOpenAICompatibleChatMessages(
+      [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'call-1',
+              toolName: 'useImage',
+              output: {
+                type: 'content',
+                value: [
+                  { type: 'text', text: 'image result' },
+                  {
+                    type: 'file',
+                    data: { type: 'data', data: 'iVBORw0KGgo=' },
+                    mediaType: 'image/png',
+                  },
+                  {
+                    type: 'file',
+                    data: {
+                      type: 'url',
+                      url: new URL('https://example.com/image.png'),
+                    },
+                    mediaType: 'image/png',
+                  },
+                ],
+              },
+            },
+          ],
+        },
+      ],
+      { supportsMultiPartToolContent: true },
+    );
+
+    expect(result).toEqual([
+      {
+        role: 'tool',
+        tool_call_id: 'call-1',
+        content: [
+          { type: 'text', text: 'image result' },
+          {
+            type: 'image_url',
+            image_url: {
+              url: 'data:image/png;base64,iVBORw0KGgo=',
+            },
+          },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://example.com/image.png' },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('provider-specific metadata merging', () => {

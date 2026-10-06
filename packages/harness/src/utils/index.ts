@@ -1,5 +1,6 @@
 export {
   SandboxChannel,
+  type SandboxChannelConnectOptions,
   type SandboxChannelDebugEvent,
   type SandboxChannelOptions,
   type SandboxChannelReconnectOptions,
@@ -27,7 +28,7 @@ export {
 export { isLinux, isMacOS, isWindows } from './os';
 export {
   applyCredentialForwarding,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
 } from './credential-forwarding';
 export {
   createCredentialRequestTransformation,
@@ -69,3 +70,4 @@ export {
 } from './bridge-diagnostics';
 export { resolveSandboxDefaultWorkingDirectory } from './resolve-sandbox-default-working-directory';
 export { getRestrictedSandboxSession } from './get-restricted-sandbox-session';
+export { sleep } from './sleep';

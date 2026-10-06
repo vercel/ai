@@ -21,9 +21,18 @@ export async function timeSliceStep(
 
   const { clineHarnessAgent } =
     await import('@/agent/harness/cline/basic-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: clineHarnessAgent,
+    sessionId: state.sessionId,
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentTimeSlice({
     agent: clineHarnessAgent,
     state,
+    sandboxSession,
     timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

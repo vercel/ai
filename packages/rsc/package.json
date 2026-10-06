@@ -1,15 +1,14 @@
 {
   "name": "@ai-sdk/rsc",
-  "version": "3.0.105",
+  "version": "3.0.128",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
   "main": "./dist/rsc-client.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsup --tsconfig tsconfig.build.json",
+    "build": "tsdown",
     "build:watch": "pnpm build --watch",
-    "clean": "del-cli dist",
     "type-check": "tsc --noEmit",
     "test:watch": "vitest --config vitest.config.js",
     "test": "pnpm test:node && pnpm test:ui && pnpm test:e2e:ci && pnpm test:edge",
@@ -63,8 +62,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-server-dom-webpack": "18.3.0-canary-eb33bd747-20240312",
-    "tsup": "^7.2.0",
-    "typescript": "5.8.3",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

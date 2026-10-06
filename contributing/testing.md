@@ -8,6 +8,13 @@ Ideally you should cover 3 cases for changes or new features:
 - `streamText` test (command line)
 - UI test with message and follow up message after the assistant response (to ensure that the results are correctly send back to the LLM)
 
+# Consumer Bundle Testing
+
+Run `pnpm test:bundlers` to build and execute a production Next.js consumer of
+packed SDK packages with Zod 3 and Zod 4. See
+[the consumer bundle test guide](../tools/bundler-tests/README.md) for setup,
+coverage, and the limitations of the historical Zod regression reproduction.
+
 # Unit Testing
 
 ## Providers

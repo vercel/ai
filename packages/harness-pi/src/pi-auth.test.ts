@@ -9,6 +9,7 @@ import {
   registerPiProviders,
   resolvePiEnv,
   type PiAuthenticationMode,
+  type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 
@@ -266,6 +267,35 @@ describe('resolvePiSubscriptionAgentDir', () => {
 });
 
 describe('createPiModelRuntime', () => {
+  it('forwards application-owned credential storage to Pi', async () => {
+    const credentials = {
+      read: vi.fn(),
+      list: vi.fn(),
+      modify: vi.fn(),
+      delete: vi.fn(),
+    } as unknown as PiCredentialStore;
+    const create = vi
+      .spyOn(ModelRuntime, 'create')
+      .mockResolvedValueOnce({} as ModelRuntime);
+
+    try {
+      await createPiModelRuntime({
+        auth: 'auto',
+        credentials,
+        authPath: '/unused/auth.json',
+        modelsPath: '/app/models.json',
+      });
+
+      expect(create).toHaveBeenCalledWith({
+        credentials,
+        modelsPath: '/app/models.json',
+        allowModelNetwork: false,
+      });
+    } finally {
+      create.mockRestore();
+    }
+  });
+
   it('does not use ambient credentials for an empty authentication environment override', async () => {
     clearAmbientProviderCredentials();
     vi.stubEnv('OPENAI_API_KEY', 'ambient-openai-key');
@@ -396,8 +426,8 @@ describe('registerPiProviders', () => {
         authHeader: true,
         headers: {
           'x-tenant': 'acme',
-          'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-          'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+          'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+          'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
         },
       },
     );
@@ -434,8 +464,8 @@ describe('registerPiProviders', () => {
       call => call[0] === 'vercel-ai-gateway',
     );
     expect(gatewayCall?.[1].headers).toEqual({
-      'User-Agent': 'ai-sdk/harness-pi/0.0.0-test',
-      'x-client-app': 'ai-sdk/harness-pi/0.0.0-test',
+      'User-Agent': 'ai-sdk-harness-pi/0.0.0-test',
+      'x-client-app': 'ai-sdk-harness-pi/0.0.0-test',
     });
   });
 

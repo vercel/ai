@@ -655,7 +655,7 @@ function prepareFunctionTool({
     description: tool.description,
     parameters: normalizedInputSchema.schema,
     ...(async != null ? { async } : {}),
-    ...(tool.strict != null ? { strict: tool.strict } : {}),
+    strict: tool.strict ?? false,
     ...(deferLoading != null ? { defer_loading: deferLoading } : {}),
     ...(options?.allowedCallers != null
       ? { allowed_callers: options.allowedCallers }
@@ -686,7 +686,6 @@ function resolveAsyncToolOption({
     feature: `async tool calling for "${toolName}"`,
     details: 'Async tool calling is only supported by GPT-6 and later models.',
   });
-  return undefined;
 }
 
 function mapShellEnvironment(environment: {

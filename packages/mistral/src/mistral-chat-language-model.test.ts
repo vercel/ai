@@ -228,7 +228,7 @@ describe('doGenerate', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 
@@ -502,6 +502,48 @@ describe('doGenerate', () => {
         },
       }
     `);
+  });
+
+  it('should inject JSON schema when structured outputs are disabled', async () => {
+    prepareJsonFixtureResponse('mistral-text');
+
+    const schema = {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string' as const },
+      },
+    };
+
+    const { request } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+      responseFormat: {
+        type: 'json',
+        schema,
+      },
+      providerOptions: {
+        mistral: {
+          structuredOutputs: false,
+        },
+      },
+    });
+
+    expect(request).toMatchObject({
+      body: {
+        messages: [
+          {
+            role: 'system',
+            content:
+              'JSON schema:\n' +
+              JSON.stringify(schema) +
+              '\nYou MUST answer with a JSON object that matches the JSON schema above.',
+          },
+          ...TEST_PROMPT,
+        ],
+        response_format: {
+          type: 'json_object',
+        },
+      },
+    });
   });
 
   it('should pass parallelToolCalls option', async () => {
@@ -921,6 +963,23 @@ describe('doGenerate', () => {
       });
     });
 
+    it('should send reasoning_effort high with a warning for reasoning max', async () => {
+      const result = await model.doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+
+      expect(await server.calls[0].requestBodyJson).toMatchObject({
+        reasoning_effort: 'high',
+      });
+      expect(result.warnings).toContainEqual({
+        type: 'compatibility',
+        feature: 'reasoning',
+        details:
+          'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+      });
+    });
+
     it('should send reasoning_effort none for reasoning none', async () => {
       await model.doGenerate({
         prompt: TEST_PROMPT,
@@ -1137,7 +1196,7 @@ describe('doStream', () => {
       'custom-request-header': 'request-header-value',
     });
     expect(server.calls[0].requestUserAgent).toContain(
-      `ai-sdk/mistral/0.0.0-test`,
+      `ai-sdk-mistral/0.0.0-test`,
     );
   });
 
