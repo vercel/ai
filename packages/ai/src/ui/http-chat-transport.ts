@@ -14,9 +14,18 @@ import type { UIMessage } from './ui-messages';
 function appendPathToUrl(url: string, path: string): string {
   const queryOrFragmentStart = url.search(/[?#]/);
 
-  return queryOrFragmentStart === -1
-    ? `${url}${path}`
-    : `${url.slice(0, queryOrFragmentStart)}${path}${url.slice(queryOrFragmentStart)}`;
+  let pathPart =
+    queryOrFragmentStart === -1 ? url : url.slice(0, queryOrFragmentStart);
+  const suffix =
+    queryOrFragmentStart === -1 ? '' : url.slice(queryOrFragmentStart);
+
+  // Strip trailing slashes so an `api` URL ending in `/` does not produce a
+  // double slash when the reconnect path is appended.
+  while (pathPart.endsWith('/')) {
+    pathPart = pathPart.slice(0, -1);
+  }
+
+  return `${pathPart}${path}${suffix}`;
 }
 
 export type PrepareSendMessagesRequest<UI_MESSAGE extends UIMessage> = (
