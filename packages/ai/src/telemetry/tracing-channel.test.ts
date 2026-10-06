@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { z } from 'zod/v4';
 import { embed } from '../embed/embed';
 import { embedMany } from '../embed/embed-many';
-import { evaluate } from '../evaluate/evaluate';
+import { decide } from '../decide/decide';
 import { generateText } from '../generate-text';
 import { streamText } from '../generate-text/stream-text';
 import { isStepCount } from '../generate-text/stop-condition';
@@ -14,7 +14,7 @@ import { rerank } from '../rerank/rerank';
 import { MockEmbeddingModelV4 } from '../test/mock-embedding-model-v4';
 import { MockLanguageModelV4 } from '../test/mock-language-model-v4';
 import { MockRerankingModelV4 } from '../test/mock-reranking-model-v4';
-import { EvaluationMockModelV4 } from '../test/evaluation-mock-model-v4';
+import { DecisionMockModelV4 } from '../test/decision-mock-model-v4';
 import { createTelemetryDispatcher } from './create-telemetry-dispatcher';
 import {
   AI_SDK_TELEMETRY_TRACING_CHANNEL,
@@ -691,9 +691,9 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
         telemetry,
       });
 
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -715,7 +715,7 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       'embed',
       'embedMany',
       'rerank',
-      'experimental_evaluate',
+      'experimental_decide',
     ] as const) {
       const startMessage = messages.find(message => message.type === type);
       expect(startMessage?.event).toEqual(
@@ -830,11 +830,11 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
     `);
   });
 
-  it('traces the current evaluate lifecycle sequence', async () => {
+  it('traces the current decide lifecycle sequence', async () => {
     const sequence = await collectTracingChannelEventSequence(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -850,8 +850,8 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
 
     expect(sequence).toMatchInlineSnapshot(`
       [
-        "bindStart experimental_evaluate",
-        "asyncEnd experimental_evaluate",
+        "bindStart experimental_decide",
+        "asyncEnd experimental_decide",
       ]
     `);
   });
@@ -863,11 +863,11 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       name: 'an explicitly excluded field',
       telemetry: { includeRuntimeContext: { secret: false } },
     },
-  ])('excludes evaluate runtime context with $name', async ({ telemetry }) => {
+  ])('excludes decide runtime context with $name', async ({ telemetry }) => {
     const messages = await collectTracingChannelStartMessages(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -883,20 +883,20 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       });
     });
 
-    const evaluateMessage = messages.find(
-      message => message.type === 'experimental_evaluate',
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
     );
 
     expect(
-      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({});
   });
 
-  it('includes only allowlisted evaluate runtime context in tracing', async () => {
+  it('includes only allowlisted decide runtime context in tracing', async () => {
     const messages = await collectTracingChannelStartMessages(async () => {
-      await evaluate({
-        model: new EvaluationMockModelV4({
-          doEvaluate: async () => ({
+      await decide({
+        model: new DecisionMockModelV4({
+          doDecide: async () => ({
             answers: {
               refund: { type: 'boolean', probability: 0.9 },
             },
@@ -912,12 +912,12 @@ describe.runIf(isNodeRuntime())('telemetry tracing channel publisher', () => {
       });
     });
 
-    const evaluateMessage = messages.find(
-      message => message.type === 'experimental_evaluate',
+    const decideMessage = messages.find(
+      message => message.type === 'experimental_decide',
     );
 
     expect(
-      (evaluateMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
+      (decideMessage?.event as { runtimeContext?: unknown })?.runtimeContext,
     ).toEqual({ requestId: 'request-1' });
   });
 

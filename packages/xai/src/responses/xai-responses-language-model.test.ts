@@ -1067,6 +1067,31 @@ describe('XaiResponsesLanguageModel', () => {
           expect(requestBody.reasoning.effort).toBe('xhigh');
         });
 
+        it('should coerce top-level reasoning max to reasoning effort "xhigh" for grok-4.6', async () => {
+          prepareJsonResponse({
+            id: 'resp_123',
+            object: 'response',
+            status: 'completed',
+            model: 'grok-4.6',
+            output: [],
+            usage: { input_tokens: 10, output_tokens: 5 },
+          });
+
+          const result = await createModel('grok-4.6').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'max',
+          });
+
+          const requestBody = await server.calls[0].requestBodyJson;
+          expect(requestBody.reasoning.effort).toBe('xhigh');
+          expect(result.warnings).toContainEqual({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details:
+              'reasoning "max" is not directly supported by this model. mapped to effort "xhigh".',
+          });
+        });
+
         it('should prefer providerOptions reasoningEffort over top-level reasoning', async () => {
           prepareJsonResponse({
             id: 'resp_123',

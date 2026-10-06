@@ -2890,6 +2890,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 modelId: value.message.model ?? undefined,
               });
 
+              controller.enqueue({
+                type: 'custom',
+                kind: 'anthropic.message_start',
+                providerMetadata: {
+                  anthropic: {
+                    id: value.message.id ?? null,
+                    model: value.message.model ?? null,
+                    usage: rawUsage,
+                  },
+                },
+              });
+
               // Programmatic tool calling: process pre-populated content blocks
               // (for deferred tool calls, content may be in message_start)
               if (value.message.content != null) {
@@ -3468,6 +3480,7 @@ function resolveAnthropicReasoningConfig({
         medium: 'medium' as const,
         high: 'high' as const,
         xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        max: 'max' as const,
       },
       warnings,
     });

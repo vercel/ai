@@ -845,6 +845,7 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
+                betas.add('server-side-fallback-2026-06-01');
                 anthropicContent.push({
                   type: 'fallback',
                   from: fallbackMetadata.value.from,
