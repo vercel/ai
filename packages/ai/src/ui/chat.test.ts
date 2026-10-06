@@ -833,7 +833,8 @@ describe('Chat', () => {
     });
   });
 
-  it('should continue an active text part when resuming after a disconnect', async () => {
+  it('should preserve resumable state for a Load failed disconnect', async () => {
+    const onFinish = vi.fn();
     const chat = new TestChat({
       id: '123',
       generateId: mockId(),
@@ -852,7 +853,7 @@ describe('Chat', () => {
               if (index < chunks.length) {
                 controller.enqueue(chunks[index++]);
               } else {
-                controller.error(new TypeError('network connection lost'));
+                controller.error(new TypeError('Load failed'));
               }
             },
           });
@@ -872,10 +873,18 @@ describe('Chat', () => {
             },
           }),
       },
+      onFinish,
     });
 
     await chat.sendMessage({ text: 'Continue the response.' });
 
+    expect(onFinish).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        isDisconnect: true,
+        isError: true,
+      }),
+    );
     expect(chat.status).toBe('error');
     expect(chat.messages.at(-1)?.parts).toEqual([
       { type: 'step-start' },

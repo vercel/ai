@@ -1019,7 +1019,8 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       if (
         err instanceof TypeError &&
         (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
+          err.message.toLowerCase().includes('network') ||
+          err.message.toLowerCase() === 'load failed')
       ) {
         isDisconnect = true;
       }
