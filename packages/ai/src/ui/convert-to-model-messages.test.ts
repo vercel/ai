@@ -522,6 +522,7 @@ describe('convertToModelMessages', () => {
       `);
     });
 
+<<<<<<< HEAD
     it('should propagate provider metadata to tool-result (client-executed)', () => {
       const result = convertToModelMessages([
         {
@@ -538,10 +539,39 @@ describe('convertToModelMessages', () => {
                 testProvider: {
                   executionTime: 100,
                 },
+=======
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: ({ output }) => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+
+      const history: UIMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+>>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
               },
             },
           ],
         },
+<<<<<<< HEAD
       ]);
 
       expect(result).toMatchInlineSnapshot(`
@@ -726,6 +756,77 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
+=======
+      ];
+
+      const before = await convertToModelMessages(
+        await validateUIMessages({
+          messages: history,
+          tools: { search: historicalTool },
+        }),
+        { tools: { search: historicalTool } },
+      );
+
+      const validatedWithoutTool = await validateUIMessages({
+        messages: history,
+        tools: {},
+      });
+
+      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+        type: 'dynamic-tool',
+        dynamic: false,
+      });
+
+      const reloadedMessages = [
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        structuredClone(validatedWithoutTool),
+      ];
+
+      for (const messages of reloadedMessages) {
+        const revalidatedMessages = await validateUIMessages({
+          messages,
+          tools: {},
+        });
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, { tools: {} }),
+        ).resolves.toEqual([
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                input: { query: 'weather' },
+                providerExecuted: undefined,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'call-1',
+                toolName: 'search',
+                output: {
+                  type: 'text',
+                  value:
+                    'Tool output omitted because the tool is no longer available.',
+                },
+              },
+            ],
+          },
+        ]);
+
+        await expect(
+          convertToModelMessages(revalidatedMessages, {
+            tools: { search: historicalTool },
+          }),
+        ).resolves.toEqual(before);
+      }
+>>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
     });
 
     describe('tool output error', () => {
