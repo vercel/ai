@@ -1,5 +1,29 @@
 # @ai-sdk/black-forest-labs
 
+## 2.0.56
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.55
+
+### Patch Changes
+
+- 612cb53: Add FLUX 3 image generation and editing support with resolution, grounding, and version options. Handle reasoning and generating poll statuses, stop on terminal task failures, and download signed image URLs without API credentials.
+
+  Normalize size-derived aspect ratios to the accepted FLUX 3 values and omit unsupported ratios with a warning. Preserve provider and request headers for image downloads on a custom base URL's origin.
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 2.0.54
 
 ### Patch Changes

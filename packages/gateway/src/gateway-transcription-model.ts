@@ -99,12 +99,28 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
         fetch: this.config.fetch,
       });
 
+      const warnings = [
+        ...(responseBody.warnings ?? []),
+      ] as Array<SharedV4Warning>;
+      if (
+        isXaiTranscriptionModel(this.modelId) &&
+        requestsXaiDiarization(providerOptions) &&
+        !containsSpeaker(rawValue)
+      ) {
+        warnings.push({
+          type: 'unsupported',
+          feature: 'providerOptions.xai.diarize',
+          details:
+            'AI Gateway does not currently expose xAI speaker diarization metadata.',
+        });
+      }
+
       return {
         text: responseBody.text,
         segments: responseBody.segments ?? [],
         language: responseBody.language ?? undefined,
         durationInSeconds: responseBody.durationInSeconds ?? undefined,
-        warnings: (responseBody.warnings ?? []) as Array<SharedV4Warning>,
+        warnings,
         ...(responseBody.usage != null && { usage: responseBody.usage }),
         providerMetadata:
           responseBody.providerMetadata as SharedV4ProviderMetadata,
@@ -175,6 +191,37 @@ export class GatewayTranscriptionModel implements TranscriptionModelV4 {
       'ai-model-id': this.modelId,
     };
   }
+}
+
+function isXaiTranscriptionModel(modelId: string): boolean {
+  return modelId.startsWith('spacexai/') || modelId.startsWith('xai/');
+}
+
+function requestsXaiDiarization(
+  providerOptions:
+    | Parameters<TranscriptionModelV4['doGenerate']>[0]['providerOptions']
+    | undefined,
+): boolean {
+  return (
+    providerOptions?.xai?.diarize === true ||
+    providerOptions?.spacexai?.diarize === true
+  );
+}
+
+function containsSpeaker(value: unknown): boolean {
+  if (Array.isArray(value)) {
+    return value.some(containsSpeaker);
+  }
+
+  if (value == null || typeof value !== 'object') {
+    return false;
+  }
+
+  return Object.entries(value).some(
+    ([key, nestedValue]) =>
+      (key === 'speaker' && nestedValue != null) ||
+      containsSpeaker(nestedValue),
+  );
 }
 
 /**

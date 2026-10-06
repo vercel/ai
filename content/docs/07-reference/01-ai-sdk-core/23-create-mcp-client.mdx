@@ -368,11 +368,24 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
                 'Tool definitions, typically returned by `listTools`.',
             },
             {
-              name: 'schemas',
-              type: 'TOOL_SCHEMAS',
+              name: 'options',
+              type: '{ schemas?: TOOL_SCHEMAS }',
               isOptional: true,
-              description:
-                'Optional schema definitions for compile-time type checking and typed outputs.',
+              description: 'Options for converting the tool definitions.',
+              properties: [
+                {
+                  type: 'options',
+                  parameters: [
+                    {
+                      name: 'schemas',
+                      type: 'TOOL_SCHEMAS',
+                      isOptional: true,
+                      description:
+                        'Optional schema definitions for compile-time type checking and typed outputs.',
+                    },
+                  ],
+                },
+              ],
             },
           ],
         },

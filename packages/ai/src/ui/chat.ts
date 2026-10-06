@@ -323,7 +323,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     status: ChatStatus;
     error?: Error;
   }) {
-    if (this.status === status) return;
+    if (this.status === status) {
+      if (this.error !== error) {
+        this.state.error = error;
+      }
+      return;
+    }
 
     this.state.status = status;
     this.state.error = error;
@@ -1047,13 +1052,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       isError = true;
 
-      // Network errors such as disconnected, timeout, etc.
-      if (
-        err instanceof TypeError &&
-        (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
-      ) {
-        isDisconnect = true;
+      if (err instanceof TypeError) {
+        const message = err.message.toLowerCase();
+
+        isDisconnect =
+          // Chromium request failures; Node.js fetch failures.
+          message.includes('fetch') ||
+          // Firefox request failures; Chromium response-body failures.
+          message.includes('network') ||
+          // Safari/WebKit request and response-body failures.
+          message === 'load failed';
       }
 
       if (isDisconnect) {

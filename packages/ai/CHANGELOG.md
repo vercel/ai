@@ -1,5 +1,58 @@
 # ai
 
+## 7.0.129
+
+### Patch Changes
+
+- e37d213: feat(ai): emit deprecation warnings with stable codes and deduplicate them
+- 73d8343: fix(ai): preserve V2 provider-reported total tokens in raw usage
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- d83366e: fix(ai): publish the latest error after repeated failed stream resume attempts
+- 34905a2: fix(ai): preserve provider options from approval-only tool messages
+- 16ab882: fix(ai): recognize WebKit network errors
+- f810ea3: fix(ai): prevent unavailable tools from exposing persisted output to models
+- 19a127b: fix(ai): avoid duplicate slashes in chat reconnect URLs
+- 0af2f7c: chore: upgrade to TypeScript 6
+- 4c6979c: fix(harness): preserve adapter warnings in agent stream results and declare
+  their compatibility warning shapes
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [753f2e1]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [ad64697]
+- Updated dependencies [0c82824]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/gateway@4.0.105
+  - @ai-sdk/provider@4.0.23
+
+## 7.0.128
+
+### Patch Changes
+
+- 0fe8c67: fix: preserve tool approval state when resuming streams
+- 2959d35: feat: rename `evaluate` to `decide`
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- d6b42fd: feat(ai): support custom reasoning delimiters in extractReasoningMiddleware
+- ed6e72d: fix(ai): return successful empty transcripts for silent audio
+- 2136151: Throw `InvalidResponseDataError` instead of a generic `Error` when a generated audio file's format cannot be determined from its media type, so callers can identify the failure with `AISDKError.isInstance`.
+- Updated dependencies [131532b]
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+- Updated dependencies [6ac923a]
+  - @ai-sdk/gateway@4.0.104
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 7.0.127
 
 ### Patch Changes
