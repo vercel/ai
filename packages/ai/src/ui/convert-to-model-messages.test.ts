@@ -729,110 +729,113 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-    it('should omit persisted output when a static tool is no longer available', async () => {
-      const historicalTool = tool({
-        inputSchema: z.object({ query: z.string() }),
-        outputSchema: z.object({
-          summary: z.string(),
-          privateMetadata: z.string(),
-        }),
-        toModelOutput: output => ({
-          type: 'text',
-          value: output.summary,
-        }),
-      });
-      type SearchMessage = UIMessage<
-        never,
-        never,
-        { search: InferUITool<typeof historicalTool> }
-      >;
-
-      const history: SearchMessage[] = [
-        {
-          id: 'assistant-1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-search',
-              toolCallId: 'call-1',
-              state: 'output-available',
-              input: { query: 'weather' },
-              output: {
-                summary: 'sunny',
-                privateMetadata: 'must-not-reach-the-model',
-              },
-            },
-          ],
-        },
-      ];
-
-      const before = convertToModelMessages(
-        await validateUIMessages<SearchMessage>({
-          messages: history,
-          tools: { search: historicalTool },
-        }),
-        { tools: { search: historicalTool } },
-      );
-
-      const validatedWithoutTool = await validateUIMessages<SearchMessage>({
-        messages: history,
-        tools: {},
-      });
-
-      expect(validatedWithoutTool[0].parts[0]).toMatchObject({
-        type: 'dynamic-tool',
-        dynamic: false,
-      });
-
-      const reloadedMessages = [
-        JSON.parse(JSON.stringify(validatedWithoutTool)) as SearchMessage[],
-        structuredClone(validatedWithoutTool),
-      ];
-
-      for (const messages of reloadedMessages) {
-        const revalidatedMessages = await validateUIMessages<SearchMessage>({
-          messages,
-          tools: {},
+    it.each(['search', 'toString', 'constructor', '__proto__'])(
+      'should omit persisted output when static tool %s is no longer available',
+      async toolName => {
+        const historicalTool = tool({
+          inputSchema: z.object({ query: z.string() }),
+          outputSchema: z.object({
+            summary: z.string(),
+            privateMetadata: z.string(),
+          }),
+          toModelOutput: output => ({
+            type: 'text',
+            value: output.summary,
+          }),
         });
+        type ToolMessage = UIMessage<
+          never,
+          never,
+          Record<string, InferUITool<typeof historicalTool>>
+        >;
 
-        expect(
-          convertToModelMessages(revalidatedMessages, { tools: {} }),
-        ).toEqual([
+        const history: ToolMessage[] = [
           {
+            id: 'assistant-1',
             role: 'assistant',
-            content: [
+            parts: [
               {
-                type: 'tool-call',
+                type: `tool-${toolName}`,
                 toolCallId: 'call-1',
-                toolName: 'search',
+                state: 'output-available',
                 input: { query: 'weather' },
-              },
-            ],
-          },
-          {
-            role: 'tool',
-            content: [
-              {
-                type: 'tool-result',
-                toolCallId: 'call-1',
-                toolName: 'search',
                 output: {
-                  type: 'text',
-                  value:
-                    'Tool output omitted because the tool is no longer available.',
+                  summary: 'sunny',
+                  privateMetadata: 'must-not-reach-the-model',
                 },
               },
             ],
           },
-        ]);
+        ];
 
-        expect(
-          convertToModelMessages(revalidatedMessages, {
-            tools: { search: historicalTool },
+        const before = convertToModelMessages(
+          await validateUIMessages<ToolMessage>({
+            messages: history,
+            tools: { [toolName]: historicalTool },
           }),
-        ).toEqual(before);
-      }
-    });
+          { tools: { [toolName]: historicalTool } },
+        );
+
+        const validatedWithoutTool = await validateUIMessages<ToolMessage>({
+          messages: history,
+          tools: {},
+        });
+
+        expect(validatedWithoutTool[0].parts[0]).toMatchObject({
+          type: 'dynamic-tool',
+          dynamic: false,
+        });
+
+        const reloadedMessages = [
+          JSON.parse(JSON.stringify(validatedWithoutTool)) as ToolMessage[],
+          structuredClone(validatedWithoutTool),
+        ];
+
+        for (const messages of reloadedMessages) {
+          const revalidatedMessages = await validateUIMessages<ToolMessage>({
+            messages,
+            tools: {},
+          });
+
+          expect(
+            convertToModelMessages(revalidatedMessages, { tools: {} }),
+          ).toEqual([
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'call-1',
+                  toolName,
+                  input: { query: 'weather' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolCallId: 'call-1',
+                  toolName,
+                  output: {
+                    type: 'text',
+                    value:
+                      'Tool output omitted because the tool is no longer available.',
+                  },
+                },
+              ],
+            },
+          ]);
+
+          expect(
+            convertToModelMessages(revalidatedMessages, {
+              tools: { [toolName]: historicalTool },
+            }),
+          ).toEqual(before);
+        }
+      },
+    );
 
     describe('tool output error', () => {
       it('should handle assistant message with tool output error that has raw input', () => {
