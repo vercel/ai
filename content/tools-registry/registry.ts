@@ -689,4 +689,38 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'getyoutubetranscript',
+    name: 'GetYouTubeTranscript',
+    description:
+      'Get the transcript of any YouTube video, optionally with [m:ss] timestamps per caption line, plus YouTube search and channel video listings. Transcripts are fetched server-side, so it works on Vercel and other serverless platforms without proxies.',
+    packageName: '@tubeagentkit/ai-sdk',
+    tags: ['youtube', 'transcripts', 'video', 'search'],
+    apiKeyEnvName: 'GETYOUTUBETRANSCRIPT_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @tubeagentkit/ai-sdk',
+      npm: 'npm install @tubeagentkit/ai-sdk',
+      yarn: 'yarn add @tubeagentkit/ai-sdk',
+      bun: 'bun add @tubeagentkit/ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { youtubeTranscript } from '@tubeagentkit/ai-sdk';
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Summarize https://youtu.be/jNQXAC9IVRw with a timestamp for each key point.',
+  tools: {
+    youtubeTranscript: youtubeTranscript(),
+  },
+  stopWhen: isStepCount(3),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/tubeagentkit/ai-sdk-getyoutubetranscript#readme',
+    apiKeyUrl: 'https://getyoutubetranscript.com/dashboard',
+    websiteUrl: 'https://getyoutubetranscript.com',
+    npmUrl: 'https://www.npmjs.com/package/@tubeagentkit/ai-sdk',
+  },
 ];
