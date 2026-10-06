@@ -1099,7 +1099,9 @@ export async function generateText<
               > = {};
               const blockedToolCallIds = new Set<string>();
 
-              const generatedFileDataCache = new WeakMap();
+              const generatedFileDataCache: Parameters<
+                typeof convertLanguageModelContent
+              >[0]['generatedFileDataCache'] = new WeakMap();
               const modelCallContent = await convertLanguageModelContent({
                 content: currentModelResponse.content,
                 toolCalls: stepToolCalls,
