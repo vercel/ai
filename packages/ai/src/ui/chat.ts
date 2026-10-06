@@ -315,7 +315,12 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     status: ChatStatus;
     error?: Error;
   }) {
-    if (this.status === status) return;
+    if (this.status === status) {
+      if (this.error !== error) {
+        this.state.error = error;
+      }
+      return;
+    }
 
     this.state.status = status;
     this.state.error = error;
@@ -609,7 +614,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
     });
 
   addToolOutput: ChatAddToolOutputFunction<UI_MESSAGE> = async ({
-    state = 'output-available',
+    state,
     toolCallId,
     output,
     errorText,
@@ -621,10 +626,41 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       const updatePart = (
         part: UIMessagePart<UIDataTypes, UITools>,
-      ): UIMessagePart<UIDataTypes, UITools> =>
-        isToolUIPart(part) && part.toolCallId === toolCallId
-          ? ({ ...part, state, output, errorText } as typeof part)
-          : part;
+      ): UIMessagePart<UIDataTypes, UITools> => {
+        if (!isToolUIPart(part) || part.toolCallId !== toolCallId) {
+          return part;
+        }
+
+        // Output states can only retain approvals that were granted.
+        const { approval: existingApproval, ...toolPart } = part;
+        const approval =
+          existingApproval?.approved === true
+            ? {
+                approval: {
+                  ...existingApproval,
+                  approved: existingApproval.approved,
+                },
+              }
+            : {};
+
+        return state === 'output-error'
+          ? {
+              ...toolPart,
+              ...approval,
+              state,
+              input: part.input,
+              output: undefined,
+              errorText,
+            }
+          : {
+              ...toolPart,
+              ...approval,
+              state: 'output-available',
+              input: part.input,
+              output,
+              errorText: undefined,
+            };
+      };
 
       // update the message to trigger an immediate UI update
       this.state.replaceMessage(messages.length - 1, {
@@ -818,11 +854,18 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       responseMessageIndex === -1
         ? lastMessage
         : this.state.messages[responseMessageIndex];
+    // the continued stream can start with either
+    // 1) input deltas
+    // 2) or the result of an answered tool approval request
+    // Keep the tool part so in case 2, those chunks can find their tool call
     const resumableResponseMessage =
       trigger === 'resume-stream' &&
       responseMessage?.role === 'assistant' &&
       responseMessage.parts.some(
-        part => isToolUIPart(part) && part.state === 'input-streaming',
+        part =>
+          isToolUIPart(part) &&
+          (part.state === 'input-streaming' ||
+            part.state === 'approval-responded'),
       )
         ? this.state.snapshot(responseMessage)
         : undefined;
@@ -921,6 +964,7 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
       await consumeStream({
         stream: processUIMessageStream({
           stream,
+          resetStateOnMessageIdChange: trigger === 'resume-stream',
           onToolCall: this.onToolCall,
           onData: this.onData,
           messageMetadataSchema: this.messageMetadataSchema,
@@ -971,13 +1015,16 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
       isError = true;
 
-      // Network errors such as disconnected, timeout, etc.
-      if (
-        err instanceof TypeError &&
-        (err.message.toLowerCase().includes('fetch') ||
-          err.message.toLowerCase().includes('network'))
-      ) {
-        isDisconnect = true;
+      if (err instanceof TypeError) {
+        const message = err.message.toLowerCase();
+
+        isDisconnect =
+          // Chromium request failures; Node.js fetch failures.
+          message.includes('fetch') ||
+          // Firefox request failures; Chromium response-body failures.
+          message.includes('network') ||
+          // Safari/WebKit request and response-body failures.
+          message === 'load failed';
       }
 
       if (isDisconnect) {

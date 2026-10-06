@@ -14,7 +14,7 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts"
+    "tsdown.config.ts"
   ],
   "references": [
     {

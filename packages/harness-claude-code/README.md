@@ -78,3 +78,8 @@ const harness = createClaudeCode({
   },
 });
 ```
+
+Sub-agent messages and task/background notifications are surfaced as `raw`
+stream parts. `agentProgressSummaries` adds periodic summaries to raw
+`task_progress` messages, while `forwardSubagentText` includes sub-agent text
+and thinking messages in the raw stream.

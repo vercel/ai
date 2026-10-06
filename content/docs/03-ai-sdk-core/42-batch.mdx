@@ -71,7 +71,7 @@ Responses API, not `openai.chat()`.
 ## Starting a batch
 
 Pass a provider and one or more uniquely identified requests to `startBatch`.
-Each request must specify `type: 'text'`, a model ID, and either a text `prompt`
+Each text request must specify `type: 'text'`, a model ID, and either a text `prompt`
 or a `messages` array. Requests can use different model IDs when supported by
 the provider. Each request can also use the usual text-generation settings such
 as `instructions`, `maxOutputTokens`, `temperature`, `topP`, `topK`,

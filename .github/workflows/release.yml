@@ -77,16 +77,29 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify released PRs and issues
-        if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
+      - name: Create release notification manifest
+        if: inputs.snapshot != true
         run: |
-          cd .github/scripts/notify-released
-          npm install --no-save
-          node index.mjs
+          mkdir -p .release-notification
+          jq -n \
+            --arg publishedPackages "$PUBLISHED_PACKAGES" \
+            --arg pullRequestNumber "$PULL_REQUEST_NUMBER" \
+            '{
+              type: "release",
+              publishedPackages: ($publishedPackages | fromjson? // []),
+              pullRequestNumber: $pullRequestNumber
+            }' > .release-notification/notification.json
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
           PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
+
+      - name: Upload release notification manifest
+        if: inputs.snapshot != true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notification
+          path: .release-notification
+          retention-days: 1
 
       - name: Attach SLSA provenance to GitHub Releases
         if: inputs.snapshot != true && steps.changesets.outputs.published == 'true'
@@ -127,11 +140,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify snapshot release pull request
+      - name: Create snapshot notification manifest
         if: inputs.snapshot == true
         run: |
-          cd .github/scripts/notify-released
-          npm install --no-save
-          node notify-snapshot.mjs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          mkdir -p .release-notification
+          jq -n '{ type: "snapshot" }' > .release-notification/notification.json
+          find packages -mindepth 2 -maxdepth 2 -name package.json -print0 |
+            tar --null -T - -cf - |
+            tar -xf - -C .release-notification
+
+      - name: Upload snapshot notification manifest
+        if: inputs.snapshot == true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notification
+          path: .release-notification
+          retention-days: 1

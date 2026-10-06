@@ -32,14 +32,16 @@ describe('GatewaySpeechModel', () => {
   function prepareJsonResponse({
     audio = 'base64-audio',
     headers,
+    usage,
   }: {
     audio?: string;
     headers?: Record<string, string>;
+    usage?: Record<string, unknown>;
   } = {}) {
     server.urls['https://api.test.com/speech-model'].response = {
       type: 'json-value',
       headers,
-      body: { audio },
+      body: { audio, usage },
     };
   }
 
@@ -117,6 +119,7 @@ describe('GatewaySpeechModel', () => {
         body: {
           audio: 'base64-audio',
           warnings: [{ type: 'other', message: 'test warning' }],
+          usage: { characters: 11 },
           providerMetadata: { gateway: { cost: '0.002' } },
         },
       };
@@ -129,6 +132,7 @@ describe('GatewaySpeechModel', () => {
       expect(result.warnings).toStrictEqual([
         { type: 'other', message: 'test warning' },
       ]);
+      expect(result.usage).toStrictEqual({ characters: 11 });
       expect(result.providerMetadata).toStrictEqual({
         gateway: { cost: '0.002' },
       });

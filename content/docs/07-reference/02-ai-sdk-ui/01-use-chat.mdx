@@ -486,6 +486,19 @@ Allows you to easily create a conversational user interface for your chatbot app
   ]}
 />
 
+## React rendering and shared Chat instances
+
+In React, `messages`, `status`, and `error` describe the snapshot for the current render.
+The underlying `Chat` updates as stream chunks are processed. React may batch updates,
+and `throttle` can delay message rendering without delaying stream processing or callbacks.
+Status and error updates include the latest messages, so a completed or failed response
+is rendered with its final message snapshot.
+
+Each `useChat({ chat })` call subscribes independently. Consumers sharing a `Chat`
+can display different message snapshots when they use different throttle intervals.
+A functional `setMessages` updater receives the Chat's latest messages, which may be
+newer than the messages in the current render.
+
 ## Learn more
 
 - [Chatbot](/docs/ai-sdk-ui/chatbot)

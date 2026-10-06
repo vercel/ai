@@ -314,9 +314,9 @@ describe('HarnessAgent telemetry integration', () => {
       'onStart',
       'onStepStart',
       'onLanguageModelCallStart',
-      'onLanguageModelCallEnd',
       'onToolExecutionStart',
       'onToolExecutionEnd',
+      'onLanguageModelCallEnd',
       'onStepFinish',
       'onEnd',
     ]);

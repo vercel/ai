@@ -1,9 +1,11 @@
 import {
+  InvalidArgumentError,
   NoSuchModelError,
   type LanguageModelV4,
   type ProviderV4,
 } from '@ai-sdk/provider';
 import {
+  isValidHostnamePart,
   loadOptionalSetting,
   withoutTrailingSlash,
   type FetchFunction,
@@ -178,10 +180,21 @@ export function createGoogleVertexAnthropic(
   options: GoogleVertexAnthropicProviderSettings = {},
 ): GoogleVertexAnthropicProvider {
   const getBaseURL = () => {
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
+    }
     const location = loadOptionalSetting({
       settingValue: options.location,
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
     });
+    if (location != null && !isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
     const project = loadOptionalSetting({
       settingValue: options.project,
       environmentVariableName: 'GOOGLE_VERTEX_PROJECT',
@@ -197,10 +210,7 @@ export function createGoogleVertexAnthropic(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`
-    );
+    return `https://${getHost()}/v1/projects/${project}/locations/${location}/publishers/anthropic/models`;
   };
 
   const createChatModel = (modelId: GoogleVertexAnthropicModelId) =>

@@ -1980,6 +1980,141 @@ describe('tool messages', () => {
 });
 
 describe('assistant messages', () => {
+  it('should ignore message-start accounting parts when replaying assistant content', async () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.message_start',
+              providerOptions: {
+                anthropic: {
+                  id: 'msg_usage',
+                  model: 'claude-haiku-4-5',
+                  usage: { input_tokens: 13, output_tokens: 1 },
+                },
+              },
+            },
+            { type: 'text', text: 'Hi!' },
+          ],
+        },
+      ],
+      sendReasoning: false,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Hi!', cache_control: undefined }],
+      },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
+  it('should preserve fallback boundaries between reasoning blocks', async () => {
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'reasoning',
+              text: 'Primary model thinking',
+              providerOptions: {
+                anthropic: { signature: 'primary-signature' },
+              },
+            },
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                  to: { model: 'claude-opus-4-8' },
+                },
+              },
+            },
+            {
+              type: 'reasoning',
+              text: 'Fallback model thinking',
+              providerOptions: {
+                anthropic: { signature: 'fallback-signature' },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings: [],
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([
+      {
+        role: 'assistant',
+        content: [
+          {
+            type: 'thinking',
+            thinking: 'Primary model thinking',
+            signature: 'primary-signature',
+          },
+          {
+            type: 'fallback',
+            from: { model: 'claude-opus-5-5' },
+            to: { model: 'claude-opus-4-8' },
+          },
+          {
+            type: 'thinking',
+            thinking: 'Fallback model thinking',
+            signature: 'fallback-signature',
+          },
+        ],
+      },
+    ]);
+    expect(result.betas).toContain('server-side-fallback-2026-06-01');
+  });
+
+  it('should warn and omit fallback boundaries with invalid metadata', async () => {
+    const warnings: SharedV4Warning[] = [];
+
+    const result = await convertToAnthropicPrompt({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'custom',
+              kind: 'anthropic.fallback',
+              providerOptions: {
+                anthropic: {
+                  type: 'fallback',
+                  from: { model: 'claude-opus-5-5' },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      sendReasoning: true,
+      warnings,
+      toolNameMapping: defaultToolNameMapping,
+    });
+
+    expect(result.prompt.messages).toEqual([]);
+    expect(warnings).toEqual([
+      {
+        type: 'other',
+        message:
+          'anthropic fallback metadata must include from.model and to.model',
+      },
+    ]);
+  });
+
   it('should omit empty compaction blocks', async () => {
     const result = await convertToAnthropicPrompt({
       prompt: [
@@ -5696,6 +5831,7 @@ describe('toolsets', () => {
               "cache_control": undefined,
               "id": "toolu_click",
               "input": {
+                "action": "left_click",
                 "coordinate": [
                   640,
                   60,
@@ -5764,7 +5900,7 @@ describe('toolsets', () => {
         id: 'toolu_screenshot',
         name: 'screenshot',
         toolset_name: 'computer',
-        input: {},
+        input: { action: 'screenshot' },
         cache_control: undefined,
       },
     ]);
@@ -5780,34 +5916,84 @@ describe('toolsets', () => {
     ]);
   });
 
-  it('should warn and skip toolset tool calls without an action', async () => {
-    const warnings: SharedV4Warning[] = [];
-    const result = await convertToAnthropicPrompt({
-      prompt: [
+  it.each([
+    { input: { coordinate: [1, 2] }, toolName: 'computer' },
+    { input: { action: null, coordinate: [1, 2] }, toolName: 'computer' },
+    { input: 'invalid JSON', toolName: 'computer' },
+    { input: { action: null }, toolName: 'desktop' },
+  ])(
+    'should retain malformed toolset calls and their existing error results: %j',
+    async ({ input, toolName }) => {
+      const warnings: SharedV4Warning[] = [];
+      const result = await convertToAnthropicPrompt({
+        prompt: [
+          {
+            role: 'assistant',
+            content: [
+              {
+                type: 'tool-call',
+                toolCallId: 'toolu_bad',
+                toolName,
+                input,
+              },
+            ],
+          },
+          {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: 'toolu_bad',
+                toolName,
+                output: {
+                  type: 'error-text',
+                  value: 'Invalid input for tool computer',
+                },
+              },
+            ],
+          },
+        ],
+        sendReasoning: true,
+        warnings,
+        toolNameMapping: toolsetToolNameMapping,
+        toolsetNames: { [toolName]: 'computer' },
+      });
+
+      expect(result.prompt.messages).toEqual([
         {
           role: 'assistant',
           content: [
             {
-              type: 'tool-call',
-              toolCallId: 'toolu_bad',
-              toolName: 'computer',
-              input: { coordinate: [1, 2] },
+              type: 'tool_use',
+              id: 'toolu_bad',
+              name: 'computer',
+              toolset_name: 'computer',
+              input:
+                typeof input === 'string' ? { rawInvalidInput: input } : input,
+              cache_control: undefined,
             },
           ],
         },
-      ],
-      sendReasoning: true,
-      warnings,
-      toolNameMapping: toolsetToolNameMapping,
-      toolsetNames: { computer: 'computer' },
-    });
-
-    expect(result.prompt.messages).toEqual([]);
-    expect(warnings).toEqual([
-      {
-        type: 'other',
-        message: 'toolset tool call for tool computer is missing the action',
-      },
-    ]);
-  });
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_bad',
+              toolset_name: 'computer',
+              content: 'Invalid input for tool computer',
+              is_error: true,
+              cache_control: undefined,
+            },
+          ],
+        },
+      ]);
+      expect(warnings).toEqual([
+        {
+          type: 'other',
+          message: `toolset tool call for tool ${toolName} is missing the action`,
+        },
+      ]);
+    },
+  );
 });
