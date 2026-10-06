@@ -128,6 +128,7 @@ export class StreamingToolCallTracker<
       typeof wireName === 'string' && wireName.trim().length === 0;
     const wireId = this.getNonBlankString(toolCallDelta.id);
     const name = this.getNonBlankString(wireName);
+    const argumentsDelta = toolCallDelta.function?.arguments;
     const { index } = toolCallDelta;
 
     const resolution = this.resolveToolCall({
@@ -136,7 +137,10 @@ export class StreamingToolCallTracker<
       name,
       hasExplicitCallStart:
         name != null &&
-        startsWithStructuredValue(toolCallDelta.function?.arguments),
+        (startsWithStructuredValue(argumentsDelta) ||
+          (wireId != null &&
+            !this.toolCallsById.has(wireId) &&
+            (argumentsDelta == null || argumentsDelta.trim().length === 0))),
     });
 
     if (resolution.kind === 'ambiguous') {
@@ -198,7 +202,7 @@ export class StreamingToolCallTracker<
    * | --- | --- | --- | --- |
    * | known | matching | any | matching call, new call, or ambiguity |
    * | known | conflicting | named | new call |
-   * | unseen | matching | structured start | new call |
+   * | unseen | matching | explicit start | new call |
    * | unseen | matching | continuation | matching call or ambiguity |
    * | absent | matching | any | matching call, new call, or ambiguity |
    * | absent | absent | named | new call |
@@ -268,10 +272,10 @@ export class StreamingToolCallTracker<
       }
 
       if (matchingIndexedToolCalls.length > 0) {
-        // A previously unseen ID plus a named structured argument start is
-        // stronger evidence of a distinct call than a reused index/name. This
-        // also keeps interleaved same-name calls separate while still allowing
-        // IDs to change on ordinary continuation fragments.
+        // A previously unseen ID plus explicit start evidence is stronger than
+        // a reused index/name. Empty arguments are common on opening deltas,
+        // while non-empty fragments can still be ordinary continuations whose
+        // IDs changed.
         return hasExplicitCallStart
           ? { kind: 'new' }
           : this.resolveMatchingToolCall(matchingIndexedToolCalls, false);
@@ -297,12 +301,7 @@ export class StreamingToolCallTracker<
     const unfinishedToolCalls = this.toolCalls.filter(
       toolCall => !toolCall.hasFinished,
     );
-    if (unfinishedToolCalls.length === 1) {
-      return { kind: 'existing', toolCall: unfinishedToolCalls[0] };
-    }
-    return unfinishedToolCalls.length > 1
-      ? { kind: 'ambiguous' }
-      : { kind: 'new' };
+    return this.resolveMatchingToolCall(unfinishedToolCalls, false);
   }
 
   private filterToolCallsByName(
@@ -326,26 +325,28 @@ export class StreamingToolCallTracker<
       return { kind: 'new' };
     }
 
-    if (!hasExplicitCallStart) {
-      return toolCalls.length === 1
-        ? { kind: 'existing', toolCall: toolCalls[0] }
-        : { kind: 'ambiguous' };
-    }
-
     // A repeated name can occur on continuations. A fresh structured
     // argument prefix is evidence of another call only after the matching call
-    // has completed its own structured argument payload.
+    // has completed its own structured argument payload. When labels are
+    // missing, a sole call without a complete structured payload is the only
+    // viable continuation target.
     const continuableToolCalls = toolCalls.filter(
       toolCall => !toolCall.argumentState.hasCompleteStructuredValue,
     );
+
+    if (!hasExplicitCallStart && toolCalls.length === 1) {
+      return { kind: 'existing', toolCall: toolCalls[0] };
+    }
 
     if (continuableToolCalls.length === 1) {
       return { kind: 'existing', toolCall: continuableToolCalls[0] };
     }
 
-    return continuableToolCalls.length > 1
-      ? { kind: 'ambiguous' }
-      : { kind: 'new' };
+    if (continuableToolCalls.length > 1 || !hasExplicitCallStart) {
+      return { kind: 'ambiguous' };
+    }
+
+    return { kind: 'new' };
   }
 
   private processNewToolCall(
