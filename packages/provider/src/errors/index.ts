@@ -1,7 +1,9 @@
+import { DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
+
 export { AISDKError } from './ai-sdk-error';
 export { APICallError } from './api-call-error';
 export { EmptyResponseBodyError } from './empty-response-body-error';
-export { EvaluationUnsupportedQuestionTypeError as Experimental_EvaluationUnsupportedQuestionTypeError } from './evaluation-unsupported-question-type-error';
+export { DecisionUnsupportedQuestionTypeError as Experimental_DecisionUnsupportedQuestionTypeError } from './decision-unsupported-question-type-error';
 export { getErrorMessage } from './get-error-message';
 export { InvalidArgumentError } from './invalid-argument-error';
 export { InvalidPromptError } from './invalid-prompt-error';
@@ -16,3 +18,10 @@ export { TooManyEmbeddingValuesForCallError } from './too-many-embedding-values-
 export type { TypeValidationContext } from './type-validation-error';
 export { TypeValidationError } from './type-validation-error';
 export { UnsupportedFunctionalityError } from './unsupported-functionality-error';
+
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export const Experimental_EvaluationUnsupportedQuestionTypeError =
+  DecisionUnsupportedQuestionTypeError;
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export type Experimental_EvaluationUnsupportedQuestionTypeError =
+  DecisionUnsupportedQuestionTypeError;

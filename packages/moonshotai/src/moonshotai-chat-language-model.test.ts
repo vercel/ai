@@ -607,6 +607,14 @@ describe('doGenerate', () => {
       expect((await server.calls[1].requestBodyJson).reasoning_effort).toBe(
         'max',
       );
+
+      await provider.chatModel('kimi-k3').doGenerate({
+        prompt: TEST_PROMPT,
+        reasoning: 'max',
+      });
+      expect((await server.calls[2].requestBodyJson).reasoning_effort).toBe(
+        'max',
+      );
     });
 
     it('should prefer explicit reasoningEffort over generic reasoning', async () => {
