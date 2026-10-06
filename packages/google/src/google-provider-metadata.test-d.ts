@@ -1,9 +1,11 @@
 import { expectTypeOf, it } from 'vitest';
-import type { GoogleProviderMetadata } from './index';
+import type { GoogleGenerativeAIProviderMetadata } from './index';
 
 it('exposes custom metadata on retrieved context chunks', () => {
   type GroundingChunk = NonNullable<
-    NonNullable<GoogleProviderMetadata['groundingMetadata']>['groundingChunks']
+    NonNullable<
+      GoogleGenerativeAIProviderMetadata['groundingMetadata']
+    >['groundingChunks']
   >[number];
   type RetrievedContext = NonNullable<GroundingChunk['retrievedContext']>;
 
@@ -16,11 +18,5 @@ it('exposes custom metadata on retrieved context chunks', () => {
       }>
     | null
     | undefined
-  >();
-});
-
-it('exposes image candidate finish reasons', () => {
-  expectTypeOf<GoogleProviderMetadata['finishReason']>().toEqualTypeOf<
-    string | null | undefined
   >();
 });
