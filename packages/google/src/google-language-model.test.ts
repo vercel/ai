@@ -4858,6 +4858,30 @@ describe('doGenerate', () => {
         });
       });
 
+      it('should coerce reasoning "max" to "high" with compatibility warning', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
       it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
         server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
           type: 'json-value',

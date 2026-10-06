@@ -1,5 +1,24 @@
 # @ai-sdk/provider-utils
 
+## 5.0.54
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+  - @ai-sdk/provider@4.0.22
+
+## 5.0.53
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+  - @ai-sdk/provider@4.0.21
+
 ## 5.0.52
 
 ### Patch Changes

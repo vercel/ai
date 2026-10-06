@@ -1,5 +1,25 @@
 # @ai-sdk/elevenlabs
 
+## 3.0.55
+
+### Patch Changes
+
+- 615c491: fix(elevenlabs): preserve default diarization when provider options are supplied
+- 4c19228: fix(elevenlabs): preserve transcription word metadata
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 3.0.53
 
 ### Patch Changes

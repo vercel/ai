@@ -127,7 +127,8 @@ export type LanguageModelV4CallOptions = {
     | 'low'
     | 'medium'
     | 'high'
-    | 'xhigh';
+    | 'xhigh'
+    | 'max';
 
   /**
    * Additional provider-specific options. They are passed through

@@ -1,5 +1,39 @@
 # @ai-sdk/gateway
 
+## 4.0.104
+
+### Patch Changes
+
+- 131532b: chore(provider/gateway): update gateway model settings files
+- 2959d35: feat: rename `evaluate` to `decide`
+- 6ac923a: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.103
+
+### Patch Changes
+
+- d1bb9e8: chore(provider/gateway): update gateway model settings files
+
+## 4.0.102
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- e25994e: fix(gateway): scope `getCredits()` to `teamIdOrSlug`
+
+  The credits endpoint reads the team from the `teamId` / `slug` query parameter rather than the `x-vercel-ai-gateway-team` header. `getCredits()` now forwards the configured team as a query parameter, so credentials that can access multiple teams (such as Vercel access tokens) are no longer rejected with an authentication error.
+
+- e74afc5: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 4.0.101
 
 ### Patch Changes

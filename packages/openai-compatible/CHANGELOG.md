@@ -1,5 +1,29 @@
 # @ai-sdk/openai-compatible
 
+## 3.0.63
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.62
+
+### Patch Changes
+
+- 04be48f: fix(openai-compatible): support multipart tool results for compatible providers
+
+## 3.0.61
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 3.0.60
 
 ### Patch Changes

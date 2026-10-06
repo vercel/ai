@@ -1,5 +1,60 @@
 # ai
 
+## 7.0.128
+
+### Patch Changes
+
+- 0fe8c67: fix: preserve tool approval state when resuming streams
+- 2959d35: feat: rename `evaluate` to `decide`
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- d6b42fd: feat(ai): support custom reasoning delimiters in extractReasoningMiddleware
+- ed6e72d: fix(ai): return successful empty transcripts for silent audio
+- 2136151: Throw `InvalidResponseDataError` instead of a generic `Error` when a generated audio file's format cannot be determined from its media type, so callers can identify the failure with `AISDKError.isInstance`.
+- Updated dependencies [131532b]
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+- Updated dependencies [6ac923a]
+  - @ai-sdk/gateway@4.0.104
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 7.0.127
+
+### Patch Changes
+
+- 158a718: feat(ai): select and rank eligible deferred tools via 'search()' callback in tool search
+- bb8d33e: fix(ai): cancel merged UI message streams when the consumer disconnects
+- 284dc11: fix(ai): accept unchanged tool approval inputs created in another JavaScript realm
+- ba8afe9: feat(ai): add a configurable maxResults for number of tools returned in tool search
+- Updated dependencies [d1bb9e8]
+  - @ai-sdk/gateway@4.0.103
+
+## 7.0.126
+
+### Patch Changes
+
+- 4f3d236: fix: clear tool approvals when `addToolOutput` runs
+
+## 7.0.125
+
+### Patch Changes
+
+- ff3dcef: feat(ai): add `convertDataPart` to agent UI stream helpers
+
+## 7.0.124
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [e25994e]
+- Updated dependencies [527a163]
+- Updated dependencies [e74afc5]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/gateway@4.0.102
+
 ## 7.0.123
 
 ### Patch Changes
