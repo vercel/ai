@@ -48,3 +48,9 @@ test('createPi accepts an injected credential store and reattach opt-out', () =>
   const credentials = {} as PiCredentialStore;
   createPi({ credentials, reattachInProcess: false });
 });
+
+test('createPi accepts MCP adapter settings', () => {
+  createPi({ mcpSettings: { toolPrefix: 'none', outputGuard: false } });
+  // @ts-expect-error
+  createPi({ mcpSettings: { toolPrefix: 'bare' } });
+});
