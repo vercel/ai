@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/azure",
-  "version": "4.0.91",
+  "version": "4.0.92",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -51,8 +51,9 @@
     "@ai-sdk/test-server": "workspace:*",
     "@types/node": "22.19.19",
     "@vercel/ai-tsconfig": "workspace:*",
+    "ai": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

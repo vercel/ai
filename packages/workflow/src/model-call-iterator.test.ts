@@ -263,6 +263,58 @@ describe('modelCallIterator', () => {
     await expect(iterator.next()).resolves.toMatchObject({ done: false });
   });
 
+  it('reports measured stream performance in step results and callbacks', async () => {
+    const modelCallPerformance = {
+      responseTimeMs: 600,
+      effectiveOutputTokensPerSecond: 100 / 3,
+      outputTokensPerSecond: 200 / 3,
+      inputTokensPerSecond: 100 / 3,
+      effectiveTotalTokensPerSecond: 50,
+      timeToFirstOutputMs: 300,
+      timeBetweenOutputChunksMs: {
+        min: 50,
+        p10: 75,
+        median: 100,
+        avg: 125,
+        p90: 175,
+        max: 200,
+      },
+    };
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        rawOverrides: { performance: modelCallPerformance },
+      }),
+    );
+    const onStepEnd = vi.fn();
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      tools: {},
+      model: vi.fn() as any,
+      onStepEnd,
+    });
+
+    const result = await iterator.next();
+    const expectedPerformance = {
+      ...modelCallPerformance,
+      stepTimeMs: modelCallPerformance.responseTimeMs,
+      toolExecutionMs: {},
+    };
+
+    expect(result).toMatchObject({
+      done: false,
+      value: {
+        step: {
+          performance: expectedPerformance,
+        },
+      },
+    });
+    expect(onStepEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        performance: expectedPerformance,
+      }),
+    );
+  });
+
   describe('generation settings', () => {
     it('merges defined prepareStep overrides', async () => {
       vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());

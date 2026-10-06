@@ -9,6 +9,7 @@ import type {
   Experimental_LanguageModelStreamPart,
   FinishReason,
   LanguageModelUsage,
+  StepResultPerformance,
   StopCondition,
   ToolCallRepairFunction,
   ToolChoice,
@@ -99,6 +100,11 @@ export interface ModelCallFinish {
   providerMetadata?: Record<string, unknown>;
 }
 
+export type ModelCallPerformance = Omit<
+  StepResultPerformance,
+  'stepTimeMs' | 'toolExecutionMs'
+>;
+
 export type ModelCallRawContentPart =
   | Extract<
       LanguageModelV4Content,
@@ -175,6 +181,8 @@ export interface ModelCallRawResult {
     request?: { body?: unknown };
     responseTimeMs: number;
   };
+  /** Present on streamed results produced after performance tracking was added. */
+  performance?: ModelCallPerformance;
   warnings?: unknown[];
 }
 
