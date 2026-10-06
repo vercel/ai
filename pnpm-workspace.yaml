@@ -20,6 +20,8 @@ minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - '@vercel/*'
   - 'ai'
+  # Validate the newly published Gradium SDK release in this integration.
+  - '@gradium/sdk'
 
 allowBuilds:
   '@google/genai': false
