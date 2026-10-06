@@ -303,6 +303,43 @@ describe('StreamingToolCallTracker', () => {
       },
     );
 
+    it.each([undefined, null, '', ' \n'])(
+      'should retain an incomplete call when its id changes on a named fragment with arguments %j',
+      argumentsDelta => {
+        const { parts, controller } = createCollector();
+        const tracker = new StreamingToolCallTracker(controller);
+
+        tracker.processDelta({
+          index: 0,
+          id: 'call_1',
+          function: { name: 'get_weather', arguments: '{"city":' },
+        });
+        tracker.processDelta({
+          index: 0,
+          id: 'alias',
+          function: { name: 'get_weather', arguments: argumentsDelta },
+        });
+        tracker.processDelta({
+          index: 0,
+          id: 'alias',
+          function: { arguments: '"Berlin"}' },
+        });
+        tracker.flush();
+
+        expect(parts.filter(part => part.type === 'tool-call')).toEqual([
+          {
+            type: 'tool-call',
+            toolCallId: 'call_1',
+            toolName: 'get_weather',
+            input: `{"city":${argumentsDelta ?? ''}"Berlin"}`,
+          },
+        ]);
+        expect(parts.filter(part => part.type === 'tool-input-start')).toEqual([
+          { type: 'tool-input-start', id: 'call_1', toolName: 'get_weather' },
+        ]);
+      },
+    );
+
     it('should use an unlabeled continuation for the only call without complete structured arguments', () => {
       const { parts, controller } = createCollector();
       const tracker = new StreamingToolCallTracker(controller);

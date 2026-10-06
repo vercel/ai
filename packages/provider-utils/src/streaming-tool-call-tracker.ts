@@ -136,11 +136,9 @@ export class StreamingToolCallTracker<
       index,
       name,
       hasExplicitCallStart:
-        name != null &&
-        (startsWithStructuredValue(argumentsDelta) ||
-          (wireId != null &&
-            !this.toolCallsById.has(wireId) &&
-            (argumentsDelta == null || argumentsDelta.trim().length === 0))),
+        name != null && startsWithStructuredValue(argumentsDelta),
+      hasEmptyArguments:
+        argumentsDelta == null || argumentsDelta.trim().length === 0,
     });
 
     if (resolution.kind === 'ambiguous') {
@@ -202,7 +200,8 @@ export class StreamingToolCallTracker<
    * | --- | --- | --- | --- |
    * | known | matching | any | matching call, new call, or ambiguity |
    * | known | conflicting | named | new call |
-   * | unseen | matching | explicit start | new call |
+   * | unseen | matching | structured start | new call |
+   * | unseen | matching | named empty arguments | incomplete call, new call, or ambiguity |
    * | unseen | matching | continuation | matching call or ambiguity |
    * | absent | matching | any | matching call, new call, or ambiguity |
    * | absent | absent | named | new call |
@@ -213,11 +212,13 @@ export class StreamingToolCallTracker<
     index,
     name,
     hasExplicitCallStart,
+    hasEmptyArguments,
   }: {
     wireId: string | undefined;
     index: number | null | undefined;
     name: string | undefined;
     hasExplicitCallStart: boolean;
+    hasEmptyArguments: boolean;
   }): ToolCallResolution {
     const indexedToolCalls =
       index != null ? this.toolCallsByIndex.get(index) : undefined;
@@ -272,13 +273,16 @@ export class StreamingToolCallTracker<
       }
 
       if (matchingIndexedToolCalls.length > 0) {
-        // A previously unseen ID plus explicit start evidence is stronger than
-        // a reused index/name. Empty arguments are common on opening deltas,
-        // while non-empty fragments can still be ordinary continuations whose
-        // IDs changed.
+        // A named structured start with an unseen ID identifies a new call.
+        // Empty arguments can also occur when a continuation changes its ID.
+        // Keep the incomplete matching call in that case, and start a new call
+        // only after the matching structured arguments are complete.
         return hasExplicitCallStart
           ? { kind: 'new' }
-          : this.resolveMatchingToolCall(matchingIndexedToolCalls, false);
+          : this.resolveMatchingToolCall(
+              matchingIndexedToolCalls,
+              name != null && hasEmptyArguments,
+            );
       }
 
       return { kind: 'new' };
