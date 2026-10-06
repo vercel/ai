@@ -8762,6 +8762,86 @@ describe('streamText', () => {
     });
   });
 
+  describe('toolCallConcurrency', () => {
+    it('should execute tool calls sequentially in model order with concurrency 1', async () => {
+      const firstStarted = new DelayedPromise<void>();
+      const secondStarted = new DelayedPromise<void>();
+      const releaseFirst = new DelayedPromise<void>();
+      const events: string[] = [];
+
+      const result = streamText({
+        model: createTestModel({
+          stream: convertArrayToReadableStream([
+            {
+              type: 'tool-call',
+              toolCallId: 'call-1',
+              toolName: 'first',
+              input: '{}',
+            },
+            {
+              type: 'tool-call',
+              toolCallId: 'call-2',
+              toolName: 'second',
+              input: '{}',
+            },
+            {
+              type: 'finish',
+              finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+              usage: testUsage,
+            },
+          ]),
+        }),
+        tools: {
+          first: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              events.push('first:start');
+              firstStarted.resolve();
+              await releaseFirst.promise;
+              events.push('first:end');
+            },
+          }),
+          second: tool({
+            inputSchema: z.object({}),
+            execute: async () => {
+              events.push('second:start');
+              secondStarted.resolve();
+              events.push('second:end');
+            },
+          }),
+        },
+        prompt: 'test-input',
+        toolCallConcurrency: 1,
+      });
+
+      const toolResultsPromise = result.toolResults;
+
+      await firstStarted.promise;
+      expect(events).toEqual(['first:start']);
+      releaseFirst.resolve();
+      await secondStarted.promise;
+      expect(events).toEqual([
+        'first:start',
+        'first:end',
+        'second:start',
+        'second:end',
+      ]);
+      await toolResultsPromise;
+    });
+
+    it('should reject invalid concurrency synchronously', () => {
+      expect(() =>
+        streamText({
+          model: createTestModel(),
+          prompt: 'test-input',
+          toolCallConcurrency: 0,
+        }),
+      ).toThrow(
+        'Invalid argument for parameter toolCallConcurrency: toolCallConcurrency must be >= 1',
+      );
+    });
+  });
+
   describe('result.toolResults', () => {
     it('should resolve with tool results', async () => {
       const result = streamText({

@@ -211,6 +211,120 @@ describe('abort signal handling', () => {
   });
 });
 
+describe('toolCallConcurrency', () => {
+  const model = new MockLanguageModelV4({
+    doGenerate: async () => ({
+      ...dummyResponseValues,
+      finishReason: { unified: 'tool-calls', raw: 'tool-calls' },
+      content: [
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-1',
+          toolName: 'first',
+          input: '{}',
+        },
+        {
+          type: 'tool-call',
+          toolCallType: 'function',
+          toolCallId: 'call-2',
+          toolName: 'second',
+          input: '{}',
+        },
+      ],
+    }),
+  });
+
+  it('should execute tool calls concurrently by default', async () => {
+    const release = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await release.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            await release.promise;
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() =>
+      expect(events).toEqual(['first:start', 'second:start']),
+    );
+    release.resolve();
+    await resultPromise;
+  });
+
+  it('should execute tool calls sequentially in model order with concurrency 1', async () => {
+    const releaseFirst = new DelayedPromise<void>();
+    const events: string[] = [];
+
+    const resultPromise = generateText({
+      model,
+      prompt: 'test-input',
+      toolCallConcurrency: 1,
+      tools: {
+        first: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('first:start');
+            await releaseFirst.promise;
+            events.push('first:end');
+          },
+        }),
+        second: tool({
+          inputSchema: z.object({}),
+          execute: async () => {
+            events.push('second:start');
+            events.push('second:end');
+          },
+        }),
+      },
+    });
+
+    await vi.waitFor(() => expect(events).toEqual(['first:start']));
+    releaseFirst.resolve();
+    await resultPromise;
+
+    expect(events).toEqual([
+      'first:start',
+      'first:end',
+      'second:start',
+      'second:end',
+    ]);
+  });
+
+  it('should reject invalid concurrency before calling the model', async () => {
+    const doGenerate = vi.fn();
+
+    await expect(
+      generateText({
+        model: new MockLanguageModelV4({ doGenerate }),
+        prompt: 'test-input',
+        toolCallConcurrency: 0,
+      }),
+    ).rejects.toMatchObject({
+      parameter: 'toolCallConcurrency',
+      value: 0,
+    });
+    expect(doGenerate).not.toHaveBeenCalled();
+  });
+});
+
 describe('experimental_toolCallers', () => {
   it('late-binds local caller tools and hides local-only callees', async () => {
     let modelTools: LanguageModelV4CallOptions['tools'];
