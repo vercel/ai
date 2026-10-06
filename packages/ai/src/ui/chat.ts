@@ -1057,7 +1057,10 @@ export abstract class AbstractChat<UI_MESSAGE extends UIMessage> {
 
     this.activeRequestPromises.add(requestPromise);
     try {
-      await requestPromise;
+      const result = await requestPromise;
+      if (result === null) {
+        return null;
+      }
     } finally {
       this.activeRequestPromises.delete(requestPromise);
     }
