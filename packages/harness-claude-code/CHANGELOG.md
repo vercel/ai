@@ -1,5 +1,62 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.143
+
+### Patch Changes
+
+- a470e0d: Fix over-reported `finish` metadata cost when Claude Code returns multiple results. `harnessMetadata['claude-code'].costUsd` now uses the latest cumulative `total_cost_usd` instead of adding running totals together, including costs carried forward by resumed sessions.
+- 12d249f: fix(harness-claude-code): fix resumed turns ending with empty text when background-task notification result gets emitted before the host prompt is processed
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.142
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.141
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.140
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [8182916]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.138
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- 91345da: fix(harness-claude-code): forward subagent and task activity as raw stream parts
+
+  Expose `agentProgressSummaries` and `forwardSubagentText` through `createClaudeCode`.
+
+- 0116f28: fix(harness-claude-code): forward tool progress and response boundaries as raw parts
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 1.0.137
 
 ### Patch Changes

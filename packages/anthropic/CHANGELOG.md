@@ -1,5 +1,42 @@
 # @ai-sdk/anthropic
 
+## 4.0.72
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- b5dfea1: feat(anthropic): expose message-start usage through custom stream parts
+- 686cca9: fix(anthropic): add the required beta when replaying server-side fallback blocks
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.71
+
+### Patch Changes
+
+- c35458e: fix(anthropic): preserve invalid toolset calls
+
+## 4.0.70
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.69
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- a587f55: fix(anthropic): preserve server-side fallback boundaries when replaying assistant messages
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
 ## 4.0.68
 
 ### Patch Changes

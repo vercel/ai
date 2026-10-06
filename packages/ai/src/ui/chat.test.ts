@@ -18,6 +18,7 @@ import { DefaultChatTransport } from './default-chat-transport';
 import { lastAssistantMessageIsCompleteWithApprovalResponses } from './last-assistant-message-is-complete-with-approval-responses';
 import { lastAssistantMessageIsCompleteWithToolCalls } from './last-assistant-message-is-complete-with-tool-calls';
 import type { UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 class TestChatState<
   UI_MESSAGE extends UIMessage,
@@ -2134,6 +2135,161 @@ describe('Chat', () => {
     `);
   });
 
+  it('should start a separate resumed message after an answered approval', async () => {
+    const previousMessage: UIMessage = {
+      id: 'assistant-1',
+      role: 'assistant',
+      metadata: { label: 'previous response' },
+      parts: [
+        { type: 'text', text: 'Please approve.' },
+        {
+          type: 'tool-updateProduct',
+          toolCallId: 'call-1',
+          state: 'approval-responded',
+          input: { price: 12 },
+          approval: { id: 'approval-1', approved: true },
+        },
+      ],
+    };
+    const state = new TestChatState<UIMessage>([previousMessage]);
+    state.snapshot = <T>(value: T): T => structuredClone(value);
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      generateId: mockId(),
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () =>
+          new ReadableStream<UIMessageChunk>({
+            start(controller) {
+              controller.enqueue({ type: 'start', messageId: 'assistant-2' });
+              controller.enqueue({ type: 'text-start', id: 'text-1' });
+              controller.enqueue({
+                type: 'text-delta',
+                id: 'text-1',
+                delta: 'Updated.',
+              });
+              controller.enqueue({ type: 'text-end', id: 'text-1' });
+              controller.enqueue({ type: 'finish' });
+              controller.close();
+            },
+          }),
+      },
+    });
+
+    await chat.resumeStream();
+
+    expect(chat.error).toBeUndefined();
+    expect(chat.status).toBe('ready');
+    expect(chat.messages).toHaveLength(2);
+    expect(chat.messages[0]).toEqual(previousMessage);
+    expect(chat.messages[1]).toEqual({
+      id: 'assistant-2',
+      role: 'assistant',
+      metadata: undefined,
+      parts: [
+        expect.objectContaining({
+          type: 'text',
+          state: 'done',
+          text: 'Updated.',
+        }),
+      ],
+    });
+  });
+
+  it.each([undefined, 'assistant-1'])(
+    'should resume an approved tool result in the existing assistant message with start ID %s',
+    async messageId => {
+      const state = new TestChatState<UIMessage>([
+        {
+          id: 'user-1',
+          role: 'user',
+          parts: [{ type: 'text', text: 'Set the price to 12' }],
+        },
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-updateProduct',
+              toolCallId: 'call-1',
+              state: 'approval-requested',
+              input: { price: 12 },
+              approval: { id: 'approval-1' },
+            },
+          ],
+        },
+      ]);
+      state.snapshot = <T>(value: T): T => structuredClone(value);
+
+      const chat = new TestChatWithState({
+        id: '123',
+        state,
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            throw new Error('not implemented');
+          },
+          reconnectToStream: async () =>
+            new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                if (messageId != null) {
+                  controller.enqueue({ type: 'start', messageId });
+                }
+                controller.enqueue({
+                  type: 'tool-output-available',
+                  toolCallId: 'call-1',
+                  output: { price: 12 },
+                });
+                controller.enqueue({ type: 'text-start', id: 'text-1' });
+                controller.enqueue({
+                  type: 'text-delta',
+                  id: 'text-1',
+                  delta: 'Updated.',
+                });
+                controller.enqueue({ type: 'text-end', id: 'text-1' });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            }),
+        },
+      });
+
+      await chat.addToolApprovalResponse({ id: 'approval-1', approved: true });
+      expect(chat.messages[1].parts[0]).toMatchObject({
+        state: 'approval-responded',
+      });
+
+      await chat.resumeStream();
+
+      expect(chat.error).toBeUndefined();
+      expect(chat.status).toBe('ready');
+      expect(chat.messages).toHaveLength(2);
+      expect(chat.messages[1].id).toBe('assistant-1');
+      expect(chat.messages[1].parts).toEqual([
+        expect.objectContaining({
+          type: 'tool-updateProduct',
+          toolCallId: 'call-1',
+          state: 'output-available',
+          input: { price: 12 },
+          output: { price: 12 },
+          approval: expect.objectContaining({
+            id: 'approval-1',
+            approved: true,
+          }),
+        }),
+        expect.objectContaining({
+          type: 'text',
+          state: 'done',
+          text: 'Updated.',
+        }),
+      ]);
+    },
+  );
+
   it('should continue a hydrated partial static tool call across repeated stream interruptions', async () => {
     const state = new TestChatState<UIMessage>([
       {
@@ -3352,6 +3508,123 @@ describe('Chat', () => {
       expect(chat.error).toBeUndefined();
       expect(chat.status).toBe('ready');
     });
+  });
+
+  describe('addToolOutput approval metadata', () => {
+    it.each(['output-available', 'output-error'] as const)(
+      'should keep the active response valid after adding %s while approval is pending',
+      async state => {
+        const controller = new TestResponseController();
+        server.urls['http://localhost:3000/api/chat'].response = {
+          type: 'controlled-stream',
+          controller,
+        };
+        const chat = new TestChat({
+          transport: new DefaultChatTransport({
+            api: 'http://localhost:3000/api/chat',
+          }),
+        });
+        const response = chat.sendMessage({ text: 'Rename note' });
+        controller.write(formatChunk({ type: 'start' }));
+        controller.write(formatChunk({ type: 'start-step' }));
+        controller.write(
+          formatChunk({
+            type: 'tool-input-available',
+            toolName: 'test-tool',
+            toolCallId: 'tool-call-0',
+            input: { testArg: 'test-value' },
+          }),
+        );
+        controller.write(
+          formatChunk({
+            type: 'tool-approval-request',
+            toolCallId: 'tool-call-0',
+            approvalId: 'approval-1',
+          }),
+        );
+        await vi.waitFor(() => {
+          expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({
+            state: 'approval-requested',
+          });
+        });
+
+        await chat.addToolOutput({
+          tool: 'test-tool',
+          toolCallId: 'tool-call-0',
+          ...(state === 'output-error'
+            ? { state, errorText: 'client-side error' }
+            : { output: 'test-output' }),
+        });
+        controller.write(formatChunk({ type: 'finish-step' }));
+        controller.write(formatChunk({ type: 'finish' }));
+        controller.close();
+        await response;
+
+        expect(chat.messages.at(-1)?.parts.at(-1)).toMatchObject({ state });
+        await expect(
+          validateUIMessages({ messages: chat.messages }),
+        ).resolves.toEqual(chat.messages);
+      },
+    );
+
+    for (const dynamic of [false, true]) {
+      for (const state of ['output-available', 'output-error'] as const) {
+        it.each(['pending', 'approved', 'denied'] as const)(
+          `should keep only granted approval metadata for ${dynamic ? 'dynamic' : 'static'} ${state} with %s approval`,
+          async approvalState => {
+            const approval = {
+              id: 'approval-1',
+              descriptor: { label: 'Rename note' },
+              requestReason: 'Requires confirmation',
+              signature: 'signed-approval-envelope',
+            };
+            const part: UIMessage['parts'][number] = {
+              ...(dynamic
+                ? { type: 'dynamic-tool', toolName: 'test-tool' }
+                : { type: 'tool-test-tool' }),
+              toolCallId: 'tool-call-0',
+              input: { testArg: 'test-value' },
+              ...(approvalState === 'pending'
+                ? { state: 'approval-requested', approval }
+                : {
+                    state: 'approval-responded',
+                    approval: {
+                      ...approval,
+                      approved: approvalState === 'approved',
+                      reason: 'User decision',
+                    },
+                  }),
+            };
+            const chat = new TestChat({
+              messages: [{ id: 'message-1', role: 'assistant', parts: [part] }],
+            });
+
+            await chat.addToolOutput({
+              tool: 'test-tool',
+              toolCallId: 'tool-call-0',
+              ...(state === 'output-error'
+                ? { state, errorText: 'client-side error' }
+                : { output: 'test-output' }),
+            });
+
+            expect(chat.messages[0].parts[0]).toEqual({
+              ...part,
+              state,
+              output: state === 'output-available' ? 'test-output' : undefined,
+              errorText:
+                state === 'output-error' ? 'client-side error' : undefined,
+              approval:
+                approvalState === 'approved'
+                  ? { ...approval, approved: true, reason: 'User decision' }
+                  : undefined,
+            });
+            await expect(
+              validateUIMessages({ messages: chat.messages }),
+            ).resolves.toEqual(chat.messages);
+          },
+        );
+      }
+    }
   });
 
   describe('addToolOutput options forwarding', () => {

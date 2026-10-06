@@ -828,11 +828,13 @@ const { traceId, duration, audioTimestamps } = result.providerMetadata.xai;
 ## Transcription Models
 
 You can create models that call the [xAI Speech to Text API](https://docs.x.ai/developers/model-capabilities/audio/speech-to-text)
-using the `.transcription()` factory method. xAI's batch transcription endpoint
-does not require a model identifier.
+using the `.transcription()` factory method. The model identifier is optional:
+pass `grok-voice-transcribe-2.0` to pin a model, or omit it to use xAI's
+default transcription model. `grok-voice-transcribe-1.0` is retired, and
+requests to it are routed to `grok-voice-transcribe-2.0`.
 
 ```ts
-const model = xai.transcription();
+const model = xai.transcription('grok-voice-transcribe-2.0');
 ```
 
 Use xAI transcription models with the `transcribe` function:
@@ -871,9 +873,13 @@ const result = await transcribe({
 });
 ```
 
-- **audioFormat** _`pcm` | `mulaw` | `alaw`_
+- **audioFormat** _`pcm` | `mulaw` | `alaw` | `opus`_
 
-  Audio encoding for raw, headerless input audio.
+  Input audio encoding for raw, headerless audio (`pcm`, `mulaw`, `alaw`).
+  Container formats such as Ogg/Opus are auto-detected, so do not set
+  `audioFormat` for them. `opus` is supported for streaming transcription only:
+  each audio chunk must be exactly one raw Opus packet (not Ogg), and an
+  `audio/opus` input audio type maps to `opus` automatically.
 
 - **sampleRate** _8000 | 16000 | 22050 | 24000 | 44100 | 48000_
 
@@ -907,6 +913,11 @@ const result = await transcribe({
 
   Includes filler words such as `uh` and `um` in the transcript.
 
+- **vadThreshold** _number_
+
+  Voice activity detection threshold. Range: 0.0-1.0. Defaults to `0.5` for
+  `transcribe` and `0.08` for streaming. `0` disables the filter.
+
 - **streaming** _object_
 
   Options for streaming speech-to-text over WebSocket. Use with `experimental_streamTranscribe`.
@@ -928,9 +939,10 @@ const result = await transcribe({
 
 ### Model Capabilities
 
-| Model     | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
-| --------- | ---------------- | --------- | --------------- | ----------- | ------------ |
-| `default` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+| Model                       | Request/Response | Streaming | Word Timestamps | Diarization | Multichannel |
+| --------------------------- | ---------------- | --------- | --------------- | ----------- | ------------ |
+| `default`                   | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
+| `grok-voice-transcribe-2.0` | <Check />        | <Check /> | <Check />       | <Check />   | <Check />    |
 
 <Note>
   Word timestamps, diarization results, and segments are only returned on the
@@ -1053,22 +1065,29 @@ const { images } = await generateImage({
 });
 ```
 
-- **resolution** _'1k' | '2k'_
+- **resolution** _'1k' | '1.5k' | '2k'_
 
-  Output resolution. `1k` produces ~1024×1024 images, `2k` produces ~2048×2048
-  images (actual dimensions vary based on aspect ratio). Available for
-  `grok-imagine-image-pro`.
+  Output resolution: `1k` (default, ~1024×1024), `1.5k` (~1408×1408), or `2k`
+  (~2048×2048). Actual dimensions vary based on aspect ratio.
+  `grok-imagine-image` does not support `1.5k`.
 
-- **quality** _'low' | 'medium' | 'high'_
+- **quality** _'low' | 'medium' | 'high' | 'auto'_
 
-  Image quality level. Higher quality may increase generation time.
+  Image quality level. Only supported by `grok-imagine-image-2.0`, which accepts
+  `low`, `medium`, and `auto`. `auto` is the default when omitted: it serves
+  `low` for generation and `medium` for editing, billed at the quality served.
+  `high` is not documented by xAI but is still accepted by older models, and is
+  kept for backward compatibility.
 
 ### Image Model Capabilities
 
-| Model                    | Resolution | Aspect Ratios                                                                                               | Image Editing |
-| ------------------------ | ---------- | ----------------------------------------------------------------------------------------------------------- | ------------- |
-| `grok-imagine-image-pro` | `1k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
-| `grok-imagine-image`     | `1k`       | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto` | <Check />     |
+| Model                    | Resolution         | Aspect Ratios                                                                                                              | Image Editing |
+| ------------------------ | ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `grok-imagine-image-2.0` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `21:9`, `5:2`, `auto` | <Check />     |
+| `grok-imagine-image-pro` | `1k`, `1.5k`, `2k` | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
+| `grok-imagine-image`     | `1k`               | `1:1`, `16:9`, `9:16`, `4:3`, `3:4`, `3:2`, `2:3`, `2:1`, `1:2`, `19.5:9`, `9:19.5`, `20:9`, `9:20`, `auto`                | <Check />     |
+
+`grok-imagine-image-2.0` is xAI's latest image model.
 
 ## Video Models
 

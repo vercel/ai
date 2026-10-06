@@ -62,6 +62,13 @@ export async function handler(req, res) {
         'Array of input UI messages sent to the agent (such as user/assistant message objects).',
     },
     {
+      name: 'convertDataPart',
+      type: '(part: DataUIPart) => TextPart | FilePart | undefined',
+      isRequired: false,
+      description:
+        'Converts custom UI data parts into text or file parts for the model. Data parts are ignored when this callback is omitted or returns undefined.',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isRequired: false,

@@ -142,10 +142,18 @@ export function createTelemetryDispatcher({
 
   const mergeTelemetryCallback = <KEY extends TelemetryCallbackKey>(
     key: KEY,
-  ): Callback<TelemetryEvent<KEY>> => {
+    deprecatedKey?: keyof Telemetry,
+  ): Callback<TelemetryEvent<KEY>> | undefined => {
     const integrationCallbacks = (
       integrations
-        .map(integration => integration[key]?.bind(integration))
+        .map(integration => {
+          const callback =
+            integration[key] ??
+            (deprecatedKey == null ? undefined : integration[deprecatedKey]);
+          return typeof callback === 'function'
+            ? callback.bind(integration)
+            : undefined;
+        })
         .filter(Boolean) as Array<
         Callback<InferTelemetryEvent<TelemetryEvent<KEY>>>
       >
@@ -157,12 +165,19 @@ export function createTelemetryDispatcher({
         >,
     );
 
+    if (integrationCallbacks.length === 0) {
+      return undefined;
+    }
+
     const mergedIntegrationCallback = mergeCallbacks(...integrationCallbacks);
 
     return async (event: TelemetryEvent<KEY>) => {
       await mergedIntegrationCallback(event);
     };
   };
+
+  const onStepEnd = mergeTelemetryCallback('onStepEnd');
+  const onStepFinish = mergeTelemetryCallback('onStepFinish');
 
   const executeLanguageModelCallWrappers = integrations
     .map(integration => integration.executeLanguageModelCall?.bind(integration))
@@ -205,27 +220,37 @@ export function createTelemetryDispatcher({
     // deprecated `onStepFinish` callback so integrations that still implement
     // only `onStepFinish` keep receiving step-end events during the deprecation
     // window.
-    onStepEnd: mergeCallbacks(
-      mergeTelemetryCallback('onStepEnd'),
-      mergeTelemetryCallback('onStepFinish'),
-    ),
+    onStepEnd:
+      onStepEnd == null && onStepFinish == null
+        ? undefined
+        : mergeCallbacks(onStepEnd, onStepFinish),
     onObjectStepStart: mergeTelemetryCallback('onObjectStepStart'),
     onObjectStepEnd: mergeTelemetryCallback('onObjectStepEnd'),
     onEmbedStart: mergeTelemetryCallback('onEmbedStart'),
     onEmbedEnd: mergeTelemetryCallback('onEmbedEnd'),
     onRerankStart: mergeTelemetryCallback('onRerankStart'),
     onRerankEnd: mergeTelemetryCallback('onRerankEnd'),
-    experimental_onEvaluateStart: mergeTelemetryCallback(
+    experimental_onDecideStart: mergeTelemetryCallback(
+      'experimental_onDecideStart',
       'experimental_onEvaluateStart',
     ),
-    experimental_onEvaluationModelCallStart: mergeTelemetryCallback(
+    experimental_onDecisionModelCallStart: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallStart',
       'experimental_onEvaluationModelCallStart',
     ),
-    experimental_onEvaluationModelCallEnd: mergeTelemetryCallback(
+    experimental_onDecisionModelCallEnd: mergeTelemetryCallback(
+      'experimental_onDecisionModelCallEnd',
       'experimental_onEvaluationModelCallEnd',
     ),
-    experimental_onEvaluateEnd: mergeTelemetryCallback(
+    experimental_onDecideEnd: mergeTelemetryCallback(
+      'experimental_onDecideEnd',
       'experimental_onEvaluateEnd',
+    ),
+    experimental_onStreamTranscriptionStart: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionStart',
+    ),
+    experimental_onStreamTranscriptionEnd: mergeTelemetryCallback(
+      'experimental_onStreamTranscriptionEnd',
     ),
     onEnd: mergeTelemetryCallback('onEnd'),
     onAbort: mergeTelemetryCallback('onAbort'),

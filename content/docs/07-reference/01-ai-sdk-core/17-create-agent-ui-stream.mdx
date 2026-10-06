@@ -60,6 +60,13 @@ export async function* streamAgent(
         'Array of input UI message objects (e.g., user/assistant/chat history). These will be validated and converted for the agent.',
     },
     {
+      name: 'convertDataPart',
+      type: '(part: DataUIPart) => TextPart | FilePart | undefined',
+      isRequired: false,
+      description:
+        'Converts custom UI data parts into text or file parts for the model. Data parts are ignored when this callback is omitted or returns undefined.',
+    },
+    {
       name: 'abortSignal',
       type: 'AbortSignal',
       isRequired: false,
