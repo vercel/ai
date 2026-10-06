@@ -129,6 +129,10 @@ const result = await agent.generate({
 });
 ```
 
+Both `runtimeContext` and `toolsContext` can be set in the constructor, per call
+to `generate()` or `stream()`, or both. A call-level value overrides the
+constructor-level value for that call.
+
 Model call settings returned from `prepareStep`, such as `temperature`, apply
 only to the current step. Later steps use the agent's top-level setting unless
 they return another override.

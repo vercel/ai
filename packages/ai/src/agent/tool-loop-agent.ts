@@ -3,6 +3,7 @@ import {
   withUserAgentSuffix,
   type Context,
   type Experimental_SandboxSession as SandboxSession,
+  type InferToolSetContext,
   type ModelMessage,
   type ToolSet,
 } from '@ai-sdk/provider-utils';
@@ -82,6 +83,8 @@ export class ToolLoopAgent<
     messages?: Array<ModelMessage>;
     options?: CALL_OPTIONS;
     experimental_sandbox?: SandboxSession;
+    runtimeContext?: RUNTIME_CONTEXT;
+    toolsContext?: InferToolSetContext<TOOLS>;
   }): Promise<
     Omit<
       ToolLoopAgentSettings<CALL_OPTIONS, TOOLS, RUNTIME_CONTEXT, OUTPUT>,
@@ -127,10 +130,24 @@ export class ToolLoopAgent<
       ...settingsWithoutCallbacks
     } = this.settings;
 
+    // call-level context overrides agent-level context. An explicit
+    // `undefined` at call level must not clobber the agent-level value.
+    const {
+      runtimeContext: callRuntimeContext,
+      toolsContext: callToolsContext,
+      ...callOptions
+    } = options;
+
     const baseCallArgs = {
       ...settingsWithoutCallbacks,
       stopWhen: this.settings.stopWhen ?? isStepCount(20),
-      ...options,
+      ...callOptions,
+      ...(callRuntimeContext !== undefined
+        ? { runtimeContext: callRuntimeContext }
+        : {}),
+      ...(callToolsContext !== undefined
+        ? { toolsContext: callToolsContext }
+        : {}),
     };
 
     const preparedCallArgs =

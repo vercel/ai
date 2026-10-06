@@ -114,10 +114,12 @@ const result = await generateText({
 ```
 
 When at least one tool declares `contextSchema`, `toolsContext` is required for
-the tools that need context. A tool receives only its own context, not the full
-`toolsContext` map. Tool description functions receive the same typed `context`
-before each model call, so descriptions can change with the current tool
-context.
+the tools that need context. With `ToolLoopAgent`, you can pass `toolsContext`
+in the constructor, per call to `generate()` or `stream()`, or both; a
+call-level value overrides the constructor-level value. A tool receives only its
+own context, not the full `toolsContext` map. Tool description functions
+receive the same typed `context` before each model call, so descriptions can
+change with the current tool context.
 
 Treat tool context as immutable inside tools. If you need to change tool context
 between steps, inspect the previous step in `prepareStep` and return an updated
@@ -131,7 +133,7 @@ include selected top-level runtime context properties in telemetry, and
 `telemetry.includeToolsContext` to include selected top-level tool context
 properties per tool.
 
-```ts highlight="34-43"
+```ts highlight="25-34"
 import { ToolLoopAgent, tool } from 'ai';
 import { z } from 'zod';
 
@@ -156,15 +158,6 @@ const customerLookup = tool({
 const agent = new ToolLoopAgent({
   model: __MODEL__,
   tools: { customerLookup },
-});
-
-const result = await agent.generate({
-  prompt: 'Check whether customer cust_123 is eligible for priority support.',
-  runtimeContext: {
-    requestId: 'req_abc',
-    tenantId: 'tenant_123',
-    userId: 'user_123',
-  },
   telemetry: {
     includeRuntimeContext: {
       requestId: true,
@@ -174,6 +167,15 @@ const result = await agent.generate({
         region: true,
       },
     },
+  },
+});
+
+const result = await agent.generate({
+  prompt: 'Check whether customer cust_123 is eligible for priority support.',
+  runtimeContext: {
+    requestId: 'req_abc',
+    tenantId: 'tenant_123',
+    userId: 'user_123',
   },
   toolsContext: {
     customerLookup: {
