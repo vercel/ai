@@ -1095,6 +1095,78 @@ describe('convertToLanguageModelPrompt', () => {
       `);
     });
 
+    it('should preserve provider options from an empty tool message when combining consecutive tool messages', async () => {
+      const result = await convertToLanguageModelPrompt({
+        prompt: {
+          instructions: undefined,
+          messages: [
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'tool-call',
+                  toolCallId: 'toolCallId',
+                  toolName: 'toolName',
+                  input: {},
+                },
+                {
+                  type: 'tool-approval-request',
+                  approvalId: 'approvalId',
+                  toolCallId: 'toolCallId',
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-approval-response',
+                  approvalId: 'approvalId',
+                  approved: true,
+                },
+              ],
+              providerOptions: {
+                test: {
+                  cacheControl: 'approval',
+                },
+              },
+            },
+            {
+              role: 'tool',
+              content: [
+                {
+                  type: 'tool-result',
+                  toolName: 'toolName',
+                  toolCallId: 'toolCallId',
+                  output: { type: 'text', value: 'result' },
+                },
+              ],
+            },
+          ],
+        },
+        supportedUrls: {},
+        download: undefined,
+      });
+
+      expect(result.at(-1)).toEqual({
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolCallId: 'toolCallId',
+            toolName: 'toolName',
+            output: { type: 'text', value: 'result' },
+            providerOptions: undefined,
+          },
+        ],
+        providerOptions: {
+          test: {
+            cacheControl: 'approval',
+          },
+        },
+      });
+    });
+
     it('should preserve provider options at tool message boundaries when combining consecutive tool messages', async () => {
       const result = await convertToLanguageModelPrompt({
         prompt: {
