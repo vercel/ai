@@ -233,7 +233,7 @@ try {
 
 ## Generating Images with Language Models
 
-Some language models such as Google `gemini-2.5-flash-image-preview` support multi-modal outputs including images.
+Some language models such as Google `gemini-2.5-flash-image-preview` and `gemini-nano-banana-2.1` support multi-modal outputs including images.
 With such models, you can access the generated images using the `files` property of the response.
 
 ```ts
@@ -255,6 +255,13 @@ for (const file of result.files) {
   }
 }
 ```
+
+The `gemini-nano-banana-2.1` model is available through both Google and Google Vertex
+language models. Use `generateText` with `google('gemini-nano-banana-2.1')` or
+`vertex('gemini-nano-banana-2.1')` and read the generated images from `result.files`.
+It supports image editing and the aspect ratios 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4,
+9:16, 16:9, 21:9, 1:8, 8:1, 1:4, and 4:1 through the `imageConfig.aspectRatio`
+provider option.
 
 ## Image Models
 

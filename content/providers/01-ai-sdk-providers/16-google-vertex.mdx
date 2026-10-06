@@ -674,6 +674,7 @@ The following Zod features are known to not work with Google Vertex:
 
 | Model                   | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
 | ----------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-nano-banana-2.1` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 | `gemini-3.8-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.7-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.6-flash`      | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
@@ -758,6 +759,14 @@ The following optional provider options are available for Google Vertex AI embed
   The table above lists popular models. You can also pass any available provider
   model ID as a string if needed.
 </Note>
+
+### Image Outputs
+
+Gemini image models such as `gemini-nano-banana-2.1` generate and edit images through
+`generateText`. Use `vertex('gemini-nano-banana-2.1')` and read the generated images
+from the `files` property of the result. The model supports aspect ratios 1:1, 2:3,
+3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, and 4:1 through the
+`imageConfig.aspectRatio` provider option.
 
 ### Image Models
 

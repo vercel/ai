@@ -903,7 +903,7 @@ The `vertexRagStore` tool accepts the following configuration options:
 
 ### Image Outputs
 
-Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview`) support image generation. Images are exposed as files in the response.
+Gemini models with image generation capabilities (`gemini-2.5-flash-image-preview` and `gemini-nano-banana-2.1`) support image generation. Images are exposed as files in the response.
 
 ```ts
 import { google } from '@ai-sdk/google';
@@ -921,6 +921,10 @@ for (const file of result.files) {
   }
 }
 ```
+
+The `gemini-nano-banana-2.1` model supports image editing and aspect ratios 1:1,
+2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, and 4:1 through
+the `imageConfig.aspectRatio` provider option.
 
 ### Safety Ratings
 
@@ -1013,6 +1017,7 @@ The following Zod features are known to not work with Google Generative AI:
 
 | Model                                 | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      | Google Search       | URL Context         |
 | ------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `gemini-nano-banana-2.1`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> |
 | `gemini-3.8-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.7-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gemini-3.6-flash`                    | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
