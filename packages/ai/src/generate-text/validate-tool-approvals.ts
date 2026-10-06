@@ -117,9 +117,13 @@ export async function validateApprovedToolApprovals<
             refineToolInput,
           });
 
+          // Clone both inputs into the current realm before comparing them.
+          const revalidatedInput = structuredClone(revalidatedToolCall.input);
+          const approvedInput = structuredClone(toolCall.input);
+
           // Revalidation must never change the operation that was approved,
           // including when older or projected history omits the schema input.
-          if (!isDeepEqualData(revalidatedToolCall.input, toolCall.input)) {
+          if (!isDeepEqualData(revalidatedInput, approvedInput)) {
             validationError = new Error(
               'Approved tool input does not match the validated schema output.',
             );

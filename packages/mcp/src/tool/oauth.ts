@@ -20,6 +20,7 @@ import {
   InvalidClientError,
   InvalidGrantError,
   UnauthorizedClientError,
+  AuthorizationServerMismatchError,
 } from '../error/oauth-error';
 import {
   resourceUrlFromServerUrl,
@@ -360,7 +361,7 @@ function assertAuthorizationServerInformationMatches({
     storedAuthorizationServerInformation.tokenEndpoint !==
       currentAuthorizationServerInformation.tokenEndpoint
   ) {
-    throw new MCPClientOAuthError({
+    throw new AuthorizationServerMismatchError({
       message:
         'OAuth authorization server metadata does not match the metadata that issued the stored credentials',
     });
@@ -1284,14 +1285,11 @@ export async function auth(
 
       await provider.invalidateCredentials?.('all');
       return await authInternal(provider, options);
-    } else if (error instanceof InvalidGrantError) {
-      if (refreshAttempt.tokens) {
-        await provider.invalidateCredentials?.('tokens', {
-          tokens: refreshAttempt.tokens,
-        });
-      } else {
-        await provider.invalidateCredentials?.('tokens');
-      }
+    } else if (error instanceof InvalidGrantError && refreshAttempt.tokens) {
+      // Only invalidate the tokens used by a failed refresh.
+      await provider.invalidateCredentials?.('tokens', {
+        tokens: refreshAttempt.tokens,
+      });
       return await authInternal(provider, options);
     }
 

@@ -22,7 +22,6 @@ import { IconArrowDown } from '@vercel/geistdocs/assets/icons/icon-arrow-down';
 import { IconRoute } from '@vercel/geistdocs/assets/icons/icon-route';
 import { IconShieldCheck } from '@vercel/geistdocs/assets/icons/icon-shield-check';
 import { IconToggleOn } from '@vercel/geistdocs/assets/icons/icon-toggle-on';
-import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PROMPT_TEMPLATES } from '@/lib/home/prompt-templates';
@@ -158,22 +157,6 @@ function LinkCard({
 export function LandingPage() {
   return (
     <main>
-      <Link
-        className="group flex items-center justify-center gap-x-2 gap-y-1 bg-gray-1000 px-4 py-3 text-center text-xs text-background-100 md:text-sm"
-        href="/providers/ai-sdk-providers/xai"
-        prefetch={true}
-      >
-        <span className="inline-flex shrink-0 items-center rounded-full bg-background-100/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide md:text-[11px]">
-          New
-        </span>
-        <span className="text-pretty">
-          Grok 4.7 is now available in the AI SDK.
-        </span>
-        <ArrowRight
-          aria-hidden="true"
-          className="hidden size-3.5 shrink-0 transition-transform group-hover:translate-x-0.5 sm:inline-block"
-        />
-      </Link>
       <div className="mx-auto w-full max-w-[1448px] px-4 pb-12 sm:px-6 lg:pb-20">
         <section
           aria-labelledby="home-title"

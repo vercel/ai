@@ -1,5 +1,42 @@
 # @ai-sdk/workflow
 
+## 2.0.60
+
+### Patch Changes
+
+- d9e04cb: fix(workflow): reuse persisted tool denial results during approval resumption
+
+## 2.0.59
+
+### Patch Changes
+
+- a471b4c: Document and validate WorkflowAgent generation deadlines, retry boundaries, hook cancellation, and selected result serialization across workflow resumption.
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- 69ea843: fix(workflow): preserve length-limited assistant responses in conversation messages
+- 6accb1c: Refactor WorkflowAgent call preparation, model-call results, and execution finalization to prepare for non-streaming generation while preserving stream behavior.
+- 57dadb5: Create tool approval requests independently of streaming so WorkflowAgent.generate and stream without a writable can resume approved calls. Preserve provider approval requests and forward approval responses without locally executing provider tools.
+- c89c76c: fix(workflow): preserve provider metadata on assistant text messages
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
 ## 2.0.57
 
 ### Patch Changes

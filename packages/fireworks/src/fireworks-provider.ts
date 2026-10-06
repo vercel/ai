@@ -147,7 +147,7 @@ export function createFireworks(
       includeUsage: true,
       errorStructure: fireworksErrorStructure,
       supportsStructuredOutputs: true,
-      transformRequestBody: args => {
+      transformRequestBody: (args, warnings) => {
         const thinking = args.thinking as
           | { type?: string; budgetTokens?: number }
           | undefined;
@@ -164,16 +164,26 @@ export function createFireworks(
           ...rest
         } = args;
 
+        // Fireworks supports low, medium, and high reasoning levels.
+        const mappedReasoningEffort =
+          reasoning_effort === 'minimal'
+            ? 'low'
+            : reasoning_effort === 'xhigh' || reasoning_effort === 'max'
+              ? 'high'
+              : reasoning_effort;
+
+        if (mappedReasoningEffort !== reasoning_effort) {
+          warnings?.push({
+            type: 'compatibility',
+            feature: 'reasoning',
+            details: `reasoning "${reasoning_effort}" is not directly supported by this model. mapped to effort "${mappedReasoningEffort}".`,
+          });
+        }
+
         return {
           ...rest,
           ...(reasoning_effort != null && {
-            // Workaround since OpenAI spec allows for 5 reasoning levels, but Fireworks only supports 3 of them.
-            reasoning_effort:
-              reasoning_effort === 'minimal'
-                ? 'low'
-                : reasoning_effort === 'xhigh'
-                  ? 'high'
-                  : reasoning_effort,
+            reasoning_effort: mappedReasoningEffort,
           }),
           ...(promptCacheKey !== undefined && {
             prompt_cache_key: promptCacheKey,

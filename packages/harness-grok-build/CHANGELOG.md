@@ -1,5 +1,31 @@
 # @ai-sdk/harness-grok-build
 
+## 1.0.77
+
+### Patch Changes
+
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+  - @ai-sdk/harness-acp@1.0.78
+
+## 1.0.76
+
+### Patch Changes
+
+- Updated dependencies [58030b5]
+  - @ai-sdk/harness-acp@1.0.77
+
+## 1.0.75
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+- @ai-sdk/harness-acp@1.0.76
+
 ## 1.0.74
 
 ### Patch Changes

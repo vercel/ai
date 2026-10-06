@@ -9,7 +9,7 @@ declare global {
    * String model ids are resolved to the default provider and model id.
    *
    * If not set, the default provider is the Vercel AI gateway provider.
-   * Experimental evaluation requires an explicitly configured evaluation-capable provider.
+   * An explicitly configured provider must support decision models to use experimental_decide.
    *
    * @see https://ai-sdk.dev/docs/ai-sdk-core/provider-management#global-provider-configuration
    */
@@ -18,7 +18,8 @@ declare global {
   /**
    * The warning logger to use for the AI SDK.
    *
-   * If not set, the default logger is the console.warn function.
+   * If not set, warnings use process.emitWarning when available, otherwise
+   * console.warn. Deprecations are emitted once per code by the default logger.
    *
    * If set to false, no warnings are logged.
    */

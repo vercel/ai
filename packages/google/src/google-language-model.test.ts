@@ -82,7 +82,72 @@ const model = provider.chat('gemini-pro');
 const groundingMetadataSchema = getGroundingMetadataSchema();
 const urlContextMetadataSchema = getUrlContextMetadataSchema();
 
+const FILE_SEARCH_GROUNDING_METADATA = {
+  groundingChunks: [
+    {
+      retrievedContext: {
+        title: 'I, Claudius',
+        text: 'A historical novel about the Roman emperor Claudius.',
+        fileSearchStore: 'fileSearchStores/test-store',
+        customMetadata: [
+          { key: 'author', stringValue: 'Robert Graves' },
+          { key: 'year', numericValue: 1934 },
+          {
+            key: 'genres',
+            stringListValue: { values: ['historical fiction', 'novel'] },
+          },
+          { key: 'page', numericValue: 0 },
+          { key: 'description', stringValue: '' },
+          { key: 'tags', stringListValue: { values: [] } },
+        ],
+      },
+    },
+  ],
+};
+
 describe('groundingMetadataSchema', () => {
+  it('preserves custom metadata on retrieved context chunks', () => {
+    expect(
+      groundingMetadataSchema.parse(FILE_SEARCH_GROUNDING_METADATA),
+    ).toEqual(FILE_SEARCH_GROUNDING_METADATA);
+  });
+
+  it.each([
+    { name: 'missing', customMetadata: undefined },
+    { name: 'null', customMetadata: null },
+    { name: 'empty', customMetadata: [] },
+  ])('accepts $name custom metadata', ({ customMetadata }) => {
+    const metadata = {
+      groundingChunks: [{ retrievedContext: { customMetadata } }],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
+  it('accepts nullish custom metadata values', () => {
+    const metadata = {
+      groundingChunks: [
+        {
+          retrievedContext: {
+            customMetadata: [
+              { key: 'missing' },
+              {
+                key: 'null',
+                stringValue: null,
+                numericValue: null,
+                stringListValue: null,
+              },
+              { key: 'missing-list', stringListValue: {} },
+              { key: 'null-list', stringListValue: { values: null } },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(groundingMetadataSchema.parse(metadata)).toEqual(metadata);
+  });
+
   it('validates complete grounding metadata with web search results', () => {
     const metadata = {
       webSearchQueries: ["What's the weather in Chicago this weekend?"],
@@ -3193,6 +3258,21 @@ describe('doGenerate', () => {
     },
   );
 
+  it('should preserve File Search custom metadata in provider metadata', async () => {
+    prepareJsonResponse({
+      content: 'test response',
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { providerMetadata } = await model.doGenerate({
+      prompt: TEST_PROMPT,
+    });
+
+    expect(providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
+  });
+
   it('should expose grounding metadata in provider metadata', async () => {
     prepareJsonResponse({
       content: 'test response',
@@ -4858,6 +4938,30 @@ describe('doGenerate', () => {
         });
       });
 
+      it('should coerce reasoning "max" to "high" with compatibility warning', async () => {
+        server.urls[TEST_URL_GEMINI_3_PRO].response = {
+          type: 'json-value',
+          body: simpleResponseBody,
+        };
+
+        const result = await gemini3Model.doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect(await server.calls[0].requestBodyJson).toMatchObject({
+          generationConfig: {
+            thinkingConfig: { thinkingLevel: 'high' },
+          },
+        });
+        expect(result.warnings).toContainEqual({
+          type: 'compatibility',
+          feature: 'reasoning',
+          details:
+            'reasoning "max" is not directly supported by this model. mapped to effort "high".',
+        });
+      });
+
       it('should coerce reasoning "minimal" to thinkingLevel "low" for Gemini 3.7 Flash', async () => {
         server.urls[TEST_URL_GEMINI_3_7_FLASH].response = {
           type: 'json-value',
@@ -5906,6 +6010,21 @@ describe('doStream', () => {
 
       expect(await convertReadableStreamToArray(stream)).toMatchSnapshot();
     });
+  });
+
+  it('should preserve File Search custom metadata in provider metadata on finish', async () => {
+    prepareStreamResponse({
+      content: ['test'],
+      groundingMetadata: FILE_SEARCH_GROUNDING_METADATA,
+    });
+
+    const { stream } = await model.doStream({ prompt: TEST_PROMPT });
+    const events = await convertReadableStreamToArray(stream);
+    const finishEvent = events.find(event => event.type === 'finish');
+
+    expect(finishEvent?.providerMetadata?.google.groundingMetadata).toEqual(
+      FILE_SEARCH_GROUNDING_METADATA,
+    );
   });
 
   it('should expose grounding metadata in provider metadata on finish', async () => {

@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/react",
-  "version": "4.0.129",
+  "version": "4.0.131",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -57,7 +57,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

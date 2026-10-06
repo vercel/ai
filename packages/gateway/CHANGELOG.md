@@ -1,5 +1,23 @@
 # @ai-sdk/gateway
 
+## 4.0.104
+
+### Patch Changes
+
+- 131532b: chore(provider/gateway): update gateway model settings files
+- 2959d35: feat: rename `evaluate` to `decide`
+- 6ac923a: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.103
+
+### Patch Changes
+
+- d1bb9e8: chore(provider/gateway): update gateway model settings files
+
 ## 4.0.102
 
 ### Patch Changes
