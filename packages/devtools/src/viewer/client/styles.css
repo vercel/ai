@@ -9,7 +9,7 @@
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.17 0 0);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
+  --popover: oklch(0.23 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.985 0 0);
   --primary-foreground: oklch(0.205 0 0);
@@ -44,6 +44,7 @@
   --tool: #c084fc;
   --agent: #22d3ee;
   --danger: #f87171;
+  --gridline: oklch(0.52 0 0);
   color-scheme: dark;
 }
 
@@ -86,6 +87,7 @@
   --tool: #7e22ce;
   --agent: #0e7490;
   --danger: #b91c1c;
+  --gridline: #8a8a8a;
   color-scheme: light;
 }
 
@@ -140,6 +142,7 @@
   --color-tool: var(--tool);
   --color-agent: var(--agent);
   --color-danger: var(--danger);
+  --color-gridline: var(--gridline);
 }
 
 @layer base {
