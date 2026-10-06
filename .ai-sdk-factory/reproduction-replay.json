@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22103,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22103-v2-total-tokens.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22103-v2-total-tokens.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "REPRODUCED: V2 provider-reported totalTokens was dropped from public usage.raw"
+  }
+}
