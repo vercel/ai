@@ -73,12 +73,27 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Notify released PRs and issues
-        if: steps.changesets.outputs.published == 'true'
-        uses: ./.github/actions/notify-released
+      - name: Create release notification manifest
+        run: |
+          mkdir -p .release-notification
+          jq -n \
+            --arg publishedPackages "$PUBLISHED_PACKAGES" \
+            --arg pullRequestNumber "$PULL_REQUEST_NUMBER" \
+            '{
+              type: "release",
+              publishedPackages: ($publishedPackages | fromjson? // []),
+              pullRequestNumber: $pullRequestNumber
+            }' > .release-notification/notification.json
+        env:
+          PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.publishedPackages }}
+          PULL_REQUEST_NUMBER: ${{ steps.release-pr.outputs.number }}
+
+      - name: Upload release notification manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          published-packages: ${{ steps.changesets.outputs.publishedPackages }}
-          pull-request-number: ${{ steps.release-pr.outputs.number }}
+          name: release-notification
+          path: .release-notification
+          retention-days: 1
 
       - name: Attach SLSA provenance to GitHub Releases
         if: steps.changesets.outputs.published == 'true'
