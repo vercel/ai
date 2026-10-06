@@ -20,7 +20,7 @@
     "@angular/forms": "^21.2.22",
     "@angular/platform-browser": "^21.2.22",
     "@angular/platform-browser-dynamic": "^21.2.22",
-    "@angular/router": "^21.2.22",
+    "@angular/router": "^21.2.24",
     "ai": "workspace:*",
     "dotenv": "16.4.5",
     "express": "5.0.1",
