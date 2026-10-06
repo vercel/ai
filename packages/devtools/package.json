@@ -70,7 +70,7 @@
     "typescript": "6.0.3",
     "vaul": "^1.1.2",
     "vite": "^6.4.3",
-    "vitest": "^4.1.6",
+    "vitest": "^4.1.11",
     "zod": "3.25.76"
   },
   "publishConfig": {
