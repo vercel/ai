@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "issueId": 22132,
+  "expectationRevision": 1,
+  "command": "pnpm -C examples/ai-functions exec tsx src/reproduction/issue-22132-streaming-tool-calls.ts",
+  "artifactPaths": [
+    "examples/ai-functions/src/reproduction/issue-22132-streaming-tool-calls.ts"
+  ],
+  "expectedFailure": {
+    "exitCode": 1,
+    "signal": "ISSUE_22132_REPRODUCED: parallel same-tool calls were merged or dropped"
+  }
+}
