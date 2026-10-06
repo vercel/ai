@@ -22,10 +22,11 @@ class TestChatState<
   UI_MESSAGE extends UIMessage,
 > implements ChatState<UI_MESSAGE> {
   history: UI_MESSAGE[][] = [];
+  errorHistory: Array<Error | undefined> = [];
 
   status: ChatStatus = 'ready';
   messages: UI_MESSAGE[];
-  error: Error | undefined = undefined;
+  private currentError: Error | undefined = undefined;
 
   constructor(initialMessages: UI_MESSAGE[] = []) {
     this.messages = initialMessages;
@@ -52,6 +53,15 @@ class TestChatState<
   };
 
   snapshot = <T>(value: T): T => value;
+
+  get error() {
+    return this.currentError;
+  }
+
+  set error(error: Error | undefined) {
+    this.currentError = error;
+    this.errorHistory.push(error);
+  }
 }
 
 class TestChat extends AbstractChat<UIMessage> {
@@ -1222,6 +1232,41 @@ describe('Chat', () => {
     expect(chat.messages).toHaveLength(1);
     expect((chat.messages[0].parts[1] as any).text).toBe('latest');
     expect(chat.status).toBe('ready');
+  });
+
+  it('should publish the latest error after repeated failed resume attempts', async () => {
+    const reconnectErrors = [
+      new Error('first reconnect failure'),
+      new Error('second reconnect failure'),
+    ];
+    const state = new TestChatState<UIMessage>();
+    const onError = vi.fn();
+    let reconnectCount = 0;
+
+    const chat = new TestChatWithState({
+      id: '123',
+      state,
+      transport: {
+        sendMessages: async () => {
+          throw new Error('not implemented');
+        },
+        reconnectToStream: async () => {
+          throw reconnectErrors[reconnectCount++];
+        },
+      },
+      onError,
+    });
+
+    await chat.resumeStream();
+    await chat.resumeStream();
+
+    expect(chat.status).toBe('error');
+    expect(chat.error).toBe(reconnectErrors[1]);
+    expect(state.errorHistory).toEqual(reconnectErrors);
+    expect(onError.mock.calls).toEqual([
+      [reconnectErrors[0]],
+      [reconnectErrors[1]],
+    ]);
   });
 
   it('should include the metadata of text message', async () => {
