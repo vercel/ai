@@ -1,4 +1,8 @@
-import { APICallError, EmptyResponseBodyError } from '@ai-sdk/provider';
+import {
+  APICallError,
+  EmptyResponseBodyError,
+  InvalidArgumentError,
+} from '@ai-sdk/provider';
 import { DownloadError } from './download-error';
 import { extractResponseHeaders } from './extract-response-headers';
 import { handleFetchError } from './handle-fetch-error';
@@ -20,7 +24,7 @@ export type ResponseHandler<RETURN_TYPE> = (options: {
 
 const textDecoder = new TextDecoder();
 
-const MAX_JSON_LINE_BYTES = 64 * 1024 * 1024;
+const DEFAULT_MAX_JSON_LINE_BYTES = 64 * 1024 * 1024;
 
 function wrapResponseBodyStream({
   stream,
@@ -228,9 +232,20 @@ export const createJsonResponseHandler =
     };
   };
 
-export const createJsonLinesResponseHandler =
-  <T>(responseSchema: FlexibleSchema<T>): ResponseHandler<AsyncGenerator<T>> =>
-  async ({ response, url }) => {
+export const createJsonLinesResponseHandler = <T>(
+  responseSchema: FlexibleSchema<T>,
+  {
+    maxLineBytes = DEFAULT_MAX_JSON_LINE_BYTES,
+  }: { maxLineBytes?: number } = {},
+): ResponseHandler<AsyncGenerator<T>> => {
+  if (!Number.isSafeInteger(maxLineBytes) || maxLineBytes <= 0) {
+    throw new InvalidArgumentError({
+      argument: 'maxLineBytes',
+      message: 'maxLineBytes must be a positive safe integer.',
+    });
+  }
+
+  return async ({ response, url }) => {
     const responseHeaders = extractResponseHeaders(response);
 
     if (response.body == null) {
@@ -243,18 +258,22 @@ export const createJsonLinesResponseHandler =
         stream: response.body,
         schema: responseSchema,
         url,
+        maxLineBytes,
       }),
     };
   };
+};
 
 async function* parseJsonLines<T>({
   stream,
   schema,
   url,
+  maxLineBytes,
 }: {
   stream: ReadableStream<Uint8Array>;
   schema: FlexibleSchema<T>;
   url: string;
+  maxLineBytes: number;
 }): AsyncGenerator<T> {
   const reader = stream.getReader();
   const decoder = new TextDecoder();
@@ -279,9 +298,9 @@ async function* parseJsonLines<T>({
 
         // Bound each line before decoding it, excluding the newline byte.
         lineBytes += segmentEnd - offset;
-        if (lineBytes > MAX_JSON_LINE_BYTES) {
+        if (lineBytes > maxLineBytes) {
           throw new DownloadError({
-            message: `JSON Lines response exceeded maximum line size of ${MAX_JSON_LINE_BYTES} bytes.`,
+            message: `JSON Lines response exceeded maximum line size of ${maxLineBytes} bytes.`,
             url,
           });
         }

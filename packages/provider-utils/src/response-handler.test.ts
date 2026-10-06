@@ -153,6 +153,54 @@ describe('createEventSourceResponseHandler', () => {
 describe('createJsonLinesResponseHandler', () => {
   const maxLineBytes = 64 * 1024 * 1024;
 
+  it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects an invalid maxLineBytes: %s',
+    maxLineBytes => {
+      expect(() =>
+        createJsonLinesResponseHandler(z.unknown(), { maxLineBytes }),
+      ).toThrow('maxLineBytes must be a positive safe integer.');
+    },
+  );
+
+  it.each([3, 4])(
+    'applies a custom byte limit of %s to each UTF-8 row',
+    async maxLineBytes => {
+      const { value } = await createJsonLinesResponseHandler(z.string(), {
+        maxLineBytes,
+      })({
+        url: 'test-url',
+        requestBodyValues: {},
+        response: new Response('"é"\n"é"\n'),
+      });
+      if (maxLineBytes === 3) {
+        await expect(value.next()).rejects.toMatchObject({
+          name: 'AI_DownloadError',
+        });
+      } else {
+        const lines = [];
+        for await (const line of value) lines.push(line);
+        expect(lines).toEqual(['é', 'é']);
+      }
+    },
+  );
+
+  it('allows raising the limit above the default', async () => {
+    const bytes = new Uint8Array(maxLineBytes + 1).fill(32);
+    bytes.set(new TextEncoder().encode('{}'), maxLineBytes - 1);
+    const { value } = await createJsonLinesResponseHandler(z.object({}), {
+      maxLineBytes: bytes.length,
+    })({
+      url: 'test-url',
+      requestBodyValues: {},
+      response: new Response(bytes),
+    });
+    await expect(value.next()).resolves.toEqual({ value: {}, done: false });
+    await expect(value.next()).resolves.toEqual({
+      value: undefined,
+      done: true,
+    });
+  });
+
   it.each(['ASCII', 'UTF-8'])(
     'rejects an oversized %s line across chunks and cancels the body',
     async encoding => {

@@ -36,6 +36,15 @@ const openai = createOpenAI({
 
 You can use the following optional settings to customize the OpenAI provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
