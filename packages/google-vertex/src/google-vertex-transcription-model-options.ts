@@ -32,7 +32,8 @@ export const googleVertexTranscriptionProviderOptionsSchema = z.object({
 
   /**
    * The Cloud Speech-to-Text region for the request (e.g. `'us'`, `'eu'`,
-   * `'us-central1'`). Defaults to the provider `location`.
+   * `'us-central1'`). Defaults to the provider `location`. Must be a single
+   * DNS label (letters, digits, and hyphens).
    *
    * Note: Speech-to-Text regions differ from Vertex AI regions. Chirp is only
    * available in specific Speech-to-Text regions and is not available in the

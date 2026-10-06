@@ -2,6 +2,7 @@ import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4Content,
+  LanguageModelV4FunctionTool,
   LanguageModelV4FinishReason,
   LanguageModelV4GenerateResult,
   LanguageModelV4Source,
@@ -13,6 +14,7 @@ import type {
 } from '@ai-sdk/provider';
 import {
   combineHeaders,
+  convertJsonResponseToolStream,
   createToolNameMapping,
   createEventSourceResponseHandler,
   createJsonResponseHandler,
@@ -448,16 +450,57 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     };
   }
 
-  private getArgs(
+  private async getArgs(
     options: LanguageModelV4CallOptions,
     { isStreaming = false }: { isStreaming?: boolean } = {},
   ) {
-    return GoogleLanguageModel.prepareRequest({
+    const { responseFormat, tools, toolChoice } = options;
+    let jsonResponseTool: LanguageModelV4FunctionTool | undefined;
+    // Gemini models before Gemini 3 reject JSON response formatting together
+    // with function tools. Gemini 3 supports the combination only with automatic
+    // tool choice (AUTO). Forced tool choice (ANY) requires a JSON response tool.
+    if (
+      responseFormat?.type === 'json' &&
+      responseFormat.schema != null &&
+      tools?.some(tool => tool.type === 'function') &&
+      /(^|\/)gemini-/i.test(this.modelId) &&
+      (!getGoogleModelCapabilities(this.modelId).usesGemini3Features ||
+        toolChoice?.type === 'required' ||
+        toolChoice?.type === 'tool')
+    ) {
+      let name = 'json';
+      for (let suffix = 1; tools.some(tool => tool.name === name); suffix++) {
+        name = `json_${suffix}`;
+      }
+      jsonResponseTool = {
+        type: 'function',
+        name,
+        description:
+          responseFormat.description ?? 'Respond with a JSON object.',
+        inputSchema: responseFormat.schema,
+      };
+    }
+
+    const prepared = await GoogleLanguageModel.prepareRequest({
       modelId: this.modelId,
       config: this.config,
-      options,
+      options:
+        jsonResponseTool == null
+          ? options
+          : {
+              ...options,
+              responseFormat: undefined,
+              tools: [...(tools ?? []), jsonResponseTool],
+              toolChoice:
+                toolChoice?.type === 'tool'
+                  ? toolChoice
+                  : toolChoice?.type === 'none'
+                    ? { type: 'tool', toolName: jsonResponseTool.name }
+                    : { type: 'required' },
+            },
       isStreaming,
     });
+    return { ...prepared, jsonResponseToolName: jsonResponseTool?.name };
   }
 
   static convertGenerateContentResponse({
@@ -466,12 +509,14 @@ export class GoogleLanguageModel implements LanguageModelV4 {
     warnings,
     providerOptionsNames,
     toolNameMapping,
+    jsonResponseToolName,
   }: {
     config: GoogleLanguageModelConfig;
     response: InferSchema<typeof responseSchema>;
     warnings: SharedV4Warning[];
     providerOptionsNames: readonly string[];
     toolNameMapping?: ReturnType<typeof createToolNameMapping>;
+    jsonResponseToolName?: string;
   }): LanguageModelV4GenerateResult {
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -529,6 +574,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           },
         });
       } else if ('text' in part && part.text != null) {
+        if (jsonResponseToolName != null && part.thought !== true) continue;
         const thoughtSignatureMetadata = part.thoughtSignature
           ? wrapProviderMetadata({
               thoughtSignature: part.thoughtSignature,
@@ -548,6 +594,23 @@ export class GoogleLanguageModel implements LanguageModelV4 {
           });
         }
       } else if ('functionCall' in part && part.functionCall.name != null) {
+        if (part.functionCall.name === jsonResponseToolName) {
+          content.push({
+            type: 'text',
+            text:
+              typeof part.functionCall.args === 'string'
+                ? part.functionCall.args
+                : JSON.stringify(part.functionCall.args ?? {}),
+            ...(part.thoughtSignature
+              ? {
+                  providerMetadata: wrapProviderMetadata({
+                    thoughtSignature: part.thoughtSignature,
+                  }),
+                }
+              : {}),
+          });
+          continue;
+        }
         content.push({
           type: 'tool-call' as const,
           toolCallId: part.functionCall.id || config.generateId(),
@@ -666,6 +729,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      jsonResponseToolName,
     } = await this.getArgs(options);
 
     const mergedHeaders = combineHeaders(
@@ -696,6 +760,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       warnings,
       providerOptionsNames,
       toolNameMapping,
+      jsonResponseToolName,
     });
 
     return {
@@ -718,6 +783,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       providerOptionsNames,
       extraHeaders,
       toolNameMapping,
+      jsonResponseToolName,
     } = await this.getArgs(options, { isStreaming: true });
     const wrapProviderMetadata = (payload: Record<string, unknown>) =>
       Object.fromEntries(
@@ -813,7 +879,7 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       hasToolCalls = true;
     };
 
-    return {
+    const result = {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<ChunkSchema>,
@@ -1301,6 +1367,15 @@ export class GoogleLanguageModel implements LanguageModelV4 {
       response: { headers: responseHeaders },
       request: { body: args },
     };
+    return {
+      ...result,
+      stream:
+        jsonResponseToolName == null
+          ? result.stream
+          : result.stream.pipeThrough(
+              convertJsonResponseToolStream(jsonResponseToolName),
+            ),
+    };
   }
 }
 
@@ -1370,6 +1445,7 @@ function resolveGemini3ThinkingConfig({
       medium: 'medium',
       high: 'high',
       xhigh: 'high',
+      max: 'high',
     },
     warnings,
   });
@@ -1571,6 +1647,18 @@ export const getGroundingMetadataSchema = () =>
               title: z.string().nullish(),
               text: z.string().nullish(),
               fileSearchStore: z.string().nullish(),
+              customMetadata: z
+                .array(
+                  z.object({
+                    key: z.string(),
+                    stringValue: z.string().nullish(),
+                    numericValue: z.number().nullish(),
+                    stringListValue: z
+                      .object({ values: z.array(z.string()).nullish() })
+                      .nullish(),
+                  }),
+                )
+                .nullish(),
             })
             .nullish(),
           maps: z

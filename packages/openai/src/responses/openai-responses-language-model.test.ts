@@ -1553,6 +1553,22 @@ describe('OpenAIResponsesLanguageModel', () => {
           },
         );
 
+        it('should pass top-level max reasoning to models that support it', async () => {
+          const { warnings } = await createModel('gpt-5.6').doGenerate({
+            prompt: TEST_PROMPT,
+            reasoning: 'max',
+          });
+
+          expect(await server.calls[0].requestBodyJson).toMatchObject({
+            model: 'gpt-5.6',
+            reasoning: {
+              effort: 'max',
+              summary: 'detailed',
+            },
+          });
+          expect(warnings).toStrictEqual([]);
+        });
+
         it('should let providerOptions.openai.reasoningEffort take precedence over top-level reasoning', async () => {
           const { warnings } = await createModel('o3-mini').doGenerate({
             prompt: TEST_PROMPT,

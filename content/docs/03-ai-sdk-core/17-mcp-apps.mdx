@@ -92,9 +92,9 @@ When the model calls an app-backed tool, the MCP client preserves the app metada
 
 Use `readMCPAppResource` to read and normalize an app resource before sending it to the browser host.
 
-```ts filename="app/api/mcp-app-host/route.ts"
+```ts filename="app/api/mcp-app-host/read-resource/route.ts"
 import { readMCPAppResource } from '@ai-sdk/mcp';
-import { createMCPAppsClient } from '../chat/mcp-client';
+import { createMCPAppsClient } from '../../chat/mcp-client';
 
 export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
@@ -117,11 +117,11 @@ The iframe cannot connect directly to your MCP server. It sends JSON-RPC message
 
 For app-initiated tool calls, validate that the requested tool is app-visible before calling the MCP server.
 
-```ts filename="app/api/mcp-app-host/route.ts"
+```ts filename="app/api/mcp-app-host/call-tool/route.ts"
 import { splitMCPAppTools } from '@ai-sdk/mcp';
-import { createMCPAppsClient } from '../chat/mcp-client';
+import { createMCPAppsClient } from '../../chat/mcp-client';
 
-export async function callAppVisibleTool(req: Request) {
+export async function POST(req: Request) {
   const requestUrl = new URL(req.url);
   const { name, arguments: toolArguments } = await req.json();
   const client = await createMCPAppsClient(requestUrl.origin);

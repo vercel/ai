@@ -78,17 +78,30 @@ You can use the following optional settings to customize the provider instance:
 
   Set to true if the provider supports structured outputs. Only relevant for `provider()`, `provider.chatModel()`, and `provider.languageModel()`.
 
+- **supportsMultiPartToolContent** _boolean_
+
+  Set to true if the provider supports multi-part content arrays in tool
+  results. When enabled, tool outputs with `type: 'content'` can contain text,
+  images, video, audio, and PDF content parts. Defaults to `false`. Only
+  relevant for `provider()`, `provider.chatModel()`, and
+  `provider.languageModel()`.
+
 - **supportedUrls** _() =&gt; Record&lt;string, RegExp[]&gt;_
 
   Defines URLs that chat models can access directly, grouped by media type.
   Matching URLs are passed to the provider instead of being downloaded by the
   AI SDK.
 
-- **transformRequestBody** _(args: Record&lt;string, any&gt;) =&gt; Record&lt;string, any&gt;_
+- **transformRequestBody** _(args: Record&lt;string, any&gt;, warnings?: SharedV4Warning[]) =&gt; Record&lt;string, any&gt;_
 
   Optional function to transform the request body before sending it to the API.
   This is useful for proxy providers that may require a different request format
   than the official OpenAI API.
+
+  The optional second argument is the call's warning collection. Append
+  `SharedV4Warning` entries to report compatibility coercions or other transformations.
+  These warnings are returned by `doGenerate` and included in the `stream-start`
+  event for `doStream`. Existing callbacks that accept only the body continue to work.
 
 - **metadataExtractor** _MetadataExtractor_
 
@@ -120,6 +133,22 @@ Chat models created with this provider support the following capabilities:
 - **Reasoning content** - Support for models that return reasoning/thinking tokens (e.g., DeepSeek R1)
 - **System messages** - Support for system prompts
 - **Multi-modal inputs** - Support for images and other content types (provider-dependent)
+
+Some providers extend the OpenAI Chat Completions API with multi-part tool
+result content. You can opt into this behavior when creating the provider:
+
+```ts
+const provider = createOpenAICompatible({
+  name: 'providerName',
+  apiKey: process.env.PROVIDER_API_KEY,
+  baseURL: 'https://api.provider.com/v1',
+  supportsMultiPartToolContent: true,
+});
+```
+
+Only enable `supportsMultiPartToolContent` when the provider accepts content
+arrays for messages with the `tool` role. The default stringifies multi-part
+tool results for compatibility with the OpenAI Chat Completions API.
 
 ### Example
 
@@ -684,7 +713,7 @@ const { text, providerMetadata } = await generateText({
   prompt: 'Hello',
 });
 
-console.log(providerMetadata.myProvider.customMetric);
+console.log(providerMetadata.myProvider.customMetrics);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.

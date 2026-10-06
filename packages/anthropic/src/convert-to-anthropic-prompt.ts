@@ -15,11 +15,13 @@ import {
   parseProviderOptions,
   resolveFullMediaType,
   resolveProviderReference,
+  safeValidateTypes,
   secureJsonParse,
   validateTypes,
   type ToolNameMapping,
 } from '@ai-sdk/provider-utils';
 import {
+  anthropicFallbackContentSchema,
   anthropicReasoningMetadataSchema,
   type AnthropicAssistantMessage,
   type AnthropicPrompt,
@@ -824,6 +826,34 @@ export async function convertToAnthropicPrompt({
                 break;
               }
 
+              case 'custom': {
+                if (part.kind !== 'anthropic.fallback') {
+                  break;
+                }
+
+                const fallbackMetadata = await safeValidateTypes({
+                  value: part.providerOptions?.anthropic,
+                  schema: anthropicFallbackContentSchema,
+                });
+
+                if (!fallbackMetadata.success) {
+                  warnings.push({
+                    type: 'other',
+                    message:
+                      'anthropic fallback metadata must include from.model and to.model',
+                  });
+                  break;
+                }
+
+                betas.add('server-side-fallback-2026-06-01');
+                anthropicContent.push({
+                  type: 'fallback',
+                  from: fallbackMetadata.value.from,
+                  to: fallbackMetadata.value.to,
+                });
+                break;
+              }
+
               case 'tool-call': {
                 const caller = getAnthropicCaller(part.providerOptions);
 
@@ -954,24 +984,23 @@ export async function convertToAnthropicPrompt({
 
                 if (toolsetName != null) {
                   // toolset member call: the `action` is the member tool name
-                  const { action, ...memberInput } = toAnthropicToolInput(
-                    part.input,
-                  );
+                  const rawInput = toAnthropicToolInput(part.input);
+                  const { action } = rawInput;
+                  const hasAction = typeof action === 'string';
 
-                  if (typeof action !== 'string') {
+                  if (!hasAction) {
                     warnings.push({
                       type: 'other',
                       message: `toolset tool call for tool ${part.toolName} is missing the action`,
                     });
-                    break;
                   }
 
                   anthropicContent.push({
                     type: 'tool_use',
                     id: part.toolCallId,
-                    name: action,
+                    name: hasAction ? action : toolsetName,
                     toolset_name: toolsetName,
-                    input: memberInput,
+                    input: rawInput,
                     ...(caller && { caller }),
                     cache_control: cacheControl,
                   });
@@ -1571,7 +1600,11 @@ function moveToolUseBlocksToEnd(
   }
 
   for (const part of content) {
-    if (part.type === 'thinking' || part.type === 'redacted_thinking') {
+    if (
+      part.type === 'thinking' ||
+      part.type === 'redacted_thinking' ||
+      part.type === 'fallback'
+    ) {
       flushSegment();
       result.push(part);
     } else {

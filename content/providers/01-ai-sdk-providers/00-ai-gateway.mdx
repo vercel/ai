@@ -625,16 +625,20 @@ const result = await generateText({
 });
 
 // Get the generation ID from provider metadata
-const generationId = result.providerMetadata?.gateway?.generationId;
+const generationId = result.providerMetadata?.gateway?.generationId as
+  | string
+  | undefined;
 
 // Look up detailed generation info
-const generation = await gateway.getGenerationInfo({ id: generationId });
+if (generationId) {
+  const generation = await gateway.getGenerationInfo({ id: generationId });
 
-console.log(`Model: ${generation.model}`);
-console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
-console.log(`Latency: ${generation.latency}ms`);
-console.log(`Prompt tokens: ${generation.promptTokens}`);
-console.log(`Completion tokens: ${generation.completionTokens}`);
+  console.log(`Model: ${generation.model}`);
+  console.log(`Cost: $${generation.totalCost.toFixed(6)}`);
+  console.log(`Latency: ${generation.latency}ms`);
+  console.log(`Prompt tokens: ${generation.promptTokens}`);
+  console.log(`Completion tokens: ${generation.completionTokens}`);
+}
 ```
 
 With `streamText`, you can capture the generation ID from the first chunk via `stream`:
@@ -1474,7 +1478,7 @@ The following gateway provider options are available:
 
 - **models** _string[] | [GatewayModelFallback, ...string[]]_
 
-  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Evaluation requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain evaluation with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-evaluation requests.
+  Specifies fallback models in attempt order. String entries keep their existing behavior: the gateway tries them when the primary model fails or is unavailable. Decision requests can also start the list with one conditional `{ model, when }` entry to retry a successful but uncertain decision with another model. Only the first entry can be conditional, and only one conditional entry is allowed. If the primary model fails, the gateway also advances to the conditional entry under its existing error fallback behavior. Conditional entries are rejected on non-decision requests.
 
   Example: `models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash']` will try the fallback models in order if the primary model fails.
 
@@ -1600,27 +1604,27 @@ const { text } = await generateText({
   prompt: 'Write a TypeScript haiku',
   providerOptions: {
     gateway: {
-      models: ['openai/gpt-5.4-nano', 'gemini-3.8-flash'], // Fallback models
+      models: ['openai/gpt-5.4-nano', 'google/gemini-3.8-flash'], // Fallback models
     } satisfies GatewayProviderOptions,
   },
 });
 
 // This will:
-// 1. Try openai/gpt-5.4 first
+// 1. Try openai/gpt-6-astra first
 // 2. If it fails, try openai/gpt-5.4-nano
-// 3. If that fails, try gemini-3-flash-preview
+// 3. If that fails, try google/gemini-3.8-flash
 // 4. Return the result from the first model that succeeds
 ```
 
-#### Conditional Evaluation Fallbacks Example
+#### Conditional Decision Fallbacks Example
 
-Conditional model entries are available only for evaluation requests. Keep the
-configuration under `providerOptions.gateway.models`. `experimental_evaluate`
+Conditional model entries are available only for decision requests. Keep the
+configuration under `providerOptions.gateway.models`. `experimental_decide`
 does not have a top-level fallback option.
 
 ```ts
 import type { GatewayProviderOptions } from '@ai-sdk/gateway';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
 const questions = {
   department: {
@@ -1634,7 +1638,7 @@ const questions = {
   },
 } as const;
 
-const result = await experimental_evaluate({
+const result = await experimental_decide({
   model: 'typesafe-ai/jev',
   state: 'I was charged twice. Please refund the duplicate.',
   questions,

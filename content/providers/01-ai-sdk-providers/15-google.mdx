@@ -643,7 +643,7 @@ The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets G
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const { text, sources } = await generateText({
+const { text, sources, providerMetadata } = await generateText({
   model: google('gemini-3.8-flash'),
   tools: {
     file_search: google.tools.fileSearch({
@@ -659,6 +659,9 @@ const { text, sources } = await generateText({
 ```
 
 File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
+Custom metadata attached to the indexed documents is available in
+`groundingMetadata.groundingChunks[].retrievedContext.customMetadata`.
 
 ### URL Context
 
@@ -727,7 +730,7 @@ With the URL context tool, you will also get the `groundingMetadata`.
             "groundingChunkIndices": [
                 0
             ]
-        },
+        }
     ]
 }
 ```
@@ -1046,6 +1049,7 @@ will still validate the response against the schema in `Output.object`.
 
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
 | `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -2232,11 +2236,12 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
 
 #### Gemini Image Model Capabilities
 
-| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
-| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
-| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                                           |
+| -------------------------------- | ---------------- | ------------- | ----------------------------------------------------------------------- |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-nano-banana-2.1`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, 4:1 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -2393,18 +2398,18 @@ Older models continue to use labelled transcripts, such as
 | `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
 | `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `google.evaluationModel(modelId)`.
+Create an experimental decision model with `google.decisionModel(modelId)`.
 It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
 that supports structured output, such as `gemini-3.5-flash-lite`.
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: google.evaluationModel('gemini-3.5-flash-lite'),
+const { answers } = await experimental_decide({
+  model: google.decisionModel('gemini-3.5-flash-lite'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2436,10 +2441,10 @@ and rejects safety-blocked, truncated, or invalid output. It preserves usage
 Choice and Score answers do not include probability distributions. Boolean
 answers contain prompted estimates of P(true), validated to be finite and in
 `[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
-in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Evaluation](/docs/ai-sdk-core/evaluation).
+in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

@@ -1721,10 +1721,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
           break;
         }
 
-        // Server-side fallback marker: the AI SDK has no content primitive for
-        // a model hop, so drop it. The hop is still observable via
-        // usage.iterations.
         case 'fallback': {
+          content.push({
+            type: 'custom',
+            kind: 'anthropic.fallback',
+            providerMetadata: {
+              anthropic: {
+                type: 'fallback',
+                from: part.from,
+                to: part.to,
+              },
+            },
+          });
           break;
         }
       }
@@ -1965,10 +1973,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
               const part = value.content_block;
               const contentBlockType = part.type;
 
-              // Server-side fallback marker: the AI SDK has no content
-              // primitive for a model hop, so drop it. The hop is still
-              // observable via usage.iterations.
               if (contentBlockType === 'fallback') {
+                controller.enqueue({
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerMetadata: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: part.from,
+                      to: part.to,
+                    },
+                  },
+                });
                 return;
               }
 
@@ -2890,6 +2906,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                 modelId: value.message.model ?? undefined,
               });
 
+              controller.enqueue({
+                type: 'custom',
+                kind: 'anthropic.message_start',
+                providerMetadata: {
+                  anthropic: {
+                    id: value.message.id ?? null,
+                    model: value.message.model ?? null,
+                    usage: rawUsage,
+                  },
+                },
+              });
+
               // Programmatic tool calling: process pre-populated content blocks
               // (for deferred tool calls, content may be in message_start)
               if (value.message.content != null) {
@@ -3468,6 +3496,7 @@ function resolveAnthropicReasoningConfig({
         medium: 'medium' as const,
         high: 'high' as const,
         xhigh: supportsXhighEffort ? ('xhigh' as const) : ('max' as const),
+        max: 'max' as const,
       },
       warnings,
     });

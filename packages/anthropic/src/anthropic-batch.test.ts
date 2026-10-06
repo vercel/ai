@@ -2097,6 +2097,66 @@ describe('Anthropic batch', () => {
       ]);
     });
 
+    it('preserves fallback blocks in successful results', async () => {
+      server.urls[urls.batch].response = {
+        type: 'json-value',
+        body: batchResponse(),
+      };
+      server.urls[urls.results].response = {
+        type: 'stream-chunks',
+        chunks: [
+          JSON.stringify({
+            custom_id: 'fallback',
+            result: {
+              type: 'succeeded',
+              message: {
+                ...messageResultBody('Done'),
+                content: [
+                  {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                  { type: 'text', text: 'Done' },
+                ],
+              },
+            },
+          }),
+        ],
+      };
+      const model = createAnthropic({
+        apiKey: 'test-api-key',
+      }).experimental_batch();
+
+      const stream = await model.doGetBatchResults({
+        batchId: 'msgbatch_123',
+      });
+      const results = await convertReadableStreamToArray(stream);
+
+      expect(results).toMatchObject([
+        {
+          id: 'fallback',
+          status: 'succeeded',
+          result: {
+            content: [
+              {
+                type: 'custom',
+                kind: 'anthropic.fallback',
+                providerMetadata: {
+                  anthropic: {
+                    type: 'fallback',
+                    from: { model: 'claude-opus-5-5' },
+                    to: { model: 'claude-opus-4-8' },
+                  },
+                },
+              },
+              { type: 'text', text: 'Done' },
+            ],
+          },
+        },
+      ]);
+    });
+
     it('does not fail a successful message for a container upload block', async () => {
       server.urls[urls.batch].response = {
         type: 'json-value',

@@ -38,8 +38,9 @@ export type JustBashNetworkSandboxSessionCreateOptions = Prettify<
 
 type JustBashLookupSettings = Record<never, never>;
 
-export type JustBashNetworkSandboxSessionResumeOptions =
-  HarnessV1SandboxSessionResumeOptions<JustBashLookupSettings>;
+export type JustBashNetworkSandboxSessionResumeOptions = Prettify<
+  HarnessV1SandboxSessionResumeOptions<JustBashLookupSettings>
+>;
 
 export async function createJustBashNetworkSandboxSession(
   options: JustBashNetworkSandboxSessionCreateOptions = {},

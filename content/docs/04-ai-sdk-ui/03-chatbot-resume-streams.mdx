@@ -218,7 +218,7 @@ The diagram above shows the complete lifecycle of a resumable stream:
 2. **Stream tracking**: Your persistence layer saves the `activeStreamId` in the chat data
 3. **Client reconnection**: When the client reconnects (page reload), the `resume` option triggers a GET request to `/api/chat/[id]/stream`
 4. **Stream recovery**: The GET handler checks for an `activeStreamId` and uses `resumeExistingStream` to reconnect. If no active stream exists, it returns a 204 (No Content) response
-5. **Completion cleanup**: When the stream finishes, the `onFinish` callback clears the `activeStreamId` by setting it to `null`
+5. **Completion cleanup**: When the stream finishes, the `onEnd` callback clears the `activeStreamId` by setting it to `null`
 
 ## Customize the resume endpoint
 
@@ -310,7 +310,7 @@ export function Chat({
     const assistantMessage =
       lastMessage?.role === 'assistant' ? lastMessage : undefined;
 
-    void fetch(`/api/chat/${chatData.id}/stop`, {
+    void fetch(`/api/chat/${encodeURIComponent(chatData.id)}/stop`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(

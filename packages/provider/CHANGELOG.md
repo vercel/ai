@@ -1,5 +1,24 @@
 # @ai-sdk/provider
 
+## 4.0.22
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+
+## 4.0.21
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+
+## 4.0.20
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+
 ## 4.0.19
 
 ### Patch Changes

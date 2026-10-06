@@ -4,8 +4,166 @@ import {
   startHostToolRelay,
   type HostToolRelayTurn,
 } from './host-tool-relay';
+import { createHostToolRelayAuthorization } from './host-tool-relay-authorization';
 
 describe('startHostToolRelay', () => {
+  it('refuses a stolen bearer without an ACP call and executes only a matching one-use call', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'weather', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['weather'],
+      ttlMs: 20,
+    });
+    let notifyAuthorizationRequest: (() => void) | undefined;
+    const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest?.();
+        return pending;
+      },
+      emitToolCall: vi.fn(),
+      emitToolResult: vi.fn(),
+      requestToolResult: vi.fn(async () => ({ output: { celsius: 19 } })),
+      registerCorrelationInvocation: vi.fn(),
+      removeCorrelationInvocation: vi.fn(),
+    };
+    relay.bindTurn({ turn });
+    try {
+      await expect(
+        invokeResponse({
+          relay,
+          requestId: 'stolen-credential',
+          toolName: 'weather',
+          input: { city: 'Lima' },
+          catalogRevision: 1,
+        }),
+      ).resolves.toMatchObject({
+        status: 401,
+        value: { error: 'Unauthorized host tool relay request.' },
+      });
+      expect(turn.emitToolCall).not.toHaveBeenCalled();
+      expect(turn.registerCorrelationInvocation).not.toHaveBeenCalled();
+      expect(turn.requestToolResult).not.toHaveBeenCalled();
+
+      const authorizationRequested = new Promise<void>(resolve => {
+        notifyAuthorizationRequest = resolve;
+      });
+      const authorizedCall = invoke({
+        relay,
+        requestId: 'real-call',
+        toolName: 'weather',
+        input: { city: 'Lima' },
+        catalogRevision: 1,
+      });
+      await authorizationRequested;
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'model-call',
+          title: 'Weather',
+          name: 'mcp__ai-sdk-harness-tools__weather',
+          rawInput: { city: 'Lima' },
+          status: 'in_progress',
+        },
+      });
+      await expect(authorizedCall).resolves.toMatchObject({
+        output: { celsius: 19 },
+      });
+      expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+      expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
+
+      await expect(
+        invokeResponse({
+          relay,
+          requestId: 'replay',
+          toolName: 'weather',
+          input: { city: 'Lima' },
+          catalogRevision: 1,
+        }),
+      ).resolves.toMatchObject({ status: 401 });
+      expect(turn.emitToolCall).toHaveBeenCalledTimes(1);
+      expect(turn.registerCorrelationInvocation).toHaveBeenCalledTimes(1);
+    } finally {
+      authorization.close();
+      relay.unbindTurn({ turn });
+      await relay.close();
+    }
+  });
+
+  it('waits for full ACP input before executing a relay request', async () => {
+    const relay = await createRelay({
+      tools: [{ name: 'calculator', inputSchema: { type: 'object' } }],
+    });
+    const authorization = createHostToolRelayAuthorization({
+      serverName: 'ai-sdk-harness-tools',
+      toolNames: ['calculator'],
+      ttlMs: 250,
+    });
+    let notifyAuthorizationRequest!: () => void;
+    const authorizationRequested = new Promise<void>(resolve => {
+      notifyAuthorizationRequest = resolve;
+    });
+    const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: options => {
+        const pending = authorization.waitForToolCallAuthorization(options);
+        notifyAuthorizationRequest();
+        return pending;
+      },
+      emitToolCall: vi.fn(),
+      emitToolResult: vi.fn(),
+      requestToolResult: vi.fn(async () => ({ output: { sum: 5 } })),
+      registerCorrelationInvocation: vi.fn(),
+      removeCorrelationInvocation: vi.fn(),
+    };
+    relay.bindTurn({ turn });
+    try {
+      const input = { operation: 'add', origin: 'client', a: 2, b: 3 };
+      const response = invokeResponse({
+        relay,
+        requestId: 'full-input',
+        toolName: 'calculator',
+        input,
+        catalogRevision: 1,
+      });
+      await authorizationRequested;
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'partial-input',
+          title: 'mcp__ai-sdk-harness-tools__calculator',
+          rawInput: {},
+          status: 'pending',
+        },
+      });
+      expect(turn.emitToolCall).not.toHaveBeenCalled();
+      authorization.observeUpdate({
+        update: {
+          sessionUpdate: 'tool_call_update',
+          toolCallId: 'partial-input',
+          rawInput: input,
+          status: 'in_progress',
+        },
+      });
+
+      await expect(response).resolves.toMatchObject({
+        status: 200,
+        value: { output: { sum: 5 } },
+      });
+      expect(turn.emitToolCall).toHaveBeenCalledWith({
+        toolCallId: 'full-input',
+        toolName: 'calculator',
+        input,
+      });
+      expect(turn.requestToolResult).toHaveBeenCalledTimes(1);
+    } finally {
+      authorization.close();
+      relay.unbindTurn({ turn });
+      await relay.close();
+    }
+  });
+
   it('emits one authoritative call, waits for the caller, and returns the result', async () => {
     let resolveResult!: (result: {
       output: unknown;
@@ -21,6 +179,7 @@ describe('startHostToolRelay', () => {
     const emitToolResult = vi.fn();
     const registerCorrelationInvocation = vi.fn();
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall,
       emitToolResult,
       requestToolResult: () => pendingResult,
@@ -184,6 +343,7 @@ describe('startHostToolRelay', () => {
 
   it('rejects stale and removed calls without consuming invocation order', async () => {
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall: vi.fn(),
       emitToolResult: vi.fn(),
       requestToolResult: async () => ({
@@ -249,6 +409,7 @@ describe('startHostToolRelay', () => {
 
   it('returns caller failures and rejects unauthenticated calls', async () => {
     const turn: HostToolRelayTurn = {
+      waitForToolCallAuthorization: async () => true,
       emitToolCall: vi.fn(),
       emitToolResult: vi.fn(),
       requestToolResult: async () => ({

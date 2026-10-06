@@ -133,9 +133,9 @@ Here's an example of how you can use [Upstash Redis](https://upstash.com/redis) 
 ```tsx filename="app/api/chat/route.ts"
 import {
   convertToModelMessages,
-  createUIMessageStreamResponse,
+  createTextStreamResponse,
   streamText,
-  toUIMessageStream,
+  toTextStream,
   UIMessage,
 } from 'ai';
 __PROVIDER_IMPORT__;
@@ -175,9 +175,13 @@ export async function POST(req: Request) {
     },
   });
 
-  // Respond with the stream
-  return createUIMessageStreamResponse({
-    stream: toUIMessageStream({ stream: result.stream }),
+  // Respond with a text stream, matching the cached plain text response
+  return createTextStreamResponse({
+    stream: toTextStream({ stream: result.stream }),
   });
 }
 ```
+
+Both the cached and the fresh responses use the
+[text stream protocol](/docs/ai-sdk-ui/stream-protocol#text-stream-protocol),
+so use `TextStreamChatTransport` when calling this route with `useChat`.

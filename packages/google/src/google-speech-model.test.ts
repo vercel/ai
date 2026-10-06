@@ -72,6 +72,7 @@ describe('doGenerate', () => {
       const result = await model.doGenerate({ text: 'Hello.' });
 
       expect(result.response.body).toStrictEqual(body);
+      expect(result.usage).toStrictEqual(body.usageMetadata);
     },
   );
 

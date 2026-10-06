@@ -460,7 +460,7 @@ See the [Amazon Bedrock Guardrails with Converse API documentation](https://docs
 Amazon Bedrock supports citations for document-based inputs across compatible models. When enabled:
 
 - Some models can read documents with visual understanding, not just extracting text
-- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (Not Supported Yet)
+- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (the AI SDK does not return citation data in results yet)
 
 ```ts
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -634,6 +634,24 @@ Amazon Bedrock supports model creator-specific reasoning features:
 
 - Anthropic (e.g. `claude-sonnet-4-5-20250929`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
+
+You can also use the top-level `reasoning` parameter. For Amazon Nova 2, `'xhigh'` and `'max'` are mapped to `'high'` with a compatibility warning. Anthropic and OpenAI effort mappings preserve `'max'`.
+
+Bedrock combines partial `providerOptions.amazonBedrock.reasoningConfig` with
+portable reasoning, preserving explicit values and deriving missing fields for
+the model's reasoning API. An explicit `maxReasoningEffort` replaces the effort
+mapping without emitting a coercion warning for the overridden value. For
+budget-based Anthropic models, `{ budgetTokens: 5000 }` preserves that budget and
+uses portable reasoning to fill a missing `type: 'enabled'`. Type-only,
+display-only, and empty configurations also retain portable reasoning.
+
+Effort-based Anthropic models can combine portable effort with an explicit
+thinking configuration. A disabled type prevents effort/budget derivation;
+portable `reasoning: 'none'` disables thinking on Anthropic models even when an
+enabled type or budget is supplied. Omitting portable reasoning or using
+`'provider-default'` leaves the provider configuration unchanged. The legacy
+`bedrock` provider options key follows the same rules. See the
+[reasoning guide](/docs/ai-sdk-core/reasoning#precedence-rules) for precedence details.
 
 ```ts
 import {
@@ -1454,7 +1472,7 @@ network requests made of the Bedrock servers.
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const { text } = await generateText({
+const result = await generateText({
   model: amazonBedrock('meta.llama3-70b-instruct-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
