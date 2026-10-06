@@ -83,7 +83,7 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
 
     if (typeof document !== 'undefined') {
       const onVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
+        if (document.visibilityState === 'visible' && chat.status === 'error') {
           void chat.resumeStream();
         }
       };
@@ -105,7 +105,11 @@ function registerAutomaticResume<UI_MESSAGE extends UIMessage>({
   const shouldResume = registrations.size === 0;
   registrations.add(registration);
 
-  if (shouldResume) {
+  if (
+    shouldResume &&
+    chat.status !== 'submitted' &&
+    chat.status !== 'streaming'
+  ) {
     void chat.resumeStream();
   }
 

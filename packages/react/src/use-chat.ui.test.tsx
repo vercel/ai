@@ -2375,7 +2375,12 @@ describe('use-chat', () => {
       const chat = new Chat({
         id: 'shared',
         transport: {
-          sendMessages: async () => new ReadableStream(),
+          sendMessages: async () =>
+            new ReadableStream({
+              start(controller) {
+                controller.error(new TypeError('network connection lost'));
+              },
+            }),
           reconnectToStream: async () => {
             reconnectCount++;
             return null;
@@ -2398,12 +2403,125 @@ describe('use-chat', () => {
 
       await waitFor(() => expect(reconnectCount).toBe(1));
 
+      await act(async () => {
+        await chat.sendMessage({ text: 'hi' });
+      });
+      expect(chat.status).toBe('error');
+
       visibilityState.mockReturnValue('hidden');
       fireEvent(document, new Event('visibilitychange'));
       visibilityState.mockReturnValue('visible');
       fireEvent(document, new Event('visibilitychange'));
 
       await waitFor(() => expect(reconnectCount).toBe(2));
+    });
+
+    it('should not reconnect while the original stream is healthy', async () => {
+      const visibilityState = vi
+        .spyOn(document, 'visibilityState', 'get')
+        .mockReturnValue('visible');
+      let originalController!: ReadableStreamDefaultController<UIMessageChunk>;
+      let reconnectCount = 0;
+      let sendCount = 0;
+      const onData = vi.fn();
+      const onFinish = vi.fn();
+      const sendAutomaticallyWhen = vi
+        .fn()
+        .mockReturnValueOnce(true)
+        .mockReturnValue(false);
+      const chat = new Chat({
+        id: 'healthy-stream',
+        generateId: mockId(),
+        transport: {
+          sendMessages: async () => {
+            sendCount++;
+
+            if (sendCount > 1) {
+              return new ReadableStream<UIMessageChunk>({
+                start(controller) {
+                  controller.enqueue({ type: 'start' });
+                  controller.enqueue({ type: 'finish' });
+                  controller.close();
+                },
+              });
+            }
+
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                originalController = controller;
+              },
+            });
+          },
+          reconnectToStream: async () => {
+            reconnectCount++;
+
+            if (reconnectCount === 1) {
+              return null;
+            }
+
+            return new ReadableStream<UIMessageChunk>({
+              start(controller) {
+                controller.enqueue({
+                  type: 'data-progress',
+                  data: 'duplicate',
+                });
+                controller.enqueue({ type: 'finish' });
+                controller.close();
+              },
+            });
+          },
+        },
+        onData,
+        onFinish,
+        sendAutomaticallyWhen,
+      });
+
+      function Consumer() {
+        useChat({ chat, resume: true });
+        return null;
+      }
+
+      render(<Consumer />);
+      await waitFor(() => expect(reconnectCount).toBe(1));
+
+      let sendPromise!: Promise<void>;
+      await act(async () => {
+        sendPromise = chat.sendMessage({ text: 'hi' });
+      });
+      await act(async () => {
+        originalController.enqueue({ type: 'start' });
+        originalController.enqueue({
+          type: 'data-progress',
+          data: 'original',
+        });
+        originalController.enqueue({ type: 'text-start', id: 'text' });
+        originalController.enqueue({
+          type: 'text-delta',
+          id: 'text',
+          delta: 'Hello',
+        });
+      });
+      await waitFor(() => expect(chat.status).toBe('streaming'));
+
+      visibilityState.mockReturnValue('hidden');
+      fireEvent(document, new Event('visibilitychange'));
+      visibilityState.mockReturnValue('visible');
+      fireEvent(document, new Event('visibilitychange'));
+
+      await act(async () => {});
+      expect(reconnectCount).toBe(1);
+
+      await act(async () => {
+        originalController.enqueue({ type: 'text-end', id: 'text' });
+        originalController.enqueue({ type: 'finish' });
+        originalController.close();
+        await sendPromise;
+      });
+
+      expect(onData).toHaveBeenCalledTimes(1);
+      expect(onFinish).toHaveBeenCalledTimes(2);
+      expect(sendAutomaticallyWhen).toHaveBeenCalledTimes(2);
+      expect(sendCount).toBe(2);
     });
 
     it('should abort the first reconnect when StrictMode starts another', async () => {
