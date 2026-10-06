@@ -169,7 +169,6 @@ export function addLanguageModelUsage(
       ),
     },
     totalTokens: addTokenCounts(usage1.totalTokens, usage2.totalTokens),
-<<<<<<< HEAD
     reasoningTokens: addTokenCounts(
       usage1.reasoningTokens,
       usage2.reasoningTokens,
@@ -178,9 +177,7 @@ export function addLanguageModelUsage(
       usage1.cachedInputTokens,
       usage2.cachedInputTokens,
     ),
-=======
     ...(raw == null ? {} : { raw }),
->>>>>>> 73d83432ac (fix: preserve provider-reported V2 total token usage in generated results (#22114))
   };
 }
 
