@@ -18,6 +18,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type { AnthropicLanguageModelOptions } from './anthropic-language-model-options';
 import { getModelCapabilities } from './anthropic-language-model';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import { anthropic, createAnthropic } from './anthropic-provider';
 
 vi.mock('./version', () => ({
@@ -3006,6 +3007,20 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "Revenue increased by 25% year over year",
+                    "document_index": 0,
+                    "document_title": "Financial Report 2023",
+                    "end_page_number": 6,
+                    "start_page_number": 5,
+                    "type": "page_location",
+                  },
+                ],
+              },
+            },
             "text": "Based on the document, the results show positive growth.",
             "type": "text",
           },
@@ -3095,6 +3110,20 @@ describe('AnthropicLanguageModel', () => {
       expect(result.content).toMatchInlineSnapshot(`
         [
           {
+            "providerMetadata": {
+              "anthropic": {
+                "citations": [
+                  {
+                    "cited_text": "important information",
+                    "document_index": 0,
+                    "document_title": "Test Document",
+                    "end_char_index": 35,
+                    "start_char_index": 15,
+                    "type": "char_location",
+                  },
+                ],
+              },
+            },
             "text": "The text shows important information.",
             "type": "text",
           },
@@ -3541,9 +3570,11 @@ describe('AnthropicLanguageModel', () => {
           expect(
             textParts.flatMap(
               part =>
-                (part.providerMetadata?.anthropic?.citations as
-                  | unknown[]
-                  | null) ?? [],
+                (
+                  part.providerMetadata as
+                    | AnthropicTextProviderMetadata
+                    | undefined
+                )?.anthropic.citations ?? [],
             ),
           ).toHaveLength(3);
         });

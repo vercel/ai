@@ -22,6 +22,7 @@ import {
   openaiResponsesReasoningModelIds,
   type OpenAILanguageModelResponsesOptions,
 } from './openai-responses-language-model-options';
+import type { OpenaiResponsesTextProviderMetadata } from './openai-responses-provider-metadata';
 const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
@@ -5482,6 +5483,41 @@ describe('OpenAIResponsesLanguageModel', () => {
 
         it('should include file search tool call and result in content', async () => {
           expect(result.content).toMatchSnapshot();
+        });
+
+        it('should keep retrieved results separate from inline file citations', () => {
+          const toolResult = result.content.find(
+            (
+              part,
+            ): part is Extract<
+              LanguageModelV4Content,
+              { type: 'tool-result' }
+            > => part.type === 'tool-result' && part.toolName === 'fileSearch',
+          );
+          const textPart = result.content.find(part => part.type === 'text');
+          const annotations =
+            (
+              textPart?.providerMetadata as
+                | OpenaiResponsesTextProviderMetadata
+                | undefined
+            )?.openai.annotations ?? [];
+
+          expect(toolResult?.result).toMatchObject({
+            results: [
+              {
+                fileId: 'file-Ebzhf8H4DPGPr9pUhr7n7v',
+                filename: 'ai.pdf',
+                score: 0.9311,
+              },
+            ],
+          });
+          expect(annotations).toEqual([
+            expect.objectContaining({
+              type: 'file_citation',
+              file_id: 'file-Ebzhf8H4DPGPr9pUhr7n7v',
+              filename: 'ai.pdf',
+            }),
+          ]);
         });
       });
     });

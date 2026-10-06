@@ -46,6 +46,7 @@ import type {
   AnthropicMessageMetadata,
   AnthropicUsageIteration,
 } from './anthropic-message-metadata';
+import type { AnthropicTextProviderMetadata } from './anthropic-provider-metadata';
 import {
   anthropicChunkSchema,
   anthropicResponseSchema,
@@ -1231,21 +1232,18 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
       switch (part.type) {
         case 'text': {
           if (!usesJsonResponseTool) {
-            const webSearchCitations = part.citations?.filter(
-              citation => citation.type === 'web_search_result_location',
-            );
+            const citations = part.citations ?? [];
 
             content.push({
               type: 'text',
               text: part.text,
-              ...(webSearchCitations != null &&
-                webSearchCitations.length > 0 && {
-                  providerMetadata: {
-                    anthropic: {
-                      citations: webSearchCitations,
-                    },
+              ...(citations.length > 0 && {
+                providerMetadata: {
+                  anthropic: {
+                    citations,
                   },
-                }),
+                } satisfies AnthropicTextProviderMetadata,
+              }),
             });
 
             // Process citations if present
@@ -2564,7 +2562,7 @@ export class AnthropicLanguageModel implements LanguageModelV4 {
                           anthropic: {
                             citations: contentBlock.citations,
                           },
-                        },
+                        } satisfies AnthropicTextProviderMetadata,
                       }),
                     });
                     break;
