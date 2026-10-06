@@ -10,7 +10,7 @@ import {
 import { afterEach, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { createOpenAI } from './openai-provider';
-import { OpenAIDecisionModel } from './openai-decision-model';
+import { DecisionOpenAIModel } from './openai-decision-model';
 
 // Illustrative Decisions API response, not a live capture.
 const fixture = JSON.parse(
@@ -310,13 +310,13 @@ it('uses lazy environment authentication and configured provider name', async ()
 
 it('restores the Decisions endpoint and headers across workflow serialization', async () => {
   const { model, fetch } = setup();
-  const serialized = OpenAIDecisionModel[WORKFLOW_SERIALIZE](
-    model as OpenAIDecisionModel,
+  const serialized = DecisionOpenAIModel[WORKFLOW_SERIALIZE](
+    model as DecisionOpenAIModel,
   );
   expect(serialized.config.fetch).toBeUndefined();
   expect(serialized.config.url).toBeUndefined();
   vi.stubGlobal('fetch', fetch);
-  const restored = OpenAIDecisionModel[WORKFLOW_DESERIALIZE](serialized);
+  const restored = DecisionOpenAIModel[WORKFLOW_DESERIALIZE](serialized);
   await restored.doDecide(options);
   expect(fetch.mock.calls[0][0]).toBe('https://example.com/v1/decisions');
   expect(

@@ -76,7 +76,7 @@ function toText(input: DecisionModelV4Input): string {
   return typeof input === 'string' ? input : JSON.stringify(input);
 }
 
-export class OpenAIDecisionModel implements DecisionModelV4 {
+export class DecisionOpenAIModel implements DecisionModelV4 {
   readonly specificationVersion = 'v4';
   readonly supportedQuestionTypes = ['choice', 'score', 'boolean'] as const;
 
@@ -89,7 +89,7 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
     return this.config.provider;
   }
 
-  static [WORKFLOW_SERIALIZE](model: OpenAIDecisionModel) {
+  static [WORKFLOW_SERIALIZE](model: DecisionOpenAIModel) {
     return serializeModelOptions({
       modelId: model.modelId,
       config: model.config,
@@ -100,7 +100,7 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
     modelId: OpenAIDecisionModelId;
     config: Parameters<typeof prepareOpenAIConfigForWorkflowDeserialize>[0];
   }) {
-    return new OpenAIDecisionModel(
+    return new DecisionOpenAIModel(
       options.modelId,
       prepareOpenAIConfigForWorkflowDeserialize(options.config),
     );

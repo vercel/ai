@@ -21,7 +21,7 @@ import {
   type WebSocketConstructor,
 } from '@ai-sdk/provider-utils';
 import {
-  OpenAIDecisionModel,
+  DecisionOpenAIModel,
   type OpenAIDecisionModelId,
 } from './openai-decision-model';
 import { OpenAIChatLanguageModel } from './chat/openai-chat-language-model';
@@ -367,7 +367,7 @@ export function createOpenAI(
   provider.completion = createCompletionModel;
   provider.responses = createResponsesModel;
   provider.decisionModel = (modelId: OpenAIDecisionModelId) =>
-    new OpenAIDecisionModel(modelId, {
+    new DecisionOpenAIModel(modelId, {
       baseURL,
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
