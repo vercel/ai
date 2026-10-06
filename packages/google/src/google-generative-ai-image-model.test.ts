@@ -481,6 +481,8 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     'https://api.example.com/v1beta/models/gemini-2.5-flash-image:generateContent';
 
   const geminiServer = createTestServer({
+    'https://api.example.com/v1beta/models/gemini-nano-banana-2.1:generateContent':
+      {},
     [TEST_URL_GEMINI_IMAGE]: {
       response: {
         type: 'json-value',
@@ -512,6 +514,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
   });
 
   function prepareGeminiJsonResponse({
+    url = TEST_URL_GEMINI_IMAGE,
     images = [{ mimeType: 'image/png', data: 'base64-generated-image' }],
     usage = {
       promptTokenCount: 10,
@@ -520,6 +523,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     },
     headers,
   }: {
+    url?: keyof typeof geminiServer.urls;
     images?: Array<{ mimeType: string; data: string }>;
     usage?: {
       promptTokenCount: number;
@@ -528,7 +532,7 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
     };
     headers?: Record<string, string>;
   } = {}) {
-    geminiServer.urls[TEST_URL_GEMINI_IMAGE].response = {
+    geminiServer.urls[url].response = {
       type: 'json-value',
       headers,
       body: {
@@ -919,6 +923,44 @@ describe('GoogleGenerativeAIImageModel (Gemini)', () => {
       );
       // existing image metadata should be preserved alongside the LM metadata
       expect(googleMetadata?.images).toStrictEqual([{}]);
+    });
+  });
+
+  it('should generate and edit images with gemini-nano-banana-2.1', async () => {
+    prepareGeminiJsonResponse({
+      url: 'https://api.example.com/v1beta/models/gemini-nano-banana-2.1:generateContent',
+    });
+    const nanoBananaModel = new GoogleGenerativeAIImageModel(
+      'gemini-nano-banana-2.1',
+      {},
+      {
+        provider: 'google.generative-ai',
+        baseURL: 'https://api.example.com/v1beta',
+        headers: { 'api-key': 'test-key' },
+      },
+    );
+
+    const result = await nanoBananaModel.doGenerate({
+      prompt: 'Add a hat to this cat',
+      files: [
+        { type: 'file', data: 'base64-source-image', mediaType: 'image/png' },
+      ],
+      mask: undefined,
+      n: 1,
+      size: undefined,
+      aspectRatio: '4:1',
+      seed: undefined,
+      providerOptions: {},
+    });
+
+    expect(result.images).toStrictEqual(['base64-generated-image']);
+    const requestBody = await geminiServer.calls[0].requestBodyJson;
+    expect(requestBody.contents[0].parts).toStrictEqual([
+      { text: 'Add a hat to this cat' },
+      { inlineData: { mimeType: 'image/png', data: 'base64-source-image' } },
+    ]);
+    expect(requestBody.generationConfig.imageConfig).toStrictEqual({
+      aspectRatio: '4:1',
     });
   });
 
