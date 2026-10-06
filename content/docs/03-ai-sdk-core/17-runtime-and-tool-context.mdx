@@ -123,10 +123,9 @@ Treat tool context as immutable inside tools. If you need to change tool context
 between steps, inspect the previous step in `prepareStep` and return an updated
 `toolsContext`.
 
-For `ToolLoopAgent`, provide default context in the constructor. To derive
-context for each `generate()` or `stream()` invocation, define a
-`callOptionsSchema`, pass custom values through `options`, and return the
-corresponding `runtimeContext` and `toolsContext` from `prepareCall`.
+For `ToolLoopAgent`, set context in the constructor. For context that changes
+with each invocation, use `callOptionsSchema` and `prepareCall`. See
+[Configuring Call Options](/docs/agents/configuring-call-options).
 
 ## Telemetry Context Filtering
 

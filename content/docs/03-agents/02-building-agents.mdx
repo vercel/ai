@@ -85,9 +85,7 @@ results. If a tool needs server-side values such as credentials, scoped
 permissions, or default settings, pass them through `toolsContext` and declare
 them with the tool's `contextSchema`.
 
-Set context defaults on `ToolLoopAgent`. When context varies for each call,
-define a `callOptionsSchema`, pass the values through `options`, and map them to
-`runtimeContext` and `toolsContext` in `prepareCall`.
+Set `runtimeContext` and `toolsContext` in the `ToolLoopAgent` constructor.
 
 ```ts
 import { ToolLoopAgent, tool } from 'ai';
@@ -109,35 +107,16 @@ const agent = new ToolLoopAgent({
         searchTickets(query, context.accountId, context.apiKey),
     }),
   },
-  callOptionsSchema: z.object({
-    requestId: z.string(),
-    escalated: z.boolean(),
-    supportApiKey: z.string(),
-    accountId: z.string(),
-  }),
   runtimeContext: {
-    requestId: 'not-set',
+    requestId: 'req_abc',
     escalated: false,
   },
   toolsContext: {
     searchTickets: {
-      apiKey: 'not-set',
-      accountId: 'not-set',
+      apiKey: process.env.SUPPORT_API_KEY!,
+      accountId: 'acct_123',
     },
   },
-  prepareCall: ({ options, ...settings }) => ({
-    ...settings,
-    runtimeContext: {
-      requestId: options.requestId,
-      escalated: options.escalated,
-    },
-    toolsContext: {
-      searchTickets: {
-        apiKey: options.supportApiKey,
-        accountId: options.accountId,
-      },
-    },
-  }),
   prepareStep: async ({ runtimeContext }) => {
     if (runtimeContext.escalated) {
       return { temperature: 0.1 };
@@ -149,14 +128,11 @@ const agent = new ToolLoopAgent({
 
 const result = await agent.generate({
   prompt: 'Find open billing tickets for this account.',
-  options: {
-    requestId: 'req_abc',
-    escalated: false,
-    supportApiKey: process.env.SUPPORT_API_KEY!,
-    accountId: 'acct_123',
-  },
 });
 ```
+
+For context that changes with each invocation, use `callOptionsSchema` and
+`prepareCall`. See [Configuring Call Options](/docs/agents/configuring-call-options).
 
 Model call settings returned from `prepareStep`, such as `temperature`, apply
 only to the current step. Later steps use the agent's top-level setting unless
