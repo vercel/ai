@@ -116,7 +116,11 @@ describe('Gradium provider', () => {
       json_config: '{"padding_bonus":0}',
       client_req_id: 'client-1',
     });
-    expect(mock.sent[1]).toEqual({ type: 'text', text: 'Hello' });
+    expect(mock.sent[1]).toEqual({
+      type: 'text',
+      text: 'Hello',
+      client_req_id: 'client-1',
+    });
     expect(result.providerMetadata?.gradium).toMatchObject({
       requestId: 'request-1',
       sampleRate: 48000,
@@ -157,7 +161,11 @@ describe('Gradium provider', () => {
       json_config: '{"language":"en"}',
       client_req_id: 'client-2',
     });
-    expect(mock.sent[1]).toEqual({ type: 'audio', audio: 'AQI=' });
+    expect(mock.sent[1]).toEqual({
+      type: 'audio',
+      audio: 'AQI=',
+      client_req_id: 'client-2',
+    });
   });
 
   it('decodes base64 input and allows explicit PCM format', async () => {
@@ -174,8 +182,26 @@ describe('Gradium provider', () => {
     expect(mock.sent[0]).toMatchObject({
       model_name: 'stt-translate',
       input_format: 'pcm',
+      json_config: '{"language":"any"}',
     });
     expect(mock.sent[1]).toEqual({ type: 'audio', audio: 'AQI=' });
+  });
+
+  it('defaults to language detection while preserving transcription configuration', async () => {
+    const mock = transport([
+      { type: 'text', text: 'Hello', start_s: 0, stop_s: 1 },
+    ]);
+    await transcribe({
+      model: createGradium({
+        apiKey: 'test',
+        webSocketFactory: mock.factory,
+      }).transcription(),
+      audio: new Uint8Array([1, 2]),
+      providerOptions: { gradium: { jsonConfig: { delay_in_frames: 10 } } },
+    });
+    expect(mock.sent[0]).toMatchObject({
+      json_config: '{"language":"any","delay_in_frames":10}',
+    });
   });
 
   it.each([

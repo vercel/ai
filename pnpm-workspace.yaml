@@ -6,8 +6,6 @@ packages:
   - 'packages/rsc/tests/e2e/next-server'
 
 overrides:
-  # Use the adjacent Gradium SDK checkout during local development.
-  '@gradium/sdk': file:../gradium-js
   shell-quote: 1.10.0
   tinyexec: 1.0.2
   oxlint: 1.56.0
@@ -22,6 +20,8 @@ minimumReleaseAgeExclude:
   - '@ai-sdk/*'
   - '@vercel/*'
   - 'ai'
+  # Validate the newly published Gradium SDK release in this integration.
+  - '@gradium/sdk'
 
 allowBuilds:
   '@google/genai': false

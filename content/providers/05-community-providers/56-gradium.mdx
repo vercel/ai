@@ -7,7 +7,7 @@ description: Gradium speech generation and transcription using the Gradium TypeS
 
 The `@gradium/ai-sdk` community provider wraps `@gradium/sdk` for the AI SDK v4 provider specification. Requests use Gradium's WebSocket protocol and return buffered results through `generateSpeech` and `transcribe`.
 
-This package is available in this workspace under `packages/gradium`. The root workspace override resolves `@gradium/sdk` to the adjacent `../gradium-js` checkout. Build that SDK before installing workspace dependencies. See the package README for local setup.
+This package is available in this workspace under `packages/gradium` and depends on the published `@gradium/sdk@^0.1.0` from npm. See the package README for local setup.
 
 ## Provider instance
 
@@ -65,6 +65,6 @@ console.log(result.text, result.segments);
 
 WAV media types map to `wav`, `audio/opus` and `audio/ogg` map to `opus` (the Ogg input must contain Opus), and `audio/pcm` maps to `pcm`. PCM input must be 24 kHz, 16-bit little-endian mono. Supply `providerOptions.gradium.inputFormat` (`wav`, `opus`, or `pcm`) when the media type does not describe the encoded bytes, such as raw PCM supplied as `application/octet-stream`. No audio conversion occurs. Other media types, including MP3, are rejected unless an explicit input format is supplied.
 
-Transcription provider options also include `jsonConfig` and `clientRequestId`. The provider maps Gradium timestamps to AI SDK segments. Detected language and total duration remain undefined because the SDK does not report them. Request IDs appear under `providerMetadata.gradium`.
+Transcription provider options also include `jsonConfig` and `clientRequestId`. The provider sends `jsonConfig.language: 'any'` by default for language detection; override it with a supported language such as `'en'` or `'fr'` when known. The provider maps Gradium timestamps to AI SDK segments. Detected language and total duration remain undefined because the SDK does not report them. Request IDs appear under `providerMetadata.gradium`.
 
 Both model types support `abortSignal`, the standard `speechModel` / `transcriptionModel` provider registry methods, and workflow serialization. Workflow serialization excludes credentials and transport functions; configure `GRADIUM_API_KEY` in the receiving workflow step. Realtime streaming and speech-to-speech remain available through `@gradium/sdk` directly.

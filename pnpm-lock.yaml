@@ -5,7 +5,6 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@gradium/sdk': file:../gradium-js
   shell-quote: 1.10.0
   tinyexec: 1.0.2
   oxlint: 1.56.0
@@ -2828,8 +2827,8 @@ importers:
         specifier: workspace:*
         version: link:../provider-utils
       '@gradium/sdk':
-        specifier: file:../../../gradium-js
-        version: file:../gradium-js
+        specifier: ^0.1.0
+        version: 0.1.0
     devDependencies:
       '@types/node':
         specifier: 22.19.19
@@ -7638,8 +7637,8 @@ packages:
     resolution: {integrity: sha512-7XhUbtnlkSEZK15kN3t+tzIMxsbKm/dSkKBFalj+20NvPKe1kBY7mR2P7vuijEn+f06z5+A8bVGKO0v39cr6Wg==}
     engines: {node: '>=18.0.0'}
 
-  '@gradium/sdk@file:../gradium-js':
-    resolution: {directory: ../gradium-js, type: directory}
+  '@gradium/sdk@0.1.0':
+    resolution: {integrity: sha512-n9zRTElaxw15HC6VQfxgGLvwSD1KWRRZ5IJBKZpbkzMkbnyGl1OrOqIiGaDzbS29JPZFRoXClcCBtMHArYAoEA==}
     engines: {node: '>=18.0.0'}
 
   '@grpc/grpc-js@1.14.4':
@@ -29201,7 +29200,7 @@ snapshots:
 
   '@google/generative-ai@0.21.0': {}
 
-  '@gradium/sdk@file:../gradium-js':
+  '@gradium/sdk@0.1.0':
     dependencies:
       ws: 8.21.0
     transitivePeerDependencies:

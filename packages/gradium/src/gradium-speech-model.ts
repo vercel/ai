@@ -86,7 +86,8 @@ export class GradiumSpeechModel implements SpeechModelV4 {
       this.config.ttsRoute ?? 'speech/tts',
       setup,
       options.abortSignal,
-      client => client.tts(setup, options.text),
+      client =>
+        client.tts(setup, options.text, { signal: options.abortSignal }),
     );
     return {
       audio: result.rawData,

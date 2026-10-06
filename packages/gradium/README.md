@@ -24,16 +24,21 @@ Set `GRADIUM_API_KEY`, or pass `apiKey` to `createGradium`. Authentication is re
 
 ## Local development
 
-This checkout uses `../gradium-js` through the root `pnpm-workspace.yaml` override. The package itself depends on `@gradium/sdk@^0.1.0`; remove the local override when using a published SDK release.
+This package depends on the published `@gradium/sdk@^0.1.0` from npm.
 
 ```sh
-npm ci --prefix ../gradium-js
-npm run build --prefix ../gradium-js
 pnpm install
 pnpm exec turbo build --filter @gradium/ai-sdk...
 pnpm --filter @gradium/ai-sdk test
 ```
 
 Examples live in `examples/ai-functions/src/generate-speech/gradium/basic.ts` and `examples/ai-functions/src/transcribe/gradium/basic.ts`. Run them with `GRADIUM_API_KEY` set. The transcription example takes a WAV file path as its first argument.
+
+To generate speech and transcribe the resulting audio in one request sequence:
+
+```sh
+cd examples/ai-functions
+FAIL_ON_ERROR=1 pnpm tsx src/generate-speech/gradium/round-trip.ts
+```
 
 See [the provider documentation](../../content/providers/05-community-providers/56-gradium.mdx) for supported formats and options. This is a local community provider package; it has not been published by this change.

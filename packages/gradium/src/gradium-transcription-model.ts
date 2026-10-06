@@ -74,7 +74,7 @@ export class GradiumTranscriptionModel implements TranscriptionModelV4 {
     const setup: STTSetup = {
       model_name: this.modelId,
       input_format: inputFormat,
-      json_config: settings?.jsonConfig,
+      json_config: { language: 'any', ...settings?.jsonConfig },
       client_req_id: settings?.clientRequestId,
     };
     const audio =
@@ -86,7 +86,7 @@ export class GradiumTranscriptionModel implements TranscriptionModelV4 {
       this.config.sttRoute ?? 'speech/asr',
       setup,
       options.abortSignal,
-      client => client.stt(setup, audio),
+      client => client.stt(setup, audio, { signal: options.abortSignal }),
     );
     return {
       text: result.text,
