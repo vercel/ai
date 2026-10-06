@@ -539,6 +539,22 @@ describe('AnthropicLanguageModel', () => {
         });
       });
 
+      it('should map reasoning "max" directly to adaptive thinking with effort "max"', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        const result = await provider('claude-sonnet-4-6').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        const requestBody = await server.calls[0].requestBodyJson;
+        expect(requestBody).toMatchObject({
+          thinking: { type: 'adaptive', display: 'summarized' },
+          output_config: { effort: 'max' },
+        });
+        expect(result.warnings).toEqual([]);
+      });
+
       it('should map reasoning "minimal" to adaptive thinking with effort "low" and emit compatibility warning', async () => {
         prepareJsonFixtureResponse('anthropic-text');
 
@@ -2075,6 +2091,52 @@ describe('AnthropicLanguageModel', () => {
         expect(
           server.calls[0].requestHeaders['anthropic-beta'],
         ).toBeUndefined();
+      });
+
+      it('should add the fallback beta when replaying a fallback block without a fallback chain', async () => {
+        prepareJsonFixtureResponse('anthropic-text');
+
+        await provider('claude-opus-4-8').doGenerate({
+          prompt: [
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'question' }],
+            },
+            {
+              role: 'assistant',
+              content: [
+                {
+                  type: 'custom',
+                  kind: 'anthropic.fallback',
+                  providerOptions: {
+                    anthropic: {
+                      type: 'fallback',
+                      from: { model: 'claude-opus-5-5' },
+                      to: { model: 'claude-opus-4-8' },
+                    },
+                  },
+                },
+                { type: 'text', text: 'the answer' },
+              ],
+            },
+            {
+              role: 'user',
+              content: [{ type: 'text', text: 'follow-up' }],
+            },
+          ],
+          maxOutputTokens: 16,
+        });
+
+        const body = await server.calls[0].requestBodyJson;
+        expect(body.fallbacks).toBeUndefined();
+        expect(body.messages[1].content[0]).toEqual({
+          type: 'fallback',
+          from: { model: 'claude-opus-5-5' },
+          to: { model: 'claude-opus-4-8' },
+        });
+        expect(server.calls[0].requestHeaders['anthropic-beta']).toBe(
+          'server-side-fallback-2026-06-01',
+        );
       });
 
       it('should preserve the fallback content block and surface the fallback iteration', async () => {

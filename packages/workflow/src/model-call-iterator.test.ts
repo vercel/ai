@@ -263,6 +263,58 @@ describe('modelCallIterator', () => {
     await expect(iterator.next()).resolves.toMatchObject({ done: false });
   });
 
+  it('reports measured stream performance in step results and callbacks', async () => {
+    const modelCallPerformance = {
+      responseTimeMs: 600,
+      effectiveOutputTokensPerSecond: 100 / 3,
+      outputTokensPerSecond: 200 / 3,
+      inputTokensPerSecond: 100 / 3,
+      effectiveTotalTokensPerSecond: 50,
+      timeToFirstOutputMs: 300,
+      timeBetweenOutputChunksMs: {
+        min: 50,
+        p10: 75,
+        median: 100,
+        avg: 125,
+        p90: 175,
+        max: 200,
+      },
+    };
+    vi.mocked(doStreamStep).mockResolvedValue(
+      createMockDoStreamStepResult({
+        rawOverrides: { performance: modelCallPerformance },
+      }),
+    );
+    const onStepEnd = vi.fn();
+    const iterator = modelCallIterator({
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
+      tools: {},
+      model: vi.fn() as any,
+      onStepEnd,
+    });
+
+    const result = await iterator.next();
+    const expectedPerformance = {
+      ...modelCallPerformance,
+      stepTimeMs: modelCallPerformance.responseTimeMs,
+      toolExecutionMs: {},
+    };
+
+    expect(result).toMatchObject({
+      done: false,
+      value: {
+        step: {
+          performance: expectedPerformance,
+        },
+      },
+    });
+    expect(onStepEnd).toHaveBeenCalledWith(
+      expect.objectContaining({
+        performance: expectedPerformance,
+      }),
+    );
+  });
+
   describe('generation settings', () => {
     it('merges defined prepareStep overrides', async () => {
       vi.mocked(doStreamStep).mockResolvedValue(createMockDoStreamStepResult());
@@ -872,6 +924,63 @@ describe('modelCallIterator', () => {
   });
 
   describe('providerMetadata to providerOptions mapping', () => {
+    it('preserves text provider metadata in assistant continuation messages', async () => {
+      const providerMetadata = {
+        openai: { itemId: 'message-1', phase: 'final_answer' },
+      };
+
+      vi.mocked(doStreamStep).mockResolvedValue(
+        createMockDoStreamStepResult({
+          rawOverrides: {
+            content: [
+              {
+                type: 'text',
+                text: 'An answer.',
+                providerMetadata,
+              },
+            ],
+          },
+        }),
+      );
+
+      const prompt = [
+        { role: 'user', content: [{ type: 'text', text: 'test' }] },
+      ] satisfies LanguageModelV4Prompt;
+      const iterator = modelCallIterator({
+        prompt,
+        tools: {},
+        model: vi.fn() as any,
+      });
+
+      const stepResult = await iterator.next();
+      expect(stepResult.done).toBe(false);
+      expect(
+        (stepResult.value as ModelCallIteratorYieldValue).step?.content,
+      ).toEqual([
+        {
+          type: 'text',
+          text: 'An answer.',
+          providerMetadata,
+        },
+      ]);
+
+      const finalResult = await iterator.next();
+      expect(finalResult.done).toBe(true);
+      expect(finalResult.value).toEqual([
+        ...prompt,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'text',
+              text: 'An answer.',
+              providerOptions: providerMetadata,
+            },
+          ],
+        },
+      ]);
+    });
+
     it('replays reasoning and provider metadata with tool calls in emission order', async () => {
       const providerMetadata = {
         anthropic: { signature: 'reasoning-signature' },

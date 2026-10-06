@@ -141,7 +141,7 @@ You can use the following optional settings to customize the OpenAI provider ins
 
 - **maiBaseURL** _string_
 
-  URL prefix for MAI realtime requests (MAI-Transcribe-2-Streaming).
+  URL prefix for MAI requests (MAI-Image and MAI-Transcribe-2-Streaming).
   Defaults to `https://{resourceName}.services.ai.azure.com/mai/v1`.
 
 - **webSocket** _WebSocketConstructor_
@@ -1049,7 +1049,8 @@ The following optional provider options are available for Azure OpenAI embedding
 
 ## Image Models
 
-You can create models that call the Azure OpenAI image generation API (DALL-E) using the `.image()` factory method. The first argument is your deployment name for the DALL-E model.
+You can create models that call the Azure OpenAI image generation API using the `.image()` factory method. The first argument is your deployment name.
+MAI-Image models use the [MAI image API](#mai-image) instead.
 
 ```ts
 const model = azure.image('your-dalle-deployment-name');
@@ -1117,6 +1118,67 @@ capabilities of a deployment, you can advertise them with the
   When creating your Azure OpenAI deployment, make sure to set the DALL-E model
   version you want to use.
 </Note>
+
+### MAI-Image
+
+MAI-Image models (`MAI-Image-2.6`, `MAI-Image-2.6-Flash`, `MAI-Image-2.5`,
+`MAI-Image-2.5-Flash`, `MAI-Image-2.5-Pro`) use the MAI image API at
+`https://{resourceName}.services.ai.azure.com/mai/v1` (override with
+`maiBaseURL`). Deployments named after the model are detected automatically,
+case-insensitively. For other deployment names, set
+`providerOptions.azure.api` to `'mai'`.
+
+```ts
+import { azure, type AzureImageModelOptions } from '@ai-sdk/azure';
+import { generateImage } from 'ai';
+
+const { image, usage } = await generateImage({
+  model: azure.image('MAI-Image-2.6'),
+  prompt: 'A watercolor of three flowers on a blue background',
+  size: '1536x1024',
+  providerOptions: {
+    azure: {
+      webGrounding: true,
+    } satisfies AzureImageModelOptions,
+  },
+});
+```
+
+Pass reference images to edit or combine them (up to five JPEG or PNG
+images). Masks are not supported.
+
+```ts
+const { image } = await generateImage({
+  model: azure.image('MAI-Image-2.6-Flash'),
+  prompt: {
+    text: 'Put the product from the first image into the scene from the second',
+    images: [productImage, sceneImage],
+  },
+});
+```
+
+Each request returns one PNG image; `generateImage` sends one request per image.
+`size` is sent as `width` and `height`. Each side must be at least 768 pixels,
+and the total pixel count at most 2,359,296 for MAI-Image-2.6 models and
+1,048,576 for MAI-Image-2.5 models. Without `size`, `aspectRatio` is mapped to
+dimensions of about one megapixel; without either, the model returns 1024x1024.
+`seed` is not supported. Token usage is returned in `usage`, with the input
+text and image token split in `providerMetadata.azure.images`.
+
+The following provider options are available:
+
+- **api** _'mai' | 'openai'_
+
+  API to use. Defaults to `'mai'` for MAI-Image models, `'openai'` otherwise.
+
+- **autoAspectRatio** _boolean_
+
+  Let the model choose the output aspect ratio from the prompt and reference
+  images. MAI-Image-2.6 models only.
+
+- **webGrounding** _boolean_
+
+  Ground generation in Bing web search results. MAI-Image-2.6 models only.
 
 ## Transcription Models
 
