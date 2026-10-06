@@ -32,7 +32,7 @@ pnpm exec turbo build --filter @gradium/ai-sdk...
 pnpm --filter @gradium/ai-sdk test
 ```
 
-Examples live in `examples/ai-functions/src/generate-speech/gradium/basic.ts` and `examples/ai-functions/src/transcribe/gradium/basic.ts`. Run them with `GRADIUM_API_KEY` set. The transcription example takes a WAV file path as its first argument.
+Examples live in `examples/ai-functions/src/generate-speech/gradium/basic.ts` and `examples/ai-functions/src/transcribe/gradium/basic.ts`. Run them with `GRADIUM_API_KEY` set. The transcription example defaults to the bundled `data/galileo-opus.ogg` sample and accepts a WAV or Ogg Opus file path as its first argument.
 
 To generate speech and transcribe the resulting audio in one request sequence:
 
