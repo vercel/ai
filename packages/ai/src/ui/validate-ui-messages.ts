@@ -10,6 +10,7 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
+import { getOwn } from '../util/get-own';
 import {
   type ProviderMetadata,
   providerMetadataSchema,
@@ -451,7 +452,7 @@ export async function safeValidateUIMessages<UI_MESSAGE extends UIMessage>({
 
           const toolPart = part as ValidatedToolPart;
           const toolName = toolPart.type.slice(5);
-          const tool = tools[toolName];
+          const tool = getOwn(tools, toolName);
 
           if (
             !tool &&
