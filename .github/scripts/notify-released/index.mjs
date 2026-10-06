@@ -96,7 +96,7 @@ async function continueWaitingForNpmPropagation() {
   if (!timedOut || DRY_RUN) return;
 
   console.log(
-    '\nNotification posted with npm propagation warnings. Continuing to wait before releasing the branch concurrency lock...',
+    '\nNotification posted with npm propagation warnings. Continuing to wait for npm propagation.',
   );
   await waitForNpmPropagation(Number.POSITIVE_INFINITY);
   console.log('All packages are now verified on npm.');

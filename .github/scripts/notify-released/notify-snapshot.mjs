@@ -129,7 +129,7 @@ export async function main({
   const githubSha = requireEnvironmentVariable('GITHUB_SHA', env);
   const githubRefName = requireEnvironmentVariable('GITHUB_REF_NAME', env);
   const githubRunId = requireEnvironmentVariable('GITHUB_RUN_ID', env);
-  const shortSha = requireEnvironmentVariable('SHORT_SHA', env);
+  const shortSha = env.SHORT_SHA || githubSha.slice(0, 8);
   const githubServerUrl = env.GITHUB_SERVER_URL || 'https://github.com';
   const [owner, repo] = githubRepository.split('/');
 
@@ -140,8 +140,10 @@ export async function main({
   }
 
   const repositoryRoot = fileURLToPath(new URL('../../../', import.meta.url));
+  const packagesDirectory =
+    env.SNAPSHOT_PACKAGES_DIRECTORY ?? path.join(repositoryRoot, 'packages');
   const publishedPackages = await findSnapshotPackages(
-    path.join(repositoryRoot, 'packages'),
+    packagesDirectory,
     shortSha,
   );
 
