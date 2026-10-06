@@ -48,7 +48,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "@xai-official/grok": "1.0.36",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "engines": {
