@@ -9,5 +9,7 @@ run(async () => {
     prompt: 'A nano banana in a fancy restaurant',
   });
 
-  await presentImages(files.filter(file => file.mediaType.startsWith('image/')));
+  await presentImages(
+    files.filter(file => file.mediaType.startsWith('image/')),
+  );
 });
