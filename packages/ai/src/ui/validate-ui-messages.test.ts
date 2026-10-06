@@ -1074,7 +1074,6 @@ describe('validateUIMessages', () => {
         },
       });
 
-<<<<<<< HEAD
       expect(messages).toEqual([
         {
           id: '1',
@@ -1082,6 +1081,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'foo',
               toolCallId: '1',
               state: 'output-available',
@@ -1091,22 +1091,6 @@ describe('validateUIMessages', () => {
           ],
         },
       ]);
-=======
-      expect(messages[1].parts[1]).toEqual({
-        type: 'dynamic-tool',
-        dynamic: false,
-        toolName: 'create_artifact',
-        toolCallId: 'toolu_demo_aborted',
-        state: 'output-available',
-        input: {},
-        output: '{"error":"Tool was aborted by the user."}',
-      });
-      expect(messages[2]).toEqual({
-        id: 'u2',
-        role: 'user',
-        parts: [{ type: 'text', text: 'are you working?' }],
-      });
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
     });
 
     it('should validate output when an output-available tool call has empty input', async () => {
@@ -1364,142 +1348,12 @@ describe('validateUIMessages', () => {
               errorText: 'Tool execution failed',
               providerExecuted: true,
             },
-<<<<<<< HEAD
-=======
-            {
-              type: 'dynamic-tool',
-              dynamic: false,
-              toolName: 'bar',
-              toolCallId: '3',
-              state: 'output-denied',
-              input: { foo: 'bar' },
-              approval: {
-                id: 'approval-1',
-                approved: false,
-              },
-            },
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
           ],
         },
       ]);
     });
 
-<<<<<<< HEAD
     it('should reject an output-denied call from a missing tool', async () => {
-=======
-    it('should represent terminal calls from unavailable agent tools as dynamic tool parts', async () => {
-      const inputMessages: TestMessage[] = [
-        {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-bar' as 'tool-foo',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {} as { foo: string },
-              output: { result: 'success' },
-            },
-            {
-              type: 'tool-bar' as 'tool-foo',
-              toolCallId: '2',
-              state: 'output-error',
-              input: undefined,
-              errorText: 'Tool execution failed',
-            },
-            {
-              type: 'tool-bar' as 'tool-foo',
-              toolCallId: '3',
-              state: 'output-denied',
-              input: {} as { foo: string },
-              approval: {
-                id: 'approval-1',
-                approved: false,
-              },
-            },
-          ],
-        },
-      ];
-
-      const messages = await validateUIMessagesForAgent<TestMessage>({
-        messages: inputMessages,
-        tools: {
-          foo: testTool,
-        },
-      });
-
-      expect(messages).toEqual([
-        {
-          id: '1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'dynamic-tool',
-              dynamic: false,
-              toolName: 'bar',
-              toolCallId: '1',
-              state: 'output-available',
-              input: {},
-              output: { result: 'success' },
-            },
-            {
-              type: 'dynamic-tool',
-              dynamic: false,
-              toolName: 'bar',
-              toolCallId: '2',
-              state: 'output-error',
-              input: undefined,
-              errorText: 'Tool execution failed',
-            },
-            {
-              type: 'dynamic-tool',
-              dynamic: false,
-              toolName: 'bar',
-              toolCallId: '3',
-              state: 'output-denied',
-              input: {},
-              approval: {
-                id: 'approval-1',
-                approved: false,
-              },
-            },
-          ],
-        },
-      ]);
-    });
-
-    it('should represent terminal calls as dynamic tool parts when agent tools are omitted', async () => {
-      const messages = await validateUIMessagesForAgent<TestMessage>({
-        messages: [
-          {
-            id: '1',
-            role: 'assistant',
-            parts: [
-              {
-                type: 'tool-bar' as 'tool-foo',
-                toolCallId: '1',
-                state: 'output-available',
-                input: { previous: 'value' } as never,
-                output: { result: 'success' },
-              },
-            ],
-          },
-        ],
-      });
-
-      expect(messages[0].parts[0]).toEqual({
-        type: 'dynamic-tool',
-        dynamic: false,
-        toolName: 'bar',
-        toolCallId: '1',
-        state: 'output-available',
-        input: { previous: 'value' },
-        output: { result: 'success' },
-      });
-    });
-
-    it('should reject stale terminal input for an available agent tool', async () => {
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
       await expect(
         validateUIMessages<TestMessage>({
           messages: [
@@ -1576,6 +1430,7 @@ describe('validateUIMessages', () => {
       const expectedDynamicParts = [
         {
           type: 'dynamic-tool',
+          dynamic: false,
           toolName: 'foo',
           toolCallId: '1',
           state: 'output-available',
@@ -1584,6 +1439,7 @@ describe('validateUIMessages', () => {
         },
         {
           type: 'dynamic-tool',
+          dynamic: false,
           toolName: 'foo',
           toolCallId: '2',
           state: 'output-error',
@@ -1592,6 +1448,7 @@ describe('validateUIMessages', () => {
         },
         {
           type: 'dynamic-tool',
+          dynamic: false,
           toolName: 'removed',
           toolCallId: '3',
           state: 'output-available',
@@ -1600,6 +1457,7 @@ describe('validateUIMessages', () => {
         },
         {
           type: 'dynamic-tool',
+          dynamic: false,
           toolName: 'removed',
           toolCallId: '4',
           state: 'output-error',

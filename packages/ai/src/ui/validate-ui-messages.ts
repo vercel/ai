@@ -21,11 +21,7 @@ import type {
   InferUIMessageTools,
   UIMessage,
 } from './ui-messages';
-<<<<<<< HEAD
-=======
 import { markToolPartAsUnavailable } from './unavailable-tool';
-import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
 
 type ValidatedToolPart = {
   type: `tool-${string}`;
@@ -87,7 +83,7 @@ function asDynamicToolPart(
   };
 
   if (toolPart.state === 'output-available') {
-    return {
+    return markToolPartAsUnavailable({
       ...common,
       state: 'output-available',
       input: toolPart.input,
@@ -95,23 +91,15 @@ function asDynamicToolPart(
       ...(toolPart.preliminary === undefined
         ? {}
         : { preliminary: toolPart.preliminary }),
-    };
+    });
   }
 
-<<<<<<< HEAD
-  return {
+  return markToolPartAsUnavailable({
     ...common,
     state: 'output-error',
     input: toolPart.input,
     errorText: toolPart.errorText,
-  };
-=======
-  return markToolPartAsUnavailable({
-    ...part,
-    type: 'dynamic-tool',
-    toolName: type.slice(5),
-  } as DynamicToolUIPart);
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
+  });
 }
 
 const uiMessagesSchema = lazyValidator(() =>
@@ -197,41 +185,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
-<<<<<<< HEAD
-=======
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-requested'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRequestedSchema,
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('approval-responded'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalRespondedSchema,
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                   state: z.literal('output-available'),
                   input: z.unknown(),
                   providerExecuted: z.boolean().optional(),
@@ -252,26 +205,6 @@ const uiMessagesSchema = lazyValidator(() =>
                   output: z.never().optional(),
                   errorText: z.string(),
                   callProviderMetadata: providerMetadataSchema.optional(),
-<<<<<<< HEAD
-=======
-                  resultProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalGrantedSchema.optional(),
-                }),
-                z.object({
-                  type: z.literal('dynamic-tool'),
-                  dynamic: z.literal(false).optional(),
-                  toolName: z.string(),
-                  toolCallId: z.string(),
-                  title: z.string().optional(),
-                  toolMetadata: toolMetadataSchema.optional(),
-                  state: z.literal('output-denied'),
-                  input: z.unknown(),
-                  providerExecuted: z.boolean().optional(),
-                  output: z.never().optional(),
-                  errorText: z.never().optional(),
-                  callProviderMetadata: providerMetadataSchema.optional(),
-                  approval: approvalDeniedSchema,
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                 }),
                 z.object({
                   type: z.string().startsWith('tool-'),

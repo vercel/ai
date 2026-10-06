@@ -2,7 +2,8 @@ import { tool, type ModelMessage } from '@ai-sdk/provider-utils';
 import { describe, expect, it } from 'vitest';
 import z from 'zod/v4';
 import { convertToModelMessages } from './convert-to-model-messages';
-import type { UIMessage } from './ui-messages';
+import type { InferUITool, UIMessage } from './ui-messages';
+import { validateUIMessages } from './validate-ui-messages';
 
 describe('convertToModelMessages', () => {
   describe('system message', () => {
@@ -522,7 +523,6 @@ describe('convertToModelMessages', () => {
       `);
     });
 
-<<<<<<< HEAD
     it('should propagate provider metadata to tool-result (client-executed)', () => {
       const result = convertToModelMessages([
         {
@@ -539,39 +539,10 @@ describe('convertToModelMessages', () => {
                 testProvider: {
                   executionTime: 100,
                 },
-=======
-    it('should omit persisted output when a static tool is no longer available', async () => {
-      const historicalTool = tool({
-        inputSchema: z.object({ query: z.string() }),
-        outputSchema: z.object({
-          summary: z.string(),
-          privateMetadata: z.string(),
-        }),
-        toModelOutput: ({ output }) => ({
-          type: 'text',
-          value: output.summary,
-        }),
-      });
-
-      const history: UIMessage[] = [
-        {
-          id: 'assistant-1',
-          role: 'assistant',
-          parts: [
-            {
-              type: 'tool-search',
-              toolCallId: 'call-1',
-              state: 'output-available',
-              input: { query: 'weather' },
-              output: {
-                summary: 'sunny',
-                privateMetadata: 'must-not-reach-the-model',
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
               },
             },
           ],
         },
-<<<<<<< HEAD
       ]);
 
       expect(result).toMatchInlineSnapshot(`
@@ -756,18 +727,54 @@ describe('convertToModelMessages', () => {
           },
         ]
       `);
-=======
+    });
+
+    it('should omit persisted output when a static tool is no longer available', async () => {
+      const historicalTool = tool({
+        inputSchema: z.object({ query: z.string() }),
+        outputSchema: z.object({
+          summary: z.string(),
+          privateMetadata: z.string(),
+        }),
+        toModelOutput: output => ({
+          type: 'text',
+          value: output.summary,
+        }),
+      });
+      type SearchMessage = UIMessage<
+        never,
+        never,
+        { search: InferUITool<typeof historicalTool> }
+      >;
+
+      const history: SearchMessage[] = [
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          parts: [
+            {
+              type: 'tool-search',
+              toolCallId: 'call-1',
+              state: 'output-available',
+              input: { query: 'weather' },
+              output: {
+                summary: 'sunny',
+                privateMetadata: 'must-not-reach-the-model',
+              },
+            },
+          ],
+        },
       ];
 
-      const before = await convertToModelMessages(
-        await validateUIMessages({
+      const before = convertToModelMessages(
+        await validateUIMessages<SearchMessage>({
           messages: history,
           tools: { search: historicalTool },
         }),
         { tools: { search: historicalTool } },
       );
 
-      const validatedWithoutTool = await validateUIMessages({
+      const validatedWithoutTool = await validateUIMessages<SearchMessage>({
         messages: history,
         tools: {},
       });
@@ -778,19 +785,19 @@ describe('convertToModelMessages', () => {
       });
 
       const reloadedMessages = [
-        JSON.parse(JSON.stringify(validatedWithoutTool)) as UIMessage[],
+        JSON.parse(JSON.stringify(validatedWithoutTool)) as SearchMessage[],
         structuredClone(validatedWithoutTool),
       ];
 
       for (const messages of reloadedMessages) {
-        const revalidatedMessages = await validateUIMessages({
+        const revalidatedMessages = await validateUIMessages<SearchMessage>({
           messages,
           tools: {},
         });
 
-        await expect(
+        expect(
           convertToModelMessages(revalidatedMessages, { tools: {} }),
-        ).resolves.toEqual([
+        ).toEqual([
           {
             role: 'assistant',
             content: [
@@ -799,7 +806,6 @@ describe('convertToModelMessages', () => {
                 toolCallId: 'call-1',
                 toolName: 'search',
                 input: { query: 'weather' },
-                providerExecuted: undefined,
               },
             ],
           },
@@ -820,13 +826,12 @@ describe('convertToModelMessages', () => {
           },
         ]);
 
-        await expect(
+        expect(
           convertToModelMessages(revalidatedMessages, {
             tools: { search: historicalTool },
           }),
-        ).resolves.toEqual(before);
+        ).toEqual(before);
       }
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
     });
 
     describe('tool output error', () => {

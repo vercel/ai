@@ -28,12 +28,8 @@ import {
   isToolOrDynamicToolUIPart,
   isToolUIPart,
 } from './ui-messages';
-<<<<<<< HEAD
-
-=======
 import { isToolPartFromUnavailableTool } from './unavailable-tool';
-import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
+
 /**
 Converts an array of UI messages from useChat into an array of ModelMessages that can be used
 with the AI functions (e.g. `streamText`, `generateText`).
@@ -70,7 +66,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     }));
   }
 
-  async function createModelOutput({
+  function createModelOutput({
     toolPart,
     toolName,
     output,
@@ -81,7 +77,7 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     output: unknown;
     errorMode: 'none' | 'text' | 'json';
   }) {
-    const tool = getOwn(options?.tools, toolName);
+    const tool = options?.tools?.[toolName];
 
     if (
       errorMode === 'none' &&
@@ -95,8 +91,6 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     }
 
     return createToolModelOutput({
-      toolCallId: toolPart.toolCallId,
-      input: toolPart.input,
       output,
       tool,
       errorMode,
@@ -249,23 +243,14 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                     content.push({
                       type: 'tool-result',
                       toolCallId: part.toolCallId,
-<<<<<<< HEAD
                       toolName: toolName as string,
-                      output: createToolModelOutput({
-=======
-                      toolName,
-                      output: await createModelOutput({
+                      output: createModelOutput({
                         toolPart: part,
-                        toolName,
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
+                        toolName: toolName as string,
                         output:
                           part.state === 'output-error'
                             ? part.errorText
                             : part.output,
-<<<<<<< HEAD
-                        tool: options?.tools?.[toolName],
-=======
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                         errorMode:
                           part.state === 'output-error' ? 'json' : 'none',
                       }),
@@ -315,17 +300,17 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       case 'output-available': {
                         const toolName = getToolOrDynamicToolName(toolPart);
 
-<<<<<<< HEAD
                         return {
                           type: 'tool-result',
                           toolCallId: toolPart.toolCallId,
                           toolName,
-                          output: createToolModelOutput({
+                          output: createModelOutput({
+                            toolPart,
+                            toolName,
                             output:
                               toolPart.state === 'output-error'
                                 ? toolPart.errorText
                                 : toolPart.output,
-                            tool: options?.tools?.[toolName],
                             errorMode:
                               toolPart.state === 'output-error'
                                 ? 'text'
@@ -339,75 +324,6 @@ export function convertToModelMessages<UI_MESSAGE extends UIMessage>(
                       default: {
                         return null;
                       }
-=======
-                  // add synthetic execution-denied result for denied tool approvals
-                  if (
-                    toolPart.state === 'approval-responded' &&
-                    toolPart.approval?.approved === false
-                  ) {
-                    content.push({
-                      type: 'tool-result',
-                      toolCallId: toolPart.toolCallId,
-                      toolName: getToolName(toolPart),
-                      output: {
-                        type: 'execution-denied' as const,
-                        reason: toolPart.approval.reason,
-                      },
-                      ...(toolPart.callProviderMetadata != null
-                        ? { providerOptions: toolPart.callProviderMetadata }
-                        : {}),
-                    });
-                  }
-
-                  // For provider-executed tools, the tool result is already in the
-                  // assistant content. Skip adding to tool message to avoid duplicates
-                  // (which would create orphaned function_call_output entries).
-                  if (toolPart.providerExecuted === true) {
-                    continue;
-                  }
-
-                  switch (toolPart.state) {
-                    case 'output-denied': {
-                      content.push({
-                        type: 'tool-result',
-                        toolCallId: toolPart.toolCallId,
-                        toolName: getToolName(toolPart),
-                        output: {
-                          type: 'error-text' as const,
-                          value:
-                            toolPart.approval?.reason ??
-                            'Tool call execution denied.',
-                        },
-                        ...(toolPart.callProviderMetadata != null
-                          ? { providerOptions: toolPart.callProviderMetadata }
-                          : {}),
-                      });
-                      break;
-                    }
-
-                    case 'output-error':
-                    case 'output-available': {
-                      const toolName = getToolName(toolPart);
-                      content.push({
-                        type: 'tool-result',
-                        toolCallId: toolPart.toolCallId,
-                        toolName,
-                        output: await createModelOutput({
-                          toolPart,
-                          toolName,
-                          output:
-                            toolPart.state === 'output-error'
-                              ? toolPart.errorText
-                              : toolPart.output,
-                          errorMode:
-                            toolPart.state === 'output-error' ? 'text' : 'none',
-                        }),
-                        ...(toolPart.callProviderMetadata != null
-                          ? { providerOptions: toolPart.callProviderMetadata }
-                          : {}),
-                      });
-                      break;
->>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
                     }
                   })
                   .filter(
