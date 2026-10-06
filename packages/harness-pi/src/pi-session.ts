@@ -233,6 +233,11 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
+export interface PiFileToolPathPolicy {
+  readonly readableRoots?: ReadonlyArray<string>;
+  readonly deniedRoots?: ReadonlyArray<string>;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -242,6 +247,7 @@ export interface PiSessionSettings {
   readonly mcpServers?: Record<string, unknown>;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 }
 
 export interface CreatePiSessionInput {
@@ -285,7 +291,9 @@ function hasCompatibleReattachSettings(
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
     parked.settings.mcpServers === current.settings.mcpServers &&
     parked.settings.providers === current.settings.providers &&
-    parked.settings.extensionFactories === current.settings.extensionFactories
+    parked.settings.extensionFactories ===
+      current.settings.extensionFactories &&
+    parked.settings.fileToolPathPolicy === current.settings.fileToolPathPolicy
   );
 }
 
@@ -470,10 +478,18 @@ export async function createPiSession(
     workspaceVfs.mount(hostWorkDir, sessionWorkDir);
   }
 
+  const fileToolPathPolicy = input.settings.fileToolPathPolicy;
   const paths = createPiPathMapper({
     hostWorkDir,
     sandboxWorkDir: sessionWorkDir,
-    readableRoots: [{ sandboxDir: sandboxSkillRootDir }],
+    readableRoots: [
+      { sandboxDir: sandboxSkillRootDir },
+      ...(fileToolPathPolicy?.readableRoots ?? []).map(sandboxDir => ({
+        sandboxDir,
+      })),
+    ],
+    deniedRoots: fileToolPathPolicy?.deniedRoots,
+    ...(fileToolPathPolicy ? { homeDir: sandboxHomeDir } : {}),
   });
 
   // Pi auth + model registry are global to this Pi session. These live on the

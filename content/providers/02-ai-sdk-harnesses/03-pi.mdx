@@ -90,12 +90,46 @@ Settings:
   credentials.
 - `extensionFactories`: trusted inline Pi extension factories that run in the
   host Node.js process.
+- `fileToolPathPolicy`: extra sandbox roots Pi's native file tools can read,
+  and roots they must refuse. See [File Tool Paths](#file-tool-paths).
 - `mcpServers`: MCP server definitions keyed by server name.
 - `providers`: explicit Pi provider configurations for custom models.
 - `reattachInProcess`: whether a suspended turn can reuse its live Pi session
   in the current process. Defaults to `true`.
 - `thinkingLevel`: Pi thinking level (`off`, `minimal`, `low`, `medium`,
   `high`, `xhigh`, or `max`).
+
+## File Tool Paths
+
+By default, Pi's native file tools (`read`, `write`, `edit`, `ls`, `find`, and
+`grep`) are limited to the session workspace, and the read-only tools can also
+read the harness skill directory. Use `fileToolPathPolicy` to change what they
+can reach:
+
+```ts
+const harness = createPi({
+  fileToolPathPolicy: {
+    readableRoots: ['/home/vercel-sandbox', '/tmp'],
+    deniedRoots: ['/home/vercel-sandbox/.credentials'],
+  },
+});
+```
+
+- `readableRoots`: absolute sandbox directories that `read`, `ls`, `find`, and
+  `grep` can reach in addition to the defaults. They do not become writable.
+- `deniedRoots`: absolute sandbox directories that every native file tool
+  refuses, even inside the workspace or a readable root. Paths are resolved
+  before the check, so a symlink that points into a denied root is refused too.
+  `find` and `grep` skip denied roots when they search a parent directory.
+  `grep` skips them by directory name, so it also skips other directories with
+  the same name under the searched directory.
+
+When the setting is present, a leading `~` in a tool path expands to the
+sandbox home directory.
+
+The policy applies to Pi's native file tools only. The `bash` tool is not
+restricted by it, so do not treat `deniedRoots` as a security boundary for
+commands the agent runs.
 
 ## Inline Extensions
 

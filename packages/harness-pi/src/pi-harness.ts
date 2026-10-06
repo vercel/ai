@@ -11,7 +11,11 @@ import type {
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import {
+  createPiSession,
+  type PiFileToolPathPolicy,
+  type PiThinkingLevel,
+} from './pi-session';
 import { VERSION } from './version';
 
 /**
@@ -68,6 +72,14 @@ export type PiHarnessSettings = {
    * Filesystem-discovered user and project extensions remain disabled.
    */
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
+  /**
+   * Absolute sandbox paths that widen or narrow what Pi's native file tools
+   * can reach. `readableRoots` lets `read`, `ls`, `find`, and `grep` reach
+   * outside the session workspace. `deniedRoots` are refused by every native
+   * file tool and take precedence, including through symlinks. The `bash` tool
+   * is not restricted.
+   */
+  readonly fileToolPathPolicy?: PiFileToolPathPolicy;
 };
 
 const PI_BUILTIN_TOOLS = {
@@ -183,6 +195,9 @@ export function createPi(
           ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }
+            : {}),
+          ...(settings.fileToolPathPolicy
+            ? { fileToolPathPolicy: settings.fileToolPathPolicy }
             : {}),
           ...(startOpts.headers ? { headers: startOpts.headers } : {}),
         },

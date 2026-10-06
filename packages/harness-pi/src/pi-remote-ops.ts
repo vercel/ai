@@ -106,6 +106,18 @@ function parseFramedPath(output: string): string | undefined {
   }
 }
 
+function deniedRootPrune(
+  searchRoot: string,
+  relativeDeniedRoots: ReadonlyArray<string>,
+): string[] {
+  if (relativeDeniedRoots.length === 0) return [];
+  const prefix = searchRoot.endsWith('/') ? searchRoot : `${searchRoot}/`;
+  const tests = relativeDeniedRoots.map(
+    root => `-path ${shellQuote(`${prefix}${root}`)}`,
+  );
+  return [`\\( ${tests.join(' -o ')} \\) -prune -o`];
+}
+
 export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
   const runShell = async (
     command: string,
@@ -305,10 +317,17 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
       remotePath,
       inputPath,
     );
+    const findFlags = [
+      shellQuote(resolvedPath),
+      ...deniedRootPrune(
+        resolvedPath,
+        options.paths.relativeDeniedRootsUnder(resolvedPath),
+      ),
+    ].join(' ');
     const result = await runShell(
       [
         `if [ ! -e ${shellQuote(resolvedPath)} ]; then echo "__PI_FIND_NOT_FOUND__"; exit 2; fi`,
-        `if [ -d ${shellQuote(resolvedPath)} ]; then find ${shellQuote(resolvedPath)} -type f -print; else printf '%s\\n' ${shellQuote(resolvedPath)}; fi`,
+        `if [ -d ${shellQuote(resolvedPath)} ]; then find ${findFlags} -type f -print; else printf '%s\\n' ${shellQuote(resolvedPath)}; fi`,
       ].join('; '),
     );
 
@@ -360,6 +379,8 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
         : relativeTarget.startsWith('-')
           ? `./${relativeTarget}`
           : relativeTarget;
+    const relativeDeniedRoots =
+      options.paths.relativeDeniedRootsUnder(resolvedPath);
     const limit = Math.max(1, input.limit ?? 100);
     const commonFlags = [
       '-n',
@@ -371,6 +392,10 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     ];
     const recursiveFlags = [
       '-r',
+      // grep can only exclude directories by base name.
+      ...relativeDeniedRoots.map(
+        root => `--exclude-dir=${path.posix.basename(root)}`,
+      ),
       ...commonFlags,
       '-m',
       String(limit),
@@ -424,6 +449,7 @@ export function createPiRemoteOps(options: PiRemoteOpsOptions): PiRemoteOps {
     ].join('\n');
     const findFlags = [
       shellQuote(targetPath),
+      ...deniedRootPrune(targetPath, relativeDeniedRoots),
       '-type',
       'f',
       ...(input.glob ? ['-name', shellQuote(input.glob)] : []),
