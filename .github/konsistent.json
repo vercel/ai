@@ -22,7 +22,7 @@
           "use": "aisdk/package-must-have-changelog"
         },
         {
-          "use": "aisdk/package-must-have-tsup-config",
+          "use": "aisdk/package-must-have-tsdown-config",
           "excludeFiles": ["packages/svelte"]
         }
       ]
@@ -103,7 +103,7 @@
           "excludeFiles": [
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
-            "${providerId}-evaluation-model.ts"
+            "${providerId}-decision-model.ts"
           ]
         },
         {
@@ -118,8 +118,8 @@
         "aisdk/provider-speech-translation-model-file-must-export-model-class",
         "aisdk/provider-video-model-file-must-export-model-class",
         {
-          "use": "aisdk/provider-evaluation-model-file-must-export-model-class",
-          "excludeFiles": ["packages/gateway/src/gateway-evaluation-model.ts"]
+          "use": "aisdk/provider-decision-model-file-must-export-model-class",
+          "excludeFiles": ["packages/gateway/src/gateway-decision-model.ts"]
         },
         {
           "use": "aisdk/provider-model-file-must-have-matching-model-options-file",
@@ -127,14 +127,14 @@
             "${providerId}-realtime-model.ts",
             "${providerId}-video-model.ts",
             "packages/gateway/src/gateway-embedding-model.ts",
-            "packages/gateway/src/gateway-evaluation-model.ts",
+            "packages/gateway/src/gateway-decision-model.ts",
             "packages/gateway/src/gateway-image-model.ts",
             "packages/gateway/src/gateway-language-model.ts",
             "packages/gateway/src/gateway-realtime-model.ts",
             "packages/gateway/src/gateway-reranking-model.ts",
             "packages/gateway/src/gateway-speech-model.ts",
             "packages/gateway/src/gateway-transcription-model.ts",
-            "packages/typesafe-ai/src/typesafe-ai-evaluation-model.ts"
+            "packages/typesafe-ai/src/typesafe-ai-decision-model.ts"
           ]
         },
         {
@@ -166,6 +166,134 @@
           "excludeFiles": ["${providerId}-speech-translation-model-options.ts"]
         },
         "aisdk/provider-speech-translation-model-options-file-must-export-model-options-type"
+      ]
+    },
+    {
+      "name": "harness-layer-must-define-clearly-separate-entrypoints",
+      "description": "The harness layer package must define clearly separate entrypoints.",
+      "paths": ["packages/harness"],
+      "must": [
+        {
+          "name": "harness-layer-package-must-have-necessary-entrypoints",
+          "description": "The harness layer package must have the necessary entrypoints.",
+          "must": {
+            "haveType": "directory",
+            "haveFiles": [
+              "src/index.ts",
+              "agent/index.ts",
+              "bridge/index.ts",
+              "utils/index.ts"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-main-entrypoint-must-export-v1-spec",
+          "description": "The harness layer main entrypoint must export the entire HarnessV1 spec.",
+          "for": { "files": ["src/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "./v1" }],
+            "exportValuesFrom": ["./v1", "./errors/*"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ],
+            "exportTypesFrom": [
+              "./agent",
+              "./agent/*",
+              "./bridge",
+              "./bridge/*",
+              "./utils",
+              "./utils/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-agent-entrypoint-must-export-agent-api",
+          "description": "The harness layer agent entrypoint must export the entire HarnessAgent API.",
+          "for": { "files": ["agent/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/agent" }],
+            "exportValuesFrom": ["../src/agent"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-bridge-entrypoint-must-export-bridge-api",
+          "description": "The harness layer bridge entrypoint must export the entire bridge API.",
+          "for": { "files": ["bridge/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/bridge" }],
+            "exportValuesFrom": ["../src/bridge"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/utils",
+              "../src/utils/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        },
+        {
+          "name": "harness-layer-utils-entrypoint-must-export-utils",
+          "description": "The harness layer utils entrypoint must export all utilities.",
+          "for": { "files": ["utils/index.ts"] },
+          "must": {
+            "exportValues": [{ "name": "*", "from": "../src/utils" }],
+            "exportValuesFrom": ["../src/utils"]
+          },
+          "mustNot": {
+            "exportValuesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ],
+            "exportTypesFrom": [
+              "../src/agent",
+              "../src/agent/*",
+              "../src/bridge",
+              "../src/bridge/*",
+              "../src/v1",
+              "../src/v1/*"
+            ]
+          }
+        }
       ]
     },
     {
@@ -275,6 +403,10 @@
               {
                 "name": "withBridgeToken",
                 "from": "@ai-sdk/harness/utils"
+              },
+              {
+                "name": "resolveSandboxCredentialEnvironment",
+                "from": "@ai-sdk/harness/utils"
               }
             ],
             "importTypes": [
@@ -304,6 +436,36 @@
               "${harnessId.toCamelCase()}ResumeStateSchema"
             ],
             "declareTypes": ["${harnessId.toPascalCase()}BridgeCoords"]
+          }
+        },
+        {
+          "name": "harness-file-acp-backed-must-declare-bridge-contracts",
+          "description": "Every harness file for an ACP backed harness must declare its bridge contracts.",
+          "for": { "files": ["${harnessId}-harness.ts"] },
+          "if": {
+            "hasValueImport": {
+              "name": "createACP",
+              "from": "@ai-sdk/harness-acp"
+            }
+          },
+          "must": {
+            "callFunction": ["createACP"],
+            "exportTypes": [
+              {
+                "name": "${harnessId.toPascalCase()}HarnessSettings",
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "credentialForwarding": "HarnessV1CredentialForwarding",
+                    "mintBridgeToken": "HarnessV1MintBridgeTokenCallback",
+                    "port": { "type": "number" },
+                    "portEndpoint": "HarnessV1PortEndpoint",
+                    "reconnect": "SandboxChannelReconnectOptions",
+                    "startupTimeoutMs": { "type": "number" }
+                  }
+                }
+              }
+            ]
           }
         },
         {
@@ -644,46 +806,171 @@
           "must": {
             "exportValues": [
               {
-                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox",
                 "from": "./${sandboxId}-sandbox"
               }
             ],
             "exportTypes": [
               {
-                "name": "${sandboxId.toPascalCase()}SandboxSettings",
+                "name": "${sandboxId.toPascalCase()}NativeSandboxSession",
+                "from": "./${sandboxId}-sandbox"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
                 "from": "./${sandboxId}-sandbox"
               }
             ],
-            "haveFiles": ["${sandboxId}-sandbox.ts"]
+            "haveFiles": [
+              "${sandboxId}-sandbox.ts",
+              "${sandboxId}-sandbox-session.ts",
+              "${sandboxId}-network-sandbox-session.ts"
+            ]
           }
         },
         {
           "name": "sandbox-file-must-export-sandbox-creator-and-settings-type",
-          "description": "Every sandbox file must export a sandbox creator function and a sandbox settings type.",
-          "for": { "files": ["{sandboxId}-sandbox.ts"] },
+          "description": "Every sandbox file must export sandbox creator functions and sandbox settings types.",
+          "for": { "files": ["${sandboxId}-sandbox.ts"] },
           "must": {
             "importTypes": [
               {
-                "name": "HarnessV1SandboxProvider",
+                "name": "HarnessV1NetworkSandboxSession",
                 "from": "@ai-sdk/harness"
-              }
-            ],
-            "exportClasses": [
+              },
               {
-                "name": "${sandboxId.toPascalCase()}SandboxProvider",
-                "implement": ["HarnessV1SandboxProvider"]
+                "name": "HarnessV1SandboxSessionCreateOptions",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "HarnessV1SandboxSessionResumeOptions",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
               }
             ],
             "exportFunctions": [
               {
-                "name": "create${sandboxId.toPascalCase()}Sandbox",
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSession",
                 "receiveParamsOfTypes": [
-                  "${sandboxId.toPascalCase()}SandboxSettings"
+                  "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions"
                 ],
-                "returnValueOfType": "HarnessV1SandboxProvider"
+                "returnValueOfType": "Promise<HarnessV1NetworkSandboxSession>"
+              },
+              {
+                "name": "resume${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions"
+                ],
+                "returnValueOfType": "Promise<HarnessV1NetworkSandboxSession>"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NativeSandboxSession"
+                ],
+                "returnValueOfType": "SandboxSession"
+              },
+              {
+                "name": "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox",
+                "receiveParamsOfTypes": [
+                  "${sandboxId.toPascalCase()}NativeSandboxSession"
+                ],
+                "returnValueOfType": "HarnessV1NetworkSandboxSession"
               }
             ],
-            "exportTypes": ["${sandboxId.toPascalCase()}SandboxSettings"]
+            "declareTypes": [
+              "${sandboxId.toPascalCase()}CreationSettings",
+              "${sandboxId.toPascalCase()}LookupSettings"
+            ],
+            "exportTypes": [
+              "${sandboxId.toPascalCase()}NativeSandboxSession",
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+                "type": "Prettify<HarnessV1SandboxSessionCreateOptions<${sandboxId.toPascalCase()}CreationSettings> & { sandbox?: never; }>"
+              },
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+                "type": "Prettify<HarnessV1SandboxSessionResumeOptions<${sandboxId.toPascalCase()}LookupSettings>>"
+              }
+            ],
+            "useDeclarationOrder": [
+              "${sandboxId.toPascalCase()}NativeSandboxSession",
+              "${sandboxId.toPascalCase()}CreationSettings",
+              "${sandboxId.toPascalCase()}NetworkSandboxSessionCreateOptions",
+              "${sandboxId.toPascalCase()}LookupSettings",
+              "${sandboxId.toPascalCase()}NetworkSandboxSessionResumeOptions",
+              "create${sandboxId.toPascalCase()}NetworkSandboxSession",
+              "resume${sandboxId.toPascalCase()}NetworkSandboxSession",
+              "create${sandboxId.toPascalCase()}SandboxSessionFromNativeSandbox",
+              "create${sandboxId.toPascalCase()}NetworkSandboxSessionFromNativeSandbox"
+            ]
+          }
+        },
+        {
+          "name": "sandbox-session-file-must-export-sandbox-session-class",
+          "description": "Every sandbox session file must export a sandbox session class.",
+          "for": { "files": ["${sandboxId}-sandbox-session.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
+              },
+              {
+                "name": "Experimental_SandboxProcess",
+                "alias": "SandboxProcess",
+                "from": "@ai-sdk/provider-utils"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSession",
+                "implement": ["SandboxSession"]
+              }
+            ]
+          }
+        },
+        {
+          "name": "network-sandbox-session-file-must-export-network-sandbox-session-class",
+          "description": "Every network sandbox session file must export a network sandbox session class.",
+          "for": { "files": ["${sandboxId}-network-sandbox-session.ts"] },
+          "must": {
+            "importTypes": [
+              {
+                "name": "HarnessV1NetworkSandboxSession",
+                "from": "@ai-sdk/harness"
+              },
+              {
+                "name": "Experimental_SandboxSession",
+                "alias": "SandboxSession",
+                "from": "@ai-sdk/provider-utils"
+              }
+            ],
+            "importValues": [
+              {
+                "name": "${sandboxId.toPascalCase()}SandboxSession",
+                "from": "./${sandboxId}-sandbox-session"
+              }
+            ],
+            "exportClasses": [
+              {
+                "name": "${sandboxId.toPascalCase()}NetworkSandboxSession",
+                "extend": "${sandboxId.toPascalCase()}SandboxSession",
+                "implement": ["HarnessV1NetworkSandboxSession"]
+              }
+            ]
           }
         }
       ]

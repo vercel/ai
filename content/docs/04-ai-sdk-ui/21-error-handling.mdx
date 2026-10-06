@@ -12,15 +12,17 @@ These warnings help you fix problems before they cause errors.
 
 ### When Warnings Appear
 
-Warnings are shown in the browser console when:
+Warnings use Node.js `process.emitWarning` when available and `console.warn` in
+browser/edge runtimes. They appear when:
 
 - **Unsupported features**: You use a feature or setting that is not supported by the AI model (e.g., certain options or parameters).
 - **Compatibility warnings**: A feature is used in a compatibility mode, which might work differently or less optimally than intended.
+- **Deprecations**: You use a deprecated API, option, or message format.
 - **Other warnings**: The AI model reports another type of issue, such as general problems or advisory messages.
 
 ### Warning Messages
 
-All warnings start with "AI SDK Warning:" so you can easily find them. For example:
+All warnings include "AI SDK Warning" so you can easily find them. For example:
 
 ```
 AI SDK Warning: The feature "temperature" is not supported by this model
@@ -41,13 +43,36 @@ globalThis.AI_SDK_LOG_WARNINGS = false;
 #### Custom Warning Handler
 
 You can also provide your own function to handle warnings.
-It receives provider id, model id, and a list of warnings.
+It receives a list of warnings and optional provider and model ids. Custom
+handlers receive every warning, including repeated deprecations.
 
 ```ts
 globalThis.AI_SDK_LOG_WARNINGS = ({ warnings, provider, model }) => {
   // Handle warnings your own way
 };
 ```
+
+### Deprecation Warnings
+
+The default logger emits each deprecation code once per loaded SDK instance.
+In Node.js, these warnings have the type `DeprecationWarning` and a stable
+`AISDK_DEP_*` code, available as `warning.code` on `process.on('warning', handler)`.
+Browser/edge console messages include the code in brackets.
+
+| Code                                     | Deprecated usage / replacement                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------- |
+| `AISDK_DEP_GENERATE_OBJECT`              | Use `generateText` with `output` instead of `generateObject`.              |
+| `AISDK_DEP_STREAM_OBJECT`                | Use `streamText` with `output` instead of `streamObject`.                  |
+| `AISDK_DEP_EXPERIMENTAL_GENERATE_SPEECH` | Use `generateSpeech` instead of `experimental_generateSpeech`.             |
+| `AISDK_DEP_EXPERIMENTAL_TRANSCRIBE`      | Use `transcribe` instead of `experimental_transcribe`.                     |
+| `AISDK_DEP_TOOL_RESULT_*`                | Use `file` with tagged `data` instead of legacy tool-result content types. |
+| `AISDK_DEP_UI_MESSAGE_RAW_INPUT`         | Use `input` instead of `rawInput` in UI tool parts.                        |
+| `AISDK_DEP_IMAGE_CONTENT_PART`           | Use `file` with an image `mediaType` instead of `image` message parts.     |
+
+Run Node.js with `--throw-deprecation` to fail on deprecated usage,
+`--no-deprecation` to suppress deprecations, or `--trace-deprecation` for stack
+traces. These flags affect all `DeprecationWarning`s, rather than individual
+codes, and apply only to the default Node.js logger.
 
 ## Error Handling
 

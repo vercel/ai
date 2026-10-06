@@ -9,7 +9,7 @@
     "dist",
     "build",
     "node_modules",
-    "tsup.config.ts",
+    "tsdown.config.ts",
     "anthropic/index.d.ts",
     "mantle/index.d.ts"
   ],

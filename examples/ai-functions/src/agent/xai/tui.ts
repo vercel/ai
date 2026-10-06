@@ -4,7 +4,7 @@ import { ToolLoopAgent } from 'ai';
 import { run } from '../../lib/run';
 
 const agent = new ToolLoopAgent({
-  model: xai.responses('grok-4-fast-non-reasoning'),
+  model: xai.responses('grok-4-1-fast-non-reasoning'),
   instructions:
     'You are a helpful research assistant. Use search and code execution tools when they help.',
   tools: {

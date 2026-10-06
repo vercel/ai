@@ -10,7 +10,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const provider = openai;
-  const model = 'gpt-5-mini';
+  const model = 'gpt-6-luna';
   const tools = {
     web_search: openai.tools.webSearch({
       searchContextSize: 'low',

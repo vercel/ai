@@ -189,6 +189,7 @@ export class AnthropicBatch implements BatchV4<{
       provider: string;
       config: AnthropicLanguageModelConfig;
       supportedUrls: Record<string, RegExp[]>;
+      maxLineBytes?: number;
     },
   ) {
     this.provider = options.provider;
@@ -409,6 +410,7 @@ export class AnthropicBatch implements BatchV4<{
       failedResponseHandler: anthropicFailedResponseHandler,
       successfulResponseHandler: createJsonLinesResponseHandler(
         anthropicBatchResultLineSchema,
+        { maxLineBytes: this.options.maxLineBytes },
       ),
       abortSignal: options.abortSignal,
       fetch: this.options.config.fetch,
@@ -799,10 +801,19 @@ function convertAnthropicBatchResponse(
         });
         break;
       case 'compaction':
+        if (!part.content) {
+          break;
+        }
+
         content.push({
           type: 'text',
           text: part.content,
-          providerMetadata: { anthropic: { type: 'compaction' } },
+          providerMetadata: {
+            anthropic: {
+              type: 'compaction',
+              ...(part.signature != null && { signature: part.signature }),
+            },
+          },
         });
         break;
       case 'tool_use':
@@ -833,7 +844,7 @@ function convertAnthropicBatchResponse(
           toolName,
           input: JSON.stringify(
             isCodeExecutionAlias
-              ? { type: part.name, ...(part.input ?? {}) }
+              ? { type: part.name, ...part.input }
               : part.name === 'code_execution' &&
                   part.input != null &&
                   'code' in part.input &&
@@ -1047,6 +1058,17 @@ function convertAnthropicBatchResponse(
         }
         break;
       case 'fallback':
+        content.push({
+          type: 'custom',
+          kind: 'anthropic.fallback',
+          providerMetadata: {
+            anthropic: {
+              type: 'fallback',
+              from: part.from,
+              to: part.to,
+            },
+          },
+        });
         break;
     }
   }
@@ -1097,6 +1119,9 @@ function convertAnthropicMessageMetadata(response: AnthropicResponse) {
     ...(stopDetails != null ? { stopDetails } : {}),
     ...(response.input_transformations != null
       ? { inputTransformations: response.input_transformations }
+      : {}),
+    ...(response.safeguard_results != null
+      ? { safeguardResults: response.safeguard_results }
       : {}),
     iterations: response.usage.iterations
       ? response.usage.iterations.map(

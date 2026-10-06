@@ -5,7 +5,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: openai('gpt-4o-2024-08-06'),
+    model: openai('gpt-6-astra'),
     providerOptions: {
       openai: {
         structuredOutputs: false,

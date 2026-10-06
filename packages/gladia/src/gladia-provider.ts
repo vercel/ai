@@ -61,7 +61,7 @@ export function createGladia(
         }),
         ...options.headers,
       },
-      `ai-sdk/gladia/${VERSION}`,
+      `ai-sdk-gladia/${VERSION}`,
     );
 
   const createTranscriptionModel = () =>

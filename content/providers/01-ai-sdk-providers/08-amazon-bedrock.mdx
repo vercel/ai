@@ -328,7 +328,7 @@ import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: amazonBedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: amazonBedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
   messages: [
     {
       role: 'user',
@@ -460,7 +460,7 @@ See the [Amazon Bedrock Guardrails with Converse API documentation](https://docs
 Amazon Bedrock supports citations for document-based inputs across compatible models. When enabled:
 
 - Some models can read documents with visual understanding, not just extracting text
-- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (Not Supported Yet)
+- Models can cite specific parts of documents you provide, making it easier to trace information back to its source (the AI SDK does not return citation data in results yet)
 
 ```ts
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
@@ -544,7 +544,7 @@ const cyberpunkAnalysis =
   '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = await generateText({
-  model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',
@@ -580,7 +580,7 @@ const cyberpunkAnalysis =
   '... literary analysis of cyberpunk themes and concepts ...';
 
 const result = streamText({
-  model: amazonBedrock('anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  model: amazonBedrock('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'assistant',
@@ -634,6 +634,24 @@ Amazon Bedrock supports model creator-specific reasoning features:
 
 - Anthropic (e.g. `claude-sonnet-4-5-20250929`): enable via the `reasoningConfig` provider option and specifying a thinking budget in tokens (minimum: `1024`, maximum: `64000`).
 - Amazon (e.g. `us.amazon.nova-2-lite-v1:0`): enable via the `reasoningConfig` provider option and specifying a maximum reasoning effort level (`'low' | 'medium' | 'high'`).
+
+You can also use the top-level `reasoning` parameter. For Amazon Nova 2, `'xhigh'` and `'max'` are mapped to `'high'` with a compatibility warning. Anthropic and OpenAI effort mappings preserve `'max'`.
+
+Bedrock combines partial `providerOptions.amazonBedrock.reasoningConfig` with
+portable reasoning, preserving explicit values and deriving missing fields for
+the model's reasoning API. An explicit `maxReasoningEffort` replaces the effort
+mapping without emitting a coercion warning for the overridden value. For
+budget-based Anthropic models, `{ budgetTokens: 5000 }` preserves that budget and
+uses portable reasoning to fill a missing `type: 'enabled'`. Type-only,
+display-only, and empty configurations also retain portable reasoning.
+
+Effort-based Anthropic models can combine portable effort with an explicit
+thinking configuration. A disabled type prevents effort/budget derivation;
+portable `reasoning: 'none'` disables thinking on Anthropic models even when an
+enabled type or budget is supplied. Omitting portable reasoning or using
+`'provider-default'` leaves the provider configuration unchanged. The legacy
+`bedrock` provider options key follows the same rules. See the
+[reasoning guide](/docs/ai-sdk-core/reasoning#precedence-rules) for precedence details.
 
 ```ts
 import {
@@ -1454,7 +1472,7 @@ network requests made of the Bedrock servers.
 import { amazonBedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
-const { text } = await generateText({
+const result = await generateText({
   model: amazonBedrock('meta.llama3-70b-instruct-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
@@ -1590,10 +1608,10 @@ You can use the following optional settings to customize the Bedrock Anthropic p
 ### Language Models
 
 You can create models that call the [Anthropic Messages API](https://docs.anthropic.com/claude/reference/messages_post) using the provider instance.
-The first argument is the model id, e.g. `us.anthropic.claude-3-5-sonnet-20241022-v2:0`.
+The first argument is the model id, e.g. `us.anthropic.claude-sonnet-5-5`.
 
 ```ts
-const model = bedrockAnthropic('us.anthropic.claude-3-5-sonnet-20241022-v2:0');
+const model = bedrockAnthropic('us.anthropic.claude-sonnet-5-5');
 ```
 
 You can use Bedrock Anthropic language models to generate text with the `generateText` function:
@@ -1603,7 +1621,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-3-5-sonnet-20241022-v2:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -1627,7 +1645,7 @@ import { bedrockAnthropic } from '@ai-sdk/amazon-bedrock/anthropic';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: bedrockAnthropic('us.anthropic.claude-sonnet-4-5-20250929-v1:0'),
+  model: bedrockAnthropic('us.anthropic.claude-sonnet-5-5'),
   messages: [
     {
       role: 'system',
@@ -1756,6 +1774,7 @@ const result = await generateText({
 Anthropic has reasoning support for Claude 3.7 and Claude 4 models on Bedrock, including:
 
 - `us.anthropic.claude-fable-5-1`
+- `us.anthropic.claude-sonnet-5-5`
 - `us.anthropic.claude-sonnet-5`
 - `us.anthropic.claude-fable-5`
 - `us.anthropic.claude-opus-4-8`
@@ -1802,6 +1821,7 @@ on how to integrate reasoning into your chatbot.
 | Model                                          | Image Input | Object Generation | Tool Usage | Computer Use | Reasoning |
 | ---------------------------------------------- | ----------- | ----------------- | ---------- | ------------ | --------- |
 | `us.anthropic.claude-fable-5-1`                | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
+| `us.anthropic.claude-sonnet-5-5`               | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-sonnet-5`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-fable-5`                  | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
 | `us.anthropic.claude-opus-4-8`                 | <Check />   | <Check />         | <Check />  | <Check />    | <Check /> |
@@ -1823,7 +1843,7 @@ on how to integrate reasoning into your chatbot.
 
 ## Bedrock Mantle Provider Usage
 
-The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API at `https://bedrock-mantle.{region}.api.aws/v1`. This endpoint supports the Chat Completions API and the Responses API, and provides access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
+The Bedrock Mantle provider offers access to OpenAI-compatible models through Amazon Bedrock's Mantle API. It automatically selects the `/v1` or `/openai/v1` route based on the model. These endpoints support the Chat Completions API and the Responses API, and provide access to models that may only be available through the Mantle endpoint (such as `openai.gpt-oss-120b`).
 
 ### Provider Instance
 
@@ -1879,7 +1899,9 @@ You can use the following optional settings to customize the Bedrock Mantle prov
 - **baseURL** _string_
 
   Base URL for the Bedrock Mantle API calls.
-  Defaults to `https://bedrock-mantle.{region}.api.aws/v1`.
+  By default, the provider selects either
+  `https://bedrock-mantle.{region}.api.aws/v1` or
+  `https://bedrock-mantle.{region}.api.aws/openai/v1` based on the model.
 
 - **headers** _Record&lt;string, string | undefined&gt;_
 

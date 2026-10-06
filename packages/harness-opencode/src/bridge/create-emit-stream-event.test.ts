@@ -329,7 +329,7 @@ describe('createEmitStreamEvent', () => {
         ],
         "emitted": [
           {
-            "input": "{\"file\":\"README.md\"}",
+            "input": "{"file":"README.md"}",
             "nativeName": "view",
             "providerExecuted": true,
             "toolCallId": "tool-1",
@@ -369,7 +369,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryName\":\"next.js\"}",
+          "input": "{"libraryName":"next.js"}",
           "providerExecuted": true,
           "toolCallId": "tool-1",
           "toolName": "context7_resolve-library-id",
@@ -410,7 +410,7 @@ describe('createEmitStreamEvent', () => {
     expect(emitted).toMatchInlineSnapshot(`
       [
         {
-          "input": "{\"file\":\"README.md\"}",
+          "input": "{"file":"README.md"}",
           "nativeName": "view",
           "providerExecuted": true,
           "toolCallId": "tool-legacy",

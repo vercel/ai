@@ -6,7 +6,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = await generateText({
-    model: openai.chat('gpt-4.1-mini'),
+    model: openai.chat('gpt-6-luna'),
     // This disables the separate strict-schema limitation for typed
     // dictionaries, isolating `propertyNames`. Before the OpenAI schema
     // normalization, this request failed with a 400 because Zod emits

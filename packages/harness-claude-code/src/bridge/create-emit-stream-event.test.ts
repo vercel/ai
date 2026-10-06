@@ -12,6 +12,115 @@ describe('createEmitStreamEvent', () => {
     source: { type: 'base64', media_type: 'image/png', data: 'iVBORw0KGgo' },
   };
 
+  it('forwards tool progress as a raw stream part', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+    const progressMessage: ClaudeMessage = {
+      type: 'tool_progress',
+      parent_tool_use_id: 'tool-1',
+    };
+
+    emitStreamEvent(progressMessage);
+
+    expect(emitted).toEqual([
+      { type: 'stream-start' },
+      { type: 'raw', rawValue: progressMessage },
+    ]);
+  });
+
+  it('forwards a usage-bearing raw message_stop for each response', () => {
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_start',
+        message: {
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+          },
+        },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { output_tokens: 7 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: {
+        type: 'message_delta',
+        usage: { input_tokens: 11, output_tokens: 13 },
+      },
+    });
+    emitStreamEvent({
+      type: 'stream_event',
+      event: { type: 'message_stop' },
+    });
+
+    expect(
+      emitted.filter(
+        event =>
+          event.type === 'raw' &&
+          (event.rawValue as ClaudeMessage).event?.type === 'message_stop',
+      ),
+    ).toEqual([
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 2,
+            cache_creation_input_tokens: 3,
+            cache_read_input_tokens: 5,
+            output_tokens: 7,
+          },
+        },
+      },
+      {
+        type: 'raw',
+        rawValue: {
+          type: 'stream_event',
+          event: { type: 'message_stop' },
+          usage: {
+            input_tokens: 11,
+            output_tokens: 13,
+          },
+        },
+      },
+    ]);
+    expect(emitted).not.toContainEqual(
+      expect.objectContaining({ type: 'finish-step' }),
+    );
+  });
+
   it('ignores user messages with string content', () => {
     const state = createClaudeStreamEventState();
     state.stepOpen = true;
@@ -431,7 +540,7 @@ describe('createEmitStreamEvent', () => {
           "type": "stream-start",
         },
         {
-          "input": "{\"command\":\"pwd\"}",
+          "input": "{"command":"pwd"}",
           "nativeName": "Bash",
           "providerExecuted": true,
           "toolCallId": "tool-1",
@@ -694,6 +803,76 @@ describe('createEmitStreamEvent', () => {
     expect(leakedSubagentEvents).toEqual([]);
   });
 
+  it('forwards subagent and task activity as raw parts', () => {
+    const messages = JSON.parse(
+      readFileSync(
+        new URL('./__fixtures__/subagent-task-stream.json', import.meta.url),
+        'utf8',
+      ),
+    ) as ClaudeMessage[];
+    const state = createClaudeStreamEventState();
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state,
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: () => {},
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    for (const message of messages) {
+      emitStreamEvent(message);
+    }
+
+    const rawValues = emitted
+      .filter(event => event.type === 'raw')
+      .map(event => event.rawValue);
+    const expectedRawValues = messages.filter(
+      message =>
+        message.parent_tool_use_id != null ||
+        (message.type === 'system' &&
+          [
+            'background_tasks_changed',
+            'task_started',
+            'task_progress',
+            'task_updated',
+            'task_notification',
+          ].includes(message.subtype ?? '')),
+    );
+
+    expect(
+      emitted.some(
+        event =>
+          event.type === 'tool-call' &&
+          event.toolCallId === 'toolu_parent_agent',
+      ),
+    ).toBe(true);
+    expect(rawValues).toEqual(expectedRawValues);
+  });
+
+  it('preserves failed task terminal error handling', () => {
+    const terminalErrors: Array<string | undefined> = [];
+    const emitted: Record<string, unknown>[] = [];
+    const emitStreamEvent = createEmitStreamEvent({
+      state: createClaudeStreamEventState(),
+      emit: event => emitted.push(event),
+      emitWarning: () => {},
+      emitTerminalError: error => terminalErrors.push(error),
+      onCompactionBoundary: () => {},
+      toCommonName: name => name,
+    });
+
+    emitStreamEvent({
+      type: 'system',
+      subtype: 'task_updated',
+      patch: { status: 'failed', error: 'subagent failed' },
+    });
+
+    expect(terminalErrors).toEqual(['subagent failed']);
+    expect(emitted).toEqual([{ type: 'stream-start' }]);
+  });
+
   it('preserves retry and compaction handling', () => {
     const state = createClaudeStreamEventState();
     const warnings: unknown[] = [];
@@ -859,7 +1038,7 @@ describe('createEmitStreamEvent', () => {
       [
         {
           "dynamic": true,
-          "input": "{\"libraryId\":\"/vercel/next.js\"}",
+          "input": "{"libraryId":"/vercel/next.js"}",
           "nativeName": "mcp__context7__query-docs",
           "providerExecuted": true,
           "toolCallId": "external-tool",

@@ -111,8 +111,9 @@ The following optional provider options are available for DeepSeek models:
 
   Optional. Controls thinking strength for DeepSeek V4 reasoning models. When
   using the top-level `reasoning` setting, `minimal` is sent as `low`,
-  `medium` is sent as `high`, and `xhigh` is sent as `max`. A compatibility
-  warning is returned whenever the requested value is mapped.
+  `medium` is sent as `high`, `xhigh` is sent as `max`, and `max` is sent
+  directly. A compatibility warning is returned whenever the requested value
+  is mapped.
 
 For backwards compatibility, legacy provider options supplied at runtime are
 also mapped to documented values: `thinking.type: 'adaptive'` becomes
@@ -161,7 +162,7 @@ import {
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   instructions: {
     role: 'system',
     content: 'Help the customer plan a short trip.',
@@ -213,7 +214,7 @@ import {
 import { streamText } from 'ai';
 
 const result = streamText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   messages: [
     {
       role: 'user',
@@ -326,7 +327,7 @@ const deepSeek = createDeepSeek({
 });
 
 const result = await generateText({
-  model: deepSeek('deepseek-chat'),
+  model: deepSeek('deepseek-flash'),
   prompt: 'What is the weather in San Francisco?',
   tools: {
     weather: tool({

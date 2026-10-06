@@ -56,13 +56,13 @@ import { generateText } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 const { text } = await generateText({
   model: lmstudio('llama-3.2-1b'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
-  maxRetries: 1, // immediately error if the server is not running
+  maxRetries: 0, // immediately error if the server is not running
 });
 ```
 
@@ -85,7 +85,7 @@ import { embed } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 // 'embedding' is a single embedding object (number[])
@@ -110,7 +110,7 @@ import { embedMany } from 'ai';
 
 const lmstudio = createOpenAICompatible({
   name: 'lmstudio',
-  baseURL: 'https://localhost:1234/v1',
+  baseURL: 'http://localhost:1234/v1',
 });
 
 // 'embeddings' is an array of embedding objects (number[][]).

@@ -88,7 +88,7 @@ export function createKlingAI(
         Authorization: `Bearer ${token}`,
         ...options.headers,
       },
-      `ai-sdk/klingai/${VERSION}`,
+      `ai-sdk-klingai/${VERSION}`,
     );
   };
 

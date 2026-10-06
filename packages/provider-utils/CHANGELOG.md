@@ -1,5 +1,107 @@
 # @ai-sdk/provider-utils
 
+## 5.0.55
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 5094ebd: fix(provider-utils): preserve parallel tool calls when stream labels are missing or reused
+- 268225c: feat(provider): add a portable `max` reasoning level with native provider mappings, compatibility coercions, and budget-based fallback support.
+
+  Compatibility notes:
+
+  - **TypeScript source compatibility:** Adding `max` widens `LanguageModelV4CallOptions['reasoning']` and the derived `ReasoningLevel` type. Third-party providers and consumers with exhaustive switches or `Record<ReasoningLevel, ...>` mappings must handle `max` before upgrading. Ordinary calls using existing reasoning levels remain accepted.
+  - **Amazon Bedrock:** Existing Nova 2 calls using portable `reasoning: 'xhigh'` now send `maxReasoningEffort: 'high'` instead of the unsupported `'max'`, and return a compatibility warning. Anthropic and OpenAI Bedrock effort mappings retain their existing `xhigh` behavior. Partial Bedrock reasoning configurations continue to preserve explicit values and derive missing fields; explicit effort/budget overrides and disabled thinking no longer emit warnings for portable mappings that are not sent.
+  - **Fireworks:** Existing portable `minimal` and `xhigh` calls keep their request mappings to `low` and `high`, respectively, and now return compatibility warnings in generation and streaming results. Portable `max` maps to `high` with the same warning behavior.
+
+  **Release classification:** This remains a patch changeset under the repository's explicit release policy, which uses patch releases for both fixes and features. The TypeScript source-compatibility caveat for exhaustive consumers is disclosed above. Maintainers can override this classification with a `major` label if they decide to align the provider-spec addition with a future AI SDK major release.
+
+- 0af2f7c: chore: upgrade to TypeScript 6
+- Updated dependencies [268225c]
+  - @ai-sdk/provider@4.0.23
+
+## 5.0.54
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+  - @ai-sdk/provider@4.0.22
+
+## 5.0.53
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+  - @ai-sdk/provider@4.0.21
+
+## 5.0.52
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+
+## 5.0.51
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+
+## 5.0.50
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider@4.0.19
+
+## 5.0.49
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+
+## 5.0.48
+
+### Patch Changes
+
+- be877ff: Add `fetchUntrustedUrl`, an opt-in fetch helper that withholds credentials and
+  unknown custom headers from untrusted first-hop URLs. A matching configured
+  `credentialedOrigin` (or `trustedOrigin` when omitted) allows sanitized caller
+  headers. Otherwise only allowlisted metadata is sent; callers can explicitly
+  allow additional non-credential metadata with `untrustedFirstHopHeaders`.
+
+  The helper shares URL validation, DNS pinning, and redirect protection with
+  `fetchWithValidatedRedirects`, and is now used by `downloadBlob`.
+  `fetchWithValidatedRedirects` and `getFromApi` retain their existing behavior.
+  Direct callers must opt into the new helper for first-hop credential isolation;
+  existing authenticated and custom-header requests are not silently changed.
+
+## 5.0.47
+
+### Patch Changes
+
+- fe07867: Fix Google `embedMany` calls with more than 100 values by keeping per-value multimodal content aligned across automatic batches, including text-only entries. Validate content length before sending requests and validate each batch's provider options after middleware transforms them.
+- a4b0940: fix(ai): execute manually approved tool inputs produced by schema transforms
+
+  Preserve approved inputs during revalidation and reject histories whose reconstructed schema output differs, including signed approvals with missing original input. Validate transformed UI tool inputs against the reconstructed output before returning them as static tool parts.
+
+- 771e74b: chore: enable dead code lint rules
+
+## 5.0.46
+
+### Patch Changes
+
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+
 ## 5.0.45
 
 ### Patch Changes

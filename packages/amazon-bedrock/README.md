@@ -50,7 +50,7 @@ import { bedrock } from '@ai-sdk/amazon-bedrock';
 import { generateText } from 'ai';
 
 const { text } = await generateText({
-  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
   // API key is automatically loaded from AWS_BEARER_TOKEN_BEDROCK
 });
@@ -70,7 +70,7 @@ const bedrockWithApiKey = bedrock.withSettings({
 });
 
 const { text } = await generateText({
-  model: bedrockWithApiKey('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrockWithApiKey('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
@@ -85,7 +85,7 @@ import { generateText } from 'ai';
 
 // Uses AWS credentials from environment variables or AWS credential chain
 const { text } = await generateText({
-  model: bedrock('anthropic.claude-3-haiku-20240307-v1:0'),
+  model: bedrock('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
   prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```

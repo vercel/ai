@@ -21,11 +21,13 @@ import {
   type HarnessV1Session,
   type HarnessV1Skill,
   type HarnessV1StreamPart,
+  harnessStateDirectoryPath,
+  harnessSessionDataDirectoryPath,
 } from '@ai-sdk/harness';
 import {
   applyCredentialForwarding,
   classifyDiskLog,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   createBridgeToken,
   experimental_createBridgeUserMessageSubmitter,
   createBridgeErrorHandler,
@@ -34,7 +36,6 @@ import {
   forwardBridgeProcessStream,
   getRestrictedSandboxSession,
   markBridgeStarting,
-  resolveSandboxDefaultWorkingDirectory,
   resolveSandboxHomeDir,
   SandboxChannel,
   shellQuote,
@@ -81,7 +82,7 @@ type ClaudeCodeRespawnStrategy = 'replay' | 'rerun';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const CLAUDE_CODE_CLIENT_APP = `ai-sdk/harness-claude-code/${VERSION}`;
+const CLAUDE_CODE_CLIENT_APP = `ai-sdk-harness-claude-code/${VERSION}`;
 
 export type ClaudeCodeHarnessSettings = {
   readonly auth?: ClaudeCodeAuthenticationMode;
@@ -101,6 +102,16 @@ export type ClaudeCodeHarnessSettings = {
    * back to the caller. Unset means the CLI's default.
    */
   readonly maxTurns?: number;
+  /**
+   * Enables periodic AI-generated progress summaries for running subagents.
+   * The summaries are forwarded in raw `task_progress` stream parts.
+   */
+  readonly agentProgressSummaries?: boolean;
+  /**
+   * Forwards subagent text and thinking messages in addition to tool activity.
+   * Subagent messages are exposed as raw stream parts.
+   */
+  readonly forwardSubagentText?: boolean;
   /**
    * Environment variables for the Claude Code process. These values are
    * merged over the sandbox bridge process environment.
@@ -842,11 +853,6 @@ export function createClaudeCode(
             'The Claude Code harness cannot use `mintBridgeToken` with a sandbox session that does not expose an id.',
         });
       }
-      const defaultWorkingDirectory =
-        await resolveSandboxDefaultWorkingDirectory({
-          sandboxSession,
-          abortSignal: startOpts.abortSignal,
-        });
       const lifecycleState = startOpts.continueFrom ?? startOpts.resumeFrom;
       const isResume = lifecycleState != null;
       const isContinue = startOpts.continueFrom != null;
@@ -891,13 +897,14 @@ export function createClaudeCode(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: claudeEnvironment,
             credentialEnvironmentVariables:
               CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxClaudeEnvironment = {
           ...claudeEnvironment,
           ...sandboxCredentialEnvironment,
@@ -932,21 +939,25 @@ export function createClaudeCode(
             CLAUDE_CODE_CREDENTIAL_ENVIRONMENT_VARIABLES,
         });
       }
-      const bootstrapDir = posix.resolve(
-        defaultWorkingDirectory,
-        BOOTSTRAP_DIR,
-      );
+      // Harness SDK state (bootstrap, per-session runs) always lives under
+      // the sandbox's own HOME, never the working directory, so it stays
+      // out of a user-owned workspace.
+      const sandboxHomeDir = await resolveSandboxHomeDir({
+        sandbox: toolSafeSandboxSession,
+        abortSignal: startOpts.abortSignal,
+      });
+      const stateDir = harnessStateDirectoryPath({ sandboxHomeDir });
+      const bootstrapDir = posix.resolve(stateDir, BOOTSTRAP_DIR);
       // The conversation the host wants back, when it is known. Absent on
       // state written before this field existed; those resumes fall back to
       // the `continue` flag as before.
       const resumeSessionId = resumeData?.claudeSessionId;
 
       const workDir = startOpts.sessionWorkDir;
-      const sandboxHomeDir = await resolveSandboxHomeDir({
-        sandbox: toolSafeSandboxSession,
-        abortSignal: startOpts.abortSignal,
+      const sessionDataDir = harnessSessionDataDirectoryPath({
+        stateDirectory: stateDir,
+        sessionId: startOpts.sessionId,
       });
-      const sessionDataDir = `${defaultWorkingDirectory}/.agent-runs/${startOpts.sessionId}`;
       const bridgeStateDir = `${sessionDataDir}/bridge`;
       const timeoutMs = settings.startupTimeoutMs ?? 120_000;
 
@@ -1016,16 +1027,27 @@ export function createClaudeCode(
             onBridgeError,
             reconnect: settings.reconnect,
           });
-          await attachChannel.open(isContinue ? { resume: true } : undefined);
+          const finishListenerAttachment = isContinue
+            ? attachChannel.beginListenerAttachment()
+            : undefined;
+          try {
+            await attachChannel.open(isContinue ? { resume: true } : undefined);
+          } catch (error) {
+            finishListenerAttachment?.();
+            throw error;
+          }
           return createSession({
             sessionId: startOpts.sessionId,
             channel: attachChannel,
+            finishListenerAttachment,
             ...(resumeSessionId ? { resumeSessionId } : {}),
             // The live bridge was spawned by another process; this one owns no
             // process handle. The session lifecycle method decides whether the
             // sandbox is left running, stopped, or destroyed.
             proc: undefined,
             maxTurns: settings.maxTurns,
+            agentProgressSummaries: settings.agentProgressSummaries,
+            forwardSubagentText: settings.forwardSubagentText,
             env: sandboxClaudeEnvironment,
             thinking,
             effort: settings.effort,
@@ -1168,15 +1190,27 @@ export function createClaudeCode(
           ? { initialLastSeenEventId: coords?.lastSeenEventId ?? 0 }
           : {}),
       });
-      await channel.open(
-        respawnStrategy === 'replay' ? { resume: true } : undefined,
-      );
+      const finishListenerAttachment =
+        respawnStrategy === 'replay'
+          ? channel.beginListenerAttachment()
+          : undefined;
+      try {
+        await channel.open(
+          respawnStrategy === 'replay' ? { resume: true } : undefined,
+        );
+      } catch (error) {
+        finishListenerAttachment?.();
+        throw error;
+      }
 
       return createSession({
         sessionId: startOpts.sessionId,
         channel,
+        finishListenerAttachment,
         proc,
         maxTurns: settings.maxTurns,
+        agentProgressSummaries: settings.agentProgressSummaries,
+        forwardSubagentText: settings.forwardSubagentText,
         env: sandboxClaudeEnvironment,
         thinking,
         effort: settings.effort,
@@ -1490,8 +1524,11 @@ function formatUnknownError(error: unknown): string {
 function createSession({
   sessionId,
   channel,
+  finishListenerAttachment,
   proc,
   maxTurns,
+  agentProgressSummaries,
+  forwardSubagentText,
   env,
   thinking,
   effort,
@@ -1513,9 +1550,12 @@ function createSession({
 }: {
   sessionId: string;
   channel: ClaudeCodeChannel;
+  finishListenerAttachment: (() => void) | undefined;
   /** Undefined on `attach` — the live bridge was spawned by another process. */
   proc: Experimental_SandboxProcess | undefined;
   maxTurns: number | undefined;
+  agentProgressSummaries: boolean | undefined;
+  forwardSubagentText: boolean | undefined;
   env: Readonly<Record<string, string>> | undefined;
   thinking: ClaudeCodeThinkingConfig;
   effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' | undefined;
@@ -1621,6 +1661,7 @@ function createSession({
       'tool-approval-request',
       'tool-result',
       'finish-step',
+      'compaction',
       'raw',
     ] as const;
     for (const type of eventTypes) {
@@ -1650,6 +1691,8 @@ function createSession({
         settleError(msg.error);
       }),
     );
+    finishListenerAttachment?.();
+    finishListenerAttachment = undefined;
 
     /*
      * A `'suspended'` close is a graceful slice-boundary freeze the host
@@ -1786,6 +1829,10 @@ function createSession({
           : {}),
         model: promptOpts.model,
         maxTurns,
+        ...(agentProgressSummaries !== undefined
+          ? { agentProgressSummaries }
+          : {}),
+        ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
         ...(env !== undefined ? { env } : {}),
         thinking,
         ...(effort !== undefined ? { effort } : {}),
@@ -1850,6 +1897,10 @@ function createSession({
             : {}),
           model: continueOpts.model,
           maxTurns,
+          ...(agentProgressSummaries !== undefined
+            ? { agentProgressSummaries }
+            : {}),
+          ...(forwardSubagentText !== undefined ? { forwardSubagentText } : {}),
           ...(env !== undefined ? { env } : {}),
           thinking,
           ...(effort !== undefined ? { effort } : {}),
