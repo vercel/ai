@@ -107,10 +107,10 @@ registerTelemetry(new OpenTelemetry());
 Set `DD_API_KEY` and `DD_SITE` in your shell environment, then load the instrumentation module before your application starts:
 
 ```bash
-node --import ./instrumentation.mjs app.mjs
+node --import ./instrumentation.mjs your-app.mjs
 ```
 
-Replace `app.mjs` with your application's entry file. For scripts, import `sdk` from the instrumentation module and call `await sdk.shutdown()` after all AI SDK calls and streams finish. This exports pending spans before the process exits. See the [OpenTelemetry NodeSDK reference](https://open-telemetry.github.io/opentelemetry-js/classes/_opentelemetry_sdk-node.NodeSDK.html).
+For scripts, import `sdk` from the instrumentation module and call `await sdk.shutdown()` after all AI SDK calls and streams finish. See the [OpenTelemetry NodeSDK reference](https://open-telemetry.github.io/opentelemetry-js/classes/_opentelemetry_sdk-node.NodeSDK.html).
 
 </Tab>
 
