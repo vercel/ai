@@ -123,7 +123,13 @@ export async function convertToLanguageModelPrompt({
       }
 
       lastCombinedMessage.content.push(...message.content);
-      lastCombinedMessage.providerOptions = message.providerOptions;
+      lastCombinedMessage.providerOptions =
+        lastContentPart == null
+          ? mergeObjects(
+              lastCombinedMessage.providerOptions,
+              message.providerOptions,
+            )
+          : message.providerOptions;
     } else {
       combinedMessages.push(message);
     }
