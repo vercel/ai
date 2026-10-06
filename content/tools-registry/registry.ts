@@ -689,4 +689,41 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'darkmoon',
+    name: 'Darkmoon',
+    description:
+      'Autonomous AI penetration testing tools for AI SDK agents: launch a Darkmoon pentest campaign against an authorized target, check its status, list campaigns and read validated findings with CVSS, MITRE ATT&CK ids and remediation. Requires the Darkmoon Pro REST API; pentest launches need human approval by default and can be restricted to an allow-list of targets.',
+    packageName: '@darkmoon_ai/ai-sdk',
+    tags: ['security', 'pentest', 'vulnerability', 'devsecops', 'agent'],
+    apiKeyEnvName: 'DARKMOON_API_TOKEN',
+    installCommand: {
+      pnpm: 'pnpm add @darkmoon_ai/ai-sdk ai zod',
+      npm: 'npm install @darkmoon_ai/ai-sdk ai zod',
+      yarn: 'yarn add @darkmoon_ai/ai-sdk ai zod',
+      bun: 'bun add @darkmoon_ai/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { createDarkmoonTools } from '@darkmoon_ai/ai-sdk';
+
+// Reads DARKMOON_API_URL and DARKMOON_API_TOKEN (Darkmoon Pro REST API).
+const tools = createDarkmoonTools({
+  // Only these hosts can ever be scanned; pentest launches also require approval.
+  allowedTargets: ['staging.example.com'],
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools,
+  stopWhen: isStepCount(8),
+  prompt:
+    'List my Darkmoon campaigns and summarize the critical and high findings of the latest completed one.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://github.com/ASCIT31/darkmoon-ai-sdk#readme',
+    apiKeyUrl: 'https://dark-moon.org',
+    websiteUrl: 'https://dark-moon.org',
+    npmUrl: 'https://www.npmjs.com/package/@darkmoon_ai/ai-sdk',
+  },
 ];
