@@ -11,7 +11,11 @@ import type {
 import { z } from 'zod/v4';
 import type { PiAuthenticationMode, PiCredentialStore } from './pi-auth';
 import { piResumeStateSchema } from './pi-resume-state';
-import { createPiSession, type PiThinkingLevel } from './pi-session';
+import {
+  createPiSession,
+  type PiMcpSettings,
+  type PiThinkingLevel,
+} from './pi-session';
 import { VERSION } from './version';
 
 /**
@@ -62,6 +66,11 @@ export type PiHarnessSettings = {
    * underlying runtime's native MCP server configuration format.
    */
   readonly mcpServers?: Record<string, unknown>;
+  /**
+   * Settings for the MCP adapter that serves `mcpServers`, applied over this
+   * package's defaults.
+   */
+  readonly mcpSettings?: PiMcpSettings;
   /**
    * Trusted inline Pi extensions loaded for each harness session.
    *
@@ -180,6 +189,9 @@ export function createPi(
             ? { thinkingLevel: settings.thinkingLevel }
             : {}),
           ...(settings.mcpServers ? { mcpServers: settings.mcpServers } : {}),
+          ...(settings.mcpSettings
+            ? { mcpSettings: settings.mcpSettings }
+            : {}),
           ...(settings.providers ? { providers: settings.providers } : {}),
           ...(settings.extensionFactories
             ? { extensionFactories: settings.extensionFactories }

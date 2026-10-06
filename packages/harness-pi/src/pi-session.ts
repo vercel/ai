@@ -94,6 +94,7 @@ type PiMcpAdapterModule = {
         directTools: boolean;
         toolPrefix: string;
         disableProxyTool: boolean;
+        outputGuard?: boolean;
       };
     };
   }): ExtensionFactory;
@@ -233,6 +234,25 @@ export type PiThinkingLevel =
   | 'xhigh'
   | 'max';
 
+export interface PiMcpSettings {
+  /**
+   * How MCP tool names are prefixed: `mcp` (`mcp__<server>_<tool>`), `server`
+   * (`<server>_<tool>`), `short` (the server name without an `mcp` suffix), or
+   * `none` (the bare tool name). Only `mcp`-prefixed tool calls are reported
+   * as provider-executed dynamic tools with parsed JSON results.
+   *
+   * @default 'mcp'
+   */
+  readonly toolPrefix?: 'server' | 'none' | 'short' | 'mcp';
+  /**
+   * Whether the MCP adapter truncates large tool results and writes the full
+   * text to a file in the host temp directory.
+   *
+   * @default true
+   */
+  readonly outputGuard?: boolean;
+}
+
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
   readonly credentials?: PiCredentialStore;
@@ -240,6 +260,7 @@ export interface PiSessionSettings {
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
+  readonly mcpSettings?: PiMcpSettings;
   readonly providers?: Readonly<Record<string, ProviderConfig>>;
   readonly extensionFactories?: ReadonlyArray<ExtensionFactory>;
 }
@@ -284,6 +305,7 @@ function hasCompatibleReattachSettings(
     parked.settings.headers === current.settings.headers &&
     parked.settings.thinkingLevel === current.settings.thinkingLevel &&
     parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.mcpSettings === current.settings.mcpSettings &&
     parked.settings.providers === current.settings.providers &&
     parked.settings.extensionFactories === current.settings.extensionFactories
   );
@@ -559,6 +581,7 @@ export async function createPiSession(
             directTools: true,
             toolPrefix: 'mcp',
             disableProxyTool: true,
+            ...input.settings.mcpSettings,
           },
         },
       }),
