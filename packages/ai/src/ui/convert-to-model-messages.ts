@@ -10,6 +10,7 @@ import {
 import type { ToolSet } from '../generate-text/tool-set';
 import { createToolModelOutput } from '../prompt/create-tool-model-output';
 import { MessageConversionError } from '../prompt/message-conversion-error';
+import { getOwn } from '../util/get-own';
 import {
   getToolName,
   isDataUIPart,
@@ -77,7 +78,7 @@ export async function convertToModelMessages<UI_MESSAGE extends UIMessage>(
     output: unknown;
     errorMode: 'none' | 'text' | 'json';
   }) {
-    const tool = options?.tools?.[toolName];
+    const tool = getOwn(options?.tools, toolName);
 
     if (
       errorMode === 'none' &&
