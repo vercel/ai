@@ -1,5 +1,69 @@
 # @ai-sdk/provider-utils
 
+## 5.0.54
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 59116e6: fix(groq,google): use JSON response tool for structured outputs with tool calling
+- Updated dependencies [2959d35]
+  - @ai-sdk/provider@4.0.22
+
+## 5.0.53
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- 527a163: fix: validate hostname parts using `isValidHostnamePart`
+- Updated dependencies [8c65988]
+  - @ai-sdk/provider@4.0.21
+
+## 5.0.52
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+
+## 5.0.51
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+
+## 5.0.50
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider@4.0.19
+
+## 5.0.49
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- bc49f78: Preserve original opaque URI strings in tagged file URLs during prompt conversion. Match explicit supported URL MIME types exactly so unsupported subtypes are not forwarded to providers.
+
+## 5.0.48
+
+### Patch Changes
+
+- be877ff: Add `fetchUntrustedUrl`, an opt-in fetch helper that withholds credentials and
+  unknown custom headers from untrusted first-hop URLs. A matching configured
+  `credentialedOrigin` (or `trustedOrigin` when omitted) allows sanitized caller
+  headers. Otherwise only allowlisted metadata is sent; callers can explicitly
+  allow additional non-credential metadata with `untrustedFirstHopHeaders`.
+
+  The helper shares URL validation, DNS pinning, and redirect protection with
+  `fetchWithValidatedRedirects`, and is now used by `downloadBlob`.
+  `fetchWithValidatedRedirects` and `getFromApi` retain their existing behavior.
+  Direct callers must opt into the new helper for first-hop credential isolation;
+  existing authenticated and custom-header requests are not silently changed.
+
 ## 5.0.47
 
 ### Patch Changes

@@ -28,6 +28,10 @@ import {
   type OpenAIImageModelId,
 } from './openai-image-model-options';
 interface OpenAIImageModelConfig extends OpenAIConfig {
+  imageInputCapabilities?: {
+    supportsFileInputs: boolean | undefined;
+    supportsMaskInputs: boolean | undefined;
+  };
   _internal?: {
     currentDate?: () => Date;
   };
@@ -52,6 +56,39 @@ export class OpenAIImageModel implements ImageModelV4 {
 
   get maxImagesPerCall(): number {
     return getMaxImagesPerCall(this.modelId);
+  }
+
+  get supportsFileInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsFileInputs;
+    }
+
+    if (
+      [
+        'dall-e-2',
+        'gpt-image-1',
+        'gpt-image-1-mini',
+        'gpt-image-1.5',
+        'gpt-image-2',
+        'gpt-image-2.5-flare',
+        'gpt-image-2.5-flare-2026-09-08',
+        'gpt-image-2.5-sunburst',
+        'gpt-image-2.5-sunburst-2026-09-08',
+        'chatgpt-image-latest',
+      ].includes(this.modelId)
+    ) {
+      return true;
+    }
+
+    return this.modelId === 'dall-e-3' ? false : undefined;
+  }
+
+  get supportsMaskInputs(): boolean | undefined {
+    if (this.config.imageInputCapabilities != null) {
+      return this.config.imageInputCapabilities.supportsMaskInputs;
+    }
+
+    return this.supportsFileInputs;
   }
 
   get provider(): string {

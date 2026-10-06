@@ -466,7 +466,7 @@ export default function Chat() {
 }
 ```
 
-The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI via the Vercel AI Gateway), manages the state for chat input, and updates the UI automatically as new messages are received.
+The `useChat` hook enables the streaming of chat messages from your AI provider (you will be using OpenAI via the Vercel AI Gateway) and updates the UI automatically as new messages are received. Manage chat input state in your component.
 
 Run the following command to start the Next.js dev server:
 
@@ -695,9 +695,9 @@ It would be nice if the model could summarize the action too. However, technical
 
 The AI SDK has a feature called [`stopWhen`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) which allows stopping conditions when the model generates a tool call. If those stopping conditions haven't been hit, the AI SDK will automatically send tool call results back to the model!
 
-Open your root page (`api/chat/route.ts`) and add the following key to the `streamText` configuration object:
+Open your route handler (`app/api/chat/route.ts`) and add the following key to the `streamText` configuration object:
 
-```tsx filename="api/chat/route.ts" highlight="9,25"
+```tsx filename="app/api/chat/route.ts" highlight="9,25"
 import { createResource } from '@/lib/actions/resources';
 import {
   convertToModelMessages,
@@ -809,9 +809,9 @@ In this code, you add two functions:
 
 With that done, it’s onto the final step: creating the tool.
 
-Go back to your route handler (`api/chat/route.ts`) and add a new tool called `getInformation`:
+Go back to your route handler (`app/api/chat/route.ts`) and add a new tool called `getInformation`:
 
-```ts filename="api/chat/route.ts" highlight="12,38-45"
+```ts filename="app/api/chat/route.ts" highlight="12,38-45"
 import { createResource } from '@/lib/actions/resources';
 import {
   convertToModelMessages,

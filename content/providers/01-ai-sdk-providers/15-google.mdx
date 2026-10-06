@@ -135,10 +135,9 @@ The following optional provider options are available for Google models:
 
   Optional. Enable structured output. Default is true.
 
-  This is useful when the JSON Schema contains elements that are
-  not supported by the OpenAPI schema version that
-  Google uses. You can use this to disable
-  structured outputs if you need to.
+  You can disable structured outputs when a schema is not supported or exceeds
+  Google's schema complexity limits. The model will still be instructed to
+  return JSON, but the schema will not be sent to Google.
 
   See [Troubleshooting: Schema Limitations](#schema-limitations) for more details.
 
@@ -644,7 +643,7 @@ The [File Search tool](https://ai.google.dev/gemini-api/docs/file-search) lets G
 import { google } from '@ai-sdk/google';
 import { generateText } from 'ai';
 
-const { text, sources } = await generateText({
+const { text, sources, providerMetadata } = await generateText({
   model: google('gemini-3.8-flash'),
   tools: {
     file_search: google.tools.fileSearch({
@@ -660,6 +659,9 @@ const { text, sources } = await generateText({
 ```
 
 File Search responses include citations via the normal `sources` field and expose raw [grounding metadata](#google-search) in `providerMetadata.google.groundingMetadata`.
+
+Custom metadata attached to the indexed documents is available in
+`groundingMetadata.groundingChunks[].retrievedContext.customMetadata`.
 
 ### URL Context
 
@@ -728,7 +730,7 @@ With the URL context tool, you will also get the `groundingMetadata`.
             "groundingChunkIndices": [
                 0
             ]
-        },
+        }
     ]
 }
 ```
@@ -995,14 +997,21 @@ Example response excerpt:
 
 #### Schema Limitations
 
-The Google Generative AI API uses a subset of the OpenAPI 3.0 schema,
-which does not support features such as unions.
-The errors that you get in this case look like this:
+The Google Generative AI API supports a subset of JSON Schema. Google notes that
+[very large or deeply nested schemas may be rejected](https://ai.google.dev/gemini-api/docs/structured-output#limitations).
+When a schema exceeds Google's complexity limit, the API may return the following
+generic error:
 
-`GenerateContentRequest.generation_config.response_schema.properties[occupation].type: must be specified`
+`Request contains an invalid argument.`
+
+You can work around this by simplifying the schema sent to Google. For example,
+remove unnecessary constraints or reduce nesting while preserving the fields
+and types the model needs to generate. If you need stricter client-side
+validation than the schema sent to Google, use [`jsonSchema`](/docs/reference/ai-sdk-core/json-schema)
+with a custom validation function or validate the generated output separately.
 
 By default, structured outputs are enabled (and for tool calling they are required).
-You can disable structured outputs for object generation as a workaround:
+You can also disable provider-enforced structured outputs for object generation:
 
 ```ts highlight="3,8"
 const { output } = await generateText({
@@ -1032,15 +1041,15 @@ const { output } = await generateText({
 });
 ```
 
-The following Zod features are known to not work with Google:
-
-- `z.union`
-- `z.record`
+When `structuredOutputs` is `false`, Google still receives the JSON response MIME type
+but not the schema. Describe the required schema in your prompt. AI SDK
+will still validate the response against the schema in `Output.object`.
 
 ### Model Capabilities
 
 | Model                                 | Image Input | Object Generation | Tool Usage | Tool Streaming | Google Search | URL Context |
 | ------------------------------------- | ----------- | ----------------- | ---------- | -------------- | ------------- | ----------- |
+| `gemini-nano-banana-2.1`              | <Check />   | <Cross />         | <Cross />  | <Cross />      | <Check />     | <Cross />   |
 | `gemini-3.8-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.7-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
 | `gemini-3.6-flash`                    | <Check />   | <Check />         | <Check />  | <Check />      | <Check />     | <Check />   |
@@ -1146,6 +1155,18 @@ Gemini lifecycle signals that do not have provider-neutral equivalents are
 emitted as custom events. Inspect `rawType` for `goAway`,
 `sessionResumptionUpdate`, and `generationComplete` and use the event's `raw`
 payload for provider-specific details.
+
+With input audio transcription enabled, `parseServerEvent` emits
+`input-transcription-completed` events with a stable `itemId` for each user
+utterance. Each `transcript` contains the accumulated text so far. If you consume
+these events directly, replace the text for that `itemId` with `transcript` on
+each event. The realtime session handles this automatically.
+
+Google's `finished` transcription marker ends an utterance even when the marker
+contains no text. For payloads without this marker, response completion and
+interruption provide fallback boundaries. These fallback boundaries cannot
+unambiguously associate all delayed transcription fragments. Input item IDs use
+their own sequence and need not match the model's response IDs.
 
 ### Live Translation
 
@@ -1626,7 +1647,7 @@ These parts are informational and do not require a tool response. They are
 available from both `generateText` and `streamText`.
 
 For static processing, use `'static'` or provide clipping and frame-rate
-options:
+options. `startOffset` and `endOffset` are measured in seconds:
 
 ```ts
 const video = {
@@ -1637,8 +1658,8 @@ const video = {
     google: {
       processing: {
         type: 'static',
-        startOffset: 1200,
-        endOffset: 1500,
+        startOffset: 0,
+        endOffset: 10.5,
         fps: 0.5,
       },
     } satisfies GoogleInteractionsVideoOptions,
@@ -2215,11 +2236,12 @@ console.log(result.providerMetadata?.google?.groundingMetadata);
 
 #### Gemini Image Model Capabilities
 
-| Model                            | Image Generation | Image Editing | Aspect Ratios                                       |
-| -------------------------------- | ---------------- | ------------- | --------------------------------------------------- |
-| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
-| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9 |
+| Model                            | Image Generation | Image Editing | Aspect Ratios                                                           |
+| -------------------------------- | ---------------- | ------------- | ----------------------------------------------------------------------- |
+| `gemini-2.5-flash-image`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3-pro-image-preview`     | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-3.1-flash-image-preview` | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9                     |
+| `gemini-nano-banana-2.1`         | <Check />        | <Check />     | 1:1, 2:3, 3:2, 3:4, 4:3, 4:5, 5:4, 9:16, 16:9, 21:9, 1:8, 8:1, 1:4, 4:1 |
 
 <Note>
   `gemini-3-pro-image-preview` supports additional features including up to 14
@@ -2376,18 +2398,18 @@ Older models continue to use labelled transcripts, such as
 | `gemini-3.8-flash-tts`         | <Check />     | <Check />              |
 | `gemini-3.8-flash-lite-tts`    | <Check />     | <Check />              |
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `google.evaluationModel(modelId)`.
+Create an experimental decision model with `google.decisionModel(modelId)`.
 It uses Gemini structured output for Choice, Score, and Boolean questions. Choose a model
 that supports structured output, such as `gemini-3.5-flash-lite`.
 
 ```ts
 import { google } from '@ai-sdk/google';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: google.evaluationModel('gemini-3.5-flash-lite'),
+const { answers } = await experimental_decide({
+  model: google.decisionModel('gemini-3.5-flash-lite'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2419,10 +2441,10 @@ and rejects safety-blocked, truncated, or invalid output. It preserves usage
 Choice and Score answers do not include probability distributions. Boolean
 answers contain prompted estimates of P(true), validated to be finite and in
 `[0, 1]`. These estimates are not guaranteed to be calibrated. Apply thresholds
-in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Evaluation](/docs/ai-sdk-core/evaluation).
+in application code, for example `answers.requestsRefund.probability >= 0.5`. See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

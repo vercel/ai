@@ -2,7 +2,7 @@ import {
   InvalidArgumentError,
   NoSuchModelError,
   type Experimental_BatchV4 as BatchV4,
-  type Experimental_EvaluationModelV4 as EvaluationModelV4,
+  type Experimental_DecisionModelV4 as DecisionModelV4,
   type FilesV4,
   type LanguageModelV4,
   type ProviderV4,
@@ -17,7 +17,7 @@ import {
   withUserAgentSuffix,
   type FetchFunction,
 } from '@ai-sdk/provider-utils';
-import { Experimental_EvaluationLanguageModel as EvaluationLanguageModel } from '@ai-sdk/provider-utils/experimental-evaluation';
+import { Experimental_DecisionLanguageModel as DecisionLanguageModel } from '@ai-sdk/provider-utils/experimental-decision';
 import { AnthropicFiles } from './anthropic-files';
 import { AnthropicLanguageModel } from './anthropic-language-model';
 import { AnthropicBatch } from './anthropic-batch';
@@ -54,8 +54,12 @@ export interface AnthropicProvider extends ProviderV4 {
 
   messages(modelId: AnthropicModelId): LanguageModelV4;
 
-  /** Creates an experimental Choice/Score/Boolean evaluation model using Messages. */
-  evaluationModel(modelId: AnthropicModelId): EvaluationModelV4;
+  /** Creates an experimental Choice/Score/Boolean decision model using Messages. */
+  decisionModel(modelId: AnthropicModelId): DecisionModelV4;
+  /** @deprecated Use `decisionModel` instead. */
+  evaluationModel(modelId: AnthropicModelId): DecisionModelV4 & {
+    doEvaluate: DecisionModelV4['doDecide'];
+  };
 
   experimental_batch(): BatchV4<{ text: AnthropicModelId }>;
 
@@ -164,7 +168,7 @@ export function createAnthropic(
         ...authHeaders,
         ...options.headers,
       },
-      `ai-sdk/anthropic/${VERSION}`,
+      `ai-sdk-anthropic/${VERSION}`,
     );
   };
 
@@ -209,11 +213,13 @@ export function createAnthropic(
   provider.languageModel = createChatModel;
   provider.chat = createChatModel;
   provider.messages = createChatModel;
-  provider.evaluationModel = (modelId: AnthropicModelId) =>
-    new EvaluationLanguageModel({
+  provider.decisionModel = (modelId: AnthropicModelId) =>
+    new DecisionLanguageModel({
       model: createChatModel(modelId),
-      provider: `${providerName.replace(/\.messages$/, '')}.evaluation`,
+      provider: `${providerName.replace(/\.messages$/, '')}.decision`,
     });
+  provider.evaluationModel =
+    provider.decisionModel as AnthropicProvider['evaluationModel'];
   provider.experimental_batch = createBatch;
 
   provider.embeddingModel = (modelId: string) => {

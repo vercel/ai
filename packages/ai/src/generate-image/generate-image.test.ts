@@ -1210,6 +1210,45 @@ describe('generateImage', () => {
     });
   });
   describe('provider metadata merging', () => {
+    it.each(['__proto__', 'constructor', 'toString'])(
+      'preserves metadata for provider %s across calls and images',
+      async providerName => {
+        const result = await generateImage({
+          model: new MockImageModelV4({
+            maxImagesPerCall: 1,
+            doGenerate: async () =>
+              createMockResponse({
+                images: [pngBase64],
+                providerMetaData: {
+                  [providerName]: { images: [{ seed: 42 }] },
+                },
+              }),
+          }),
+          prompt,
+          n: 2,
+        });
+
+        expect(Object.getPrototypeOf(result.providerMetadata)).toBe(
+          Object.prototype,
+        );
+        expect(Object.hasOwn(result.providerMetadata, providerName)).toBe(true);
+        expect(Object.entries(result.providerMetadata)).toStrictEqual([
+          [providerName, { images: [{ seed: 42 }, { seed: 42 }] }],
+        ]);
+        for (const image of result.images) {
+          expect(Object.getPrototypeOf(image.providerMetadata)).toBe(
+            Object.prototype,
+          );
+          expect(Object.hasOwn(image.providerMetadata!, providerName)).toBe(
+            true,
+          );
+          expect(Object.entries(image.providerMetadata!)).toStrictEqual([
+            [providerName, { seed: 42 }],
+          ]);
+        }
+      },
+    );
+
     it('should merge provider metadata from multiple calls', async () => {
       let callCount = 0;
 

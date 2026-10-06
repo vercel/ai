@@ -1,5 +1,154 @@
 # @ai-sdk/workflow
 
+## 2.0.60
+
+### Patch Changes
+
+- d9e04cb: fix(workflow): reuse persisted tool denial results during approval resumption
+
+## 2.0.59
+
+### Patch Changes
+
+- a471b4c: Document and validate WorkflowAgent generation deadlines, retry boundaries, hook cancellation, and selected result serialization across workflow resumption.
+- 0ca1ab9: Add durable non-streaming `WorkflowAgent.generate()` with a shared tool loop, a 20-step default, typed output, and core generation result semantics. Reuse core result and content construction through internal exports while preserving existing Workflow streaming behavior. Transport-independent approval creation remains separate follow-up work.
+- 69ea843: fix(workflow): preserve length-limited assistant responses in conversation messages
+- 6accb1c: Refactor WorkflowAgent call preparation, model-call results, and execution finalization to prepare for non-streaming generation while preserving stream behavior.
+- 57dadb5: Create tool approval requests independently of streaming so WorkflowAgent.generate and stream without a writable can resume approved calls. Preserve provider approval requests and forward approval responses without locally executing provider tools.
+- c89c76c: fix(workflow): preserve provider metadata on assistant text messages
+- Updated dependencies [0fe8c67]
+- Updated dependencies [2959d35]
+- Updated dependencies [0ca1ab9]
+- Updated dependencies [d6b42fd]
+- Updated dependencies [ed6e72d]
+- Updated dependencies [59116e6]
+- Updated dependencies [2136151]
+  - ai@7.0.128
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 2.0.58
+
+### Patch Changes
+
+- Updated dependencies [158a718]
+- Updated dependencies [bb8d33e]
+- Updated dependencies [284dc11]
+- Updated dependencies [ba8afe9]
+  - ai@7.0.127
+
+## 2.0.57
+
+### Patch Changes
+
+- Updated dependencies [4f3d236]
+  - ai@7.0.126
+
+## 2.0.56
+
+### Patch Changes
+
+- 165455d: fix(workflow): apply stream transformations before writing agent model parts
+- Updated dependencies [ff3dcef]
+  - ai@7.0.125
+
+## 2.0.55
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - ai@7.0.124
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 2.0.54
+
+### Patch Changes
+
+- 70c051c: fix(workflow): preserve reasoning and provider metadata across agent steps
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [05cdac6]
+- Updated dependencies [4514fc1]
+- Updated dependencies [ede5b89]
+- Updated dependencies [2a625cf]
+- Updated dependencies [50a26d5]
+  - ai@7.0.123
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 2.0.53
+
+### Patch Changes
+
+- Updated dependencies [f3575f8]
+- Updated dependencies [27ab8d4]
+  - ai@7.0.122
+
+## 2.0.52
+
+### Patch Changes
+
+- Updated dependencies [c5e90bb]
+- Updated dependencies [c2511c1]
+- Updated dependencies [868c475]
+- Updated dependencies [119536f]
+- Updated dependencies [9941f32]
+  - ai@7.0.121
+  - @ai-sdk/provider-utils@5.0.51
+
+## 2.0.51
+
+### Patch Changes
+
+- Updated dependencies [b032d70]
+- Updated dependencies [e21b98b]
+  - ai@7.0.120
+
+## 2.0.50
+
+### Patch Changes
+
+- Updated dependencies [33e94ba]
+- Updated dependencies [34d869e]
+- Updated dependencies [e3605f6]
+- Updated dependencies [def4df8]
+- Updated dependencies [525efc5]
+  - ai@7.0.119
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 2.0.49
+
+### Patch Changes
+
+- ai@7.0.118
+
+## 2.0.48
+
+### Patch Changes
+
+- ai@7.0.117
+
+## 2.0.47
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - ai@7.0.116
+  - @ai-sdk/provider-utils@5.0.49
+
+## 2.0.46
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+  - ai@7.0.115
+
 ## 2.0.45
 
 ### Patch Changes

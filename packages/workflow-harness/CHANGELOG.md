@@ -1,5 +1,110 @@
 # @ai-sdk/workflow-harness
 
+## 1.0.139
+
+### Patch Changes
+
+- Updated dependencies [e7da240]
+  - @ai-sdk/harness@1.0.139
+
+## 1.0.138
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.138
+
+## 1.0.137
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.137
+
+## 1.0.136
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.136
+
+## 1.0.135
+
+### Patch Changes
+
+- Updated dependencies [8182916]
+  - @ai-sdk/harness@1.0.135
+
+## 1.0.134
+
+### Patch Changes
+
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/harness@1.0.134
+
+## 1.0.133
+
+### Patch Changes
+
+- 446725d: fix(harness): surface detach failures and keep session handles usable
+- Updated dependencies [b2049fa]
+- Updated dependencies [11f0e71]
+- Updated dependencies [2b9195b]
+- Updated dependencies [446725d]
+  - @ai-sdk/harness@1.0.133
+
+## 1.0.132
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.132
+
+## 1.0.131
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.131
+
+## 1.0.130
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.130
+
+## 1.0.129
+
+### Patch Changes
+
+- Updated dependencies [e5aeb11]
+- Updated dependencies [d99d6dc]
+  - @ai-sdk/harness@1.0.129
+
+## 1.0.128
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.128
+
+## 1.0.127
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.127
+
+## 1.0.126
+
+### Patch Changes
+
+- af9597b: Compile packages for ES2022 runtime target
+- 31742b9: feat(harness): refactor sandbox APIs for cleaner separation of concerns from harness layer, more intuitive DX regardless of how your sandbox is configured, and streamlined handling of sandbox templates/snapshots
+- Updated dependencies [af9597b]
+- Updated dependencies [31742b9]
+  - @ai-sdk/harness@1.0.126
+
+## 1.0.125
+
+### Patch Changes
+
+- @ai-sdk/harness@1.0.125
+
 ## 1.0.124
 
 ### Patch Changes

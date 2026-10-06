@@ -22,6 +22,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { markToolPartAsUnavailable } from './unavailable-tool';
 import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
 
 const toolMetadataSchema: ZodType<JSONObject> = z.record(
@@ -43,11 +44,11 @@ function isEmptyObject(value: unknown): value is Record<string, never> {
 function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   const { type, ...part } = toolPart;
 
-  return {
+  return markToolPartAsUnavailable({
     ...part,
     type: 'dynamic-tool',
     toolName: type.slice(5),
-  } as DynamicToolUIPart;
+  } as DynamicToolUIPart);
 }
 
 function getToolPartInputSchemaInput(
@@ -148,12 +149,14 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
                   toolMetadata: toolMetadataSchema.optional(),
                   state: z.literal('input-streaming'),
                   input: z.unknown().optional(),
+                  rawInput: z.string().optional(),
                   providerExecuted: z.boolean().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   output: z.never().optional(),
@@ -162,6 +165,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -176,6 +180,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -190,6 +195,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -204,6 +210,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -220,6 +227,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -236,6 +244,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   title: z.string().optional(),
@@ -257,6 +266,7 @@ const uiMessagesSchema = lazySchema(() => {
                   providerExecuted: z.boolean().optional(),
                   callProviderMetadata: providerMetadataSchema.optional(),
                   input: z.unknown().optional(),
+                  rawInput: z.string().optional(),
                   output: z.never().optional(),
                   errorText: z.never().optional(),
                   approval: z.never().optional(),

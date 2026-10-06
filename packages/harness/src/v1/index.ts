@@ -13,9 +13,26 @@ export type {
 export type {
   HarnessV1ContinueTurnOptions,
   HarnessV1PromptTurnOptions,
+  HarnessV1ReadHistoryResult,
   HarnessV1Session,
   HarnessV1StartOptions,
 } from './harness-v1-session';
+export type {
+  HarnessV1AssistantMessage,
+  HarnessV1CustomPart,
+  HarnessV1FilePart,
+  HarnessV1Message,
+  HarnessV1MessagePart,
+  HarnessV1ReasoningFilePart,
+  HarnessV1ReasoningPart,
+  HarnessV1TextPart,
+  HarnessV1ToolApprovalResponsePart,
+  HarnessV1ToolCallPart,
+  HarnessV1ToolMessage,
+  HarnessV1ToolResultOutput,
+  HarnessV1ToolResultPart,
+  HarnessV1UserMessage,
+} from './harness-v1-message';
 export type { HarnessV1Observability } from './harness-v1-observability';
 export type { HarnessV1PromptControl } from './harness-v1-prompt-control';
 export type { HarnessV1CallWarning } from './harness-v1-call-warning';
@@ -48,6 +65,9 @@ export type {
   HarnessV1ResponseFormat,
 } from './harness-v1-response-format';
 export type { HarnessV1SandboxProvider } from './harness-v1-sandbox-provider';
+export type { HarnessV1SandboxTemplate } from './harness-v1-sandbox-template';
+export type { HarnessV1SandboxSessionCreateOptions } from './harness-v1-sandbox-session-create-options';
+export type { HarnessV1SandboxSessionResumeOptions } from './harness-v1-sandbox-session-resume-options';
 export type {
   HarnessV1ContinueTurnState,
   HarnessV1LifecycleState,

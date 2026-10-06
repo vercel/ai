@@ -7,7 +7,7 @@ import {
 } from 'ai';
 import { run } from '../../lib/run';
 import { anthropic } from '@ai-sdk/anthropic';
-import { createJustBashSandbox } from '@ai-sdk/sandbox-just-bash';
+import { createJustBashNetworkSandboxSession } from '@ai-sdk/sandbox-just-bash';
 import { openai } from '@ai-sdk/openai';
 
 const COMPACTION_THRESHOLD = 8000;
@@ -38,22 +38,27 @@ const compactMessages: PrepareStepFunction<{
 };
 
 run(async () => {
-  const sandboxSession = await createJustBashSandbox({
+  const sandboxSession = await createJustBashNetworkSandboxSession({
     overlayRoot: process.cwd(),
-  }).createSession();
-
-  const result = await generateText({
-    model: openai('gpt-6-astra'),
-    instructions:
-      'You have access to a filesystem. Details: ' + sandboxSession.description,
-    prompt: 'Read every .ts file in this directory',
-    experimental_sandbox: sandboxSession.restricted(),
-    tools: {
-      bash: anthropic.tools.bash_20250124(),
-    },
-    stopWhen: isStepCount(10),
-    prepareStep: compactMessages,
   });
 
-  console.log(result.text);
+  try {
+    const result = await generateText({
+      model: openai('gpt-6-astra'),
+      instructions:
+        'You have access to a filesystem. Details: ' +
+        sandboxSession.description,
+      prompt: 'Read every .ts file in this directory',
+      experimental_sandbox: sandboxSession.restricted(),
+      tools: {
+        bash: anthropic.tools.bash_20250124(),
+      },
+      stopWhen: isStepCount(10),
+      prepareStep: compactMessages,
+    });
+
+    console.log(result.text);
+  } finally {
+    await sandboxSession.destroy();
+  }
 });

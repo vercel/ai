@@ -9,8 +9,8 @@ import {
  * in the workflow bundle, so a dynamic import inside the body is dropped from
  * it — keeping the agent and its `@vercel/sandbox` deps (which use Node APIs)
  * out of the no-`require` workflow runtime. A static top-level import can't be:
- * importing the agent module runs `createVercelSandbox(...)` at load (a side
- * effect that can't be tree-shaken), dragging those deps into the bundle.
+ * importing the sandbox acquisition helper at module scope would pull its
+ * Node-only dependencies into the workflow bundle.
  *
  * Demo budget: production defaults to 750s (just under Fluid Compute's ~800s
  * recycle); lowered here so a multi-step turn visibly freezes at the slice
@@ -25,9 +25,19 @@ export async function runGitHubCopilotSlice(
 
   const { githubCopilotHarnessAgent } =
     await import('@/agent/harness/github-copilot/basic-agent');
+  const { acquireHarnessSandboxSession } =
+    await import('@/util/harness-sandbox-session');
+  const sandboxSession = await acquireHarnessSandboxSession({
+    agent: githubCopilotHarnessAgent,
+    sessionId: state.sessionId,
+    ports: [4000],
+    resumeFrom: state.resumeFrom,
+    continueFrom: state.continueFrom,
+  });
   return runHarnessAgentTimeSlice({
     agent: githubCopilotHarnessAgent,
     state,
+    sandboxSession,
     timeSliceSeconds: DEMO_TIME_SLICE_SECONDS,
   });
 }

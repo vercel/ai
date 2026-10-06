@@ -437,7 +437,7 @@ console.log(text);`,
 import { airweaveSearch } from '@airweave/vercel-ai-sdk';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'What were the key decisions from last week?',
   tools: {
     search: airweaveSearch({
@@ -474,7 +474,7 @@ const { tools } = await createBashTool({
 });
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'List the files in src/ and show me the contents of index.ts',
   tools,
   stopWhen: isStepCount(5),
@@ -536,7 +536,7 @@ await browserbase.closeSession();`,
 import { youSearch, youResearch, youContents } from '@youdotcom-oss/ai-sdk-plugin';
 
 const { text } = await generateText({
-  model: 'anthropic/claude-sonnet-5',
+  model: 'anthropic/claude-sonnet-5.5',
   prompt: 'Research the latest developments in quantum computing',
   tools: {
     search: youSearch(),
@@ -624,5 +624,69 @@ console.log(text);`,
     docsUrl: 'https://www.fatstack.net/docs/ai-sdk',
     websiteUrl: 'https://www.fatstack.net',
     npmUrl: 'https://www.npmjs.com/package/@fatstack/ai-sdk-tools',
+  },
+  {
+    slug: 'pushary',
+    name: 'Pushary',
+    description:
+      'Require a named person to approve selected AI SDK tool calls from their phone before local tool execution. Pushary plugs into toolApproval and fails closed when approval is denied, expires, or goes unanswered.',
+    packageName: '@pushary/ai-sdk',
+    tags: ['approval', 'human-in-the-loop', 'security', 'phone'],
+    apiKeyEnvName: 'PUSHARY_API_KEY',
+    installCommand: {
+      pnpm: 'pnpm add @pushary/ai-sdk ai zod',
+      npm: 'npm install @pushary/ai-sdk ai zod',
+      yarn: 'yarn add @pushary/ai-sdk ai zod',
+      bun: 'bun add @pushary/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount, tool } from 'ai';
+import { pusharyApproval } from '@pushary/ai-sdk';
+import { z } from 'zod';
+
+// Derive this stable ID from the authenticated user on your server.
+// Enroll the user once before running the agent; see the Pushary guide below.
+const externalId = 'user_123';
+
+const lookupOrder = tool({
+  description: 'Look up an order',
+  inputSchema: z.object({ orderId: z.string() }),
+  execute: async ({ orderId }) => ({
+    orderId,
+    total: 40,
+    refundable: true,
+  }),
+});
+
+const issueRefund = tool({
+  description: 'Refund an order',
+  inputSchema: z.object({
+    orderId: z.string(),
+    amount: z.number().positive(),
+  }),
+  execute: async ({ orderId, amount }) => ({
+    orderId,
+    amount,
+    refunded: true,
+  }),
+});
+
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  tools: { issueRefund, lookupOrder },
+  toolApproval: pusharyApproval({
+    apiKey: process.env.PUSHARY_API_KEY!,
+    externalId,
+    policy: false,
+    tools: ['issueRefund'],
+  }),
+  stopWhen: isStepCount(5),
+  prompt: 'Look up order 1234 and refund it in full.',
+});
+
+console.log(text);`,
+    docsUrl: 'https://pushary.com/docs/agents/build/vercel-ai-sdk',
+    apiKeyUrl: 'https://pushary.com/onboarding/partner',
+    websiteUrl: 'https://pushary.com/human-in-the-loop',
+    npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
 ];

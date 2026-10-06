@@ -90,6 +90,10 @@ export function Chat({
 
 When you enable `resume`, the `useChat` hook makes a `GET` request to `/api/chat/[id]/stream` on mount to check for and resume any active streams.
 
+The default transport URL-encodes the chat ID as a single path segment. IDs equal
+to `.` or `..` are rejected with an `InvalidArgumentError` because URL parsers
+interpret them as path traversal segments.
+
 Let's start by creating the POST handler to create the resumable stream.
 
 ### 2. Create the POST handler
@@ -214,11 +218,14 @@ The diagram above shows the complete lifecycle of a resumable stream:
 2. **Stream tracking**: Your persistence layer saves the `activeStreamId` in the chat data
 3. **Client reconnection**: When the client reconnects (page reload), the `resume` option triggers a GET request to `/api/chat/[id]/stream`
 4. **Stream recovery**: The GET handler checks for an `activeStreamId` and uses `resumeExistingStream` to reconnect. If no active stream exists, it returns a 204 (No Content) response
-5. **Completion cleanup**: When the stream finishes, the `onFinish` callback clears the `activeStreamId` by setting it to `null`
+5. **Completion cleanup**: When the stream finishes, the `onEnd` callback clears the `activeStreamId` by setting it to `null`
 
 ## Customize the resume endpoint
 
 By default, the `useChat` hook makes a GET request to `/api/chat/[id]/stream` when resuming. Customize this endpoint, credentials, and headers, using the `prepareReconnectToStreamRequest` option in `DefaultChatTransport`:
+
+The callback receives the original, unencoded ID. Its returned `api` URL is used
+verbatim, so encode and validate any ID you include in a custom URL yourself.
 
 ```tsx filename="app/chat/[chatId]/chat.tsx"
 import { useChat } from '@ai-sdk/react';
@@ -233,10 +240,10 @@ export function Chat({ chatData, resume }) {
       // Customize reconnect settings (optional)
       prepareReconnectToStreamRequest: ({ id }) => {
         return {
-          api: `/api/chat/${id}/stream`, // Default pattern
+          api: `/api/chat/${encodeURIComponent(id)}/stream`,
           // Or use a different pattern:
-          // api: `/api/streams/${id}/resume`,
-          // api: `/api/resume-chat?id=${id}`,
+          // api: `/api/streams/${encodeURIComponent(id)}/resume`,
+          // api: `/api/resume-chat?id=${encodeURIComponent(id)}`,
           credentials: 'include', // Include cookies/auth
           headers: {
             Authorization: 'Bearer token',
@@ -303,7 +310,7 @@ export function Chat({
     const assistantMessage =
       lastMessage?.role === 'assistant' ? lastMessage : undefined;
 
-    void fetch(`/api/chat/${chatData.id}/stop`, {
+    void fetch(`/api/chat/${encodeURIComponent(chatData.id)}/stop`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(

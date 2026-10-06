@@ -192,9 +192,9 @@ The following provider options are available:
   Reasoning effort for reasoning models. Defaults to `medium`. If you use `providerOptions` to set the `reasoningEffort` option, this model setting will be ignored.
 
 <Note>
-  Supported reasoning efforts vary by model. GPT-5.6 and GPT-6 support `'none'`,
-  `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6 Astra does not
-  support `'none'`.
+  Supported reasoning efforts vary by model. GPT-5.6, GPT-6 Sol, and GPT-6 Luna
+  support `'none'`, `'low'`, `'medium'`, `'high'`, `'xhigh'`, and `'max'`. GPT-6
+  Astra and GPT-6.1 Sol do not support `'none'`.
 </Note>
 
 <Note type="warning">
@@ -203,12 +203,16 @@ The following provider options are available:
   and returns a warning. Use the Responses API for GPT-6 tool calling.
 </Note>
 
-- **reasoningEffortUpdate** _'low' | 'medium' | 'high' | 'xhigh' | 'max'_
+- **reasoningEffortUpdate** _'none' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'_
   Updates the reasoning effort for GPT-6 and later models starting with the
   current response without changing the request-level effort. Use this with
   `previousResponseId` to preserve the original prompt prefix for caching.
   Configuration updates require standard, single-agent mode and cannot be
   combined with automatic compaction or automatic truncation.
+
+  The SDK checks effort values against the selected model for both request-level
+  and message-level updates. For example, GPT-6 Sol and Luna support `none`,
+  while GPT-6 Astra does not.
 
 - **reasoningMode** _'standard' | 'pro'_
   Controls how much model work GPT-5.6 performs before returning a final answer. `'standard'` is the default. Use `'pro'` for difficult tasks where quality matters more than latency and token usage.
@@ -216,8 +220,8 @@ The following provider options are available:
 - **reasoningContext** _'auto' | 'current_turn' | 'all_turns'_
   Controls which available reasoning items GPT-5.6 can reuse. `'auto'` uses the model default, `'current_turn'` excludes reasoning from earlier turns, and `'all_turns'` makes compatible earlier reasoning available. The effective context is returned as `providerMetadata.openai.reasoningContext`.
 
-- **reasoningSummary** _'auto' | 'detailed'_
-  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning. Defaults to `undefined` (no reasoning summaries). When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
+- **reasoningSummary** _'auto' | 'detailed' | null_
+  Controls whether the model returns its reasoning process. Set to `'auto'` for a condensed summary, `'detailed'` for more comprehensive reasoning, or `null` to omit reasoning summaries. Defaults to `'detailed'` when `reasoningEffort` is set to a value other than `'none'`, and to no reasoning summaries otherwise. When enabled, reasoning summaries appear in the stream as events with type `'reasoning'` and in non-streaming responses within the `reasoning` field.
 
 - **strictJsonSchema** _boolean_
   Whether to use strict JSON schema validation. Defaults to `true`.
@@ -1319,6 +1323,7 @@ const result = await generateText({
     apply_patch: openai.tools.applyPatch({
       execute: async ({ callId, operation }) => {
         // ... your implementation for applying the diffs.
+        return { status: 'completed' };
       },
     }),
   },
@@ -1653,7 +1658,7 @@ name those tools as you declared them instead.
 #### Image Inputs
 
 The OpenAI Responses API supports Image inputs for appropriate models.
-You can pass Image files as part of the message content using the 'image' type:
+You can pass Image files as part of the message content using the `file` type with an `image` media type:
 
 ```ts
 const result = await generateText({
@@ -1678,7 +1683,7 @@ const result = await generateText({
 ```
 
 The model will have access to the image and will respond to questions about it.
-The image should be passed using the `image` field.
+The image should be passed using the `data` field.
 
 You can also pass a file-id from the OpenAI Files API.
 
@@ -2453,7 +2458,7 @@ const logprobs = openaiMetadata?.logprobs;
 #### Image Support
 
 The OpenAI Chat API supports Image inputs for appropriate models.
-You can pass Image files as part of the message content using the 'image' type:
+You can pass Image files as part of the message content using the `file` type with an `image` media type:
 
 ```ts
 const result = await generateText({
@@ -2478,7 +2483,7 @@ const result = await generateText({
 ```
 
 The model will have access to the image and will respond to questions about it.
-The image should be passed using the `image` field.
+The image should be passed using the `data` field.
 
 You can also pass the URL of an image.
 
@@ -2874,6 +2879,7 @@ The following optional provider options are available for OpenAI completion mode
 | Model                 | Image Input | Audio Input | Object Generation | Tool Usage |
 | --------------------- | ----------- | ----------- | ----------------- | ---------- |
 | `gpt-6-astra`         | <Check />   | <Cross />   | <Check />         | <Check />  |
+| `gpt-6.1-sol`         | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-luna`          | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-6-sol`           | <Check />   | <Cross />   | <Check />         | <Check />  |
 | `gpt-5.6`             | <Check />   | <Cross />   | <Check />         | <Check />  |
@@ -3463,18 +3469,18 @@ const result = await generateSpeech({
 | `tts-1-hd`        | <Check />    |
 | `gpt-4o-mini-tts` | <Check />    |
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `openai.evaluationModel(modelId)`.
+Create an experimental decision model with `openai.decisionModel(modelId)`.
 It uses the Responses API with structured output to answer Choice, Score, and
 Boolean questions. Choose a model that supports structured output, such as `gpt-6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: openai.evaluationModel('gpt-6-luna'),
+const { answers } = await experimental_decide({
+  model: openai.decisionModel('gpt-6-luna'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -3500,10 +3506,10 @@ not guaranteed to be calibrated. Apply thresholds in application code, for examp
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
 Pass Responses options through `providerOptions.openai`. Usage, warnings,
 response information, and provider metadata are preserved. Refusals, truncated
-output, or invalid answers fail the entire call. See [Evaluation](/docs/ai-sdk-core/evaluation).
+output, or invalid answers fail the entire call. See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

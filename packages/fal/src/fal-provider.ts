@@ -139,7 +139,7 @@ export function createFal(options: FalProviderSettings = {}): FalProvider {
         })}`,
         ...options.headers,
       },
-      `ai-sdk/fal/${VERSION}`,
+      `ai-sdk-fal/${VERSION}`,
     );
 
   const createImageModel = (modelId: FalImageModelId) =>

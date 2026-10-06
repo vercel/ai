@@ -17,7 +17,7 @@ import { VERSION } from './version';
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const PI_CLIENT_APP = `ai-sdk/harness-pi/${VERSION}`;
+const PI_CLIENT_APP = `ai-sdk-harness-pi/${VERSION}`;
 
 /**
  * Configuration knobs for `createPi`. Pi runs as an in-process Node library

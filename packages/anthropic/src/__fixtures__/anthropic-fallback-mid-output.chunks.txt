@@ -1,0 +1,16 @@
+{"type":"message_start","message":{"id":"msg_1","type":"message","role":"assistant","model":"claude-opus-5-5","content":[],"stop_reason":null,"usage":{"input_tokens":10,"output_tokens":0}}}
+{"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":"","signature":""}}
+{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Opus 5.5 thinking"}}
+{"type":"content_block_delta","index":0,"delta":{"type":"signature_delta","signature":"SIG_FROM_OPUS_5_5"}}
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","index":1,"content_block":{"type":"fallback","from":{"model":"claude-opus-5-5"},"to":{"model":"claude-opus-4-8"}}}
+{"type":"content_block_stop","index":1}
+{"type":"content_block_start","index":2,"content_block":{"type":"thinking","thinking":"","signature":""}}
+{"type":"content_block_delta","index":2,"delta":{"type":"thinking_delta","thinking":"Opus 4.8 thinking"}}
+{"type":"content_block_delta","index":2,"delta":{"type":"signature_delta","signature":"SIG_FROM_OPUS_4_8"}}
+{"type":"content_block_stop","index":2}
+{"type":"content_block_start","index":3,"content_block":{"type":"tool_use","id":"toolu_1","name":"lookup","input":{}}}
+{"type":"content_block_delta","index":3,"delta":{"type":"input_json_delta","partial_json":"{\"q\":\"x\"}"}}
+{"type":"content_block_stop","index":3}
+{"type":"message_delta","delta":{"stop_reason":"tool_use"},"usage":{"output_tokens":70,"iterations":[{"type":"message","model":"claude-opus-5-5","input_tokens":10,"output_tokens":40},{"type":"fallback_message","model":"claude-opus-4-8","input_tokens":12,"output_tokens":30}]}}
+{"type":"message_stop"}

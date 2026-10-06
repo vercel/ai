@@ -15,6 +15,7 @@ import {
 } from './oauth';
 import type { AuthorizationServerMetadata } from './oauth-types';
 import {
+  AuthorizationServerMismatchError,
   InvalidClientError,
   ServerError,
   UnauthorizedClientError,
@@ -2830,11 +2831,20 @@ describe('auth function', () => {
       token_endpoint: 'https://auth.example.com/token',
     });
 
-    await expect(
-      auth(mockProvider, {
-        serverUrl: 'https://api.example.com/mcp-server',
-      }),
-    ).rejects.toThrow(/does not match/);
+    const authPromise = auth(mockProvider, {
+      serverUrl: 'https://api.example.com/mcp-server',
+    });
+
+    await expect(authPromise).rejects.toThrow(/does not match/);
+    await expect(authPromise).rejects.toThrow(AuthorizationServerMismatchError);
+    await expect(authPromise).rejects.toSatisfy((error: unknown) =>
+      AuthorizationServerMismatchError.isInstance(error),
+    );
+    expect(
+      AuthorizationServerMismatchError.isInstance(
+        new ServerError({ message: 'other oauth failure' }),
+      ),
+    ).toBe(false);
 
     expect(evilTokenRequests).toHaveLength(0);
   });

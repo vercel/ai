@@ -23,7 +23,7 @@ import {
 import {
   applyCredentialForwarding,
   createBridgeToken,
-  createSandboxCredentialEnvironment,
+  resolveSandboxCredentialEnvironment,
   markBridgeStarting,
   createBridgeErrorHandler,
   createBridgeStartupError,
@@ -69,7 +69,7 @@ type DeepAgentsChannel = SandboxChannel<OutboundMessage, InboundMessage>;
 /**
  * Value to use in User-Agent and `x-client-app` headers.
  */
-const DEEPAGENTS_CLIENT_APP = `ai-sdk/harness-deepagents/${VERSION}`;
+const DEEPAGENTS_CLIENT_APP = `ai-sdk-harness-deepagents/${VERSION}`;
 
 export type DeepAgentsThinkingConfig =
   | {
@@ -266,13 +266,14 @@ export function createDeepAgents(
         sandboxSession.addRequestTransformations != null
       ) {
         sandboxCredentialEnvironment =
-          resumeData?.sandboxCredentialEnvironment ??
-          (await createSandboxCredentialEnvironment({
+          await resolveSandboxCredentialEnvironment({
             environment: resolvedAuthEnvironment,
             credentialEnvironmentVariables:
               DEEPAGENTS_CREDENTIAL_ENVIRONMENT_VARIABLES,
             credentialForwarding: settings.credentialForwarding,
-          }));
+            previousSandboxCredentialEnvironment:
+              resumeData?.sandboxCredentialEnvironment,
+          });
         sandboxAuthEnvironment = {
           ...resolvedAuthEnvironment,
           ...sandboxCredentialEnvironment,
