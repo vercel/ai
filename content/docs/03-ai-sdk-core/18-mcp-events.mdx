@@ -37,6 +37,77 @@ does not cache the catalog. Keep application caches scoped to the authenticated
 account/grant. Re-fetch to pick up catalog changes; server notifications are not
 handled by this client.
 
+## Expose subscription tools to a model
+
+Use `experimental_eventToolsFromDefinitions` to generate callable subscription
+tools from selected event definitions. This is an explicit opt-in: ordinary
+`client.tools()` calls continue to expose only the server's `tools/list` catalog.
+
+```ts
+import { experimental_eventToolsFromDefinitions as eventToolsFromDefinitions } from '@ai-sdk/mcp';
+
+const page = await client.experimental_listEvents();
+const eventTools = eventToolsFromDefinitions(page, {
+  needsApproval: true,
+  toolName: event =>
+    `issues__watch_${event.name.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
+  subscribe: async ({ name, arguments: args }, executionOptions) => {
+    // Application code, with the authenticated account/conversation bound
+    // outside model-controlled arguments. Validate the event arguments here.
+    return subscriptionService.subscribe({
+      name,
+      arguments: args,
+      signal: executionOptions.abortSignal,
+    });
+  },
+});
+```
+
+`subscriptionService` represents your application's authorized subscription
+handler; it is not an AI SDK export. It can call a managed backend such as Connect,
+or use `experimental_subscribeEvent()` after preparing its own durable receiver.
+The helper itself never sends protocol requests or creates subscriptions during
+discovery. Its `subscribe` callback runs only when the tool is executed. Return a
+model-safe receipt, such as a watch ID and its actual pending/active state, without
+including credentials or receiver secrets.
+
+Pass `eventTools` to `generateText`, `streamText`, or your agent's tool discovery
+layer. For the `issue.created` definition, the generated model tool can receive
+`{ project_id: 'ABC' }`; its execute handler binds the event name and calls
+`subscribe({ name: 'issue.created', arguments: { project_id: 'ABC' } }, options)`.
+
+The helper:
+
+- Includes only definitions advertising `webhook` delivery. Poll-only and
+  push-only events are omitted.
+- Preserves `inputSchema` at the tool root, including local `$ref` and `$defs`
+  resolution. It does not add a nested `arguments` property or application-specific
+  fields for instructions, users, callback URLs, or lifetimes.
+- Uses `mcp_subscribe_` plus the sanitized event name by default. `toolName` can
+  provide an application namespace. Names must contain 1–64 letters, digits,
+  underscores or hyphens; duplicate names are rejected rather than overwritten.
+- Forwards tool execution options, including the abort signal, to the subscription
+  handler. `needsApproval` optionally sets the AI SDK approval requirement.
+- Leaves results to the handler. `payloadSchema` describes later event deliveries,
+  not the tool's subscription receipt, so it is not used as `outputSchema`.
+
+Supply only the definitions you want to expose, fetching additional catalog pages
+as needed. The helper has no shared catalog cache. When combining its results with
+remote tools, reserve a namespace and check for collisions across the combined
+tool set; the helper can detect collisions only within the definitions it receives.
+
+The server's JSON Schema guides model arguments; as with automatic MCP tool
+conversion, it does not install a full JSON Schema runtime validator. The callback
+or subscription backend must validate the selected event and its arguments and
+enforce current authorization. The helper rejects non-object inputs, but argument
+fields such as `userId` or `delivery` are still untrusted event arguments, not
+trusted routing or authentication configuration. Do not spread them into backend
+options. Approval prompts do not replace backend authorization.
+
+Frameworks can add their own watch policy, task instructions and conversation
+bindings around this primitive. An SDK upgrade alone does not mount a framework
+receiver or resume conversations when events arrive.
+
 ## Register or refresh a webhook
 
 Prepare a durable receiver **before** subscribing. The server may send a signed

@@ -1,4 +1,5 @@
 export { validateJSONRPCMessage } from './tool/json-rpc-message';
+export { eventToolsFromDefinitions as experimental_eventToolsFromDefinitions } from './tool/mcp-event-tools';
 export { generateMCPWebhookSecret as experimental_generateMCPWebhookSecret } from './tool/mcp-events';
 export type {
   MCPEvent as Experimental_MCPEvent,
