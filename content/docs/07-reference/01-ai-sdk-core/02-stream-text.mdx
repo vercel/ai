@@ -480,7 +480,7 @@ To see `streamText` in action, check out [these examples](#examples).
       type: 'AbortSignal',
       isOptional: true,
       description:
-        'An optional abort signal that can be used to cancel the call.',
+        'An optional abort signal that can be used to cancel the call. When it fires during streaming, pending result promises such as text and steps reject with the abort reason without waiting for onAbort or provider cancellation. Completed steps are available through onAbort.',
     },
     {
       name: 'timeout',
