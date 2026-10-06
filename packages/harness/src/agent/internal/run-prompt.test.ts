@@ -7,6 +7,7 @@ import {
 import {
   hasToolCall,
   isStepCount,
+  type CallWarning,
   type Telemetry,
   type TextStreamPart,
 } from 'ai';
@@ -14,6 +15,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { z } from 'zod/v4';
 import type {
   HarnessV1,
+  HarnessV1CallWarning,
   HarnessV1PendingToolApproval,
   HarnessV1PendingToolResult,
   HarnessV1PromptControl,
@@ -619,13 +621,23 @@ describe('runPrompt telemetry lifecycle', () => {
 
 describe('runPrompt step accounting', () => {
   test('preserves adapter warnings on the step and aggregate result', async () => {
-    const warnings = [
+    const warnings: HarnessV1CallWarning[] = [
       {
-        type: 'unsupported-setting' as const,
+        type: 'unsupported-setting',
         setting: 'temperature',
         details: 'The adapter does not support temperature.',
       },
+      {
+        type: 'unsupported-tool',
+        tool: 'web_search',
+        details: 'The adapter does not support web search.',
+      },
+      {
+        type: 'other',
+        message: 'The adapter used a fallback.',
+      },
     ];
+    const expectedWarnings: CallWarning[] = warnings;
     const { result, done } = runPrompt({
       harness,
       session: fakeSession([
@@ -648,10 +660,12 @@ describe('runPrompt step accounting', () => {
     await done;
 
     expect(parts.find(part => part.type === 'start-step')).toMatchObject({
-      warnings,
+      warnings: expectedWarnings,
     });
-    await expect(result.steps).resolves.toMatchObject([{ warnings }]);
-    await expect(result.warnings).resolves.toEqual(warnings);
+    await expect(result.steps).resolves.toMatchObject([
+      { warnings: expectedWarnings },
+    ]);
+    await expect(result.warnings).resolves.toEqual(expectedWarnings);
   });
 
   test('records one step per finish-step without counting terminal finish', async () => {

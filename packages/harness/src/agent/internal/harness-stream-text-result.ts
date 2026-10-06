@@ -235,9 +235,7 @@ export class HarnessStreamTextResult<
   }
 
   addWarnings(warnings: ReadonlyArray<HarnessV1CallWarning>): void {
-    this.currentStepWarnings.push(
-      ...(warnings as unknown as ReadonlyArray<CallWarning>),
-    );
+    this.currentStepWarnings.push(...warnings);
   }
 
   /**
