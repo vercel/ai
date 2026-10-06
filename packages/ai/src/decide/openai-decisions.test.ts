@@ -107,7 +107,37 @@ it('decides native Decisions answers through core with rounded distributions and
     totalTokens: 390,
   });
   expect(result.response.modelId).toBe('gpt-6-luna-resolved');
-  expect(result.rounding).toEqual({ probabilityDecimals: 2 });
+  expect(result.rounding).toEqual({ probabilityDecimals: 2, scoreDecimals: 2 });
+});
+
+it('allows the declared score rounding when validating a two-level distribution', async () => {
+  const { model } = setup([
+    {
+      type: 'score',
+      name: 'severity',
+      score: 0.5,
+      probabilities: [
+        { value: 0, probability: 0.51 },
+        { value: 1, probability: 0.49 },
+      ],
+    },
+  ]);
+  const result = await decide({
+    model,
+    state: 'A billing issue with a workaround.',
+    questions: {
+      severity: {
+        type: 'score',
+        instructions: 'Rate severity.',
+        criteria: ['Low', 'High'],
+      },
+    },
+  });
+  expect(result.answers.severity).toEqual({
+    type: 'score',
+    score: 0.5,
+    probabilities: { 0: 0.51, 1: 0.49 },
+  });
 });
 
 it.each([

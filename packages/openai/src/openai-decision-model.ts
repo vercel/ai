@@ -175,6 +175,7 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
                 name,
                 instructions,
                 levels: question.criteria.map((description, index) => ({
+                  // Score criteria have no separate labels; indices identify each level.
                   label: String(index),
                   ...(description == null
                     ? {}
@@ -253,8 +254,8 @@ export class DecisionOpenAIModel implements DecisionModelV4 {
               inputTokens: response.usage.input_tokens ?? undefined,
               outputTokens: response.usage.output_tokens ?? undefined,
             },
-      // The Decisions API reports probabilities in increments of 0.01.
-      rounding: { probabilityDecimals: 2 },
+      // The Decisions API reports probabilities and scores to two decimal places.
+      rounding: { probabilityDecimals: 2, scoreDecimals: 2 },
       warnings: Object.keys(providerOptions?.openai ?? {})
         .filter(option => option !== 'safetyIdentifier')
         .map(option => ({

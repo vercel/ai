@@ -130,7 +130,7 @@ it('preserves native values, maps reordered named answers, and exposes confidenc
   expect(result.providerMetadata).toEqual({
     openai: { confidence: { department: 0.88, severity: 0.79 } },
   });
-  expect(result.rounding).toEqual({ probabilityDecimals: 2 });
+  expect(result.rounding).toEqual({ probabilityDecimals: 2, scoreDecimals: 2 });
   expect(result.usage).toBeUndefined();
   expect(result.response?.body).toEqual({
     answers: [...fixture.answers].reverse(),
