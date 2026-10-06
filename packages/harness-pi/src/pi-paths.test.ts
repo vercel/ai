@@ -60,6 +60,70 @@ describe('createPiPathMapper', () => {
     ).toThrow(/escapes the workspace/);
   });
 
+  it('refuses readable paths inside a denied root', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
+      deniedRoots: ['/home/vercel-sandbox/.credentials'],
+    });
+
+    expect(() =>
+      mapper.toReadableSandboxPath('/home/vercel-sandbox/.credentials/token'),
+    ).toThrow(/inside a denied root/);
+    expect(() =>
+      mapper.assertReadableSandboxPath('/home/vercel-sandbox/.credentials'),
+    ).toThrow(/inside a denied root/);
+    expect(
+      mapper.toReadableSandboxPath('/home/vercel-sandbox/.credentials-old/a'),
+    ).toBe('/home/vercel-sandbox/.credentials-old/a');
+  });
+
+  it('refuses workspace paths inside a denied root', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      deniedRoots: [`${sandboxWorkDir}/.private`],
+    });
+
+    expect(() => mapper.toReadableSandboxPath('.private/journal')).toThrow(
+      /inside a denied root/,
+    );
+    expect(() => mapper.toSandboxPath('.private/journal')).toThrow(
+      /inside a denied root/,
+    );
+    expect(() =>
+      mapper.assertSandboxPath(`${sandboxWorkDir}/.private/journal`),
+    ).toThrow(/inside a denied root/);
+    expect(mapper.toSandboxPath('src/foo.ts')).toBe(
+      `${sandboxWorkDir}/src/foo.ts`,
+    );
+  });
+
+  it('expands ~ against the configured home directory', () => {
+    const mapper = createPiPathMapper({
+      hostWorkDir,
+      sandboxWorkDir,
+      homeDir: '/home/vercel-sandbox',
+      readableRoots: [{ sandboxDir: '/home/vercel-sandbox' }],
+    });
+
+    expect(mapper.toReadableSandboxPath('~/notes.txt')).toBe(
+      '/home/vercel-sandbox/notes.txt',
+    );
+    expect(mapper.toReadableSandboxPath('~')).toBe('/home/vercel-sandbox');
+    expect(() => mapper.toSandboxPath('~/notes.txt')).toThrow(
+      /escapes the workspace/,
+    );
+  });
+
+  it('treats ~ as a workspace-relative name without a home directory', () => {
+    const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
+    expect(mapper.toReadableSandboxPath('~/notes.txt')).toBe(
+      `${sandboxWorkDir}/~/notes.txt`,
+    );
+  });
+
   it('toRelativePath returns "." for the sandbox root', () => {
     const mapper = createPiPathMapper({ hostWorkDir, sandboxWorkDir });
     expect(mapper.toRelativePath(sandboxWorkDir)).toBe('.');

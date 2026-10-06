@@ -48,3 +48,10 @@ test('createPi accepts an injected credential store and reattach opt-out', () =>
   const credentials = {} as PiCredentialStore;
   createPi({ credentials, reattachInProcess: false });
 });
+
+test('createPi accepts a file tool path policy with readonly roots', () => {
+  const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
+  const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
+  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
+  createPi({ fileToolPathPolicy: {} });
+});
