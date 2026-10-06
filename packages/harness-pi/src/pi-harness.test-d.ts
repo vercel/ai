@@ -54,3 +54,10 @@ test('createPi accepts MCP adapter settings', () => {
   // @ts-expect-error
   createPi({ mcpSettings: { toolPrefix: 'bare' } });
 });
+
+test('createPi accepts a file tool path policy with readonly roots', () => {
+  const readableRoots = ['/home/vercel-sandbox', '/tmp'] as const;
+  const deniedRoots = ['/home/vercel-sandbox/.credentials'] as const;
+  createPi({ fileToolPathPolicy: { readableRoots, deniedRoots } });
+  createPi({ fileToolPathPolicy: {} });
+});
