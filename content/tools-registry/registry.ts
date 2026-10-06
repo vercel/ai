@@ -689,4 +689,34 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'presign-guard',
+    name: 'presign-guard',
+    description:
+      'Safety checks for agents that pay. Check a transaction, token approval or signature before signing (drainers, unlimited approvals, look-alike dapps), a token before buying (honeypots, rug-pull signs), a wallet’s open approvals, and an x402 or MPP paid API before paying it. Works without an API key or wallet: unpaid calls get a free verdict-only check; full checks with reasons are paid per call over x402.',
+    packageName: 'presign-guard-ai-sdk',
+    tags: ['security', 'payments', 'crypto', 'x402'],
+    installCommand: {
+      pnpm: 'pnpm add presign-guard-ai-sdk',
+      npm: 'npm install presign-guard-ai-sdk',
+      yarn: 'yarn add presign-guard-ai-sdk',
+      bun: 'bun add presign-guard-ai-sdk',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { fizzlTools } from 'presign-guard-ai-sdk';
+
+const { text } = await generateText({
+  model: 'anthropic/claude-sonnet-5.5',
+  tools: fizzlTools(),
+  prompt:
+    'Is USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913) on Base safe to buy, ' +
+    'and is https://ichimoku-signal.fizzl.eu/signal/BTC-USDT safe to pay?',
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl: 'https://fizzl.eu/agents/ai-sdk/',
+    websiteUrl: 'https://presign-guard.fizzl.eu',
+    npmUrl: 'https://www.npmjs.com/package/presign-guard-ai-sdk',
+  },
 ];
