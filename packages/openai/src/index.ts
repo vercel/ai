@@ -61,3 +61,4 @@ export type {
 } from './responses/openai-responses-provider-metadata';
 export { VERSION } from './version';
 export type { OpenAIDecisionModelId } from './openai-decision-model';
+export type { OpenAIDecisionModelOptions } from './openai-decision-model-options';

@@ -55,10 +55,10 @@ Use a provider's `decisionModel` factory:
 | Anthropic   | `anthropic.decisionModel('claude-haiku-4-5-20251001')` |
 | Google      | `google.decisionModel('gemini-3.5-flash-lite')`        |
 
-TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) and OpenAI's Decisions API
+TypeSafe AI's [Jev](https://vercel.com/i/what-is-jev) and OpenAI's
+[Decisions API](https://developers.openai.com/api/docs/guides/decisions)
 supply native Choice, Score, and Boolean decisions. Each question is evaluated
-independently. OpenAI's alpha requires an enabled organization and uses `gpt-6-luna`.
-Choice and Score answers include native probability distributions.
+independently. Choice and Score answers include native probability distributions.
 
 Anthropic and Google adapt structured language-model output for all three types,
 evaluating all questions in one prompt. Their Boolean answers contain prompted

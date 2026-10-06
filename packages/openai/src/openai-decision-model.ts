@@ -8,6 +8,7 @@ import {
   combineHeaders,
   createJsonResponseHandler,
   postJsonToApi,
+  parseProviderOptions,
   serializeModelOptions,
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -18,6 +19,7 @@ import {
   type OpenAIConfig,
 } from './openai-config';
 import { openaiFailedResponseHandler } from './openai-error';
+import { openaiDecisionModelOptions } from './openai-decision-model-options';
 
 export type OpenAIDecisionModelId = 'gpt-6-luna' | (string & {});
 
@@ -44,6 +46,7 @@ const responseSchema = z.object({
     .nullish(),
   answers: z.array(
     z.discriminatedUnion('type', [
+      z.object({ type: z.literal('refusal'), name: z.string().nullable() }),
       z.object({
         type: z.literal('predicate'),
         name: z.string(),
@@ -117,6 +120,11 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
   }: Parameters<DecisionModelV4['doDecide']>[0]): Promise<
     Awaited<ReturnType<DecisionModelV4['doDecide']>>
   > {
+    const openaiOptions = await parseProviderOptions({
+      provider: 'openai',
+      providerOptions,
+      schema: openaiDecisionModelOptions,
+    });
     const {
       value: response,
       rawValue,
@@ -126,6 +134,7 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
       headers: combineHeaders(this.config.headers?.(), headers),
       body: {
         model: this.modelId,
+        safety_identifier: openaiOptions?.safetyIdentifier,
         input: toText(state),
         questions: Object.entries(questions).map(([name, question]) => {
           const instructions = toText(question.instructions);
@@ -181,20 +190,17 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
       successfulResponseHandler: createJsonResponseHandler(responseSchema),
     });
 
-    const names = response.answers.map(answer => answer.name);
-    if (
-      names.length !== Object.keys(questions).length ||
-      new Set(names).size !== names.length ||
-      names.some(name => !Object.prototype.hasOwnProperty.call(questions, name))
-    ) {
-      throw new InvalidResponseDataError({
-        data: rawValue,
-        message: 'Decisions must return exactly one answer for every question.',
-      });
-    }
-
     const answers = Object.fromEntries(
       response.answers.map((answer): [string, DecisionModelV4Answer] => {
+        if (answer.type === 'refusal') {
+          throw new InvalidResponseDataError({
+            data: rawValue,
+            message:
+              answer.name === null
+                ? 'OpenAI Decisions refused an unnamed question.'
+                : `OpenAI Decisions refused question ${JSON.stringify(answer.name)}.`,
+          });
+        }
         if (answer.type === 'predicate') {
           return [
             answer.name,
@@ -222,6 +228,22 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
       }),
     );
 
+    const names = response.answers.map(answer => answer.name);
+    if (
+      names.length !== Object.keys(questions).length ||
+      new Set(names).size !== names.length ||
+      names.some(
+        name =>
+          typeof name !== 'string' ||
+          !Object.prototype.hasOwnProperty.call(questions, name),
+      )
+    ) {
+      throw new InvalidResponseDataError({
+        data: rawValue,
+        message: 'Decisions must return exactly one answer for every question.',
+      });
+    }
+
     return {
       answers,
       usage:
@@ -233,16 +255,19 @@ export class OpenAIDecisionModel implements DecisionModelV4 {
             },
       // The Decisions API reports probabilities in increments of 0.01.
       rounding: { probabilityDecimals: 2 },
-      warnings: Object.keys(providerOptions?.openai ?? {}).map(option => ({
-        type: 'unsupported',
-        feature: `providerOptions.openai.${option}`,
-      })),
+      warnings: Object.keys(providerOptions?.openai ?? {})
+        .filter(option => option !== 'safetyIdentifier')
+        .map(option => ({
+          type: 'unsupported',
+          feature: `providerOptions.openai.${option}`,
+        })),
       providerMetadata: {
         openai: {
           ...(response.usage == null ? {} : { usage: response.usage }),
           confidence: Object.fromEntries(
             response.answers.flatMap(answer =>
-              answer.type !== 'predicate' && answer.confidence != null
+              (answer.type === 'choice' || answer.type === 'score') &&
+              answer.confidence != null
                 ? [[answer.name, answer.confidence]]
                 : [],
             ),

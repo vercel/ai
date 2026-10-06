@@ -133,3 +133,18 @@ it.each([
     ).rejects.toBeInstanceOf(InvalidResponseDataError);
   },
 );
+
+it('rejects a native refusal without retrying or returning partial answers', async () => {
+  const { model, fetch } = setup(
+    answers.map(answer =>
+      answer.name === 'refund' ? { type: 'refusal', name: 'refund' } : answer,
+    ),
+  );
+  await expect(
+    decide({ model, state: 'Ticket', questions }),
+  ).rejects.toMatchObject({
+    name: 'AI_InvalidResponseDataError',
+    message: 'OpenAI Decisions refused question "refund".',
+  });
+  expect(fetch).toHaveBeenCalledTimes(1);
+});

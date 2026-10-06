@@ -3472,8 +3472,8 @@ const result = await generateSpeech({
 ## Decision Models
 
 Create an experimental decision model with `openai.decisionModel(modelId)`.
-It uses the native Decisions API to answer Choice, Score, and Boolean questions.
-The alpha requires an enabled OpenAI organization and uses `gpt-6-luna`.
+It uses the native [Decisions API](https://developers.openai.com/api/docs/guides/decisions)
+to answer Choice, Score, and Boolean questions with `gpt-6-luna`.
 
 ```ts
 import { openai } from '@ai-sdk/openai';
@@ -3508,12 +3508,24 @@ appended to predicate instructions under `Criteria for true:` and `Criteria for 
 String criteria are passed through; structured criteria are serialized as JSON text.
 
 The factory respects `createOpenAI` settings, including custom fetch and base URL.
-Responses API options are unsupported and produce warnings. Native confidence
+Set `providerOptions.openai.safetyIdentifier` to an opaque end-user identifier for
+safety monitoring (up to 128 characters). For example:
+
+```ts
+providerOptions: {
+  openai: { safetyIdentifier: 'user-123' } satisfies OpenAIDecisionModelOptions,
+}
+```
+
+Import `OpenAIDecisionModelOptions` from `@ai-sdk/openai` when using the type above.
+Other OpenAI options are unsupported and produce warnings. Native confidence
 values are available in `providerMetadata.openai.confidence`, keyed by question ID.
 Input and output token counts are available in `usage`. The full native token usage
 (including cache, reasoning, and total counts) is preserved in
 `providerMetadata.openai.usage`. Response headers, the returned model ID, and the
-raw response body are preserved. Invalid answers fail the entire decision.
+raw response body are preserved. If OpenAI refuses a question, the entire call
+throws `InvalidResponseDataError` with the question name and the raw response in
+`error.data`. Invalid answers also fail the entire decision.
 See [Decisions](/docs/ai-sdk-core/decisions).
 
 Decision models can also be accessed through `customProvider` aliases or

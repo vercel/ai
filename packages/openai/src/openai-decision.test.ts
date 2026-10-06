@@ -1,4 +1,8 @@
-import { APICallError, InvalidResponseDataError } from '@ai-sdk/provider';
+import {
+  APICallError,
+  InvalidResponseDataError,
+  InvalidArgumentError,
+} from '@ai-sdk/provider';
 import {
   WORKFLOW_DESERIALIZE,
   WORKFLOW_SERIALIZE,
@@ -432,3 +436,59 @@ it('keeps the deprecated evaluation factory and method backed by Decisions', asy
   expect(model.provider).toBe('openai.decision');
   expect(fetch.mock.calls[0][0]).toBe('https://api.openai.com/v1/decisions');
 });
+
+it.each(['', 'user-123', 'x'.repeat(128)])(
+  'sends safetyIdentifier and warns only about unsupported options',
+  async safetyIdentifier => {
+    const { model, fetch } = setup();
+    const result = await model.doDecide({
+      ...options,
+      providerOptions: {
+        openai: { safetyIdentifier, reasoningEffort: 'high' },
+      },
+    });
+    const body = JSON.parse(fetch.mock.calls[0][1]?.body as string);
+    expect(body.safety_identifier).toBe(safetyIdentifier);
+    expect(body).not.toHaveProperty('reasoningEffort');
+    expect(result.warnings).toEqual([
+      {
+        type: 'unsupported',
+        feature: 'providerOptions.openai.reasoningEffort',
+      },
+    ]);
+  },
+);
+
+it.each([123, null, 'x'.repeat(129)])(
+  'rejects invalid safety identifiers before HTTP',
+  async safetyIdentifier => {
+    const { model, fetch } = setup();
+    await expect(
+      model.doDecide({
+        ...options,
+        providerOptions: { openai: { safetyIdentifier } },
+      }),
+    ).rejects.toBeInstanceOf(InvalidArgumentError);
+    expect(fetch).not.toHaveBeenCalled();
+  },
+);
+
+it.each(['department', 'severity', 'refund', null])(
+  'fails the whole decision with an explicit refusal error',
+  async name => {
+    const answers = fixture.answers.map((answer: { name: string }) =>
+      answer.name === (name ?? 'refund') ? { type: 'refusal', name } : answer,
+    );
+    const body = { ...fixture, answers };
+    const { model, fetch } = setup(body);
+    await expect(model.doDecide(options)).rejects.toMatchObject({
+      name: 'AI_InvalidResponseDataError',
+      message:
+        name === null
+          ? 'OpenAI Decisions refused an unnamed question.'
+          : `OpenAI Decisions refused question "${name}".`,
+      data: body,
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  },
+);
