@@ -902,6 +902,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',
@@ -1017,6 +1019,8 @@ describe('doGenerate', () => {
     });
 
     it.each([
+      'mistral-large-4',
+      'mistral-large-4-0',
       'mistral-medium-3-5',
       'mistral-medium-latest',
       'mistral-vibe-cli-fast',

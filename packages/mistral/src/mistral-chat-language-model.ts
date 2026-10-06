@@ -50,13 +50,15 @@ type MistralChatConfig = {
   generateId?: () => string;
 };
 
-// https://api.mistral.ai/v1/models (2026-09-10)
+// https://api.mistral.ai/v1/models (2026-10-06)
 const reasoningEffortModelIds = new Set<MistralChatModelId>([
   'glm-5-2',
   'labs-leanstral-1-5',
   'labs-leanstral-1-5-1',
   'magistral-medium-latest',
   'magistral-small-latest',
+  'mistral-large-4',
+  'mistral-large-4-0',
   'mistral-medium',
   'mistral-medium-2604',
   'mistral-medium-3',
