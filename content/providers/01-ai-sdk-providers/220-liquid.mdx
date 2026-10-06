@@ -1,0 +1,156 @@
+---
+title: Liquid
+description: Use Liquid decision models with text and image inputs through the AI SDK.
+---
+
+# Liquid Provider
+
+The [Liquid](https://liquid.ai) provider implements the experimental decision
+API with native Choice, Score, and Boolean answers. Each request asks named
+questions against one shared state, with text, images, or both as input.
+
+## Setup
+
+Install the provider:
+
+```sh
+pnpm add @ai-sdk/liquid
+```
+
+Set `LIQUID_API_KEY` to a key from [Liquid's console](https://console.liquid.ai).
+Use the default provider or configure an instance:
+
+```ts
+import { createLiquid, liquid } from '@ai-sdk/liquid';
+
+const customLiquid = createLiquid({ apiKey: 'your-api-key' });
+```
+
+`createLiquid` accepts:
+
+| Setting   | Description                                                     |
+| --------- | --------------------------------------------------------------- |
+| `apiKey`  | API key; defaults to `LIQUID_API_KEY`.                          |
+| `baseURL` | API base URL; defaults to `https://api.liquid.ai/decisions/v1`. |
+| `headers` | Additional request headers.                                     |
+| `fetch`   | Custom fetch implementation.                                    |
+
+The base URL is the endpoint prefix; the provider appends `/systemone`.
+
+## Decision Models
+
+```ts
+import { liquid } from '@ai-sdk/liquid';
+import { experimental_decide } from 'ai';
+
+const result = await experimental_decide({
+  model: liquid.decisionModel('d1'),
+  state: { message: 'I was charged twice. Please refund the duplicate.' },
+  questions: {
+    department: {
+      type: 'choice',
+      instructions: 'Which team should handle this?',
+      criteria: {
+        billing: 'Charges and refunds',
+        technical: 'Bugs and outages',
+        other: null,
+      },
+    },
+    urgency: {
+      type: 'score',
+      instructions: 'How urgent is this?',
+      criteria: ['Low', 'Medium', 'High'],
+    },
+    requestsRefund: {
+      type: 'boolean',
+      instructions: 'Is the customer requesting a refund?',
+    },
+  },
+});
+
+console.log(result.answers.department.choice);
+console.log(result.answers.urgency.score);
+console.log(result.answers.requestsRefund.probability);
+console.log(result.usage);
+```
+
+| Model     | Text inputs | Image inputs | Choice | Score | Boolean |
+| --------- | ----------- | ------------ | ------ | ----- | ------- |
+| `d1`      | Yes         | Yes          | Yes    | Yes   | Yes     |
+| `d1:free` | Yes         | No           | Yes    | Yes   | Yes     |
+
+State can be a string, JSON object, or JSON array. Boolean questions map to
+Liquid's `noul` primitive and return P(true). Choice answers include the
+selected option and its distribution; Score answers include the fractional
+position on the ordered rubric and its distribution. Decision models do not
+generate text or stream responses.
+
+## Image Inputs
+
+Put images in the `images` field of an object state. Each image must be either
+a base64 data URL or an object with `content_type` and `base64` fields:
+
+```ts
+import { readFile } from 'node:fs/promises';
+import { liquid } from '@ai-sdk/liquid';
+import { experimental_decide } from 'ai';
+
+const image = await readFile('image.png');
+const result = await experimental_decide({
+  model: liquid.decisionModel('d1'),
+  state: {
+    context: 'Inspect the supplied image.',
+    images: [
+      { content_type: 'image/png', base64: image.toString('base64') },
+      // Alternatively: 'data:image/png;base64,...'
+    ],
+  },
+  questions: {
+    defect: {
+      type: 'boolean',
+      instructions: 'Does this image show a visible defect?',
+    },
+  },
+});
+
+console.log(result.answers.defect.probability);
+```
+
+The provider moves a nonempty `state.images` array into the top-level `images`
+key of Liquid's request body, removing it from the outgoing state. Other fields
+remain structured JSON, and your original state is unchanged. It preserves
+image order, so instructions can refer to the first or second image. All
+questions receive all supplied images. An empty `state.images` array stays in
+the state and does not add a top-level `images` key. Images nested elsewhere in
+state are ordinary JSON; they are not extracted.
+
+JPEG (`image/jpeg`), PNG (`image/png`), WebP (`image/webp`), and GIF (`image/gif`)
+are supported, with at most eight images per request. Remote image URLs are
+not accepted. Encode image bytes before calling `experimental_decide`.
+Malformed images and image calls to `d1:free` are rejected before HTTP.
+
+Liquid also requires the entire JSON request to stay under 4.5 MB, at most
+10,000 image patches of 32 × 32 pixels across all images, and an aspect ratio
+no greater than 100:1. These limits are enforced by Liquid. See
+[Liquid's image input documentation](https://docs.liquid.ai/lfm/models/decision-models#image-inputs).
+
+## Metadata and Errors
+
+Native Choice and Score confidence values are available at
+`result.providerMetadata.liquid.confidence[questionId]`. Liquid's reported
+`usage.cost` is available at `result.providerMetadata.liquid.cost` when supplied,
+including zero for free requests. The provider preserves the upstream value;
+it does not calculate a price. Returned scores and
+probabilities are preserved. Usage includes image tokens when images are
+supplied; Liquid charges each question for its text and all supplied images.
+
+Provider HTTP failures use `APICallError`. The SDK handles retries according to
+`maxRetries`, and forwards `abortSignal` and request headers. No provider-specific
+options are currently defined; unknown `providerOptions.liquid` entries produce
+unsupported-option warnings.
+
+The provider supports workflow serialization. Custom fetch functions are not
+serialized; restored models use the default fetch implementation. The deprecated
+`evaluationModel` factory and `doEvaluate` method are available for compatibility
+with older decision clients. Language, embedding, and image generation factories
+throw `NoSuchModelError`.

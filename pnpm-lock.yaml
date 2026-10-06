@@ -441,6 +441,9 @@ importers:
       '@ai-sdk/langchain':
         specifier: workspace:*
         version: link:../../packages/langchain
+      '@ai-sdk/liquid':
+        specifier: workspace:*
+        version: link:../../packages/liquid
       '@ai-sdk/luma':
         specifier: workspace:*
         version: link:../../packages/luma
@@ -3410,6 +3413,37 @@ importers:
       typescript:
         specifier: 5.8.3
         version: 5.8.3
+
+  packages/liquid:
+    dependencies:
+      '@ai-sdk/provider':
+        specifier: workspace:*
+        version: link:../provider
+      '@ai-sdk/provider-utils':
+        specifier: workspace:*
+        version: link:../provider-utils
+    devDependencies:
+      '@ai-sdk/test-server':
+        specifier: workspace:*
+        version: link:../test-server
+      '@edge-runtime/vm':
+        specifier: ^5.0.0
+        version: 5.0.0
+      '@types/node':
+        specifier: 22.19.19
+        version: 22.19.19
+      '@vercel/ai-tsconfig':
+        specifier: workspace:*
+        version: link:../../tools/tsconfig
+      tsdown:
+        specifier: ^0.23.0
+        version: 0.23.0(@vue/language-core@3.3.11)(publint@0.2.12)(tsx@4.23.12)(typescript@5.8.3)
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
 
   packages/llamaindex:
     dependencies:
