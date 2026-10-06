@@ -74,6 +74,11 @@ export type OpenAICompatibleChatConfig = {
   supportsStructuredOutputs?: boolean;
 
   /**
+   * Whether the model supports multi-part content in tool results.
+   */
+  supportsMultiPartToolContent?: boolean;
+
+  /**
    * The supported URLs for the model.
    */
   supportedUrls?: () => LanguageModelV4['supportedUrls'];
@@ -82,8 +87,12 @@ export type OpenAICompatibleChatConfig = {
    * Optional function to transform the request body before sending it to the API.
    * This is useful for proxy providers that may require a different request format
    * than the official OpenAI API.
+   * The optional warnings array can be used to report request transformations.
    */
-  transformRequestBody?: (args: Record<string, any>) => Record<string, any>;
+  transformRequestBody?: (
+    args: Record<string, any>,
+    warnings?: SharedV4Warning[],
+  ) => Record<string, any>;
 
   /**
    * Optional usage converter for OpenAI-compatible providers with different
@@ -157,8 +166,11 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
     return this.config.supportedUrls?.() ?? {};
   }
 
-  private transformRequestBody(args: Record<string, any>): Record<string, any> {
-    return this.config.transformRequestBody?.(args) ?? args;
+  private transformRequestBody(
+    args: Record<string, any>,
+    warnings: SharedV4Warning[],
+  ): Record<string, any> {
+    return this.config.transformRequestBody?.(args, warnings) ?? args;
   }
 
   private convertUsage(
@@ -315,6 +327,8 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
         // messages:
         messages: convertToOpenAICompatibleChatMessages(prompt, {
           providerOptionsKey: metadataKey,
+          supportsMultiPartToolContent:
+            this.config.supportsMultiPartToolContent,
         }),
 
         // tools:
@@ -330,7 +344,7 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
   ): Promise<LanguageModelV4GenerateResult> {
     const { args, warnings, metadataKey } = await this.getArgs({ ...options });
 
-    const transformedBody = this.transformRequestBody(args);
+    const transformedBody = this.transformRequestBody(args, warnings);
     const body = JSON.stringify(transformedBody);
 
     const {
@@ -438,15 +452,18 @@ export class OpenAICompatibleChatLanguageModel implements LanguageModelV4 {
       ...options,
     });
 
-    const body = this.transformRequestBody({
-      ...args,
-      stream: true,
+    const body = this.transformRequestBody(
+      {
+        ...args,
+        stream: true,
 
-      // only include stream_options when in strict compatibility mode:
-      stream_options: this.config.includeUsage
-        ? { include_usage: true }
-        : undefined,
-    });
+        // only include stream_options when in strict compatibility mode:
+        stream_options: this.config.includeUsage
+          ? { include_usage: true }
+          : undefined,
+      },
+      warnings,
+    );
 
     const metadataExtractor =
       this.config.metadataExtractor?.createStreamExtractor();

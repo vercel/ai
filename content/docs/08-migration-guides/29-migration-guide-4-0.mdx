@@ -944,7 +944,7 @@ import { useAssistant } from '@ai-sdk/react';
   code manually.
 </Note>
 
-The `threadId` and `messageId` parameters have been removed from the `AssistantResponse` function.
+The `threadId` and `messageId` properties have been removed from the argument passed to the `AssistantResponse` callback. The initial response options passed to `AssistantResponse` still require both IDs.
 Please use the `threadId` and `messageId` variables from the outer scope instead.
 
 ```ts filename="AI SDK 3.4"

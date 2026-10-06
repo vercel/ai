@@ -1,5 +1,25 @@
 # @ai-sdk/cohere
 
+## 4.0.55
+
+### Patch Changes
+
+- 5440b3a: Allow 768 and 2048 in the Cohere embedding `outputDimension` option for Embed 5 models.
+- f17f0ce: feat(cohere): support selecting embedding formats
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.54
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 4.0.53
 
 ### Patch Changes

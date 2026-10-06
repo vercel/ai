@@ -845,6 +845,7 @@ export async function convertToAnthropicPrompt({
                   break;
                 }
 
+                betas.add('server-side-fallback-2026-06-01');
                 anthropicContent.push({
                   type: 'fallback',
                   from: fallbackMetadata.value.from,
@@ -983,24 +984,23 @@ export async function convertToAnthropicPrompt({
 
                 if (toolsetName != null) {
                   // toolset member call: the `action` is the member tool name
-                  const { action, ...memberInput } = toAnthropicToolInput(
-                    part.input,
-                  );
+                  const rawInput = toAnthropicToolInput(part.input);
+                  const { action } = rawInput;
+                  const hasAction = typeof action === 'string';
 
-                  if (typeof action !== 'string') {
+                  if (!hasAction) {
                     warnings.push({
                       type: 'other',
                       message: `toolset tool call for tool ${part.toolName} is missing the action`,
                     });
-                    break;
                   }
 
                   anthropicContent.push({
                     type: 'tool_use',
                     id: part.toolCallId,
-                    name: action,
+                    name: hasAction ? action : toolsetName,
                     toolset_name: toolsetName,
-                    input: memberInput,
+                    input: rawInput,
                     ...(caller && { caller }),
                     cache_control: cacheControl,
                   });

@@ -153,6 +153,7 @@ export class MistralChatLanguageModel implements LanguageModelV4 {
                   medium: 'high',
                   high: 'high',
                   xhigh: 'high',
+                  max: 'high',
                 },
                 warnings,
               })

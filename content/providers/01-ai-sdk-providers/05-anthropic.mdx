@@ -33,6 +33,15 @@ const anthropic = createAnthropic({
 
 You can use the following optional settings to customize the Anthropic provider instance:
 
+- **batchResultDownloads** _object_
+
+  Settings for downloading JSON Lines batch results.
+  - **maxLineBytes** _number_
+
+    Maximum UTF-8 bytes per row, excluding the LF delimiter. Defaults to 64 MiB
+    (67,108,864 bytes). Must be a positive safe integer. Oversized rows throw a
+    `DownloadError` and cancel the download.
+
 - **baseURL** _string_
 
   Use a different URL prefix for API calls, e.g. to use proxy servers.
@@ -92,6 +101,34 @@ const { text } = await generateText({
 Anthropic language models can also be used in the `streamText` function
 and support structured data generation with [`Output`](/docs/reference/ai-sdk-core/output)
 (see [AI SDK Core](/docs/ai-sdk-core)).
+
+### Message-start events
+
+During streaming, each Anthropic `message_start` event is exposed as an
+`anthropic.message_start` custom stream part containing the message ID, model,
+and raw initial token usage. No provider option is required.
+
+```ts
+import { anthropic } from '@ai-sdk/anthropic';
+import { streamText } from 'ai';
+
+const result = streamText({
+  model: anthropic('claude-haiku-4-5'),
+  prompt: 'Say hi in one word.',
+});
+
+for await (const part of result.fullStream) {
+  if (part.type === 'custom' && part.kind === 'anthropic.message_start') {
+    console.log(part.providerMetadata?.anthropic);
+  }
+}
+```
+
+Initial usage may be incomplete; use `result.usage` for final token counts.
+Like other custom parts, this event is included in response content and forwarded
+to UI message streams. It is ignored when replaying conversation history to Anthropic.
+
+### Provider options
 
 The following optional provider options are available for Anthropic models:
 
@@ -1334,7 +1371,7 @@ together with an older `computer_*` tool.
 
 Parameters:
 
-- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position' | 'zoom'): The action to perform. The `zoom` action is only available with `computer_20251124`.
+- `action` ('key' | 'type' | 'mouse_move' | 'left_click' | 'left_click_drag' | 'right_click' | 'middle_click' | 'double_click' | 'screenshot' | 'cursor_position' | 'zoom'): The action to perform. For versioned computer tools, the `zoom` action is only available with `computer_20251124`. It is also available with `computerToolset_20260801`, where it is enabled by default.
 - `coordinate` (number[], optional): Required for `mouse_move` and `left_click_drag` actions. Specifies the (x, y) coordinates.
 - `text` (string, optional): Required for `type` and `key` actions.
 - `region` (number[], optional): Required for `zoom` action. Specifies `[x1, y1, x2, y2]` coordinates for the area to inspect.
@@ -2231,18 +2268,18 @@ and the `mediaType` should be set to `'application/pdf'`.
   any available provider model ID as a string if needed.
 </Note>
 
-## Evaluation Models
+## Decision Models
 
-Create an experimental evaluation model with `anthropic.evaluationModel(modelId)`.
+Create an experimental decision model with `anthropic.decisionModel(modelId)`.
 It uses the Messages API's structured-output support for Choice, Score, and Boolean
 questions. `claude-haiku-4-5-20251001` is one supported model.
 
 ```ts
 import { anthropic } from '@ai-sdk/anthropic';
-import { experimental_evaluate } from 'ai';
+import { experimental_decide } from 'ai';
 
-const { answers } = await experimental_evaluate({
-  model: anthropic.evaluationModel('claude-haiku-4-5-20251001'),
+const { answers } = await experimental_decide({
+  model: anthropic.decisionModel('claude-haiku-4-5-20251001'),
   state: 'I was charged twice.',
   questions: {
     requestsRefund: {
@@ -2272,10 +2309,10 @@ It respects
 `structuredOutputMode`. Supported models use native structured output by default;
 `jsonTool` uses the existing Messages JSON-tool fallback. Usage, warnings,
 response information, and provider metadata are preserved.
-See [Evaluation](/docs/ai-sdk-core/evaluation).
+See [Decisions](/docs/ai-sdk-core/decisions).
 
-Evaluation models can also be accessed through `customProvider` aliases or
-`createProviderRegistry().evaluationModel('provider:model')`. Direct string IDs
+Decision models can also be accessed through `customProvider` aliases or
+`createProviderRegistry().decisionModel('provider:model')`. Direct string IDs
 use Gateway by default, or an explicitly configured default provider with an
-`evaluationModel` method. See
-[model aliases and registries](/docs/ai-sdk-core/evaluation#model-aliases-and-registries).
+`decisionModel` method. See
+[model aliases and registries](/docs/ai-sdk-core/decisions#model-aliases-and-registries).

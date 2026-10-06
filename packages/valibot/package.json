@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/valibot",
-  "version": "3.0.52",
+  "version": "3.0.54",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -38,7 +38,7 @@
     "@valibot/to-json-schema": "^1.7.0",
     "@vercel/ai-tsconfig": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "valibot": "^1.4.0"
   },
   "peerDependencies": {

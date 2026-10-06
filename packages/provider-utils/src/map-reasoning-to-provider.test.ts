@@ -12,6 +12,7 @@ const effortMap = {
   medium: 'medium' as const,
   high: 'high' as const,
   xhigh: 'max' as const,
+  max: 'max' as const,
 };
 
 describe('mapReasoningToProviderEffort', () => {
@@ -101,6 +102,7 @@ describe('isCustomReasoning', () => {
       'medium',
       'high',
       'xhigh',
+      'max',
     ] as const) {
       expect(isCustomReasoning(value)).toBe(true);
     }
@@ -129,6 +131,18 @@ describe('mapReasoningToProviderBudget', () => {
       warnings,
     });
     expect(result).toBe(50000);
+    expect(warnings).toEqual([]);
+  });
+
+  it('maps max to 95 percent of max output tokens', () => {
+    const warnings: SharedV4Warning[] = [];
+    const result = mapReasoningToProviderBudget({
+      reasoning: 'max',
+      maxOutputTokens: 64000,
+      maxReasoningBudget: 64000,
+      warnings,
+    });
+    expect(result).toBe(60800);
     expect(warnings).toEqual([]);
   });
 

@@ -1,178 +1,49 @@
 import type {
-  JSONObject,
-  LanguageModelV4CallOptions,
   LanguageModelV4Prompt,
-  LanguageModelV4Source,
+  LanguageModelV4StreamPart,
   SharedV4ProviderMetadata,
 } from '@ai-sdk/provider';
-import { isAbortError } from '@ai-sdk/provider-utils';
+import { asArray, isAbortError } from '@ai-sdk/provider-utils';
 import {
   experimental_streamLanguageModelCall as streamModelCall,
   gateway,
-  type Experimental_LanguageModelStreamPart,
-  type FinishReason,
+  wrapLanguageModel,
   type LanguageModel,
-  type LanguageModelUsage,
   type ModelMessage,
-  type StopCondition,
-  type ToolCallRepairFunction,
-  type ToolChoice,
   type ToolSet,
 } from 'ai';
 import { prepareRetries } from 'ai/internal';
-import type { ProviderOptions } from './workflow-agent.js';
+import type { StreamTextTransform } from './workflow-agent.js';
 import {
   resolveSerializableTools,
   type SerializableToolDef,
 } from './serializable-schema.js';
 
-export type ModelCallStreamPart<TTools extends ToolSet = ToolSet> =
-  | Experimental_LanguageModelStreamPart<TTools>
-  | {
-      type: 'tool-approval-request';
-      approvalId: string;
-      toolCallId: string;
-      signature?: string;
-    }
-  | { type: 'reset-step' };
+import type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallPerformance,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
-export type ModelStopCondition = StopCondition<NoInfer<ToolSet>, any>;
-
-/**
- * Provider-executed tool result captured from the stream.
- */
-export interface ProviderExecutedToolResult {
-  toolCallId: string;
-  toolName: string;
-  result: unknown;
-  isError?: boolean;
-  dynamic?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-}
-
-/**
- * Options for the doStreamStep function.
- */
-export interface DoStreamStepOptions {
-  maxOutputTokens?: number;
-  temperature?: number;
-  topP?: number;
-  topK?: number;
-  presencePenalty?: number;
-  frequencyPenalty?: number;
-  stopSequences?: string[];
-  seed?: number;
-  maxRetries?: number;
-  abortSignal?: AbortSignal;
-  timeoutAt?: number;
-  headers?: Record<string, string | undefined>;
-  reasoning?: LanguageModelV4CallOptions['reasoning'];
-  providerOptions?: ProviderOptions;
-  toolChoice?: ToolChoice<ToolSet>;
-  includeRawChunks?: boolean;
-  repairToolCall?: ToolCallRepairFunction<ToolSet>;
-  responseFormat?: LanguageModelV4CallOptions['responseFormat'];
-}
-
-/**
- * Parsed tool call from the stream (parsed by streamModelCall's transform).
- */
-export interface ParsedToolCall {
-  type: 'tool-call';
-  toolCallId: string;
-  toolName: string;
-  input: unknown;
-  providerExecuted?: boolean;
-  providerMetadata?: SharedV4ProviderMetadata;
-  title?: string;
-  toolMetadata?: JSONObject;
-  dynamic?: boolean;
-  invalid?: boolean;
-  error?: unknown;
-}
-
-/**
- * Finish metadata from the stream.
- */
-export interface StreamFinish {
-  finishReason: FinishReason;
-  rawFinishReason: string | undefined;
-  usage: LanguageModelUsage;
-  providerMetadata?: Record<string, unknown>;
-}
-
-export type DoStreamStepRawContentPart =
-  | {
-      type: 'text';
-      text: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | {
-      type: 'reasoning';
-      reasoningIndex: number;
-    }
-  | {
-      type: 'file';
-      data: string;
-      mediaType: string;
-      providerMetadata?: SharedV4ProviderMetadata;
-    }
-  | LanguageModelV4Source
-  | {
-      type: 'tool-call';
-      toolCallIndex: number;
-    }
-  | {
-      type: 'provider-tool-result';
-      toolCallId: string;
-    };
-
-/**
- * Compact callback replay data. The start event establishes the tool name for
- * a call, so delta events do not repeat it and available events reuse the
- * parsed input already present in `toolCalls`.
- */
-export type ToolInputLifecycleEvent =
-  | ['start', toolCallId: string, toolName: string]
-  | ['delta', toolCallId: string, inputTextDelta: string]
-  | ['available', toolCallId: string];
-
-/**
- * Minimal aggregates needed to reconstruct a `StepResult` outside the step
- * boundary. By returning only these fields (instead of a fully-populated
- * StepResult plus the raw `chunks[]` array), the durable event log doesn't
- * carry StepResult's redundant derived fields — duplicate tool-call lists,
- * `text`, `files`, `sources`, `reasoningText`, or the tool-result arrays
- * populated after execution. It also avoids the per-chunk `chunks[]` snapshot
- * the iterator never reads. The caller reconstructs the full StepResult via
- * `buildStepResult`.
- */
-export interface DoStreamStepRawResult {
-  content: DoStreamStepRawContentPart[];
-  reasoning: Array<{
-    text: string;
-    providerMetadata?: SharedV4ProviderMetadata;
-  }>;
-  responseMetadata?: { id?: string; timestamp?: Date; modelId?: string };
-  warnings?: unknown[];
-}
-
-export type DoStreamStepResult =
-  | { aborted: true }
-  | {
-      aborted?: false;
-      toolCalls: ParsedToolCall[];
-      finish: StreamFinish | undefined;
-      raw: DoStreamStepRawResult;
-      providerExecutedToolResults: Map<string, ProviderExecutedToolResult>;
-      /**
-       * Optional for compatibility with model-step results persisted before
-       * tool input lifecycle callback replay was added.
-       */
-      toolInputLifecycleEvents?: ToolInputLifecycleEvent[];
-      /** Present when the model stream emitted an error part. */
-      terminalError?: unknown;
-    };
+// Preserve existing imports while the durable step keeps its name and payload.
+export type {
+  ModelCallFinish as StreamFinish,
+  ModelCallOptions as DoStreamStepOptions,
+  ModelCallRawContentPart as DoStreamStepRawContentPart,
+  ModelCallRawResult as DoStreamStepRawResult,
+  ModelCallResult as DoStreamStepResult,
+  ModelCallStreamPart,
+  ModelStopCondition,
+  ParsedToolCall,
+  ProviderExecutedToolResult,
+  ToolInputLifecycleEvent,
+} from './model-call.js';
 
 export async function doStreamStep(
   conversationPrompt: LanguageModelV4Prompt,
@@ -201,7 +72,7 @@ export async function doStreamStep(
         : AbortSignal.any([options.abortSignal, AbortSignal.timeout(timeout)]);
 
   // Resolve model inside step (must happen here for serialization boundary)
-  const model: LanguageModel =
+  const model =
     typeof modelInit === 'string'
       ? gateway.languageModel(modelInit)
       : modelInit;
@@ -213,6 +84,27 @@ export async function doStreamStep(
   const tools = serializedTools
     ? resolveSerializableTools(serializedTools)
     : undefined;
+  const modelWithTransforms =
+    options?.experimental_transform == null
+      ? model
+      : wrapLanguageModel({
+          model,
+          middleware: {
+            specificationVersion: 'v4',
+            wrapStream: async ({ doStream }) => {
+              const { stream, ...result } = await doStream();
+
+              return {
+                ...result,
+                stream: applyStreamTransforms({
+                  stream,
+                  transforms: asArray(options.experimental_transform!),
+                  tools: tools ?? {},
+                }),
+              };
+            },
+          },
+        });
 
   // streamModelCall derives the model responseFormat from its output spec.
   // WorkflowAgent parses output outside the model-call helper, so this minimal
@@ -247,11 +139,25 @@ export async function doStreamStep(
     try {
       const { stream } = await retry(() =>
         streamModelCall({
-          model,
+          model: modelWithTransforms,
           // streamModelCall expects Prompt (ModelMessage[]) but we pass the
           // pre-converted LanguageModelV4Prompt. standardizePrompt inside
           // streamModelCall handles both formats.
-          messages: conversationPrompt as unknown as ModelMessage[],
+          messages: conversationPrompt.map(message =>
+            message.role !== 'tool'
+              ? message
+              : {
+                  ...message,
+                  // Provider prompt approval responses have already been filtered by
+                  // convertToLanguageModelPrompt. Restore the marker expected by the
+                  // model-call helper when it converts these messages again.
+                  content: message.content.map(part =>
+                    part.type === 'tool-approval-response'
+                      ? { ...part, providerExecuted: true }
+                      : part,
+                  ),
+                },
+          ) as unknown as ModelMessage[],
           allowSystemInMessages: true,
           tools,
           toolChoice: options?.toolChoice,
@@ -307,6 +213,7 @@ export async function doStreamStep(
     | { id?: string; timestamp?: Date; modelId?: string }
     | undefined;
   let warnings: unknown[] | undefined;
+  let performance: ModelCallPerformance | undefined;
   let terminalError: unknown;
   let hasTerminalError = false;
   const ongoingToolCallToolNames = new Map<string, string>();
@@ -410,6 +317,13 @@ export async function doStreamStep(
         case 'source':
           content.push(part);
           break;
+        case 'tool-approval-request':
+          content.push({
+            type: 'tool-approval-request',
+            approvalId: part.approvalId,
+            toolCallId: part.toolCall.toolCallId,
+          });
+          break;
         case 'tool-call': {
           // parseToolCall adds dynamic/invalid/error at runtime
           const toolCallPart = part as typeof part & Partial<ParsedToolCall>;
@@ -488,6 +402,7 @@ export async function doStreamStep(
               | Record<string, unknown>
               | undefined,
           };
+          performance = part.performance;
           break;
         case 'model-call-start':
           warnings = part.warnings;
@@ -544,6 +459,7 @@ export async function doStreamStep(
       content,
       reasoning: reasoningParts,
       responseMetadata,
+      performance,
       warnings,
     },
     providerExecutedToolResults,
@@ -555,6 +471,54 @@ export async function doStreamStep(
 // Model-call retries are handled above so the workflow runtime must not add
 // another retry layer around the durable step.
 doStreamStep.maxRetries = 0;
+
+function applyStreamTransforms({
+  stream,
+  transforms,
+  tools,
+}: {
+  stream: ReadableStream<LanguageModelV4StreamPart>;
+  transforms: Array<StreamTextTransform<ToolSet>>;
+  tools: ToolSet;
+}): ReadableStream<LanguageModelV4StreamPart> {
+  const sourceReader = stream.getReader();
+  let stopped = false;
+
+  const stopStream = () => {
+    if (stopped) return;
+    stopped = true;
+    void sourceReader.cancel().catch(() => {});
+  };
+
+  let transformedStream = new ReadableStream<LanguageModelV4StreamPart>(
+    {
+      async pull(controller) {
+        if (stopped) {
+          controller.close();
+          return;
+        }
+        const { done, value } = await sourceReader.read();
+        if (done || stopped) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(value);
+      },
+      cancel(reason) {
+        stopped = true;
+        return sourceReader.cancel(reason);
+      },
+    },
+    { highWaterMark: 0 },
+  );
+
+  for (const transform of transforms) {
+    transformedStream = transformedStream.pipeThrough(
+      transform({ tools, stopStream }),
+    );
+  }
+  return transformedStream;
+}
 
 function upsertTextContentPart({
   content,
@@ -615,7 +579,6 @@ function upsertReasoningContentPart({
   providerMetadata?: SharedV4ProviderMetadata;
 }) {
   let partIndex = reasoningPartIndexes.get(id);
-
   if (partIndex == null) {
     partIndex =
       reasoningParts.push({
@@ -625,14 +588,7 @@ function upsertReasoningContentPart({
     reasoningPartIndexes.set(id, partIndex);
     content.push({ type: 'reasoning', reasoningIndex: partIndex });
   }
-
   const part = reasoningParts[partIndex];
-
-  if (textDelta != null) {
-    part.text += textDelta;
-  }
-
-  if (providerMetadata != null) {
-    part.providerMetadata = providerMetadata;
-  }
+  if (textDelta != null) part.text += textDelta;
+  if (providerMetadata != null) part.providerMetadata = providerMetadata;
 }

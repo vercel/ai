@@ -5,7 +5,7 @@ import {
   IconWrench,
 } from '@vercel/geistdocs/assets/icons';
 import { IconArrowUpRight } from '@vercel/geistdocs/assets/icons/icon-arrow-up-right';
-import { LogoIconVercel } from '@vercel/geistdocs/assets/logos';
+import { LogoIconVercelSvg } from '@vercel/geistdocs/assets/logos';
 import { CodeBlock } from '@vercel/geistdocs/components/code-block';
 import {
   DropdownMenu,
@@ -103,39 +103,74 @@ type GatewayResponse = {
 };
 
 /**
- * Static provider marks under `public/images/icons`. Monochrome marks are
- * inverted in dark mode (same convention as `model-cards.tsx`). Providers
- * without an asset fall back to the generic "custom" mark.
+ * AI Gateway provider avatars under `public/images/icons/gateway`, keyed by
+ * the gateway `owned_by` slug (spacexai is remapped to xai in parseModels).
+ * They are full-color circular marks, so they render round with a hairline
+ * ring and are not inverted in dark mode. Providers without an asset fall
+ * back to the generic "custom" mark.
  */
-const PROVIDER_LOGOS: Record<string, { src: string; invert?: boolean }> = {
-  amazon: { src: '/images/icons/aws.svg' },
-  anthropic: { src: '/images/icons/anthropic.svg', invert: true },
-  cohere: { src: '/images/icons/cohere.svg' },
-  deepseek: { src: '/images/icons/deepseek.svg' },
-  google: { src: '/images/icons/google.svg' },
-  groq: { src: '/images/icons/groq.svg' },
-  mistral: { src: '/images/icons/mistral.svg' },
-  openai: { src: '/images/icons/openai.svg', invert: true },
-  perplexity: { src: '/images/icons/perplexity.svg' },
-  vercel: { src: '/images/icons/vercel.svg', invert: true },
-  xai: { src: '/images/icons/xai-black.svg', invert: true },
-};
-
-const FALLBACK_PROVIDER_LOGO = {
-  src: '/images/icons/custom.svg',
-  invert: true,
-};
+const GATEWAY_LOGO_PROVIDERS = new Set([
+  'alibaba',
+  'amazon',
+  'anthropic',
+  'arcee-ai',
+  'bfl',
+  'bytedance',
+  'cohere',
+  'deepseek',
+  'fireworks',
+  'google',
+  'groq',
+  'inception',
+  'inference-net',
+  'interfaze',
+  'klingai',
+  'meituan',
+  'meta',
+  'minimax',
+  'mistral',
+  'mixedbread',
+  'moonshotai',
+  'morph',
+  'nvidia',
+  'openai',
+  'perplexity',
+  'poolside',
+  'prodia',
+  'quiverai',
+  'recraft',
+  'sakana',
+  'stealth',
+  'stepfun',
+  'tencent',
+  'thinkingmachines',
+  'vercel',
+  'xai',
+  'xiaomi',
+  'zai',
+]);
 
 const ProviderLogo = ({ provider }: { provider: string }) => {
-  const logo = PROVIDER_LOGOS[provider] ?? FALLBACK_PROVIDER_LOGO;
+  if (!GATEWAY_LOGO_PROVIDERS.has(provider)) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        alt=""
+        className="size-4 dark:invert"
+        height={16}
+        src="/images/icons/custom.svg"
+        width={16}
+      />
+    );
+  }
   return (
-    // Static brand SVGs skip the Next image optimizer deliberately.
+    // Static brand assets skip the Next image optimizer deliberately.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       alt=""
-      className={cx('size-4', logo.invert && 'dark:invert')}
+      className="size-4 rounded-full bg-background-100 ring-1 ring-gray-alpha-400"
       height={16}
-      src={logo.src}
+      src={`/images/icons/gateway/${provider}.png`}
       width={16}
     />
   );
@@ -181,10 +216,12 @@ const providerPreferredModels: Partial<
   image: {
     openai: 'openai/gpt-image-2.5-sunburst',
     xai: 'spacexai/grok-imagine-image-2.0',
+    bfl: 'bfl/flux-2-pro',
   },
   video: {
     google: 'google/veo-3.1-generate-001',
     xai: 'spacexai/grok-imagine-video-1.5',
+    bfl: 'bfl/flux-3-video',
   },
 };
 
@@ -205,14 +242,15 @@ export const FIRST_PARTY_PROVIDERS = [
 
 const MODEL_KIND_PROVIDER_ALLOWLISTS: Record<ModelKind, string[]> = {
   text: FIRST_PARTY_PROVIDERS,
-  image: ['openai', 'google', 'xai'],
-  video: ['google', 'xai'],
+  image: ['openai', 'google', 'xai', 'bfl'],
+  video: ['google', 'xai', 'bfl'],
 };
 
 // Mapping for providers where SDK package/export differs from gateway
 // provider ID: { gatewayId: { pkg: 'package-name', export: 'exportName' } }
 const providerSdkMap: Record<string, { pkg: string; export: string }> = {
   amazon: { pkg: 'amazon-bedrock', export: 'bedrock' },
+  bfl: { pkg: 'black-forest-labs', export: 'blackForestLabs' },
 };
 
 // Mapping for models where the provider SDK model code differs from the
@@ -504,7 +542,7 @@ const CrosshairIcon = ({ size = 14 }: { size?: number }) => (
 );
 
 const TABS: { id: TabType; title: string; icon: ReactNode }[] = [
-  { id: 'gateway', title: 'Gateway', icon: <LogoIconVercel size={13} /> },
+  { id: 'gateway', title: 'Gateway', icon: <LogoIconVercelSvg size={13} /> },
   { id: 'provider', title: 'Provider', icon: <CrosshairIcon size={14} /> },
   { id: 'custom', title: 'Custom', icon: <IconWrench size={14} /> },
 ];

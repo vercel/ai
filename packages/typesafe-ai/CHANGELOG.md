@@ -1,5 +1,25 @@
 # @ai-sdk/typesafe-ai
 
+## 3.0.13
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- e6d6dab: feat(typesafe-ai): read `TYPESAFE_AI_BASE_URL` when no explicit base URL is configured
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 3.0.12
+
+### Patch Changes
+
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
 ## 3.0.11
 
 ### Patch Changes

@@ -6,16 +6,18 @@ import {
   type GoogleInteractionsModelId,
   type GoogleInteractionsModelInput,
 } from '@ai-sdk/google/internal';
-import type {
-  Experimental_VideoModelV4,
-  ImageModelV4,
-  LanguageModelV4,
-  ProviderV4,
-  SpeechModelV4,
-  TranscriptionModelV4,
+import {
+  InvalidArgumentError,
+  type Experimental_VideoModelV4,
+  type ImageModelV4,
+  type LanguageModelV4,
+  type ProviderV4,
+  type SpeechModelV4,
+  type TranscriptionModelV4,
 } from '@ai-sdk/provider';
 import {
   generateId,
+  isValidHostnamePart,
   loadOptionalSetting,
   loadSetting,
   normalizeHeaders,
@@ -225,13 +227,22 @@ export function createGoogleVertex(
       description: 'Google Vertex project',
     });
 
-  const loadGoogleVertexLocation = () =>
-    loadSetting({
+  const loadGoogleVertexLocation = () => {
+    const location = loadSetting({
       settingValue: options.location,
       settingName: 'location',
       environmentVariableName: 'GOOGLE_VERTEX_LOCATION',
       description: 'Google Vertex location',
     });
+    if (!isValidHostnamePart(location)) {
+      throw new InvalidArgumentError({
+        argument: 'location',
+        message:
+          'Invalid Google Vertex location. Expected a single DNS label (letters, digits, and hyphens). Use `baseURL` for custom endpoints.',
+      });
+    }
+    return location;
+  };
 
   // Tuned models are addressed via their deployed endpoint
   // `.../locations/{region}/endpoints/{id}` instead of the base-model
@@ -240,6 +251,11 @@ export function createGoogleVertex(
   const loadBaseURL = ({ endpoint = false }: { endpoint?: boolean } = {}) => {
     if (apiKey) {
       return withoutTrailingSlash(options.baseURL) ?? EXPRESS_MODE_BASE_URL;
+    }
+
+    const baseURL = withoutTrailingSlash(options.baseURL);
+    if (baseURL != null) {
+      return baseURL;
     }
 
     const region = loadGoogleVertexLocation();
@@ -255,12 +271,9 @@ export function createGoogleVertex(
       }
     };
 
-    return (
-      withoutTrailingSlash(options.baseURL) ??
-      `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
-        endpoint ? '' : '/publishers/google'
-      }`
-    );
+    return `https://${getHost()}/v1beta1/projects/${project}/locations/${region}${
+      endpoint ? '' : '/publishers/google'
+    }`;
   };
 
   const createConfig = (
