@@ -1,5 +1,39 @@
 import { expectTypeOf, it } from 'vitest';
-import { MCPClientError } from './index';
+import {
+  MCPClientError,
+  createMCPClient,
+  experimental_createMCPEventWebhook,
+  type Experimental_MCPEvent,
+  type Experimental_MCPEventStore,
+  type Experimental_MCPEvents,
+  type Experimental_SubscribeEventResult,
+} from './index';
+
+it('exposes events on the existing client and types webhook callbacks', async () => {
+  const store = {} as Experimental_MCPEventStore;
+  const client = await createMCPClient({
+    transport: { type: 'http', url: 'https://example.com/mcp' },
+    events: { store },
+  });
+  expectTypeOf(client.events).toEqualTypeOf<Experimental_MCPEvents>();
+  const result = await client.events.experimental_subscribe({
+    name: 'comment.created',
+    delivery: { mode: 'webhook', url: 'https://app.example/events' },
+  });
+  expectTypeOf(result).toEqualTypeOf<Experimental_SubscribeEventResult>();
+  const handler = experimental_createMCPEventWebhook({
+    store,
+    async onEvent({ event, subscription }) {
+      expectTypeOf(event).toEqualTypeOf<Experimental_MCPEvent>();
+      expectTypeOf(subscription.id).toEqualTypeOf<string>();
+      // @ts-expect-error Signing secrets must not be exposed to event handlers.
+      subscription.delivery.secret;
+    },
+  });
+  expectTypeOf(handler).toEqualTypeOf<
+    (request: Request) => Promise<Response>
+  >();
+});
 
 it('narrows unknown errors and exposes optional MCP error metadata', () => {
   const error: unknown = new MCPClientError({

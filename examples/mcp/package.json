@@ -3,6 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "server:events": "tsx src/events/server.ts",
+    "client:events": "tsx src/events/client.ts",
     "server:sse": "tsx src/sse/server.ts",
     "client:sse": "tsx src/sse/client.ts",
     "server:http": "tsx src/http/server.ts",

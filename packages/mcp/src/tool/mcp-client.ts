@@ -13,6 +13,8 @@ import {
   type ToolResultOutput,
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
+import { createMCPEvents } from './mcp-events';
+import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
   JSONRPCError,
@@ -235,6 +237,8 @@ function mcpToModelOutput({
 }
 
 export interface MCPClientConfig {
+  /** Experimental webhook event support; storage must be private and durable. */
+  events?: MCPEventsConfig;
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
   /**
@@ -295,6 +299,8 @@ export async function createMCPClient(
 }
 
 export interface MCPClient {
+  /** Experimental event discovery and webhook subscription lifecycle. */
+  readonly events: MCPEvents;
   /**
    * Information about the connected MCP server, as reported during initialization.
    * @see https://modelcontextprotocol.io/specification/2025-11-25/schema#implementation
@@ -399,11 +405,12 @@ export interface MCPClient {
  * This client is meant to be used to communicate with a single server. To communicate and fetch tools across multiple servers, it's recommended to create a new client instance per server.
  *
  * Not supported:
- * - Accepting notifications
+ * - Accepting in-band notifications (webhook events use a separate HTTP handler)
  * - Automatic session persistence for Streamable HTTP transport
  * - Resumable SSE streams
  */
 class DefaultMCPClient implements MCPClient {
+  readonly events: MCPEvents;
   private transport: MCPTransport;
   private protocolVersionDiscovery: boolean;
   private onUncaughtError?: (error: unknown) => void;
@@ -434,6 +441,7 @@ class DefaultMCPClient implements MCPClient {
   ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
+    events,
     transport: transportConfig,
     name,
     clientName = name ?? 'ai-sdk-mcp-client',
@@ -481,6 +489,11 @@ class DefaultMCPClient implements MCPClient {
       name: clientName,
       version,
     };
+    this.events = createMCPEvents({
+      request: args => this.request(args),
+      store: events?.store,
+      validateArguments: events?.validateArguments,
+    });
   }
 
   get serverInfo(): Configuration {
@@ -711,6 +724,15 @@ class DefaultMCPClient implements MCPClient {
         if (!this.serverCapabilities.completions) {
           throw new MCPClientError({
             message: `Server does not support completions`,
+          });
+        }
+        break;
+      case 'events/list':
+      case 'events/subscribe':
+      case 'events/unsubscribe':
+        if (!this.serverCapabilities.events) {
+          throw new MCPClientError({
+            message: 'Server does not support events',
           });
         }
         break;
