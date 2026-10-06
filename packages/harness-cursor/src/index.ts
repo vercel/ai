@@ -11,3 +11,4 @@ export type {
   CursorHarnessSettings,
 } from './cursor-harness';
 export { VERSION } from './version';
+export type { JSONObject } from '@ai-sdk/provider';

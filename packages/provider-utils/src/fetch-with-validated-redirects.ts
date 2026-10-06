@@ -83,6 +83,9 @@ export async function fetchWithValidatedEndpoint({
  * Request headers are also protected: {@link sanitizeRequestHeaders} strips
  * proxy/metadata/cookie/hop-by-hop headers before the first request, and all
  * caller headers except `User-Agent` are dropped on a cross-origin redirect.
+ * Credentials and custom headers are preserved on the first hop for backwards
+ * compatibility. The caller must ensure that the initial URL may receive them.
+ * Use `fetchUntrustedUrl` for URLs that require first-hop credential isolation.
  * The fetch spec only strips `Authorization` on cross-origin redirects because
  * in a browser, CORS preflighting protects custom headers; there is no CORS on
  * the server, so provider API keys carried in custom headers (e.g. `x-key`)
@@ -183,10 +186,11 @@ export async function fetchWithValidatedRedirects({
 
     const location = response.headers?.get('location');
     if (REDIRECT_STATUS_CODES.has(response.status) && location) {
-      // Release the redirect response's connection before moving to the next
-      // hop. Whether that hop is followed or rejected by the guard, an
-      // unconsumed 3xx body would leak the underlying socket.
-      await cancelResponseBody(response);
+      // Start releasing the redirect response's connection before moving to
+      // the next hop. Do not wait for cancellation: when a fetch wrapper keeps
+      // an unread response clone, tee cancellation can remain pending until
+      // the cloned branch is consumed.
+      void cancelResponseBody(response);
       const nextUrl = new URL(location, currentUrl).toString();
 
       // Drop all caller headers except the user-agent before following a

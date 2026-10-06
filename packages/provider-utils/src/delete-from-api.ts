@@ -36,7 +36,7 @@ export const deleteFromApi = async <T>({
       method: 'DELETE',
       headers: withUserAgentSuffix(
         headers,
-        `ai-sdk/provider-utils/${VERSION}`,
+        `ai-sdk-provider-utils/${VERSION}`,
         getRuntimeEnvironmentUserAgent(),
       ),
       signal: abortSignal,

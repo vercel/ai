@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/codemod",
-  "version": "4.0.1",
+  "version": "4.0.3",
   "license": "Apache-2.0",
   "sideEffects": false,
   "files": [
@@ -17,9 +17,9 @@
     "README.md"
   ],
   "scripts": {
-    "build": "pnpm clean && tsup --tsconfig tsconfig.build.json",
-    "clean": "del-cli dist *.tsbuildinfo",
-    "dev": "tsup --watch",
+    "build": "pnpm clean && tsdown",
+    "clean": "del-cli *.tsbuildinfo",
+    "dev": "tsdown --watch",
     "type-check": "tsc --build",
     "test": "vitest --config vitest.config.ts --run",
     "test:watch": "vitest",
@@ -36,9 +36,9 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "msw": "2.6.4",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.23.0",
     "tsx": "4.23.12",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "vitest": "^4.1.6"
   },
   "bin": {

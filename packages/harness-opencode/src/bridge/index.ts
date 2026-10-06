@@ -4,6 +4,7 @@ import {
   type BridgeTurn,
 } from '@ai-sdk/harness/bridge';
 import { randomUUID } from 'node:crypto';
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
 import { argv, env as procEnv } from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
@@ -310,7 +311,7 @@ function buildOpenCodeConfig({
   }
   const provider = buildProviderConfig(start);
   if (provider) config.provider = provider;
-  const mcp = { ...(start.mcpServers ?? {}) };
+  const mcp = { ...start.mcpServers };
   if (relayPort && start.tools && start.tools.length > 0) {
     mcp['harness-tools'] = {
       type: 'local',
@@ -463,8 +464,6 @@ function buildProviderConfig(
       },
     };
   }
-
-  return undefined;
 }
 
 function parseOpenAIQueryParams(): Record<string, unknown> {
@@ -533,6 +532,16 @@ async function legacySessionPrompt({
   });
 }
 
+async function legacySessionAbort({
+  client,
+  sessionId,
+}: {
+  client: OpenCodeClient;
+  sessionId: string;
+}): Promise<{ error?: unknown; data?: unknown }> {
+  return (client as any).session.abort({ sessionID: sessionId });
+}
+
 async function legacySessionSummarize({
   client,
   sessionId,
@@ -569,7 +578,6 @@ function readSessionId(data: unknown): string | undefined {
   const record = data as { id?: unknown; data?: { id?: unknown } };
   if (typeof record.id === 'string') return record.id;
   if (typeof record.data?.id === 'string') return record.data.id;
-  return undefined;
 }
 
 function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
@@ -658,7 +666,26 @@ async function runPrompt({
   emit: Emit;
 }): Promise<HarnessUsage | undefined> {
   const eventsAbort = new AbortController();
-  const turnSettled = createDeferred<'event' | 'stream-ended'>();
+  const turnSettled = createDeferred<'aborted' | 'event' | 'stream-ended'>();
+  const promptRequestSettled = createDeferred<void>();
+  let abortSessionPromise: Promise<void> | undefined;
+  const abortSession = () => {
+    eventsAbort.abort();
+    turn.experimental_userMessages.close();
+    turnSettled.resolve('aborted');
+    abortSessionPromise ??= (async () => {
+      await promptRequestSettled.promise;
+      const aborted = await legacySessionAbort({ client, sessionId });
+      if (aborted.error) {
+        throw new Error(
+          `OpenCode session abort failed: ${formatError(aborted.error)}`,
+        );
+      }
+    })();
+    void abortSessionPromise.catch(() => {});
+  };
+  turn.abortSignal.addEventListener('abort', abortSession, { once: true });
+  if (turn.abortSignal.aborted) abortSession();
   let sawContent = false;
   let sawFinishStep = false;
   let sawBusy = false;
@@ -802,22 +829,47 @@ async function runPrompt({
       }
     }
   })();
-  const prompted = await legacySessionPrompt({
-    client,
-    sessionId,
-    start,
-  });
-  if (prompted.error) {
-    eventsAbort.abort();
-    turn.experimental_userMessages.close(
-      new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
-    );
-    throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+  if (!turn.abortSignal.aborted) {
+    let prompted: { error?: unknown; data?: unknown };
+    try {
+      prompted = await legacySessionPrompt({
+        client,
+        sessionId,
+        start,
+      });
+    } catch (error) {
+      promptRequestSettled.resolve(undefined);
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(error);
+      throw error;
+    }
+    promptRequestSettled.resolve(undefined);
+    if (prompted.error) {
+      turn.abortSignal.removeEventListener('abort', abortSession);
+      eventsAbort.abort();
+      turn.experimental_userMessages.close(
+        new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`),
+      );
+      throw new Error(`OpenCode prompt failed: ${formatError(prompted.error)}`);
+    }
+  } else {
+    promptRequestSettled.resolve(undefined);
   }
   const settlement = await turnSettled.promise;
+  turn.abortSignal.removeEventListener('abort', abortSession);
   eventsAbort.abort();
   await eventLoop.catch(() => {});
   await userMessageLoop.catch(() => {});
+  if (settlement === 'aborted') {
+    try {
+      await abortSessionPromise;
+    } catch (error) {
+      closeRuntime();
+      throw error;
+    }
+    return undefined;
+  }
   if (settlement === 'stream-ended') {
     throw new Error('OpenCode event stream ended before the turn settled.');
   }
@@ -1304,9 +1356,6 @@ async function selectPermissionReply({
   emit: Emit;
 }): Promise<{ reply: 'once' | 'always' | 'reject'; message?: string }> {
   const toolName = toPermissionToolName(action);
-  if (resources.some(resource => isExternalPath(resource))) {
-    return { reply: 'reject', message: 'External directory access rejected.' };
-  }
   if (
     isBuiltinToolInactive({ toolName, toolFiltering: builtinToolFiltering })
   ) {
@@ -1325,6 +1374,9 @@ async function selectPermissionReply({
   }
   if (!permissionMode || permissionMode === 'allow-all') {
     return { reply: 'always' };
+  }
+  if (resources.some(resource => isExternalPath(resource))) {
+    return { reply: 'reject', message: 'External directory access rejected.' };
   }
   const kind = TOOL_KIND[toolName] ?? 'bash';
   const allowed =
@@ -1387,16 +1439,38 @@ function isBuiltinToolInactive(input: {
 
 function isExternalPath(resource: string): boolean {
   if (!path.isAbsolute(resource)) return false;
-  const normalized = path.resolve(resource);
   return (
-    !isPathInsideOrEqual(normalized, workdir) &&
-    (!skillsDir || !isPathInsideOrEqual(normalized, skillsDir))
+    !isPathInsideOrEqual(resource, workdir) &&
+    (!skillsDir || !isPathInsideOrEqual(resource, skillsDir))
   );
 }
 
 function isPathInsideOrEqual(file: string, root: string): boolean {
-  const normalizedRoot = path.resolve(root);
-  return file === normalizedRoot || file.startsWith(`${normalizedRoot}/`);
+  const relative = path.relative(
+    canonicalizeForContainment(root),
+    canonicalizeForContainment(file),
+  );
+  return (
+    relative === '' ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function canonicalizeForContainment(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
+  try {
+    return realpathSync.native(normalized);
+  } catch {
+    const parent = path.dirname(normalized);
+    return parent === normalized
+      ? normalized
+      : path.join(
+          canonicalizeForContainment(parent),
+          path.basename(normalized),
+        );
+  }
 }
 
 function toWireToolName(nativeName: string): string {
@@ -1431,7 +1505,6 @@ function getHostToolName(
   ) {
     return rawToolName.slice('harness-tools_'.length);
   }
-  return undefined;
 }
 
 function authorizeHostToolCall({
@@ -1570,7 +1643,6 @@ function latestLegacyAssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function latestV2AssistantMessage(
@@ -1600,7 +1672,6 @@ function latestV2AssistantMessage(
       };
     }
   }
-  return undefined;
 }
 
 function emitAssistantContentPart(part: unknown, emit: Emit): void {

@@ -43,12 +43,18 @@ import {
   registerPiProviders,
   resolvePiEnv,
   type PiAuthenticationMode,
+  type PiCredentialStore,
 } from './pi-auth';
 import { resolvePiSubscriptionAgentDir } from './pi-subscription';
 import { getPiTerminalError, parseNativeEvent } from './pi-events';
 import { createPiModelResolver } from './pi-model-resolver';
 import { createPiPathMapper } from './pi-paths';
 import { createPiRemoteOps, type PiRemoteOps } from './pi-remote-ops';
+import {
+  formatPiReadToolOutput,
+  truncatePiToolOutputHead,
+  truncatePiToolOutputTail,
+} from './pi-tool-result';
 
 import {
   persistSessionFileToSandbox,
@@ -96,11 +102,19 @@ type PiMcpAdapterModule = {
 /*
  * Pi runs in this Node process, not behind an attachable in-sandbox bridge.
  * During a tool approval pause the Pi turn is still alive and blocked on the
- * custom tool promise, so detach must park that live session for the next
- * same-process resume instead of stopping it and resolving the promise as an
- * error. Cross-process resume still falls back to the persisted session file.
+ * custom tool promise, so in-process reattachment parks that live session for
+ * the next same-process resume instead of stopping it and resolving the
+ * promise as an error. Cross-process resume still falls back to the persisted
+ * session file.
  */
-const parkedPiSessions = new Map<string, HarnessV1Session>();
+const parkedPiSessions = new Map<
+  string,
+  {
+    session: HarnessV1Session;
+    input: CreatePiSessionInput;
+    stateType: 'continue-turn' | 'resume-session';
+  }
+>();
 
 /**
  * Whether a discovered resource path belongs to a specific directory.
@@ -221,6 +235,8 @@ export type PiThinkingLevel =
 
 export interface PiSessionSettings {
   readonly auth?: PiAuthenticationMode;
+  readonly credentials?: PiCredentialStore;
+  readonly reattachInProcess?: boolean;
   readonly headers?: Readonly<Record<string, string>>;
   readonly thinkingLevel?: PiThinkingLevel;
   readonly mcpServers?: Record<string, unknown>;
@@ -235,6 +251,9 @@ export interface CreatePiSessionInput {
   readonly settings: PiSessionSettings;
   readonly clientApp: string;
   readonly isResume: boolean;
+  readonly resumeStateType?:
+    | HarnessV1ContinueTurnState['type']
+    | HarnessV1ResumeSessionState['type'];
   readonly permissionMode?: HarnessV1PermissionMode;
   readonly builtinToolFiltering?: HarnessV1BuiltinToolFiltering;
   readonly resumeSessionFileName?: string;
@@ -246,6 +265,28 @@ export interface CreatePiSessionInput {
    * reused when this option is explicit.
    */
   readonly agentDir?: string;
+}
+
+function hasCompatibleReattachSettings(
+  parked: CreatePiSessionInput,
+  current: CreatePiSessionInput,
+): boolean {
+  return (
+    parked.sandboxSession === current.sandboxSession &&
+    parked.sessionWorkDir === current.sessionWorkDir &&
+    parked.clientApp === current.clientApp &&
+    parked.permissionMode === current.permissionMode &&
+    parked.builtinToolFiltering === current.builtinToolFiltering &&
+    parked.abortSignal === current.abortSignal &&
+    parked.agentDir === current.agentDir &&
+    parked.settings.auth === current.settings.auth &&
+    parked.settings.credentials === current.settings.credentials &&
+    parked.settings.headers === current.settings.headers &&
+    parked.settings.thinkingLevel === current.settings.thinkingLevel &&
+    parked.settings.mcpServers === current.settings.mcpServers &&
+    parked.settings.providers === current.settings.providers &&
+    parked.settings.extensionFactories === current.settings.extensionFactories
+  );
 }
 
 interface PendingToolResult {
@@ -319,13 +360,27 @@ export async function createPiSession(
   input: CreatePiSessionInput,
 ): Promise<HarnessV1Session> {
   if (input.isResume) {
-    const parkedSession = parkedPiSessions.get(input.sessionId);
-    if (parkedSession) {
+    const parked = parkedPiSessions.get(input.sessionId);
+    if (parked) {
       parkedPiSessions.delete(input.sessionId);
-      return {
-        ...parkedSession,
-        isResume: true,
-      };
+      if (
+        input.settings.reattachInProcess !== false &&
+        (input.resumeStateType == null ||
+          input.resumeStateType === parked.stateType) &&
+        hasCompatibleReattachSettings(parked.input, input)
+      ) {
+        return {
+          ...parked.session,
+          isResume: true,
+        };
+      }
+
+      // The caller explicitly requested cold restoration, supplied settings
+      // that cannot safely reuse the live runtime, or supplied a resume-session
+      // state that represents progress beyond the parked continue-turn. Retire
+      // the stale live session before rebuilding from the persisted journal
+      // with this request's runtime settings.
+      await parked.session.doDestroy();
     }
   }
 
@@ -438,6 +493,7 @@ export async function createPiSession(
   });
   const modelRuntime = await createPiModelRuntime({
     auth: input.settings.auth,
+    credentials: input.settings.credentials,
     authPath: path.join(nativeAgentDir ?? hostAgentDir, 'auth.json'),
     modelsPath: path.join(agentDir, 'models.json'),
   });
@@ -760,9 +816,8 @@ export async function createPiSession(
    * rerun's context carries the real outputs — without this, Pi's message
    * transform synthesizes an error result ("No result provided") for each
    * dangling call and the model continues as if the tool never answered. The
-   * serialized text matches what a live turn would have produced
-   * (`asPiToolResult(serializeToolOutput(...))`), so the model sees the same
-   * bytes either way.
+   * serialized and truncated text matches what a live turn would have
+   * produced, so the model sees the same result either way.
    */
   function appendDeliveredHostToolResults(): boolean {
     if (deliveredDanglingResults.size === 0 || resumeSessionFilePath == null) {
@@ -776,7 +831,13 @@ export async function createPiSession(
         toolCallId,
         toolName: delivered.toolName,
         content: [
-          { type: 'text', text: serializeToolOutput(delivered.output) },
+          {
+            type: 'text',
+            text: truncatePiToolOutputHead(
+              serializeToolOutput(delivered.output),
+              'Call the tool again with narrower parameters to inspect the omitted output.',
+            ),
+          },
         ],
         isError: delivered.isError,
         timestamp: Date.now(),
@@ -1520,8 +1581,15 @@ export async function createPiSession(
     doStop,
 
     doDetach: async (): Promise<HarnessV1ResumeSessionState> => {
-      if (activeTurn != null || pendingToolResults.size > 0) {
-        parkedPiSessions.set(input.sessionId, sessionImpl);
+      if (
+        input.settings.reattachInProcess !== false &&
+        (activeTurn != null || pendingToolResults.size > 0)
+      ) {
+        parkedPiSessions.set(input.sessionId, {
+          session: sessionImpl,
+          input,
+          stateType: 'resume-session',
+        });
         if (sessionFileName) {
           try {
             await persistSessionFile();
@@ -1548,10 +1616,15 @@ export async function createPiSession(
         throw new Error('Pi session has been stopped.');
       }
       if (
+        input.settings.reattachInProcess !== false &&
         activeTurn != null &&
         (pendingToolResults.size > 0 || pendingToolApprovals.size > 0)
       ) {
-        parkedPiSessions.set(input.sessionId, sessionImpl);
+        parkedPiSessions.set(input.sessionId, {
+          session: sessionImpl,
+          input,
+          stateType: 'continue-turn',
+        });
         if (sessionFileName) {
           try {
             await persistSessionFile();
@@ -1582,8 +1655,11 @@ export async function createPiSession(
        */
       suspending = true;
       const turnToSuspend = activeTurn;
-      await turnToSuspend?.abort();
+      const abortingTurn = turnToSuspend?.abort();
       deferredRerun?.cancel();
+      settlePendingToolResults('Pi session suspended');
+      settlePendingToolApprovals('Pi session suspended');
+      await abortingTurn;
       await turnToSuspend?.done.catch(() => {});
 
       /*
@@ -1610,8 +1686,6 @@ export async function createPiSession(
 
       stopped = true;
       parkedPiSessions.delete(input.sessionId);
-      settlePendingToolResults('Pi session suspended');
-      settlePendingToolApprovals('Pi session suspended');
       await disposePiSession();
       workspaceVfs.unmount();
       await rm(hostRoot, { recursive: true, force: true });
@@ -1717,8 +1791,23 @@ function buildBuiltinToolDefinition(input: {
       return defineTool({
         name: 'read',
         label: 'read',
-        description: 'Read file contents.',
-        parameters: Type.Object({ file_path: Type.String() }),
+        description:
+          'Read file contents. Output is limited to 2,000 lines or 50KB. Use offset and limit to read large files in pages.',
+        parameters: Type.Object({
+          file_path: Type.String(),
+          offset: Type.Optional(
+            Type.Integer({
+              minimum: 1,
+              description: 'Line number to start reading from (1-indexed).',
+            }),
+          ),
+          limit: Type.Optional(
+            Type.Integer({
+              minimum: 1,
+              description: 'Maximum number of lines to read.',
+            }),
+          ),
+        }),
         async execute(toolCallId, params) {
           const denied = await maybeDenyPiBuiltinTool({
             toolCallId,
@@ -1727,7 +1816,14 @@ function buildBuiltinToolDefinition(input: {
           });
           if (denied) return denied;
           const buf = await input.remoteOps.readBuffer(params.file_path);
-          return asPiToolResult(buf.toString('utf8'));
+          return asPiToolResult(
+            formatPiReadToolOutput({
+              text: buf.toString('utf8'),
+              filePath: params.file_path,
+              offset: params.offset,
+              limit: params.limit,
+            }),
+          );
         },
       });
     case 'write':
@@ -1807,7 +1903,12 @@ function buildBuiltinToolDefinition(input: {
           const text = `${out}${
             result.exitCode != null ? `\n\n(exit ${result.exitCode})` : ''
           }`.trim();
-          return asPiToolResult(text);
+          return asPiToolResult(
+            truncatePiToolOutputTail(
+              text,
+              'Re-run the command with narrower output, or redirect it to a file and use read with offset and limit.',
+            ),
+          );
         },
       });
     case 'grep':
@@ -1832,7 +1933,12 @@ function buildBuiltinToolDefinition(input: {
           });
           if (denied) return denied;
           const out = await input.remoteOps.grepFiles(params.pattern, params);
-          return asPiToolResult(out);
+          return asPiToolResult(
+            truncatePiToolOutputHead(
+              out,
+              'Narrow the pattern or path, or read the matching file with offset and limit.',
+            ),
+          );
         },
       });
     case 'find':
@@ -1857,7 +1963,12 @@ function buildBuiltinToolDefinition(input: {
             params.path ?? '.',
             params.limit ?? 1_000,
           );
-          return asPiToolResult(matches.join('\n'));
+          return asPiToolResult(
+            truncatePiToolOutputHead(
+              matches.join('\n'),
+              'Narrow the pattern or search path to inspect the omitted matches.',
+            ),
+          );
         },
       });
     case 'ls':
@@ -1880,7 +1991,12 @@ function buildBuiltinToolDefinition(input: {
             params.path ?? '.',
             params.limit ?? 500,
           );
-          return asPiToolResult(entries.join('\n'));
+          return asPiToolResult(
+            truncatePiToolOutputHead(
+              entries.join('\n'),
+              'List a narrower directory path to inspect the omitted entries.',
+            ),
+          );
         },
       });
   }
@@ -1903,7 +2019,14 @@ function buildUserToolDefinition(
     async execute(toolCallId) {
       return new Promise<unknown>(resolve => {
         pending.set(toolCallId, { resolve });
-      }).then(output => asPiToolResult(serializeToolOutput(output)));
+      }).then(output =>
+        asPiToolResult(
+          truncatePiToolOutputHead(
+            serializeToolOutput(output),
+            'Call the tool again with narrower parameters to inspect the omitted output.',
+          ),
+        ),
+      );
     },
   });
 }

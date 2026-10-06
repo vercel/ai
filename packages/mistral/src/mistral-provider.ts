@@ -124,7 +124,7 @@ export function createMistral(
         })}`,
         ...options.headers,
       },
-      `ai-sdk/mistral/${VERSION}`,
+      `ai-sdk-mistral/${VERSION}`,
     );
 
   const createChatModel = (modelId: MistralChatModelId) =>

@@ -58,10 +58,15 @@ const ParameterEntry = ({
   descriptionComponents: StreamdownComponents;
 }) => {
   const id = hashId([...parents, parameter.name]);
+  // Top-level rows mirror production's ObjectTable (depth 0): vertical
+  // padding only, a separator under every row, no top padding on the first.
+  // Nested rows keep the bordered-box treatment with no trailing separator.
+  const rowClassName =
+    parents.length === 0 ? 'py-3 first:pt-0' : 'p-3 last:border-none';
 
   return (
     <div
-      className="flex flex-col gap-1 border-gray-alpha-400 border-b p-3 last:border-none"
+      className={`flex flex-col gap-1 border-gray-alpha-400 border-b ${rowClassName}`}
       id={id}
     >
       <a className="flex flex-row items-start gap-2" href={`#${id}`}>
@@ -114,21 +119,19 @@ export const PropertiesTable = ({
   const descriptionComponents = createDescriptionComponents(versionPrefix);
 
   return (
-    <div className="not-prose flex flex-col gap-12">
-      {typeof content === 'string'
-        ? content
-        : content.map((parameter, index) => (
-            <div
-              className="[&>div]:border-none"
-              key={`${parameter.name}-${index}`}
-            >
+    <div className="not-prose flex flex-col gap-6">
+      <div>
+        {typeof content === 'string'
+          ? content
+          : content.map((parameter, index) => (
               <ParameterEntry
+                key={`${parameter.name}-${index}`}
                 parameter={parameter}
                 parents={[]}
                 descriptionComponents={descriptionComponents}
               />
-            </div>
-          ))}
+            ))}
+      </div>
     </div>
   );
 };

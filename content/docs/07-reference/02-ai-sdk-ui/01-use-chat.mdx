@@ -338,7 +338,7 @@ Allows you to easily create a conversational user interface for your chatbot app
       type: 'number',
       isOptional: true,
       description:
-        'Custom throttle wait in ms for the chat messages and data updates. Default is undefined, which disables throttling.',
+        'React and Vue only. Custom throttle wait time in milliseconds for reactive chat message updates. Positive values reduce UI update frequency without delaying stream processing or callbacks, and the latest messages are published before a ready or error status. Default is undefined, which disables throttling.',
     },
     {
       name: 'resume',
@@ -485,6 +485,19 @@ Allows you to easily create a conversational user interface for your chatbot app
     },
   ]}
 />
+
+## React rendering and shared Chat instances
+
+In React, `messages`, `status`, and `error` describe the snapshot for the current render.
+The underlying `Chat` updates as stream chunks are processed. React may batch updates,
+and `throttle` can delay message rendering without delaying stream processing or callbacks.
+Status and error updates include the latest messages, so a completed or failed response
+is rendered with its final message snapshot.
+
+Each `useChat({ chat })` call subscribes independently. Consumers sharing a `Chat`
+can display different message snapshots when they use different throttle intervals.
+A functional `setMessages` updater receives the Chat's latest messages, which may be
+newer than the messages in the current render.
 
 ## Learn more
 

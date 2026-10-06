@@ -293,10 +293,23 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('AVIF', () => {
-    it('should detect AVIF from bytes', () => {
+    it.each([
+      ['28-byte', 0x1c],
+      ['32-byte', 0x20],
+    ])('should detect AVIF with a %s ftyp box from bytes', (_, boxSize) => {
       const avifBytes = new Uint8Array([
-        0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66,
-        0xff,
+        0x00,
+        0x00,
+        0x00,
+        boxSize,
+        0x66,
+        0x74,
+        0x79,
+        0x70,
+        0x61,
+        0x76,
+        0x69,
+        0x66,
       ]);
       expect(
         detectMediaType({
@@ -304,24 +317,44 @@ describe('detectMediaType signature matching', () => {
           topLevelType: 'image',
         }),
       ).toBe('image/avif');
+      expect(detectMediaType({ data: avifBytes })).toBe('image/avif');
     });
 
-    it('should detect AVIF from base64', () => {
-      const avifBase64 = 'AAAAIGZ0eXBhdmlmabc123'; // Base64 string starting with AVIF signature
+    it('should detect AVIF with a 28-byte ftyp box from base64', () => {
+      const avifBase64 = convertUint8ArrayToBase64(
+        new Uint8Array([
+          0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69,
+          0x66,
+        ]),
+      );
       expect(
         detectMediaType({
           data: avifBase64,
           topLevelType: 'image',
         }),
       ).toBe('image/avif');
+      expect(detectMediaType({ data: avifBase64 })).toBe('image/avif');
     });
   });
 
   describe('HEIC', () => {
-    it('should detect HEIC from bytes', () => {
+    it.each([
+      ['28-byte', 0x1c],
+      ['32-byte', 0x20],
+    ])('should detect HEIC with a %s ftyp box from bytes', (_, boxSize) => {
       const heicBytes = new Uint8Array([
-        0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69, 0x63,
-        0xff,
+        0x00,
+        0x00,
+        0x00,
+        boxSize,
+        0x66,
+        0x74,
+        0x79,
+        0x70,
+        0x68,
+        0x65,
+        0x69,
+        0x63,
       ]);
       expect(
         detectMediaType({
@@ -329,16 +362,23 @@ describe('detectMediaType signature matching', () => {
           topLevelType: 'image',
         }),
       ).toBe('image/heic');
+      expect(detectMediaType({ data: heicBytes })).toBe('image/heic');
     });
 
-    it('should detect HEIC from base64', () => {
-      const heicBase64 = 'AAAAIGZ0eXBoZWljabc123'; // Base64 string starting with HEIC signature
+    it('should detect HEIC with a 28-byte ftyp box from base64', () => {
+      const heicBase64 = convertUint8ArrayToBase64(
+        new Uint8Array([
+          0x00, 0x00, 0x00, 0x1c, 0x66, 0x74, 0x79, 0x70, 0x68, 0x65, 0x69,
+          0x63,
+        ]),
+      );
       expect(
         detectMediaType({
           data: heicBase64,
           topLevelType: 'image',
         }),
       ).toBe('image/heic');
+      expect(detectMediaType({ data: heicBase64 })).toBe('image/heic');
     });
   });
 
@@ -609,6 +649,72 @@ describe('detectMediaType signature matching', () => {
   });
 
   describe('AAC', () => {
+    it.each([
+      {
+        name: 'MPEG-4 ADTS with CRC',
+        header: [0xff, 0xf0],
+      },
+      {
+        name: 'MPEG-4 ADTS without CRC',
+        header: [0xff, 0xf1],
+      },
+      {
+        name: 'MPEG-2 ADTS with CRC',
+        header: [0xff, 0xf8],
+      },
+      {
+        name: 'MPEG-2 ADTS without CRC',
+        header: [0xff, 0xf9],
+      },
+    ])('should detect $name from bytes and base64', ({ header }) => {
+      const aacBytes = new Uint8Array([...header, 0x50, 0x40]);
+
+      expect(
+        detectMediaType({
+          data: aacBytes,
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(aacBytes),
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+    });
+
+    it('should detect ID3-tagged ADTS AAC from bytes and base64', () => {
+      const aacBytes = new Uint8Array([
+        0x49,
+        0x44,
+        0x33, // 'ID3'
+        0x04,
+        0x00, // version
+        0x00, // flags
+        0x00,
+        0x00,
+        0x00,
+        0x00, // empty tag
+        0xff,
+        0xf1, // MPEG-4 ADTS without CRC
+        0x50,
+        0x40,
+      ]);
+
+      expect(
+        detectMediaType({
+          data: aacBytes,
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+      expect(
+        detectMediaType({
+          data: convertUint8ArrayToBase64(aacBytes),
+          topLevelType: 'audio',
+        }),
+      ).toBe('audio/aac');
+    });
+
     it('should detect AAC from bytes', () => {
       const aacBytes = new Uint8Array([0x40, 0x15, 0x00, 0x00]);
       expect(

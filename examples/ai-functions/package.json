@@ -67,6 +67,7 @@
     "@ai-sdk/sandbox-just-bash": "workspace:*",
     "@ai-sdk/sandbox-vercel": "workspace:*",
     "@ai-sdk/togetherai": "workspace:*",
+    "@ai-sdk/topaz": "workspace:*",
     "@ai-sdk/tui": "workspace:*",
     "@ai-sdk/typesafe-ai": "workspace:*",
     "@ai-sdk/valibot": "workspace:*",
@@ -78,6 +79,7 @@
     "@google/generative-ai": "0.21.0",
     "@langchain/core": "^1.1.46",
     "@langfuse/otel": "^4.6.1",
+    "@langfuse/vercel-ai-sdk": "^5.11.1",
     "@opentelemetry/auto-instrumentations-node": "0.77.0",
     "@opentelemetry/sdk-node": "^0.219.0",
     "@opentelemetry/sdk-trace-node": "^2.7.1",
@@ -93,7 +95,7 @@
     "image-type": "^5.2.0",
     "just-bash": "^2.14.5",
     "mathjs": "^15.2.0",
-    "sharp": "^0.33.5",
+    "sharp": "^0.35.4",
     "terminal-image": "^2.0.0",
     "undici": "^8.9.0",
     "valibot": "1.1.0",
@@ -110,6 +112,6 @@
     "@types/node": "22.19.19",
     "@types/ws": "^8.5.13",
     "tsx": "4.23.12",
-    "typescript": "5.8.3"
+    "typescript": "6.0.3"
   }
 }

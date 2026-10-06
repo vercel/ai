@@ -97,7 +97,7 @@ describe('google-provider', () => {
     expect(headers).toEqual({
       'x-goog-api-key': 'test-api-key',
       'custom-header': 'custom-value',
-      'user-agent': 'ai-sdk/google/0.0.0-test',
+      'user-agent': 'ai-sdk-google/0.0.0-test',
     });
   });
 

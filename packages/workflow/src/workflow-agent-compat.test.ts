@@ -1,18 +1,20 @@
 /**
  * WorkflowAgent compatibility test suite — ported from AI SDK's ToolLoopAgent tests.
  *
- * These tests are a 1:1 port of tool-loop-agent.test.ts (stream tests only).
- * They use the SAME API names as ToolLoopAgent to serve as a compatibility spec.
- * Tests that fail are expected — they indicate features WorkflowAgent must implement.
+ * These passing tests adapt ToolLoopAgent's stream tests to WorkflowAgent and
+ * cover shared option names, callbacks, and tool behavior. See
+ * workflow-agent-contract.test.ts for matched core-generate/Workflow-stream
+ * fixtures and contributing/workflow-agent-compatibility.md for intended parity.
  *
  * DIVERGENCES from ToolLoopAgent (necessary for workflow runtime):
- * - WorkflowAgent.stream() requires `messages` (ModelMessage[]) + `writable` (WritableStream)
- *   instead of ToolLoopAgent's `prompt` string
+ * - WorkflowAgent.stream() accepts `prompt` or `messages` and an optional writable.
  * - WorkflowAgent returns WorkflowAgentStreamResult (not StreamTextResult with consumeStream())
  */
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 import {
   dynamicTool,
   tool,
+  toolSearch,
   type Experimental_LanguageModelStreamPart,
   type ToolSet,
   type UIMessageChunk,
@@ -28,7 +30,7 @@ import { WorkflowAgent } from './workflow-agent.js';
 
 /**
  * Creates a mock WritableStream for WorkflowAgent.stream().
- * DIVERGENCE: WorkflowAgent requires a writable stream; ToolLoopAgent does not.
+ * WorkflowAgent writes chunks to an optional writable instead of returning a reader.
  */
 function createMockWritable() {
   const chunks: Experimental_LanguageModelStreamPart<ToolSet>[] = [];
@@ -546,6 +548,55 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
         }
       `);
     });
+
+    it('should retain partial assistant content when the output length limit is reached', async () => {
+      const model = new MockLanguageModelV4({
+        doStream: async () => ({
+          stream: convertArrayToReadableStream([
+            { type: 'stream-start' as const, warnings: [] },
+            { type: 'text-start' as const, id: 'text-1' },
+            {
+              type: 'text-delta' as const,
+              id: 'text-1',
+              delta: 'A partial answer.',
+            },
+            { type: 'text-end' as const, id: 'text-1' },
+            {
+              ...dummyStreamFinish,
+              finishReason: {
+                unified: 'length' as const,
+                raw: 'length',
+              },
+            },
+          ]),
+        }),
+      });
+      const onFinish = vi.fn();
+      const agent = new WorkflowAgent({ model });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Write an answer.' }],
+        writable,
+        onFinish,
+      });
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'A partial answer.' }],
+      };
+      expect(result.finishReason).toBe('length');
+      expect(result.steps[0]?.text).toBe('A partial answer.');
+      expect(result.messages.at(-1)).toEqual(assistantMessage);
+      expect(result.steps[0]?.response.messages).toEqual([assistantMessage]);
+      expect(onFinish).toHaveBeenCalledWith(
+        expect.objectContaining({
+          finishReason: 'length',
+          messages: result.messages,
+          text: 'A partial answer.',
+        }),
+      );
+    });
   });
 
   describe('experimental_onStart', () => {
@@ -1018,6 +1069,112 @@ describe('WorkflowAgent (ToolLoopAgent compat)', () => {
   });
 
   describe('completed step tool results', () => {
+    it('discovers and executes deferred tools', async () => {
+      let call = 0;
+      const model = new MockLanguageModelV4({
+        doStream: async () => {
+          call++;
+          let chunks: LanguageModelV4StreamPart[];
+          if (call === 1) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'search-call',
+                toolName: 'search',
+                input: '{"query":"weather forecast"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else if (call === 2) {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              {
+                type: 'tool-call' as const,
+                toolCallId: 'weather-call',
+                toolName: 'weather',
+                input: '{"city":"London"}',
+              },
+              {
+                ...dummyStreamFinish,
+                finishReason: {
+                  unified: 'tool-calls' as const,
+                  raw: 'tool-calls',
+                },
+              },
+            ];
+          } else {
+            chunks = [
+              { type: 'stream-start' as const, warnings: [] },
+              { type: 'text-start' as const, id: 'text' },
+              {
+                type: 'text-delta' as const,
+                id: 'text',
+                delta: 'done',
+              },
+              { type: 'text-end' as const, id: 'text' },
+              dummyStreamFinish,
+            ];
+          }
+
+          return {
+            stream: convertArrayToReadableStream(chunks),
+          };
+        },
+      });
+      const agent = new WorkflowAgent({
+        model,
+        tools: {
+          search: toolSearch(),
+          weather: tool({
+            deferLoading: true,
+            description: 'Get the weather forecast for a city.',
+            inputSchema: z.object({ city: z.string() }),
+            execute: async ({ city }) => ({ city, forecast: 'rain' }),
+          }),
+        },
+      });
+
+      const { writable } = createMockWritable();
+      const result = await agent.stream({
+        messages: [{ role: 'user', content: 'Will it rain?' }],
+        writable,
+      });
+
+      expect(
+        model.doStreamCalls.map(call => call.tools?.map(tool => tool.name)),
+      ).toEqual([['search'], ['search', 'weather'], ['search', 'weather']]);
+      expect(result.steps[0]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'search-call',
+          toolName: 'search',
+          output: {
+            tools: [
+              {
+                name: 'weather',
+                description: 'Get the weather forecast for a city.',
+              },
+            ],
+          },
+        }),
+      );
+      expect(result.steps[1]?.toolResults).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'weather-call',
+          toolName: 'weather',
+          output: { city: 'London', forecast: 'rain' },
+        }),
+      );
+    });
+
     it('exposes static tool results to step consumers', async () => {
       const prepareStepResults: unknown[] = [];
       const onStepEndResults: unknown[] = [];

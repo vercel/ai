@@ -19,7 +19,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
 /*
  * CONSTRAINT — the third-party imports below are NEVER bundled into the
  * compiled `bridge/index.mjs`. They are declared `external` in
- * tsup.config.ts and resolved at runtime from the node_modules that this
+ * tsdown.config.ts and resolved at runtime from the node_modules that this
  * bridge installs *inside the sandbox* from `src/bridge/package.json` (and
  * its pinned `pnpm-lock.yaml`). That bridge package.json — NOT this host
  * package — is the single source of truth for these packages and their
@@ -30,7 +30,7 @@ import { argv, env as procEnv, stdout } from 'node:process';
  * in sync, or the bridge will either get the dependency bundled in or fail
  * to resolve it in the sandbox:
  *   1. the import statement below,
- *   2. the `external` array in tsup.config.ts, and
+ *   2. the `external` array in tsdown.config.ts, and
  *   3. the dependency entry in `src/bridge/package.json`.
  */
 import * as claudeAgentSdk from '@anthropic-ai/claude-agent-sdk';
@@ -51,7 +51,7 @@ import {
   mapUsage,
   type ClaudeMessage,
 } from './create-emit-stream-event';
-import { jsonSchemaToZodShape } from './json-schema-to-zod';
+import { jsonSchemaToZodObject } from './json-schema-to-zod';
 import {
   resolveInactiveNativeTools,
   resolveNativeTools,
@@ -174,7 +174,7 @@ function createPermissionOptions(input: {
     inactiveNativeTools,
   });
 
-  return {
+  const baseOptions = {
     permissionMode:
       permissionMode === 'allow-all'
         ? 'bypassPermissions'
@@ -183,6 +183,23 @@ function createPermissionOptions(input: {
           : 'default',
     allowDangerouslySkipPermissions: permissionMode === 'allow-all',
     ...(permissionSettings ? { settings: permissionSettings } : {}),
+  };
+
+  if (permissionMode === 'allow-all') {
+    return {
+      ...baseOptions,
+      /*
+       * Claude Code exposes AskUserQuestion in headless SDK sessions only
+       * when a permission prompt tool is configured. The stdio prompt tool
+       * preserves that tool surface without supplying the canUseTool callback
+       * that bypassPermissions guarantees it will never invoke.
+       */
+      permissionPromptToolName: 'stdio',
+    };
+  }
+
+  return {
+    ...baseOptions,
     canUseTool: async (
       toolName: string,
       toolInput: Record<string, unknown>,
@@ -373,18 +390,19 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
 
   const streamEventState = createClaudeStreamEventState();
 
-  const mcpServers: Record<string, unknown> = { ...(start.mcpServers ?? {}) };
+  const mcpServers: Record<string, unknown> = { ...start.mcpServers };
   if (start.tools && start.tools.length > 0) {
     const server = new mcpModule.McpServer({
       name: 'harness-tools',
       version: '1.0.0',
     });
     for (const tool of start.tools) {
-      const shape = jsonSchemaToZodShape(tool.inputSchema);
-      server.tool(
+      server.registerTool(
         tool.name,
-        tool.description ?? '',
-        shape,
+        {
+          description: tool.description ?? '',
+          inputSchema: jsonSchemaToZodObject(tool.inputSchema),
+        },
         async (
           ...handlerArgs: [
             Record<string, unknown>,
@@ -466,6 +484,12 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
     options: {
       ...(start.model ? { model: start.model } : {}),
       ...(start.maxTurns !== undefined ? { maxTurns: start.maxTurns } : {}),
+      ...(start.agentProgressSummaries !== undefined
+        ? { agentProgressSummaries: start.agentProgressSummaries }
+        : {}),
+      ...(start.forwardSubagentText !== undefined
+        ? { forwardSubagentText: start.forwardSubagentText }
+        : {}),
       ...(start.env !== undefined ? { env: { ...procEnv, ...start.env } } : {}),
       ...(skillsOption ? { skills: skillsOption } : {}),
       ...(nativeTools !== undefined ? { tools: nativeTools } : {}),
@@ -623,7 +647,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
           const harnessUsage = mapUsage(usage);
           if (harnessUsage) turnUsage = addUsage(turnUsage, harnessUsage);
           if (typeof msg.total_cost_usd === 'number') {
-            totalCostUsd = (totalCostUsd ?? 0) + msg.total_cost_usd;
+            totalCostUsd = msg.total_cost_usd;
           }
           if (
             start.responseFormat?.type === 'json' &&
@@ -646,6 +670,7 @@ async function runTurn(start: StartMessage, turn: BridgeTurn): Promise<void> {
               usage: streamEventState.pendingStepUsage ?? harnessUsage,
             });
           }
+          if (!queryInput.answersSentMessage(msg)) continue;
           queryInput.observeResult();
           if (!queryInput.hasActiveUserMessages()) {
             queryInput.close();
@@ -740,12 +765,23 @@ function createQueryInput({
   close(error?: unknown): void;
   handleLifecycle(message: ClaudeMessage): void;
   hasActiveUserMessages(): boolean;
+  answersSentMessage(result: ClaudeMessage): boolean;
   observeResult(): void;
   readonly hasObservedResult: boolean;
 } {
   let closed = false;
   let observedResult = false;
   const submittedMessages = new Map<string, Experimental_BridgeUserMessage>();
+  const initialMessageId = randomUUID();
+  const sentMessageIds = new Set<string>([initialMessageId]);
+  let cliEchoesMessageIds = false;
+  const noteEcho = (ids: readonly unknown[]): boolean => {
+    const echoed = ids.some(
+      id => typeof id === 'string' && sentMessageIds.has(id),
+    );
+    if (echoed) cliEchoesMessageIds = true;
+    return echoed;
+  };
   const close = (error?: unknown): void => {
     if (closed) return;
     closed = true;
@@ -784,6 +820,13 @@ function createQueryInput({
         state?: 'queued' | 'started' | 'completed' | 'cancelled' | 'discarded';
       };
       if (lifecycle.command_uuid == null || lifecycle.state == null) return;
+      noteEcho([lifecycle.command_uuid]);
+      if (
+        lifecycle.command_uuid === initialMessageId &&
+        (lifecycle.state === 'cancelled' || lifecycle.state === 'discarded')
+      ) {
+        observedResult = true;
+      }
       const submitted = submittedMessages.get(lifecycle.command_uuid);
       if (submitted == null) return;
       if (lifecycle.state === 'queued' || lifecycle.state === 'started') {
@@ -799,6 +842,20 @@ function createQueryInput({
     },
     hasActiveUserMessages: () =>
       submittedMessages.size > 0 || userMessages.pendingCount > 0,
+    answersSentMessage: result => {
+      const { user_message_uuid, user_message_uuids, origin } = result as {
+        user_message_uuid?: unknown;
+        user_message_uuids?: unknown;
+        origin?: { kind?: string };
+      };
+      const echoed = noteEcho([
+        user_message_uuid,
+        ...(Array.isArray(user_message_uuids) ? user_message_uuids : []),
+      ]);
+      return (
+        echoed || (!cliEchoesMessageIds && origin?.kind !== 'task-notification')
+      );
+    },
     observeResult: () => {
       observedResult = true;
     },
@@ -821,7 +878,7 @@ function createQueryInput({
               return {
                 value: toUserMessage({
                   text: initialUserMessage,
-                  messageId: randomUUID(),
+                  messageId: initialMessageId,
                 }),
                 done: false,
               };
@@ -837,6 +894,7 @@ function createQueryInput({
               nextMessage.value.messageId,
               nextMessage.value,
             );
+            sentMessageIds.add(nextMessage.value.messageId);
             return {
               value: toUserMessage({
                 text: nextMessage.value.text,

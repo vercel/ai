@@ -557,7 +557,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"t',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 't' },
@@ -584,7 +584,7 @@ describe('tool invocations', () => {
         {
           state: 'input-streaming',
           errorText: undefined,
-          rawInput: undefined,
+          rawInput: '{"testArg":"test-value"}}',
           toolCallId: 'tool-call-0',
           type: 'tool-test-tool',
           input: { testArg: 'test-value' },

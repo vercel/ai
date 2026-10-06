@@ -1,4 +1,8 @@
-import type { JSONSchema7, LanguageModelV4Prompt } from '@ai-sdk/provider';
+import {
+  InvalidResponseDataError,
+  type JSONSchema7,
+  type LanguageModelV4Prompt,
+} from '@ai-sdk/provider';
 import { isProviderStreamError } from '@ai-sdk/provider-utils';
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 import { createTestServer } from '@ai-sdk/test-server/with-vitest';
@@ -80,8 +84,35 @@ describe('DeepSeekChatLanguageModel', () => {
           fs.readFileSync(`src/chat/__fixtures__/${filename}.json`, 'utf8'),
         ),
       };
-      return;
     }
+
+    it('should reject a response without choices', async () => {
+      server.urls['https://api.deepseek.com/chat/completions'].response = {
+        type: 'json-value',
+        body: {
+          id: 'chatcmpl-empty',
+          object: 'chat.completion',
+          created: 0,
+          model: 'deepseek-chat',
+          choices: [],
+          usage: {
+            prompt_tokens: 1,
+            completion_tokens: 0,
+            total_tokens: 1,
+          },
+        },
+      };
+
+      await expect(
+        provider.chat('deepseek-chat').doGenerate({
+          prompt: TEST_PROMPT,
+        }),
+      ).rejects.toSatisfy(
+        error =>
+          InvalidResponseDataError.isInstance(error) &&
+          error.message === 'Response did not contain any choices.',
+      );
+    });
 
     describe('text', () => {
       beforeEach(() => {
@@ -643,6 +674,23 @@ describe('DeepSeekChatLanguageModel', () => {
           details:
             'reasoning "xhigh" is not directly supported by this model. mapped to effort "max".',
         });
+      });
+
+      it('should map top-level reasoning max directly to reasoning_effort max', async () => {
+        const result = await provider.chat('deepseek-reasoner').doGenerate({
+          prompt: TEST_PROMPT,
+          reasoning: 'max',
+        });
+
+        expect((await server.calls[0].requestBodyJson).reasoning_effort).toBe(
+          'max',
+        );
+        expect(result.warnings).not.toContainEqual(
+          expect.objectContaining({
+            type: 'compatibility',
+            feature: 'reasoning',
+          }),
+        );
       });
 
       it('should map top-level reasoning low to reasoning_effort low without a compatibility warning', async () => {

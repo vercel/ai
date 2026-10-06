@@ -151,7 +151,7 @@ describe('doGenerate', () => {
         'custom-request-header': 'request-header-value',
       });
       expect(server.calls[0].requestUserAgent).toContain(
-        `ai-sdk/elevenlabs/0.0.0-test`,
+        `ai-sdk-elevenlabs/0.0.0-test`,
       );
     });
 
@@ -164,6 +164,76 @@ describe('doGenerate', () => {
       expect(result.text).toMatchInlineSnapshot(
         `"Hello from the Vercel AI SDK."`,
       );
+    });
+
+    it('should preserve word metadata in provider metadata', async () => {
+      server.urls['https://api.elevenlabs.io/v1/speech-to-text'].response = {
+        type: 'json-value',
+        body: {
+          language_code: 'eng',
+          language_probability: 1,
+          text: 'hi (laughter)',
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      };
+
+      const result = await model.doGenerate({
+        audio: audioData,
+        mediaType: 'audio/wav',
+        providerOptions: {
+          elevenlabs: {
+            diarize: true,
+          },
+        },
+      });
+
+      expect(result.providerMetadata).toEqual({
+        elevenlabs: {
+          words: [
+            {
+              text: 'hi',
+              type: 'word',
+              start: 0,
+              end: 0.4,
+              speaker_id: 'speaker_1',
+            },
+            {
+              text: ' ',
+              type: 'spacing',
+              start: 0.4,
+              end: 0.5,
+            },
+            {
+              text: '(laughter)',
+              type: 'audio_event',
+              start: 0.5,
+              end: 1.2,
+              speaker_id: 'speaker_1',
+            },
+          ],
+        },
+      });
     });
 
     it('should pass provider options correctly', async () => {
@@ -197,6 +267,43 @@ describe('doGenerate', () => {
         }
       `);
     });
+
+    it.each([
+      ['without provider options', undefined, ['true']],
+      ['with empty provider options', {}, ['true']],
+      ['with an unrelated provider option', { languageCode: 'en' }, ['true']],
+      ['when explicitly disabled', { diarize: false }, ['false']],
+    ])(
+      'should send diarize once %s',
+      async (_name, elevenlabsOptions, expectedDiarizeValues) => {
+        let diarizeValues: FormDataEntryValue[] | undefined;
+        const provider = createElevenLabs({
+          apiKey: 'test-api-key',
+          fetch: async (_url, init) => {
+            diarizeValues = (init!.body as FormData).getAll('diarize');
+            return Response.json(
+              JSON.parse(
+                fs.readFileSync(
+                  'src/__fixtures__/elevenlabs-transcription.json',
+                  'utf8',
+                ),
+              ),
+            );
+          },
+        });
+
+        await provider.transcription('scribe_v1').doGenerate({
+          audio: audioData,
+          mediaType: 'audio/wav',
+          providerOptions:
+            elevenlabsOptions == null
+              ? undefined
+              : { elevenlabs: elevenlabsOptions },
+        });
+
+        expect(diarizeValues).toEqual(expectedDiarizeValues);
+      },
+    );
   });
 
   describe('response headers', () => {
@@ -268,7 +375,9 @@ describe('doGenerate', () => {
         mediaType: 'audio/wav',
       });
 
-      expect(result).toMatchSnapshot();
+      expect(result).toMatchSnapshot({
+        providerMetadata: expect.anything(),
+      });
     });
   });
 });

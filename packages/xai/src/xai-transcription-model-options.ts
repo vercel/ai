@@ -5,13 +5,20 @@ import {
 } from '@ai-sdk/provider-utils';
 import { z } from 'zod/v4';
 
+export type XaiTranscriptionModelId =
+  | 'grok-voice-transcribe-2.0'
+  | (string & {});
+
 export const xaiTranscriptionModelOptionsSchema = lazySchema(() =>
   zodSchema(
     z.object({
       /**
-       * Audio encoding for raw, headerless input audio.
+       * Input audio encoding for raw, headerless audio: `pcm`, `mulaw`, or
+       * `alaw`. Container formats such as Ogg/Opus are auto-detected, so do
+       * not set this for them. `opus` is for streaming only, with one raw Opus
+       * packet per chunk.
        */
-      audioFormat: z.enum(['pcm', 'mulaw', 'alaw']).nullish(),
+      audioFormat: z.enum(['pcm', 'mulaw', 'alaw', 'opus']).nullish(),
 
       /**
        * Sample rate of the input audio in Hz.
@@ -61,6 +68,12 @@ export const xaiTranscriptionModelOptionsSchema = lazySchema(() =>
        * Include filler words such as "uh" and "um" in the transcript.
        */
       fillerWords: z.boolean().nullish(),
+
+      /**
+       * Voice activity detection threshold between 0 and 1. Defaults to 0.5
+       * for `transcribe` and 0.08 for streaming. 0 disables the filter.
+       */
+      vadThreshold: z.number().min(0).max(1).optional(),
 
       /**
        * Options for streaming speech-to-text over WebSocket.

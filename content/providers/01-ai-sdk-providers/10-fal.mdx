@@ -148,7 +148,7 @@ A mask can be passed as well
 
 ```ts
 await generateImage({
-  model: fal.image('fal-ai/flux-pro/kontext/max'),
+  model: fal.image('fal-ai/flux-general/inpainting'),
   prompt: {
     text: 'Put a donut next to the flour.',
     images: [imageBuffer],
@@ -220,7 +220,7 @@ const result = await transcribe({
 
 The following provider options are available:
 
-- **language** _string_
+- **language** _string | null_
   Language of the audio file. Defaults to 'en'. If set to null, the language will be automatically detected.
   Accepts ISO language codes like 'en', 'fr', 'zh', etc.
   Optional.

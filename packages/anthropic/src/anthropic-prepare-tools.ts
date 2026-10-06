@@ -6,6 +6,7 @@ import {
 import type { AnthropicTool, AnthropicToolChoice } from './anthropic-api';
 import { CacheControlValidator } from './get-cache-control';
 import { advisor_20260301ArgsSchema } from './tool/advisor_20260301';
+import { computerToolset_20260801ArgsSchema } from './tool/computer-toolset_20260801';
 import { textEditor_20250728ArgsSchema } from './tool/text-editor_20250728';
 import { webSearch_20260318ArgsSchema } from './tool/web-search_20260318';
 import { webSearch_20260209ArgsSchema } from './tool/web-search_20260209';
@@ -31,6 +32,7 @@ export async function prepareTools({
   supportsStructuredOutput,
   supportsStrictTools,
   defaultEagerInputStreaming = false,
+  rejectsForcedToolUse = false,
 }: {
   tools: LanguageModelV4CallOptions['tools'];
   toolChoice: LanguageModelV4CallOptions['toolChoice'] | undefined;
@@ -52,6 +54,13 @@ export async function prepareTools({
    * it explicitly. Driven by the model-level `toolStreaming` option.
    */
   defaultEagerInputStreaming?: boolean;
+
+  /**
+   * Whether the model rejects forced tool use (`tool_choice` `any` or a
+   * named tool). When true, `required` and `tool` tool choices fall back to
+   * `auto` with a warning.
+   */
+  rejectsForcedToolUse?: boolean;
 }): Promise<{
   tools: Array<AnthropicTool> | undefined;
   toolChoice: AnthropicToolChoice | undefined;
@@ -181,6 +190,34 @@ export async function prepareTools({
               display_height_px: tool.args.displayHeightPx as number,
               display_number: tool.args.displayNumber as number,
               enable_zoom: tool.args.enableZoom as boolean,
+              cache_control: undefined,
+            });
+            break;
+          }
+          case 'anthropic.computer_toolset_20260801': {
+            const args = await validateTypes({
+              value: tool.args,
+              schema: computerToolset_20260801ArgsSchema,
+            });
+            const configs =
+              args.configs != null
+                ? Object.fromEntries(
+                    Object.entries(args.configs).map(([member, config]) => [
+                      member,
+                      {
+                        ...(config?.enabled != null && {
+                          enabled: config.enabled,
+                        }),
+                        ...(config?.deferLoading != null && {
+                          defer_loading: config.deferLoading,
+                        }),
+                      },
+                    ]),
+                  )
+                : undefined;
+            anthropicTools.push({
+              type: 'computer_toolset_20260801',
+              ...(configs != null && { configs }),
               cache_control: undefined,
             });
             break;
@@ -450,6 +487,24 @@ export async function prepareTools({
         betas,
       };
     case 'required':
+      if (rejectsForcedToolUse) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            `toolChoice 'required' is not supported by this model because it rejects forced tool use. ` +
+            `Using 'auto' instead. Instruct the model to use a tool in the prompt and verify that a tool call was made.`,
+        });
+        return {
+          tools: anthropicTools,
+          toolChoice: {
+            type: 'auto',
+            disable_parallel_tool_use: disableParallelToolUse,
+          },
+          toolWarnings,
+          betas,
+        };
+      }
       return {
         tools: anthropicTools,
         toolChoice: {
@@ -463,6 +518,27 @@ export async function prepareTools({
       // Anthropic does not support 'none' tool choice, so we remove the tools:
       return { tools: undefined, toolChoice: undefined, toolWarnings, betas };
     case 'tool':
+      if (rejectsForcedToolUse) {
+        toolWarnings.push({
+          type: 'unsupported',
+          feature: 'toolChoice',
+          details:
+            `toolChoice 'tool' is not supported by this model because it rejects forced tool use. ` +
+            `Only the '${toolChoice.toolName}' tool is sent with 'auto' tool choice. ` +
+            `Instruct the model to use the tool in the prompt and verify that a tool call was made.`,
+        });
+        return {
+          tools: anthropicTools.filter(
+            tool => 'name' in tool && tool.name === toolChoice.toolName,
+          ),
+          toolChoice: {
+            type: 'auto',
+            disable_parallel_tool_use: disableParallelToolUse,
+          },
+          toolWarnings,
+          betas,
+        };
+      }
       return {
         tools: anthropicTools,
         toolChoice: {

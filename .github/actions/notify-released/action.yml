@@ -1,0 +1,22 @@
+name: Notify released packages
+description: Notify linked PRs and issues once published packages are available on npm.
+
+inputs:
+  published-packages:
+    required: true
+  pull-request-number:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Notify released PRs and issues
+      shell: bash
+      working-directory: .github/scripts/notify-released
+      run: |
+        npm install --no-save
+        node index.mjs
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        PUBLISHED_PACKAGES: ${{ inputs.published-packages }}
+        PULL_REQUEST_NUMBER: ${{ inputs.pull-request-number }}

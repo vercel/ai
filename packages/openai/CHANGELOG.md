@@ -1,5 +1,146 @@
 # @ai-sdk/openai
 
+## 4.0.84
+
+### Patch Changes
+
+- 2959d35: feat: rename `evaluate` to `decide`
+- 5b8e63b: feat(openai): warn when reasoningSummary is used with chat models
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
+## 4.0.83
+
+### Patch Changes
+
+- 8c65988: feat(ai): add telemetry to speech generation and transcription, including
+  provider usage propagation and experimental streaming lifecycle callbacks
+- Updated dependencies [8c65988]
+- Updated dependencies [527a163]
+  - @ai-sdk/provider@4.0.21
+  - @ai-sdk/provider-utils@5.0.53
+
+## 4.0.82
+
+### Patch Changes
+
+- 040033b: feat(openai): add GPT-6.1 Sol model support
+- ede5b89: chore: migrate package builds from tsup to tsdown
+- Updated dependencies [ede5b89]
+  - @ai-sdk/provider@4.0.20
+  - @ai-sdk/provider-utils@5.0.52
+
+## 4.0.81
+
+### Patch Changes
+
+- 4e94782: fix(openai): rewrite recursive Zod schemas that use `allOf` wrappers
+
+## 4.0.80
+
+### Patch Changes
+
+- c2511c1: fix: use standards-compliant User-Agent header
+- Updated dependencies [c2511c1]
+  - @ai-sdk/provider-utils@5.0.51
+
+## 4.0.79
+
+### Patch Changes
+
+- e3605f6: Fix streamed tool calls with missing, blank, or repeated IDs.
+- 525efc5: feat(provider): advertise image model file and mask input support
+
+  Use confirmed model IDs for capability declarations so unrecognized model names
+  remain unknown. Include Together AI FLUX.2 Pro and Flex single-image editing, and
+  allow asynchronous capability lookups and middleware overrides to resolve to
+  unknown.
+
+  Advertise QuiverAI Arrow 2 and Arrow 2 Telos file-input support, and mark Together
+  AI Gemini image inputs unsupported by the current single-image request mapping.
+
+- Updated dependencies [e3605f6]
+- Updated dependencies [525efc5]
+  - @ai-sdk/provider-utils@5.0.50
+  - @ai-sdk/provider@4.0.19
+
+## 4.0.78
+
+### Patch Changes
+
+- 94d5d6d: Support `reasoningEffortUpdate: 'none'` for GPT-6 Sol and Luna in request-level options and positioned system messages. Validate update efforts against the model's supported efforts, warning and omitting unsupported request-level updates and rejecting unsupported historical updates.
+
+## 4.0.77
+
+### Patch Changes
+
+- 2abd503: Default OpenAI Responses function tools to `strict: false` when tool strict mode is omitted.
+- Updated dependencies [af9597b]
+- Updated dependencies [bc49f78]
+  - @ai-sdk/provider-utils@5.0.49
+
+## 4.0.76
+
+### Patch Changes
+
+- Updated dependencies [be877ff]
+  - @ai-sdk/provider-utils@5.0.48
+
+## 4.0.75
+
+### Patch Changes
+
+- ca31b89: The OpenAI Responses provider now accepts `providerOptions.openai.reasoningEffortUpdate` on empty system messages and sends each update at its position in the conversation. This lets applications change reasoning effort during a conversation while preserving the prompt prefix for caching.
+
+## 4.0.74
+
+### Patch Changes
+
+- 4cf5a99: fix(openai): classify Responses stream errors with null codes
+- 771e74b: chore: enable dead code lint rules
+- Updated dependencies [fe07867]
+- Updated dependencies [a4b0940]
+- Updated dependencies [771e74b]
+  - @ai-sdk/provider-utils@5.0.47
+
+## 4.0.73
+
+### Patch Changes
+
+- 6d1f881: fix(openai): expose Chat Completions audio transcripts as generated text
+- 618dc11: feat: GPT-6 Sol and Luna model IDs
+- Updated dependencies [ffb0e76]
+  - @ai-sdk/provider@4.0.18
+  - @ai-sdk/provider-utils@5.0.46
+
+## 4.0.72
+
+### Patch Changes
+
+- 411b3f2: fix(openai): strip unsupported regex patterns from JSON schemas
+- e13c32f: fix(openai): include speech provider options in requests
+
+## 4.0.71
+
+### Patch Changes
+
+- e76a0a3: fix(openai): cancel image edit URL downloads when the request is aborted
+- Updated dependencies [2973485]
+- Updated dependencies [a4db5ea]
+- Updated dependencies [2937ea2]
+  - @ai-sdk/provider-utils@5.0.45
+
+## 4.0.70
+
+### Patch Changes
+
+- fd75cee: fix(openai): preserve provider file references in Responses tool results
+- 1f5bb62: fix(openai): send assistant text as Responses easy input messages
+- Updated dependencies [0455398]
+  - @ai-sdk/provider-utils@5.0.44
+
 ## 4.0.69
 
 ### Patch Changes

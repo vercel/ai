@@ -13,6 +13,7 @@ export interface AmazonBedrockConverseInput {
   };
   additionalModelRequestFields?: Record<string, unknown>;
   additionalModelResponseFieldPaths?: string[];
+  requestMetadata?: Record<string, string>;
   serviceTier?: {
     type: string;
   };

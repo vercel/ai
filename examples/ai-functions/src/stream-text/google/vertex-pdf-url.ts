@@ -4,7 +4,7 @@ import { run } from '../../lib/run';
 
 run(async () => {
   const result = streamText({
-    model: googleVertex('gemini-pro-experimental'),
+    model: googleVertex('gemini-3.1-pro-preview'),
     messages: [
       {
         role: 'user',
