@@ -389,6 +389,14 @@ describe('HttpChatTransport', () => {
         api: '/api/chat#section',
         expectedApi: '/api/chat/c123/stream#section',
       },
+      {
+        api: '/api/chat/',
+        expectedApi: '/api/chat/c123/stream',
+      },
+      {
+        api: '/api/chat/?mode=demo',
+        expectedApi: '/api/chat/c123/stream?mode=demo',
+      },
     ])(
       'should append the reconnect path before query parameters and fragments for $api',
       async ({ api, expectedApi }) => {
