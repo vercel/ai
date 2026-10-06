@@ -466,7 +466,7 @@ describe('DirectChatTransport', () => {
       );
     });
 
-    it('should continue with terminal tool history when tools are omitted', async () => {
+    it('should continue with terminal tool history without exposing output when tools are omitted', async () => {
       const agent = new ToolLoopAgent({ model: mockModel });
       const transport = new DirectChatTransport({ agent });
 
@@ -520,8 +520,9 @@ describe('DirectChatTransport', () => {
               toolCallId: 'call-1',
               toolName: 'removed',
               output: {
-                type: 'json',
-                value: { result: 'done' },
+                type: 'text',
+                value:
+                  'Tool output omitted because the tool is no longer available.',
               },
             },
           ],

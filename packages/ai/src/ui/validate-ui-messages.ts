@@ -25,6 +25,11 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+<<<<<<< HEAD
+=======
+import { markToolPartAsUnavailable } from './unavailable-tool';
+import { warnIfUIMessageHasDeprecatedRawInput } from './warn-if-ui-message-has-deprecated-raw-input';
+>>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
 
 const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   z.string(),
@@ -43,11 +48,11 @@ function isEmptyObject(value: unknown): value is Record<string, never> {
 function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   const { type, ...part } = toolPart;
 
-  return {
+  return markToolPartAsUnavailable({
     ...part,
     type: 'dynamic-tool',
     toolName: type.slice(5),
-  } as DynamicToolUIPart;
+  } as DynamicToolUIPart);
 }
 
 function getToolPartInputSchemaInput(
@@ -134,6 +139,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -148,6 +154,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -161,6 +168,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -174,6 +182,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -187,6 +196,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -202,6 +212,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -217,6 +228,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),

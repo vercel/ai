@@ -1336,6 +1336,7 @@ describe('validateUIMessages', () => {
         },
       });
 
+<<<<<<< HEAD
       expect(messages).toEqual([
         {
           id: '1',
@@ -1352,6 +1353,22 @@ describe('validateUIMessages', () => {
           ],
         },
       ]);
+=======
+      expect(messages[1].parts[1]).toEqual({
+        type: 'dynamic-tool',
+        dynamic: false,
+        toolName: 'create_artifact',
+        toolCallId: 'toolu_demo_aborted',
+        state: 'output-available',
+        input: {},
+        output: '{"error":"Tool was aborted by the user."}',
+      });
+      expect(messages[2]).toEqual({
+        id: 'u2',
+        role: 'user',
+        parts: [{ type: 'text', text: 'are you working?' }],
+      });
+>>>>>>> f810ea3438 (fix: prevent deleted tools from exposing full persisted outputs to models (#21796))
     });
 
     it('should validate output when an output-available tool call has empty input', async () => {
@@ -1484,6 +1501,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               errorText: 'AI_InvalidToolInputError',
+              dynamic: false,
               input: {
                 foo: 123,
               },
@@ -1708,6 +1726,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1717,6 +1736,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1726,6 +1746,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1788,6 +1809,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1796,6 +1818,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1804,6 +1827,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1839,6 +1863,7 @@ describe('validateUIMessages', () => {
 
       expect(messages[0].parts[0]).toEqual({
         type: 'dynamic-tool',
+        dynamic: false,
         toolName: 'bar',
         toolCallId: '1',
         state: 'output-available',
@@ -2258,6 +2283,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'foo',
       toolCallId: '1',
       state: 'output-available',
@@ -2294,6 +2320,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: '1',
       state: 'output-error',
