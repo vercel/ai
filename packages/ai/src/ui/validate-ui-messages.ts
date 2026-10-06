@@ -15,6 +15,7 @@ import {
 import { z } from 'zod/v4';
 import { InvalidArgumentError } from '../error';
 import { jsonValueSchema } from '../types/json-value';
+import { getOwn } from '../util/get-own';
 import { isDeepEqualData } from '../util/is-deep-equal-data';
 import { providerMetadataSchema } from '../types/provider-metadata';
 import type {
@@ -25,6 +26,7 @@ import type {
   ToolUIPart,
   UIMessage,
 } from './ui-messages';
+import { markToolPartAsUnavailable } from './unavailable-tool';
 
 const toolMetadataSchema: z.ZodType<JSONObject> = z.record(
   z.string(),
@@ -43,11 +45,11 @@ function isEmptyObject(value: unknown): value is Record<string, never> {
 function asDynamicToolPart(toolPart: ToolUIPart): DynamicToolUIPart {
   const { type, ...part } = toolPart;
 
-  return {
+  return markToolPartAsUnavailable({
     ...part,
     type: 'dynamic-tool',
     toolName: type.slice(5),
-  } as DynamicToolUIPart;
+  } as DynamicToolUIPart);
 }
 
 function getToolPartInputSchemaInput(
@@ -134,6 +136,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -148,6 +151,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -161,6 +165,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -174,6 +179,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -187,6 +193,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -202,6 +209,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -217,6 +225,7 @@ const uiMessagesSchema = lazySchema(() => {
                 }),
                 z.object({
                   type: z.literal('dynamic-tool'),
+                  dynamic: z.literal(false).optional(),
                   toolName: z.string(),
                   toolCallId: z.string(),
                   toolMetadata: toolMetadataSchema.optional(),
@@ -451,7 +460,7 @@ async function safeValidateUIMessagesInternal<UI_MESSAGE extends UIMessage>(
               InferUIMessageTools<UI_MESSAGE>
             >;
             const toolName = toolPart.type.slice(5);
-            const tool = tools?.[toolName];
+            const tool = getOwn(tools, toolName);
             const isTerminal =
               toolPart.state === 'output-available' ||
               toolPart.state === 'output-error' ||

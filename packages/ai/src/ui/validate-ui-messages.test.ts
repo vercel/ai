@@ -1343,6 +1343,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'foo',
               toolCallId: '1',
               state: 'output-available',
@@ -1484,6 +1485,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               errorText: 'AI_InvalidToolInputError',
+              dynamic: false,
               input: {
                 foo: 123,
               },
@@ -1708,6 +1710,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1717,6 +1720,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1726,6 +1730,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1788,6 +1793,7 @@ describe('validateUIMessages', () => {
           parts: [
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '1',
               state: 'output-available',
@@ -1796,6 +1802,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '2',
               state: 'output-error',
@@ -1804,6 +1811,7 @@ describe('validateUIMessages', () => {
             },
             {
               type: 'dynamic-tool',
+              dynamic: false,
               toolName: 'bar',
               toolCallId: '3',
               state: 'output-denied',
@@ -1839,6 +1847,7 @@ describe('validateUIMessages', () => {
 
       expect(messages[0].parts[0]).toEqual({
         type: 'dynamic-tool',
+        dynamic: false,
         toolName: 'bar',
         toolCallId: '1',
         state: 'output-available',
@@ -2258,6 +2267,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'foo',
       toolCallId: '1',
       state: 'output-available',
@@ -2294,6 +2304,7 @@ describe('safeValidateUIMessages', () => {
     expectToBe(result.success, true);
     expect(result.data[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: '1',
       state: 'output-error',

@@ -153,6 +153,7 @@ describe('createAgentUIStream', () => {
     expect(onFinish).toHaveBeenCalledOnce();
     expect(onFinish.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: 'call-1',
       state: 'output-available',
@@ -197,6 +198,7 @@ describe('createAgentUIStream', () => {
     expect(onFinish).toHaveBeenCalledOnce();
     expect(onFinish.mock.calls[0][0].messages[0].parts[0]).toEqual({
       type: 'dynamic-tool',
+      dynamic: false,
       toolName: 'removed',
       toolCallId: 'call-1',
       state: 'output-available',
