@@ -77,7 +77,11 @@ No model API key, agent, queue, or background worker is needed. The file store s
 temporary directory. A deployed app with multiple instances should use shared,
 private database storage scoped to one MCP server and authenticated principal.
 The demo server keeps subscriptions in memory for up to 60 seconds and has no
-replay. For long-lived subscriptions, call `client.events.experimental_refresh`
+replay. If a subscribe response is lost, recover the pending record from your
+store and call `client.events.experimental_refresh({ key: pending.key })` to
+reuse its callback URL and secret. To cancel it without a server ID, call
+`client.events.experimental_unsubscribe({ key: pending.key })` instead.
+For long-lived subscriptions, call `client.events.experimental_refresh`
 before `refreshBefore`. Real deliveries can be duplicated; production handlers
 should deduplicate by subscription ID and event ID.
 

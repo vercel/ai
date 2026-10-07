@@ -55,7 +55,10 @@ class EventTransport implements MCPTransport {
         }
         result = {
           id: 'sub_1',
-          refreshBefore: new Date(Date.now() + 60_000).toISOString(),
+          refreshBefore:
+            message.params?.ttlMs === null
+              ? null
+              : new Date(Date.now() + 60_000).toISOString(),
           cursor: 'cursor_1',
           truncated: false,
         };
@@ -212,6 +215,85 @@ describe('MCP client events', () => {
     expect(transport.requests.at(-1)?.params).not.toHaveProperty('id');
     expect(await store.get(stored.key)).toBeUndefined();
   });
+
+  it.each(['refresh', 'unsubscribe'])(
+    'recovers an uncertain non-expiring subscription by key with %s after recreating the client',
+    async action => {
+      const { client, transport, store } = await setup();
+      const remoteSubscriptions = new Set<string>();
+      transport.beforeSubscribe = async request => {
+        const delivery = request.params?.delivery as { url: string };
+        remoteSubscriptions.add(delivery.url);
+        throw new Error('Subscribe response lost');
+      };
+      await expect(
+        client.events.experimental_subscribe({
+          ...subscribeOptions,
+          ttlMs: null,
+        }),
+      ).rejects.toThrow('Subscribe response lost');
+      const pending = [...store.records.values()][0];
+      expect(pending).toMatchObject({ status: 'pending', ttlMs: null });
+      expect(pending.id).toBeUndefined();
+      const original = transport.requests.at(-1)!;
+      await client.close();
+
+      const restored = await setup(new EventTransport(), store);
+      const send = restored.transport.send.bind(restored.transport);
+      restored.transport.send = async message => {
+        if ('method' in message && message.method === 'events/unsubscribe') {
+          const delivery = message.params?.delivery as { url: string };
+          remoteSubscriptions.delete(delivery.url);
+        }
+        await send(message);
+      };
+      restored.transport.beforeSubscribe = async request => {
+        const delivery = request.params?.delivery as { url: string };
+        remoteSubscriptions.add(delivery.url);
+      };
+      if (action === 'refresh') {
+        const result = await restored.client.events.experimental_refresh({
+          key: pending.key,
+        });
+        expect(restored.transport.requests.at(-1)?.params).toEqual(
+          original.params,
+        );
+        expect(remoteSubscriptions.size).toBe(1);
+        expect(store.records.size).toBe(1);
+        expect(await store.get(pending.key)).toMatchObject({
+          id: result.id,
+          status: 'active',
+          refreshBefore: null,
+          delivery: pending.delivery,
+        });
+      } else {
+        await restored.client.events.experimental_unsubscribe({
+          key: pending.key,
+        });
+        expect(restored.transport.requests.at(-1)).toMatchObject({
+          method: 'events/unsubscribe',
+          params: {
+            name: pending.name,
+            arguments: pending.arguments,
+            delivery: { mode: 'webhook', url: pending.delivery.url },
+          },
+        });
+        expect(await store.get(pending.key)).toBeUndefined();
+        expect(remoteSubscriptions.size).toBe(0);
+      }
+    },
+  );
+
+  it.each(['experimental_refresh', 'experimental_unsubscribe'] as const)(
+    'rejects an unknown key before sending %s',
+    async method => {
+      const { client, transport } = await setup();
+      await expect(client.events[method]({ key: 'missing' })).rejects.toThrow(
+        'Unknown MCP event subscription: missing',
+      );
+      expect(transport.requests).toHaveLength(1);
+    },
+  );
 
   it.each(['request', 'persistence'])(
     'returns 503 during renewal %s and accepts delivery after the new expiration is persisted',

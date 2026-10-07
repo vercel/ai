@@ -107,6 +107,11 @@ export type SubscribeEventOptions = {
   options?: RequestOptions;
 };
 
+type MCPEventSubscriptionOptions = (
+  | { id: string; key?: never }
+  | { key: string; id?: never }
+) & { options?: RequestOptions };
+
 export interface MCPEvents {
   experimental_list(options?: {
     params?: { cursor?: string };
@@ -115,12 +120,8 @@ export interface MCPEvents {
   experimental_subscribe(
     options: SubscribeEventOptions,
   ): Promise<SubscribeEventResult>;
-  experimental_refresh(options: {
-    id: string;
-    options?: RequestOptions;
-  }): Promise<SubscribeEventResult>;
-  experimental_unsubscribe(options: {
-    id: string;
-    options?: RequestOptions;
-  }): Promise<void>;
+  experimental_refresh(
+    options: MCPEventSubscriptionOptions,
+  ): Promise<SubscribeEventResult>;
+  experimental_unsubscribe(options: MCPEventSubscriptionOptions): Promise<void>;
 }

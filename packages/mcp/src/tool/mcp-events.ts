@@ -38,11 +38,18 @@ export function createMCPEvents({
     return store;
   }
 
-  async function getSubscription(id: string): Promise<MCPEventSubscription> {
-    const subscription = await getStore().getById(id);
+  async function getSubscription({
+    id,
+    key,
+  }: Parameters<
+    MCPEvents['experimental_refresh']
+  >[0]): Promise<MCPEventSubscription> {
+    const storage = getStore();
+    const subscription =
+      id !== undefined ? await storage.getById(id) : await storage.get(key);
     if (!subscription) {
       throw new MCPClientError({
-        message: `Unknown MCP event subscription: ${id}`,
+        message: `Unknown MCP event subscription: ${id ?? key}`,
       });
     }
     return subscription;
@@ -180,20 +187,20 @@ export function createMCPEvents({
       };
       await storage.set(subscription);
       // Retain pending state on errors: a timed-out request may have registered
-      // the callback remotely. The application can inspect/expire pending records.
+      // the callback remotely. Recover or unsubscribe using the stored key.
       return subscribe(subscription, options);
     },
 
-    async experimental_refresh({ id, options }) {
-      const subscription = await getSubscription(id);
+    async experimental_refresh(args) {
+      const subscription = await getSubscription(args);
       // Deliveries must retry until the renewed expiration is persisted.
       // Retain pending state on errors, as the server may have renewed already.
       await getStore().update(subscription.key, { status: 'pending' });
-      return subscribe(subscription, options);
+      return subscribe(subscription, args.options);
     },
 
-    async experimental_unsubscribe({ id, options }) {
-      const subscription = await getSubscription(id);
+    async experimental_unsubscribe(args) {
+      const subscription = await getSubscription(args);
       await request({
         request: {
           method: 'events/unsubscribe',
@@ -204,7 +211,7 @@ export function createMCPEvents({
           },
         },
         resultSchema: ResultSchema,
-        options,
+        options: args.options,
       });
       await getStore().delete(subscription.key);
     },

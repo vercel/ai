@@ -21,6 +21,15 @@ it('exposes events on the existing client and types webhook callbacks', async ()
     delivery: { mode: 'webhook', url: 'https://app.example/events' },
   });
   expectTypeOf(result).toEqualTypeOf<Experimental_SubscribeEventResult>();
+  const recovered = await client.events.experimental_refresh({
+    key: 'pending_1',
+  });
+  expectTypeOf(recovered).toEqualTypeOf<Experimental_SubscribeEventResult>();
+  await client.events.experimental_unsubscribe({ key: 'pending_1' });
+  // @ts-expect-error Select a subscription by either ID or key, never both.
+  await client.events.experimental_refresh({ id: 'sub_1', key: 'pending_1' });
+  // @ts-expect-error A subscription ID or key is required.
+  await client.events.experimental_unsubscribe({});
   const handler = experimental_createMCPEventWebhook({
     store,
     async onEvent({ event, subscription }) {
