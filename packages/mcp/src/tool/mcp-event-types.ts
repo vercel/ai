@@ -99,6 +99,7 @@ export interface MCPEventStore {
 
 export type MCPEventsConfig = {
   store: MCPEventStore;
+  adapter?: never;
   /**
    * Optionally validate subscription arguments using an application schema or
    * the server's inputSchema. Throw to reject before persisting or subscribing.

@@ -88,7 +88,7 @@ describe('MCP client events', () => {
   ) {
     const client = await createMCPClient({
       transport,
-      events: {
+      experimental_events: {
         store,
         async validateArguments({ definition, arguments: args }) {
           expect(definition.name).toBe(eventDefinition.name);
@@ -141,7 +141,7 @@ describe('MCP client events', () => {
     const transport = new EventTransport();
     const client = await createMCPClient({
       transport,
-      events: { store: new MemoryEventStore() },
+      experimental_events: { store: new MemoryEventStore() },
     });
     clients.push(client);
     await client.experimental_events.subscribe({
@@ -466,7 +466,7 @@ describe('MCP client events', () => {
     expect((await client.experimental_events.list()).events).toHaveLength(1);
     await expect(
       client.experimental_events.subscribe(subscribeOptions),
-    ).rejects.toThrow('events.store');
+    ).rejects.toThrow('experimental_events.store');
   });
 
   it('awaits optional filter validation before persisting a secret or sending subscribe', async () => {

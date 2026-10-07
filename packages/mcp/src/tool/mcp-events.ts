@@ -32,7 +32,8 @@ export function createMCPEvents({
   function getStore(): MCPEventStore {
     if (!store) {
       throw new MCPClientError({
-        message: 'Configure events.store to manage event subscriptions',
+        message:
+          'Configure experimental_events.store to manage direct event subscriptions',
       });
     }
     return store;

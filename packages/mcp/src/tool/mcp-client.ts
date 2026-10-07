@@ -14,6 +14,11 @@ import {
 } from '@ai-sdk/provider-utils';
 import type { z } from 'zod/v4';
 import { createMCPEvents } from './mcp-events';
+import {
+  createManagedMCPEvents,
+  type ManagedMCPEvents,
+  type ManagedMCPEventsConfig,
+} from './mcp-events-adapter';
 import type { MCPEvents, MCPEventsConfig } from './mcp-event-types';
 import { MCPClientError } from '../error/mcp-client-error';
 import type {
@@ -238,7 +243,7 @@ function mcpToModelOutput({
 
 export interface MCPClientConfig {
   /** Experimental webhook event support; storage must be private and durable. */
-  events?: MCPEventsConfig;
+  experimental_events?: MCPEventsConfig;
   /** Transport configuration for connecting to the MCP server */
   transport: MCPTransportConfig | MCPTransport;
   /**
@@ -290,9 +295,31 @@ export interface MCPClientConfig {
   capabilities?: ClientCapabilities;
 }
 
+export type ManagedMCPClientConfig = Omit<
+  MCPClientConfig,
+  'experimental_events'
+> & {
+  experimental_events: ManagedMCPEventsConfig;
+};
+
+export type ManagedMCPClient = Omit<MCPClient, 'experimental_events'> & {
+  readonly experimental_events: ManagedMCPEvents;
+};
+
+export function createMCPClient(
+  config: ManagedMCPClientConfig,
+): Promise<ManagedMCPClient>;
+export function createMCPClient(config: MCPClientConfig): Promise<MCPClient>;
+export function createMCPClient(
+  config: MCPClientConfig | ManagedMCPClientConfig,
+): Promise<MCPClient | ManagedMCPClient>;
 export async function createMCPClient(
-  config: MCPClientConfig,
-): Promise<MCPClient> {
+  config: MCPClientConfig | ManagedMCPClientConfig,
+): Promise<
+  Omit<MCPClient, 'experimental_events'> & {
+    readonly experimental_events: MCPEvents | ManagedMCPEvents;
+  }
+> {
   const client = new DefaultMCPClient(config);
   await client.init();
   return client;
@@ -409,8 +436,8 @@ export interface MCPClient {
  * - Automatic session persistence for Streamable HTTP transport
  * - Resumable SSE streams
  */
-class DefaultMCPClient implements MCPClient {
-  readonly experimental_events: MCPEvents;
+class DefaultMCPClient implements Omit<MCPClient, 'experimental_events'> {
+  readonly experimental_events: MCPEvents | ManagedMCPEvents;
   private transport: MCPTransport;
   private protocolVersionDiscovery: boolean;
   private onUncaughtError?: (error: unknown) => void;
@@ -441,7 +468,7 @@ class DefaultMCPClient implements MCPClient {
   ) => Promise<ElicitResult> | ElicitResult;
 
   constructor({
-    events,
+    experimental_events: events,
     transport: transportConfig,
     name,
     clientName = name ?? 'ai-sdk-mcp-client',
@@ -452,7 +479,16 @@ class DefaultMCPClient implements MCPClient {
     initialInitializeResult,
     initializationOptions,
     protocolVersionDiscovery = true,
-  }: MCPClientConfig) {
+  }: MCPClientConfig | ManagedMCPClientConfig) {
+    if (
+      events?.adapter !== undefined &&
+      (events.store !== undefined || events.validateArguments !== undefined)
+    ) {
+      throw new MCPClientError({
+        message:
+          'Configure experimental_events with either an adapter or a store, not both. Managed adapters own argument validation.',
+      });
+    }
     this.onUncaughtError = onUncaughtError;
     this.maxRetries = prepareMaxRetries(maxRetries);
     this.clientCapabilities = capabilities ?? {};
@@ -489,11 +525,14 @@ class DefaultMCPClient implements MCPClient {
       name: clientName,
       version,
     };
-    this.experimental_events = createMCPEvents({
+    const directEvents = createMCPEvents({
       request: args => this.request(args),
       store: events?.store,
       validateArguments: events?.validateArguments,
     });
+    this.experimental_events = events?.adapter
+      ? createManagedMCPEvents(events.adapter, directEvents.list)
+      : directEvents;
   }
 
   get serverInfo(): Configuration {

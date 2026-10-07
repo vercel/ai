@@ -41,11 +41,11 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
           type: 'MCPClientConfig',
           parameters: [
             {
-              name: 'events',
-              type: 'Experimental_MCPEventsConfig',
+              name: 'experimental_events',
+              type: 'Experimental_MCPEventsConfig | Experimental_ManagedMCPEventsConfig',
               isOptional: true,
               description:
-                'Experimental webhook subscription support. See [Experimental_MCPEventsConfig](/docs/reference/ai-sdk-core/mcp-events#client-configuration) for the store and validation callback types.',
+                'Experimental event subscriptions. Configure either a private durable store for direct webhooks or a managed adapter. See [MCP Events](/docs/reference/ai-sdk-core/mcp-events#managed-subscriptions).',
               properties: [
                 {
                   type: 'Experimental_MCPEventsConfig',
@@ -53,8 +53,16 @@ experimental webhook delivery, see the [MCP Events guide](/docs/ai-sdk-core/mcp-
                     {
                       name: 'store',
                       type: 'Experimental_MCPEventStore',
+                      isOptional: true,
                       description:
-                        'Persists subscription identities, callback URLs, signing secrets, cursors, and expirations. Shared with the webhook receiver.',
+                        'Required in direct mode. Persists subscription identities, callback URLs, signing secrets, cursors, and expirations. Shared with the webhook receiver. Cannot be combined with adapter.',
+                    },
+                    {
+                      name: 'adapter',
+                      type: 'Experimental_MCPEventsAdapter',
+                      isOptional: true,
+                      description:
+                        'Delegates subscription management to a backend. Cannot be combined with store or validateArguments. No local event store or refresh loop is required.',
                     },
                     {
                       name: 'validateArguments',
@@ -261,9 +269,9 @@ Returns a Promise that resolves to an `MCPClient` with the following properties 
   content={[
     {
       name: 'experimental_events',
-      type: 'Experimental_MCPEvents',
+      type: 'Experimental_MCPEvents | Experimental_ManagedMCPEvents',
       description:
-        'Event discovery and webhook subscription methods. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events) for list, subscribe, refresh, and unsubscribe.',
+        'Event catalog discovery and mode-specific subscription methods. Managed mode adds getSubscription and listSubscriptions; direct mode has refresh. See the [MCP Events reference](/docs/reference/ai-sdk-core/mcp-events).',
     },
     {
       name: 'initializeResult',
