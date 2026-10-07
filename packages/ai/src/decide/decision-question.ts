@@ -86,11 +86,11 @@ export function prepareDecisionQuestions(
                   ? {}
                   : {
                       criteria: Object.fromEntries(
-                        Object.entries(question.criteria).map(
-                          ([outcome, description]) => [
-                            outcome,
-                            prepareDescription(description),
-                          ],
+                        Object.entries(question.criteria).flatMap(
+                          ([outcome, description]) =>
+                            description === null
+                              ? []
+                              : [[outcome, toText(description)]],
                         ),
                       ),
                     }),

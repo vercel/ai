@@ -411,9 +411,8 @@ it('accepts partial usage and preserves zero token counts', async () => {
 it.each([
   { criteria: undefined, expected: 'Refund?' },
   { criteria: {}, expected: 'Refund?' },
-  { criteria: { true: null, false: null }, expected: 'Refund?' },
   {
-    criteria: { true: 'Money back', false: null },
+    criteria: { true: 'Money back' },
     expected: 'Refund?\n\nCriteria for true:\nMoney back',
   },
   {
@@ -421,7 +420,7 @@ it.each([
     expected: 'Refund?\n\nCriteria for false:\n["Status request"]',
   },
 ] as const)(
-  'formats only supplied non-null boolean criteria',
+  'formats only supplied boolean criteria',
   async ({ criteria, expected }) => {
     const { model, fetch } = setup();
     await model.doDecide({

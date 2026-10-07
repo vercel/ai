@@ -13,4 +13,4 @@ Arrays passed directly as state now contain decision state parts. Wrap JSON arra
 
 Normalize all public state forms into an array of parts before calling decision providers. Providers receive text and JSON objects as text and json parts.
 
-Move public decision question inputs into Core and normalize JSON instructions and criteria descriptions to strings before provider calls. Remove the provider input type; provider questions now accept string instructions and string or null descriptions. Preserve literal Choice option inference.
+Move public decision question inputs into Core and normalize JSON instructions and criteria descriptions to strings before provider calls. Remove the provider input type. Provider questions accept string instructions, nullable Choice and Score descriptions, and optional string Boolean descriptions. Omit public null Boolean descriptions from provider calls. Preserve literal Choice option inference.

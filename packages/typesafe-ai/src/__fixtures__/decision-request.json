@@ -29,8 +29,7 @@
       "type": "noul",
       "instructions": "Is the customer requesting a refund?",
       "criteria": {
-        "true": "{\"meaning\":\"Explicit request for money back\"}",
-        "false": null
+        "true": "{\"meaning\":\"Explicit request for money back\"}"
       }
     }
   }

@@ -211,6 +211,21 @@ it('preserves literal Choice inference with public JSON instructions and criteri
   expectTypeOf<
     Extract<Experimental_DecisionModelV4Question, { type: 'score' }>['criteria']
   >().toEqualTypeOf<readonly (string | null)[]>();
+  expectTypeOf<
+    Extract<
+      Experimental_DecisionModelV4Question,
+      { type: 'boolean' }
+    >['criteria']
+  >().toEqualTypeOf<
+    { readonly true?: string; readonly false?: string } | undefined
+  >();
+  // @ts-expect-error Provider Boolean descriptions use omission for absent descriptions.
+  const nullBooleanDescription: Experimental_DecisionModelV4Question = {
+    type: 'boolean',
+    instructions: 'Refund?',
+    criteria: { true: null },
+  };
+  void nullBooleanDescription;
   // @ts-expect-error Provider instructions must already be text.
   const providerQuestion: Experimental_DecisionModelV4Question =
     reusableQuestions.department;

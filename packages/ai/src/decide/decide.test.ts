@@ -36,7 +36,7 @@ const normalizedQuestions = {
     criteria: { billing: null, support: '{"includes":["help"]}' },
   },
   severity: { ...questions.severity, instructions: '["Severity?"]' },
-  refund: questions.refund,
+  refund: { ...questions.refund, criteria: { true: 'Money back' } },
 } as const;
 
 const answers: DecisionModelV4Result['answers'] = {
@@ -845,6 +845,11 @@ it('normalizes question JSON for provider calls and model events while preservin
       instructions: 'Null criteria.',
       criteria: { true: null, false: null },
     },
+    falseCriteria: {
+      type: 'boolean',
+      instructions: 'False criteria.',
+      criteria: { true: null, false: 'No refund requested' },
+    },
   } as const;
   const expected = {
     topic: {
@@ -868,7 +873,11 @@ it('normalizes question JSON for provider calls and model events while preservin
     },
     noCriteria: publicQuestions.noCriteria,
     emptyCriteria: publicQuestions.emptyCriteria,
-    nullCriteria: publicQuestions.nullCriteria,
+    nullCriteria: { ...publicQuestions.nullCriteria, criteria: {} },
+    falseCriteria: {
+      ...publicQuestions.falseCriteria,
+      criteria: { false: 'No refund requested' },
+    },
   };
   const { model, doDecide } = setup({
     answers: {
@@ -878,6 +887,7 @@ it('normalizes question JSON for provider calls and model events while preservin
       noCriteria: { type: 'boolean', probability: 0.5 },
       emptyCriteria: { type: 'boolean', probability: 0.5 },
       nullCriteria: { type: 'boolean', probability: 0.5 },
+      falseCriteria: { type: 'boolean', probability: 0.5 },
     },
     warnings: [],
   });

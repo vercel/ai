@@ -16,7 +16,7 @@ export type DecisionModelV4Question =
       readonly type: 'boolean';
       readonly instructions: string;
       readonly criteria?: {
-        readonly true?: string | null;
-        readonly false?: string | null;
+        readonly true?: string;
+        readonly false?: string;
       };
     };
