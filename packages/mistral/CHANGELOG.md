@@ -1,5 +1,11 @@
 # @ai-sdk/mistral
 
+## 4.0.60
+
+### Patch Changes
+
+- 1c963f2: feat(mistral): add conversations api and web search tool
+
 ## 4.0.59
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @ai-sdk/openai
 
+## 4.0.88
+
+### Patch Changes
+
+- 32ff7ad: Preserve tool errors in OpenAI Chat Completions and Responses by wrapping their payloads in an `error` object. Send Google tool errors and denied executions under `functionResponse.response.error`.
+
 ## 4.0.87
 
 ### Patch Changes

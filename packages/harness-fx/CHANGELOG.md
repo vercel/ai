@@ -1,5 +1,16 @@
 # @ai-sdk/harness-fx
 
+## 1.0.57
+
+### Patch Changes
+
+- Updated dependencies [c4a5c8d]
+- Updated dependencies [50ac48b]
+- Updated dependencies [e8af189]
+- Updated dependencies [9d84fad]
+  - @ai-sdk/harness@1.0.143
+  - @ai-sdk/harness-acp@1.0.82
+
 ## 1.0.56
 
 ### Patch Changes
