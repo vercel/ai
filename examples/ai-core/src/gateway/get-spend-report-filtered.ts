@@ -13,14 +13,14 @@ run(async () => {
 
   // Filter to the exact model and tags used by stream-text-with-tags.ts
   console.log(
-    `\n--- Filtered spend: claude-haiku-4.5 + reporting-test tag (${thirtyDaysAgo} to ${today}) ---\n`,
+    `\n--- Filtered spend: claude-haiku-5.5 + reporting-test tag (${thirtyDaysAgo} to ${today}) ---\n`,
   );
 
   const report = await gateway.getSpendReport({
     startDate: thirtyDaysAgo,
     endDate: today,
     datePart: 'day',
-    model: 'anthropic/claude-haiku-4.5',
+    model: 'anthropic/claude-haiku-5.5',
     tags: ['feature:reporting-test'],
   });
 
@@ -50,7 +50,7 @@ run(async () => {
     startDate: thirtyDaysAgo,
     endDate: today,
     groupBy: 'provider',
-    model: 'anthropic/claude-haiku-4.5',
+    model: 'anthropic/claude-haiku-5.5',
     tags: ['feature:reporting-test'],
   });
 

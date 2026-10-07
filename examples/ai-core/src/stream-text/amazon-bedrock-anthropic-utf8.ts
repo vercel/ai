@@ -13,7 +13,7 @@ async function testStream(label: string, prompt: string) {
   testNumber++;
   console.log(`--- ${label} ---`);
   const result = streamText({
-    model: bedrockAnthropic('us.anthropic.claude-haiku-4-5-20251001-v1:0'),
+    model: bedrockAnthropic('us.anthropic.claude-haiku-5-5'),
     prompt,
   });
 

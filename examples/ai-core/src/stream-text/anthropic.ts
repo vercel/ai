@@ -5,7 +5,7 @@ import { print } from '../lib/print';
 
 run(async () => {
   const result = streamText({
-    model: anthropic('claude-haiku-4-5'),
+    model: anthropic('claude-haiku-5-5'),
     prompt: 'Invent a new holiday and describe its traditions.',
   });
 
