@@ -689,4 +689,37 @@ console.log(text);`,
     websiteUrl: 'https://pushary.com/human-in-the-loop',
     npmUrl: 'https://www.npmjs.com/package/@pushary/ai-sdk',
   },
+  {
+    slug: 'tanod',
+    name: 'Tanod',
+    description:
+      'Security and utility tools for agents: pre-transaction address risk checks on Ethereum and Base, Solidity contract scans, scans of MCP server and agent skill packages before install, plus web page, DNS and chain reads. No API key; each tool has a small free daily tier, then is paid per call in USDC on Base via x402.',
+    packageName: '@tanod-labs/ai-sdk',
+    tags: ['security', 'web3', 'smart-contracts', 'x402', 'payments'],
+    installCommand: {
+      pnpm: 'pnpm add @tanod-labs/ai-sdk ai zod',
+      npm: 'npm install @tanod-labs/ai-sdk ai zod',
+      yarn: 'yarn add @tanod-labs/ai-sdk ai zod',
+      bun: 'bun add @tanod-labs/ai-sdk ai zod',
+    },
+    codeExample: `import { generateText, isStepCount } from 'ai';
+import { tanodTools } from '@tanod-labs/ai-sdk';
+
+// No API key needed: free-tier calls work without a wallet. To pay per call
+// past the free tier, set TANOD_PRIVATE_KEY to a hot wallet holding a little
+// USDC on Base. maxPriceUsd caps what a single call may cost.
+const { text } = await generateText({
+  model: 'openai/gpt-5-mini',
+  prompt:
+    'Before I approve it: is 0x6fF5693b99212Da76ad316178A184AB56D299b43 on Base risky?',
+  tools: tanodTools({ maxPriceUsd: 0.05 }),
+  stopWhen: isStepCount(5),
+});
+
+console.log(text);`,
+    docsUrl:
+      'https://github.com/tanod-labs/integrations/tree/main/ai-sdk#readme',
+    websiteUrl: 'https://tanod.dev',
+    npmUrl: 'https://www.npmjs.com/package/@tanod-labs/ai-sdk',
+  },
 ];
