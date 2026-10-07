@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/workflow-harness",
-  "version": "1.0.138",
+  "version": "1.0.141",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -45,7 +45,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "ai": "workspace:*",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "workflow": "4.6.0"
   },
   "engines": {

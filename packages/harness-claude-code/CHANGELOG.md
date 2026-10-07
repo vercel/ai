@@ -1,5 +1,40 @@
 # @ai-sdk/harness-claude-code
 
+## 1.0.145
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/harness@1.0.141
+  - @ai-sdk/provider-utils@5.0.56
+
+## 1.0.144
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+- Updated dependencies [4c6979c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+  - @ai-sdk/harness@1.0.140
+
+## 1.0.143
+
+### Patch Changes
+
+- a470e0d: Fix over-reported `finish` metadata cost when Claude Code returns multiple results. `harnessMetadata['claude-code'].costUsd` now uses the latest cumulative `total_cost_usd` instead of adding running totals together, including costs carried forward by resumed sessions.
+- 12d249f: fix(harness-claude-code): fix resumed turns ending with empty text when background-task notification result gets emitted before the host prompt is processed
+- Updated dependencies [2959d35]
+- Updated dependencies [e7da240]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+  - @ai-sdk/harness@1.0.139
+
 ## 1.0.142
 
 ### Patch Changes

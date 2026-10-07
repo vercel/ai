@@ -1,6 +1,6 @@
 {
   "name": "@ai-sdk/provider-utils",
-  "version": "5.0.53",
+  "version": "5.0.56",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
@@ -41,6 +41,11 @@
       "import": "./dist/test/index.js",
       "default": "./dist/test/index.js"
     },
+    "./experimental-decision": {
+      "types": "./dist/experimental-decision/index.d.ts",
+      "import": "./dist/experimental-decision/index.js",
+      "default": "./dist/experimental-decision/index.js"
+    },
     "./experimental-evaluation": {
       "types": "./dist/experimental-evaluation/index.d.ts",
       "import": "./dist/experimental-evaluation/index.js",
@@ -59,7 +64,7 @@
     "@vercel/ai-tsconfig": "workspace:*",
     "msw": "2.7.0",
     "tsdown": "^0.23.0",
-    "typescript": "5.8.3",
+    "typescript": "6.0.3",
     "zod": "3.25.76"
   },
   "peerDependencies": {

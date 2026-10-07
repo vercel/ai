@@ -149,6 +149,60 @@ describe('doGenerate', () => {
     });
   });
 
+  it('should preserve diarized words in provider metadata', async () => {
+    server.urls[url].response = {
+      type: 'json-value',
+      body: {
+        text: 'Hello from the AI SDK!',
+        language: 'en',
+        duration: 2.5,
+        words: [
+          {
+            text: 'Hello',
+            start: 0,
+            end: 1,
+            speaker: 0,
+          },
+          {
+            text: 'from the AI SDK!',
+            start: 1,
+            end: 2.5,
+            speaker: 1,
+          },
+        ],
+      },
+    };
+
+    const result = await model.doGenerate({
+      audio: audioData,
+      mediaType: 'audio/wav',
+      providerOptions: {
+        xai: {
+          diarize: true,
+        },
+      },
+    });
+
+    expect(result.providerMetadata).toStrictEqual({
+      xai: {
+        words: [
+          {
+            text: 'Hello',
+            start: 0,
+            end: 1,
+            speaker: 0,
+          },
+          {
+            text: 'from the AI SDK!',
+            start: 1,
+            end: 2.5,
+            speaker: 1,
+          },
+        ],
+      },
+    });
+  });
+
   it('should pass the opus audio format through for batch requests', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error('request captured'));
     const customModel = createXai({

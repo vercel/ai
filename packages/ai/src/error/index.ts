@@ -1,8 +1,11 @@
+import { Experimental_DecisionUnsupportedQuestionTypeError } from '@ai-sdk/provider';
+
 export {
   AISDKError,
   APICallError,
   EmptyResponseBodyError,
-  Experimental_EvaluationUnsupportedQuestionTypeError,
+  Experimental_DecisionRefusalError,
+  Experimental_DecisionUnsupportedQuestionTypeError,
   InvalidPromptError,
   InvalidResponseDataError,
   JSONParseError,
@@ -41,3 +44,10 @@ export { InvalidMessageRoleError } from '../prompt/invalid-message-role-error';
 export { MessageConversionError } from '../prompt/message-conversion-error';
 export { DownloadError } from '@ai-sdk/provider-utils';
 export { RetryError } from '../util/retry-error';
+
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export const Experimental_EvaluationUnsupportedQuestionTypeError =
+  Experimental_DecisionUnsupportedQuestionTypeError;
+/** @deprecated Use `Experimental_DecisionUnsupportedQuestionTypeError` instead. */
+export type Experimental_EvaluationUnsupportedQuestionTypeError =
+  Experimental_DecisionUnsupportedQuestionTypeError;

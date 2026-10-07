@@ -187,6 +187,9 @@ describe('asLanguageModelV3', () => {
               "text": undefined,
               "total": 5,
             },
+            "raw": {
+              "totalTokens": 15,
+            },
           },
           "warnings": [],
         }
@@ -267,6 +270,9 @@ describe('asLanguageModelV3', () => {
                     "reasoning": 2,
                     "text": undefined,
                     "total": 10,
+                  },
+                  "raw": {
+                    "totalTokens": 13,
                   },
                 },
               },
@@ -414,6 +420,7 @@ describe('asLanguageModelV3', () => {
       });
 
       expect(response.usage?.outputTokens?.reasoning).toBe(5);
+      expect(response.usage?.raw).toEqual({ totalTokens: 20 });
     });
 
     it('should handle response with cached input tokens in usage', async () => {

@@ -1,5 +1,36 @@
 # @ai-sdk/mcp
 
+## 2.0.69
+
+### Patch Changes
+
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 2.0.68
+
+### Patch Changes
+
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 2.0.67
+
+### Patch Changes
+
+- bba3927: feat(mcp): export MCPClientError for typed MCP failure handling
+- 9384b92: fix(mcp): reject SSE startup when the connection closes before an endpoint is received
+- 575383e: fix(mcp): preserve OAuth credentials when callback codes are rejected
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 2.0.66
 
 ### Patch Changes

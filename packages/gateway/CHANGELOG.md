@@ -1,5 +1,41 @@
 # @ai-sdk/gateway
 
+## 4.0.106
+
+### Patch Changes
+
+- d3bcad9: feat(provider): report decision refusals as refusal answers
+- Updated dependencies [d3bcad9]
+  - @ai-sdk/provider@4.0.24
+  - @ai-sdk/provider-utils@5.0.56
+
+## 4.0.105
+
+### Patch Changes
+
+- fc1e19e: fix: limit jsonl rows to 64mb during batch result downloads
+- 753f2e1: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- ad64697: chore(provider/gateway): update gateway model settings files
+- 0c82824: fix(xai): preserve or report unavailable speaker diarization
+- Updated dependencies [fc1e19e]
+- Updated dependencies [5094ebd]
+- Updated dependencies [268225c]
+- Updated dependencies [0af2f7c]
+  - @ai-sdk/provider-utils@5.0.55
+  - @ai-sdk/provider@4.0.23
+
+## 4.0.104
+
+### Patch Changes
+
+- 131532b: chore(provider/gateway): update gateway model settings files
+- 2959d35: feat: rename `evaluate` to `decide`
+- 6ac923a: chore(provider/gateway): update gateway model settings files
+- Updated dependencies [2959d35]
+- Updated dependencies [59116e6]
+  - @ai-sdk/provider@4.0.22
+  - @ai-sdk/provider-utils@5.0.54
+
 ## 4.0.103
 
 ### Patch Changes

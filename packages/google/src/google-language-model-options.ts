@@ -35,6 +35,7 @@ export type GoogleModelId =
   | 'gemini-3.6-flash'
   | 'gemini-3.7-flash'
   | 'gemini-3.8-flash'
+  | 'gemini-nano-banana-2.1'
   // latest version
   // https://ai.google.dev/gemini-api/docs/models#latest
   | 'gemini-pro-latest'
