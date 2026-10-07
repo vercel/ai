@@ -8,6 +8,11 @@ import semver from 'semver';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
+const sdkPackagesToSync = [
+  '@agentclientprotocol/sdk',
+  '@modelcontextprotocol/sdk',
+];
+
 const adapterConfigs = [
   {
     name: 'ACP',
@@ -212,6 +217,35 @@ export function validatePrimaryVersionAlignment({
   ];
 }
 
+export function validateSynchronizedSdkVersions({ manifests }) {
+  const errors = [];
+
+  for (const packageName of sdkPackagesToSync) {
+    const declarations = manifests.flatMap(
+      ({ adapterName, manifest, manifestPath }) => {
+        const spec = getDependencySpec({ manifest, packageName });
+        return spec == null ? [] : [{ adapterName, manifestPath, spec }];
+      },
+    );
+
+    if (declarations.length < 2) continue;
+
+    const [firstDeclaration, ...otherDeclarations] = declarations;
+    for (const declaration of otherDeclarations) {
+      if (declaration.spec === firstDeclaration.spec) continue;
+
+      errors.push(
+        `Harness adapter manifests declare different versions of ${packageName}: ` +
+          `${firstDeclaration.spec} in ${firstDeclaration.adapterName} ` +
+          `(${firstDeclaration.manifestPath}) and ${declaration.spec} in ` +
+          `${declaration.adapterName} (${declaration.manifestPath}).`,
+      );
+    }
+  }
+
+  return errors;
+}
+
 function discoverAdapterPackageDirs() {
   return globSync('packages/harness-*/package.json', {
     cwd: repoRoot,
@@ -249,6 +283,7 @@ function main() {
   }
 
   const adapterData = [];
+  const synchronizedSdkManifests = [];
   const peerCompatibilityErrors = [];
   let verifiedManifestCount = 0;
 
@@ -267,6 +302,29 @@ function main() {
     }
 
     const rootManifest = readJson(rootPackageJsonPath);
+    synchronizedSdkManifests.push({
+      adapterName: adapter.name,
+      manifest: rootManifest,
+      manifestPath: relative(repoRoot, rootPackageJsonPath),
+    });
+
+    const bridgePackageJsonPath = resolve(
+      repoRoot,
+      adapter.packageDir,
+      adapter.bridgePath ?? 'src/bridge',
+      'package.json',
+    );
+    const bridgeManifest = existsSync(bridgePackageJsonPath)
+      ? readJson(bridgePackageJsonPath)
+      : undefined;
+    if (bridgeManifest != null) {
+      synchronizedSdkManifests.push({
+        adapterName: `${adapter.name} bridge`,
+        manifest: bridgeManifest,
+        manifestPath: relative(repoRoot, bridgePackageJsonPath),
+      });
+    }
+
     if (adapter.primarySdk == null) {
       continue;
     }
@@ -316,15 +374,6 @@ function main() {
     );
     verifiedManifestCount++;
 
-    const bridgePackageJsonPath = resolve(
-      repoRoot,
-      adapter.packageDir,
-      adapter.bridgePath ?? 'src/bridge',
-      'package.json',
-    );
-    const bridgeManifest = existsSync(bridgePackageJsonPath)
-      ? readJson(bridgePackageJsonPath)
-      : undefined;
     if (bridgeManifest != null) {
       peerCompatibilityErrors.push(
         ...validatePeerRanges({
@@ -345,6 +394,18 @@ function main() {
       rootManifest,
       rootPackageJsonPath,
     });
+  }
+
+  const synchronizedSdkVersionErrors = validateSynchronizedSdkVersions({
+    manifests: synchronizedSdkManifests,
+  });
+  if (synchronizedSdkVersionErrors.length > 0) {
+    reportErrors({
+      heading: 'Harness adapter shared SDK version alignment failed',
+      errors: synchronizedSdkVersionErrors,
+    });
+    process.exitCode = 1;
+    return;
   }
 
   if (peerCompatibilityErrors.length > 0) {
@@ -385,6 +446,7 @@ function main() {
       `adapter manifest${verifiedManifestCount === 1 ? '' : 's'}.`,
   );
   console.log('✓ Verified primary SDK versions match across bridge manifests.');
+  console.log('✓ Verified shared SDK versions match across harness manifests.');
 }
 
 if (
