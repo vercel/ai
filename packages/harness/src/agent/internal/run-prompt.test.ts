@@ -136,6 +136,179 @@ const resumableFinishStep: HarnessV1StreamPart = {
   finishReason: { unified: 'tool-calls', raw: 'tool_use' },
 };
 
+describe('runPrompt dynamic calls with filtered builtin names', () => {
+  const builtinRead = tool({
+    inputSchema: z.object({ file_path: z.string() }),
+  });
+  const readHarness: HarnessV1 = {
+    ...harness,
+    builtinTools: { read: builtinRead },
+  };
+
+  test.each([
+    { mode: 'deny' as const, toolNames: ['read'] },
+    { mode: 'allow' as const, toolNames: [] },
+  ])(
+    'accepts a provider-executed dynamic read with $mode filtering',
+    async filtering => {
+      const pendingResults: unknown[] = [];
+      const { result, done } = runPrompt({
+        harness: readHarness,
+        session: fakeSession([
+          {
+            type: 'tool-input-start',
+            id: 'replacement-call',
+            toolName: 'read',
+            dynamic: true,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-call',
+            toolCallId: 'replacement-call',
+            toolName: 'read',
+            input: '{"query":"hello"}',
+            dynamic: true,
+            providerExecuted: true,
+          },
+          {
+            type: 'tool-result',
+            toolCallId: 'replacement-call',
+            toolName: 'read',
+            result: 'MCP result',
+            dynamic: true,
+          },
+          ...finishEvents,
+        ]),
+        prompt: 'go',
+        instructions: undefined,
+        tools: readHarness.builtinTools,
+        activeTools: {},
+        builtinToolFiltering: filtering,
+        toolSpecs: [],
+        sandboxSession,
+        sessionWorkDir: WORK_DIR,
+        runtimeContext: {} as never,
+        abortSignal: undefined,
+        onPendingToolResult: pendingResult =>
+          pendingResults.push(pendingResult),
+      });
+
+      const parts: TextStreamPart<ToolSet>[] = [];
+      for await (const part of result.fullStream) parts.push(part);
+      await done;
+
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-input-start',
+          id: 'replacement-call',
+          toolName: 'read',
+          dynamic: true,
+          providerExecuted: true,
+        }),
+      );
+      const parsedCall = parts.find(
+        part =>
+          part.type === 'tool-call' && part.toolCallId === 'replacement-call',
+      );
+      expect(parsedCall).toMatchObject({
+        toolName: 'read',
+        input: { query: 'hello' },
+        dynamic: true,
+        providerExecuted: true,
+      });
+      expect(parsedCall).not.toHaveProperty('invalid');
+      expect(parts).toContainEqual(
+        expect.objectContaining({
+          type: 'tool-result',
+          toolCallId: 'replacement-call',
+          output: 'MCP result',
+          dynamic: true,
+        }),
+      );
+      expect((await result.steps)[0]?.toolResults).toHaveLength(1);
+      expect(pendingResults).toEqual([]);
+    },
+  );
+
+  test('continues validating a tool with an active builtin schema', async () => {
+    const { result, done } = runPrompt({
+      harness: readHarness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'builtin-call',
+          toolName: 'read',
+          input: '{"query":"hello"}',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: readHarness.builtinTools,
+      activeTools: {},
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'builtin-call',
+        invalid: true,
+      }),
+    );
+  });
+
+  test('keeps an active host tool schema when its name matches a filtered builtin', async () => {
+    const hostRead = tool({ inputSchema: z.object({ query: z.string() }) });
+    const { result, done } = runPrompt({
+      harness: readHarness,
+      session: fakeSession([
+        {
+          type: 'tool-call',
+          toolCallId: 'host-name-call',
+          toolName: 'read',
+          input: '{"file_path":"example.txt"}',
+          providerExecuted: true,
+          dynamic: true,
+        },
+        ...finishEvents,
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: { read: hostRead },
+      activeTools: { read: hostRead },
+      builtinToolFiltering: { mode: 'deny', toolNames: ['read'] },
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+    });
+
+    const parts: TextStreamPart<ToolSet>[] = [];
+    for await (const part of result.fullStream) parts.push(part);
+    await done;
+
+    expect(parts).toContainEqual(
+      expect.objectContaining({
+        type: 'tool-call',
+        toolCallId: 'host-name-call',
+        invalid: true,
+      }),
+    );
+  });
+});
+
 describe('runPrompt client-side built-in tools', () => {
   test('pauses for askUserQuestions and persists adapter metadata as provider options', async () => {
     const submitted: Parameters<
@@ -616,6 +789,63 @@ describe('runPrompt telemetry lifecycle', () => {
       'end:start',
       'end:done',
     ]);
+  });
+});
+
+describe('runPrompt stop-condition telemetry', () => {
+  test('reports the usage of every step as the turn total when a stop condition ends the turn', async () => {
+    const stepUsage = (input: number, output: number) => ({
+      inputTokens: {
+        total: input,
+        noCache: input,
+        cacheRead: 0,
+        cacheWrite: 0,
+      },
+      outputTokens: { total: output, text: output, reasoning: 0 },
+    });
+    const finishStep = (
+      input: number,
+      output: number,
+    ): HarnessV1StreamPart => ({
+      type: 'finish-step',
+      finishReason: { unified: 'stop', raw: 'end_turn' },
+      usage: stepUsage(input, output),
+    });
+    const endEvents: Array<{ totalUsage: { inputTokens?: number } }> = [];
+    const integration = {
+      async onEnd(event: { totalUsage: { inputTokens?: number } }) {
+        endEvents.push(event);
+      },
+    } as Telemetry;
+
+    const { result, done } = runPrompt({
+      harness,
+      session: fakeSession([
+        { type: 'stream-start' },
+        finishStep(10, 1),
+        finishStep(25, 4),
+        // Evaluated when the next part arrives; this step must not count.
+        { type: 'text-delta', id: 'text-1', delta: 'ignored' },
+        finishStep(7, 2),
+      ]),
+      prompt: 'go',
+      instructions: undefined,
+      tools: {} as ToolSet,
+      toolSpecs: [],
+      sandboxSession,
+      sessionWorkDir: WORK_DIR,
+      runtimeContext: {} as never,
+      abortSignal: undefined,
+      stopConditions: [({ steps }) => steps.length === 2],
+      telemetry: { integrations: [integration] },
+    });
+    for await (const _part of result.fullStream) {
+      // drain
+    }
+    await done;
+
+    expect(endEvents).toHaveLength(1);
+    expect(endEvents[0]!.totalUsage.inputTokens).toBe(35);
   });
 });
 
