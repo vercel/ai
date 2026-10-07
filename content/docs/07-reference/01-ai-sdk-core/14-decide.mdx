@@ -48,19 +48,6 @@ Returns `Promise<Experimental_DecisionResult<QUESTIONS>>`:
 `specificationVersion: 'v4'`, `provider`, `modelId`, `supportedQuestionTypes`, and
 `doDecide(options)`. Decision models are isolated from stable `ProviderV4`.
 
-Core normalizes public state into `readonly Experimental_DecisionModelV4StatePart[]`
-before it calls the provider. A string becomes one `text` part, and a JSON object
-becomes one `json` part. Arrays keep their part order, and `[]` stays empty.
-File data is converted to the provider file shape. Model-call lifecycle events
-contain this normalized state; the outer lifecycle events contain the public input.
-
-Public question instructions and criteria descriptions accept strings, JSON objects,
-and JSON arrays. Core preserves strings and serializes JSON with `JSON.stringify`.
-`Experimental_DecisionModelV4Question` accepts string instructions and `string | null`
-criteria descriptions. Model-call events contain the normalized questions; outer
-lifecycle events contain the public questions. Choice option labels remain intact,
-so result types retain literal option inference.
-
 The public core types are `Experimental_DecisionModel`,
 `Experimental_DecisionState`, `Experimental_DecisionStatePart`,
 `Experimental_DecisionQuestion`, `Experimental_DecisionQuestionInput`,
