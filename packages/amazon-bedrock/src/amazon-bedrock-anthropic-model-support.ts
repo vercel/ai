@@ -50,3 +50,13 @@ const MODELS_WITHOUT_RELIABLE_NATIVE_STRUCTURED_OUTPUT = [
 function matchesModel(modelId: string, models: string[]): boolean {
   return models.some(model => modelId.includes(model));
 }
+
+export function supportsRequiredToolChoice(modelId: string): boolean {
+  return MODELS_REJECTING_REQUIRED_TOOL_CHOICE.every(
+    model => !model.test(modelId),
+  );
+}
+
+// Meta models support tool calling but reject Bedrock's `toolChoice.any`, so
+// the synthetic JSON response tool cannot be forced.
+const MODELS_REJECTING_REQUIRED_TOOL_CHOICE = [/meta\./];

@@ -234,6 +234,12 @@ Amazon Bedrock language models can also be used in the `streamText` function
 
 ### Structured Outputs
 
+When native structured output is unavailable, the provider uses a JSON tool fallback.
+
+<Note type="warning">
+  Meta models reject required tool choice, so tool use is not forced and structured output may be less reliable.
+</Note>
+
 For Anthropic models, you can use the `structuredOutputMode` provider option to
 choose how Amazon Bedrock generates structured outputs:
 
