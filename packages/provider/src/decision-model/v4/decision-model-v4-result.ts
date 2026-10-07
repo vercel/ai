@@ -26,6 +26,10 @@ export type DecisionModelV4Answer =
       type: 'boolean';
       /** Model-estimated P(true), in [0, 1]. Not confidence in either outcome. */
       probability: number;
+    }
+  | {
+      /** The model declined to answer this question. Valid for any question type. */
+      type: 'refusal';
     };
 
 export type DecisionModelV4Result = {
