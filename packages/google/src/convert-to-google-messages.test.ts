@@ -694,6 +694,36 @@ describe('tool messages', () => {
     });
   });
 
+  it('should preserve error semantics in function responses', async () => {
+    const result = convertToGoogleMessages([
+      {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool-result',
+            toolName: 'deploy',
+            toolCallId: 'testCallId',
+            output: {
+              type: 'error-text',
+              value: 'exit code 1: migration failed',
+            },
+          },
+        ],
+      },
+    ]);
+
+    expect(result.contents[0].parts[0]).toEqual({
+      functionResponse: {
+        id: 'testCallId',
+        name: 'deploy',
+        response: {
+          name: 'deploy',
+          error: 'exit code 1: migration failed',
+        },
+      },
+    });
+  });
+
   it('should serialize JSON Schema references in function response content', async () => {
     const toolResult = {
       tools: [
@@ -1777,7 +1807,7 @@ describe('tool results with thought signatures', () => {
         id: 'call1',
         name: 'readdata',
         response: {
-          content: 'file not found',
+          error: 'file not found',
           name: 'readdata',
         },
       },

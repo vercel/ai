@@ -931,7 +931,7 @@ describe('tool calls', () => {
     `);
   });
 
-  it('should normalize malformed tool call input and preserve the tool error', () => {
+  it('should normalize malformed tool call input and preserve the tool error semantics', () => {
     const result = convertToOpenAIChatMessages({
       prompt: [
         {
@@ -979,7 +979,7 @@ describe('tool calls', () => {
           ],
         },
         {
-          "content": "Invalid input: JSON parsing failed",
+          "content": "{"error":"Invalid input: JSON parsing failed"}",
           "role": "tool",
           "tool_call_id": "quux",
         },
@@ -1018,7 +1018,7 @@ describe('tool calls', () => {
           "tool_call_id": "text-tool",
         },
         {
-          "content": "Something went wrong",
+          "content": "{"error":"Something went wrong"}",
           "role": "tool",
           "tool_call_id": "error-tool",
         },
