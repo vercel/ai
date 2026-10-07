@@ -248,6 +248,14 @@ export class HarnessStreamTextResult<
   }
 
   /**
+   * Push adapter-specific raw data to `fullStream` without attributing it to a
+   * model step.
+   */
+  enqueueRaw(rawValue: unknown): void {
+    this.fullStreamController.enqueue({ type: 'raw', rawValue });
+  }
+
+  /**
    * Drop content replayed while a suspended host-input pause closes its
    * already-recorded model step.
    */
