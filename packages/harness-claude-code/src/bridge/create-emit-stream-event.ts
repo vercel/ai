@@ -229,6 +229,7 @@ export function createEmitStreamEvent({
 
     if (
       type === 'tool_progress' ||
+      type === 'rate_limit_event' ||
       (type === 'system' &&
         msg.subtype != null &&
         RAW_TASK_MESSAGE_SUBTYPES.has(msg.subtype))
