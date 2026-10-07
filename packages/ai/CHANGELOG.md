@@ -1,5 +1,18 @@
 # ai
 
+## 5.0.273
+
+### Patch Changes
+
+- 223133e: fix(ai): prevent deleted tools named after Object.prototype properties from exposing persisted output to models
+- 51e2b34: fix(ai): prevent unavailable tools from exposing persisted output to models
+- 5f95b09: fix(ai): avoid duplicate slashes in chat reconnect URLs
+- Updated dependencies [4a65dd5]
+- Updated dependencies [8f63231]
+- Updated dependencies [95c921d]
+- Updated dependencies [c858a31]
+  - @ai-sdk/gateway@2.0.164
+
 ## 5.0.272
 
 ### Patch Changes

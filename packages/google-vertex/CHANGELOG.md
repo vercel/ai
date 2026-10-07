@@ -1,5 +1,21 @@
 # @ai-sdk/google-vertex
 
+## 3.0.181
+
+### Patch Changes
+
+- 4a65dd5: feat(anthropic): add Claude Haiku 5.5 support
+
+  - add the `claude-haiku-5-5` model ID to `@ai-sdk/anthropic` and `@ai-sdk/google-vertex`, `anthropic.claude-haiku-5-5` and `us.anthropic.claude-haiku-5-5` to `@ai-sdk/amazon-bedrock`, and `anthropic/claude-haiku-5.5` to `@ai-sdk/gateway`
+  - recognize `claude-haiku-5-5` as a known model with a 128k max output token limit and all five effort levels; thinking can be disabled up to `high` effort, and `xhigh` and `max` are lowered to `high` with a warning when thinking is disabled
+  - `claude-haiku-5-5` does not support thinking token budgets: `thinking: { type: 'enabled', budgetTokens }` is converted to adaptive thinking with a warning
+
+- 95c921d: feat(google): add the 'gemini-nano-banana-2.1' model ID
+- Updated dependencies [4a65dd5]
+- Updated dependencies [95c921d]
+  - @ai-sdk/anthropic@2.0.109
+  - @ai-sdk/google@2.0.102
+
 ## 3.0.180
 
 ### Patch Changes
