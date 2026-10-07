@@ -96,7 +96,6 @@ The optional argument has these properties:
 See [`Experimental_MCPEventDefinition`](/docs/reference/ai-sdk-core/mcp-events#event-definition)
 for the definition fields. Pagination is explicit; this method does not fetch all pages.
 
-
 ## Managed Subscriptions
 
 Configure `experimental_events: { adapter }` to delegate subscription lifecycle
@@ -125,12 +124,16 @@ try {
     idempotencyKey: 'saved_intent_123',
   });
 
-  const state = await client.experimental_events.getSubscription({ id: watch.id });
+  const state = await client.experimental_events.getSubscription({
+    id: watch.id,
+  });
   const page = await client.experimental_events.listSubscriptions({
     status: 'active',
     limit: 20,
   });
-  const stopped = await client.experimental_events.unsubscribe({ id: watch.id });
+  const stopped = await client.experimental_events.unsubscribe({
+    id: watch.id,
+  });
 } finally {
   await client.close();
 }
@@ -149,7 +152,13 @@ type ManagedSubscription = {
   id: string;
   name: string;
   arguments: JSONObject;
-  status: 'pending' | 'active' | 'needs_auth' | 'stopped' | 'expired' | 'failed';
+  status:
+    | 'pending'
+    | 'active'
+    | 'needs_auth'
+    | 'stopped'
+    | 'expired'
+    | 'failed';
   expiresAt: string | null;
   cleanupStatus?: 'pending' | 'complete' | 'exhausted';
 };
@@ -159,7 +168,11 @@ type ManagedSubscribeInput = {
   arguments: JSONObject;
   context?: JSONObject;
   idempotencyKey: string;
-  options?: { signal?: AbortSignal; timeout?: number; maxTotalTimeout?: number };
+  options?: {
+    signal?: AbortSignal;
+    timeout?: number;
+    maxTotalTimeout?: number;
+  };
 } & (
   | { ttlMs: number; expiresAt?: never }
   | { expiresAt: string | null; ttlMs?: never }
@@ -173,12 +186,12 @@ monitor until stopped. The backend validates these values and enforces its limit
 
 `Experimental_MCPEventsAdapter` has four operations:
 
-| Operation | Input | Result |
-| --- | --- | --- |
-| `subscribe` | `Experimental_ManagedSubscribeInput` | `Experimental_ManagedSubscription` |
-| `getSubscription` | `{ id, options? }` | `Experimental_ManagedSubscription` |
-| `listSubscriptions` | Optional `{ cursor?, limit?, status?, options? }` | `{ subscriptions, nextCursor? }` |
-| `unsubscribe` | `{ id, options? }` | `Experimental_ManagedSubscription` |
+| Operation           | Input                                             | Result                             |
+| ------------------- | ------------------------------------------------- | ---------------------------------- |
+| `subscribe`         | `Experimental_ManagedSubscribeInput`              | `Experimental_ManagedSubscription` |
+| `getSubscription`   | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
+| `listSubscriptions` | Optional `{ cursor?, limit?, status?, options? }` | `{ subscriptions, nextCursor? }`   |
+| `unsubscribe`       | `{ id, options? }`                                | `Experimental_ManagedSubscription` |
 
 All operations return promises. The client passes inputs, cancellation/timeout
 options, results and errors through without retries or remapping. The adapter
